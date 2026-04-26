@@ -285,6 +285,7 @@ serve(async (req) => {
       specialType,
       specialPayload,
       carouselCards,
+      templateId,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -1027,6 +1028,9 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     let logContent = logMessage;
+    if (templateId) {
+      logContent = `[modelo:${templateId}]`;
+    }
     if (mediaUrl && mediaType) {
       const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
       logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;

@@ -171,8 +171,9 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
   // If this message comes from a campaign whose template is a carousel, render its cards.
   const carouselTemplate: MessageTemplate | null = (() => {
-    if (!campaignId || !templates || !campaignTemplates) return null;
-    const tplId = campaignTemplates.get(campaignId);
+    if (!templates) return null;
+    const directTemplateId = content.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1];
+    const tplId = directTemplateId || (campaignId && campaignTemplates ? campaignTemplates.get(campaignId) : null);
     if (!tplId) return null;
     const tpl = templates.find(t => t.id === tplId);
     if (!tpl) return null;
@@ -185,9 +186,10 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   if (carouselTemplate) {
     const rawCards = (carouselTemplate as any).carouselCards ?? (carouselTemplate as any).carousel_cards;
     const cards: any[] = Array.isArray(rawCards) ? rawCards : [];
+    const displayContent = content.match(/\[modelo:[a-f0-9-]+\]/i) ? carouselTemplate.content : content;
     return (
       <div className="w-[260px] max-w-full">
-        {content && <p className="text-sm whitespace-pre-wrap mb-2">{content}</p>}
+        {displayContent && <p className="text-sm whitespace-pre-wrap mb-2">{displayContent}</p>}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
           {cards.map((card: any, idx: number) => (
             <div key={idx} className={cn(
@@ -403,6 +405,8 @@ const ChatView = ({
       phone?: string;
       url?: string;
     }>;
+    carouselCards?: MessageTemplate['carouselCards'];
+    templateId?: string;
   }) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
@@ -564,6 +568,26 @@ const ChatView = ({
   const handleSelectTemplate = async (template: MessageTemplate) => {
     setTemplatePopoverOpen(false);
     setTemplateSearch("");
+
+    const carouselCards = Array.isArray(template.carouselCards) ? template.carouselCards : [];
+    if (carouselCards.length > 0) {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        await onSendMessage(conversation.phone, template.content, {
+          preferredInstanceId: conversation.preferredInstanceId,
+          carouselCards,
+          templateId: template.id,
+        });
+        incrementUsage(template.id);
+        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+      } catch {
+        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
 
     const templateButtonActions = (template.buttons || []).map((button, index) => {
       const rawType = (button.type || 'reply').toString().toLowerCase();
