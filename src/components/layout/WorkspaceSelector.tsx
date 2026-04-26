@@ -7,6 +7,8 @@ import { useWorkspace, WorkspaceType } from "@/contexts/WorkspaceContext";
 import { FacebookConnectDialog } from "./FacebookConnectDialog";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -47,6 +49,11 @@ export function WorkspaceSelector() {
   const { activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { data: metaCreds } = useMetaCredentials();
   const { isPaid, loading: subLoading } = useSubscriptionStatus();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
+  }, []);
+  const { isAdmin } = useUserRole(userId);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
@@ -77,7 +84,8 @@ export function WorkspaceSelector() {
     }
   }, [isPaid, subLoading, activeWorkspace, setActiveWorkspace, navigate]);
 
-  const current = workspaces.find((w) => w.id === activeWorkspace) || workspaces[0];
+  const visibleWorkspaces = workspaces.filter((w) => w.id !== "meta" || isAdmin);
+  const current = visibleWorkspaces.find((w) => w.id === activeWorkspace) || visibleWorkspaces[0];
   const CurrentIcon = current.icon;
 
   const handleSelect = (ws: WorkspaceType) => {
@@ -135,7 +143,7 @@ export function WorkspaceSelector() {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 py-1.5">
             Workspace
           </p>
-          {workspaces.map((ws) => {
+          {visibleWorkspaces.map((ws) => {
             const Icon = ws.icon;
             const isActive = activeWorkspace === ws.id;
             const isLocked = ws.id === "meta" && !isPaid && !subLoading;
