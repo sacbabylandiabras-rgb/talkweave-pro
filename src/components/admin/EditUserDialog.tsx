@@ -204,6 +204,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="plan">Plano contratado</Label>
+            <Select value={planId} onValueChange={setPlanId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar plano" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem plano</SelectItem>
+                {plans.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} — R$ {(p.price / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label>Data de Expiração</Label>
             <Popover>
               <PopoverTrigger asChild>
