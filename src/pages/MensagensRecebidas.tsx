@@ -569,6 +569,26 @@ const ChatView = ({
     setTemplatePopoverOpen(false);
     setTemplateSearch("");
 
+    const carouselCards = Array.isArray(template.carouselCards) ? template.carouselCards : [];
+    if (carouselCards.length > 0) {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        await onSendMessage(conversation.phone, template.content, {
+          preferredInstanceId: conversation.preferredInstanceId,
+          carouselCards,
+          templateId: template.id,
+        });
+        incrementUsage(template.id);
+        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+      } catch {
+        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     const templateButtonActions = (template.buttons || []).map((button, index) => {
       const rawType = (button.type || 'reply').toString().toLowerCase();
       return {
