@@ -29,6 +29,7 @@ export interface CampaignSendMessage {
   sent_at: string | null;
   created_at: string;
   instance_name: string | null;
+  campaign_id?: string | null;
 }
 
 export interface UnifiedMessage {
@@ -39,6 +40,7 @@ export interface UnifiedMessage {
   timestamp: string;
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
+  campaign_id?: string | null;
 }
 
 export interface SavedContact {
@@ -499,7 +501,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('campaign_sends')
-        .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
+        .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name, campaign_id')
         .in('status', ['sent', 'delivered'])
         .gte('created_at', sinceISO)
         .order('created_at', { ascending: false })
@@ -913,6 +915,7 @@ export const useMessageLogs = (
         content: send.message_content,
         timestamp: send.sent_at || send.created_at,
         source: 'campaign',
+        campaign_id: send.campaign_id ?? null,
       });
     });
 

@@ -168,7 +168,56 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 };
 
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent, templates }: { content: string; isSent: boolean; templates?: MessageTemplate[] }) => {
+const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+  // If this message comes from a campaign whose template is a carousel, render its cards.
+  const carouselTemplate: MessageTemplate | null = (() => {
+    if (!campaignId || !templates || !campaignTemplates) return null;
+    const tplId = campaignTemplates.get(campaignId);
+    if (!tplId) return null;
+    const tpl = templates.find(t => t.id === tplId);
+    if (!tpl) return null;
+    const cards: any[] = Array.isArray((tpl as any).carousel_cards) ? (tpl as any).carousel_cards : [];
+    if (cards.length === 0) return null;
+    return tpl;
+  })();
+
+  if (carouselTemplate) {
+    const cards: any[] = (carouselTemplate as any).carousel_cards || [];
+    return (
+      <div className="w-[260px] max-w-full">
+        {content && <p className="text-sm whitespace-pre-wrap mb-2">{content}</p>}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+          {cards.map((card: any, idx: number) => (
+            <div key={idx} className={cn(
+              "shrink-0 w-[220px] snap-start rounded-lg overflow-hidden border",
+              isSent ? "bg-primary-foreground/10 border-primary-foreground/20" : "bg-card border-border"
+            )}>
+              {card.image && (
+                <img src={card.image} alt="" className="w-full h-[120px] object-cover" />
+              )}
+              <div className="p-2 space-y-1">
+                {card.title && <p className="text-xs font-semibold leading-tight">{card.title}</p>}
+                {card.description && <p className="text-[11px] opacity-80 leading-snug whitespace-pre-wrap">{card.description}</p>}
+                {Array.isArray(card.buttons) && card.buttons.length > 0 && (
+                  <div className="flex flex-col gap-1 pt-1">
+                    {card.buttons.map((btn: any, bIdx: number) => (
+                      <div key={bIdx} className={cn(
+                        "text-center text-[11px] font-medium py-1 px-2 rounded border truncate",
+                        isSent ? "border-primary-foreground/30 text-primary-foreground/90 bg-primary-foreground/10" : "border-border text-primary bg-primary/5"
+                      )}>
+                        {btn.text || btn.label || 'Abrir'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
@@ -333,7 +382,7 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
@@ -355,6 +404,7 @@ const ChatView = ({
   }) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
+  campaignTemplates?: Map<string, string>;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -635,7 +685,7 @@ const ChatView = ({
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={false} templates={templates} />
+                        <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
@@ -644,7 +694,7 @@ const ChatView = ({
                   ) : (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={true} templates={templates} />
+                        <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <div className="flex items-center justify-end gap-1.5 mt-1">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] opacity-70 flex items-center gap-0.5">
@@ -861,6 +911,7 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   const instances = useMemo(
@@ -1089,6 +1140,34 @@ const MensagensRecebidas = () => {
       .catch((err) => console.warn('fetch-chat-messages error', err));
   }, [selectedPhone, selectedInstance?.id, activeInstance?.id, refetch]);
 
+  // Collect campaign_ids referenced in conversations and load their template_id
+  // so we can render carousel cards in the chat bubble.
+  useEffect(() => {
+    const ids = new Set<string>();
+    conversations.forEach((c) => {
+      c.messages.forEach((m: any) => {
+        if (m.campaign_id && !campaignTemplates.has(m.campaign_id)) ids.add(m.campaign_id);
+      });
+    });
+    if (ids.size === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('id, template_id')
+        .in('id', Array.from(ids));
+      if (cancelled || error || !data) return;
+      setCampaignTemplates((prev) => {
+        const next = new Map(prev);
+        data.forEach((row: any) => {
+          if (row.template_id) next.set(row.id, row.template_id);
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [conversations, campaignTemplates]);
+
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -1140,7 +1219,7 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} onSendMessage={async (phone, message, options) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} campaignTemplates={campaignTemplates} onSendMessage={async (phone, message, options) => {
             await sendMessage(phone, message, options);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
