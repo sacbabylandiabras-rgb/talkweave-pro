@@ -235,8 +235,8 @@ function HeroSection() {
       currentTarget = 0;
       phase = "eating";
       doneTimer = 0;
-      if (tagline) tagline.style.opacity = "0";
-      if (sub) sub.style.opacity = "0";
+      if (tagline) tagline.style.opacity = "1";
+      if (sub) sub.style.opacity = "1";
       if (sr) {
         sr.classList.remove("lp-fly-in");
         sr.style.transition = "";
