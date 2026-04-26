@@ -428,3 +428,20 @@ function extractLink(payload: any): string | null {
 
   return null
 }
+
+function extractTransactionId(payload: any): string | null {
+  const id = (
+    payload?.transaction?.id ||
+    payload?.data?.transaction?.id ||
+    payload?.transaction_id ||
+    payload?.data?.transaction_id ||
+    payload?.order_id ||
+    payload?.data?.order_id ||
+    payload?.id ||
+    null
+  )
+  if (!id) return null
+  const s = String(id)
+  // Only accept UUID-ish (gateway_transactions.id is uuid)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) ? s : null
+}
