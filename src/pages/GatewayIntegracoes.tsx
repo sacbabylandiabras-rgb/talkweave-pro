@@ -451,7 +451,7 @@ const GatewayIntegracoes = () => {
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}, {"{{link}}"}
+                Use: {"{{nome}}"}, {"{{valor}}"}, {"{{produto}}"}, {"{{telefone}}"}, {"{{status}}"}, {"{{link}}"}, {"{{link_pedido}}"}
               </p>
             </div>
             <div className="space-y-2">
