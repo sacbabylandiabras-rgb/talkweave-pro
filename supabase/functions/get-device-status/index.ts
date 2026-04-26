@@ -3,6 +3,25 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const normalizeZapiStatus = (raw: any) => {
+  const status = String(raw?.status || raw?.device?.status || '').toLowerCase();
+  const connected =
+    raw?.connected === true ||
+    raw?.session === true ||
+    raw?.smartphoneConnected === true ||
+    raw?.device?.connected === true ||
+    ['connected', 'open', 'online'].includes(status);
+
+  return {
+    ...raw,
+    connected,
+    session: connected,
+    smartphoneConnected: connected,
+    status,
+    raw,
+  };
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -90,7 +109,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Failed to get device status', details: zapiData }),
           { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      return new Response(JSON.stringify({ success: true, data: zapiData }),
+      return new Response(JSON.stringify({ success: true, data: normalizeZapiStatus(zapiData) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -173,7 +192,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Failed to get device status', details: zapiData }),
         { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ success: true, data: zapiData }),
+    return new Response(JSON.stringify({ success: true, data: normalizeZapiStatus(zapiData) }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
