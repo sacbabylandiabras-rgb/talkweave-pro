@@ -876,6 +876,7 @@ const MensagensRecebidas = () => {
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
+  const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
   // Show data from connected instances. If none are online yet (e.g., new instance still pending QR scan),
   // fall back to all registered instances so the user keeps seeing the historic conversations
   // instead of an empty list.
@@ -969,6 +970,7 @@ const MensagensRecebidas = () => {
       const connected = results.filter(Boolean);
       setConnectedInstanceIds(connected.map((i) => i!.zapi_instance_id).filter(Boolean));
       setConnectedInstanceNames(connected.map((i) => i!.instance_name).filter(Boolean));
+      setConnectedUiInstanceIds(connected.map((i) => i!.id).filter(Boolean));
     };
 
     fetchConnectedInstances();
