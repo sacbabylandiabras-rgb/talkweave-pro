@@ -424,20 +424,6 @@ function HeroSection() {
     <div id="lp-hero-section">
       <div className="lp-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="lp-canvas" />
-        <div className="lp-screens-reveal" ref={screensRef}>
-          <div className="lp-screen-wrap">
-            {screens.map((src, i) => (
-              <div key={i} className={`lp-screen-slide ${activeScreen === i ? "active" : ""}`}>
-                <img src={src} alt={`Screenshot ${i + 1}`} />
-              </div>
-            ))}
-          </div>
-          <div className="lp-screen-dots">
-            {screens.map((_, i) => (
-              <span key={i} className={`lp-screen-dot ${activeScreen === i ? "active" : ""}`} onClick={() => showScreen(i)} />
-            ))}
-          </div>
-        </div>
       </div>
       <div className="lp-hero-tagline-block">
         <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
