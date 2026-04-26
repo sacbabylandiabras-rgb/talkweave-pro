@@ -210,8 +210,7 @@ function HeroSection() {
     let objs: LogoObj[] = [];
     let pacX = 0, pacY = 0, pacAngle = 0, mouthOpen = 0.25, mouthDir = 1;
     let currentTarget = 0;
-    let phase: "eating" | "done" = "eating";
-    let doneTimer = 0;
+    let phase: "eating" | "exiting" = "eating";
     let animId: number;
 
     const tagline = stage.querySelector("#lp-tagline") as HTMLElement;
@@ -219,7 +218,7 @@ function HeroSection() {
 
     function initPositions() {
       const w = W();
-      pacX = w * 0.06;
+      pacX = -40;
       pacY = H / 2 - 10;
       const names = ["Kiwify", "Hotmart", "DevZapp", "SendFlow", "ManyChat"];
       const spacing = (w * 0.76) / names.length;
@@ -234,7 +233,6 @@ function HeroSection() {
       }));
       currentTarget = 0;
       phase = "eating";
-      doneTimer = 0;
       if (tagline) tagline.style.opacity = "1";
       if (sub) sub.style.opacity = "1";
       if (sr) {
@@ -334,7 +332,7 @@ function HeroSection() {
     function update() {
       if (phase === "eating") {
         const t = objs[currentTarget];
-        if (!t) { phase = "done"; return; }
+        if (!t) { phase = "exiting"; return; }
         const dx = t.x - pacX, dy = t.y - pacY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         pacAngle = Math.atan2(dy, dx);
@@ -349,12 +347,12 @@ function HeroSection() {
         mouthOpen += 0.05 * mouthDir;
         if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
       } else {
-        doneTimer++;
-        mouthOpen = Math.max(0.05, mouthOpen - 0.01);
-        pacX = Math.min(W() * 0.82, pacX + 0.6);
+        pacX += 2.5;
         pacAngle = 0;
-        // Loop contínuo: reinicia assim que sai do canvas, sem pausa
-        if (pacX >= W() * 0.82) {
+        mouthOpen += 0.05 * mouthDir;
+        if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
+        // Loop contínuo: atravessa até sair da tela e reaparece do outro lado
+        if (pacX > W() + 40) {
           initPositions();
         }
       }
