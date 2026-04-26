@@ -80,6 +80,17 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Nenhuma instância UAZAPI doadora cadastrada em /admin/aquecimento" }, 400);
     }
 
+    const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
+      const raw = String(value || "").trim();
+      if (!raw || raw === "true" || raw === "false") return "";
+      const jidMatch = raw.match(/(\d{10,15})(?=[:@])/);
+      if (!allowPlain && !jidMatch) return "";
+      const digits = (jidMatch?.[1] || raw.replace(/\D/g, ""));
+      if (digits.length < 10 || digits.length > 15) return "";
+      if (/^0+$/.test(digits)) return "";
+      return digits;
+    };
+
     // Resolver telefones das instâncias Z-API selecionadas pelo usuário
     // Guardamos também as credenciais para que a instância alvo possa RESPONDER de volta
     type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string; dbId: string };
@@ -103,21 +114,27 @@ serve(async (req: Request) => {
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
-          const endpoints = ["/me", "/device", "/profile", "/status", "/phone-code"];
+          const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
           for (const ep of endpoints) {
             if (phone) break;
             try {
               const r = await fetch(`${base}${ep}`, { headers });
               if (!r.ok) continue;
               const j: any = await r.json().catch(() => ({}));
-              const candidates = [
+              const directCandidates = [
                 j?.phone, j?.phoneNumber, j?.connectedPhone, j?.connected_phone,
-                j?.id, j?.wid, j?.wid?.user, j?.user, j?.user?.id, j?.user?.phone,
-                j?.me?.id, j?.me?.user, j?.me?.phone, j?.device?.phone, j?.device?.number,
+                j?.wid?.user, j?.user, j?.user?.phone, j?.me?.user, j?.me?.phone,
+                j?.device?.phone, j?.device?.number,
               ];
-              for (const cand of candidates) {
-                const digits = String(cand || "").replace(/\D/g, "");
-                if (digits.length >= 8) { phone = digits; break; }
+              const jidCandidates = [j?.id, j?.wid, j?.user?.id, j?.me?.id];
+              for (const cand of directCandidates) {
+                const digits = normalizePhoneCandidate(cand, true);
+                if (digits) { phone = digits; break; }
+              }
+              for (const cand of jidCandidates) {
+                if (phone) break;
+                const digits = normalizePhoneCandidate(cand, false);
+                if (digits) { phone = digits; break; }
               }
             } catch (_) { /* try next */ }
           }
@@ -125,7 +142,7 @@ serve(async (req: Request) => {
           if (!phone) {
             const nameDigits = String(inst.instance_name || "").replace(/\D/g, "");
             if (nameDigits.length >= 10) {
-              phone = nameDigits;
+              phone = normalizePhoneCandidate(nameDigits, true);
               console.log(`↪ ${inst.instance_name}: telefone resolvido via instance_name: ${phone}`);
             }
           }
