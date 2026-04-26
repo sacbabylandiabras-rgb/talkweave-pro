@@ -168,7 +168,56 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 };
 
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent, templates }: { content: string; isSent: boolean; templates?: MessageTemplate[] }) => {
+const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+  // If this message comes from a campaign whose template is a carousel, render its cards.
+  const carouselTemplate: MessageTemplate | null = (() => {
+    if (!campaignId || !templates || !campaignTemplates) return null;
+    const tplId = campaignTemplates.get(campaignId);
+    if (!tplId) return null;
+    const tpl = templates.find(t => t.id === tplId);
+    if (!tpl) return null;
+    const cards: any[] = Array.isArray((tpl as any).carousel_cards) ? (tpl as any).carousel_cards : [];
+    if (cards.length === 0) return null;
+    return tpl;
+  })();
+
+  if (carouselTemplate) {
+    const cards: any[] = (carouselTemplate as any).carousel_cards || [];
+    return (
+      <div className="w-[260px] max-w-full">
+        {content && <p className="text-sm whitespace-pre-wrap mb-2">{content}</p>}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+          {cards.map((card: any, idx: number) => (
+            <div key={idx} className={cn(
+              "shrink-0 w-[220px] snap-start rounded-lg overflow-hidden border",
+              isSent ? "bg-primary-foreground/10 border-primary-foreground/20" : "bg-card border-border"
+            )}>
+              {card.image && (
+                <img src={card.image} alt="" className="w-full h-[120px] object-cover" />
+              )}
+              <div className="p-2 space-y-1">
+                {card.title && <p className="text-xs font-semibold leading-tight">{card.title}</p>}
+                {card.description && <p className="text-[11px] opacity-80 leading-snug whitespace-pre-wrap">{card.description}</p>}
+                {Array.isArray(card.buttons) && card.buttons.length > 0 && (
+                  <div className="flex flex-col gap-1 pt-1">
+                    {card.buttons.map((btn: any, bIdx: number) => (
+                      <div key={bIdx} className={cn(
+                        "text-center text-[11px] font-medium py-1 px-2 rounded border truncate",
+                        isSent ? "border-primary-foreground/30 text-primary-foreground/90 bg-primary-foreground/10" : "border-border text-primary bg-primary/5"
+                      )}>
+                        {btn.text || btn.label || 'Abrir'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
