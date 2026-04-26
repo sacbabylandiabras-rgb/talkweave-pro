@@ -911,6 +911,7 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   const instances = useMemo(
