@@ -210,8 +210,7 @@ function HeroSection() {
     let objs: LogoObj[] = [];
     let pacX = 0, pacY = 0, pacAngle = 0, mouthOpen = 0.25, mouthDir = 1;
     let currentTarget = 0;
-    let phase: "eating" | "done" = "eating";
-    let doneTimer = 0;
+    let phase: "eating" | "exiting" = "eating";
     let animId: number;
 
     const tagline = stage.querySelector("#lp-tagline") as HTMLElement;
@@ -219,7 +218,7 @@ function HeroSection() {
 
     function initPositions() {
       const w = W();
-      pacX = w * 0.06;
+      pacX = -40;
       pacY = H / 2 - 10;
       const names = ["Kiwify", "Hotmart", "DevZapp", "SendFlow", "ManyChat"];
       const spacing = (w * 0.76) / names.length;
@@ -234,7 +233,6 @@ function HeroSection() {
       }));
       currentTarget = 0;
       phase = "eating";
-      doneTimer = 0;
       if (tagline) tagline.style.opacity = "1";
       if (sub) sub.style.opacity = "1";
       if (sr) {
