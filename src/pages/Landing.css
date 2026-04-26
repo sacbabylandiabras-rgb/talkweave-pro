@@ -1521,3 +1521,13 @@
 /* Texto genérico em parágrafos da landing */
 .lp-root p { color: rgba(255, 255, 255, 0.65); }
 
+
+/* Override do "engole" — gradiente roxo→rosa do tema glass */
+#lp-tagline em {
+  color: transparent !important;
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-style: normal;
+}
