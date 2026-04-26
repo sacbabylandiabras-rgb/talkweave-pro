@@ -163,8 +163,12 @@ const AdminZapLynx = () => {
     // sum real plan prices (in cents) per user status
     const sumByStatus = (status: string) =>
       users
-        .filter(u => u.subscription_status === status && u.plan_id && plansMap[u.plan_id])
-        .reduce((s, u) => s + (plansMap[u.plan_id!] || 0), 0) / 100;
+        .filter(u => u.subscription_status === status)
+        .reduce((s, u) => {
+          const planPrice = u.plan_id ? (plansMap[u.plan_id] || 0) : 0;
+          const customPrice = u.custom_plan_value || 0;
+          return s + (planPrice || customPrice);
+        }, 0) / 100;
     const planosPagosRS = sumByStatus('active');
     const reembolsosRS = sumByStatus('cancelled');
     return { total, active, pending, withZapi, expired, cancelled, planosPagosRS, reembolsosRS };
