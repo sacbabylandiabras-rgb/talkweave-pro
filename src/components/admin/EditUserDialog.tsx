@@ -38,6 +38,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
   const [maxInstances, setMaxInstances] = useState<number>(1);
 
+  // Plans
+  const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number }>>([]);
+  const [planId, setPlanId] = useState<string>('none');
+
   // Uazapi credentials
   const [uazapiUrl, setUazapiUrl] = useState('');
   const [uazapiToken, setUazapiToken] = useState('');
@@ -63,6 +67,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     if (user) {
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
+      setPlanId(user.plan_id || 'none');
       // Load uazapi credentials
       if (user.id) {
         supabase.from("profiles").select("uazapi_url, uazapi_token, max_instances" as any).eq("id", user.id).single().then(({ data }) => {
@@ -80,6 +85,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   }, [user]);
 
+  useEffect(() => {
+    (supabase as any).from('subscription_plans').select('id, name, price').eq('active', true).order('price').then(({ data }: any) => {
+      setPlans(data || []);
+    });
+  }, []);
+
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -88,6 +99,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         subscription_status: subscriptionStatus,
         subscription_expires_at: expiresAt?.toISOString() || null,
         max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
+        plan_id: planId === 'none' ? null : planId,
       } as any).eq("id", user.id);
       if (error) throw error;
       toast({ title: "Usuário atualizado", description: "As informações do usuário foram atualizadas com sucesso." });
@@ -187,6 +199,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="expired">Expirado</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="plan">Plano contratado</Label>
+            <Select value={planId} onValueChange={setPlanId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar plano" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem plano</SelectItem>
+                {plans.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} — R$ {(p.price / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

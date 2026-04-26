@@ -78,6 +78,7 @@ const AdminZapLynx = () => {
   const [wProfiles, setWProfiles] = useState<Record<string, { full_name: string | null; email: string | null }>>({});
   const [wLoading, setWLoading] = useState(true);
   const [totalZapiInstances, setTotalZapiInstances] = useState<number>(0);
+  const [plansMap, setPlansMap] = useState<Record<string, number>>({});
   const [wTab, setWTab] = useState("pending");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; withdrawal: Withdrawal | null; action: "approved" | "rejected" }>({ open: false, withdrawal: null, action: "approved" });
   const [adminNotes, setAdminNotes] = useState("");
@@ -108,6 +109,14 @@ const AdminZapLynx = () => {
       setTotalZapiInstances(count || 0);
     };
     fetchInstancesCount();
+  }, []);
+
+  useEffect(() => {
+    (supabase as any).from('subscription_plans').select('id, price').then(({ data }: any) => {
+      const map: Record<string, number> = {};
+      (data || []).forEach((p: any) => { map[p.id] = p.price; });
+      setPlansMap(map);
+    });
   }, []);
 
   const handleWithdrawalReview = async () => {
@@ -151,12 +160,15 @@ const AdminZapLynx = () => {
     const withZapi = users.filter(u => u.zapi_instance_id).length;
     const expired = users.filter(u => u.subscription_status === 'expired').length;
     const cancelled = users.filter(u => u.subscription_status === 'cancelled').length;
-    const PLAN_VALUE = 97; // R$ por assinatura
-    const valorGerado = active * PLAN_VALUE;
-    const planosPagosRS = active * PLAN_VALUE;
-    const reembolsosRS = cancelled * PLAN_VALUE;
-    return { total, active, pending, withZapi, expired, cancelled, valorGerado, planosPagosRS, reembolsosRS };
-  }, [users]);
+    // sum real plan prices (in cents) per user status
+    const sumByStatus = (status: string) =>
+      users
+        .filter(u => u.subscription_status === status && u.plan_id && plansMap[u.plan_id])
+        .reduce((s, u) => s + (plansMap[u.plan_id!] || 0), 0) / 100;
+    const planosPagosRS = sumByStatus('active');
+    const reembolsosRS = sumByStatus('cancelled');
+    return { total, active, pending, withZapi, expired, cancelled, planosPagosRS, reembolsosRS };
+  }, [users, plansMap]);
 
   const getSubscriptionBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
