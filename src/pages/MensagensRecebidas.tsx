@@ -862,14 +862,14 @@ const MensagensRecebidas = () => {
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
-  // Mensagens usa exclusivamente UAZAPI: filtra todas as instâncias por provider
+  // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   const instances = useMemo(
-    () => allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === "uazapi"),
+    () => allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === "zapi"),
     [allInstances]
   );
   const activeInstance = useMemo(
     () =>
-      (rawActiveInstance && (rawActiveInstance as any).api_provider?.toLowerCase() === "uazapi"
+      (rawActiveInstance && ((rawActiveInstance as any).api_provider || "zapi").toLowerCase() === "zapi"
         ? rawActiveInstance
         : instances.find((i: any) => i.is_default) || instances[0] || null),
     [rawActiveInstance, instances]
