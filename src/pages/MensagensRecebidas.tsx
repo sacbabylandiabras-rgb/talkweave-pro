@@ -1140,6 +1140,34 @@ const MensagensRecebidas = () => {
       .catch((err) => console.warn('fetch-chat-messages error', err));
   }, [selectedPhone, selectedInstance?.id, activeInstance?.id, refetch]);
 
+  // Collect campaign_ids referenced in conversations and load their template_id
+  // so we can render carousel cards in the chat bubble.
+  useEffect(() => {
+    const ids = new Set<string>();
+    conversations.forEach((c) => {
+      c.messages.forEach((m: any) => {
+        if (m.campaign_id && !campaignTemplates.has(m.campaign_id)) ids.add(m.campaign_id);
+      });
+    });
+    if (ids.size === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('id, template_id')
+        .in('id', Array.from(ids));
+      if (cancelled || error || !data) return;
+      setCampaignTemplates((prev) => {
+        const next = new Map(prev);
+        data.forEach((row: any) => {
+          if (row.template_id) next.set(row.id, row.template_id);
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [conversations, campaignTemplates]);
+
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
