@@ -71,6 +71,25 @@ const Landing = () => {
 
       <div className="lp-divider" />
 
+      {/* SEÇÃO: Agente IA (segunda posição) */}
+      <div className="lp-section">
+        <div>
+          <div className="lp-section-tag">Inteligência Artificial</div>
+          <div className="lp-section-title">Agente de IA que Vende por Você 24h</div>
+          <div className="lp-section-desc">Treine um agente com o conhecimento do seu negócio. Ele responde clientes, envia links de checkout e conduz a venda automaticamente.</div>
+          <CheckList items={[
+            "Treinável com FAQ, documentos e sites",
+            "Envia links de checkout automaticamente",
+            "Funciona 24 horas por dia, 7 dias por semana",
+            "Integrado ao gateway de pagamentos",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
+        </div>
+        <AgentChatMockup />
+      </div>
+
+      <div className="lp-divider" />
+
       {/* SEÇÃO: Gateway */}
       <div className="lp-section">
         <div>
@@ -124,25 +143,6 @@ const Landing = () => {
           <button className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</button>
         </div>
         <InstagramMock />
-      </div>
-
-      <div className="lp-divider" />
-
-      {/* SEÇÃO: Agente IA */}
-      <div className="lp-section">
-        <div>
-          <div className="lp-section-tag">Inteligência Artificial</div>
-          <div className="lp-section-title">Agente de IA que Vende por Você 24h</div>
-          <div className="lp-section-desc">Treine um agente com o conhecimento do seu negócio. Ele responde clientes, envia links de checkout e conduz a venda automaticamente.</div>
-          <CheckList items={[
-            "Treinável com FAQ, documentos e sites",
-            "Envia links de checkout automaticamente",
-            "Funciona 24 horas por dia, 7 dias por semana",
-            "Integrado ao gateway de pagamentos",
-          ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
-        </div>
-        <AgentChatMockup />
       </div>
 
       <div className="lp-divider" />
