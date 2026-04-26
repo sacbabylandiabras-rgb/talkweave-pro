@@ -915,6 +915,7 @@ export const useMessageLogs = (
         content: send.message_content,
         timestamp: send.sent_at || send.created_at,
         source: 'campaign',
+        campaign_id: send.campaign_id ?? null,
       });
     });
 
