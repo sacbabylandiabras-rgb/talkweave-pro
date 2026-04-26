@@ -1511,6 +1511,31 @@
 /* KPI bigs */
 .lp-gw-kpi-val { font-size: 32px !important; }
 
+/* Override do card ZapLynxPay — substitui laranja por roxo/rosa do tema glass */
+.lp-gw-brand-icon {
+  background: linear-gradient(135deg, #a78bfa, #f472b6) !important;
+}
+.lp-gw-live {
+  background: rgba(167, 139, 250, 0.14) !important;
+  border-color: rgba(167, 139, 250, 0.30) !important;
+  color: #c4b5fd !important;
+}
+.lp-gw-live-dot {
+  background: #a78bfa !important;
+}
+.lp-gw-kpi-val.accent {
+  color: transparent !important;
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.lp-gw-tab.active {
+  color: #c4b5fd !important;
+  background: rgba(167, 139, 250, 0.14) !important;
+  border-color: rgba(167, 139, 250, 0.30) !important;
+}
+
 /* Texto genérico em parágrafos da landing */
 .lp-root p { color: rgba(255, 255, 255, 0.65); }
 
