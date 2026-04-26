@@ -349,25 +349,16 @@ serve(async (req: Request) => {
                   const donorPhoneSafe = donorPhone;
                   const answerSafe = replyText;
                   const replyTask = (async () => {
-                    // Resposta RÁPIDA: 1-3s (simula digitação curta humana)
-                    const replyDelay = (1 + Math.random() * 2) * 1000;
+                    // Resposta FORÇADA e rápida: 0.5-1.5s para reduzir atraso do aquecimento.
+                    const replyDelay = (0.5 + Math.random()) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
                     try {
-                      const zapiUrl = `https://api.z-api.io/instances/${tInstSafe.instanceId}/token/${tInstSafe.token}/send-text`;
-                      const rr = await fetch(zapiUrl, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          "Client-Token": tInstSafe.clientToken,
-                        },
-                        body: JSON.stringify({ phone: donorPhoneSafe, message: answerSafe }),
-                      });
+                      const rr = await sendZapiText(tInstSafe, donorPhoneSafe, answerSafe);
                       if (rr.ok) {
                         totalReplies++;
                         console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
                       } else {
-                        const t = await rr.text().catch(() => "");
-                        console.log(`  ✗ réplica falhou: HTTP ${rr.status} ${t.slice(0,200)}`);
+                        console.log(`  ✗ réplica bloqueada pela Z-API: HTTP ${rr.status} ${rr.body.slice(0,200)}`);
                       }
                     } catch (e: any) {
                       console.log(`  ✗ réplica erro: ${e?.message}`);
