@@ -42,6 +42,10 @@ serve(async (req) => {
     const amount = extractAmount(payload)
     const product = extractProduct(payload)
     const link = extractLink(payload)
+    const transactionId = extractTransactionId(payload)
+    const orderLink = transactionId
+      ? `https://pay.zaplynxpro.online/pedido/${transactionId}`
+      : ''
 
     console.log('Evento detectado:', eventType, 'Phone:', phone, 'Link:', link)
 
@@ -206,8 +210,9 @@ serve(async (req) => {
       message = message.replace(/\{\{telefone\}\}/gi, phone || '')
       message = message.replace(/\{\{status\}\}/gi, eventType || '')
       // Determine the final link: use extracted link from payload, or fallback to funnel's fixed button_url
-      const finalLink = link || (funnel.button_url ? funnel.button_url.replace(/\{\{link\}\}/gi, link || '') : null)
+      const finalLink = link || (funnel.button_url ? funnel.button_url.replace(/\{\{link\}\}/gi, link || '').replace(/\{\{link_pedido\}\}/gi, orderLink) : null)
       message = message.replace(/\{\{link\}\}/gi, finalLink || '')
+      message = message.replace(/\{\{link_pedido\}\}/gi, orderLink)
 
       const buttonLabel = funnel.button_label
       const hasButton = buttonLabel && finalLink
@@ -422,4 +427,21 @@ function extractLink(payload: any): string | null {
   }
 
   return null
+}
+
+function extractTransactionId(payload: any): string | null {
+  const id = (
+    payload?.transaction?.id ||
+    payload?.data?.transaction?.id ||
+    payload?.transaction_id ||
+    payload?.data?.transaction_id ||
+    payload?.order_id ||
+    payload?.data?.order_id ||
+    payload?.id ||
+    null
+  )
+  if (!id) return null
+  const s = String(id)
+  // Only accept UUID-ish (gateway_transactions.id is uuid)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) ? s : null
 }

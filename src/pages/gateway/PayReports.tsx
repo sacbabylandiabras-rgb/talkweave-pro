@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, CalendarIcon } from "lucide-react";
+import { Download, DollarSign, CheckCircle, XCircle, Clock, RotateCcw, TrendingUp, Loader2, FileText, CalendarIcon, Copy, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -291,6 +291,7 @@ export default function PayReports() {
                       <TableHead>Checkout</TableHead>
                       <TableHead>Código PIX</TableHead>
                       <TableHead>Comprovante</TableHead>
+                      <TableHead>Link do Pedido</TableHead>
                       <TableHead>Bruto</TableHead>
                       <TableHead>Taxa</TableHead>
                       <TableHead>Líquido</TableHead>
@@ -343,6 +344,31 @@ export default function PayReports() {
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => {
+                                  const url = `${window.location.origin}/pedido/${tx.id}`;
+                                  navigator.clipboard.writeText(url);
+                                  import('sonner').then(m => m.toast.success('Link do pedido copiado!'));
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80 bg-primary/10 text-primary"
+                                title="Copiar link público do pedido"
+                              >
+                                <Copy className="w-3 h-3" />
+                                Copiar
+                              </button>
+                              <a
+                                href={`/pedido/${tx.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80 bg-muted text-muted-foreground"
+                                title="Abrir página do pedido"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
                           </TableCell>
                           <TableCell>{formatCurrency(tx.amount)}</TableCell>
                           <TableCell className="text-red-400 text-sm">{formatCurrency(tx.fee)}</TableCell>

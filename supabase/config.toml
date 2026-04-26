@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.webhook-cartwave]
 verify_jwt = false
+
+[functions.get-order]
+verify_jwt = false
