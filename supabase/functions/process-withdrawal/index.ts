@@ -255,7 +255,7 @@ serve(async (req) => {
       let authData: any = {}
       try {
         const ctrl = new AbortController()
-        const t = setTimeout(() => ctrl.abort(), 8000)
+        const t = setTimeout(() => ctrl.abort(), 30000)
         authRes = await fetch(CARTWAVE_AUTH_URL, {
           method: 'POST',
           headers: {
@@ -342,17 +342,33 @@ serve(async (req) => {
 
       console.log(`CartWave cashout-self-approve: R$${amountDecimal} to ${pixKey} from ${sourceBranch}/${sourceAccount}`)
 
-      const cashOutRes = await fetch(CARTWAVE_CASHOUT_URL, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'hmac': hmacHex,
-          'User-Agent': 'ZapLynxPay/1.0',
-        },
-        body: compactBody,
-      })
+      let cashOutRes: Response
+      try {
+        const ctrl2 = new AbortController()
+        const t2 = setTimeout(() => ctrl2.abort(), 45000)
+        cashOutRes = await fetch(CARTWAVE_CASHOUT_URL, {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'hmac': hmacHex,
+            'User-Agent': 'ZapLynxPay/1.0',
+          },
+          body: compactBody,
+          signal: ctrl2.signal,
+        })
+        clearTimeout(t2)
+      } catch (e: any) {
+        console.error('CartWave cashout network error:', e?.message || e)
+        await supabase.from('gateway_withdrawals').update({
+          status: 'pending',
+          admin_notes: `CartWave cashout indisponível (timeout/conexão): ${e?.message || 'erro de rede'}. Aprovação manual necessária.`,
+        }).eq('id', withdrawalId)
+        return new Response(JSON.stringify({ error: 'CartWave indisponível no momento. Saque ficou pendente para aprovação manual.' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
       const cashOutData = await cashOutRes.json().catch(() => ({}))
       console.log('CartWave cashout response:', cashOutRes.status, JSON.stringify(cashOutData))
