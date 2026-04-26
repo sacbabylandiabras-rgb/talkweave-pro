@@ -231,7 +231,7 @@ const AdminZapLynx = () => {
             <CardTitle className="text-sm font-medium">Instâncias Configuradas</CardTitle>
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.withZapi}</div><p className="text-xs text-muted-foreground">Chaves configuradas</p></CardContent>
+          <CardContent><div className="text-2xl font-bold">{totalZapiInstances}</div><p className="text-xs text-muted-foreground">Instâncias Z-API ativas</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
