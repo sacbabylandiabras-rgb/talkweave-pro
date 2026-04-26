@@ -216,6 +216,16 @@ serve(async (req: Request) => {
       return { ok: response.ok, status: response.status, body };
     };
 
+    const forceTargetReply = async (inst: TargetInstance, donorPhone: string, message: string) => {
+      const first = await sendZapiText(inst, donorPhone, message);
+      if (first.ok || !isNewChatCapping(first.body)) return first;
+
+      // Segunda tentativa imediata: alguns números liberam após o provedor criar/atualizar o chat.
+      await new Promise((r) => setTimeout(r, 900));
+      const second = await sendZapiText(inst, donorPhone, message);
+      return second.ok ? second : first;
+    };
+
     /**
      * Aguarda (polling) a resposta REAL do número alvo na caixa de mensagens da
      * doadora UAZAPI. Retorna true se detectar uma mensagem recebida do `target`
@@ -337,7 +347,7 @@ serve(async (req: Request) => {
 
               const targetInstForOpen = findTargetInstance(target);
               if (targetInstForOpen && donorPhone && answer) {
-                const opener = await sendZapiText(targetInstForOpen, donorPhone, answer);
+                const opener = await forceTargetReply(targetInstForOpen, donorPhone, answer);
                 if (opener.ok) {
                   totalReplies++;
                   console.log(`  ↩ ${targetInstForOpen.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
@@ -366,7 +376,7 @@ serve(async (req: Request) => {
                     const replyDelay = (0.5 + Math.random()) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
                     try {
-                      const rr = await sendZapiText(tInstSafe, donorPhoneSafe, answerSafe);
+                      const rr = await forceTargetReply(tInstSafe, donorPhoneSafe, answerSafe);
                       if (rr.ok) {
                         totalReplies++;
                         console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
