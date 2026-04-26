@@ -12,24 +12,24 @@ interface MetricCardProps {
 
 const variantStyles = {
   default: {
-    icon: "text-muted-foreground",
-    bg: "bg-muted/50",
+    icon: "text-white/60",
+    bg: "bg-white/8",
   },
   success: {
-    icon: "text-success",
-    bg: "bg-success/8",
+    icon: "text-[#34d399]",
+    bg: "bg-[rgba(52,211,153,0.14)]",
   },
   warning: {
-    icon: "text-warning",
-    bg: "bg-warning/8",
+    icon: "text-[#fb923c]",
+    bg: "bg-[rgba(251,146,60,0.14)]",
   },
   error: {
-    icon: "text-destructive",
-    bg: "bg-destructive/8",
+    icon: "text-[#f87171]",
+    bg: "bg-[rgba(248,113,113,0.14)]",
   },
   info: {
-    icon: "text-accent",
-    bg: "bg-accent/8",
+    icon: "text-[#a78bfa]",
+    bg: "bg-[rgba(167,139,250,0.16)]",
   },
 };
 
@@ -45,19 +45,19 @@ export function MetricCard({
 
   return (
     <div className={cn(
-      "group relative flex items-center gap-4 p-5 rounded-2xl border border-primary/15 bg-card",
-      "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/35 hover:-translate-y-0.5",
+      "group glass-card relative flex items-center gap-4 p-5",
+      "hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-0.5",
       "transition-all duration-300 ease-out",
       className
     )}>
-      <div className={cn("p-3 rounded-xl", styles.bg)}>
-        <Icon className={cn("w-5 h-5", styles.icon)} />
+      <div className={cn("w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0", styles.bg)}>
+        <Icon className={cn("w-[18px] h-[18px]", styles.icon)} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-        <p className="text-2xl font-bold text-foreground leading-tight tracking-tight">{value}</p>
+        <p className="font-nunito text-[12px] uppercase tracking-wider text-white/40 font-normal">{title}</p>
+        <p className="font-bebas text-[36px] text-white leading-none mt-0.5 tracking-wide">{value}</p>
         {subtitle && (
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5">{subtitle}</p>
+          <p className="font-nunito text-[11px] text-white/30 mt-1">{subtitle}</p>
         )}
       </div>
     </div>
