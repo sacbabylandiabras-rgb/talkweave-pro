@@ -685,7 +685,7 @@ const ChatView = ({
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={false} templates={templates} />
+                        <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <p className="text-[10px] text-muted-foreground text-right mt-1">
                           {formatMessageTime(msg.timestamp)}
                         </p>
@@ -694,7 +694,7 @@ const ChatView = ({
                   ) : (
                     <div className="flex justify-end">
                       <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-                        <MessageContent content={msg.content} isSent={true} templates={templates} />
+                        <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <div className="flex items-center justify-end gap-1.5 mt-1">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] opacity-70 flex items-center gap-0.5">
