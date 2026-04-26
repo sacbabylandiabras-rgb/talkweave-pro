@@ -5,6 +5,7 @@ import { Header } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 interface WarmupConfig {
   active: boolean;
@@ -69,6 +70,12 @@ export function DashboardLayout() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>();
   const [warmupConfig, setWarmupConfig] = useState<WarmupConfig>(readWarmupConfig);
+  const { setTheme } = useTheme();
+
+  // Glassmorphism Dark é o tema visual padrão do dashboard
+  useEffect(() => {
+    setTheme("dark");
+  }, [setTheme]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -222,14 +229,14 @@ export function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-transparent">
       <Sidebar activeItem={getActiveItem()} userId={userId} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onNavigate={(item) => {
           if (item === "painel") navigate("/dashboard");
           else navigate(`/${item}`);
         }} />
-        <main className="flex-1 overflow-auto p-6 bg-background dashboard-content">
+        <main className="flex-1 overflow-auto p-6 bg-transparent dashboard-content">
           <Outlet />
         </main>
       </div>

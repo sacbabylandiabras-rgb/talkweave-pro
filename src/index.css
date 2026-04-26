@@ -58,50 +58,51 @@
   }
 
   .dark {
-    --background: 2 6 23;
+    /* Glass Dark — fundo translúcido sobre o gradiente global */
+    --background: 15 12 41;
     --foreground: 248 250 252;
 
-    --card: 2 6 23;
+    --card: 30 22 60;
     --card-foreground: 248 250 252;
 
-    --popover: 2 6 23;
+    --popover: 30 22 60;
     --popover-foreground: 248 250 252;
 
-    --primary: 255 77 46;
+    --primary: 167 139 250; /* roxo claro */
     --primary-foreground: 255 255 255;
-    --primary-light: 255 120 86;
-    --primary-dark: 230 60 30;
+    --primary-light: 196 181 253;
+    --primary-dark: 124 58 237;
 
-    --secondary: 30 41 59;
+    --secondary: 36 36 62;
     --secondary-foreground: 248 250 252;
 
-    --muted: 30 41 59;
-    --muted-foreground: 148 163 184;
+    --muted: 36 36 62;
+    --muted-foreground: 180 180 210;
 
-    --accent: 255 77 46;
-    --accent-foreground: 248 250 252;
+    --accent: 244 114 182; /* rosa */
+    --accent-foreground: 255 255 255;
 
-    --destructive: 220 50 40;
-    --destructive-foreground: 248 250 252;
+    --destructive: 248 113 113;
+    --destructive-foreground: 255 255 255;
 
-    --success: 255 120 86;
+    --success: 52 211 153;
     --success-foreground: 255 255 255;
 
-    --warning: 255 77 46;
+    --warning: 251 146 60;
     --warning-foreground: 255 255 255;
 
-    --border: 30 41 59;
-    --input: 30 41 59;
-    --ring: 255 77 46;
+    --border: 60 50 110;
+    --input: 60 50 110;
+    --ring: 167 139 250;
 
-    --sidebar-background: 2 6 23;
+    --sidebar-background: 26 16 64;
     --sidebar-foreground: 248 250 252;
-    --sidebar-primary: 255 77 46;
+    --sidebar-primary: 167 139 250;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 30 41 59;
+    --sidebar-accent: 36 36 62;
     --sidebar-accent-foreground: 248 250 252;
-    --sidebar-border: 30 41 59;
-    --sidebar-ring: 255 77 46;
+    --sidebar-border: 60 50 110;
+    --sidebar-ring: 167 139 250;
   }
 }
 
@@ -115,6 +116,180 @@
     font-family: 'Poppins', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* ================================================== */
+/*  GLASSMORPHISM DARK — global theme                 */
+/* ================================================== */
+
+.dark body {
+  background: linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #24243e 100%);
+  background-attachment: fixed;
+  font-family: 'Nunito', 'Manrope', sans-serif;
+}
+
+/* Halos decorativos roxo / rosa */
+.dark body::before,
+.dark body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.45;
+  z-index: 0;
+}
+.dark body::before {
+  top: -20vw;
+  left: -15vw;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.55) 0%, transparent 70%);
+}
+.dark body::after {
+  bottom: -20vw;
+  right: -15vw;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.45) 0%, transparent 70%);
+}
+
+.dark #root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tipografia utilitária */
+.font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+.font-manrope { font-family: 'Manrope', sans-serif; }
+.font-nunito { font-family: 'Nunito', sans-serif; }
+
+/* Glass surfaces */
+.dark .glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.dark .glass-stat {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.dark .glass-sidebar {
+  background: rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.dark .glass-topbar {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Botões glass */
+.dark .btn-glass-primary {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #ffffff;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 500;
+  border: none;
+}
+.dark .btn-glass-primary:hover {
+  background: linear-gradient(135deg, #8b48ee, #b768f5);
+}
+.dark .btn-glass-outline {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.70);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+}
+.dark .btn-glass-outline:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+.dark .btn-glass-renew {
+  background: rgba(167, 139, 250, 0.10);
+  border: 1px solid rgba(167, 139, 250, 0.40);
+  color: #c4b5fd;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+}
+.dark .btn-glass-renew:hover {
+  background: rgba(167, 139, 250, 0.18);
+}
+
+/* Sidebar items */
+.dark .sidebar-section-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.20);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+.dark .sidebar-item {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.38);
+}
+.dark .sidebar-item:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.04);
+}
+.dark .sidebar-item-active {
+  background: rgba(167, 139, 250, 0.18) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(167, 139, 250, 0.25) !important;
+  font-weight: 400 !important;
+}
+
+/* Plan badge */
+.dark .plan-badge {
+  background: rgba(167, 139, 250, 0.20);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  color: #c4b5fd;
+  font-family: 'Nunito', sans-serif;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Chart container override */
+.dark .glass-chart {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+}
+
+/* Scrollbar in dark */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.30);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(167, 139, 250, 0.50);
+}
+
+/* Disable noisy dot pattern under dark glass */
+.dark .dashboard-content {
+  background-image: none;
 }
 
 /* Landing page styles */

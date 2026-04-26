@@ -19,47 +19,47 @@ export function Header({ onNavigate }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-card/60 backdrop-blur-xl border-b border-border/60 px-5 py-2.5 flex items-center justify-between gap-1.5">
+      <header className="glass-topbar px-5 py-2.5 flex items-center justify-between gap-1.5 z-10">
         <WorkspaceSelector />
 
         <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive border-destructive/20 hover:bg-destructive/5 text-xs h-8 px-3 rounded font-medium"
+            className="btn-glass-renew text-xs h-8 px-3 rounded-full"
             onClick={() => setRenewOpen(true)}
           >
             Renovar
           </Button>
 
-          <div className="w-px h-5 bg-border/60 mx-1" />
+          <div className="w-px h-5 bg-white/10 mx-1" />
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded hover:bg-muted/60"
+            className="h-8 w-8 rounded-lg hover:bg-white/10"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={theme === "dark" ? "Modo claro" : "Modo escuro"}
           >
             {theme === "dark" ? (
-              <Sun className="w-4 h-4 text-muted-foreground" />
+              <Sun className="w-4 h-4 text-white/60" />
             ) : (
-              <Moon className="w-4 h-4 text-muted-foreground" />
+              <Moon className="w-4 h-4 text-white/60" />
             )}
           </Button>
 
-          <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded hover:bg-muted/60" onClick={() => setNotificationsOpen(true)}>
-            <Bell className="w-4 h-4 text-muted-foreground" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full ring-2 ring-card" />
+          <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => setNotificationsOpen(true)}>
+            <Bell className="w-4 h-4 text-white/60" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#f472b6] rounded-full ring-2 ring-[#1a1040]" />
           </Button>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-muted/60" onClick={() => setSettingsOpen(true)}>
-            <Settings className="w-4 h-4 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => setSettingsOpen(true)}>
+            <Settings className="w-4 h-4 text-white/60" />
           </Button>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-muted/60" onClick={() => onNavigate?.("perfil")}>
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="w-3.5 h-3.5 text-primary" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => onNavigate?.("perfil")}>
+            <div className="w-7 h-7 rounded-full bg-[rgba(167,139,250,0.18)] border border-[rgba(167,139,250,0.30)] flex items-center justify-center">
+              <User className="w-3.5 h-3.5 text-[#c4b5fd]" />
             </div>
           </Button>
         </div>
