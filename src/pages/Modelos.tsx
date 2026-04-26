@@ -1876,7 +1876,6 @@ const Modelos = () => {
                           <Input
                             placeholder="Título do card"
                             value={card.title}
-                            maxLength={60}
                             onChange={(e) => {
                               const newCards = [...newTemplate.carouselCards];
                               newCards[cardIndex] = { ...card, title: e.target.value };
@@ -1890,8 +1889,7 @@ const Modelos = () => {
                           <Textarea
                             placeholder="Descrição do card"
                             value={card.description}
-                            rows={2}
-                            maxLength={160}
+                            rows={4}
                             onChange={(e) => {
                               const newCards = [...newTemplate.carouselCards];
                               newCards[cardIndex] = { ...card, description: e.target.value };
@@ -2508,7 +2506,6 @@ const Modelos = () => {
                       <Input
                         placeholder="Título do card"
                         value={card.title}
-                        maxLength={60}
                         onChange={(e) => {
                           const newCards = [...editFormData.carouselCards];
                           newCards[cardIndex] = { ...card, title: e.target.value };
@@ -2522,8 +2519,7 @@ const Modelos = () => {
                       <Textarea
                         placeholder="Descrição do card"
                         value={card.description}
-                        rows={2}
-                        maxLength={160}
+                        rows={4}
                         onChange={(e) => {
                           const newCards = [...editFormData.carouselCards];
                           newCards[cardIndex] = { ...card, description: e.target.value };
