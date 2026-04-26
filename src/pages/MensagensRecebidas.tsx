@@ -617,6 +617,25 @@ const ChatView = ({
           title: template.header || undefined,
           footer: template.footer || undefined,
           buttonActions: templateButtonActions.length > 0 ? templateButtonActions : undefined,
+          templateId: template.id,
+        });
+        incrementUsage(template.id);
+        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+      } catch {
+        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+    } else if (templateButtonActions.length > 0) {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        await onSendMessage(conversation.phone, template.content, {
+          preferredInstanceId: conversation.preferredInstanceId,
+          title: template.header || undefined,
+          footer: template.footer || undefined,
+          buttonActions: templateButtonActions,
+          templateId: template.id,
         });
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
@@ -626,7 +645,7 @@ const ChatView = ({
         setSending(false);
       }
     } else {
-      // Text-only template: fill the input
+      // Text-only template without buttons: fill the input
       setNewMessage(template.content);
       incrementUsage(template.id);
     }
