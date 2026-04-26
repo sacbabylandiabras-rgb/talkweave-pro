@@ -68,7 +68,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     if (user) {
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
-      setPlanId(user.plan_id || 'none');
+      setPlanId(user.plan_id || (user.custom_plan_value ? 'custom' : 'none'));
       setCustomPlanValue(
         user.custom_plan_value != null ? (user.custom_plan_value / 100).toFixed(2) : ''
       );
@@ -103,7 +103,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         subscription_status: subscriptionStatus,
         subscription_expires_at: expiresAt?.toISOString() || null,
         max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
-        plan_id: planId === 'none' ? null : planId,
+        plan_id: (planId === 'none' || planId === 'custom') ? null : planId,
         custom_plan_value:
           planId === 'custom' && customPlanValue
             ? Math.round(parseFloat(customPlanValue.replace(',', '.')) * 100)

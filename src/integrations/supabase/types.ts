@@ -1180,6 +1180,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           custom_domain: string | null
+          custom_plan_value: number | null
           document: string | null
           document_type: string | null
           email: string | null
@@ -1203,6 +1204,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           custom_domain?: string | null
+          custom_plan_value?: number | null
           document?: string | null
           document_type?: string | null
           email?: string | null
@@ -1226,6 +1228,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           custom_domain?: string | null
+          custom_plan_value?: number | null
           document?: string | null
           document_type?: string | null
           email?: string | null
