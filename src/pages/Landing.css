@@ -1343,7 +1343,6 @@
   position: relative;
   background: linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #24243e 100%) !important;
   color: #ffffff;
-  font-family: 'Nunito', 'Manrope', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   isolation: isolate;
@@ -1383,7 +1382,6 @@
   -webkit-backdrop-filter: blur(20px);
 }
 .lp-logo {
-  font-family: 'Bebas Neue', sans-serif !important;
   font-size: 26px !important;
   letter-spacing: 1px;
   color: #ffffff !important;
@@ -1399,7 +1397,6 @@
   background: transparent !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.75) !important;
-  font-family: 'Manrope', sans-serif !important;
   font-weight: 400 !important;
 }
 .lp-btn-ghost:hover {
@@ -1411,7 +1408,6 @@
   background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
   color: #ffffff !important;
   border: none !important;
-  font-family: 'Manrope', sans-serif !important;
   font-weight: 500 !important;
   box-shadow: 0 10px 30px rgba(124, 58, 237, 0.35);
 }
@@ -1423,7 +1419,6 @@
   background: rgba(255, 255, 255, 0.04) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.75) !important;
-  font-family: 'Manrope', sans-serif !important;
   font-weight: 400 !important;
 }
 .lp-btn-outline:hover {
@@ -1433,7 +1428,6 @@
 
 /* Hero */
 .lp-hero h1 {
-  font-family: 'Bebas Neue', sans-serif !important;
   color: #ffffff !important;
   letter-spacing: 1.5px;
 }
@@ -1447,7 +1441,6 @@
 .lp-hero-sub,
 .lp-sub,
 .lp-tagline {
-  font-family: 'Nunito', sans-serif !important;
   color: rgba(255, 255, 255, 0.55) !important;
 }
 
@@ -1473,7 +1466,6 @@
 .lp-section-title,
 .lp-gw-chart-title,
 .lp-gw-kpi-val {
-  font-family: 'Bebas Neue', sans-serif !important;
   color: #ffffff !important;
   letter-spacing: 1px;
 }
@@ -1482,14 +1474,12 @@
 .lp-gw-kpi-label,
 .lp-gw-kpi-sub,
 .lp-gw-fstat-label {
-  font-family: 'Nunito', sans-serif !important;
   color: rgba(255, 255, 255, 0.55) !important;
 }
 .lp-section-tag {
   background: rgba(167, 139, 250, 0.18) !important;
   border: 1px solid rgba(167, 139, 250, 0.35) !important;
   color: #c4b5fd !important;
-  font-family: 'Nunito', sans-serif !important;
   border-radius: 20px !important;
 }
 .lp-fcard-icon {
@@ -1507,7 +1497,6 @@
   background: rgba(255, 255, 255, 0.03) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: rgba(255, 255, 255, 0.55) !important;
-  font-family: 'Nunito', sans-serif !important;
 }
 
 /* Hero glow já decorativo — reduz para combinar */
