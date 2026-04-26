@@ -88,7 +88,7 @@ serve(async (req: Request) => {
     if (instanceIds.length > 0) {
       const { data: userInstances } = await admin
         .from("zapi_instances")
-        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider")
+        .select("id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, connected_phone")
         .in("id", instanceIds)
         .eq("user_id", user.id);
 
@@ -96,12 +96,15 @@ serve(async (req: Request) => {
         try {
           const provider = String(inst.api_provider || "zapi").toLowerCase();
           if (provider !== "zapi") continue;
+          // 1) Tenta cache persistido primeiro (resolução prévia)
+          let phone = String(inst.connected_phone || "").replace(/\D/g, "");
+          if (phone.length < 8) phone = "";
           const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
           const headers = { "Client-Token": String(inst.zapi_client_token || "") };
           // Tenta vários endpoints da Z-API que retornam o telefone conectado
           const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
-          let phone = "";
           for (const ep of endpoints) {
+            if (phone) break;
             try {
               const r = await fetch(`${base}${ep}`, { headers });
               if (!r.ok) continue;
@@ -123,6 +126,13 @@ serve(async (req: Request) => {
             }
           }
           if (phone) {
+            // Persiste no cache se for novo/diferente para próximos ciclos
+            if (String(inst.connected_phone || "").replace(/\D/g, "") !== phone) {
+              await admin
+                .from("zapi_instances")
+                .update({ connected_phone: phone })
+                .eq("id", inst.id);
+            }
             resolvedFromInstances.push(phone);
             targetInstances.push({
               phone,
@@ -130,6 +140,7 @@ serve(async (req: Request) => {
               token: String(inst.zapi_token),
               clientToken: String(inst.zapi_client_token || ""),
               name: String(inst.instance_name || ""),
+              dbId: String(inst.id),
             });
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
