@@ -229,8 +229,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
-        {/* Instagram section - only for paid subscribers */}
-        {activeWorkspace === "zapi" && isPaid && (
+        {/* Instagram section - only for admins */}
+        {activeWorkspace === "zapi" && isAdmin && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
