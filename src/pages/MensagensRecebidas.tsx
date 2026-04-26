@@ -899,6 +899,14 @@ const MensagensRecebidas = () => {
     return allInstanceNames.length > 0 ? allInstanceNames : undefined;
   }, [connectedInstanceNames, allInstanceNames]);
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
+  // Only show connected instances in the picker. While we're still checking
+  // connection status, fall back to all registered instances to avoid an empty UI.
+  const visibleInstances = useMemo(() => {
+    if (connectedUiInstanceIds === null) return instances;
+    if (connectedUiInstanceIds.length === 0) return instances;
+    const set = new Set(connectedUiInstanceIds);
+    return instances.filter((i: any) => set.has(i.id));
+  }, [instances, connectedUiInstanceIds]);
   // Map UI instance id to zapi_instance_id for filtering
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
   const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
@@ -1128,7 +1136,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={instances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} />
           </div>
         )}
         {showChat && (
