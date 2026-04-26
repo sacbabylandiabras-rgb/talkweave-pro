@@ -52,6 +52,25 @@ const Landing = () => {
 
       <div className="lp-divider" />
 
+      {/* SEÇÃO: Fluxos Visuais (movida para o topo) */}
+      <div className="lp-section lp-section-reverse">
+        <div>
+          <div className="lp-section-tag">Automação Visual</div>
+          <div className="lp-section-title">Fluxos Visuais de Automação</div>
+          <div className="lp-section-desc">Monte jornadas completas arrastando blocos visuais. Gatilhos por palavra-chave, condições inteligentes e ações automáticas — sem código.</div>
+          <CheckList items={[
+            "Editor visual drag-and-drop",
+            "Gatilhos por palavra-chave ou evento",
+            "Condições e ramificações inteligentes",
+            "Integração com webhooks e APIs",
+          ]} />
+          <button className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</button>
+        </div>
+        <FlowMock />
+      </div>
+
+      <div className="lp-divider" />
+
       {/* SEÇÃO: Gateway */}
       <div className="lp-section">
         <div>
@@ -124,25 +143,6 @@ const Landing = () => {
           <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
         </div>
         <AgentChatMockup />
-      </div>
-
-      <div className="lp-divider" />
-
-      {/* SEÇÃO: Fluxos Visuais */}
-      <div className="lp-section lp-section-reverse">
-        <div>
-          <div className="lp-section-tag">Automação Visual</div>
-          <div className="lp-section-title">Fluxos Visuais de Automação</div>
-          <div className="lp-section-desc">Monte jornadas completas arrastando blocos visuais. Gatilhos por palavra-chave, condições inteligentes e ações automáticas — sem código.</div>
-          <CheckList items={[
-            "Editor visual drag-and-drop",
-            "Gatilhos por palavra-chave ou evento",
-            "Condições e ramificações inteligentes",
-            "Integração com webhooks e APIs",
-          ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</button>
-        </div>
-        <FlowMock />
       </div>
 
       <div className="lp-divider" />
