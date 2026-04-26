@@ -938,9 +938,12 @@ serve(async (req) => {
     } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
       // Z-API: /send-carousel — cards com image, title, description, buttons[]
       const cards = carouselCards.map((card: any) => {
+        // Z-API espera o campo `text` (não title/description). Concatenamos ambos.
+        const cardText = [card.title, card.description]
+          .filter((v: any) => v && String(v).trim() !== '')
+          .join('\n\n');
         const c: any = {
-          title: card.title || '',
-          description: card.description || '',
+          text: cardText || card.text || '',
         };
         if (card.image && String(card.image).trim() !== '') c.image = card.image;
         if (Array.isArray(card.buttons) && card.buttons.length > 0) {
@@ -958,7 +961,7 @@ serve(async (req) => {
         }
         return c;
       });
-      console.log(`📤 Z-API send-carousel for ${resolvedPhone}: ${cards.length} cards`);
+      console.log(`📤 Z-API send-carousel for ${resolvedPhone}: ${cards.length} cards`, JSON.stringify(cards).slice(0, 500));
       zapiResponse = await fetch(`${baseUrl}/send-carousel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
