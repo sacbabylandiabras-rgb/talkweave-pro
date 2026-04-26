@@ -133,6 +133,12 @@ export function DashboardLayout() {
     const run = async () => {
       if (cancelled) return;
       try {
+        const progressRaw = localStorage.getItem(WARMUP_PROGRESS_KEY);
+        const progressDay = progressRaw ? JSON.parse(progressRaw)?.[todayKey()] || {} : {};
+        const totalProgress = warmupConfig.instanceIds.reduce(
+          (sum, id) => sum + Number(progressDay[id] || 0),
+          0,
+        );
         const { data, error } = await supabase.functions.invoke("run-warmup", {
           body: {
             instanceIds: warmupConfig.instanceIds,
@@ -141,6 +147,7 @@ export function DashboardLayout() {
             dailyLimit: warmupConfig.dailyLimit,
             mode: "tick",
             batchSize: 1,
+            targetOffset: totalProgress,
           },
         });
 
