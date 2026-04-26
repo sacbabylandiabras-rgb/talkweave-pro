@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone } from "lucide-react";
+import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone, Zap, CheckCircle2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +64,8 @@ const GatewayIntegracoes = () => {
   const [buttonUrl, setButtonUrl] = useState("");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [zlpStatus, setZlpStatus] = useState<{ id: string; active: boolean } | null>(null);
+  const [zlpLoading, setZlpLoading] = useState(false);
 
   const { toast } = useToast();
   const { instances } = useZapiInstances();
@@ -73,6 +75,7 @@ const GatewayIntegracoes = () => {
       if (data.user) {
         setUserId(data.user.id);
         loadData(data.user.id);
+        loadZaplynxPayIntegration(data.user.id);
       }
     });
   }, []);
@@ -86,6 +89,53 @@ const GatewayIntegracoes = () => {
     setFunnels((funnelsRes.data as unknown as Funnel[]) || []);
     setLogs((logsRes.data as unknown as WebhookLog[]) || []);
     setLoading(false);
+  };
+
+  const loadZaplynxPayIntegration = async (uid: string) => {
+    const { data } = await supabase
+      .from("gateway_integrations")
+      .select("id, active")
+      .eq("user_id", uid)
+      .eq("name", "ZapLynx")
+      .maybeSingle();
+    if (data) setZlpStatus({ id: data.id, active: data.active });
+  };
+
+  const handleConnectZaplynxPay = async () => {
+    if (!userId) return;
+    setZlpLoading(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-gateway?user_id=${userId}`;
+      const payload = {
+        user_id: userId,
+        name: "ZapLynx",
+        webhook_url: url,
+        method: "POST",
+        auth_type: "none",
+        active: true,
+      };
+      if (zlpStatus) {
+        const { error } = await supabase
+          .from("gateway_integrations")
+          .update({ webhook_url: url, active: true })
+          .eq("id", zlpStatus.id);
+        if (error) throw error;
+        setZlpStatus({ ...zlpStatus, active: true });
+      } else {
+        const { data, error } = await supabase
+          .from("gateway_integrations")
+          .insert(payload)
+          .select("id, active")
+          .single();
+        if (error) throw error;
+        setZlpStatus({ id: data.id, active: data.active });
+      }
+      toast({ title: "Integração ativada!", description: "Seu ZaplynxPay agora envia os eventos automaticamente para o ZapLynx." });
+    } catch (error: any) {
+      toast({ title: "Erro ao conectar", description: error.message, variant: "destructive" });
+    } finally {
+      setZlpLoading(false);
+    }
   };
 
   const webhookUrl = userId
@@ -198,6 +248,41 @@ const GatewayIntegracoes = () => {
           ) : (
             <div className="flex items-center gap-2 text-muted-foreground">
               <RefreshCw className="w-4 h-4 animate-spin" /> Carregando...
+            </div>
+          )}
+
+          {userId && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    Integrar com ZaplynxPay
+                    {zlpStatus?.active && (
+                      <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Conectado
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Configure automaticamente o webhook no seu gateway ZaplynxPay</p>
+                </div>
+              </div>
+              <Button
+                onClick={handleConnectZaplynxPay}
+                disabled={zlpLoading}
+                size="sm"
+                className="shrink-0"
+                variant={zlpStatus?.active ? "outline" : "default"}
+              >
+                {zlpLoading ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="w-4 h-4 mr-2" />
+                )}
+                {zlpStatus?.active ? "Reconectar" : "Conectar agora"}
+              </Button>
             </div>
           )}
         </CardContent>
