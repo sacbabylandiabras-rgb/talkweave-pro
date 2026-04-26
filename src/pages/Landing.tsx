@@ -503,9 +503,9 @@ function GatewayMock() {
 
     // gradient fill
     const grad = ctx.createLinearGradient(0, 0, 0, ch);
-    grad.addColorStop(0, 'rgba(240,90,40,0.28)');
-    grad.addColorStop(0.7, 'rgba(240,90,40,0.06)');
-    grad.addColorStop(1, 'rgba(240,90,40,0)');
+    grad.addColorStop(0, 'rgba(167,139,250,0.30)');
+    grad.addColorStop(0.7, 'rgba(244,114,182,0.08)');
+    grad.addColorStop(1, 'rgba(167,139,250,0)');
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
@@ -525,7 +525,7 @@ function GatewayMock() {
       const cp1x = (pts[i - 1].x + pts[i].x) / 2;
       ctx.bezierCurveTo(cp1x, pts[i - 1].y, cp1x, pts[i].y, pts[i].x, pts[i].y);
     }
-    ctx.strokeStyle = '#f05a28';
+    ctx.strokeStyle = '#a78bfa';
     ctx.lineWidth = 2;
     ctx.stroke();
   }, [ep]);
