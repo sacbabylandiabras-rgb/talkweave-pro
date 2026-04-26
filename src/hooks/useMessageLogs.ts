@@ -500,7 +500,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('campaign_sends')
-        .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name')
+        .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name, campaign_id')
         .in('status', ['sent', 'delivered'])
         .gte('created_at', sinceISO)
         .order('created_at', { ascending: false })
