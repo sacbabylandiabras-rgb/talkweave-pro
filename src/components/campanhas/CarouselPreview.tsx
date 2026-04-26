@@ -95,13 +95,13 @@ export function CarouselPreview({ cards, header, footer, content }: CarouselPrev
 
             <CardContent className="p-4 space-y-3">
               {/* Card Title */}
-              <h4 className="font-semibold text-sm line-clamp-2">
+              <h4 className="font-semibold text-sm whitespace-pre-wrap break-words">
                 {card.title || 'Sem título'}
               </h4>
 
               {/* Card Description */}
               {card.description && (
-                <p className="text-xs text-muted-foreground line-clamp-3">
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
                   {card.description}
                 </p>
               )}
