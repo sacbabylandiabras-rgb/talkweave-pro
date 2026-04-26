@@ -77,6 +77,7 @@ const AdminZapLynx = () => {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [wProfiles, setWProfiles] = useState<Record<string, { full_name: string | null; email: string | null }>>({});
   const [wLoading, setWLoading] = useState(true);
+  const [totalZapiInstances, setTotalZapiInstances] = useState<number>(0);
   const [wTab, setWTab] = useState("pending");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; withdrawal: Withdrawal | null; action: "approved" | "rejected" }>({ open: false, withdrawal: null, action: "approved" });
   const [adminNotes, setAdminNotes] = useState("");
@@ -98,6 +99,16 @@ const AdminZapLynx = () => {
   };
 
   useEffect(() => { fetchWithdrawals(); }, []);
+
+  useEffect(() => {
+    const fetchInstancesCount = async () => {
+      const { count } = await (supabase as any)
+        .from('zapi_instances')
+        .select('id', { count: 'exact', head: true });
+      setTotalZapiInstances(count || 0);
+    };
+    fetchInstancesCount();
+  }, []);
 
   const handleWithdrawalReview = async () => {
     if (!reviewDialog.withdrawal) return;
@@ -220,7 +231,7 @@ const AdminZapLynx = () => {
             <CardTitle className="text-sm font-medium">Instâncias Configuradas</CardTitle>
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.withZapi}</div><p className="text-xs text-muted-foreground">Chaves configuradas</p></CardContent>
+          <CardContent><div className="text-2xl font-bold">{totalZapiInstances}</div><p className="text-xs text-muted-foreground">Instâncias Z-API ativas</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
