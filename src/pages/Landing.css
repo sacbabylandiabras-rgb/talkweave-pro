@@ -1453,14 +1453,19 @@
 .lp-ig-post-card,
 .lp-ig-dm-card,
 .lp-ig-comment,
-.lp-chat-mock,
-.lp-checkout-desktop {
+.lp-chat-mock {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 12px !important;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: #ffffff;
+}
+.lp-checkout-desktop {
+  background: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 .lp-fcard-title,
 .lp-section-title,
