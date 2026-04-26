@@ -253,16 +253,16 @@ export function VolumeChart() {
         <AreaChart data={displayData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="gEnviadas" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--warning))" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="rgb(var(--warning))" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.40} />
+              <stop offset="95%" stopColor="#a78bfa" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gEntregues" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#f472b6" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#f472b6" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gErros" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="rgb(var(--destructive))" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="rgb(var(--destructive))" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#f87171" stopOpacity={0.22} />
+              <stop offset="95%" stopColor="#f87171" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
