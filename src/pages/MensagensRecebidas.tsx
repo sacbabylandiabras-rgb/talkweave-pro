@@ -382,7 +382,7 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow,
+  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
@@ -404,6 +404,7 @@ const ChatView = ({
   }) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
+  campaignTemplates?: Map<string, string>;
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
