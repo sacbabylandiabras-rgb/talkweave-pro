@@ -176,13 +176,15 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
     if (!tplId) return null;
     const tpl = templates.find(t => t.id === tplId);
     if (!tpl) return null;
-    const cards: any[] = Array.isArray((tpl as any).carousel_cards) ? (tpl as any).carousel_cards : [];
+    const rawCards = (tpl as any).carouselCards ?? (tpl as any).carousel_cards;
+    const cards: any[] = Array.isArray(rawCards) ? rawCards : [];
     if (cards.length === 0) return null;
     return tpl;
   })();
 
   if (carouselTemplate) {
-    const cards: any[] = (carouselTemplate as any).carousel_cards || [];
+    const rawCards = (carouselTemplate as any).carouselCards ?? (carouselTemplate as any).carousel_cards;
+    const cards: any[] = Array.isArray(rawCards) ? rawCards : [];
     return (
       <div className="w-[260px] max-w-full">
         {content && <p className="text-sm whitespace-pre-wrap mb-2">{content}</p>}
