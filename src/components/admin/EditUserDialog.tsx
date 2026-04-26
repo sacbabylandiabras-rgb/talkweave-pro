@@ -222,8 +222,23 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     {p.name} — R$ {(p.price / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </SelectItem>
                 ))}
+                <SelectItem value="custom">Plano personalizado</SelectItem>
               </SelectContent>
             </Select>
+            {planId === 'custom' && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="custom-value">Valor do plano personalizado (R$)</Label>
+                <Input
+                  id="custom-value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Ex: 199.90"
+                  value={customPlanValue}
+                  onChange={(e) => setCustomPlanValue(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
