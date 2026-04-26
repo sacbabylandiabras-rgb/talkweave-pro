@@ -139,7 +139,12 @@ const AdminZapLynx = () => {
     const pending = users.filter(u => u.subscription_status === 'pending').length;
     const withZapi = users.filter(u => u.zapi_instance_id).length;
     const expired = users.filter(u => u.subscription_status === 'expired').length;
-    return { total, active, pending, withZapi, expired };
+    const cancelled = users.filter(u => u.subscription_status === 'cancelled').length;
+    const PLAN_VALUE = 97; // R$ por assinatura
+    const valorGerado = active * PLAN_VALUE;
+    const planosPagosRS = active * PLAN_VALUE;
+    const reembolsosRS = cancelled * PLAN_VALUE;
+    return { total, active, pending, withZapi, expired, cancelled, valorGerado, planosPagosRS, reembolsosRS };
   }, [users]);
 
   const getSubscriptionBadge = (status: string) => {
