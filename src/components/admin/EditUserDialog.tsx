@@ -41,6 +41,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   // Plans
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number }>>([]);
   const [planId, setPlanId] = useState<string>('none');
+  const [customPlanValue, setCustomPlanValue] = useState<string>('');
 
   // Uazapi credentials
   const [uazapiUrl, setUazapiUrl] = useState('');
@@ -68,6 +69,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
       setPlanId(user.plan_id || 'none');
+      setCustomPlanValue(
+        user.custom_plan_value != null ? (user.custom_plan_value / 100).toFixed(2) : ''
+      );
       // Load uazapi credentials
       if (user.id) {
         supabase.from("profiles").select("uazapi_url, uazapi_token, max_instances" as any).eq("id", user.id).single().then(({ data }) => {
@@ -100,6 +104,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         subscription_expires_at: expiresAt?.toISOString() || null,
         max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
         plan_id: planId === 'none' ? null : planId,
+        custom_plan_value:
+          planId === 'custom' && customPlanValue
+            ? Math.round(parseFloat(customPlanValue.replace(',', '.')) * 100)
+            : null,
       } as any).eq("id", user.id);
       if (error) throw error;
       toast({ title: "Usuário atualizado", description: "As informações do usuário foram atualizadas com sucesso." });
