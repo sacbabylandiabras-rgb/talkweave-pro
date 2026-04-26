@@ -375,7 +375,7 @@ const GatewayIntegracoes = () => {
             <CardContent className="py-4">
               <p className="text-xs text-muted-foreground font-semibold mb-2">Variáveis disponíveis:</p>
               <div className="flex flex-wrap gap-2">
-                {["{{nome}}", "{{valor}}", "{{produto}}", "{{telefone}}", "{{status}}", "{{link}}"].map(v => (
+                {["{{nome}}", "{{valor}}", "{{produto}}", "{{telefone}}", "{{status}}", "{{link}}", "{{link_pedido}}"].map(v => (
                   <Badge key={v} variant="outline" className="font-mono text-xs">{v}</Badge>
                 ))}
               </div>
