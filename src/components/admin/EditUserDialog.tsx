@@ -68,7 +68,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     if (user) {
       setSubscriptionStatus(user.subscription_status);
       setExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at) : undefined);
-      setPlanId(user.plan_id || 'none');
+      setPlanId(user.plan_id || (user.custom_plan_value ? 'custom' : 'none'));
       setCustomPlanValue(
         user.custom_plan_value != null ? (user.custom_plan_value / 100).toFixed(2) : ''
       );
