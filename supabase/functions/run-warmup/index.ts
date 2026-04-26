@@ -199,6 +199,23 @@ serve(async (req: Request) => {
     const findTargetInstance = (phone: string): TargetInstance | undefined =>
       targetInstances.find((t) => t.phone === phone);
 
+    const isNewChatCapping = (text: string) =>
+      /new_chat_message_capping|message_capping|new chat|capping/i.test(text || "");
+
+    const sendZapiText = async (inst: TargetInstance, phone: string, message: string) => {
+      const zapiUrl = `https://api.z-api.io/instances/${inst.instanceId}/token/${inst.token}/send-text`;
+      const response = await fetch(zapiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Client-Token": inst.clientToken,
+        },
+        body: JSON.stringify({ phone, message }),
+      });
+      const body = await response.text().catch(() => "");
+      return { ok: response.ok, status: response.status, body };
+    };
+
     /**
      * Aguarda (polling) a resposta REAL do número alvo na caixa de mensagens da
      * doadora UAZAPI. Retorna true se detectar uma mensagem recebida do `target`
