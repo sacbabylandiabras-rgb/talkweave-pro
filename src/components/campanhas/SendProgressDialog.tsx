@@ -282,7 +282,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Enviadas</span>
+                <span>Entregues</span>
               </div>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {confirmedCount}
