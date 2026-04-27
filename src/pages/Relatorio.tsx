@@ -320,7 +320,7 @@ const Relatorio = () => {
                       </div>
                       <div className="grid grid-cols-3 gap-3 mt-3">
                         <div className="p-2 bg-green-500/10 rounded text-center">
-                          <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                          <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                           <p className="font-bold text-green-600 dark:text-green-400">{data.sent.toLocaleString('pt-BR')}</p>
                         </div>
                         <div className="p-2 bg-yellow-500/10 rounded text-center">
@@ -503,7 +503,7 @@ const Relatorio = () => {
           {!detailsLoading && detailsStats.total > 0 && (
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                 <p className="font-bold text-lg text-green-600 dark:text-green-400">{detailsStats.sent}</p>
               </div>
               <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
@@ -535,7 +535,7 @@ const Relatorio = () => {
                     <TableHead>Contato</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Enviado em</TableHead>
+                    <TableHead>Entregue em</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -545,12 +545,12 @@ const Relatorio = () => {
                       <TableCell>{send.phone}</TableCell>
                       <TableCell>
                         <Badge 
-                          variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                          variant={send.status === 'delivered' ? 'default' : send.status === 'pending' || send.status === 'sent' ? 'secondary' : 'destructive'}
                           className="flex items-center gap-1 w-fit"
                         >
-                          {send.status === 'sent' || send.status === 'delivered' ? (
-                            <><CheckCircle className="w-3 h-3" /> Enviada</>
-                          ) : send.status === 'pending' ? (
+                          {send.status === 'delivered' ? (
+                            <><CheckCircle className="w-3 h-3" /> Entregue</>
+                          ) : send.status === 'pending' || send.status === 'sent' ? (
                             <><ClockIcon className="w-3 h-3" /> Pendente</>
                           ) : (
                             <><XCircle className="w-3 h-3" /> Falhou</>
