@@ -499,7 +499,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     let providerFilter: string | null = null;
@@ -513,6 +512,17 @@ Deno.serve(async (req) => {
         profileOnly = body?.source === 'profile' || body?.profileOnly === true;
       }
     } catch (_) { /* ignore */ }
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) throw new Error('No authorization header');
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized: ' + (userError?.message || 'User not found'));
+    const credentials = profileOnly
+      ? { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' }
+      : await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
     console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
     if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
