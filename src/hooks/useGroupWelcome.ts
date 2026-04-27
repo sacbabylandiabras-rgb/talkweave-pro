@@ -55,7 +55,12 @@ export function useGroupWelcome() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const existing = configs.find(c => c.group_id === groupId);
+      const targetInstanceId = data.instance_id || null;
+      const existing = configs.find((config) => {
+        if (config.group_id !== groupId) return false;
+        if (!targetInstanceId) return !config.instance_id;
+        return config.instance_id === targetInstanceId;
+      });
 
       if (existing) {
         const updateData: any = { active, ...data };
@@ -75,7 +80,7 @@ export function useGroupWelcome() {
             response_type: data.response_type || 'text',
             template_id: data.template_id || null,
             flow_id: data.flow_id || null,
-            instance_id: data.instance_id || null,
+            instance_id: targetInstanceId,
             active,
           });
         if (error) throw error;
