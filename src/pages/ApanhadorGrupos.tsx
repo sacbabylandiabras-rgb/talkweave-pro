@@ -30,11 +30,11 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
+  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
   // Apenas instâncias uazapi devem aparecer nesta página
-  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi');
+  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
@@ -217,6 +217,23 @@ const ApanhadorGrupos = () => {
     if (groupId.includes('-group')) return groupId;
     return groupId + '-group';
   };
+
+  const getWelcomeConfigForGroup = (groupId: string, sourceInstanceId?: string | null) => {
+    const welcomeGroupId = getGroupWelcomeId(groupId);
+    return welcomeConfigs.find((config) => {
+      if (config.group_id !== welcomeGroupId) return false;
+      if (!config.instance_id) return true;
+      return Boolean(sourceInstanceId) && config.instance_id === sourceInstanceId;
+    });
+  };
+
+  const visibleWelcomeConfigs = welcomeConfigs.filter((config) =>
+    groups.some((group) => {
+      if (getGroupWelcomeId(group.id) !== config.group_id) return false;
+      if (!config.instance_id) return true;
+      return config.instance_id === group.sourceInstanceId;
+    })
+  );
 
   const toggleGroupSelection = (groupId: string) => {
     setSelectedGroups(prev => {
