@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Bell, Settings, User, Sun, Moon } from "lucide-react";
+import { Bell, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationsDialog } from "./NotificationsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
 import { WorkspaceSelector } from "./WorkspaceSelector";
-import { useTheme } from "next-themes";
 
 interface HeaderProps {
   onNavigate?: (page: string) => void;
@@ -15,7 +14,6 @@ export function Header({ onNavigate }: HeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renewOpen, setRenewOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   return (
     <>
@@ -33,20 +31,6 @@ export function Header({ onNavigate }: HeaderProps) {
           </Button>
 
           <div className="w-px h-5 bg-white/10 mx-1" />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg hover:bg-white/10"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4 text-white/60" />
-            ) : (
-              <Moon className="w-4 h-4 text-white/60" />
-            )}
-          </Button>
 
           <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => setNotificationsOpen(true)}>
             <Bell className="w-4 h-4 text-white/60" />
