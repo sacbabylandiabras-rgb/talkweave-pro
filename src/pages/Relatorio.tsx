@@ -19,11 +19,12 @@ type ReportSend = {
   contact_name: string | null;
   status: string | null;
   sent_at: string | null;
+  delivered_at?: string | null;
   created_at: string;
   error_message: string | null;
 };
 
-const getSendTimestamp = (send: Pick<ReportSend, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
+const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send.delivered_at || send.sent_at || send.created_at;
 
 const normalizePhone = (phone?: string | null) => {
   if (!phone) return '';
@@ -52,7 +53,7 @@ const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
 };
 
 const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
-  (send) => send.status === 'sent' || send.status === 'delivered'
+  (send) => send.status === 'delivered'
 ).length;
 
 const Relatorio = () => {
@@ -104,7 +105,7 @@ const Relatorio = () => {
     const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || !s.status).length;
+  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
@@ -124,7 +125,7 @@ const Relatorio = () => {
     const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
     const sent = countSuccessfulStatuses(campaignSends);
     const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const dbPending = campaignSends.filter(s => s.status === 'pending' || !s.status).length;
+    const dbPending = campaignSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
 
     // Calculate real pending: total target contacts - processed sends
     const targetContacts = getTargetContactsCount(campaign.target_audience);
@@ -152,7 +153,7 @@ const Relatorio = () => {
   const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
   const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
   const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
-  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || !s.status).length;
+  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
   const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
 
   // Details dialog stats
@@ -235,8 +236,8 @@ const Relatorio = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/10">
               <div>
-                <h3 className="font-medium text-green-600 dark:text-green-400">Enviadas com Sucesso</h3>
-                <p className="text-sm text-muted-foreground">Enviadas + Entregues</p>
+                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues com Sucesso</h3>
+                <p className="text-sm text-muted-foreground">Confirmadas pelo WhatsApp</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-green-600 dark:text-green-400">
@@ -280,7 +281,7 @@ const Relatorio = () => {
           const name = (send as any).instance_name || 'Sem instância';
           const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
           current.total++;
-          if (send.status === 'sent' || send.status === 'delivered') current.sent++;
+          if (send.status === 'delivered') current.sent++;
           else if (send.status === 'failed') current.failed++;
           else current.pending++;
           instanceMap.set(name, current);
@@ -320,7 +321,7 @@ const Relatorio = () => {
                       </div>
                       <div className="grid grid-cols-3 gap-3 mt-3">
                         <div className="p-2 bg-green-500/10 rounded text-center">
-                          <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                          <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                           <p className="font-bold text-green-600 dark:text-green-400">{data.sent.toLocaleString('pt-BR')}</p>
                         </div>
                         <div className="p-2 bg-yellow-500/10 rounded text-center">
@@ -417,7 +418,7 @@ const Relatorio = () => {
                         <p className="font-bold text-lg">{campanha.total.toLocaleString('pt-BR')}</p>
                       </div>
                       <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                        <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                         <p className="font-bold text-lg text-green-600 dark:text-green-400">
                           {campanha.sent.toLocaleString('pt-BR')}
                         </p>
@@ -503,7 +504,7 @@ const Relatorio = () => {
           {!detailsLoading && detailsStats.total > 0 && (
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                 <p className="font-bold text-lg text-green-600 dark:text-green-400">{detailsStats.sent}</p>
               </div>
               <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
@@ -535,7 +536,7 @@ const Relatorio = () => {
                     <TableHead>Contato</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Enviado em</TableHead>
+                    <TableHead>Entregue em</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -545,12 +546,12 @@ const Relatorio = () => {
                       <TableCell>{send.phone}</TableCell>
                       <TableCell>
                         <Badge 
-                          variant={send.status === 'sent' || send.status === 'delivered' ? 'default' : send.status === 'pending' ? 'secondary' : 'destructive'}
+                          variant={send.status === 'delivered' ? 'default' : send.status === 'pending' || send.status === 'sent' ? 'secondary' : 'destructive'}
                           className="flex items-center gap-1 w-fit"
                         >
-                          {send.status === 'sent' || send.status === 'delivered' ? (
-                            <><CheckCircle className="w-3 h-3" /> Enviada</>
-                          ) : send.status === 'pending' ? (
+                          {send.status === 'delivered' ? (
+                            <><CheckCircle className="w-3 h-3" /> Entregue</>
+                          ) : send.status === 'pending' || send.status === 'sent' ? (
                             <><ClockIcon className="w-3 h-3" /> Pendente</>
                           ) : (
                             <><XCircle className="w-3 h-3" /> Falhou</>
@@ -561,7 +562,7 @@ const Relatorio = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                        {send.delivered_at ? format(new Date(send.delivered_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}

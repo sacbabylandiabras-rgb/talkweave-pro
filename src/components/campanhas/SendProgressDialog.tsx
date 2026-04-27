@@ -143,7 +143,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       ]);
 
       const effectiveTotal = Math.max(totalContacts, allPhoneKeys.size);
-      let sending = 0;
       let sent = 0;
       let delivered = 0;
       let failed = 0;
@@ -170,7 +169,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       setStats(newStats);
 
       if (campaignData?.status === 'completed') {
-        setIsComplete(true);
+        const trulyDelivered = effectiveTotal > 0 && delivered >= effectiveTotal;
+        setIsComplete(trulyDelivered);
+        if (!trulyDelivered) {
+          await supabase
+            .from('campaigns')
+            .update({ status: queuedPending > 0 ? 'active' : 'paused', updated_at: new Date().toISOString() })
+            .eq('id', campaignId);
+        }
         } else if (campaignData?.status === 'active') {
         setIsComplete(false);
         setIsPaused(false);
@@ -178,7 +184,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         if (
           effectiveTotal > 0 &&
           queuedPending === 0 &&
-          (sent + delivered + failed) >= effectiveTotal
+          delivered >= effectiveTotal
         ) {
           setIsComplete(true);
           try {
@@ -200,7 +206,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         campaignData?.status !== 'draft' &&
         effectiveTotal > 0 && 
         newStats.pending === 0 &&
-        (sent + delivered + failed) >= effectiveTotal
+        delivered >= effectiveTotal
       ) {
         setIsComplete(true);
       }
@@ -236,8 +242,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   }, [open, campaignId, totalContacts]);
 
   const effectiveTotal = Math.max(stats.total, totalContacts);
-  const processedCount = stats.sending + stats.sent + stats.delivered;
-  const progress = effectiveTotal > 0 ? ((processedCount + stats.failed) / effectiveTotal) * 100 : 0;
+  const confirmedCount = stats.delivered;
+  const progress = effectiveTotal > 0 ? ((confirmedCount + stats.failed) / effectiveTotal) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -276,10 +282,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Enviadas</span>
+                <span>Entregues</span>
               </div>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {processedCount}
+                {confirmedCount}
               </div>
             </div>
 
@@ -310,7 +316,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">Taxa de Sucesso</div>
                 <div className="text-3xl font-bold text-primary">
-                  {Math.round(((stats.sent + stats.delivered) / stats.total) * 100)}%
+                  {Math.round((stats.delivered / stats.total) * 100)}%
                 </div>
               </div>
             </div>
