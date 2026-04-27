@@ -75,6 +75,7 @@ import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
 import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
+import TelegramPlaceholder from "./pages/telegram/TelegramPlaceholder";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
