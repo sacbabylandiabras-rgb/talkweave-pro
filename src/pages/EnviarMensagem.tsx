@@ -256,9 +256,7 @@ const EnviarMensagem = () => {
     }
 
     if (imagemComBotoes) {
-      // 1) Envia a imagem pura
-      await sendImage(phone, modeloData!.mediaUrl!, '');
-      // 2) Em seguida, envia o texto + botões
+      // Imagem + botões em uma única chamada (mesma instância)
       await sendButtonActions(
         phone,
         mensagemPersonalizada || modeloData?.content || '',
@@ -276,6 +274,8 @@ const EnviarMensagem = () => {
         }),
         modeloData?.header || undefined,
         modeloData?.footer || undefined,
+        modeloData!.mediaUrl!,
+        'image',
       );
       return mensagemPersonalizada || modeloData?.name || 'Imagem + texto com botões enviado';
     }
@@ -1052,8 +1052,7 @@ const EnviarMensagem = () => {
               modeloData?.footer || undefined,
             );
           } else if (imagemComBotoes) {
-            // 1) imagem, depois 2) texto com botões
-            await sendImage(contato.telefone, modeloData!.mediaUrl!, '');
+            // Imagem + botões em uma única chamada (mesma instância garantida)
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada || modeloData?.content || '',
@@ -1071,6 +1070,8 @@ const EnviarMensagem = () => {
               }),
               modeloData?.header || undefined,
               modeloData?.footer || undefined,
+              modeloData!.mediaUrl!,
+              'image',
             );
           } else if (documentoComBotoes) {
             // 1) documento, depois 2) texto com botões
