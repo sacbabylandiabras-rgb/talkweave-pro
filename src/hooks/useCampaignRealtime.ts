@@ -62,8 +62,8 @@ const useAuthSessionReady = () => {
 };
 
 /**
- * Hook for campaign_sends with Realtime + lightweight polling fallback.
- * No full re-render — uses functional state updates.
+ * Hook for campaign_sends with Supabase Realtime.
+ * Updates state directly from database change events.
  */
 export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const [sends, setSends] = useState<CampaignSendRecord[]>([]);
@@ -137,11 +137,6 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     }
 
     setLoading(true);
-    fetchSends();
-
-    const pollingInterval = window.setInterval(() => {
-      fetchSends();
-    }, 2000);
 
     const channel = supabase
       .channel(`sends-${campaignId}-${Date.now()}`)
@@ -161,12 +156,15 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          fetchSends();
+        }
+      });
 
     channelRef.current = channel;
 
     return () => {
-      window.clearInterval(pollingInterval);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
