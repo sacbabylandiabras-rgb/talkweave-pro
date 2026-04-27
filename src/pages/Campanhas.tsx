@@ -1128,7 +1128,7 @@ const Campanhas = () => {
                     <p className="font-bold text-lg">{totalCount}</p>
                   </div>
                   <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                    <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                     <p className="font-bold text-lg text-green-600 dark:text-green-400">{sentCount}</p>
                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
