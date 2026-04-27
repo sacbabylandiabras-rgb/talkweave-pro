@@ -1053,7 +1053,9 @@ const ApanhadorGrupos = () => {
                   )}
 
                   {numbers && numbers.length > 0 && (() => {
-                    const visible = numbers.filter(p => !excludeAdmins || !p.isAdmin);
+                    const visible = numbers
+                      .filter(p => !excludeAdmins || !p.isAdmin)
+                      .filter(p => !excludeLids || !p.isLid);
                     if (visible.length === 0) return null;
                     return (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
@@ -1061,8 +1063,9 @@ const ApanhadorGrupos = () => {
                       <div className="max-h-32 overflow-y-auto text-xs font-mono text-foreground space-y-0.5">
                         {visible.map((p, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <span>{p.phone}</span>
+                            <span>{p.isLid ? 'Contato anônimo' : p.phone}</span>
                             {p.isAdmin && <Badge variant="outline" className="text-[10px] h-4 px-1">admin</Badge>}
+                            {p.isLid && <Badge variant="outline" className="text-[10px] h-4 px-1">anônimo</Badge>}
                           </div>
                         ))}
                       </div>
