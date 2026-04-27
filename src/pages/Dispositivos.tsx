@@ -933,15 +933,36 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Pré-seleciona todas as instâncias quando abrir / quando a lista mudar
+  useEffect(() => {
+    if (open) {
+      setSelectedIds(instances.map((i) => i.id));
+    }
+  }, [open, instances]);
+
+  const targetInstances = instances.filter((i) => selectedIds.includes(i.id));
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  };
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   const updateAllInstances = async (type: "name" | "picture", value: string) => {
+    if (targetInstances.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
     setUpdating(true);
     let success = 0;
     let failed = 0;
     const updatedInstanceIds: string[] = [];
     const errors: string[] = [];
 
-    for (const inst of instances) {
+    for (const inst of targetInstances) {
       try {
         const { data, error } = await supabase.functions.invoke("update-profile", {
           body: {
@@ -975,12 +996,12 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 
     setUpdating(false);
     const description = failed > 0
-      ? `${success} instância(s) atualizada(s), ${failed} com erro:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ''}`
+      ? `${success} de ${targetInstances.length} atualizada(s), ${failed} com erro:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ''}`
       : `${success} instância(s) atualizada(s)`;
     toast({
       title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro",
       description,
-      variant: failed === instances.length ? "destructive" : "default",
+      variant: failed === targetInstances.length ? "destructive" : "default",
       duration: failed > 0 ? 8000 : 3000,
     });
 
@@ -1049,15 +1070,45 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><User className="w-5 h-5" /> Perfil do WhatsApp</DialogTitle>
-          <p className="text-sm text-muted-foreground">Altere o nome e foto de perfil de todas as instâncias de uma vez</p>
+          <p className="text-sm text-muted-foreground">Altere o nome e a foto de perfil das instâncias selecionadas</p>
         </DialogHeader>
         <div className="space-y-6 pt-2">
+          {/* Seletor de instâncias */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={updating}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => {
+                const checked = selectedIds.includes(inst.id);
+                return (
+                  <label
+                    key={inst.id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleOne(inst.id)}
+                      disabled={updating}
+                      className="accent-primary"
+                    />
+                    <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Name */}
           <div className="space-y-2">
             <Label>Nome do Perfil</Label>
             <div className="flex gap-2">
-              <Input placeholder="Novo nome para todas as instâncias" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
-              <Button onClick={handleUpdateName} disabled={updating || !profileName.trim()} className="shrink-0">
+              <Input placeholder="Novo nome para as instâncias selecionadas" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
+              <Button onClick={handleUpdateName} disabled={updating || !profileName.trim() || selectedIds.length === 0} className="shrink-0">
                 {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
               </Button>
             </div>
@@ -1074,8 +1125,8 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
               {previewUrl && <img src={previewUrl} alt="Prévia" className="w-12 h-12 rounded-full object-cover border" />}
             </div>
             {imageFile && (
-              <Button onClick={handleUpdatePictureFile} disabled={updating} size="sm">
-                {updating ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Enviando...</> : <><Upload className="w-3 h-3 mr-1" /> Aplicar foto a todas</>}
+              <Button onClick={handleUpdatePictureFile} disabled={updating || selectedIds.length === 0} size="sm">
+                {updating ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Enviando...</> : <><Upload className="w-3 h-3 mr-1" /> Aplicar foto às selecionadas</>}
               </Button>
             )}
           </div>
@@ -1085,7 +1136,7 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             <Label>Foto de Perfil (URL)</Label>
             <div className="flex gap-2">
               <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
-              <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim()} className="shrink-0">
+              <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim() || selectedIds.length === 0} className="shrink-0">
                 {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ImageIcon className="w-4 h-4 mr-1" /> Aplicar</>}
               </Button>
             </div>
