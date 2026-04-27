@@ -213,14 +213,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       }
     };
 
-    // Fetch immediately — no delay
-    fetchAndUpdate();
-
-    // Polling fallback every 3s to ensure stats stay updated even if Realtime events are missed
-    const pollingInterval = setInterval(() => {
-      fetchAndUpdate();
-    }, 3000);
-
     const channel = supabase
       .channel(`progress-${campaignId}-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
@@ -232,12 +224,15 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
         if (status === 'active') { setIsPaused(false); setIsComplete(false); }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          fetchAndUpdate();
+        }
+      });
 
     channelRef.current = channel;
 
     return () => {
-      clearInterval(pollingInterval);
       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
     };
   }, [open, campaignId, totalContacts]);
