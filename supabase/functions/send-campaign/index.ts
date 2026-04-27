@@ -1602,7 +1602,9 @@ serve(async (req) => {
             }
 
             campaignSend.status = 'pending';
-            results.push({ phone: contact.phone, success: true, messageId: getZapiAckId(zapiResult) });
+            const ackId = getZapiAckId(zapiResult);
+            if (ackId) campaignSend.message_id = String(ackId);
+            results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`⏳ Accepted by Z-API for ${contact.phone}; waiting callback to mark as sent/delivered`);
           } else {
             campaignSend.status = 'failed';
