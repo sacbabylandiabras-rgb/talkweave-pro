@@ -671,7 +671,20 @@ const ApanhadorGrupos = () => {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
+            <div className="flex items-center gap-2 px-3 rounded-md border border-border bg-muted/30">
+              <Switch
+                id="exclude-admins"
+                checked={excludeAdmins}
+                onCheckedChange={(v) => setExcludeAdmins(Boolean(v))}
+              />
+              <label htmlFor="exclude-admins" className="text-sm font-medium cursor-pointer whitespace-nowrap">
+                Remover administradores
+              </label>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Quando ativado, números de administradores são excluídos ao copiar e baixar (TXT/CSV).
+          </p>
         </CardContent>
       </Card>
 
