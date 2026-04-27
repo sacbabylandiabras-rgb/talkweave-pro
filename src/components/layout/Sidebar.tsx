@@ -226,9 +226,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         collapsed && "justify-center px-1"
       )}>
         {activeWorkspace === "gateway" ? (
-          <div className="w-8 h-8 rounded-lg bg-[rgba(167,139,250,0.18)] flex items-center justify-center shrink-0">
-            <CreditCard className="w-4.5 h-4.5 text-[#c4b5fd]" />
-          </div>
+          <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
         ) : activeWorkspace === "meta" ? (
           <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
@@ -236,13 +234,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         ) : (
           <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
         )}
-        {!collapsed && activeWorkspace !== "zapi" && (
+        {!collapsed && activeWorkspace === "meta" && (
           <span className="font-bebas text-[22px] text-white leading-none">
-            {brandLabel === "ZaplynxPay" ? (
-              <>Zaplynx<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent">Pay</span></>
-            ) : (
-              <>Meta<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent"> API</span></>
-            )}
+            Meta<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent"> API</span>
           </span>
         )}
       </div>
