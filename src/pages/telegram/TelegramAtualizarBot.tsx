@@ -39,7 +39,7 @@ export default function TelegramAtualizarBot() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("telegram_bots")
         .select("id, username, first_name, short_description, description")
         .order("created_at", { ascending: false });
@@ -62,7 +62,7 @@ export default function TelegramAtualizarBot() {
     }
     // load commands
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("telegram_bot_commands")
         .select("command, description, sort_order")
         .eq("bot_id", selectedId)
@@ -95,7 +95,7 @@ export default function TelegramAtualizarBot() {
           command: c.command.replace(/^\//, "").toLowerCase(),
           description: c.description,
         }));
-      const { data, error } = await supabase.functions.invoke("telegram-update-bot", {
+      const { data, error } = await (supabase as any).functions.invoke("telegram-update-bot", {
         body: {
           bot_id: selectedId,
           name,

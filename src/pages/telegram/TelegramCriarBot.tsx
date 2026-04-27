@@ -25,7 +25,7 @@ export default function TelegramCriarBot() {
 
   async function load() {
     setFetching(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("telegram_bots")
       .select("id, bot_token, bot_id, username, first_name, active, last_validated_at, created_at")
       .order("created_at", { ascending: false });
@@ -46,7 +46,7 @@ export default function TelegramCriarBot() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("telegram-validate-bot", {
+      const { data, error } = await (supabase as any).functions.invoke("telegram-validate-bot", {
         body: { token: trimmed, save: true },
       });
       if (error) throw error;
@@ -62,7 +62,7 @@ export default function TelegramCriarBot() {
   }
 
   async function toggleActive(bot: TgBot) {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("telegram_bots")
       .update({ active: !bot.active })
       .eq("id", bot.id);
@@ -75,7 +75,7 @@ export default function TelegramCriarBot() {
 
   async function removeBot(bot: TgBot) {
     if (!confirm(`Remover o bot @${bot.username}?`)) return;
-    const { error } = await supabase.from("telegram_bots").delete().eq("id", bot.id);
+    const { error } = await (supabase as any).from("telegram_bots").delete().eq("id", bot.id);
     if (error) toast.error(error.message);
     else {
       toast.success("Bot removido");
