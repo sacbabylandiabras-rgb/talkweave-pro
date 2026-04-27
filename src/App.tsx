@@ -153,6 +153,28 @@ const App = () => (
                   <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
                   <Route path="/instagram/contatos" element={<ContatosInstagram />} />
                   <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
+                  {/* Telegram routes */}
+                  <Route path="/telegram/dashboard" element={<TelegramPlaceholder title="Dashboard" description="Visão geral das métricas dos seus bots do Telegram." />} />
+                  <Route path="/telegram/criar-bot" element={<TelegramPlaceholder title="Criar Bot" description="Crie um novo bot conectando o token gerado pelo @BotFather." />} />
+                  <Route path="/telegram/atualizar-bot" element={<TelegramPlaceholder title="Atualizar Bot" description="Atualize nome, descrição, foto e comandos dos seus bots." />} />
+                  <Route path="/telegram/planos" element={<TelegramPlaceholder title="Planos de Pagamento" description="Configure os planos de assinatura oferecidos pelo bot." />} />
+                  <Route path="/telegram/redirecionamento" element={<TelegramPlaceholder title="Botões de Redirecionamento" description="Crie botões inline com URL para redirecionar usuários." />} />
+                  <Route path="/telegram/administradores" element={<TelegramPlaceholder title="Administradores" description="Gerencie administradores dos seus bots e canais." />} />
+                  <Route path="/telegram/grupos-canais" element={<TelegramPlaceholder title="Grupos e Canais" description="Gerencie os grupos e canais conectados ao bot." />} />
+                  <Route path="/telegram/canal-free" element={<TelegramPlaceholder title="Canal Free" description="Configure o canal de acesso gratuito como funil de entrada." />} />
+                  <Route path="/telegram/tarefas-afiliados" element={<TelegramPlaceholder title="Tarefas para Afiliados" description="Defina tarefas e missões para o programa de afiliados." />} />
+                  <Route path="/telegram/referencia" element={<TelegramPlaceholder title="Links de Referência" description="Gere e gerencie links de indicação." />} />
+                  <Route path="/telegram/resultados" element={<TelegramPlaceholder title="Resultados" description="Acompanhe resultados e provas sociais." />} />
+                  <Route path="/telegram/contatos" element={<TelegramPlaceholder title="Contatos" description="Lista de usuários que interagiram com o bot." />} />
+                  <Route path="/telegram/vendas" element={<TelegramPlaceholder title="Gestão de Vendas" description="Acompanhe vendas, assinaturas e renovações." />} />
+                  <Route path="/telegram/chat" element={<TelegramPlaceholder title="Chat ao vivo" description="Atenda seus usuários do Telegram em tempo real." />} />
+                  <Route path="/telegram/remarketing" element={<TelegramPlaceholder title="Remarketing" description="Envie campanhas de remarketing para a base." />} />
+                  <Route path="/telegram/alertas" element={<TelegramPlaceholder title="Alertas" description="Configure alertas automáticos para eventos importantes." />} />
+                  <Route path="/telegram/downsell" element={<TelegramPlaceholder title="Downsell" description="Crie ofertas de downsell para usuários que recusaram a oferta principal." />} />
+                  <Route path="/telegram/integracoes" element={<TelegramPlaceholder title="Integrações" description="Conecte o Telegram a gateways, CRMs e outras ferramentas." />} />
+                  <Route path="/telegram/traqueamento" element={<TelegramPlaceholder title="Traqueamento" description="Configure pixels e eventos de conversão." />} />
+                  <Route path="/telegram/links-traqueamento" element={<TelegramPlaceholder title="Links de Traqueamento" description="Gere links rastreáveis para campanhas." />} />
+                  <Route path="/telegram/links-utm" element={<TelegramPlaceholder title="Links UTM" description="Construa links com parâmetros UTM personalizados." />} />
                   <Route path="/gateway-checkout/products" element={<KycWrap><PayProducts /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts" element={<KycWrap><PayCheckouts /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/new" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
