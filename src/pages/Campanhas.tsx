@@ -986,7 +986,7 @@ const Campanhas = () => {
               targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
             );
 
-            type CampaignContactStatus = 'enviado' | 'enviando' | 'pendente' | 'cancelado';
+            type CampaignContactStatus = 'entregue' | 'enviando' | 'pendente' | 'cancelado';
             // Build full list: all target contacts with their latest persisted status
             const fullContactList: Array<{
               id: string;
@@ -1006,9 +1006,17 @@ const Campanhas = () => {
 
               if (send) {
                 if (send.status === 'delivered') {
-                  status = 'enviado';
+                  status = 'entregue';
                   sentAt = send.delivered_at || send.sent_at || null;
-                } else if (send.status === 'pending' || send.status === 'sent') {
+                } else if (send.status === 'sent') {
+                  if (canTreatPendingAsCancelled) {
+                    status = 'cancelado';
+                    errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
+                  } else {
+                    status = 'enviando';
+                    sentAt = send.sent_at || null;
+                  }
+                } else if (send.status === 'pending') {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
