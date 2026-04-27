@@ -270,16 +270,12 @@ const Campanhas = () => {
     status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'error' || status === 'rejected';
 
   const statsDialogStats = {
-    // "Enviado" = confirmado pela API (tem sent_at) OU marcado como sent/delivered
-    sent: statsDialogSends.filter(s =>
-      s.status === 'sent' ||
-      s.status === 'delivered' ||
-      (s.status === 'pending' && !!s.sent_at)
-    ).length,
+    // "Enviado" só quando o WhatsApp confirma entrega/leitura via callback.
+    sent: statsDialogSends.filter(s => s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
-    // "Enviando/Pendente" = ainda na fila, sem confirmação (sem sent_at)
-    sending: statsDialogSends.filter(s => s.status === 'pending' && !s.sent_at).length,
-    pending: statsDialogSends.filter(s => s.status === 'pending' && !s.sent_at).length,
+    // "Enviando/Pendente" = aceito/enfileirado, mas ainda sem entrega real.
+    sending: statsDialogSends.filter(s => s.status === 'pending' || s.status === 'sent').length,
+    pending: statsDialogSends.filter(s => s.status === 'pending' || s.status === 'sent').length,
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
     total: statsDialogSends.length,
   };
@@ -961,8 +957,7 @@ const Campanhas = () => {
             const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
             const getSendPriority = (status?: string | null) => {
               if (status === 'delivered') return 4;
-              if (status === 'sent') return 3;
-              if (status === 'pending') return 2;
+              if (status === 'sent' || status === 'pending') return 2;
               if (isCancelledSendStatus(status)) return 1;
               return 0;
             };
@@ -1010,10 +1005,10 @@ const Campanhas = () => {
               let errorMessage: string | null = null;
 
               if (send) {
-                if (send.status === 'sent' || send.status === 'delivered') {
+                if (send.status === 'delivered') {
                   status = 'enviado';
-                  sentAt = send.sent_at || null;
-                } else if (send.status === 'pending') {
+                  sentAt = send.delivered_at || send.sent_at || null;
+                } else if (send.status === 'pending' || send.status === 'sent') {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
@@ -1046,8 +1041,8 @@ const Campanhas = () => {
 
               if (!existsInTarget) {
                 let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
-                if (send.status === 'sent' || send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending') {
+                if (send.status === 'delivered') status = 'enviado';
+                else if (send.status === 'pending' || send.status === 'sent') {
                   status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 }
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
