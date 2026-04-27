@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, MessageSquare, Users, Activity, CheckCircle2, PauseCircle, ArrowRight, Plus, Clock } from "lucide-react";
+import { Bot, MessageSquare, Users, Activity, CheckCircle2, PauseCircle, ArrowRight, Plus, Clock, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BotRow {
   id: string;
@@ -41,6 +42,20 @@ export default function TelegramDashboard() {
   const [messages, setMessages] = useState<MsgRow[]>([]);
   const [counts, setCounts] = useState({ total: 0, today: 0, uniqueChats: 0 });
   const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+
+  async function disconnect(bot: BotRow) {
+    if (!confirm(`Desconectar o bot @${bot.username}?\n\nEle será removido junto com mensagens e estado de polling.`)) return;
+    setDisconnecting(bot.id);
+    const { error } = await (supabase as any).from("telegram_bots").delete().eq("id", bot.id);
+    setDisconnecting(null);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Bot desconectado");
+      load();
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -212,11 +227,24 @@ export default function TelegramDashboard() {
                       </div>
                     </div>
                   </div>
-                  <Link to={`/telegram/atualizar-bot?bot=${b.id}`}>
-                    <Button size="sm" variant="ghost">
-                      Editar
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link to={`/telegram/atualizar-bot?bot=${b.id}`}>
+                      <Button size="sm" variant="ghost">
+                        Editar
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => disconnect(b)}
+                      disabled={disconnecting === b.id}
+                      title="Desconectar bot"
+                      className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
+                    >
+                      <Unplug className="w-4 h-4 mr-1" />
+                      {disconnecting === b.id ? "..." : "Desconectar"}
                     </Button>
-                  </Link>
+                  </div>
                 </div>
               ))}
             </div>
