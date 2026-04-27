@@ -1447,11 +1447,7 @@ serve(async (req) => {
           console.log('[send-campaign] Resposta carrossel Z-API:', carouselResponse.status, carouselText);
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
-          const awaitingGroupCallback = isGroupDestination(contact.phone);
-          campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
-          if (!awaitingGroupCallback) {
-            campaignSend.sent_at = new Date().toISOString();
-          }
+          campaignSend.status = 'pending';
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
@@ -1606,15 +1602,9 @@ serve(async (req) => {
               }
             }
 
-            const awaitingGroupCallback = isGroupDestination(contact.phone);
-            campaignSend.status = awaitingGroupCallback ? 'pending' : 'sent';
-            if (!awaitingGroupCallback) {
-              campaignSend.sent_at = new Date().toISOString();
-            }
+            campaignSend.status = 'pending';
             results.push({ phone: contact.phone, success: true, messageId: getZapiAckId(zapiResult) });
-            console.log(awaitingGroupCallback
-              ? `⏳ Accepted by Z-API for ${contact.phone}; waiting callback to mark as sent/delivered`
-              : `✅ Sent to ${contact.phone}`);
+            console.log(`⏳ Accepted by Z-API for ${contact.phone}; waiting callback to mark as sent/delivered`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
@@ -1798,15 +1788,12 @@ serve(async (req) => {
         }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
 
-      // Consider 'pending' sends as accepted by the provider (queued).
-      // They may never receive a delivery callback (e.g. groups, disconnects),
-      // so we should not block completion waiting for them.
-      const acceptedSends = actualSuccesses + pendingCount;
-
-      if (totalProcessed === 0 || acceptedSends === 0) {
+      if (totalProcessed === 0 || (actualSuccesses === 0 && pendingCount === 0)) {
         // No sends created or ALL sends failed — mark as paused, not completed
         console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualSuccesses} successful, ${pendingCount} pending. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+      } else if (pendingCount > 0) {
+        console.log(`⏳ Campaign ${campaignId}: ${pendingCount} message(s) still waiting real WhatsApp callback. Keeping active.`);
       } else {
         console.log(`✅ Campaign ${campaignId}: ${actualSuccesses} sent + ${pendingCount} pending / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`);
         const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
