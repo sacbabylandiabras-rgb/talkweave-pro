@@ -1112,6 +1112,7 @@ serve(async (req) => {
             error_message: record.error_message ?? null,
             user_id: record.user_id,
             instance_name: record.instance_name,
+            message_id: record.message_id ?? null,
           })
           .eq('id', existingId);
 
