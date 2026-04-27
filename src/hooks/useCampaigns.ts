@@ -331,16 +331,16 @@ export const useCampaigns = () => {
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .in('status', ['sent', 'delivered']);
+          .eq('status', 'delivered');
 
         if ((sentCount ?? 0) > 0) {
-          // Messages were already sent — pause instead of reverting to draft
-          console.log(`⚠️ Campaign has ${sentCount} sent messages, pausing instead of reverting to draft`);
+          // Messages were already delivered — pause instead of reverting to draft
+          console.log(`⚠️ Campaign has ${sentCount} delivered messages, pausing instead of reverting to draft`);
           await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
           setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
           toast({
             title: "Campanha pausada",
-            description: `${sentCount} mensagem(ns) já enviada(s). A campanha foi pausada para que você possa retomá-la.`,
+            description: `${sentCount} mensagem(ns) já entregue(s). A campanha foi pausada para que você possa retomá-la.`,
           });
           return;
         }
@@ -359,15 +359,15 @@ export const useCampaigns = () => {
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .in('status', ['sent', 'delivered']);
+          .eq('status', 'delivered');
 
         if ((sentCount ?? 0) > 0) {
-          console.log(`⚠️ Campaign has ${sentCount} sent messages, pausing instead of reverting to draft`);
+          console.log(`⚠️ Campaign has ${sentCount} delivered messages, pausing instead of reverting to draft`);
           await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
           setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
           toast({
             title: "Campanha pausada",
-            description: `${sentCount} mensagem(ns) já enviada(s). A campanha foi pausada para que você possa retomá-la.`,
+            description: `${sentCount} mensagem(ns) já entregue(s). A campanha foi pausada para que você possa retomá-la.`,
           });
           return;
         }

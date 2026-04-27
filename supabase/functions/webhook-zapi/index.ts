@@ -2544,7 +2544,7 @@ serve(async (req) => {
                       : 0;
 
                     const [
-                      pendingCountRes,
+                      awaitingCallbackCountRes,
                       processedCountRes,
                       successCountRes,
                     ] = await Promise.all([
@@ -2552,7 +2552,7 @@ serve(async (req) => {
                         .from("campaign_sends")
                         .select("id", { count: "exact", head: true })
                         .eq("campaign_id", campaignSend.campaign_id)
-                        .eq("status", "pending"),
+                        .in("status", ["pending", "sent"]),
                       supabase
                         .from("campaign_sends")
                         .select("id", { count: "exact", head: true })
@@ -2561,16 +2561,16 @@ serve(async (req) => {
                         .from("campaign_sends")
                         .select("id", { count: "exact", head: true })
                         .eq("campaign_id", campaignSend.campaign_id)
-                        .in("status", ["sent", "delivered"]),
+                        .eq("status", "delivered"),
                     ]);
 
-                    const pendingCount = pendingCountRes.count ?? 0;
+                    const awaitingCallbackCount = awaitingCallbackCountRes.count ?? 0;
                     const processedCount = processedCountRes.count ?? 0;
-                    const successCount = successCountRes.count ?? 0;
+                    const deliveredCount = successCountRes.count ?? 0;
                     const hasAllAudienceProcessed = targetContacts === 0 ||
                       processedCount >= targetContacts;
 
-                    if (pendingCount === 0 && hasAllAudienceProcessed) {
+                    if (awaitingCallbackCount === 0 && hasAllAudienceProcessed) {
                       // Also check if there are contacts in target_audience that were never persisted as campaign_sends
                       const targetContacts = Array.isArray(
                           (campaignData.target_audience as any)?.contacts,
@@ -2580,7 +2580,7 @@ serve(async (req) => {
                       const missingContacts = targetContacts.length > 0 &&
                         processedCount < targetContacts.length;
                       const nextCampaignStatus =
-                        processedCount === 0 || successCount === 0 ||
+                        processedCount === 0 || deliveredCount === 0 ||
                           missingContacts
                           ? "paused"
                           : "completed";
