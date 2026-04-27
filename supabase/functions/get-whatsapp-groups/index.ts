@@ -261,6 +261,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
     return [];
   }
+  if (isDisconnectedPayload(payload)) {
+    console.log(`🚫 UAZAPI group/list ignored for disconnected instance ${instance.instance_name}`);
+    return [];
+  }
 
   const rawGroups = Array.isArray(payload)
     ? payload
@@ -270,7 +274,9 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
         ? payload.data
         : [];
 
-  const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+  let detailedGroups: any[] = [];
+  try {
+    detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
     if (!String(groupId).includes('@g.us')) return null;
 
@@ -362,13 +368,16 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       __sourceInstanceName: instance.instance_name || null,
       __sourceInstanceId: instance.zapi_instance_id,
     };
-  }));
-
-  try {
-    return detailedGroups.filter(Boolean);
-  } catch (_) {
-    return [];
+    }));
+  } catch (error) {
+    if ((error as Error)?.message === 'UAZAPI_INSTANCE_DISCONNECTED') {
+      console.log(`🚫 UAZAPI instance ${instance.instance_name} disconnected during group detail fetch`);
+      return [];
+    }
+    throw error;
   }
+
+  return detailedGroups.filter(Boolean);
 };
 
 const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: string; lid: string }> => {
@@ -490,18 +499,30 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     let providerFilter: string | null = null;
+    let profileOnly = false;
     try {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
         if (body && typeof body.provider === "string") {
           providerFilter = body.provider;
         }
+        profileOnly = body?.source === 'profile' || body?.profileOnly === true;
       }
     } catch (_) { /* ignore */ }
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) throw new Error('No authorization header');
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) throw new Error('Unauthorized: ' + (userError?.message || 'User not found'));
+    const credentials = profileOnly
+      ? { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' }
+      : await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
     console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
     if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
@@ -515,7 +536,9 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true });
 
     const instances: ZapiInstance[] =
-      activeInstances && activeInstances.length > 0
+      profileOnly
+        ? []
+        : activeInstances && activeInstances.length > 0
         ? (activeInstances as ZapiInstance[])
         : [
             {
@@ -528,11 +551,12 @@ Deno.serve(async (req) => {
 
     // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
     try {
-      const { data: profile } = await adminClient
+      const shouldLoadProfileUazapi = !providerFilter || providerFilter.toLowerCase() === 'uazapi';
+      const { data: profile } = shouldLoadProfileUazapi ? await adminClient
         .from("profiles")
         .select("uazapi_url, uazapi_token")
         .eq("id", credentials.userId)
-        .maybeSingle();
+        .maybeSingle() : { data: null };
       const urls = String((profile as any)?.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
       const tokens = String((profile as any)?.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
       const pairCount = Math.min(urls.length, tokens.length);

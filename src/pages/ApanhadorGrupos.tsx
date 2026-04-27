@@ -30,11 +30,11 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
+  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
   // Apenas instâncias uazapi devem aparecer nesta página
-  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi');
+  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
   const [copied, setCopied] = useState<string | null>(null);
@@ -218,6 +218,23 @@ const ApanhadorGrupos = () => {
     return groupId + '-group';
   };
 
+  const getWelcomeConfigForGroup = (groupId: string, sourceInstanceId?: string | null) => {
+    const welcomeGroupId = getGroupWelcomeId(groupId);
+    return welcomeConfigs.find((config) => {
+      if (config.group_id !== welcomeGroupId) return false;
+      if (!config.instance_id) return true;
+      return Boolean(sourceInstanceId) && config.instance_id === sourceInstanceId;
+    });
+  };
+
+  const visibleWelcomeConfigs = welcomeConfigs.filter((config) =>
+    groups.some((group) => {
+      if (getGroupWelcomeId(group.id) !== config.group_id) return false;
+      if (!config.instance_id) return true;
+      return config.instance_id === group.sourceInstanceId;
+    })
+  );
+
   const toggleGroupSelection = (groupId: string) => {
     setSelectedGroups(prev => {
       const next = new Set(prev);
@@ -258,7 +275,7 @@ const ApanhadorGrupos = () => {
         const grupo = groups.find(g => g.id === groupId);
         if (!grupo) continue;
         const welcomeGroupId = getGroupWelcomeId(grupo.id);
-        const existing = welcomeConfigs.find(c => c.group_id === welcomeGroupId);
+        const existing = getWelcomeConfigForGroup(grupo.id, grupo.sourceInstanceId);
         try {
           await saveConfig(
             welcomeGroupId,
@@ -269,7 +286,7 @@ const ApanhadorGrupos = () => {
               response_type: (existing?.response_type as any) ?? 'text',
               template_id: existing?.template_id ?? null,
               flow_id: existing?.flow_id ?? null,
-              instance_id: existing?.instance_id ?? null,
+              instance_id: existing?.instance_id ?? grupo.sourceInstanceId ?? null,
             },
             { silent: true, refetch: false }
           );
@@ -602,7 +619,7 @@ const ApanhadorGrupos = () => {
             <MessageCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{welcomeConfigs.filter(c => c.active).length}</div>
+            <div className="text-2xl font-bold">{visibleWelcomeConfigs.filter(c => c.active).length}</div>
             <p className="text-xs text-muted-foreground">Grupos com boas-vindas</p>
           </CardContent>
         </Card>
@@ -701,7 +718,7 @@ const ApanhadorGrupos = () => {
           {filteredGroups.map((grupo) => {
             const numbers = extractedNumbers.get(grupo.id);
             const welcomeGroupId = getGroupWelcomeId(grupo.id);
-            const welcomeConfig = welcomeConfigs.find(c => c.group_id === welcomeGroupId);
+            const welcomeConfig = getWelcomeConfigForGroup(grupo.id, grupo.sourceInstanceId);
             const isWelcomeActive = welcomeConfig?.active || false;
             const isExpanded = expandedWelcome === grupo.id;
 
@@ -709,7 +726,7 @@ const ApanhadorGrupos = () => {
             const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
             const currentTemplateId = editingTemplateId.get(grupo.id) ?? welcomeConfig?.template_id ?? '';
             const currentFlowId = editingFlowId.get(grupo.id) ?? welcomeConfig?.flow_id ?? '';
-            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? '';
+            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? grupo.sourceInstanceId ?? '';
 
             return (
               <Card key={grupo.id}>
