@@ -323,7 +323,9 @@ const mapCampaignSendStatusFromWebhook = (
 
   if (webhookType === "DeliveryCallback") return "delivered";
   if (webhookType === "MessageStatusCallback") {
-    if (webhookStatus === "SENT") return "sent";
+    // SENT only means provider/phone accepted the message; it is NOT real delivery.
+    // Keep campaign_sends as pending until RECEIVED/DELIVERED/READ arrives.
+    if (webhookStatus === "SENT") return null;
     if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") {
       return "delivered";
     }
@@ -349,7 +351,7 @@ const mapCampaignSendStatusFromWebhook = (
         webhook?.message?.extendedTextMessage?.text,
     );
     if (!hasTextContent) {
-      if (webhookStatus === "SENT") return "sent";
+      if (webhookStatus === "SENT") return null;
       if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") {
         return "delivered";
       }
