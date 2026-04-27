@@ -272,20 +272,6 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
-        {/* Instagram section - only for admins */}
-        {activeWorkspace === "zapi" && isAdmin && (
-          <>
-            {!collapsed && (
-              <div className="px-2 pt-3 pb-1">
-                <span className="sidebar-section-label">Instagram</span>
-              </div>
-            )}
-            <ul className="space-y-0.5">
-              {instagramMenuItems.map(renderItem)}
-            </ul>
-          </>
-        )}
-
         {/* Telegram section - only for admins */}
         {activeWorkspace === "zapi" && isAdmin && (
           <>
@@ -296,6 +282,20 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             )}
             <ul className="space-y-0.5">
               {telegramMenuItems.map(renderItem)}
+            </ul>
+          </>
+        )}
+
+        {/* Instagram section - only for admins */}
+        {activeWorkspace === "zapi" && isAdmin && (
+          <>
+            {!collapsed && (
+              <div className="px-2 pt-3 pb-1">
+                <span className="sidebar-section-label">Instagram</span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {instagramMenuItems.map(renderItem)}
             </ul>
           </>
         )}
