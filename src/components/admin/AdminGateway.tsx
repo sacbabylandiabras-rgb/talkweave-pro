@@ -159,7 +159,7 @@ const AdminGateway = () => {
   if (usersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
       </div>
     );
   }
@@ -182,7 +182,7 @@ const AdminGateway = () => {
           { label: "Lojistas", value: stats.total, icon: Users, color: "text-blue-400" },
           { label: "Lojistas Ativos", value: stats.active, icon: Building2, color: "text-emerald-400" },
           { label: "Transações", value: transactionCount, icon: CreditCard, color: "text-amber-400" },
-          { label: "Volume Total", value: `R$ ${(totalVolume / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "text-[#FF4D2E]" },
+          { label: "Volume Total", value: `R$ ${(totalVolume / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "text-[#a78bfa]" },
         ].map(c => (
           <Card key={c.label} className="border-[#2A2A2A]">
             <CardContent className="pt-4 pb-3 px-4">
@@ -220,7 +220,7 @@ const AdminGateway = () => {
           <CardContent className="pt-4 pb-3 px-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Receita da Plataforma</p>
-              <p className="text-lg font-bold text-[#FF4D2E]">R$ {(platformRevenue / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-lg font-bold text-[#a78bfa]">R$ {(platformRevenue / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
             <DollarSign className="w-8 h-8 text-muted-foreground/20" />
           </CardContent>

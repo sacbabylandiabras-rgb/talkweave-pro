@@ -13,7 +13,7 @@ export interface CheckoutTemplate {
 }
 
 const TemplateIcon = ({ type }: { type: string }) => {
-  const color = type === "lynxfy" || type === "confianca" ? "#16A34A" : "#FF4D2E";
+  const color = type === "lynxfy" || type === "confianca" ? "#16A34A" : "#a78bfa";
   const bg = type === "lynxfy" || type === "confianca" ? "#F0FDF4" : "#FFF5F3";
 
   const icons: Record<string, React.ReactNode> = {
@@ -145,7 +145,7 @@ const CHECKOUT_TEMPLATES: CheckoutTemplate[] = [
       format: "one_step",
       theme: "dark",
       bgColor: "#0D0D0D",
-      primaryColor: "#FF4D2E",
+      primaryColor: "#a78bfa",
       textColor: "#FFFFFF",
       font: "plus_jakarta",
       borderStyle: "pill",
@@ -303,7 +303,7 @@ export default function CheckoutTemplateGallery({ onApply, activeTemplateId }: P
                 key={template.id}
                 className="rounded-xl border-[1.5px] p-4 transition-all hover:shadow-sm"
                 style={{
-                  borderColor: activeTemplateId === template.id ? "#FF4D2E" : "#E5E5E5",
+                  borderColor: activeTemplateId === template.id ? "#a78bfa" : "#E5E5E5",
                   background: activeTemplateId === template.id ? "#FFF5F3" : "#FFFFFF",
                 }}
               >
@@ -318,7 +318,7 @@ export default function CheckoutTemplateGallery({ onApply, activeTemplateId }: P
                 </div>
                 <Button
                   className="w-full text-xs font-semibold"
-                  style={{ background: "#FF4D2E", color: "#fff" }}
+                  style={{ background: "#a78bfa", color: "#fff" }}
                   onClick={() => {
                     onApply(template.settings, template.name, template.id);
                     setOpen(false);

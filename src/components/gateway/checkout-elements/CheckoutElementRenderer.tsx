@@ -40,11 +40,11 @@ export default function CheckoutElementRenderer({ element, primaryColor, textCol
   const c = element.content;
   const wrapperStyle: React.CSSProperties = {
     cursor: isBuilder ? "pointer" : undefined,
-    outline: isSelected ? `2px solid #FF4D2E` : isBuilder ? "2px dashed transparent" : "none",
+    outline: isSelected ? `2px solid #a78bfa` : isBuilder ? "2px dashed transparent" : "none",
     borderRadius: "12px",
     transition: "outline 0.15s",
   };
-  const hoverClass = isBuilder ? "hover:outline-[#FF4D2E]/30 hover:outline-dashed" : "";
+  const hoverClass = isBuilder ? "hover:outline-[#a78bfa]/30 hover:outline-dashed" : "";
 
   switch (element.type) {
     case "text":

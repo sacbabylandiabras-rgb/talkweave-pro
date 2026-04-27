@@ -90,7 +90,7 @@ export default function AdminKYC() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function AdminKYC() {
                     {k.status === "submitted" ? (
                       <Button
                         size="sm"
-                        className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs h-7"
+                        className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full text-xs h-7"
                         onClick={() => { setSelectedKyc(k); setRejectReason(""); }}
                       >
                         <Eye className="w-3 h-3 mr-1" /> Analisar

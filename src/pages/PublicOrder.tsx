@@ -86,7 +86,7 @@ export default function PublicOrder() {
   }, [brCode]);
 
   const config = (checkout?.config || {}) as Record<string, any>;
-  const primaryColor = config.primaryColor || "#FF4D2E";
+  const primaryColor = config.primaryColor || "#a78bfa";
   const logoUrl = config.logoUrl || "";
   const productName = product?.name || config.productName || checkout?.name || "Pedido";
   const bgColor = config.bgColor || "#0F0F12";

@@ -14,7 +14,7 @@ const users = [
 ];
 
 const roleColors: Record<string, string> = {
-  "Admin Master": "text-[#FF4D2E] bg-[#FF4D2E]/10",
+  "Admin Master": "text-[#a78bfa] bg-[#a78bfa]/10",
   "Admin Financeiro": "text-amber-400 bg-amber-400/10",
   "Gerente de Contas": "text-purple-400 bg-purple-400/10",
   "Lojista": "text-blue-400 bg-blue-400/10",
@@ -28,7 +28,7 @@ export default function AdminUsers() {
           <h1 className="text-2xl font-bold text-foreground">Usuários & Permissões</h1>
           <p className="text-sm text-muted-foreground">Gerencie usuários e seus acessos</p>
         </div>
-        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6 text-xs"><Plus className="w-4 h-4 mr-1" /> Criar Usuário</Button>
+        <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-6 text-xs"><Plus className="w-4 h-4 mr-1" /> Criar Usuário</Button>
       </div>
 
       <div className="relative max-w-sm">

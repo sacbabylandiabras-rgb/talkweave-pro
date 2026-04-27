@@ -17,7 +17,7 @@ export default function AdminManagers() {
           <h1 className="text-2xl font-bold text-foreground">Gerentes de Contas</h1>
           <p className="text-sm text-muted-foreground">Gerencie gerentes e suas carteiras</p>
         </div>
-        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6 text-xs"><Plus className="w-4 h-4 mr-1" /> Cadastrar Gerente</Button>
+        <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-6 text-xs"><Plus className="w-4 h-4 mr-1" /> Cadastrar Gerente</Button>
       </div>
 
       <Card className="border-[#2A2A2A]">

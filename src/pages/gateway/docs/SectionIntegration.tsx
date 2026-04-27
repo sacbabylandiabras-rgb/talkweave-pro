@@ -16,13 +16,13 @@ export default function SectionIntegration() {
       </p>
       <CodeBlock language="text" code={`https://pay.zaplynxpro.online/pay/SEU_SLUG`} />
       <p className="text-muted-foreground text-sm">
-        O <code className="font-mono text-[#FF4D2E]">slug</code> é o identificador único do seu checkout, definido no builder.
+        O <code className="font-mono text-[#a78bfa]">slug</code> é o identificador único do seu checkout, definido no builder.
       </p>
       <CodeBlock language="html" code={`<!-- Exemplo: botão de compra -->
 <a href="https://pay.zaplynxpro.online/pay/meu-produto"
    target="_blank"
    rel="noopener noreferrer"
-   style="background:#FF4D2E;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+   style="background:#a78bfa;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
   Comprar Agora
 </a>`} />
 
@@ -58,7 +58,7 @@ function abrirCheckout() {
 </script>
 
 <button onclick="abrirCheckout()"
-  style="background:#FF4D2E;color:#fff;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;">
+  style="background:#a78bfa;color:#fff;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;">
   Comprar Agora
 </button>`} />
 
@@ -85,7 +85,7 @@ function abrirCheckout() {
   }
 }`} />
       <p className="text-muted-foreground text-sm">
-        O campo <code className="font-mono text-[#FF4D2E]">document</code> aceita CPF (xxx.xxx.xxx-xx) ou CNPJ (xx.xxx.xxx/xxxx-xx) e é <strong>obrigatório</strong> para geração do PIX.
+        O campo <code className="font-mono text-[#a78bfa]">document</code> aceita CPF (xxx.xxx.xxx-xx) ou CNPJ (xx.xxx.xxx/xxxx-xx) e é <strong>obrigatório</strong> para geração do PIX.
       </p>
 
       <h3 className="text-sm font-semibold mt-4">Resposta</h3>
@@ -124,7 +124,7 @@ function abrirCheckout() {
               ["receipt.uploaded", "Comprovante enviado (aguardando análise)"],
             ].map(([e, d]) => (
               <tr key={e} className="border-b border-[#2A2A2A]">
-                <td className="p-3 font-mono text-[#FF4D2E]">{e}</td>
+                <td className="p-3 font-mono text-[#a78bfa]">{e}</td>
                 <td className="p-3 text-muted-foreground">{d}</td>
               </tr>
             ))}

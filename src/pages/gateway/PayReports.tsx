@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const COLORS = ["#FF4D2E", "#22C55E", "#F59E0B", "#60A5FA"];
+const COLORS = ["#a78bfa", "#22C55E", "#F59E0B", "#60A5FA"];
 
 interface Transaction {
   id: string;
@@ -155,7 +155,7 @@ export default function PayReports() {
   });
 
   const summaryCards = [
-    { label: "Receita Total", value: formatCurrency(totalRevenue), icon: DollarSign, color: "text-[#FF4D2E]" },
+    { label: "Receita Total", value: formatCurrency(totalRevenue), icon: DollarSign, color: "text-[#a78bfa]" },
     { label: "Aprovadas", value: String(approved.length), icon: CheckCircle, color: "text-emerald-400" },
     { label: "Recusadas", value: String(declined.length), icon: XCircle, color: "text-red-400" },
     { label: "Aguardando", value: String(pending.length), icon: Clock, color: "text-amber-400" },

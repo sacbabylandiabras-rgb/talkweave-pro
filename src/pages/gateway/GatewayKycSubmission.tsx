@@ -93,7 +93,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
       </div>
     );
   }
@@ -159,7 +159,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-              step === s ? "bg-[#FF4D2E] text-white" : step > s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+              step === s ? "bg-[#a78bfa] text-white" : step > s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
             }`}>
               {step > s ? "✓" : s}
             </div>
@@ -176,7 +176,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
         <Card className="border-[#2A2A2A]">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Phone className="w-5 h-5 text-[#FF4D2E]" />
+              <Phone className="w-5 h-5 text-[#a78bfa]" />
               Dados da Conta
             </CardTitle>
             <CardDescription>Informe seu WhatsApp para contato</CardDescription>
@@ -196,7 +196,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
               <Button
                 onClick={() => setStep(2)}
                 disabled={!isStep1Valid}
-                className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
+                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
               >
                 Próximo <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
@@ -210,7 +210,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
         <Card className="border-[#2A2A2A]">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#FF4D2E]" />
+              <Building2 className="w-5 h-5 text-[#a78bfa]" />
               Dados da Empresa (PJ)
             </CardTitle>
             <CardDescription>Informe os dados da pessoa jurídica</CardDescription>
@@ -238,7 +238,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
 
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#FF4D2E]" /> Responsável Legal
+                <User className="w-4 h-4 text-[#a78bfa]" /> Responsável Legal
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -271,7 +271,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
 
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#FF4D2E]" /> Endereço
+                <MapPin className="w-4 h-4 text-[#a78bfa]" /> Endereço
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -342,7 +342,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
               <Button
                 onClick={() => setStep(3)}
                 disabled={!isStep2Valid}
-                className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
+                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
               >
                 Próximo <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
@@ -359,7 +359,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Camera className="w-4 h-4 text-[#FF4D2E]" />
+                  <Camera className="w-4 h-4 text-[#a78bfa]" />
                   Selfie com Documento
                 </CardTitle>
                 <CardDescription className="text-xs">Foto segurando seu documento ao lado do rosto</CardDescription>
@@ -371,7 +371,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                     <img src={selfie.preview} alt="Selfie" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => selfieRef.current?.click()}>
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => selfieRef.current?.click()}>
                     <Camera className="w-8 h-8 text-muted-foreground/30" />
                     <span className="text-xs text-muted-foreground">Clique para enviar</span>
                   </div>
@@ -386,7 +386,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#FF4D2E]" />
+                  <CreditCard className="w-4 h-4 text-[#a78bfa]" />
                   Documento (Frente)
                 </CardTitle>
                 <CardDescription className="text-xs">RG, CNH ou Passaporte — lado da foto</CardDescription>
@@ -398,7 +398,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                     <img src={docFront.preview} alt="Frente" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => frontRef.current?.click()}>
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => frontRef.current?.click()}>
                     <CreditCard className="w-8 h-8 text-muted-foreground/30" />
                     <span className="text-xs text-muted-foreground">Clique para enviar</span>
                   </div>
@@ -413,7 +413,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#FF4D2E]" />
+                  <CreditCard className="w-4 h-4 text-[#a78bfa]" />
                   Documento (Verso)
                 </CardTitle>
                 <CardDescription className="text-xs">Verso do documento com informações legíveis</CardDescription>
@@ -425,7 +425,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                     <img src={docBack.preview} alt="Verso" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => backRef.current?.click()}>
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => backRef.current?.click()}>
                     <CreditCard className="w-8 h-8 text-muted-foreground/30" />
                     <span className="text-xs text-muted-foreground">Clique para enviar</span>
                   </div>
@@ -440,7 +440,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <Card className="border-[#2A2A2A] overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#FF4D2E]" />
+                  <Building2 className="w-4 h-4 text-[#a78bfa]" />
                   Cartão CNPJ
                 </CardTitle>
                 <CardDescription className="text-xs">Foto ou PDF do cartão CNPJ da empresa</CardDescription>
@@ -450,7 +450,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                 {cnpjDoc.preview ? (
                   cnpjDoc.preview === "pdf" ? (
                     <div className="aspect-[4/3] rounded-lg border border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 bg-muted/30">
-                      <Building2 className="w-8 h-8 text-[#FF4D2E]/60" />
+                      <Building2 className="w-8 h-8 text-[#a78bfa]/60" />
                       <span className="text-xs text-muted-foreground font-medium">{cnpjDoc.file?.name}</span>
                       <Badge variant="secondary" className="text-[10px]">PDF</Badge>
                     </div>
@@ -460,7 +460,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
                     </div>
                   )
                 ) : (
-                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#FF4D2E]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
+                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
                     <Building2 className="w-8 h-8 text-muted-foreground/30" />
                     <span className="text-xs text-muted-foreground">PDF ou Imagem</span>
                   </div>
@@ -479,7 +479,7 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <Button
               onClick={handleSubmit}
               disabled={!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file || submitting}
-              className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white px-8"
+              className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white px-8"
             >
               {submitting ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>

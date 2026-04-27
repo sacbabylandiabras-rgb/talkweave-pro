@@ -61,7 +61,7 @@ export default function AdminDashboard() {
   const adminMetrics = [
     { label: "Usuários Cadastrados", value: String(totalUsers), icon: Users, color: "text-emerald-400" },
     { label: "Em Análise KYC", value: String(revenueData.pendingKyc), icon: Shield, color: "text-blue-400" },
-    { label: "Volume Hoje", value: formatCurrency(revenueData.volumeToday), icon: TrendingUp, color: "text-[#FF4D2E]" },
+    { label: "Volume Hoje", value: formatCurrency(revenueData.volumeToday), icon: TrendingUp, color: "text-[#a78bfa]" },
     { label: "Volume Mês", value: formatCurrency(revenueData.volumeMonth), icon: BarChart3, color: "text-purple-400" },
     { label: "Taxa Aprovação", value: revenueData.approvalRate > 0 ? `${revenueData.approvalRate.toFixed(1)}%` : "0%", icon: Activity, color: "text-emerald-400" },
     { label: "Transações Aprovadas", value: String(revenueData.approvedTransactions), icon: DollarSign, color: "text-emerald-400" },
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold text-foreground">Dashboard Admin</h1>
-        <span className="px-2 py-0.5 text-[10px] font-bold bg-[#FF4D2E]/10 text-[#FF4D2E] rounded-full">Admin Master</span>
+        <span className="px-2 py-0.5 text-[10px] font-bold bg-[#a78bfa]/10 text-[#a78bfa] rounded-full">Admin Master</span>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -104,12 +104,12 @@ export default function AdminDashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={mockChartData}>
-                <defs><linearGradient id="gAdm" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15}/><stop offset="95%" stopColor="#FF4D2E" stopOpacity={0}/></linearGradient></defs>
+                <defs><linearGradient id="gAdm" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a78bfa" stopOpacity={0.15}/><stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                 <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Area type="monotone" dataKey="volume" stroke="#FF4D2E" fill="url(#gAdm)" strokeWidth={2} />
+                <Area type="monotone" dataKey="volume" stroke="#a78bfa" fill="url(#gAdm)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>

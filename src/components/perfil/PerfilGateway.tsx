@@ -92,13 +92,13 @@ const PerfilGateway = () => {
       <Card className="border-[#2A2A2A]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Mail className="w-4 h-4 text-[#FF4D2E]" />
+            <Mail className="w-4 h-4 text-[#a78bfa]" />
             Dados da Conta
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
           <Avatar className="h-14 w-14">
-            <AvatarFallback className="bg-[#FF4D2E] text-white text-lg">
+            <AvatarFallback className="bg-[#a78bfa] text-white text-lg">
               {userName ? userName.charAt(0).toUpperCase() : userEmail.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -116,7 +116,7 @@ const PerfilGateway = () => {
       <Card className="border-[#2A2A2A]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Building2 className="w-4 h-4 text-[#FF4D2E]" />
+            <Building2 className="w-4 h-4 text-[#a78bfa]" />
             Informações do Negócio
           </CardTitle>
           <CardDescription>Dados que aparecerão nos seus checkouts e comunicações</CardDescription>
@@ -174,7 +174,7 @@ const PerfilGateway = () => {
             <Label>Descrição do Negócio</Label>
             <Textarea value={businessDescription} onChange={(e) => setBusinessDescription(e.target.value)} placeholder="Breve descrição da sua empresa ou serviço..." className="min-h-[80px] border-[#2A2A2A]" />
           </div>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white">
             {saving ? "Salvando..." : "Salvar Alterações"}
           </Button>
         </CardContent>
@@ -184,7 +184,7 @@ const PerfilGateway = () => {
       <Card className="border-[#2A2A2A]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Key className="w-4 h-4 text-[#FF4D2E]" />
+            <Key className="w-4 h-4 text-[#a78bfa]" />
             Chaves de Integração
           </CardTitle>
           <CardDescription>Use essas informações para integrar com sua plataforma</CardDescription>
@@ -215,7 +215,7 @@ const PerfilGateway = () => {
       <Card className="border-[#2A2A2A]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="w-4 h-4 text-[#FF4D2E]" />
+            <Shield className="w-4 h-4 text-[#a78bfa]" />
             Segurança
           </CardTitle>
         </CardHeader>

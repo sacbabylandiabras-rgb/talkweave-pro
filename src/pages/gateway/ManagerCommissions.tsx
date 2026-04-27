@@ -16,7 +16,7 @@ export default function ManagerCommissions() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Comissão Mês Atual", value: "R$ 8.175,00", icon: DollarSign, color: "text-[#FF4D2E]" },
+          { label: "Comissão Mês Atual", value: "R$ 8.175,00", icon: DollarSign, color: "text-[#a78bfa]" },
           { label: "Mês Anterior", value: "R$ 7.562,00", icon: Calendar, color: "text-blue-400" },
           { label: "Total Pago", value: "R$ 20.134,00", icon: CheckCircle, color: "text-emerald-400" },
           { label: "Total a Receber", value: "R$ 6.949,00", icon: Clock, color: "text-amber-400" },
@@ -52,7 +52,7 @@ export default function ManagerCommissions() {
       <Card className="border-[#2A2A2A]">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm">Extrato Completo</CardTitle>
-          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-4 text-xs">Solicitar Antecipação</Button>
+          <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-4 text-xs">Solicitar Antecipação</Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

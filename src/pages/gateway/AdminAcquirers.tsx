@@ -292,8 +292,8 @@ export default function AdminAcquirers() {
       </div>
 
       {/* Active acquirer banner */}
-      <div className="p-3 rounded-lg border border-[#FF4D2E]/30 bg-[#FF4D2E]/5 flex items-center gap-3">
-        <Power className="w-4 h-4 text-[#FF4D2E]" />
+      <div className="p-3 rounded-lg border border-[#a78bfa]/30 bg-[#a78bfa]/5 flex items-center gap-3">
+        <Power className="w-4 h-4 text-[#a78bfa]" />
         <span className="text-sm">
           Adquirente padrão: <strong>{acquirerLabel(activeAcquirer)}</strong>
           {switching && <Loader2 className="w-3 h-3 inline ml-2 animate-spin" />}

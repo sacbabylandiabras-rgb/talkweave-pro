@@ -90,8 +90,8 @@ export default function CheckoutDropZone({
       {/* Drop indicator */}
       {isBuilder && dragOver && (
         <div className="absolute inset-0 rounded-xl border-2 border-dashed z-10 flex items-center justify-center"
-          style={{ borderColor: "#FF4D2E", background: "rgba(255,77,46,0.08)" }}>
-          <span className="text-xs font-medium" style={{ color: "#FF4D2E" }}>● Solte aqui</span>
+          style={{ borderColor: "#a78bfa", background: "rgba(255,77,46,0.08)" }}>
+          <span className="text-xs font-medium" style={{ color: "#a78bfa" }}>● Solte aqui</span>
         </div>
       )}
 
