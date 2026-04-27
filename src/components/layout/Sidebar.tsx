@@ -160,7 +160,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const allMenuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
   const allBottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
 
-  const menuItems = isNative ? allMenuItems.filter(i => dashboardIds.includes(i.id)) : allMenuItems;
+  const groupItemIds = ["apanhador-grupos", "criar-grupos"];
+  const filteredMenuItems = isPaid
+    ? allMenuItems
+    : allMenuItems.filter(i => !groupItemIds.includes(i.id));
+  const menuItems = isNative ? filteredMenuItems.filter(i => dashboardIds.includes(i.id)) : filteredMenuItems;
   const bottomItems = isNative ? [] : allBottomItems;
   const brandLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 

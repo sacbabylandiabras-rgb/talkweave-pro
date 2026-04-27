@@ -71,6 +71,7 @@ import ThankYou from "./pages/ThankYou";
 import PublicOrder from "./pages/PublicOrder";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
 import AdminRouteGuard from "./components/admin/AdminRouteGuard";
+import { PaidRouteGuard } from "./components/auth/PaidRouteGuard";
 import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
 import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
@@ -135,8 +136,8 @@ const App = () => (
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
-                  <Route path="/apanhador-grupos" element={<ApanhadorGrupos />} />
-                  <Route path="/criar-grupos" element={<CriarGrupos />} />
+                  <Route path="/apanhador-grupos" element={<PaidRouteGuard><ApanhadorGrupos /></PaidRouteGuard>} />
+                  <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
                   <Route path="/aquecimento" element={<AquecimentoNumero />} />
