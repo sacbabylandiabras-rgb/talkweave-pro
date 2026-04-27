@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.get-order]
 verify_jwt = false
+
+[functions.telegram-poll-bots]
+verify_jwt = false

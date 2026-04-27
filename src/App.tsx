@@ -76,6 +76,8 @@ import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
 import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import TelegramPlaceholder from "./pages/telegram/TelegramPlaceholder";
+import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
+import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
@@ -156,8 +158,8 @@ const App = () => (
                   <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
                   {/* Telegram routes */}
                   <Route path="/telegram/dashboard" element={<TelegramPlaceholder title="Dashboard" description="Visão geral das métricas dos seus bots do Telegram." />} />
-                  <Route path="/telegram/criar-bot" element={<TelegramPlaceholder title="Criar Bot" description="Crie um novo bot conectando o token gerado pelo @BotFather." />} />
-                  <Route path="/telegram/atualizar-bot" element={<TelegramPlaceholder title="Atualizar Bot" description="Atualize nome, descrição, foto e comandos dos seus bots." />} />
+                  <Route path="/telegram/criar-bot" element={<TelegramCriarBot />} />
+                  <Route path="/telegram/atualizar-bot" element={<TelegramAtualizarBot />} />
                   <Route path="/telegram/planos" element={<TelegramPlaceholder title="Planos de Pagamento" description="Configure os planos de assinatura oferecidos pelo bot." />} />
                   <Route path="/telegram/redirecionamento" element={<TelegramPlaceholder title="Botões de Redirecionamento" description="Crie botões inline com URL para redirecionar usuários." />} />
                   <Route path="/telegram/administradores" element={<TelegramPlaceholder title="Administradores" description="Gerencie administradores dos seus bots e canais." />} />
