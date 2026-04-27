@@ -235,8 +235,8 @@ const Relatorio = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/10">
               <div>
-                <h3 className="font-medium text-green-600 dark:text-green-400">Enviadas com Sucesso</h3>
-                <p className="text-sm text-muted-foreground">Enviadas + Entregues</p>
+                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues com Sucesso</h3>
+                <p className="text-sm text-muted-foreground">Confirmadas pelo WhatsApp</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-green-600 dark:text-green-400">
@@ -280,7 +280,7 @@ const Relatorio = () => {
           const name = (send as any).instance_name || 'Sem instância';
           const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
           current.total++;
-          if (send.status === 'sent' || send.status === 'delivered') current.sent++;
+          if (send.status === 'delivered') current.sent++;
           else if (send.status === 'failed') current.failed++;
           else current.pending++;
           instanceMap.set(name, current);
@@ -417,7 +417,7 @@ const Relatorio = () => {
                         <p className="font-bold text-lg">{campanha.total.toLocaleString('pt-BR')}</p>
                       </div>
                       <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                        <p className="text-xs text-green-600 dark:text-green-400">Enviadas</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
                         <p className="font-bold text-lg text-green-600 dark:text-green-400">
                           {campanha.sent.toLocaleString('pt-BR')}
                         </p>
