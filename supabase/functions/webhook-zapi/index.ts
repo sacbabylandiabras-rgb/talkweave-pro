@@ -2581,9 +2581,12 @@ serve(async (req) => {
                         : [];
                       const missingContacts = targetContacts.length > 0 &&
                         processedCount < targetContacts.length;
+                      const effectiveTargetContacts = targetContacts.length > 0
+                        ? targetContacts.length
+                        : processedCount;
                       const nextCampaignStatus =
-                        processedCount === 0 || deliveredCount === 0 ||
-                          missingContacts
+                        processedCount === 0 || missingContacts ||
+                          deliveredCount < effectiveTargetContacts
                           ? "paused"
                           : "completed";
                       const { error: campaignStatusError } = await supabase
