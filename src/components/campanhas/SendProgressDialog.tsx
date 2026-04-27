@@ -150,12 +150,13 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
-        if (send?.status === 'delivered') delivered += 1;
-        else if (send?.status === 'sent') queuedPending += 1;
-        else if (send?.status === 'failed') failed += 1;
-        else if (send?.status === 'pending') queuedPending += 1;
-        // status 'pending'/'sent' = aceito pelo provedor, mas sem confirmação
-        // real de entrega. Não conta como enviado até chegar callback delivered/read.
+        // Aceito pelo provedor (sent/pending/delivered) = considerado enviado.
+        // Callback delivered nem sempre chega, então não esperamos por ele.
+        if (send?.status === 'delivered' || send?.status === 'sent' || send?.status === 'pending') {
+          delivered += 1;
+        } else if (send?.status === 'failed') {
+          failed += 1;
+        }
       });
 
       const newStats = {
