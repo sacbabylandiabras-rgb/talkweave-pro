@@ -655,6 +655,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <span className="text-xs font-medium text-primary">+{connectedPhone}</span>
               </div>
             )}
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[10px] text-muted-foreground font-mono truncate" title={instance.zapi_instance_id}>
+                ID: {instance.zapi_instance_id}
+              </span>
+            </div>
           </div>
           <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px] shrink-0">
             {isOnline ? 'Online' : 'Offline'}
