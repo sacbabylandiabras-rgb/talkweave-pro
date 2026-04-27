@@ -256,9 +256,7 @@ const EnviarMensagem = () => {
     }
 
     if (imagemComBotoes) {
-      // 1) Envia a imagem pura
-      await sendImage(phone, modeloData!.mediaUrl!, '');
-      // 2) Em seguida, envia o texto + botões
+      // Imagem + botões em uma única chamada (mesma instância)
       await sendButtonActions(
         phone,
         mensagemPersonalizada || modeloData?.content || '',
@@ -276,6 +274,8 @@ const EnviarMensagem = () => {
         }),
         modeloData?.header || undefined,
         modeloData?.footer || undefined,
+        modeloData!.mediaUrl!,
+        'image',
       );
       return mensagemPersonalizada || modeloData?.name || 'Imagem + texto com botões enviado';
     }
