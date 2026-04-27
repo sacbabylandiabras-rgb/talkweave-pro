@@ -2437,6 +2437,17 @@ serve(async (req) => {
             ].filter(Boolean)),
           );
 
+          // Match prioritário por message_id (mais preciso que por telefone,
+          // especialmente quando o destino foi salvo como @lid e o callback
+          // retorna o número real resolvido pelo WhatsApp).
+          const callbackMessageId = String(
+            (webhook as any)?.messageId ||
+              (webhook as any)?.zaapId ||
+              (webhook as any)?.zapiMessageId ||
+              (webhook as any)?.id ||
+              "",
+          ).trim();
+
           const buildCampaignSendQuery = (selectFields: string) => {
             let query = supabase
               .from("campaign_sends")
@@ -2451,14 +2462,56 @@ serve(async (req) => {
             return query.order("created_at", { ascending: false }).limit(5);
           };
 
+          const buildCampaignSendQueryByMessageId = (selectFields: string) => {
+            let query = supabase
+              .from("campaign_sends")
+              .select(selectFields)
+              .eq("user_id", userId)
+              .eq("message_id", callbackMessageId);
+            if (instanceName) {
+              query = query.eq("instance_name", instanceName);
+            }
+            return query.order("created_at", { ascending: false }).limit(5);
+          };
+
           let hasReadAtColumn = true;
           let campaignSendRows: any[] | null = null;
           let campaignSendLookupError: any = null;
-          const initialCampaignSendLookup = await buildCampaignSendQuery(
-            "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
-          );
-          campaignSendRows = initialCampaignSendLookup.data as any[] | null;
-          campaignSendLookupError = initialCampaignSendLookup.error;
+
+          // 1) Tenta primeiro por message_id (mais confiável).
+          if (callbackMessageId) {
+            const byMsgId = await buildCampaignSendQueryByMessageId(
+              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name, message_id",
+            );
+            if (
+              byMsgId.error?.code === "42703" &&
+              String(byMsgId.error.message || "").includes("message_id")
+            ) {
+              // coluna ainda não criada; ignora e cai para busca por phone.
+            } else if (byMsgId.error?.code === "42703" && String(byMsgId.error.message || "").includes("read_at")) {
+              hasReadAtColumn = false;
+              const retryNoRead = await supabase
+                .from("campaign_sends")
+                .select("id, campaign_id, status, phone, sent_at, delivered_at, instance_name, message_id")
+                .eq("user_id", userId)
+                .eq("message_id", callbackMessageId)
+                .limit(5);
+              campaignSendRows = retryNoRead.data as any[] | null;
+              campaignSendLookupError = retryNoRead.error;
+            } else {
+              campaignSendRows = byMsgId.data as any[] | null;
+              campaignSendLookupError = byMsgId.error;
+            }
+          }
+
+          // 2) Fallback: busca por telefone/variantes.
+          if (!campaignSendRows || campaignSendRows.length === 0) {
+            const initialCampaignSendLookup = await buildCampaignSendQuery(
+              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
+            );
+            campaignSendRows = initialCampaignSendLookup.data as any[] | null;
+            campaignSendLookupError = initialCampaignSendLookup.error;
+          }
 
           if (
             campaignSendLookupError?.code === "42703" &&
