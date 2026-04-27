@@ -316,7 +316,9 @@ export const useZapi = () => {
     message: string, 
     buttons: Array<{id: string, type: 'CALL' | 'URL' | 'REPLY' | 'OPTION' | 'COPY', label: string, phone?: string, url?: string, copyText?: string}>,
     title?: string,
-    footer?: string
+    footer?: string,
+    mediaUrl?: string,
+    mediaType?: 'image' | 'video' | 'audio' | 'document'
   ) => {
     setLoading(true);
     
@@ -326,6 +328,7 @@ export const useZapi = () => {
         message,
         title,
         footer,
+        ...(mediaUrl ? { mediaUrl, mediaType: mediaType || 'image' } : {}),
         buttonActions: buttons.map(btn => {
           const buttonData: {
             id: string;
