@@ -939,10 +939,11 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
     let success = 0;
     let failed = 0;
     const updatedInstanceIds: string[] = [];
+    const errors: string[] = [];
 
     for (const inst of instances) {
       try {
-        const { error } = await supabase.functions.invoke("update-profile", {
+        const { data, error } = await supabase.functions.invoke("update-profile", {
           body: {
             type,
             value,
@@ -954,19 +955,33 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             apiKey: (inst as any).evolution_api_key,
           },
         });
-        if (error) throw error;
+        if (error) {
+          // Tenta extrair mensagem de erro do contexto
+          const ctxMsg = (error as any)?.context?.body
+            ? (() => { try { return JSON.parse((error as any).context.body)?.error; } catch { return null; } })()
+            : null;
+          throw new Error(ctxMsg || (error as any)?.message || 'Falha ao invocar atualização');
+        }
+        if (data?.error) throw new Error(data.error);
         success++;
         updatedInstanceIds.push(inst.id);
-      } catch {
+      } catch (err) {
         failed++;
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${msg}`);
+        console.error(`[BulkProfileUpdate] Falha em ${inst.instance_name}:`, err);
       }
     }
 
     setUpdating(false);
+    const description = failed > 0
+      ? `${success} instância(s) atualizada(s), ${failed} com erro:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ''}`
+      : `${success} instância(s) atualizada(s)`;
     toast({
       title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro",
-      description: `${success} instância(s) atualizada(s)${failed > 0 ? `, ${failed} com erro` : ""}`,
+      description,
       variant: failed === instances.length ? "destructive" : "default",
+      duration: failed > 0 ? 8000 : 3000,
     });
 
     if (type === "picture" && success > 0) {
