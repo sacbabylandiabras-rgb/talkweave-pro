@@ -27,7 +27,20 @@ import {
   Wallet,
   Receipt,
   Instagram,
-  Flame
+  Flame,
+  Send as SendIcon,
+  Crown,
+  Hash,
+  ListChecks,
+  Share2,
+  Trophy,
+  ShoppingBag,
+  MessagesSquare,
+  Repeat,
+  BellRing,
+  TrendingDown,
+  Target,
+  LinkIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -68,6 +81,30 @@ const instagramMenuItems = [
   { id: "ig-automacao", label: "Automação", icon: Workflow, path: "/instagram/automacao" },
   { id: "ig-contatos", label: "Contatos", icon: Users, path: "/instagram/contatos" },
   { id: "ig-configuracao", label: "Configuração", icon: Settings, path: "/instagram/configuracao" },
+];
+
+const telegramMenuItems = [
+  { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
+  { id: "tg-criar-bot", label: "Criar Bot", icon: Bot, path: "/telegram/criar-bot" },
+  { id: "tg-atualizar-bot", label: "Atualizar Bot", icon: CloudUpload, path: "/telegram/atualizar-bot" },
+  { id: "tg-planos", label: "Planos de Pagamento", icon: CreditCard, path: "/telegram/planos" },
+  { id: "tg-redirect", label: "Botões de Redirecionamento", icon: Share2, path: "/telegram/redirecionamento" },
+  { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
+  { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
+  { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
+  { id: "tg-tarefas-afiliados", label: "Tarefas para Afiliados", icon: ListChecks, path: "/telegram/tarefas-afiliados" },
+  { id: "tg-referencia", label: "Links de Referência", icon: LinkIcon, path: "/telegram/referencia" },
+  { id: "tg-resultados", label: "Resultados", icon: Trophy, path: "/telegram/resultados" },
+  { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
+  { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas" },
+  { id: "tg-chat", label: "Chat ao vivo", icon: MessagesSquare, path: "/telegram/chat" },
+  { id: "tg-remarketing", label: "Remarketing", icon: Repeat, path: "/telegram/remarketing" },
+  { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
+  { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
+  { id: "tg-integracoes", label: "Integrações", icon: PlugZap, path: "/telegram/integracoes" },
+  { id: "tg-traqueamento", label: "Traqueamento", icon: Target, path: "/telegram/traqueamento" },
+  { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
+  { id: "tg-links-utm", label: "Links UTM", icon: LinkIcon, path: "/telegram/links-utm" },
 ];
 
 const metaMenuItems = [
@@ -245,6 +282,20 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             )}
             <ul className="space-y-0.5">
               {instagramMenuItems.map(renderItem)}
+            </ul>
+          </>
+        )}
+
+        {/* Telegram section - only for admins */}
+        {activeWorkspace === "zapi" && isAdmin && (
+          <>
+            {!collapsed && (
+              <div className="px-2 pt-3 pb-1">
+                <span className="sidebar-section-label">Telegram</span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {telegramMenuItems.map(renderItem)}
             </ul>
           </>
         )}
