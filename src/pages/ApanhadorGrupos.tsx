@@ -699,9 +699,19 @@ const ApanhadorGrupos = () => {
                 Remover administradores
               </label>
             </div>
+            <div className="flex items-center gap-2 px-3 rounded-md border border-border bg-muted/30">
+              <Switch
+                id="exclude-lids"
+                checked={excludeLids}
+                onCheckedChange={(v) => setExcludeLids(Boolean(v))}
+              />
+              <label htmlFor="exclude-lids" className="text-sm font-medium cursor-pointer whitespace-nowrap">
+                Remover anônimos (não recebem mensagem)
+              </label>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            Quando ativado, números de administradores são excluídos ao copiar e baixar (TXT/CSV).
+            Administradores ficam ocultos ao exportar quando o filtro está ativo. Contatos anônimos (sem número real visível) são removidos por padrão porque a mensagem não chega ao destinatário, mesmo que o sistema mostre "entregue".
           </p>
         </CardContent>
       </Card>
