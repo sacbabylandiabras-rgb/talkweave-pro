@@ -142,12 +142,21 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           const status = String(
             j?.instance?.status || j?.status || j?.connectionStatus || j?.state || ''
           ).toLowerCase();
+          const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline'];
+          if (
+            j?.connected === false ||
+            j?.loggedIn === false ||
+            j?.instance?.connected === false ||
+            negativeStates.some((s) => status === s || status.includes(s))
+          ) {
+            return false;
+          }
           const connected =
             j?.connected === true ||
             j?.loggedIn === true ||
             j?.instance?.connected === true ||
             ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in'].some((s) =>
-              status.includes(s)
+              status === s
             );
           if (connected) return true;
           // resposta válida mas não conectada
@@ -176,6 +185,11 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
     console.error(`⚠️ isInstanceConnected error for ${instance.instance_name}:`, e);
     return false;
   }
+};
+
+const isDisconnectedPayload = (payload: any): boolean => {
+  const text = JSON.stringify(payload || {}).toLowerCase();
+  return /whatsapp disconnected|disconnected|logged[_\s-]?out|logout|offline|closed/.test(text);
 };
 
 const normalizePhoneFromJid = (jid: string | null | undefined): string => {
@@ -286,8 +300,12 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       detail = await infoResponse.json().catch(() => null);
       if (!infoResponse.ok) {
         console.error(`⚠️ group/info HTTP ${infoResponse.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
+        if ([401, 403, 503].includes(infoResponse.status) || isDisconnectedPayload(detail)) {
+          throw new Error('UAZAPI_INSTANCE_DISCONNECTED');
+        }
       }
     } catch (error) {
+      if ((error as Error)?.message === 'UAZAPI_INSTANCE_DISCONNECTED') throw error;
       console.error(`❌ UAZAPI group/info failed for ${groupId}:`, error);
     }
 
@@ -346,7 +364,11 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     };
   }));
 
-  return detailedGroups.filter(Boolean);
+  try {
+    return detailedGroups.filter(Boolean);
+  } catch (_) {
+    return [];
+  }
 };
 
 const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: string; lid: string }> => {
@@ -615,7 +637,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("❌ Error fetching groups:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
