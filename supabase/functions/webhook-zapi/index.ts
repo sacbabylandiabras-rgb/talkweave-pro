@@ -2335,12 +2335,35 @@ serve(async (req) => {
           .select("user_id, instance_name, zapi_instance_id")
           .eq("is_active", true);
 
-        const instanceData = (cbInstances || []).find((item: any) => {
+        const matchingCbInstances = (cbInstances || []).filter((item: any) => {
           return normalizeInstanceIdentifier(item?.zapi_instance_id) ===
               normalizedCbInstanceId ||
             normalizeInstanceIdentifier(item?.instance_name) ===
               normalizedCbInstanceId;
         });
+
+        let instanceData = matchingCbInstances[0] || null;
+        if (matchingCbInstances.length > 1 && phone) {
+          const { data: pendingCampaignOwner } = await supabase
+            .from("campaign_sends")
+            .select("user_id, created_at")
+            .in("user_id", matchingCbInstances.map((item: any) => item.user_id))
+            .eq("phone", phone)
+            .in("status", ["pending", "sent"])
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const matchedOwner = pendingCampaignOwner?.user_id
+            ? matchingCbInstances.find((item: any) => item.user_id === pendingCampaignOwner.user_id)
+            : null;
+          if (matchedOwner) {
+            instanceData = matchedOwner;
+            console.log(
+              `🔀 Status callback para instância compartilhada resolvido pela campanha pendente: ${matchedOwner.user_id}`,
+            );
+          }
+        }
 
         const userId = instanceData?.user_id;
         const instanceName = instanceData?.instance_name;
