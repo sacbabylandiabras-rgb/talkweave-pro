@@ -36,7 +36,13 @@ const readCachedInstances = (userId: string): ZapiInstance[] | null => {
 
 const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
   try {
-    localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ instances, savedAt: Date.now() }));
+    const safeInstances = instances.map((instance) => ({
+      ...instance,
+      zapi_token: '',
+      zapi_client_token: '',
+      evolution_api_key: null,
+    }));
+    localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ instances: safeInstances, savedAt: Date.now() }));
   } catch {
     // cache is best-effort only
   }
