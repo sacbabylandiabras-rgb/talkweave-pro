@@ -152,18 +152,17 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
         if (send?.status === 'delivered') delivered += 1;
-        else if (send?.status === 'sent') sent += 1;
+        else if (send?.status === 'sent') queuedPending += 1;
         else if (send?.status === 'failed') failed += 1;
         else if (send?.status === 'pending') queuedPending += 1;
-        // status 'pending' = na fila Z-API, já aceito pelo provedor mas sem
-        // callback de entrega. Conta como processado para fins de conclusão,
-        // mas aparece como "pendente" na UI até confirmação.
+        // status 'pending'/'sent' = aceito pelo provedor, mas sem confirmação
+        // real de entrega. Não conta como enviado até chegar callback delivered/read.
       });
 
       const newStats = {
         total: effectiveTotal,
         sending: 0,
-        pending: Math.max(0, effectiveTotal - sent - delivered - failed),
+        pending: Math.max(0, effectiveTotal - delivered - failed),
         sent,
         delivered,
         failed,
