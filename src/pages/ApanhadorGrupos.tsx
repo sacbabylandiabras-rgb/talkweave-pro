@@ -36,7 +36,9 @@ const ApanhadorGrupos = () => {
   // Apenas instâncias uazapi devem aparecer nesta página
   const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   const [extracting, setExtracting] = useState<string | null>(null);
-  const [extractedNumbers, setExtractedNumbers] = useState<Map<string, string[]>>(new Map());
+  type ExtractedParticipant = { phone: string; isAdmin: boolean };
+  const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
+  const [excludeAdmins, setExcludeAdmins] = useState<boolean>(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
