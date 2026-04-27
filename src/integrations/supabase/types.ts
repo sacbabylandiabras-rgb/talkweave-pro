@@ -173,6 +173,7 @@ export type Database = {
       campaign_sends: {
         Row: {
           campaign_id: string
+          clicked_at: string | null
           contact_name: string | null
           created_at: string
           delivered_at: string | null
@@ -180,13 +181,16 @@ export type Database = {
           id: string
           instance_name: string | null
           message_content: string
+          message_id: string | null
           phone: string
+          read_at: string | null
           sent_at: string | null
           status: string | null
           user_id: string | null
         }
         Insert: {
           campaign_id: string
+          clicked_at?: string | null
           contact_name?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -194,13 +198,16 @@ export type Database = {
           id?: string
           instance_name?: string | null
           message_content: string
+          message_id?: string | null
           phone: string
+          read_at?: string | null
           sent_at?: string | null
           status?: string | null
           user_id?: string | null
         }
         Update: {
           campaign_id?: string
+          clicked_at?: string | null
           contact_name?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -208,7 +215,9 @@ export type Database = {
           id?: string
           instance_name?: string | null
           message_content?: string
+          message_id?: string | null
           phone?: string
+          read_at?: string | null
           sent_at?: string | null
           status?: string | null
           user_id?: string | null
