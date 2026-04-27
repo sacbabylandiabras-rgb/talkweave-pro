@@ -325,16 +325,17 @@ const ApanhadorGrupos = () => {
         body: { groupId, fallbackParticipants, sourceInstanceId, isCommunity },
       });
       if (error) throw error;
-      const phones = (data.participants || [])
-        .map((p: any) => p.phone)
-        .filter((p: string) => p && p.length > 5);
-      setExtractedNumbers(prev => new Map(prev).set(groupId, phones));
+      const participants: ExtractedParticipant[] = (data.participants || [])
+        .map((p: any) => ({ phone: p.phone as string, isAdmin: Boolean(p.isAdmin) }))
+        .filter((p: ExtractedParticipant) => p.phone && p.phone.length > 5);
+      setExtractedNumbers(prev => new Map(prev).set(groupId, participants));
+      const adminsCount = participants.filter(p => p.isAdmin).length;
       if (data.unresolvedLids > 0) {
-        toast.success(`${phones.length} contatos extraídos (${data.unresolvedLids} com @lid).`);
+        toast.success(`${participants.length} contatos extraídos (${data.unresolvedLids} com @lid)${adminsCount ? ` • ${adminsCount} administrador(es)` : ''}.`);
       } else if (data.partialAdminsOnlyFallback) {
         toast.warning('Esta comunidade retornou apenas admins na listagem.');
       } else {
-        toast.success(`${phones.length} números extraídos!`);
+        toast.success(`${participants.length} números extraídos${adminsCount ? ` • ${adminsCount} administrador(es)` : ''}!`);
       }
     } catch (err: any) {
       console.error('Erro ao extrair participantes:', err);
@@ -344,19 +345,30 @@ const ApanhadorGrupos = () => {
     }
   };
 
+  const getPhonesForExport = (groupId: string): string[] => {
+    const list = extractedNumbers.get(groupId) || [];
+    return list.filter(p => !excludeAdmins || !p.isAdmin).map(p => p.phone);
+  };
+
   const copyNumbers = (groupId: string) => {
-    const numbers = extractedNumbers.get(groupId);
-    if (!numbers) return;
-    navigator.clipboard.writeText(numbers.join('\n'));
+    const phones = getPhonesForExport(groupId);
+    if (phones.length === 0) {
+      toast.warning('Nenhum número para copiar com o filtro atual.');
+      return;
+    }
+    navigator.clipboard.writeText(phones.join('\n'));
     setCopied(groupId);
-    toast.success('Números copiados!');
+    toast.success(`${phones.length} número(s) copiado(s)${excludeAdmins ? ' (admins removidos)' : ''}!`);
     setTimeout(() => setCopied(null), 2000);
   };
 
   const downloadNumbers = (groupId: string, groupName: string) => {
-    const numbers = extractedNumbers.get(groupId);
-    if (!numbers) return;
-    const blob = new Blob([numbers.join('\n')], { type: 'text/plain' });
+    const phones = getPhonesForExport(groupId);
+    if (phones.length === 0) {
+      toast.warning('Nenhum número para baixar com o filtro atual.');
+      return;
+    }
+    const blob = new Blob([phones.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -366,11 +378,14 @@ const ApanhadorGrupos = () => {
   };
 
   const downloadCsv = (groupId: string, groupName: string) => {
-    const numbers = extractedNumbers.get(groupId);
-    if (!numbers || numbers.length === 0) return;
+    const phones = getPhonesForExport(groupId);
+    if (phones.length === 0) {
+      toast.warning('Nenhum número para baixar com o filtro atual.');
+      return;
+    }
     const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
     const header = ['Grupo', 'Telefone'].map(escape).join(',');
-    const rows = numbers.map((phone) => [groupName, phone].map(escape).join(','));
+    const rows = phones.map((phone) => [groupName, phone].map(escape).join(','));
     const csv = '\uFEFF' + [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
