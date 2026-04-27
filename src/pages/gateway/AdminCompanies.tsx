@@ -61,7 +61,7 @@ export default function AdminCompanies() {
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-[#FF4D2E]" title="Impersonar"><LogIn className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-[#a78bfa]" title="Impersonar"><LogIn className="w-3.5 h-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400"><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </TableCell>

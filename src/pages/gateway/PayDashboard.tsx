@@ -301,7 +301,7 @@ export default function PayDashboard() {
             </Popover>
           )}
           <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-2.5 min-w-[280px] lg:min-w-[340px]">
-            <Trophy className="w-4 h-4 text-[#FF4D2E] shrink-0" />
+            <Trophy className="w-4 h-4 text-[#a78bfa] shrink-0" />
             <div className="flex-1 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-foreground">
@@ -314,7 +314,7 @@ export default function PayDashboard() {
                   className="h-full rounded-full transition-all duration-700 ease-out"
                   style={{
                     width: `${progressInfo.segmentPct}%`,
-                    background: "linear-gradient(90deg, #FF4D2E 0%, #FF8C00 100%)",
+                    background: "linear-gradient(90deg, #a78bfa 0%, #FF8C00 100%)",
                   }}
                 />
               </div>
@@ -346,7 +346,7 @@ export default function PayDashboard() {
           <Card key={m.label} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{m.label}</CardTitle>
-              <m.icon className="w-4 h-4 text-[#FF4D2E]" />
+              <m.icon className="w-4 h-4 text-[#a78bfa]" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">{m.value}</p>
@@ -366,8 +366,8 @@ export default function PayDashboard() {
               <AreaChart data={computedChartData}>
                 <defs>
                   <linearGradient id="gPagas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#FF4D2E" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gPendentes" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#FF7856" stopOpacity={0.15} />
@@ -379,7 +379,7 @@ export default function PayDashboard() {
                 <YAxis tick={{ fill: "#A0A0A0", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "rgb(var(--card))", border: "1px solid rgb(var(--border))", borderRadius: 8 }} />
                 <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v === "pagas" ? "Pagas" : "Pendentes"}</span>} />
-                <Area type="monotone" dataKey="pagas" stroke="#FF4D2E" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
+                <Area type="monotone" dataKey="pagas" stroke="#a78bfa" fill="url(#gPagas)" strokeWidth={2} name="pagas" />
                 <Area type="monotone" dataKey="pendentes" stroke="#FF7856" fill="url(#gPendentes)" strokeWidth={2} name="pendentes" />
               </AreaChart>
             </ResponsiveContainer>

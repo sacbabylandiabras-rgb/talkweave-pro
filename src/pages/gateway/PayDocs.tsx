@@ -25,13 +25,13 @@ export default function PayDocs() {
       {/* Sidebar */}
       <nav className="w-56 shrink-0 border-r border-[#2A2A2A] pr-4 hidden lg:block">
         <div className="flex items-center gap-2 mb-6">
-          <Zap className="w-5 h-5 text-[#FF4D2E]" />
-          <span className="font-bold text-sm">ZapLynx<span className="text-[#FF4D2E]">Pay</span> Docs</span>
+          <Zap className="w-5 h-5 text-[#a78bfa]" />
+          <span className="font-bold text-sm">ZapLynx<span className="text-[#a78bfa]">Pay</span> Docs</span>
         </div>
         <ul className="space-y-0.5">
           {sections.map(s => (
             <li key={s.id}>
-              <button onClick={() => setActiveSection(s.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors", activeSection === s.id ? "bg-[#FF4D2E]/10 text-[#FF4D2E]" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
+              <button onClick={() => setActiveSection(s.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors", activeSection === s.id ? "bg-[#a78bfa]/10 text-[#a78bfa]" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
                 <s.icon className="w-3.5 h-3.5" />
                 {s.label}
               </button>
@@ -57,7 +57,7 @@ export default function PayDocs() {
             </div>
 
             <h3 className="font-semibold">🔗 Base URL da API</h3>
-            <div className="rounded-lg border-2 border-[#FF4D2E]/40 bg-[#FF4D2E]/5 p-4 space-y-3">
+            <div className="rounded-lg border-2 border-[#a78bfa]/40 bg-[#a78bfa]/5 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">PRODUÇÃO</span>
               </div>
@@ -101,7 +101,7 @@ Content-Type: application/json`} />
                   ].map(([m, e, d]) => (
                     <tr key={e} className="border-b border-[#2A2A2A]">
                       <td className="p-3"><span className={`font-mono font-bold ${m === 'GET' ? 'text-emerald-400' : 'text-amber-400'}`}>{m}</span></td>
-                      <td className="p-3 font-mono text-[#FF4D2E]">{e}</td>
+                      <td className="p-3 font-mono text-[#a78bfa]">{e}</td>
                       <td className="p-3 text-muted-foreground">{d}</td>
                     </tr>
                   ))}
@@ -241,7 +241,7 @@ if (req.headers['x-zaplynxpay-signature'] !== sig) {
                   {[
                     ["approved", "Aprovada"], ["declined", "Recusada"], ["pending", "Aguardando (PIX/Boleto)"],
                     ["captured", "Pré-auth capturada"], ["refunded", "Estornada"], ["chargeback", "Contestação aberta"], ["failed", "Erro técnico"],
-                  ].map(([s, d]) => <tr key={s} className="border-b border-[#2A2A2A]"><td className="p-3 font-mono text-[#FF4D2E]">{s}</td><td className="p-3 text-muted-foreground">{d}</td></tr>)}
+                  ].map(([s, d]) => <tr key={s} className="border-b border-[#2A2A2A]"><td className="p-3 font-mono text-[#a78bfa]">{s}</td><td className="p-3 text-muted-foreground">{d}</td></tr>)}
                 </tbody>
               </table>
             </div>
@@ -284,7 +284,7 @@ if (req.headers['x-zaplynxpay-signature'] !== sig) {
         {activeSection === "sandbox" && (
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">Sandbox & Testes</h1>
-            <p className="text-muted-foreground">Base URL: <code className="font-mono text-xs text-[#FF4D2E]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></p>
+            <p className="text-muted-foreground">Base URL: <code className="font-mono text-xs text-[#a78bfa]">https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1</code></p>
             
             <h2 className="text-xl font-semibold">Cartões de Teste</h2>
             <div className="rounded-lg border border-[#2A2A2A] overflow-hidden">

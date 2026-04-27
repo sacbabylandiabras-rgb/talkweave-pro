@@ -181,7 +181,7 @@ export default function PayWithdrawals() {
           <h1 className="text-2xl font-bold text-foreground">Saques</h1>
           <p className="text-sm text-muted-foreground">Solicite a transferência do seu saldo via PIX</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-[#FF4D2E] hover:bg-[#FF4D2E]/90">
+        <Button onClick={() => setDialogOpen(true)} className="bg-[#a78bfa] hover:bg-[#a78bfa]/90">
           <ArrowUpRight className="w-4 h-4 mr-2" />
           Solicitar Saque
         </Button>
@@ -333,7 +333,7 @@ export default function PayWithdrawals() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-[#FF4D2E] hover:bg-[#FF4D2E]/90"
+              className="bg-[#a78bfa] hover:bg-[#a78bfa]/90"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Solicitar

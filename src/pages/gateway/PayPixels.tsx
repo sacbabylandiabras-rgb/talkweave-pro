@@ -213,7 +213,7 @@ function PixelCard({
         <div className="flex gap-2 pt-2">
           <Button
             size="sm"
-            className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs"
+            className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full text-xs"
             disabled={!hasChanges || saving}
             onClick={handleSave}
           >
@@ -242,7 +242,7 @@ export default function PayPixels() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
       </div>
     );
   }

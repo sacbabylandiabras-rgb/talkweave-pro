@@ -354,7 +354,7 @@ export default function PayProducts() {
           <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus produtos e serviços ({products.length})</p>
         </div>
-        <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={openCreateDialog}>
+        <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-6" onClick={openCreateDialog}>
           <Plus className="w-4 h-4 mr-2" /> Novo Produto
         </Button>
       </div>
@@ -399,7 +399,7 @@ export default function PayProducts() {
               ) : (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-[#2A2A2A] hover:border-[#FF4D2E]/50 flex flex-col items-center justify-center gap-2 transition-colors bg-muted/30"
+                  className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-[#2A2A2A] hover:border-[#a78bfa]/50 flex flex-col items-center justify-center gap-2 transition-colors bg-muted/30"
                 >
                   <ImagePlus className="w-8 h-8 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Clique para adicionar uma foto</span>
@@ -446,7 +446,7 @@ export default function PayProducts() {
                 </Select>
               </div>
             </div>
-            <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleSave} disabled={saving || !form.name}>
+            <Button className="w-full bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full" onClick={handleSave} disabled={saving || !form.name}>
               {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {uploading ? "Enviando foto..." : editingProduct ? "Atualizar Produto" : "Salvar Produto"}
             </Button>
@@ -472,7 +472,7 @@ export default function PayProducts() {
             const tc = typeConfig[p.type] || typeConfig.digital;
             const IconComp = tc.icon;
             return (
-              <Card key={p.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors overflow-hidden">
+              <Card key={p.id} className="border-[#2A2A2A] hover:border-[#a78bfa]/30 transition-colors overflow-hidden">
                 {p.image_url ? (
                   <div className="w-full h-36 bg-muted overflow-hidden">
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />

@@ -65,14 +65,14 @@ export default function CheckoutElementsSidebar({
                     key={el.id}
                     className="flex items-center gap-1.5 p-2 rounded-lg border transition-all cursor-pointer group"
                     style={{
-                      borderColor: selectedElementId === el.id ? "#FF4D2E" : "hsl(var(--border))",
+                      borderColor: selectedElementId === el.id ? "#a78bfa" : "hsl(var(--border))",
                       background: selectedElementId === el.id ? "rgba(255,77,46,0.08)" : "transparent",
                       opacity: el.visible ? 1 : 0.5,
                     }}
                     onClick={() => onSelectElement(el.id)}
                   >
                     <GripVertical className="w-3 h-3 text-muted-foreground shrink-0" />
-                    <IconComp className="w-3.5 h-3.5 shrink-0" style={{ color: "#FF4D2E" }} />
+                    <IconComp className="w-3.5 h-3.5 shrink-0" style={{ color: "#a78bfa" }} />
                     <span className="text-[11px] font-medium flex-1 truncate">{def?.label || el.type}</span>
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{POSITION_LABELS[el.position as ElementPosition] || el.position}</span>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -131,7 +131,7 @@ export default function CheckoutElementsSidebar({
                       onDragStart?.(def.type);
                     }}
                     onClick={() => onAddElement(def.type, selectedPosition)}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#FF4D2E]/50 hover:bg-[#FF4D2E]/5 transition-all cursor-pointer"
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-[#a78bfa]/50 hover:bg-[#a78bfa]/5 transition-all cursor-pointer"
                   >
                     <IconComp className="w-5 h-5 text-muted-foreground" />
                     <span className="text-[10px] font-medium">{def.label}</span>

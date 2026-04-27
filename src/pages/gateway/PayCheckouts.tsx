@@ -20,7 +20,7 @@ export default function PayCheckouts() {
           className="gap-2 border-[#2A2A2A]"
           onClick={() => setDomainOpen(true)}
         >
-          <Globe className="w-4 h-4 text-[#FF4D2E]" />
+          <Globe className="w-4 h-4 text-[#a78bfa]" />
           Domínio
         </Button>
       </div>
@@ -29,7 +29,7 @@ export default function PayCheckouts() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-[#FF4D2E]" />
+              <Globe className="w-5 h-5 text-[#a78bfa]" />
               Domínio Personalizado
             </DialogTitle>
           </DialogHeader>

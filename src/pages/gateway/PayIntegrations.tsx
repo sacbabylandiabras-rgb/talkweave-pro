@@ -78,7 +78,7 @@ function UtmifyCard() {
   return (
     <>
       <Card
-        className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors cursor-pointer"
+        className="border-[#2A2A2A] hover:border-[#a78bfa]/30 transition-colors cursor-pointer"
         onClick={() => setOpen(true)}
       >
         <CardContent className="p-5 flex items-center gap-4">
@@ -148,7 +148,7 @@ function UtmifyCard() {
             </div>
 
             <Button
-              className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white"
+              className="w-full bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
               disabled={saving}
               onClick={handleSave}
             >
@@ -216,7 +216,7 @@ export default function PayIntegrations() {
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Webhooks Customizados</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {integrations.map(int => (
-            <Card key={int.id} className="border-[#2A2A2A] hover:border-[#FF4D2E]/30 transition-colors">
+            <Card key={int.id} className="border-[#2A2A2A] hover:border-[#a78bfa]/30 transition-colors">
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

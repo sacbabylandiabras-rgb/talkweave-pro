@@ -31,12 +31,12 @@ export default function AdminReports() {
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={mockChartData}>
-                  <defs><linearGradient id="gAR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15}/><stop offset="95%" stopColor="#FF4D2E" stopOpacity={0}/></linearGradient></defs>
+                  <defs><linearGradient id="gAR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a78bfa" stopOpacity={0.15}/><stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                   <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                   <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                  <Area type="monotone" dataKey="volume" stroke="#FF4D2E" fill="url(#gAR)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="volume" stroke="#a78bfa" fill="url(#gAR)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>

@@ -381,7 +381,7 @@ export default function CheckoutBuilder() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="rounded-full text-xs"><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview</Button>
-          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-5 text-xs" onClick={handleSave} disabled={saving}>
+          <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-5 text-xs" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
             {isEditing ? "Atualizar Checkout" : "Salvar Checkout"}
           </Button>
@@ -389,14 +389,14 @@ export default function CheckoutBuilder() {
             <button
               onClick={() => setPreviewMode("desktop")}
               className="px-2.5 py-1.5 transition-colors"
-              style={{ background: previewMode === "desktop" ? "#FF4D2E" : "transparent", color: previewMode === "desktop" ? "#fff" : undefined }}
+              style={{ background: previewMode === "desktop" ? "#a78bfa" : "transparent", color: previewMode === "desktop" ? "#fff" : undefined }}
             >
               <Monitor className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setPreviewMode("mobile")}
               className="px-2.5 py-1.5 transition-colors"
-              style={{ background: previewMode === "mobile" ? "#FF4D2E" : "transparent", color: previewMode === "mobile" ? "#fff" : undefined }}
+              style={{ background: previewMode === "mobile" ? "#a78bfa" : "transparent", color: previewMode === "mobile" ? "#fff" : undefined }}
             >
               <Smartphone className="w-3.5 h-3.5" />
             </button>
@@ -422,7 +422,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO A: Produto & Oferta */}
             <AccordionItem value="produto" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#FF4D2E]" /> Produto & Oferta</div>
+                <div className="flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#a78bfa]" /> Produto & Oferta</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <div>
@@ -491,7 +491,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO B: Formato */}
             <AccordionItem value="formato" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Layout className="w-4 h-4 text-[#FF4D2E]" /> Formato</div>
+                <div className="flex items-center gap-2"><Layout className="w-4 h-4 text-[#a78bfa]" /> Formato</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 {/* Format Options First */}
@@ -504,11 +504,11 @@ export default function CheckoutBuilder() {
                         onClick={() => updateConfig("format", opt.value)}
                         className="text-left p-3 rounded-lg border transition-all"
                         style={{
-                          borderColor: config.format === opt.value ? "#FF4D2E" : "#2A2A2A",
+                          borderColor: config.format === opt.value ? "#a78bfa" : "#2A2A2A",
                           background: config.format === opt.value ? "rgba(255,77,46,0.08)" : "transparent",
                         }}
                       >
-                        <p className="text-xs font-medium" style={{ color: config.format === opt.value ? "#FF4D2E" : undefined }}>{opt.label}</p>
+                        <p className="text-xs font-medium" style={{ color: config.format === opt.value ? "#a78bfa" : undefined }}>{opt.label}</p>
                         <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
                       </button>
                     ))}
@@ -523,7 +523,7 @@ export default function CheckoutBuilder() {
                       {[
                         { value: "circles", label: "Círculos", preview: (
                           <div className="flex items-center justify-center gap-1">
-                            <div className="w-5 h-5 rounded-full border-2 border-[#FF4D2E] flex items-center justify-center text-[8px] font-bold text-[#FF4D2E]">1</div>
+                            <div className="w-5 h-5 rounded-full border-2 border-[#a78bfa] flex items-center justify-center text-[8px] font-bold text-[#a78bfa]">1</div>
                             <div className="w-3 h-px bg-border" />
                             <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center text-[8px] text-muted-foreground">2</div>
                             <div className="w-3 h-px bg-border" />
@@ -532,14 +532,14 @@ export default function CheckoutBuilder() {
                         )},
                         { value: "pills", label: "Pills", preview: (
                           <div className="flex items-center justify-center gap-1">
-                            <div className="px-2 py-0.5 rounded-full bg-[#FF4D2E]/10 border border-[#FF4D2E]/40 text-[7px] font-medium text-[#FF4D2E]">1</div>
+                            <div className="px-2 py-0.5 rounded-full bg-[#a78bfa]/10 border border-[#a78bfa]/40 text-[7px] font-medium text-[#a78bfa]">1</div>
                             <div className="px-2 py-0.5 rounded-full border border-border text-[7px] text-muted-foreground">2</div>
                             <div className="px-2 py-0.5 rounded-full border border-border text-[7px] text-muted-foreground">3</div>
                           </div>
                         )},
                         { value: "progress", label: "Barra", preview: (
                           <div className="flex items-center gap-0.5 w-full px-1">
-                            <div className="h-1.5 flex-1 rounded-full bg-[#FF4D2E]" />
+                            <div className="h-1.5 flex-1 rounded-full bg-[#a78bfa]" />
                             <div className="h-1.5 flex-1 rounded-full bg-border" />
                             <div className="h-1.5 flex-1 rounded-full bg-border" />
                           </div>
@@ -550,7 +550,7 @@ export default function CheckoutBuilder() {
                           onClick={() => updateConfig("stepIndicatorStyle", opt.value)}
                           className="flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all"
                           style={{
-                            borderColor: (config.stepIndicatorStyle || "circles") === opt.value ? "#FF4D2E" : "hsl(var(--border))",
+                            borderColor: (config.stepIndicatorStyle || "circles") === opt.value ? "#a78bfa" : "hsl(var(--border))",
                             background: (config.stepIndicatorStyle || "circles") === opt.value ? "rgba(255,77,46,0.08)" : "transparent",
                           }}
                         >
@@ -570,7 +570,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO C: Esquema de Cores */}
             <AccordionItem value="aparencia" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Palette className="w-4 h-4 text-[#FF4D2E]" /> Esquema de Cores</div>
+                <div className="flex items-center gap-2"><Palette className="w-4 h-4 text-[#a78bfa]" /> Esquema de Cores</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 {/* Logo */}
@@ -849,9 +849,9 @@ export default function CheckoutBuilder() {
                         onClick={() => updateConfig("theme", t)}
                         className="flex-1 py-2 text-xs font-medium rounded-lg border transition-all"
                         style={{
-                          borderColor: config.theme === t ? "#FF4D2E" : "#2A2A2A",
+                          borderColor: config.theme === t ? "#a78bfa" : "#2A2A2A",
                           background: config.theme === t ? "rgba(255,77,46,0.08)" : "transparent",
-                          color: config.theme === t ? "#FF4D2E" : undefined,
+                          color: config.theme === t ? "#a78bfa" : undefined,
                         }}
                       >
                         {t === "dark" ? "Escuro" : t === "light" ? "Claro" : "Custom"}
@@ -870,7 +870,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO C2: Tipografia */}
             <AccordionItem value="tipografia" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><span className="text-[#FF4D2E] text-base font-serif">T</span> Tipografia</div>
+                <div className="flex items-center gap-2"><span className="text-[#a78bfa] text-base font-serif">T</span> Tipografia</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Configure o estilo tipográfico</p>
@@ -896,7 +896,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO C3: Arredondamento */}
             <AccordionItem value="arredondamento" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><span className="text-[#FF4D2E] text-sm font-bold">⊡</span> Arredondamento</div>
+                <div className="flex items-center gap-2"><span className="text-[#a78bfa] text-sm font-bold">⊡</span> Arredondamento</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Ajuste o arredondamento dos elementos</p>
@@ -965,7 +965,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO C4: TokLynx Mobile */}
             <AccordionItem value="toklynx-mobile" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#FF4D2E]" /> TokLynx Mobile</div>
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#a78bfa]" /> TokLynx Mobile</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-4">
                 <p className="text-[10px] text-muted-foreground">Configure o comportamento das seções no mobile</p>
@@ -997,7 +997,7 @@ export default function CheckoutBuilder() {
             </AccordionItem>
             <AccordionItem value="pagamento" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#FF4D2E]" /> Métodos de Pagamento</div>
+                <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#a78bfa]" /> Métodos de Pagamento</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <div className="space-y-2">
@@ -1034,7 +1034,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO E: Campos */}
             <AccordionItem value="campos" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><FormInput className="w-4 h-4 text-[#FF4D2E]" /> Campos do Formulário</div>
+                <div className="flex items-center gap-2"><FormInput className="w-4 h-4 text-[#a78bfa]" /> Campos do Formulário</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-2">
                 {[
@@ -1054,7 +1054,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO F: Order Bump */}
             <AccordionItem value="bump" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Gift className="w-4 h-4 text-[#FF4D2E]" /> Order Bump & Upsell</div>
+                <div className="flex items-center gap-2"><Gift className="w-4 h-4 text-[#a78bfa]" /> Order Bump & Upsell</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1079,7 +1079,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO F2: Notificações por Email */}
             <AccordionItem value="notificacoes" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-[#FF4D2E]" /> Notificações por Email</div>
+                <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-[#a78bfa]" /> Notificações por Email</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Escolha quais emails serão enviados ao lead automaticamente</p>
@@ -1103,7 +1103,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO F3: Página de Obrigado */}
             <AccordionItem value="obrigado" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><PartyPopper className="w-4 h-4 text-[#FF4D2E]" /> Página de Obrigado</div>
+                <div className="flex items-center gap-2"><PartyPopper className="w-4 h-4 text-[#a78bfa]" /> Página de Obrigado</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Configure o que acontece após o pagamento ser aprovado</p>
@@ -1170,7 +1170,7 @@ export default function CheckoutBuilder() {
 
             <AccordionItem value="dominio" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#FF4D2E]" /> Domínio Personalizado</div>
+                <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-[#a78bfa]" /> Domínio Personalizado</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <div>
@@ -1239,7 +1239,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO H: Código de Integração */}
             <AccordionItem value="codigo" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Code className="w-4 h-4 text-[#FF4D2E]" /> Código de Integração</div>
+                <div className="flex items-center gap-2"><Code className="w-4 h-4 text-[#a78bfa]" /> Código de Integração</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <Tabs defaultValue="link">
@@ -1304,7 +1304,7 @@ export default function CheckoutBuilder() {
             {/* BLOCO I: Elementos Personalizados */}
             <AccordionItem value="elementos" className="border-[#2A2A2A] rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2"><Blocks className="w-4 h-4 text-[#FF4D2E]" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-[#FF4D2E] text-white rounded-full px-1.5">{elements.length}</span>}</div>
+                <div className="flex items-center gap-2"><Blocks className="w-4 h-4 text-[#a78bfa]" /> Elementos {elements.length > 0 && <span className="text-[10px] bg-[#a78bfa] text-white rounded-full px-1.5">{elements.length}</span>}</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 space-y-3">
                 <p className="text-[10px] text-muted-foreground">Arraste ou clique para adicionar elementos ao checkout</p>

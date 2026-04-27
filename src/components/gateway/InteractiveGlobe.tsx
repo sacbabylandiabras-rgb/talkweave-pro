@@ -116,7 +116,7 @@ function CountryOutlineLines() {
   }, []);
 
   const material = useMemo(
-    () => new THREE.LineBasicMaterial({ color: "#FF4D2E", transparent: true, opacity: 0.52 }),
+    () => new THREE.LineBasicMaterial({ color: "#a78bfa", transparent: true, opacity: 0.52 }),
     []
   );
 
@@ -154,7 +154,7 @@ function GridLines() {
   }, []);
 
   const material = useMemo(
-    () => new THREE.LineBasicMaterial({ color: "#FF4D2E", transparent: true, opacity: 0.07 }),
+    () => new THREE.LineBasicMaterial({ color: "#a78bfa", transparent: true, opacity: 0.07 }),
     []
   );
 
@@ -245,7 +245,7 @@ function GlobeGlow() {
   return (
     <mesh rotation={[Math.PI / 2, 0, 0]}>
       <ringGeometry args={[2.05, 2.2, 64]} />
-      <meshBasicMaterial color="#FF4D2E" transparent opacity={0.06} side={THREE.DoubleSide} />
+      <meshBasicMaterial color="#a78bfa" transparent opacity={0.06} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -272,7 +272,7 @@ function ConnectionArcs() {
   }, []);
 
   const material = useMemo(
-    () => new THREE.LineBasicMaterial({ color: "#FF4D2E", transparent: true, opacity: 0.18 }),
+    () => new THREE.LineBasicMaterial({ color: "#a78bfa", transparent: true, opacity: 0.18 }),
     []
   );
 

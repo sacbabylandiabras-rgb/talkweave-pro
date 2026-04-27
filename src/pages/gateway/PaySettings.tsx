@@ -433,7 +433,7 @@ export default function PaySettings() {
                   <span>• Expira em: {new Date(profile.subscription_expires_at).toLocaleDateString("pt-BR")}</span>
                 )}
               </div>
-              <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full" onClick={handleSave} disabled={saving}>
+              <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Salvar
               </Button>
@@ -513,7 +513,7 @@ export default function PaySettings() {
           <Card className="border-[#2A2A2A]">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Endpoints de Webhook</CardTitle>
-              <Button size="sm" className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full text-xs" onClick={openCreateWebhook}>
+              <Button size="sm" className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full text-xs" onClick={openCreateWebhook}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
               </Button>
             </CardHeader>
@@ -588,7 +588,7 @@ export default function PaySettings() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Webhook className="w-5 h-5 text-[#FF4D2E]" />
+                  <Webhook className="w-5 h-5 text-[#a78bfa]" />
                   {editingWebhook ? "Editar Webhook" : "Novo Webhook"}
                 </DialogTitle>
               </DialogHeader>
@@ -670,7 +670,7 @@ export default function PaySettings() {
                 )}
               </div>
               <DialogFooter className="flex-col gap-2 sm:flex-col">
-                <Button className="w-full bg-[#FF4D2E] hover:bg-[#E63D20] text-white" onClick={handleSaveWebhook} disabled={webhookSaving}>
+                <Button className="w-full bg-[#a78bfa] hover:bg-[#8b5cf6] text-white" onClick={handleSaveWebhook} disabled={webhookSaving}>
                   {webhookSaving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
                   Salvar Webhook
                 </Button>

@@ -8,8 +8,8 @@ import { mockManagerClients, mockChartData, formatCurrencyReais, getStatusBadge 
 
 const managerMetrics = [
   { label: "Total de Clientes", value: "8", icon: Briefcase, color: "text-blue-400" },
-  { label: "Volume Carteira Mês", value: "R$ 817.500", icon: TrendingUp, color: "text-[#FF4D2E]" },
-  { label: "Comissão Gerada", value: "R$ 8.175,00", icon: DollarSign, color: "text-[#FF4D2E]", glow: true },
+  { label: "Volume Carteira Mês", value: "R$ 817.500", icon: TrendingUp, color: "text-[#a78bfa]" },
+  { label: "Comissão Gerada", value: "R$ 8.175,00", icon: DollarSign, color: "text-[#a78bfa]", glow: true },
   { label: "Comissão a Receber", value: "R$ 6.949,00", icon: Clock, color: "text-amber-400" },
   { label: "Comissão Paga", value: "R$ 20.134,00", icon: CheckCircle, color: "text-emerald-400" },
   { label: "Novos Clientes Mês", value: "2", icon: UserPlus, color: "text-blue-400" },
@@ -51,13 +51,13 @@ export default function ManagerDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {managerMetrics.map(m => (
-          <Card key={m.label} className={`border-[#2A2A2A] ${m.glow ? 'ring-1 ring-[#FF4D2E]/20' : ''}`}>
+          <Card key={m.label} className={`border-[#2A2A2A] ${m.glow ? 'ring-1 ring-[#a78bfa]/20' : ''}`}>
             <CardContent className="pt-4 pb-3 px-4">
               <div className="flex items-center gap-2 mb-2">
                 <m.icon className={`w-4 h-4 ${m.color}`} />
                 <span className="text-[10px] text-muted-foreground uppercase">{m.label}</span>
               </div>
-              <p className={`text-lg font-bold ${m.glow ? 'text-[#FF4D2E]' : ''}`}>{m.value}</p>
+              <p className={`text-lg font-bold ${m.glow ? 'text-[#a78bfa]' : ''}`}>{m.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -69,12 +69,12 @@ export default function ManagerDashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={mockChartData.map(d => ({ ...d, volume: Math.floor(d.volume * 0.01) }))}>
-                <defs><linearGradient id="gMgr" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF4D2E" stopOpacity={0.15}/><stop offset="95%" stopColor="#FF4D2E" stopOpacity={0}/></linearGradient></defs>
+                <defs><linearGradient id="gMgr" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a78bfa" stopOpacity={0.15}/><stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                 <XAxis dataKey="date" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Area type="monotone" dataKey="volume" stroke="#FF4D2E" fill="url(#gMgr)" strokeWidth={2} />
+                <Area type="monotone" dataKey="volume" stroke="#a78bfa" fill="url(#gMgr)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -88,7 +88,7 @@ export default function ManagerDashboard() {
                 <XAxis dataKey="name" tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} />
                 <Tooltip contentStyle={{ background: '#141414', border: '1px solid #2A2A2A', borderRadius: 8 }} />
-                <Bar dataKey="volume" fill="#FF4D2E" radius={[4,4,0,0]} />
+                <Bar dataKey="volume" fill="#a78bfa" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -123,14 +123,14 @@ export default function ManagerDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2A2A2A] ring-1 ring-[#FF4D2E]/20">
+      <Card className="border-[#2A2A2A] ring-1 ring-[#a78bfa]/20">
         <CardContent className="pt-5 flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Próximo Pagamento</p>
             <p className="text-lg font-bold text-foreground mt-1">05/04/2025 — R$ 6.949,00</p>
             <p className="text-xs text-muted-foreground">PIX: {profile?.email || "—"}</p>
           </div>
-          <span className="px-3 py-1 bg-[#FF4D2E]/10 text-[#FF4D2E] rounded-full text-xs font-medium cursor-pointer hover:bg-[#FF4D2E]/20 transition-colors">Ver Extrato</span>
+          <span className="px-3 py-1 bg-[#a78bfa]/10 text-[#a78bfa] rounded-full text-xs font-medium cursor-pointer hover:bg-[#a78bfa]/20 transition-colors">Ver Extrato</span>
         </CardContent>
       </Card>
     </div>

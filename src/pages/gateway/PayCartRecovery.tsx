@@ -81,7 +81,7 @@ export default function PayCartRecovery() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <ShoppingCart className="w-6 h-6 text-[#FF4D2E]" />
+        <ShoppingCart className="w-6 h-6 text-[#a78bfa]" />
         <div>
           <h1 className="text-2xl font-bold text-foreground">Recuperação de Carrinhos</h1>
           <p className="text-xs text-muted-foreground">Carrinhos abandonados há mais de 30 minutos</p>

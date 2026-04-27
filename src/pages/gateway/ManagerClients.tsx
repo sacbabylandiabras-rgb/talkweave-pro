@@ -60,7 +60,7 @@ export default function ManagerClients() {
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7"><MessageCircle className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-[#FF4D2E]"><TrendingUp className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-[#a78bfa]"><TrendingUp className="w-3.5 h-3.5" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>

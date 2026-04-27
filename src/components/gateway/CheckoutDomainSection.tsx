@@ -144,7 +144,7 @@ export default function CheckoutDomainSection() {
     <Card className="border-[#2A2A2A]">
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[#FF4D2E]" />
+          <Globe className="w-4 h-4 text-[#a78bfa]" />
           Domínio Personalizado
         </CardTitle>
         <CardDescription className="text-xs">
@@ -164,7 +164,7 @@ export default function CheckoutDomainSection() {
             />
             {domainStatus === "none" || domainStatus === "error" ? (
               <Button
-                className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-5 text-xs"
+                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-5 text-xs"
                 onClick={handleSaveDomain}
                 disabled={domainSaving || !customDomain.trim()}
               >
@@ -237,7 +237,7 @@ export default function CheckoutDomainSection() {
             <Card className="border-[#2A2A2A] bg-muted/20">
               <CardContent className="pt-4 pb-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#FF4D2E]" />
+                  <Lock className="w-4 h-4 text-[#a78bfa]" />
                   <p className="text-xs font-medium text-foreground">Certificado SSL</p>
                   {statusChecking && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                 </div>
@@ -332,7 +332,7 @@ export default function CheckoutDomainSection() {
             <p className="text-xs font-medium text-foreground">📋 Como configurar (Vercel):</p>
             <div className="space-y-2">
               <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">1</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">1</span>
                 <div className="text-[11px] text-muted-foreground">
                   <p className="mb-1">No DNS do seu domínio, adicione o registro adequado:</p>
                   <div className="space-y-1.5">
@@ -354,11 +354,11 @@ export default function CheckoutDomainSection() {
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">2</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">2</span>
                 <p className="text-[11px] text-muted-foreground">Digite o domínio acima e clique em <strong>Ativar</strong> — o domínio será registrado automaticamente no Vercel.</p>
               </div>
               <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#FF4D2E]/10 text-[#FF4D2E] text-[10px] font-bold shrink-0">3</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">3</span>
                 <p className="text-[11px] text-muted-foreground">O SSL é provisionado automaticamente pelo Vercel. Aguarde alguns minutos e use o botão de refresh para verificar.</p>
               </div>
             </div>

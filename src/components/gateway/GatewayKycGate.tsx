@@ -23,7 +23,7 @@ export default function GatewayKycGate({ children }: GatewayKycGateProps) {
   if (loading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#FF4D2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
       </div>
     );
   }

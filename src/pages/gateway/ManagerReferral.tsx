@@ -41,7 +41,7 @@ export default function ManagerReferral() {
             <div><Label className="text-xs">Segmento</Label><Input placeholder="E-commerce" className="mt-1" /></div>
             <div><Label className="text-xs">Faturamento Estimado</Label><Input placeholder="R$ 50.000/mês" className="mt-1" /></div>
           </div>
-          <Button className="bg-[#FF4D2E] hover:bg-[#E63D20] text-white rounded-full px-6" onClick={() => toast.success("Indicação enviada!")}><Send className="w-4 h-4 mr-2" /> Enviar Indicação</Button>
+          <Button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-6" onClick={() => toast.success("Indicação enviada!")}><Send className="w-4 h-4 mr-2" /> Enviar Indicação</Button>
         </CardContent>
       </Card>
 

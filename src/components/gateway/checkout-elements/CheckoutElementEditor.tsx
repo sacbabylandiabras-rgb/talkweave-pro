@@ -42,9 +42,9 @@ export default function CheckoutElementEditor({ element, onUpdate, onUpdatePosit
   };
 
   return (
-    <div className="space-y-4 p-4 rounded-lg border border-[#FF4D2E]/30 bg-[#FF4D2E]/5">
+    <div className="space-y-4 p-4 rounded-lg border border-[#a78bfa]/30 bg-[#a78bfa]/5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold" style={{ color: "#FF4D2E" }}>Editar: {def?.label}</p>
+        <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>Editar: {def?.label}</p>
       </div>
 
       {/* Position selector */}
