@@ -460,6 +460,16 @@ const ApanhadorGrupos = () => {
                     </div>
                     <p className="font-medium text-foreground">Instância conectada!</p>
                     <p className="text-xs text-muted-foreground">Pronta para usar no Apanhador de Grupos.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={disconnectActive}
+                      disabled={disconnecting}
+                      className="mt-2 gap-2 text-red-400 border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${disconnecting ? 'animate-spin' : ''}`} />
+                      {disconnecting ? 'Desconectando...' : 'Desconectar instância'}
+                    </Button>
                   </div>
                 ) : connectMode === 'pairing' ? (
                   pairingCode ? (
