@@ -36,9 +36,13 @@ const ApanhadorGrupos = () => {
   // Apenas instâncias uazapi devem aparecer nesta página
   const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   const [extracting, setExtracting] = useState<string | null>(null);
-  type ExtractedParticipant = { phone: string; isAdmin: boolean };
+  type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
   const [excludeAdmins, setExcludeAdmins] = useState<boolean>(true);
+  // @lid são pseudônimos de privacidade do WhatsApp e NÃO recebem mensagens
+  // em disparos diretos (a API confirma "entregue" mas a mensagem não chega).
+  // Por isso são removidos por padrão.
+  const [excludeLids, setExcludeLids] = useState<boolean>(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
@@ -326,7 +330,14 @@ const ApanhadorGrupos = () => {
       });
       if (error) throw error;
       const participants: ExtractedParticipant[] = (data.participants || [])
-        .map((p: any) => ({ phone: p.phone as string, isAdmin: Boolean(p.isAdmin) }))
+        .map((p: any) => {
+          const phone = String(p.phone || '');
+          return {
+            phone,
+            isAdmin: Boolean(p.isAdmin),
+            isLid: /@lid$/i.test(phone) || /@lid$/i.test(String(p.id || '')),
+          };
+        })
         .filter((p: ExtractedParticipant) => p.phone && p.phone.length > 5);
       setExtractedNumbers(prev => new Map(prev).set(groupId, participants));
       const adminsCount = participants.filter(p => p.isAdmin).length;
@@ -347,7 +358,10 @@ const ApanhadorGrupos = () => {
 
   const getPhonesForExport = (groupId: string): string[] => {
     const list = extractedNumbers.get(groupId) || [];
-    return list.filter(p => !excludeAdmins || !p.isAdmin).map(p => p.phone);
+    return list
+      .filter(p => !excludeAdmins || !p.isAdmin)
+      .filter(p => !excludeLids || !p.isLid)
+      .map(p => p.phone);
   };
 
   const copyNumbers = (groupId: string) => {
@@ -358,7 +372,11 @@ const ApanhadorGrupos = () => {
     }
     navigator.clipboard.writeText(phones.join('\n'));
     setCopied(groupId);
-    toast.success(`${phones.length} número(s) copiado(s)${excludeAdmins ? ' (admins removidos)' : ''}!`);
+    const extras = [
+      excludeAdmins ? 'admins removidos' : null,
+      excludeLids ? 'sem números anônimos' : null,
+    ].filter(Boolean).join(', ');
+    toast.success(`${phones.length} número(s) copiado(s)${extras ? ` (${extras})` : ''}!`);
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -681,9 +699,19 @@ const ApanhadorGrupos = () => {
                 Remover administradores
               </label>
             </div>
+            <div className="flex items-center gap-2 px-3 rounded-md border border-border bg-muted/30">
+              <Switch
+                id="exclude-lids"
+                checked={excludeLids}
+                onCheckedChange={(v) => setExcludeLids(Boolean(v))}
+              />
+              <label htmlFor="exclude-lids" className="text-sm font-medium cursor-pointer whitespace-nowrap">
+                Remover anônimos (não recebem mensagem)
+              </label>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            Quando ativado, números de administradores são excluídos ao copiar e baixar (TXT/CSV).
+            Administradores ficam ocultos ao exportar quando o filtro está ativo. Contatos anônimos (sem número real visível) são removidos por padrão porque a mensagem não chega ao destinatário, mesmo que o sistema mostre "entregue".
           </p>
         </CardContent>
       </Card>
@@ -799,12 +827,19 @@ const ApanhadorGrupos = () => {
                         {numbers && (() => {
                           const total = numbers.length;
                           const adminsCount = numbers.filter(p => p.isAdmin).length;
-                          const exportable = excludeAdmins ? total - adminsCount : total;
+                          const lidsCount = numbers.filter(p => p.isLid).length;
+                          const lidAdminOverlap = numbers.filter(p => p.isLid && p.isAdmin).length;
+                          let exportable = total;
+                          if (excludeAdmins) exportable -= adminsCount;
+                          if (excludeLids) exportable -= (lidsCount - (excludeAdmins ? lidAdminOverlap : 0));
                           return (
                             <>
                               <Badge variant="secondary" className="text-xs">{exportable} números extraídos</Badge>
                               {adminsCount > 0 && excludeAdmins && (
                                 <Badge variant="outline" className="text-xs">{adminsCount} admin(s) ocultos</Badge>
+                              )}
+                              {lidsCount > 0 && excludeLids && (
+                                <Badge variant="outline" className="text-xs">{lidsCount} anônimo(s) ocultos</Badge>
                               )}
                             </>
                           );
@@ -1018,7 +1053,9 @@ const ApanhadorGrupos = () => {
                   )}
 
                   {numbers && numbers.length > 0 && (() => {
-                    const visible = numbers.filter(p => !excludeAdmins || !p.isAdmin);
+                    const visible = numbers
+                      .filter(p => !excludeAdmins || !p.isAdmin)
+                      .filter(p => !excludeLids || !p.isLid);
                     if (visible.length === 0) return null;
                     return (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
@@ -1026,8 +1063,9 @@ const ApanhadorGrupos = () => {
                       <div className="max-h-32 overflow-y-auto text-xs font-mono text-foreground space-y-0.5">
                         {visible.map((p, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <span>{p.phone}</span>
+                            <span>{p.isLid ? 'Contato anônimo' : p.phone}</span>
                             {p.isAdmin && <Badge variant="outline" className="text-[10px] h-4 px-1">admin</Badge>}
+                            {p.isLid && <Badge variant="outline" className="text-[10px] h-4 px-1">anônimo</Badge>}
                           </div>
                         ))}
                       </div>
