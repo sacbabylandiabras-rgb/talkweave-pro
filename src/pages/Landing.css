@@ -48,7 +48,11 @@
   letter-spacing: -0.5px;
 }
 .lp-logo span {
-  color: var(--lp-accent);
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 .lp-nav-right {
   display: flex;
@@ -865,7 +869,11 @@
   color: var(--lp-muted2);
 }
 .lp-f-logo span {
-  color: var(--lp-accent);
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 .lp-f-copy {
   font-size: 11px;
