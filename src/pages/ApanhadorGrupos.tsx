@@ -57,6 +57,32 @@ const ApanhadorGrupos = () => {
   const [connStatus, setConnStatus] = useState<string>('disconnected');
   const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
   const [pairingPhone, setPairingPhone] = useState('');
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const disconnectActive = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    if (!confirm(`Desconectar ${`Instância #${activeAccountIdx + 1}`}?`)) return;
+    setDisconnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success('Instância desconectada');
+      setConnStatus('disconnected');
+      setQrCode(null);
+      setPairingCode(null);
+      // tenta puxar um novo QR para reconectar
+      await fetchQrFor(account);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao desconectar');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const loadUazapiAccounts = async () => {
     const { data: { user } } = await supabase.auth.getUser();
