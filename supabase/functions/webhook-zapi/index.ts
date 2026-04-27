@@ -2496,6 +2496,14 @@ serve(async (req) => {
             return query.order("created_at", { ascending: false }).limit(5);
           };
 
+          const isMissingColumnError = (error: any, columnName: string) => {
+            const message = String(error?.message || error?.details || "").toLowerCase();
+            const column = columnName.toLowerCase();
+            return error?.code === "42703" ||
+              error?.code === "PGRST204" ||
+              (message.includes(column) && (message.includes("column") || message.includes("schema cache")));
+          };
+
           let hasReadAtColumn = true;
           let campaignSendRows: any[] | null = null;
           let campaignSendLookupError: any = null;
@@ -2505,12 +2513,9 @@ serve(async (req) => {
             const byMsgId = await buildCampaignSendQueryByMessageId(
               "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name, message_id",
             );
-            if (
-              byMsgId.error?.code === "42703" &&
-              String(byMsgId.error.message || "").includes("message_id")
-            ) {
+            if (isMissingColumnError(byMsgId.error, "message_id")) {
               // coluna ainda não criada; ignora e cai para busca por phone.
-            } else if (byMsgId.error?.code === "42703" && String(byMsgId.error.message || "").includes("read_at")) {
+            } else if (isMissingColumnError(byMsgId.error, "read_at")) {
               hasReadAtColumn = false;
               const retryNoRead = await supabase
                 .from("campaign_sends")
@@ -2535,10 +2540,7 @@ serve(async (req) => {
             campaignSendLookupError = initialCampaignSendLookup.error;
           }
 
-          if (
-            campaignSendLookupError?.code === "42703" &&
-            String(campaignSendLookupError.message || "").includes("read_at")
-          ) {
+          if (isMissingColumnError(campaignSendLookupError, "read_at")) {
             hasReadAtColumn = false;
             const retry = await buildCampaignSendQuery(
               "id, campaign_id, status, phone, sent_at, delivered_at, instance_name",
