@@ -143,25 +143,26 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       ]);
 
       const effectiveTotal = Math.max(totalContacts, allPhoneKeys.size);
-      let sent = 0;
       let delivered = 0;
       let failed = 0;
-      let queuedPending = 0;
+      let sending = 0;
+      let pending = 0;
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
         // Apenas callback delivered conta como entregue.
         if (send?.status === 'delivered') delivered += 1;
-        else if (send?.status === 'sent') queuedPending += 1;
-        else if (send?.status === 'pending') queuedPending += 1;
+        else if (send?.status === 'sent') sending += 1;
+        else if (send?.status === 'pending') pending += 1;
         else if (send?.status === 'failed') failed += 1;
+        else pending += 1;
       });
 
       const newStats = {
         total: effectiveTotal,
-        sending: 0,
-        pending: Math.max(0, effectiveTotal - delivered - failed),
-        sent,
+        sending,
+        pending,
+        sent: sending,
         delivered,
         failed,
       };
@@ -173,7 +174,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         if (!trulyDelivered) {
           await supabase
             .from('campaigns')
-            .update({ status: queuedPending > 0 ? 'active' : 'paused', updated_at: new Date().toISOString() })
+            .update({ status: sending + pending > 0 ? 'active' : 'paused', updated_at: new Date().toISOString() })
             .eq('id', campaignId);
         }
         } else if (campaignData?.status === 'active') {
@@ -182,7 +183,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         // Só completa quando não há pendentes aguardando confirmação real.
         if (
           effectiveTotal > 0 &&
-          queuedPending === 0 &&
+          sending === 0 &&
+          pending === 0 &&
           delivered >= effectiveTotal
         ) {
           setIsComplete(true);
