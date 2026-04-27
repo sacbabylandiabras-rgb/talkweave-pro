@@ -52,7 +52,7 @@ const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
 };
 
 const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
-  (send) => send.status === 'sent' || send.status === 'delivered'
+  (send) => send.status === 'delivered'
 ).length;
 
 const Relatorio = () => {
@@ -104,7 +104,7 @@ const Relatorio = () => {
     const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || !s.status).length;
+  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
@@ -124,7 +124,7 @@ const Relatorio = () => {
     const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
     const sent = countSuccessfulStatuses(campaignSends);
     const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const dbPending = campaignSends.filter(s => s.status === 'pending' || !s.status).length;
+    const dbPending = campaignSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
 
     // Calculate real pending: total target contacts - processed sends
     const targetContacts = getTargetContactsCount(campaign.target_audience);
@@ -152,7 +152,7 @@ const Relatorio = () => {
   const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
   const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
   const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
-  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || !s.status).length;
+  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
   const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
 
   // Details dialog stats
