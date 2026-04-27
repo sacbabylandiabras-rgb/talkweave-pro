@@ -388,24 +388,24 @@ export const useCampaigns = () => {
       const batchResults = data && typeof data === 'object' && Array.isArray((data as { results?: unknown[] }).results)
         ? (data as { results: Array<{ success?: boolean }> }).results
         : [];
-      const sentCount = batchResults.filter(result => result?.success).length;
+      const acceptedCount = batchResults.filter(result => result?.success).length;
       const failedCount = batchResults.filter(result => result?.success === false).length;
       const hasRemaining = Boolean(data && typeof data === 'object' && Number((data as { remaining?: number }).remaining || 0) > 0);
 
       if (failedCount > 0) {
         toast({
-          title: sentCount > 0 ? "Atenção" : "Erro",
-          description: sentCount > 0
-            ? `Campanha iniciada com ${sentCount} envio(s) e ${failedCount} falha(s) neste lote`
+          title: acceptedCount > 0 ? "Atenção" : "Erro",
+          description: acceptedCount > 0
+            ? `Campanha iniciada com ${acceptedCount} mensagem(ns) aguardando confirmação e ${failedCount} falha(s) neste lote`
             : "Nenhuma mensagem foi enviada neste lote",
-          variant: sentCount > 0 ? undefined : "destructive",
+          variant: acceptedCount > 0 ? undefined : "destructive",
         });
       } else {
         toast({
-          title: "Sucesso",
+          title: "Campanha iniciada",
           description: hasRemaining
             ? `Campanha iniciada para ${contacts.length} contatos`
-            : `Lote enviado com sucesso para ${sentCount || contacts.length} contato(s)`,
+            : `${acceptedCount || contacts.length} contato(s) aguardando confirmação real do WhatsApp`,
         });
       }
 
