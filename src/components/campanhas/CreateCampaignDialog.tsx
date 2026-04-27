@@ -507,7 +507,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                   rows={5}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Um número por linha. Aceita formato normal (5511999999999) ou identificador @lid (123456789@lid). Envio via Z-API.
+                  Um número por linha. Aceita formato normal (5511999999999) ou identificador @lid (123456789@lid).
                 </p>
               </div>
             )}
