@@ -185,8 +185,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
     )}>
       {/* Logo + Brand */}
       <div className={cn(
-        "flex items-center gap-2.5 px-4 py-4 border-b border-white/10",
-        collapsed && "justify-center px-2"
+        "flex items-center gap-2.5 px-2 py-2 border-b border-white/10",
+        collapsed && "justify-center px-1"
       )}>
         {activeWorkspace === "gateway" ? (
           <div className="w-8 h-8 rounded-lg bg-[rgba(167,139,250,0.18)] flex items-center justify-center shrink-0">
@@ -197,7 +197,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
           </div>
         ) : (
-          <LogoImage className="h-24 object-contain shrink-0" />
+          <LogoImage className="w-full h-auto object-contain shrink-0 scale-150 origin-left" />
         )}
         {!collapsed && activeWorkspace !== "zapi" && (
           <span className="font-bebas text-[22px] text-white leading-none">
