@@ -2371,6 +2371,35 @@ serve(async (req) => {
             }
           }
 
+          // === REVERSE LID LOOKUP ===
+          // Quando o callback chega com número real, mas o campaign_send foi
+          // gravado como @lid (vindo de extração de grupo), precisamos achar
+          // todos os identificadores @lid mapeados para este número real
+          // para conseguir bater na busca por phone abaixo.
+          const reverseLidPhones: string[] = [];
+          if (!phone.includes("@lid") && userId) {
+            const { data: reverseMaps } = await supabase
+              .from("message_logs")
+              .select("message_received")
+              .eq("keyword_matched", "__lid_map__")
+              .eq("user_id", userId)
+              .eq("phone", phone)
+              .limit(20);
+            if (reverseMaps && reverseMaps.length > 0) {
+              for (const m of reverseMaps) {
+                const lid = (m as any).message_received;
+                if (lid && typeof lid === "string" && lid.includes("@lid")) {
+                  reverseLidPhones.push(lid);
+                }
+              }
+              if (reverseLidPhones.length > 0) {
+                console.log(
+                  `🔁 Reverse @lid lookup encontrou ${reverseLidPhones.length} mapeamento(s) para ${phone}`,
+                );
+              }
+            }
+          }
+
           const nowIso = new Date().toISOString();
           const expandCampaignCallbackPhones = (value?: string | null) => {
             if (!value) return [];
@@ -2404,6 +2433,7 @@ serve(async (req) => {
             new Set([
               ...expandCampaignCallbackPhones(phone),
               ...expandCampaignCallbackPhones(resolvedPhone),
+              ...reverseLidPhones,
             ].filter(Boolean)),
           );
 
