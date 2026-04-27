@@ -57,6 +57,32 @@ const ApanhadorGrupos = () => {
   const [connStatus, setConnStatus] = useState<string>('disconnected');
   const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
   const [pairingPhone, setPairingPhone] = useState('');
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const disconnectActive = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    if (!confirm(`Desconectar ${`Instância #${activeAccountIdx + 1}`}?`)) return;
+    setDisconnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success('Instância desconectada');
+      setConnStatus('disconnected');
+      setQrCode(null);
+      setPairingCode(null);
+      // tenta puxar um novo QR para reconectar
+      await fetchQrFor(account);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao desconectar');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const loadUazapiAccounts = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -434,6 +460,16 @@ const ApanhadorGrupos = () => {
                     </div>
                     <p className="font-medium text-foreground">Instância conectada!</p>
                     <p className="text-xs text-muted-foreground">Pronta para usar no Apanhador de Grupos.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={disconnectActive}
+                      disabled={disconnecting}
+                      className="mt-2 gap-2 text-red-400 border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${disconnecting ? 'animate-spin' : ''}`} />
+                      {disconnecting ? 'Desconectando...' : 'Desconectar instância'}
+                    </Button>
                   </div>
                 ) : connectMode === 'pairing' ? (
                   pairingCode ? (
