@@ -270,22 +270,6 @@ export const useCampaigns = () => {
     }
   };
 
-  const getQueueClearPayload = (campaign?: Campaign) => {
-    const sendConfig = campaign?.target_audience?.__sendConfig;
-
-    if (sendConfig?.rotateAll) {
-      return { clearAllActive: true };
-    }
-
-    if (sendConfig?.instanceId && sendConfig.instanceId !== '__rotate_all__') {
-      return { instanceId: sendConfig.instanceId };
-    }
-
-    // Fallback seguro para campanhas antigas ou envios sem metadata persistida:
-    // limpa todas as filas ativas para evitar disparos fantasmas na instância errada.
-    return { clearAllActive: true };
-  };
-
   const sendCampaign = async (
     campaignId: string,
     contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>,
@@ -492,28 +476,9 @@ export const useCampaigns = () => {
   };
 
   const pauseCampaign = async (id: string) => {
-    const campaign = campaigns.find(c => c.id === id);
-
     // 1. Update status to paused immediately
     const result = await updateCampaign(id, { status: 'paused' });
-    
-    // 2. Clear Z-API queue(s) to stop any messages already queued
-    try {
-      console.log('🧹 Clearing Z-API queue after pause...');
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      
-      if (token) {
-        await supabase.functions.invoke('clear-zapi-queue', {
-          headers: { Authorization: `Bearer ${token}` },
-          body: getQueueClearPayload(campaign),
-        });
-        console.log('✅ Z-API queue cleared after pause');
-      }
-    } catch (err) {
-      console.error('Error clearing Z-API queue on pause:', err);
-    }
-    
+
     return result;
   };
 
@@ -739,23 +704,7 @@ export const useCampaigns = () => {
   };
 
   const cancelCampaign = async (id: string) => {
-    const campaign = campaigns.find(c => c.id === id);
     const result = await updateCampaign(id, { status: 'cancelled' });
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      if (token) {
-        await supabase.functions.invoke('clear-zapi-queue', {
-          headers: { Authorization: `Bearer ${token}` },
-          body: getQueueClearPayload(campaign),
-        });
-      }
-    } catch (err) {
-      console.error('Error clearing Z-API queue on cancel:', err);
-    }
-
     return result;
   };
 

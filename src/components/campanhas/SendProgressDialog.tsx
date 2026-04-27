@@ -64,19 +64,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       try {
         setIsPausing(true);
 
-        const { data: campaignData } = await supabase
-          .from('campaigns')
-          .select('target_audience')
-          .eq('id', campaignId)
-          .single();
-
-        const sendConfig = (campaignData?.target_audience as any)?.__sendConfig;
-        const clearBody = sendConfig?.rotateAll
-          ? { clearAllActive: true }
-          : sendConfig?.instanceId && sendConfig.instanceId !== '__rotate_all__'
-            ? { instanceId: sendConfig.instanceId }
-            : { clearAllActive: true };
-        
         // 1. Update status to paused
         const { error } = await supabase
           .from('campaigns')
@@ -88,21 +75,6 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         setIsPaused(true);
         setIsPausing(false);
         if (onPause) onPause();
-        
-        // 2. Clear Z-API queue(s) to stop queued messages
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          if (token) {
-            await supabase.functions.invoke('clear-zapi-queue', {
-              headers: { Authorization: `Bearer ${token}` },
-              body: clearBody,
-            });
-            console.log('✅ Z-API queue cleared after pause from dialog');
-          }
-        } catch (queueErr) {
-          console.error('Error clearing Z-API queue:', queueErr);
-        }
       } catch (error) {
         console.error('Error pausing campaign:', error);
         setIsPausing(false);
@@ -200,14 +172,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       if (campaignData?.status === 'completed') {
         setIsComplete(true);
-      } else if (campaignData?.status === 'active') {
+        } else if (campaignData?.status === 'active') {
         setIsComplete(false);
         setIsPaused(false);
-        // Auto-complete: se todos os contatos alvo já foram processados
-        // (enviados, entregues, aceitos na fila ou falhados), marca como completo.
+        // Só completa quando não há pendentes aguardando confirmação real.
         if (
           effectiveTotal > 0 &&
-          (sent + delivered + failed + queuedPending) >= effectiveTotal
+          queuedPending === 0 &&
+          (sent + delivered + failed) >= effectiveTotal
         ) {
           setIsComplete(true);
           try {
