@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Trash2, CheckCircle2, ExternalLink, Copy, AlertCircle } from "lucide-react";
+import { Bot, Plus, Trash2, CheckCircle2, ExternalLink, Copy, AlertCircle, Settings, Clock, PauseCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,22 @@ export default function TelegramCriarBot() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [revalidating, setRevalidating] = useState<string | null>(null);
+
+  function formatRelative(iso: string | null) {
+    if (!iso) return "nunca validado";
+    const d = new Date(iso).getTime();
+    const diff = Date.now() - d;
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return "agora mesmo";
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `há ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `há ${h}h`;
+    const days = Math.floor(h / 24);
+    if (days < 30) return `há ${days}d`;
+    return new Date(iso).toLocaleDateString("pt-BR");
+  }
 
   async function load() {
     setFetching(true);
@@ -80,6 +97,23 @@ export default function TelegramCriarBot() {
     else {
       toast.success("Bot removido");
       load();
+    }
+  }
+
+  async function revalidate(bot: TgBot) {
+    setRevalidating(bot.id);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("telegram-validate-bot", {
+        body: { token: bot.bot_token, save: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Token revalidado com sucesso");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao revalidar");
+    } finally {
+      setRevalidating(null);
     }
   }
 
@@ -142,7 +176,10 @@ export default function TelegramCriarBot() {
       </div>
 
       <div className="glass-card rounded-2xl p-6 max-w-4xl">
-        <h2 className="text-lg font-semibold text-white mb-4">Bots conectados</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white">Bots conectados</h2>
+          <span className="text-xs text-white/50">{bots.length} {bots.length === 1 ? "bot" : "bots"}</span>
+        </div>
         {fetching ? (
           <p className="text-white/50 text-sm">Carregando...</p>
         ) : bots.length === 0 ? (
@@ -161,9 +198,13 @@ export default function TelegramCriarBot() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-white font-medium">{b.first_name || "(sem nome)"}</span>
-                      {b.active && (
+                      {b.active ? (
                         <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> ativo
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <PauseCircle className="w-3 h-3" /> pausado
                         </span>
                       )}
                     </div>
@@ -182,9 +223,27 @@ export default function TelegramCriarBot() {
                         <Copy className="w-3 h-3" />
                       </button>
                     </div>
+                    <div className="text-[11px] text-white/40 flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3" />
+                      Última validação: {formatRelative(b.last_validated_at)}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => revalidate(b)}
+                    disabled={revalidating === b.id}
+                    title="Revalidar token agora"
+                  >
+                    {revalidating === b.id ? "..." : "Revalidar"}
+                  </Button>
+                  <Link to={`/telegram/atualizar-bot?bot=${b.id}`}>
+                    <Button size="sm" variant="ghost" title="Editar perfil do bot">
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </Link>
                   <Button size="sm" variant="ghost" onClick={() => toggleActive(b)}>
                     {b.active ? "Pausar" : "Ativar"}
                   </Button>
