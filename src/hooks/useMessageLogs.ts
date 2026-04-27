@@ -111,7 +111,7 @@ const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 't
   return log.created_at || log.timestamp;
 };
 
-const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'sent' || send.status === 'delivered';
+const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered';
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
@@ -510,7 +510,7 @@ export const useMessageLogs = (
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name, campaign_id')
-        .in('status', ['sent', 'delivered'])
+        .eq('status', 'delivered')
         .gte('created_at', sinceISO)
         .order('created_at', { ascending: false })
         .range(from, from + batchSize - 1);
@@ -725,7 +725,7 @@ export const useMessageLogs = (
       .channel(`camp-sends-rt-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, (payload) => {
         const record = payload.new as CampaignSendMessage;
-        const isVisible = record?.status === 'sent' || record?.status === 'delivered';
+        const isVisible = record?.status === 'delivered';
         if (payload.eventType === 'INSERT') {
           if (!isVisible) return;
           setCampaignSends(prev => {
