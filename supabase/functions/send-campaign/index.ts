@@ -1099,11 +1099,10 @@ serve(async (req) => {
     };
 
     const isMissingMessageIdColumn = (error: any) => {
-      const message = String(error?.message || "");
+      const message = String(error?.message || error?.details || "").toLowerCase();
       return error?.code === "42703" ||
         error?.code === "PGRST204" ||
-        message.includes("message_id") ||
-        message.includes("schema cache");
+        (message.includes("message_id") && (message.includes("column") || message.includes("schema cache")));
     };
 
     const withoutMessageId = (recordWithMessageId: CampaignSendRecord) => {
