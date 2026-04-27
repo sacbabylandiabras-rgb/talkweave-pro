@@ -36,9 +36,13 @@ const ApanhadorGrupos = () => {
   // Apenas instâncias uazapi devem aparecer nesta página
   const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   const [extracting, setExtracting] = useState<string | null>(null);
-  type ExtractedParticipant = { phone: string; isAdmin: boolean };
+  type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
   const [excludeAdmins, setExcludeAdmins] = useState<boolean>(true);
+  // @lid são pseudônimos de privacidade do WhatsApp e NÃO recebem mensagens
+  // em disparos diretos (a API confirma "entregue" mas a mensagem não chega).
+  // Por isso são removidos por padrão.
+  const [excludeLids, setExcludeLids] = useState<boolean>(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
@@ -326,7 +330,14 @@ const ApanhadorGrupos = () => {
       });
       if (error) throw error;
       const participants: ExtractedParticipant[] = (data.participants || [])
-        .map((p: any) => ({ phone: p.phone as string, isAdmin: Boolean(p.isAdmin) }))
+        .map((p: any) => {
+          const phone = String(p.phone || '');
+          return {
+            phone,
+            isAdmin: Boolean(p.isAdmin),
+            isLid: /@lid$/i.test(phone) || /@lid$/i.test(String(p.id || '')),
+          };
+        })
         .filter((p: ExtractedParticipant) => p.phone && p.phone.length > 5);
       setExtractedNumbers(prev => new Map(prev).set(groupId, participants));
       const adminsCount = participants.filter(p => p.isAdmin).length;
@@ -347,7 +358,10 @@ const ApanhadorGrupos = () => {
 
   const getPhonesForExport = (groupId: string): string[] => {
     const list = extractedNumbers.get(groupId) || [];
-    return list.filter(p => !excludeAdmins || !p.isAdmin).map(p => p.phone);
+    return list
+      .filter(p => !excludeAdmins || !p.isAdmin)
+      .filter(p => !excludeLids || !p.isLid)
+      .map(p => p.phone);
   };
 
   const copyNumbers = (groupId: string) => {
@@ -358,7 +372,11 @@ const ApanhadorGrupos = () => {
     }
     navigator.clipboard.writeText(phones.join('\n'));
     setCopied(groupId);
-    toast.success(`${phones.length} número(s) copiado(s)${excludeAdmins ? ' (admins removidos)' : ''}!`);
+    const extras = [
+      excludeAdmins ? 'admins removidos' : null,
+      excludeLids ? 'sem números anônimos' : null,
+    ].filter(Boolean).join(', ');
+    toast.success(`${phones.length} número(s) copiado(s)${extras ? ` (${extras})` : ''}!`);
     setTimeout(() => setCopied(null), 2000);
   };
 
