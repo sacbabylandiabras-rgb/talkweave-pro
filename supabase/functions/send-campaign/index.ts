@@ -868,6 +868,7 @@ serve(async (req) => {
 
     const isRotateMode = requestedInstanceId === '__rotate_all__';
     let rotatePool: ResolvedInstance[] = [];
+    let forcedRequestedInstance: ResolvedInstance | null = null;
 
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
@@ -916,8 +917,6 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
       }
-    let forcedRequestedInstance: ResolvedInstance | null = null;
-
     } else if (requestedInstanceId) {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
