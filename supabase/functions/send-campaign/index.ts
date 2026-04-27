@@ -1099,11 +1099,10 @@ serve(async (req) => {
     };
 
     const isMissingMessageIdColumn = (error: any) => {
-      const message = String(error?.message || "");
+      const message = String(error?.message || error?.details || "").toLowerCase();
       return error?.code === "42703" ||
         error?.code === "PGRST204" ||
-        message.includes("message_id") ||
-        message.includes("schema cache");
+        (message.includes("message_id") && (message.includes("column") || message.includes("schema cache")));
     };
 
     const withoutMessageId = (recordWithMessageId: CampaignSendRecord) => {
@@ -1111,7 +1110,7 @@ serve(async (req) => {
       return recordWithoutMessageId;
     };
 
-    const persistCampaignSend = async (record: CampaignSendRecord, existingId?: string | null) => {
+    const persistCampaignSend = async (record: CampaignSendRecord, existingId?: string | null): Promise<string | null> => {
       if (existingId) {
         const { error: updateError } = await supabase
           .from('campaign_sends')
@@ -1129,7 +1128,7 @@ serve(async (req) => {
           })
           .eq('id', existingId);
 
-        if (!updateError) return;
+        if (!updateError) return existingId;
 
         if (isMissingMessageIdColumn(updateError)) {
           const { error: retryUpdateError } = await supabase
@@ -1147,22 +1146,23 @@ serve(async (req) => {
             } as CampaignSendRecord))
             .eq('id', existingId);
 
-          if (!retryUpdateError) return;
+          if (!retryUpdateError) return existingId;
           console.error(`❌ Failed to update campaign_send ${existingId} without message_id for ${record.phone}:`, retryUpdateError.message);
         }
 
         console.error(`❌ Failed to update campaign_send ${existingId} for ${record.phone}:`, updateError.message);
       }
 
-      const { error: insertError } = await supabase.from('campaign_sends').insert([record]);
+      const { data: inserted, error: insertError } = await supabase.from('campaign_sends').insert([record]).select('id').maybeSingle();
       if (insertError) {
         if (isMissingMessageIdColumn(insertError)) {
-          const { error: retryInsertError } = await supabase.from('campaign_sends').insert([withoutMessageId(record)]);
-          if (!retryInsertError) return;
+          const { data: retryInserted, error: retryInsertError } = await supabase.from('campaign_sends').insert([withoutMessageId(record)]).select('id').maybeSingle();
+          if (!retryInsertError) return retryInserted?.id || null;
           console.error(`❌ Failed to insert campaign_send without message_id for ${record.phone}:`, retryInsertError.message);
         }
         console.error(`❌ Failed to insert campaign_send for ${record.phone}:`, insertError.message);
       }
+      return inserted?.id || null;
     };
 
     // Process current batch
