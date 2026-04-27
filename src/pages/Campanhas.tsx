@@ -1124,20 +1124,24 @@ const Campanhas = () => {
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
                     <span>Progresso do envio</span>
-                    <span>{totalCount > 0 ? (((sentCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
+                    <span>{totalCount > 0 ? (((deliveredCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
                   </div>
-                  <Progress value={totalCount > 0 ? ((sentCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
+                  <Progress value={totalCount > 0 ? ((deliveredCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
                 </div>
 
                 {/* Stats grid */}
-                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-6' : 'md:grid-cols-5'} gap-3`}>
+                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-7' : 'md:grid-cols-6'} gap-3`}>
                   <div className="p-3 bg-muted/50 rounded-lg text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-bold text-lg">{totalCount}</p>
                   </div>
                   <div className="p-3 bg-green-500/10 rounded-lg text-center">
                     <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">{sentCount}</p>
+                    <p className="font-bold text-lg text-green-600 dark:text-green-400">{deliveredCount}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Enviando</p>
+                    <p className="font-bold text-lg">{sendingCount}</p>
                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
@@ -1191,11 +1195,13 @@ const Campanhas = () => {
                           <TableCell>{contact.phone}</TableCell>
                           <TableCell>
                             <Badge 
-                              variant={contact.status === 'enviado' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
+                              variant={contact.status === 'entregue' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
                               className="flex items-center gap-1 w-fit"
                             >
-                              {contact.status === 'enviado' ? (
-                                <><CheckCircle className="w-3 h-3" /> Enviado</>
+                              {contact.status === 'entregue' ? (
+                                <><CheckCircle className="w-3 h-3" /> Entregue</>
+                              ) : contact.status === 'enviando' ? (
+                                <><RefreshCw className="w-3 h-3 animate-spin" /> Enviando</>
                               ) : contact.status === 'pendente' ? (
                                 <><ClockIcon className="w-3 h-3" /> Pendente</>
                               ) : (
