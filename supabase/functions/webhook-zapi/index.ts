@@ -2371,6 +2371,35 @@ serve(async (req) => {
             }
           }
 
+          // === REVERSE LID LOOKUP ===
+          // Quando o callback chega com número real, mas o campaign_send foi
+          // gravado como @lid (vindo de extração de grupo), precisamos achar
+          // todos os identificadores @lid mapeados para este número real
+          // para conseguir bater na busca por phone abaixo.
+          const reverseLidPhones: string[] = [];
+          if (!phone.includes("@lid") && userId) {
+            const { data: reverseMaps } = await supabase
+              .from("message_logs")
+              .select("message_received")
+              .eq("keyword_matched", "__lid_map__")
+              .eq("user_id", userId)
+              .eq("phone", phone)
+              .limit(20);
+            if (reverseMaps && reverseMaps.length > 0) {
+              for (const m of reverseMaps) {
+                const lid = (m as any).message_received;
+                if (lid && typeof lid === "string" && lid.includes("@lid")) {
+                  reverseLidPhones.push(lid);
+                }
+              }
+              if (reverseLidPhones.length > 0) {
+                console.log(
+                  `🔁 Reverse @lid lookup encontrou ${reverseLidPhones.length} mapeamento(s) para ${phone}`,
+                );
+              }
+            }
+          }
+
           const nowIso = new Date().toISOString();
           const expandCampaignCallbackPhones = (value?: string | null) => {
             if (!value) return [];
@@ -2404,8 +2433,20 @@ serve(async (req) => {
             new Set([
               ...expandCampaignCallbackPhones(phone),
               ...expandCampaignCallbackPhones(resolvedPhone),
+              ...reverseLidPhones,
             ].filter(Boolean)),
           );
+
+          // Match prioritário por message_id (mais preciso que por telefone,
+          // especialmente quando o destino foi salvo como @lid e o callback
+          // retorna o número real resolvido pelo WhatsApp).
+          const callbackMessageId = String(
+            (webhook as any)?.messageId ||
+              (webhook as any)?.zaapId ||
+              (webhook as any)?.zapiMessageId ||
+              (webhook as any)?.id ||
+              "",
+          ).trim();
 
           const buildCampaignSendQuery = (selectFields: string) => {
             let query = supabase
@@ -2421,14 +2462,56 @@ serve(async (req) => {
             return query.order("created_at", { ascending: false }).limit(5);
           };
 
+          const buildCampaignSendQueryByMessageId = (selectFields: string) => {
+            let query = supabase
+              .from("campaign_sends")
+              .select(selectFields)
+              .eq("user_id", userId)
+              .eq("message_id", callbackMessageId);
+            if (instanceName) {
+              query = query.eq("instance_name", instanceName);
+            }
+            return query.order("created_at", { ascending: false }).limit(5);
+          };
+
           let hasReadAtColumn = true;
           let campaignSendRows: any[] | null = null;
           let campaignSendLookupError: any = null;
-          const initialCampaignSendLookup = await buildCampaignSendQuery(
-            "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
-          );
-          campaignSendRows = initialCampaignSendLookup.data as any[] | null;
-          campaignSendLookupError = initialCampaignSendLookup.error;
+
+          // 1) Tenta primeiro por message_id (mais confiável).
+          if (callbackMessageId) {
+            const byMsgId = await buildCampaignSendQueryByMessageId(
+              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name, message_id",
+            );
+            if (
+              byMsgId.error?.code === "42703" &&
+              String(byMsgId.error.message || "").includes("message_id")
+            ) {
+              // coluna ainda não criada; ignora e cai para busca por phone.
+            } else if (byMsgId.error?.code === "42703" && String(byMsgId.error.message || "").includes("read_at")) {
+              hasReadAtColumn = false;
+              const retryNoRead = await supabase
+                .from("campaign_sends")
+                .select("id, campaign_id, status, phone, sent_at, delivered_at, instance_name, message_id")
+                .eq("user_id", userId)
+                .eq("message_id", callbackMessageId)
+                .limit(5);
+              campaignSendRows = retryNoRead.data as any[] | null;
+              campaignSendLookupError = retryNoRead.error;
+            } else {
+              campaignSendRows = byMsgId.data as any[] | null;
+              campaignSendLookupError = byMsgId.error;
+            }
+          }
+
+          // 2) Fallback: busca por telefone/variantes.
+          if (!campaignSendRows || campaignSendRows.length === 0) {
+            const initialCampaignSendLookup = await buildCampaignSendQuery(
+              "id, campaign_id, status, phone, sent_at, delivered_at, read_at, instance_name",
+            );
+            campaignSendRows = initialCampaignSendLookup.data as any[] | null;
+            campaignSendLookupError = initialCampaignSendLookup.error;
+          }
 
           if (
             campaignSendLookupError?.code === "42703" &&
