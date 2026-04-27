@@ -261,6 +261,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
     return [];
   }
+  if (isDisconnectedPayload(payload)) {
+    console.log(`🚫 UAZAPI group/list ignored for disconnected instance ${instance.instance_name}`);
+    return [];
+  }
 
   const rawGroups = Array.isArray(payload)
     ? payload
@@ -270,7 +274,9 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
         ? payload.data
         : [];
 
-  const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+  let detailedGroups: any[] = [];
+  try {
+    detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
     if (!String(groupId).includes('@g.us')) return null;
 
@@ -362,13 +368,16 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       __sourceInstanceName: instance.instance_name || null,
       __sourceInstanceId: instance.zapi_instance_id,
     };
-  }));
-
-  try {
-    return detailedGroups.filter(Boolean);
-  } catch (_) {
-    return [];
+    }));
+  } catch (error) {
+    if ((error as Error)?.message === 'UAZAPI_INSTANCE_DISCONNECTED') {
+      console.log(`🚫 UAZAPI instance ${instance.instance_name} disconnected during group detail fetch`);
+      return [];
+    }
+    throw error;
   }
+
+  return detailedGroups.filter(Boolean);
 };
 
 const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: string; lid: string }> => {
