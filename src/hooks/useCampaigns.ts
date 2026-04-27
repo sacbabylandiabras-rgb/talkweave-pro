@@ -46,6 +46,17 @@ const getCampaignSendPriority = (status?: string | null) => {
   return 0;
 };
 
+const getFriendlyCampaignMessage = (message?: string | null, fallback = 'Campanha pausada para que você possa retomá-la.') => {
+  const raw = String(message || '').toLowerCase();
+  if (raw.includes('disconnected') || raw.includes('desconect')) {
+    return 'A conexão caiu durante o envio. A campanha foi pausada e pode ser retomada de onde parou.';
+  }
+  if (raw.includes('temporary restriction') || raw.includes('error 463') || raw.includes('rate')) {
+    return 'A conta atingiu um limite temporário. A campanha foi pausada para proteger a conexão.';
+  }
+  return message || fallback;
+};
+
 export const useCampaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -382,7 +393,11 @@ export const useCampaigns = () => {
       if (data && typeof data === 'object' && 'stopped' in data && data.stopped) {
         await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
-        throw new Error((data as { error?: string; message?: string }).error || (data as { message?: string }).message || 'Campanha pausada');
+        toast({
+          title: "Campanha pausada",
+          description: getFriendlyCampaignMessage((data as { error?: string; message?: string }).message || (data as { error?: string }).error),
+        });
+        return data;
       }
 
       const batchResults = data && typeof data === 'object' && Array.isArray((data as { results?: unknown[] }).results)
