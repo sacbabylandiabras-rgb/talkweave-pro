@@ -34,9 +34,12 @@ export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi'; sour
 
       if (data?.groups) {
         setGroups(data.groups);
+      } else {
+        setGroups([]);
       }
     } catch (err: any) {
       console.error('Erro ao buscar grupos:', err);
+      setGroups([]);
       toast.error('Erro ao buscar grupos do WhatsApp');
     } finally {
       setLoading(false);
