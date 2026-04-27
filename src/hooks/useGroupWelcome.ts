@@ -63,7 +63,7 @@ export function useGroupWelcome() {
       });
 
       if (existing) {
-        const updateData: any = { active, ...data };
+        const updateData: any = { active, ...data, instance_id: targetInstanceId };
         const { error } = await supabase
           .from('group_welcome_config' as any)
           .update(updateData)
