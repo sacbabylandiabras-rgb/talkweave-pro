@@ -119,6 +119,65 @@ const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string): Promise
   return null;
 };
 
+// Verifica se a instância está realmente conectada (logada no WhatsApp).
+// Para uazapi: chama /instance/status e checa "connected"/"loggedIn".
+// Para z-api: chama /status e checa "connected".
+const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => {
+  const provider = (instance.api_provider || 'zapi').toLowerCase();
+  try {
+    if (provider === 'uazapi') {
+      const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+      const apiToken = instance.evolution_api_key || instance.zapi_token || '';
+      if (!apiUrl || !apiToken) return false;
+      const endpoints = ['/instance/status', '/status', '/instance'];
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(`${apiUrl}${ep}`, {
+            method: 'GET',
+            headers: { token: apiToken, 'Content-Type': 'application/json' },
+          });
+          if (!r.ok) continue;
+          const j = await r.json().catch(() => null);
+          if (!j) continue;
+          const status = String(
+            j?.instance?.status || j?.status || j?.connectionStatus || j?.state || ''
+          ).toLowerCase();
+          const connected =
+            j?.connected === true ||
+            j?.loggedIn === true ||
+            j?.instance?.connected === true ||
+            ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in'].some((s) =>
+              status.includes(s)
+            );
+          if (connected) return true;
+          // resposta válida mas não conectada
+          return false;
+        } catch (_) {
+          continue;
+        }
+      }
+      return false;
+    }
+
+    // Z-API
+    const instanceId = instance.zapi_instance_id;
+    const token = instance.zapi_token;
+    const clientToken = instance.zapi_client_token;
+    if (!instanceId || !token) return false;
+    const r = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, {
+      method: 'GET',
+      headers: { 'Client-Token': clientToken || '', 'Content-Type': 'application/json' },
+    });
+    if (!r.ok) return false;
+    const j = await r.json().catch(() => null);
+    if (!j) return false;
+    return j?.connected === true;
+  } catch (e) {
+    console.error(`⚠️ isInstanceConnected error for ${instance.instance_name}:`, e);
+    return false;
+  }
+};
+
 const normalizePhoneFromJid = (jid: string | null | undefined): string => {
   if (!jid) return '';
   return String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
@@ -486,9 +545,24 @@ Deno.serve(async (req) => {
     });
     console.log(`📦 Group source instances: ${filteredInstances.length} / ${instances.length}`);
 
+    // Verifica em paralelo quais instâncias estão realmente conectadas no WhatsApp.
+    // Instâncias deslogadas/desconectadas não devem retornar grupos (mesmo que a API
+    // ainda mantenha cache do lado dela).
+    const connectivity = await Promise.all(
+      filteredInstances.map(async (inst) => ({
+        inst,
+        connected: await isInstanceConnected(inst),
+      }))
+    );
+    const liveInstances = connectivity.filter((c) => c.connected).map((c) => c.inst);
+    const skipped = connectivity.length - liveInstances.length;
+    if (skipped > 0) {
+      console.log(`🚫 ${skipped} instância(s) ignorada(s) por estarem desconectadas`);
+    }
+
     const groupsById = new Map<string, any>();
 
-    for (const instance of filteredInstances) {
+    for (const instance of liveInstances) {
       try {
         const provider = (instance.api_provider || 'zapi').toLowerCase();
         const rawGroups = provider === 'uazapi'
