@@ -273,9 +273,9 @@ const Campanhas = () => {
     // "Entregue" só com confirmação real via callback (status delivered).
     sent: statsDialogSends.filter(s => s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
-    // Aceito pelo provedor mas sem confirmação de entrega ainda.
-    sending: statsDialogSends.filter(s => s.status === 'pending' || s.status === 'sent').length,
-    pending: statsDialogSends.filter(s => s.status === 'pending' || s.status === 'sent').length,
+    // "sent" é só enviando; "pending" continua pendente.
+    sending: statsDialogSends.filter(s => s.status === 'sent').length,
+    pending: statsDialogSends.filter(s => s.status === 'pending').length,
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
     total: statsDialogSends.length,
   };
