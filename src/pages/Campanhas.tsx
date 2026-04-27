@@ -1048,11 +1048,10 @@ const Campanhas = () => {
               const existsInTarget = targetPhoneKeys.has(sendKey);
 
               if (!existsInTarget) {
-                let status: 'enviado' | 'enviando' | 'pendente' | 'cancelado' = 'pendente';
-                if (send.status === 'delivered') status = 'enviado';
-                else if (send.status === 'pending' || send.status === 'sent') {
-                  status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
-                }
+                let status: CampaignContactStatus = 'pendente';
+                if (send.status === 'delivered') status = 'entregue';
+                else if (send.status === 'sent') status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
+                else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
@@ -1067,7 +1066,8 @@ const Campanhas = () => {
               }
             });
 
-            const sentCount = fullContactList.filter(c => c.status === 'enviado').length;
+            const deliveredCount = fullContactList.filter(c => c.status === 'entregue').length;
+            const sendingCount = fullContactList.filter(c => c.status === 'enviando').length;
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
