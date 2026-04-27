@@ -139,6 +139,10 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     setLoading(true);
     fetchSends();
 
+    const pollingInterval = window.setInterval(() => {
+      fetchSends();
+    }, 2000);
+
     const channel = supabase
       .channel(`sends-${campaignId}-${Date.now()}`)
       .on(
@@ -162,6 +166,7 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     channelRef.current = channel;
 
     return () => {
+      window.clearInterval(pollingInterval);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
