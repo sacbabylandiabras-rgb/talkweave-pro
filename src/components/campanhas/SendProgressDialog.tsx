@@ -169,7 +169,14 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       setStats(newStats);
 
       if (campaignData?.status === 'completed') {
-        setIsComplete(true);
+        const trulyDelivered = effectiveTotal > 0 && delivered >= effectiveTotal;
+        setIsComplete(trulyDelivered);
+        if (!trulyDelivered) {
+          await supabase
+            .from('campaigns')
+            .update({ status: queuedPending > 0 ? 'active' : 'paused', updated_at: new Date().toISOString() })
+            .eq('id', campaignId);
+        }
         } else if (campaignData?.status === 'active') {
         setIsComplete(false);
         setIsPaused(false);
