@@ -1131,25 +1131,10 @@ serve(async (req) => {
     for (let i = 0; i < currentBatch.length; i++) {
       const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
 
-      // Identificadores @lid (LinkedID do WhatsApp) NÃO podem ser entregues pela Z-API.
-      // O WhatsApp oculta o número real por privacidade — qualquer envio direto retorna
-      // 200 mas nunca chega ao destinatário, fazendo o status ficar "pendente" para sempre.
-      // Marcamos como falha imediata para não travar a campanha.
+      // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
+      // O destino é enviado tal como informado pelo cliente.
       if (isLidIdentifier(contact.phone)) {
-        console.warn(`⛔ @lid sem número real, marcando como falha: ${contact.phone}`);
-        const failedSend: CampaignSendRecord = {
-          campaign_id: campaignId,
-          phone: contact.phone,
-          contact_name: contact.name || null,
-          status: 'failed',
-          error_message: 'Contato sem número público (identificador interno do WhatsApp). Não é possível enviar.',
-          instance_id: null,
-          message_id: null,
-        };
-        await persistCampaignSend(failedSend, null);
-        results.push({ phone: contact.phone, success: false, error: 'lid-no-phone' });
-        if (i < currentBatch.length - 1) await sleep(Math.min(delayMs, 200));
-        continue;
+        console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
       }
 
       const explicitContactInstance = forcedRequestedInstance
