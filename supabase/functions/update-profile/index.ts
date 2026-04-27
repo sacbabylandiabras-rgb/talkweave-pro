@@ -164,8 +164,8 @@ Deno.serve(async (req) => {
       });
       const data = await response.json().catch(() => ({}));
       console.log(`✅ Z-API name response ${response.status}`, data);
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `Z-API error: ${response.status}`);
+      if (!response.ok || data?.error || data?.value === false) {
+        throw new Error(data.message || data.error || (data?.value === false ? 'Z-API retornou value:false (operação não aplicada)' : `Z-API error: ${response.status}`));
       }
       return new Response(JSON.stringify({ success: true, data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -204,13 +204,13 @@ Deno.serve(async (req) => {
       });
       const data = await response.json().catch(() => ({}));
       console.log(`✅ Z-API picture response ${response.status}`, data);
-      if (response.ok && !data?.error) {
+      if (response.ok && !data?.error && data?.value !== false) {
         successData = data;
         return new Response(JSON.stringify({ success: true, data }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      lastError = data?.message || data?.error || `Z-API error: ${response.status}`;
+      lastError = data?.message || data?.error || (data?.value === false ? 'Z-API retornou value:false (foto não aplicada — verifique se a sessão está conectada)' : `Z-API error: ${response.status}`);
     }
 
     throw new Error(lastError);
