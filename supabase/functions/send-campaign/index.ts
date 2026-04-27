@@ -1739,7 +1739,7 @@ serve(async (req) => {
     } else {
       // Last batch finished - check if ALL contacts from the audience were actually processed
       const totalTargetContacts = campaignTargetContacts.length;
-      const [processedRes, pendingRes, successRes] = await Promise.all([
+      const [processedRes, awaitingCallbackRes, successRes] = await Promise.all([
         supabase
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
@@ -1748,17 +1748,17 @@ serve(async (req) => {
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .eq('status', 'pending'),
+          .in('status', ['pending', 'sent']),
         supabase
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .in('status', ['sent', 'delivered']),
+          .eq('status', 'delivered'),
       ]);
 
       const totalProcessed = processedRes.count ?? 0;
-      const pendingCount = pendingRes.count ?? 0;
-      const actualSuccesses = successRes.count ?? 0;
+      const awaitingCallbackCount = awaitingCallbackRes.count ?? 0;
+      const actualDeliveries = successRes.count ?? 0;
 
       // STRICT completion check: only complete if processed >= target audience
       // If target audience is 0 (edge case), use the current batch as reference
@@ -1788,14 +1788,14 @@ serve(async (req) => {
         }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
 
-      if (totalProcessed === 0 || (actualSuccesses === 0 && pendingCount === 0)) {
+      if (totalProcessed === 0 || (actualDeliveries === 0 && awaitingCallbackCount === 0)) {
         // No sends created or ALL sends failed — mark as paused, not completed
-        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualSuccesses} successful, ${pendingCount} pending. Pausing instead of completing.`);
+        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualDeliveries} delivered, ${awaitingCallbackCount} awaiting callback. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-      } else if (pendingCount > 0) {
-        console.log(`⏳ Campaign ${campaignId}: ${pendingCount} message(s) still waiting real WhatsApp callback. Keeping active.`);
+      } else if (awaitingCallbackCount > 0) {
+        console.log(`⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`);
       } else {
-        console.log(`✅ Campaign ${campaignId}: ${actualSuccesses} sent + ${pendingCount} pending / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`);
+        console.log(`✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`);
         const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (finalCampaign?.status === 'active' || finalCampaign?.status === 'draft') {
           await supabase.from('campaigns').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', campaignId);
