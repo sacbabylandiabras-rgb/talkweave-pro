@@ -494,12 +494,14 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     let providerFilter: string | null = null;
+    let profileOnly = false;
     try {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
         if (body && typeof body.provider === "string") {
           providerFilter = body.provider;
         }
+        profileOnly = body?.source === 'profile' || body?.profileOnly === true;
       }
     } catch (_) { /* ignore */ }
 
@@ -515,7 +517,9 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true });
 
     const instances: ZapiInstance[] =
-      activeInstances && activeInstances.length > 0
+      profileOnly
+        ? []
+        : activeInstances && activeInstances.length > 0
         ? (activeInstances as ZapiInstance[])
         : [
             {
@@ -528,11 +532,12 @@ Deno.serve(async (req) => {
 
     // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
     try {
-      const { data: profile } = await adminClient
+      const shouldLoadProfileUazapi = !providerFilter || providerFilter.toLowerCase() === 'uazapi';
+      const { data: profile } = shouldLoadProfileUazapi ? await adminClient
         .from("profiles")
         .select("uazapi_url, uazapi_token")
         .eq("id", credentials.userId)
-        .maybeSingle();
+        .maybeSingle() : { data: null };
       const urls = String((profile as any)?.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
       const tokens = String((profile as any)?.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
       const pairCount = Math.min(urls.length, tokens.length);
