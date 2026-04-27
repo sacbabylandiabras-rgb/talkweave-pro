@@ -197,13 +197,11 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
           </div>
         ) : (
-          <LogoImage className="w-8 h-8 object-contain shrink-0" />
+          <LogoImage className="h-9 object-contain shrink-0" />
         )}
-        {!collapsed && (
+        {!collapsed && activeWorkspace !== "zapi" && (
           <span className="font-bebas text-[22px] text-white leading-none">
-            {brandLabel === "ZapLynx" ? (
-              <>Zap<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent">Lynx</span></>
-            ) : brandLabel === "ZaplynxPay" ? (
+            {brandLabel === "ZaplynxPay" ? (
               <>Zaplynx<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent">Pay</span></>
             ) : (
               <>Meta<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent"> API</span></>
