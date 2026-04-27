@@ -60,7 +60,7 @@ export function useGroupWelcome() {
         if (config.group_id !== groupId) return false;
         if (!targetInstanceId) return !config.instance_id;
         return config.instance_id === targetInstanceId;
-      });
+      }) || configs.find((config) => config.group_id === groupId && !config.instance_id);
 
       if (existing) {
         const updateData: any = { active, ...data, instance_id: targetInstanceId };
