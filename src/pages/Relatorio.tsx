@@ -19,11 +19,12 @@ type ReportSend = {
   contact_name: string | null;
   status: string | null;
   sent_at: string | null;
+  delivered_at?: string | null;
   created_at: string;
   error_message: string | null;
 };
 
-const getSendTimestamp = (send: Pick<ReportSend, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
+const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send.delivered_at || send.sent_at || send.created_at;
 
 const normalizePhone = (phone?: string | null) => {
   if (!phone) return '';
@@ -561,7 +562,7 @@ const Relatorio = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {send.sent_at ? format(new Date(send.sent_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                        {send.delivered_at ? format(new Date(send.delivered_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
