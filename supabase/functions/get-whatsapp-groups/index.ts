@@ -545,9 +545,24 @@ Deno.serve(async (req) => {
     });
     console.log(`📦 Group source instances: ${filteredInstances.length} / ${instances.length}`);
 
+    // Verifica em paralelo quais instâncias estão realmente conectadas no WhatsApp.
+    // Instâncias deslogadas/desconectadas não devem retornar grupos (mesmo que a API
+    // ainda mantenha cache do lado dela).
+    const connectivity = await Promise.all(
+      filteredInstances.map(async (inst) => ({
+        inst,
+        connected: await isInstanceConnected(inst),
+      }))
+    );
+    const liveInstances = connectivity.filter((c) => c.connected).map((c) => c.inst);
+    const skipped = connectivity.length - liveInstances.length;
+    if (skipped > 0) {
+      console.log(`🚫 ${skipped} instância(s) ignorada(s) por estarem desconectadas`);
+    }
+
     const groupsById = new Map<string, any>();
 
-    for (const instance of filteredInstances) {
+    for (const instance of liveInstances) {
       try {
         const provider = (instance.api_provider || 'zapi').toLowerCase();
         const rawGroups = provider === 'uazapi'
