@@ -1222,10 +1222,9 @@ serve(async (req) => {
             });
 
             if (flowResponse.ok) {
-              campaignSend.status = 'sent';
-              campaignSend.sent_at = new Date().toISOString();
+              campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: 'flow-triggered' });
-              console.log(`✅ Flow triggered for ${contact.phone}`);
+              console.log(`⏳ Flow triggered for ${contact.phone}; waiting real delivery callback`);
             } else {
               const errorText = await flowResponse.text();
               campaignSend.status = 'failed';
