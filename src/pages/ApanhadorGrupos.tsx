@@ -796,9 +796,19 @@ const ApanhadorGrupos = () => {
                           <Users className="h-3 w-3" />
                           {grupo.membros > 0 ? `${grupo.membros} membros` : "Clique em 'Extrair Números' para ver"}
                         </span>
-                        {numbers && (
-                          <Badge variant="secondary" className="text-xs">{numbers.length} números extraídos</Badge>
-                        )}
+                        {numbers && (() => {
+                          const total = numbers.length;
+                          const adminsCount = numbers.filter(p => p.isAdmin).length;
+                          const exportable = excludeAdmins ? total - adminsCount : total;
+                          return (
+                            <>
+                              <Badge variant="secondary" className="text-xs">{exportable} números extraídos</Badge>
+                              {adminsCount > 0 && excludeAdmins && (
+                                <Badge variant="outline" className="text-xs">{adminsCount} admin(s) ocultos</Badge>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -1007,14 +1017,23 @@ const ApanhadorGrupos = () => {
                     </div>
                   )}
 
-                  {numbers && numbers.length > 0 && (
+                  {numbers && numbers.length > 0 && (() => {
+                    const visible = numbers.filter(p => !excludeAdmins || !p.isAdmin);
+                    if (visible.length === 0) return null;
+                    return (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground mb-2">Números extraídos ({numbers.length}):</p>
+                      <p className="text-xs text-muted-foreground mb-2">Números extraídos ({visible.length}):</p>
                       <div className="max-h-32 overflow-y-auto text-xs font-mono text-foreground space-y-0.5">
-                        {numbers.map((num, i) => <div key={i}>{num}</div>)}
+                        {visible.map((p, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span>{p.phone}</span>
+                            {p.isAdmin && <Badge variant="outline" className="text-[10px] h-4 px-1">admin</Badge>}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );
