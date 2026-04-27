@@ -19,6 +19,64 @@ export interface ZapiInstance {
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');
+const INSTANCES_CACHE_PREFIX = 'zapi_instances_cache:';
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const readCachedInstances = (userId: string): ZapiInstance[] | null => {
+  try {
+    const raw = localStorage.getItem(`${INSTANCES_CACHE_PREFIX}${userId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.instances) ? parsed.instances : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
+  try {
+    localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ instances, savedAt: Date.now() }));
+  } catch {
+    // cache is best-effort only
+  }
+};
+
+const normalizeInstances = (items: ZapiInstance[]) => {
+  const dedupedMap = new Map<string, ZapiInstance>();
+
+  for (const instance of items) {
+    const key = [instance.zapi_instance_id, instance.instance_name].join('::');
+    const previous = dedupedMap.get(key);
+    if (!previous) { dedupedMap.set(key, instance); continue; }
+    dedupedMap.set(key, { ...instance, is_default: previous.is_default || instance.is_default });
+  }
+
+  return Array.from(dedupedMap.values()).sort((a, b) => {
+    if (a.is_default === b.is_default) return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return a.is_default ? -1 : 1;
+  });
+};
+
+const fetchInstancesWithRetry = async (userId: string) => {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await fromZapiInstances()
+      .select('*')
+      .eq('user_id', userId)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true });
+
+    if (!error) return (data || []) as ZapiInstance[];
+    lastError = error;
+
+    if (error.code !== 'PGRST003') break;
+    await wait(350 * (attempt + 1));
+  }
+
+  throw lastError;
+};
 
 export const useZapiInstances = () => {
   const [instances, setInstances] = useState<ZapiInstance[]>([]);
@@ -32,33 +90,27 @@ export const useZapiInstances = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { data, error } = await fromZapiInstances()
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_default', { ascending: false })
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      const typed = (data || []) as ZapiInstance[];
-      const dedupedMap = new Map<string, ZapiInstance>();
-
-      for (const instance of typed) {
-        const key = [instance.zapi_instance_id, instance.instance_name].join('::');
-        const previous = dedupedMap.get(key);
-        if (!previous) { dedupedMap.set(key, instance); continue; }
-        dedupedMap.set(key, { ...instance, is_default: previous.is_default || instance.is_default });
+      const cached = readCachedInstances(user.id);
+      if (cached?.length) {
+        const cachedInstances = normalizeInstances(cached);
+        setInstances((current) => current.length ? current : cachedInstances);
+        setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
       }
 
-      const deduped = Array.from(dedupedMap.values()).sort((a, b) => {
-        if (a.is_default === b.is_default) return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        return a.is_default ? -1 : 1;
-      });
+      const deduped = normalizeInstances(await fetchInstancesWithRetry(user.id));
 
       setInstances(deduped);
-      setActiveInstance(deduped.find(i => i.is_default) || deduped[0] || null);
+      setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
+      writeCachedInstances(user.id, deduped);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);
+      const { data: { user } } = await supabase.auth.getUser();
+      const cached = user ? readCachedInstances(user.id) : null;
+      if (cached?.length) {
+        const cachedInstances = normalizeInstances(cached);
+        setInstances((current) => current.length ? current : cachedInstances);
+        setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
+      }
     } finally {
       setLoading(false);
     }
