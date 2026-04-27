@@ -827,12 +827,19 @@ const ApanhadorGrupos = () => {
                         {numbers && (() => {
                           const total = numbers.length;
                           const adminsCount = numbers.filter(p => p.isAdmin).length;
-                          const exportable = excludeAdmins ? total - adminsCount : total;
+                          const lidsCount = numbers.filter(p => p.isLid).length;
+                          const lidAdminOverlap = numbers.filter(p => p.isLid && p.isAdmin).length;
+                          let exportable = total;
+                          if (excludeAdmins) exportable -= adminsCount;
+                          if (excludeLids) exportable -= (lidsCount - (excludeAdmins ? lidAdminOverlap : 0));
                           return (
                             <>
                               <Badge variant="secondary" className="text-xs">{exportable} números extraídos</Badge>
                               {adminsCount > 0 && excludeAdmins && (
                                 <Badge variant="outline" className="text-xs">{adminsCount} admin(s) ocultos</Badge>
+                              )}
+                              {lidsCount > 0 && excludeLids && (
+                                <Badge variant="outline" className="text-xs">{lidsCount} anônimo(s) ocultos</Badge>
                               )}
                             </>
                           );
