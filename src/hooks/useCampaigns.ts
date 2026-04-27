@@ -446,7 +446,7 @@ export const useCampaigns = () => {
       });
 
       const latestSends = Array.from(latestByPhone.values());
-      const pendingCount = latestSends.filter(send => send.status === 'pending').length;
+      const pendingCount = latestSends.filter(send => send.status === 'pending' || send.status === 'sent').length;
       const processedCount = latestSends.filter(send => ['pending', 'sent', 'delivered', 'failed'].includes(send.status || '')).length;
       const remaining = Math.max(0, totalContacts - processedCount);
 
@@ -455,7 +455,7 @@ export const useCampaigns = () => {
         totalContacts,
         remaining,
         pending: pendingCount,
-        sent: latestSends.filter(send => send.status === 'sent').length,
+        sent: latestSends.filter(send => send.status === 'delivered').length,
         delivered: latestSends.filter(send => send.status === 'delivered').length,
         failed: latestSends.filter(send => send.status === 'failed').length,
       };
@@ -527,7 +527,7 @@ export const useCampaigns = () => {
       const cancelledRetryPhones: Array<{ phone: string; name?: string }> = [];
 
       for (const [phoneKey, send] of latestByPhone.entries()) {
-        if (send.status === 'sent' || send.status === 'delivered') {
+        if (send.status === 'delivered') {
           successfulPhones.add(phoneKey);
         } else if (send.status === 'pending') {
           // Pending = ficou na fila Z-API mas não foi confirmado como entregue.
