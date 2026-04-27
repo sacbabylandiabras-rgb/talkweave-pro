@@ -916,10 +916,13 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
       }
+    let forcedRequestedInstance: ResolvedInstance | null = null;
+
     } else if (requestedInstanceId) {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
       if (specificInstance) {
+        forcedRequestedInstance = specificInstance;
         zapiInstanceId = specificInstance.zapiInstanceId;
         zapiToken = specificInstance.zapiToken;
         zapiClientToken = specificInstance.zapiClientToken;
@@ -928,7 +931,20 @@ serve(async (req) => {
         credentials.uazapiToken = specificInstance.uazapiToken || '';
         credentials.instanceName = specificInstance.instanceName;
       } else {
-        console.warn(`⚠️ Requested instance ${requestedInstanceId} not found for user ${credentials.userId}; keeping preferred instance ${credentials.instanceName}`);
+        await supabase
+          .from('campaigns')
+          .update({ status: 'paused', updated_at: new Date().toISOString() })
+          .eq('id', campaignId)
+          .eq('user_id', credentials.userId);
+
+        return new Response(JSON.stringify({
+          error: 'A instância escolhida para envio não está disponível. A campanha foi pausada para evitar marcação incorreta.',
+          stopped: true,
+          paused: true,
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
       }
     }
 
@@ -1123,11 +1139,13 @@ serve(async (req) => {
         console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
       }
 
-      const explicitContactInstance = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-      const inferredGroupInstance = !explicitContactInstance
+      const explicitContactInstance = forcedRequestedInstance
+        ? null
+        : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+      const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
         ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
         : null;
-      const currentInstance = explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
+      const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
       let campaignSend: CampaignSendRecord | undefined;
       let reusableSendId: string | null = null;
 
