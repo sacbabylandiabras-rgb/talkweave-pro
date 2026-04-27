@@ -1083,8 +1083,13 @@ serve(async (req) => {
       if (await shouldPause()) {
         console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        return new Response(JSON.stringify({ error: 'Device disconnected, campaign paused', stopped: true }),
-          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        return new Response(JSON.stringify({
+          message: 'Conexão desconectada. Campanha pausada para retomar de onde parou.',
+          stopped: true,
+          paused: true,
+          reason: 'device_disconnected',
+        }),
+          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
     } catch (e) {
       console.error('Device check error:', e);
@@ -1697,12 +1702,14 @@ serve(async (req) => {
                   await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
                   
                   return new Response(JSON.stringify({
-                    error: 'Device disconnected mid-batch, campaign paused',
+                    message: 'Conexão desconectada durante o envio. Campanha pausada para retomar de onde parou.',
                     stopped: true,
+                    paused: true,
+                    reason: 'device_disconnected',
                     processed: i + 1,
                     remaining: (currentBatch.length - i - 1) + remainingContacts.length,
                   }), {
-                    status: 400,
+                    status: 200,
                     headers: { 'Content-Type': 'application/json', ...corsHeaders },
                   });
                 }
