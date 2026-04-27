@@ -29,6 +29,7 @@ interface CampaignSendRecord {
   error_message?: string;
   user_id?: string;
   instance_name?: string;
+  message_id?: string;
 }
 
 interface ResolvedInstance {
