@@ -78,6 +78,7 @@ import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import TelegramPlaceholder from "./pages/telegram/TelegramPlaceholder";
 import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
 import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
+import TelegramDashboard from "./pages/telegram/TelegramDashboard";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
@@ -157,7 +158,7 @@ const App = () => (
                   <Route path="/instagram/contatos" element={<ContatosInstagram />} />
                   <Route path="/instagram/configuracao" element={<ConfiguracaoInstagram />} />
                   {/* Telegram routes */}
-                  <Route path="/telegram/dashboard" element={<TelegramPlaceholder title="Dashboard" description="Visão geral das métricas dos seus bots do Telegram." />} />
+                  <Route path="/telegram/dashboard" element={<TelegramDashboard />} />
                   <Route path="/telegram/criar-bot" element={<TelegramCriarBot />} />
                   <Route path="/telegram/atualizar-bot" element={<TelegramAtualizarBot />} />
                   <Route path="/telegram/planos" element={<TelegramPlaceholder title="Planos de Pagamento" description="Configure os planos de assinatura oferecidos pelo bot." />} />
