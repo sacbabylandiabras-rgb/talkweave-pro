@@ -197,7 +197,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
             <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
           </div>
         ) : (
-          <LogoImage className="w-full h-auto object-contain shrink-0 scale-110" />
+          <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
         )}
         {!collapsed && activeWorkspace !== "zapi" && (
           <span className="font-bebas text-[22px] text-white leading-none">
