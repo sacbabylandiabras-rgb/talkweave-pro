@@ -16,7 +16,7 @@ export interface WhatsAppGroup {
   isCommunity?: boolean;
 }
 
-export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi' }) {
+export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi'; source?: 'profile' }) {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +24,10 @@ export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi' }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-whatsapp-groups', {
-        body: options?.provider ? { provider: options.provider } : {},
+        body: {
+          ...(options?.provider ? { provider: options.provider } : {}),
+          ...(options?.source ? { source: options.source, profileOnly: true } : {}),
+        },
       });
 
       if (error) throw error;
@@ -42,7 +45,7 @@ export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi' }) {
 
   useEffect(() => {
     fetchGroups();
-  }, [options?.provider]);
+  }, [options?.provider, options?.source]);
 
   return { groups, loading, refetch: fetchGroups };
 }
