@@ -1508,6 +1508,174 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_bot_commands: {
+        Row: {
+          bot_id: string
+          command: string
+          created_at: string
+          description: string
+          id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          command: string
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          command?: string
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bot_commands_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_bot_state: {
+        Row: {
+          bot_id: string
+          last_polled_at: string | null
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          bot_id: string
+          last_polled_at?: string | null
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          bot_id?: string
+          last_polled_at?: string | null
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bot_state_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: true
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_bots: {
+        Row: {
+          active: boolean
+          bot_id: number | null
+          bot_token: string
+          created_at: string
+          description: string | null
+          first_name: string | null
+          id: string
+          last_validated_at: string | null
+          photo_url: string | null
+          short_description: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          active?: boolean
+          bot_id?: number | null
+          bot_token: string
+          created_at?: string
+          description?: string | null
+          first_name?: string | null
+          id?: string
+          last_validated_at?: string | null
+          photo_url?: string | null
+          short_description?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          active?: boolean
+          bot_id?: number | null
+          bot_token?: string
+          created_at?: string
+          description?: string | null
+          first_name?: string | null
+          id?: string
+          last_validated_at?: string | null
+          photo_url?: string | null
+          short_description?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          bot_id: string
+          chat_id: number
+          created_at: string
+          from_first_name: string | null
+          from_user_id: number | null
+          from_username: string | null
+          id: string
+          message_type: string
+          raw_update: Json
+          text: string | null
+          update_id: number
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          chat_id: number
+          created_at?: string
+          from_first_name?: string | null
+          from_user_id?: number | null
+          from_username?: string | null
+          id?: string
+          message_type?: string
+          raw_update: Json
+          text?: string | null
+          update_id: number
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          chat_id?: number
+          created_at?: string
+          from_first_name?: string | null
+          from_user_id?: number | null
+          from_username?: string | null
+          id?: string
+          message_type?: string
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_messages_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
