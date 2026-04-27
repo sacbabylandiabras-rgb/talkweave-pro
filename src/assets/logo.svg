@@ -29,7 +29,7 @@
   <filter id="softBlur">
     <feGaussianBlur stdDeviation="18"/>
   </filter>
-<mask id="imagine-text-gaps-odyzmw" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="690" height="320" fill="white"/><rect x="214" y="53" width="212.5625" height="128" fill="black" rx="2"/><rect x="401.8999938964844" y="53" width="282.1094055175781" height="128" fill="black" rx="2"/><rect x="216" y="172" width="293.84375" height="19" fill="black" rx="2"/></mask></defs>
+<mask id="imagine-text-gaps-odyzmw" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="690" height="320" fill="white"/><rect x="214" y="53" width="212.5625" height="128" fill="black" rx="2"/><rect x="401.8999938964844" y="53" width="282.1094055175781" height="128" fill="black" rx="2"/></mask></defs>
 
 <!-- Background card -->
 <rect x="40" y="30" width="600" height="260" rx="24" fill="url(#gradBg)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
@@ -42,30 +42,26 @@
 <line x1="40" y1="160" x2="640" y2="160" stroke="rgba(255,255,255,0.03)" stroke-width="1" mask="url(#imagine-text-gaps-odyzmw)" style="fill:rgb(0, 0, 0);stroke:rgba(255, 255, 255, 0.03);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
 <line x1="340" y1="30" x2="340" y2="290" stroke="rgba(255,255,255,0.03)" stroke-width="1" mask="url(#imagine-text-gaps-odyzmw)" style="fill:rgb(0, 0, 0);stroke:rgba(255, 255, 255, 0.03);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
 
-<!-- Icon container -->
-<rect x="88" y="78" width="104" height="104" rx="22" fill="rgba(167,139,250,0.12)" stroke="rgba(167,139,250,0.3)" stroke-width="1.5" style="fill:rgba(167, 139, 250, 0.12);stroke:rgba(167, 139, 250, 0.3);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Icon container: centered vertically (y = 160 - 52 = 108), x=58 -->
+<rect x="58" y="108" width="104" height="104" rx="22" fill="rgba(167,139,250,0.12)" stroke="rgba(167,139,250,0.3)" stroke-width="1.5"/>
 
 <!-- Lightning bolt icon -->
-<path d="M148 92 L126 145 L145 145 L132 178 L162 128 L143 128 Z" fill="url(#gradBolt)" stroke="none" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<path d="M118 122 L96 175 L115 175 L102 208 L132 158 L113 158 Z" fill="url(#gradBolt)" stroke="none"/>
 
 <!-- Thin inner accent line on icon -->
-<rect x="88" y="78" width="104" height="3" rx="1.5" fill="url(#gradMain)" opacity="0.8" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.8;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<rect x="58" y="108" width="104" height="3" rx="1.5" fill="url(#gradMain)" opacity="0.8"/>
 
-<!-- ZAP text -->
-<text x="218" y="152" font-family="'Bebas Neue', 'Arial Black', sans-serif" font-size="88" font-weight="400" letter-spacing="3" fill="white" style="fill:rgb(255, 255, 255);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Bebas Neue&quot;, &quot;Arial Black&quot;, sans-serif;font-size:88px;font-weight:400;text-anchor:start;dominant-baseline:auto">ZAP</text>
+<!-- ZAP text (branco) começa em x=178, font-size 70 -->
+<!-- ZAP ≈ 3 chars × ~42px = ~126px → LYNX começa em ~178+130 = 308 -->
+<!-- LYNX ≈ 4 chars × ~42px = ~168px → termina em ~308+175 = 483 → dentro do card (640) -->
+<text x="178" y="160" font-family="'Bebas Neue', 'Arial Black', sans-serif" font-size="70" font-weight="400" letter-spacing="2" dominant-baseline="middle"><tspan fill="white">ZAP</tspan><tspan fill="url(#gradMain)">LYNX</tspan></text>
 
-<!-- LYNX text with gradient -->
-<text x="405.9" y="152" font-family="'Bebas Neue', 'Arial Black', sans-serif" font-size="88" font-weight="400" letter-spacing="3" fill="url(#gradMain)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Bebas Neue&quot;, &quot;Arial Black&quot;, sans-serif;font-size:88px;font-weight:400;text-anchor:start;dominant-baseline:auto">LYNX</text>
-
-<!-- Tagline -->
-<text x="220" y="186" font-family="'Manrope', 'Inter', sans-serif" font-size="13" font-weight="300" letter-spacing="4" fill="rgba(255,255,255,0.35)" style="fill:rgba(255, 255, 255, 0.35);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Manrope, Inter, sans-serif;font-size:13px;font-weight:300;text-anchor:start;dominant-baseline:auto">PLATAFORMA DE MENSAGENS</text>
-
-<!-- Bottom accent line -->
-<rect x="220" y="200" width="400" height="1.5" rx="1" fill="url(#gradMain)" opacity="0.3" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.3;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Bottom accent line alinhada com o texto -->
+<rect x="178" y="210" width="452" height="1.5" rx="1" fill="url(#gradMain)" opacity="0.3"/>
 
 <!-- Small dot accents -->
-<circle cx="220" cy="200" r="3" fill="#a78bfa" opacity="0.8" style="fill:rgb(167, 139, 250);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.8;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<circle cx="620" cy="200" r="3" fill="#f472b6" opacity="0.8" style="fill:rgb(244, 114, 182);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.8;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<circle cx="178" cy="210" r="3" fill="#a78bfa" opacity="0.8"/>
+<circle cx="630" cy="210" r="3" fill="#f472b6" opacity="0.8"/>
 
 <!-- Corner decorations -->
 <rect x="42" y="32" width="20" height="1.5" rx="1" fill="rgba(167,139,250,0.4)" style="fill:rgba(167, 139, 250, 0.4);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
