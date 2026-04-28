@@ -516,7 +516,7 @@ export default function AdminAquecimento() {
                       <p className="text-[11px] text-muted-foreground font-mono truncate">
                         {inst.zapi_instance_id}
                       </p>
-                      {info?.phone ? (
+                      {info?.connected && info?.phone ? (
                         <div className="flex items-center gap-1.5 mt-1">
                           <Phone className="w-3 h-3 text-emerald-500" />
                           <span className="text-xs font-medium text-emerald-500">
@@ -528,8 +528,8 @@ export default function AdminAquecimento() {
                             </span>
                           )}
                         </div>
-                      ) : info && !info.connected ? (
-                        <p className="text-[11px] text-muted-foreground mt-1">Não conectado</p>
+                      ) : info ? (
+                        <p className="text-[11px] text-destructive mt-1">Desconectado</p>
                       ) : null}
                     </div>
                   </div>
