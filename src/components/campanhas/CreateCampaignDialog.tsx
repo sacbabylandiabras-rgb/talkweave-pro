@@ -569,7 +569,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv,.txt,.xlsx,.xls"
+                      accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                       onChange={handleFileUpload}
                       className="flex-1"
                     />
