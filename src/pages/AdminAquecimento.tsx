@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +84,120 @@ export default function AdminAquecimento() {
   const [connectMode, setConnectMode] = useState<"qr" | "pairing">("qr");
   const [pairingPhone, setPairingPhone] = useState("");
   const [connectError, setConnectError] = useState<string | null>(null);
+
+  // Atualização em massa de perfil
+  const [bulkProfileName, setBulkProfileName] = useState("");
+  const [bulkProfilePicUrl, setBulkProfilePicUrl] = useState("");
+  const [bulkProfileFile, setBulkProfileFile] = useState<File | null>(null);
+  const [bulkProfileRunning, setBulkProfileRunning] = useState(false);
+  const [bulkProfileProgress, setBulkProfileProgress] = useState<{ done: number; total: number; current?: string }>({ done: 0, total: 0 });
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const bulkUpdateProfile = async () => {
+    const name = bulkProfileName.trim();
+    const picUrl = bulkProfilePicUrl.trim();
+    const hasFile = !!bulkProfileFile;
+    if (!name && !picUrl && !hasFile) {
+      toast.error("Informe um nome e/ou uma foto para atualizar");
+      return;
+    }
+    if (instances.length === 0) {
+      toast.error("Nenhuma instância disponível");
+      return;
+    }
+    if (!confirm(`Aplicar alterações em ${instances.length} instância(s)?`)) return;
+
+    setBulkProfileRunning(true);
+    setBulkProfileProgress({ done: 0, total: instances.length });
+
+    let pictureValue: string | null = null;
+    if (hasFile) {
+      try {
+        pictureValue = await fileToBase64(bulkProfileFile!);
+      } catch {
+        toast.error("Falha ao ler arquivo de imagem");
+        setBulkProfileRunning(false);
+        return;
+      }
+    } else if (picUrl) {
+      pictureValue = picUrl;
+    }
+
+    let okCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
+      setBulkProfileProgress({ done: i, total: instances.length, current: inst.instance_name });
+
+      // Nome
+      if (name) {
+        try {
+          const { data, error } = await supabase.functions.invoke("update-profile", {
+            body: {
+              type: "name",
+              value: name,
+              provider: "uazapi",
+              apiUrl: inst.evolution_api_url,
+              apiKey: inst.zapi_token,
+            },
+          });
+          if (error || (data as any)?.error) {
+            failCount++;
+            console.error(`Nome falhou em ${inst.instance_name}:`, error || (data as any)?.error);
+          } else {
+            okCount++;
+          }
+        } catch (e) {
+          failCount++;
+          console.error(e);
+        }
+      }
+
+      // Foto
+      if (pictureValue) {
+        try {
+          const { data, error } = await supabase.functions.invoke("update-profile", {
+            body: {
+              type: "picture",
+              value: pictureValue,
+              provider: "uazapi",
+              apiUrl: inst.evolution_api_url,
+              apiKey: inst.zapi_token,
+            },
+          });
+          if (error || (data as any)?.error) {
+            failCount++;
+            console.error(`Foto falhou em ${inst.instance_name}:`, error || (data as any)?.error);
+          } else {
+            okCount++;
+          }
+        } catch (e) {
+          failCount++;
+          console.error(e);
+        }
+      }
+
+      // Pequeno delay entre instâncias
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    setBulkProfileProgress({ done: instances.length, total: instances.length });
+    setBulkProfileRunning(false);
+    if (failCount === 0) {
+      toast.success(`Perfil atualizado em ${instances.length} instância(s)`);
+    } else {
+      toast.warning(`Concluído com ${okCount} sucesso(s) e ${failCount} falha(s). Veja o console.`);
+    }
+    refreshInstancePhones(instances);
+  };
 
   const loadInstances = async () => {
     setLoadingInst(true);
@@ -566,6 +680,74 @@ export default function AdminAquecimento() {
               })}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserCog className="w-5 h-5" />
+            Atualizar perfil de todas as instâncias
+          </CardTitle>
+          <CardDescription>
+            Aplica o mesmo nome e/ou foto de perfil em todas as conexões listadas acima. Apenas instâncias conectadas serão atualizadas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs">Novo nome de perfil</Label>
+              <Input
+                value={bulkProfileName}
+                onChange={(e) => setBulkProfileName(e.target.value)}
+                placeholder="Ex.: Atendimento"
+                disabled={bulkProfileRunning}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">URL da nova foto (https://...)</Label>
+              <Input
+                value={bulkProfilePicUrl}
+                onChange={(e) => setBulkProfilePicUrl(e.target.value)}
+                placeholder="https://exemplo.com/foto.jpg"
+                disabled={bulkProfileRunning || !!bulkProfileFile}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" /> ou envie um arquivo de imagem
+            </Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setBulkProfileFile(e.target.files?.[0] || null)}
+              disabled={bulkProfileRunning || !!bulkProfilePicUrl}
+            />
+            {bulkProfileFile && (
+              <p className="text-[11px] text-muted-foreground">
+                Selecionado: {bulkProfileFile.name}
+              </p>
+            )}
+          </div>
+
+          {bulkProfileRunning && (
+            <div className="text-xs text-muted-foreground">
+              Processando {bulkProfileProgress.done}/{bulkProfileProgress.total}
+              {bulkProfileProgress.current ? ` — ${bulkProfileProgress.current}` : ""}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={bulkUpdateProfile} disabled={bulkProfileRunning || instances.length === 0}>
+              {bulkProfileRunning ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <UserCog className="w-4 h-4 mr-1" />
+              )}
+              Aplicar em {instances.length} instância(s)
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
