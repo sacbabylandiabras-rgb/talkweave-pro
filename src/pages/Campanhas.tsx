@@ -68,6 +68,7 @@ const Campanhas = () => {
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
   const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
   const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
+  const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   // Realtime sends for stats dialog
@@ -213,6 +214,44 @@ const Campanhas = () => {
     };
 
     fetchTemplateButtons();
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
+
+  // Always fetch the most up-to-date target_audience contacts directly from DB
+  // (the in-memory `campaigns` list can be stale or partially hydrated for very large audiences).
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogTargetContacts([]);
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('target_audience')
+        .eq('id', statsDialogCampaignId)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        console.error('Erro ao carregar audiência da campanha:', error);
+        setStatsDialogTargetContacts([]);
+        return;
+      }
+
+      const rawContacts = (data?.target_audience as any)?.contacts;
+      const contacts: Array<{ phone: string; name?: string }> = Array.isArray(rawContacts)
+        ? rawContacts
+            .map((c: any) => ({
+              phone: String(c?.phone || '').trim(),
+              name: c?.name ? String(c.name) : undefined,
+            }))
+            .filter((c) => Boolean(c.phone))
+        : [];
+      setStatsDialogTargetContacts(contacts);
+    })();
+
     return () => { active = false; };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
@@ -951,8 +990,10 @@ const Campanhas = () => {
           ) : (() => {
             // Build full contact list from target_audience + sends
             const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
-            const targetContacts: Array<{ phone: string; name?: string }> = 
-              campaign?.target_audience?.contacts || [];
+            const targetContacts: Array<{ phone: string; name?: string }> =
+              statsDialogTargetContacts.length > 0
+                ? statsDialogTargetContacts
+                : (campaign?.target_audience?.contacts || []);
             const campaignCancelled = campaign?.status === 'cancelled';
             const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
             const getSendPriority = (status?: string | null) => {
