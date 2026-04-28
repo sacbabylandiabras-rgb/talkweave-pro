@@ -217,6 +217,44 @@ const Campanhas = () => {
     return () => { active = false; };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
+  // Always fetch the most up-to-date target_audience contacts directly from DB
+  // (the in-memory `campaigns` list can be stale or partially hydrated for very large audiences).
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogTargetContacts([]);
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('target_audience')
+        .eq('id', statsDialogCampaignId)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        console.error('Erro ao carregar audiência da campanha:', error);
+        setStatsDialogTargetContacts([]);
+        return;
+      }
+
+      const rawContacts = (data?.target_audience as any)?.contacts;
+      const contacts: Array<{ phone: string; name?: string }> = Array.isArray(rawContacts)
+        ? rawContacts
+            .map((c: any) => ({
+              phone: String(c?.phone || '').trim(),
+              name: c?.name ? String(c.name) : undefined,
+            }))
+            .filter((c) => Boolean(c.phone))
+        : [];
+      setStatsDialogTargetContacts(contacts);
+    })();
+
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
+
   useEffect(() => {
     if (!statsDialogOpen || !statsDialogCampaignId || !statsDialogCampaignName) {
       setStatsDialogClickMap(new Map());
