@@ -73,6 +73,7 @@ export default function AdminAquecimento() {
 
   const [instances, setInstances] = useState<UazInstance[]>([]);
   const [loadingInst, setLoadingInst] = useState(true);
+  const [instancePhones, setInstancePhones] = useState<Record<string, { phone: string | null; connected: boolean; name?: string | null }>>({});
 
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectInst, setConnectInst] = useState<UazInstance | null>(null);
@@ -98,6 +99,40 @@ export default function AdminAquecimento() {
     }
     setLoadingInst(false);
   };
+
+  const refreshInstancePhones = async (list: UazInstance[]) => {
+    const results = await Promise.all(
+      list.map(async (inst) => {
+        try {
+          const { data } = await supabase.functions.invoke("uazapi-status", {
+            body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+          });
+          return [
+            inst.id,
+            {
+              phone: (data as any)?.phoneConnected || null,
+              connected: !!(data as any)?.connected,
+              name: (data as any)?.profileName || null,
+            },
+          ] as const;
+        } catch {
+          return [inst.id, { phone: null, connected: false, name: null }] as const;
+        }
+      })
+    );
+    setInstancePhones((prev) => {
+      const next = { ...prev };
+      for (const [id, info] of results) next[id] = info;
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (instances.length === 0) return;
+    refreshInstancePhones(instances);
+    const interval = setInterval(() => refreshInstancePhones(instances), 30000);
+    return () => clearInterval(interval);
+  }, [instances]);
 
   useEffect(() => {
     loadInstances();
