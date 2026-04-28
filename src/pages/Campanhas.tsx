@@ -68,6 +68,7 @@ const Campanhas = () => {
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
   const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
   const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
+  const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
 
   // Realtime sends for stats dialog
