@@ -216,8 +216,17 @@ const resolveWebhookInstanceReference = (webhook: any) => {
 const isLikelyTechnicalIdentifier = (value: unknown) => {
   const raw = String(value || "").trim();
   const digits = normalizePhoneCandidate(raw);
-  return !raw.includes("@") && /^\d{14,16}$/.test(digits) &&
+  return !raw.includes("@") && /^\d{12,16}$/.test(digits) &&
     !digits.startsWith("55");
+};
+
+const buildLidCandidateFromTechnicalId = (value: unknown) => {
+  const raw = String(value || "").trim();
+  if (raw.includes("@lid")) return raw;
+  const digits = normalizePhoneCandidate(raw);
+  return /^\d{12,16}$/.test(digits) && !digits.startsWith("55")
+    ? `${digits}@lid`
+    : "";
 };
 
 const isUazapiTechnicalReplyReference = (value: unknown) => {
@@ -264,6 +273,9 @@ const resolveWebhookPhone = (webhook: any) => {
   if (
     chatLid && chatLid.includes("@lid") && isLikelyTechnicalIdentifier(rawPhone)
   ) return chatLid;
+  if (rawPhone && isLikelyTechnicalIdentifier(rawPhone)) {
+    return buildLidCandidateFromTechnicalId(rawPhone) || rawPhone;
+  }
   if (rawPhone && !rawPhone.includes("@lid")) return rawPhone;
 
   return rawPhone || participantPhone || chatLid || "";
@@ -341,6 +353,10 @@ const mapCampaignSendStatusFromWebhook = (
 
     if (isGroup) {
       // Group fromMe callbacks (with or without text) = delivery confirmation
+      return "delivered";
+    }
+
+    if (phone?.includes("@lid") || buildLidCandidateFromTechnicalId(webhook?.phone)) {
       return "delivered";
     }
 
@@ -2393,6 +2409,8 @@ serve(async (req) => {
             }
           }
 
+          const directLidCandidate = buildLidCandidateFromTechnicalId(phone);
+
           // === REVERSE LID LOOKUP ===
           // Quando o callback chega com número real, mas o campaign_send foi
           // gravado como @lid (vindo de extração de grupo), precisamos achar
@@ -2455,6 +2473,7 @@ serve(async (req) => {
             new Set([
               ...expandCampaignCallbackPhones(phone),
               ...expandCampaignCallbackPhones(resolvedPhone),
+              directLidCandidate,
               ...reverseLidPhones,
             ].filter(Boolean)),
           );
