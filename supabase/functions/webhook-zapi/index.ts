@@ -2405,6 +2405,8 @@ serve(async (req) => {
             }
           }
 
+          const directLidCandidate = buildLidCandidateFromTechnicalId(phone);
+
           // === REVERSE LID LOOKUP ===
           // Quando o callback chega com número real, mas o campaign_send foi
           // gravado como @lid (vindo de extração de grupo), precisamos achar
@@ -2467,6 +2469,7 @@ serve(async (req) => {
             new Set([
               ...expandCampaignCallbackPhones(phone),
               ...expandCampaignCallbackPhones(resolvedPhone),
+              directLidCandidate,
               ...reverseLidPhones,
             ].filter(Boolean)),
           );
