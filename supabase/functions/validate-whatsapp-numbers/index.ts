@@ -24,14 +24,25 @@ async function checkZapi(base: string, headers: Record<string, string>, numbers:
     headers,
     body: JSON.stringify({ phones: numbers }),
   });
-  const data = await res.json().catch(() => []);
-  const arr = Array.isArray(data) ? data : [];
+  const text = await res.text();
+  let data: any = [];
+  try { data = JSON.parse(text); } catch { data = []; }
+  console.log(`[Z-API] status=${res.status} sample=${text.slice(0, 300)}`);
+  const arr = Array.isArray(data) ? data : Array.isArray(data?.phones) ? data.phones : [];
   const map = new Map<string, boolean>();
   for (const item of arr) {
-    const inp = onlyDigits(item?.inputPhone || "");
-    if (inp) map.set(inp, !!item?.exists);
+    const inp = onlyDigits(item?.inputPhone || item?.phone || item?.number || "");
+    const exists = item?.exists === true || item?.isInWhatsapp === true || item?.valid === true;
+    if (inp) map.set(inp, exists);
   }
-  return numbers.map((n) => ({ phone: n, valid: map.get(n) === true }));
+  return numbers.map((n) => {
+    // Try exact, then last 10/11 digits match
+    if (map.has(n)) return { phone: n, valid: map.get(n) === true };
+    for (const [k, v] of map) {
+      if (k.endsWith(n) || n.endsWith(k)) return { phone: n, valid: v };
+    }
+    return { phone: n, valid: false };
+  });
 }
 
 async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
@@ -41,15 +52,24 @@ async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
     headers: { "Content-Type": "application/json", token },
     body: JSON.stringify({ numbers }),
   });
-  const data = await res.json().catch(() => ({}));
-  const arr = Array.isArray(data) ? data : Array.isArray(data?.response) ? data.response : [];
+  const text = await res.text();
+  let data: any = {};
+  try { data = JSON.parse(text); } catch { data = {}; }
+  console.log(`[UAZAPI] status=${res.status} sample=${text.slice(0, 300)}`);
+  const arr = Array.isArray(data) ? data : Array.isArray(data?.response) ? data.response : Array.isArray(data?.result) ? data.result : [];
   const map = new Map<string, boolean>();
   for (const item of arr) {
-    const inp = onlyDigits(item?.query || item?.number || item?.phone || "");
-    const exists = item?.isInWhatsapp === true || item?.exists === true || item?.IsUser === true;
+    const inp = onlyDigits(item?.query || item?.number || item?.phone || item?.jid || "");
+    const exists = item?.isInWhatsapp === true || item?.exists === true || item?.IsUser === true || item?.isuser === true || !!item?.jid;
     if (inp) map.set(inp, exists);
   }
-  return numbers.map((n) => ({ phone: n, valid: map.get(n) === true }));
+  return numbers.map((n) => {
+    if (map.has(n)) return { phone: n, valid: map.get(n) === true };
+    for (const [k, v] of map) {
+      if (k.endsWith(n) || n.endsWith(k)) return { phone: n, valid: v };
+    }
+    return { phone: n, valid: false };
+  });
 }
 
 serve(async (req) => {
