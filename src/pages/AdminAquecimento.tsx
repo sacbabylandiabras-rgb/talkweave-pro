@@ -683,6 +683,74 @@ export default function AdminAquecimento() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserCog className="w-5 h-5" />
+            Atualizar perfil de todas as instâncias
+          </CardTitle>
+          <CardDescription>
+            Aplica o mesmo nome e/ou foto de perfil em todas as conexões listadas acima. Apenas instâncias conectadas serão atualizadas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs">Novo nome de perfil</Label>
+              <Input
+                value={bulkProfileName}
+                onChange={(e) => setBulkProfileName(e.target.value)}
+                placeholder="Ex.: Atendimento"
+                disabled={bulkProfileRunning}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">URL da nova foto (https://...)</Label>
+              <Input
+                value={bulkProfilePicUrl}
+                onChange={(e) => setBulkProfilePicUrl(e.target.value)}
+                placeholder="https://exemplo.com/foto.jpg"
+                disabled={bulkProfileRunning || !!bulkProfileFile}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" /> ou envie um arquivo de imagem
+            </Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setBulkProfileFile(e.target.files?.[0] || null)}
+              disabled={bulkProfileRunning || !!bulkProfilePicUrl}
+            />
+            {bulkProfileFile && (
+              <p className="text-[11px] text-muted-foreground">
+                Selecionado: {bulkProfileFile.name}
+              </p>
+            )}
+          </div>
+
+          {bulkProfileRunning && (
+            <div className="text-xs text-muted-foreground">
+              Processando {bulkProfileProgress.done}/{bulkProfileProgress.total}
+              {bulkProfileProgress.current ? ` — ${bulkProfileProgress.current}` : ""}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={bulkUpdateProfile} disabled={bulkProfileRunning || instances.length === 0}>
+              {bulkProfileRunning ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <UserCog className="w-4 h-4 mr-1" />
+              )}
+              Aplicar em {instances.length} instância(s)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
         <DialogContent>
           <DialogHeader>
