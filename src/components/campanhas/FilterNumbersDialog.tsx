@@ -30,33 +30,46 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
     setResult(null);
   };
 
+  // Extrai apenas valores que parecem números de telefone (8+ dígitos)
+  const extractPhones = (values: any[]): string[] => {
+    const out: string[] = [];
+    for (const v of values) {
+      const s = String(v ?? "").trim().replace(/^["']+|["']+$/g, "");
+      if (!s) continue;
+      const digits = s.replace(/\D+/g, "");
+      if (digits.length >= 8 && digits.length <= 15) out.push(digits);
+    }
+    return Array.from(new Set(out));
+  };
+
   const handleFile = async (file: File) => {
     try {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      let phones: string[] = [];
+      let raw: any[] = [];
       if (ext === "csv" || ext === "txt") {
         const txt = await file.text();
         const parsed = Papa.parse<string[]>(txt, { skipEmptyLines: true });
-        phones = (parsed.data as any[]).flat().map((v) => String(v || "").trim()).filter(Boolean);
+        raw = (parsed.data as any[]).flat();
       } else if (ext === "xlsx" || ext === "xls") {
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
-        phones = rows.flat().map((v) => String(v ?? "").trim()).filter(Boolean);
+        raw = rows.flat();
       } else {
         toast({ title: "Formato não suportado", description: "Use CSV, XLSX ou TXT", variant: "destructive" });
         return;
       }
+      const phones = extractPhones(raw);
       setText(phones.join("\n"));
-      toast({ title: "Planilha carregada", description: `${phones.length} linha(s) lidas` });
+      toast({ title: "Planilha carregada", description: `${phones.length} número(s) detectado(s)` });
     } catch (e: any) {
       toast({ title: "Erro ao ler arquivo", description: e.message, variant: "destructive" });
     }
   };
 
   const validate = async () => {
-    const phones = text.split(/[\s,;]+/).map((p) => p.trim()).filter(Boolean);
+    const phones = extractPhones(text.split(/[\s,;\n\r\t]+/));
     if (!phones.length) {
       toast({ title: "Adicione números", description: "Cole ou importe ao menos 1 número.", variant: "destructive" });
       return;
