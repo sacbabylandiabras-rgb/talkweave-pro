@@ -95,6 +95,52 @@ const normalizeStatusPayload = (payload: any) => {
         ? 'disconnected'
         : 'disconnected'
 
+  const ownerJidRaw = pickFirstString(
+    payload?.owner,
+    payload?.wid,
+    payload?.ownerJid,
+    payload?.me?.id,
+    payload?.me?.user,
+    payload?.profile?.wid,
+    payload?.profile?.id,
+    payload?.profile?.phone,
+    payload?.user?.id,
+    payload?.user?.wid,
+    payload?.phone,
+    payload?.phoneConnected,
+    payload?.number,
+    instance?.owner,
+    instance?.wid,
+    instance?.ownerJid,
+    instance?.phone,
+    instance?.phoneConnected,
+    instance?.number,
+    instance?.profileName,
+    instance?.me?.id,
+    instance?.me?.user,
+    statusInfo?.owner,
+    statusInfo?.wid,
+    statusInfo?.phone,
+    payload?.data?.owner,
+    payload?.data?.wid,
+    payload?.data?.phone,
+  )
+
+  const phoneConnected = ownerJidRaw
+    ? String(ownerJidRaw).split('@')[0].split(':')[0].replace(/\D/g, '') || null
+    : null
+
+  const profileName = pickFirstString(
+    payload?.profileName,
+    payload?.pushname,
+    payload?.name,
+    instance?.profileName,
+    instance?.pushname,
+    instance?.name,
+    payload?.profile?.name,
+    payload?.profile?.pushname,
+  )
+
   return {
     ...payload,
     connected,
@@ -102,6 +148,8 @@ const normalizeStatusPayload = (payload: any) => {
     connectionStatus,
     qrCode,
     pairingCode,
+    phoneConnected,
+    profileName,
   }
 }
 
