@@ -356,6 +356,10 @@ const mapCampaignSendStatusFromWebhook = (
       return "delivered";
     }
 
+    if (phone?.includes("@lid") || buildLidCandidateFromTechnicalId(webhook?.phone)) {
+      return "delivered";
+    }
+
     const hasTextContent = Boolean(
       webhook?.text?.message || webhook?.text || webhook?.body ||
         webhook?.message?.text || webhook?.message?.conversation ||
