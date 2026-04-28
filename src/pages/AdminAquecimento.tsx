@@ -202,11 +202,25 @@ export default function AdminAquecimento() {
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
     try {
-      await supabase.functions.invoke("uazapi-create-instance", {
+      const { data: delData, error: delErr } = await supabase.functions.invoke("uazapi-create-instance", {
         body: { action: "delete", instanceToken: inst.zapi_token },
       });
-      await supabase.from("zapi_instances").delete().eq("id", inst.id);
-      toast.success("Instância removida");
+      if (delErr) {
+        console.error("Erro ao remover na UAZAPI:", delErr);
+        toast.error("Falha ao remover no servidor: " + delErr.message);
+        return;
+      }
+      if ((delData as any)?.error) {
+        console.error("Erro UAZAPI:", (delData as any).error);
+        toast.error((delData as any).error);
+        return;
+      }
+      const { error: dbErr } = await supabase.from("zapi_instances").delete().eq("id", inst.id);
+      if (dbErr) {
+        toast.error("Removida no servidor, mas falhou no banco: " + dbErr.message);
+        return;
+      }
+      toast.success("Instância removida do servidor e do banco");
       loadInstances();
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover");
