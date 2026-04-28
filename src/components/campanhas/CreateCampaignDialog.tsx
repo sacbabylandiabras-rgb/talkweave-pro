@@ -538,7 +538,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                   <SelectItem value="import">
                     <div className="flex items-center gap-2">
                       <Upload className="w-4 h-4" />
-                      Importar Planilha (CSV)
+                      Importar Planilha (CSV/XLSX)
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -564,7 +564,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             {formData.contact_selection === "import" && (
               <div className="space-y-3">
                 <div>
-                  <Label>Importar Arquivo CSV</Label>
+                  <Label>Importar Planilha</Label>
                   <div className="flex items-center gap-2 mt-2">
                     <Input
                       ref={fileInputRef}
