@@ -12,6 +12,7 @@ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
 import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow } from "lucide-react";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { CarouselPreview } from "./CarouselPreview";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -194,15 +195,63 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         }
       });
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-      toast({
-        title: "Formato não suportado",
-        description: "Por favor, exporte sua planilha como CSV",
-        variant: "destructive",
+      // Parse XLSX/XLS
+      file.arrayBuffer().then((buf) => {
+        try {
+          const wb = XLSX.read(buf, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
+
+          let parsedContacts: { phone: string; name: string }[] = [];
+
+          if (rows.length && typeof rows[0] === "object" && !Array.isArray(rows[0])) {
+            // Has header row
+            parsedContacts = rows.map((row: any) => {
+              const raw = String(
+                row.telefone || row.phone || row.numero ||
+                row.Telefone || row.Phone || row.Numero ||
+                row.TELEFONE || row.PHONE || row.NUMERO ||
+                row.celular || row.Celular || row.whatsapp || row.WhatsApp || ""
+              ).trim();
+              const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+              return {
+                phone,
+                name: String(row.nome || row.name || row.Name || row.Nome || "Cliente"),
+              };
+            }).filter((c) => c.phone);
+          }
+
+          // Fallback: no headers — read first column as phone
+          if (!parsedContacts.length) {
+            const matrix = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: "" });
+            parsedContacts = matrix
+              .map((row) => {
+                const raw = String(row?.[0] ?? "").trim();
+                const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
+                const name = String(row?.[1] ?? "Cliente");
+                return { phone, name };
+              })
+              .filter((c) => c.phone && c.phone.length >= 8);
+          }
+
+          setImportedContacts(parsedContacts);
+          toast({
+            title: "Sucesso",
+            description: `${parsedContacts.length} contatos importados`,
+          });
+        } catch (err) {
+          console.error("Error parsing XLSX:", err);
+          toast({
+            title: "Erro",
+            description: "Não foi possível ler a planilha",
+            variant: "destructive",
+          });
+        }
       });
     } else {
       toast({
         title: "Formato inválido",
-        description: "Por favor, envie um arquivo CSV",
+        description: "Envie um arquivo CSV, XLSX, XLS ou TXT",
         variant: "destructive",
       });
     }
@@ -520,7 +569,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv,.txt"
+                      accept=".csv,.txt,.xlsx,.xls"
                       onChange={handleFileUpload}
                       className="flex-1"
                     />
@@ -535,7 +584,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Formato CSV com colunas: telefone, nome (opcional)
+                    Aceita CSV, XLSX, XLS ou TXT. Colunas: telefone, nome (opcional)
                   </p>
                 </div>
 
