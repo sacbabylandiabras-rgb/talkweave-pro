@@ -495,7 +495,16 @@ export default function AdminAquecimento() {
             </p>
           ) : (
             <div className="space-y-2">
-              {instances.map((inst) => (
+              {instances.map((inst) => {
+                const info = instancePhones[inst.id];
+                const formatPhone = (p: string) => {
+                  if (!p) return "";
+                  if (p.length >= 12) {
+                    return `+${p.slice(0, 2)} (${p.slice(2, 4)}) ${p.slice(4, p.length - 4)}-${p.slice(-4)}`;
+                  }
+                  return `+${p}`;
+                };
+                return (
                 <div
                   key={inst.id}
                   className="flex items-center justify-between gap-3 p-3 rounded-md border bg-muted/20"
@@ -507,6 +516,21 @@ export default function AdminAquecimento() {
                       <p className="text-[11px] text-muted-foreground font-mono truncate">
                         {inst.zapi_instance_id}
                       </p>
+                      {info?.phone ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Phone className="w-3 h-3 text-emerald-500" />
+                          <span className="text-xs font-medium text-emerald-500">
+                            {formatPhone(info.phone)}
+                          </span>
+                          {info.name && (
+                            <span className="text-[11px] text-muted-foreground truncate">
+                              · {info.name}
+                            </span>
+                          )}
+                        </div>
+                      ) : info && !info.connected ? (
+                        <p className="text-[11px] text-muted-foreground mt-1">Não conectado</p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -524,7 +548,8 @@ export default function AdminAquecimento() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
