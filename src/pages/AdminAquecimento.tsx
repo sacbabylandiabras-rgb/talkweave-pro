@@ -85,6 +85,120 @@ export default function AdminAquecimento() {
   const [pairingPhone, setPairingPhone] = useState("");
   const [connectError, setConnectError] = useState<string | null>(null);
 
+  // Atualização em massa de perfil
+  const [bulkProfileName, setBulkProfileName] = useState("");
+  const [bulkProfilePicUrl, setBulkProfilePicUrl] = useState("");
+  const [bulkProfileFile, setBulkProfileFile] = useState<File | null>(null);
+  const [bulkProfileRunning, setBulkProfileRunning] = useState(false);
+  const [bulkProfileProgress, setBulkProfileProgress] = useState<{ done: number; total: number; current?: string }>({ done: 0, total: 0 });
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const bulkUpdateProfile = async () => {
+    const name = bulkProfileName.trim();
+    const picUrl = bulkProfilePicUrl.trim();
+    const hasFile = !!bulkProfileFile;
+    if (!name && !picUrl && !hasFile) {
+      toast.error("Informe um nome e/ou uma foto para atualizar");
+      return;
+    }
+    if (instances.length === 0) {
+      toast.error("Nenhuma instância disponível");
+      return;
+    }
+    if (!confirm(`Aplicar alterações em ${instances.length} instância(s)?`)) return;
+
+    setBulkProfileRunning(true);
+    setBulkProfileProgress({ done: 0, total: instances.length });
+
+    let pictureValue: string | null = null;
+    if (hasFile) {
+      try {
+        pictureValue = await fileToBase64(bulkProfileFile!);
+      } catch {
+        toast.error("Falha ao ler arquivo de imagem");
+        setBulkProfileRunning(false);
+        return;
+      }
+    } else if (picUrl) {
+      pictureValue = picUrl;
+    }
+
+    let okCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
+      setBulkProfileProgress({ done: i, total: instances.length, current: inst.instance_name });
+
+      // Nome
+      if (name) {
+        try {
+          const { data, error } = await supabase.functions.invoke("update-profile", {
+            body: {
+              type: "name",
+              value: name,
+              provider: "uazapi",
+              apiUrl: inst.evolution_api_url,
+              apiKey: inst.zapi_token,
+            },
+          });
+          if (error || (data as any)?.error) {
+            failCount++;
+            console.error(`Nome falhou em ${inst.instance_name}:`, error || (data as any)?.error);
+          } else {
+            okCount++;
+          }
+        } catch (e) {
+          failCount++;
+          console.error(e);
+        }
+      }
+
+      // Foto
+      if (pictureValue) {
+        try {
+          const { data, error } = await supabase.functions.invoke("update-profile", {
+            body: {
+              type: "picture",
+              value: pictureValue,
+              provider: "uazapi",
+              apiUrl: inst.evolution_api_url,
+              apiKey: inst.zapi_token,
+            },
+          });
+          if (error || (data as any)?.error) {
+            failCount++;
+            console.error(`Foto falhou em ${inst.instance_name}:`, error || (data as any)?.error);
+          } else {
+            okCount++;
+          }
+        } catch (e) {
+          failCount++;
+          console.error(e);
+        }
+      }
+
+      // Pequeno delay entre instâncias
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    setBulkProfileProgress({ done: instances.length, total: instances.length });
+    setBulkProfileRunning(false);
+    if (failCount === 0) {
+      toast.success(`Perfil atualizado em ${instances.length} instância(s)`);
+    } else {
+      toast.warning(`Concluído com ${okCount} sucesso(s) e ${failCount} falha(s). Veja o console.`);
+    }
+    refreshInstancePhones(instances);
+  };
+
   const loadInstances = async () => {
     setLoadingInst(true);
     const { data, error } = await supabase
