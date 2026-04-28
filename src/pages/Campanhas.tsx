@@ -990,8 +990,10 @@ const Campanhas = () => {
           ) : (() => {
             // Build full contact list from target_audience + sends
             const campaign = campaigns.find(c => c.id === statsDialogCampaignId);
-            const targetContacts: Array<{ phone: string; name?: string }> = 
-              campaign?.target_audience?.contacts || [];
+            const targetContacts: Array<{ phone: string; name?: string }> =
+              statsDialogTargetContacts.length > 0
+                ? statsDialogTargetContacts
+                : (campaign?.target_audience?.contacts || []);
             const campaignCancelled = campaign?.status === 'cancelled';
             const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
             const getSendPriority = (status?: string | null) => {
