@@ -28,6 +28,15 @@ async function checkZapi(base: string, headers: Record<string, string>, numbers:
   let data: any = [];
   try { data = JSON.parse(text); } catch { data = []; }
   console.log(`[Z-API] status=${res.status} sample=${text.slice(0, 300)}`);
+
+  if (!res.ok) {
+    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
+    if (upstreamError.includes("connected") || upstreamError.includes("whatsapp")) {
+      throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
+    }
+    throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
+  }
+
   const arr = Array.isArray(data) ? data : Array.isArray(data?.phones) ? data.phones : [];
   const map = new Map<string, boolean>();
   for (const item of arr) {
@@ -56,6 +65,15 @@ async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
   let data: any = {};
   try { data = JSON.parse(text); } catch { data = {}; }
   console.log(`[UAZAPI] status=${res.status} sample=${text.slice(0, 300)}`);
+
+  if (!res.ok) {
+    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
+    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp")) {
+      throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
+    }
+    throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
+  }
+
   const arr = Array.isArray(data) ? data : Array.isArray(data?.response) ? data.response : Array.isArray(data?.result) ? data.result : [];
   const map = new Map<string, boolean>();
   for (const item of arr) {
@@ -151,7 +169,7 @@ serve(async (req) => {
         }
       } catch (e) {
         console.error("Batch error:", e);
-        for (const p of slice) results.push({ phone: p, valid: false });
+        throw e;
       }
     }
 
