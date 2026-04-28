@@ -7,12 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, RefreshCw } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, RefreshCw, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
+import { FilterNumbersDialog } from "@/components/campanhas/FilterNumbersDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -70,6 +71,7 @@ const Campanhas = () => {
   const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
   const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
 
   // Realtime sends for stats dialog
   const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
@@ -542,12 +544,18 @@ const Campanhas = () => {
               Apagar todas
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={() => setShowFilterDialog(true)}>
+            <Filter className="w-4 h-4 mr-1" />
+            Filtrar Números
+          </Button>
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Nova
           </Button>
         </div>
       </div>
+
+      <FilterNumbersDialog open={showFilterDialog} onOpenChange={setShowFilterDialog} />
 
       <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
         <AlertDialogContent>
