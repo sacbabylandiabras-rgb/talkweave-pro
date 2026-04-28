@@ -139,19 +139,24 @@ export function DashboardLayout() {
 
     const run = async () => {
       if (cancelled) return;
+      // Re-check config no localStorage para abortar imediatamente se foi pausado
+      const liveConfig = readWarmupConfig();
+      if (!liveConfig.active || !liveConfig.instanceIds.length) {
+        return;
+      }
       try {
         const progressRaw = localStorage.getItem(WARMUP_PROGRESS_KEY);
         const progressDay = progressRaw ? JSON.parse(progressRaw)?.[todayKey()] || {} : {};
-        const totalProgress = warmupConfig.instanceIds.reduce(
+        const totalProgress = liveConfig.instanceIds.reduce(
           (sum, id) => sum + Number(progressDay[id] || 0),
           0,
         );
         const { data, error } = await supabase.functions.invoke("run-warmup", {
           body: {
-            instanceIds: warmupConfig.instanceIds,
-            minDelay: warmupConfig.minDelay,
-            maxDelay: warmupConfig.maxDelay,
-            dailyLimit: warmupConfig.dailyLimit,
+            instanceIds: liveConfig.instanceIds,
+            minDelay: liveConfig.minDelay,
+            maxDelay: liveConfig.maxDelay,
+            dailyLimit: liveConfig.dailyLimit,
             mode: "tick",
             batchSize: 1,
             targetOffset: totalProgress,
@@ -170,7 +175,9 @@ export function DashboardLayout() {
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
       } finally {
-        if (!cancelled) {
+        // Re-check antes de agendar próximo ciclo: se foi pausado durante o envio, não agenda
+        const stillActive = readWarmupConfig();
+        if (!cancelled && stillActive.active && stillActive.instanceIds.length) {
           const min = Math.max(5, warmupConfig.minDelay);
           const max = Math.max(min, warmupConfig.maxDelay);
           const delayMs = (min + Math.random() * (max - min)) * 1000;
