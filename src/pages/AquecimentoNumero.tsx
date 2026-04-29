@@ -21,15 +21,37 @@ const STORAGE_KEY = "zaplynx-warmup-config";
 const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
 const WARMUP_PROGRESS_KEY = "zaplynx-warmup-progress";
 const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
+const WARMUP_PHONES_KEY = "zaplynx-warmup-phones";
+const WARMUP_PROGRESS_PHONE_SEPARATOR = "::";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const normalizeWarmupPhone = (phone: string) => String(phone || "").replace(/\D/g, "");
+
+const warmupProgressPhoneKey = (instanceId: string, phone: string) =>
+  `${instanceId}${WARMUP_PROGRESS_PHONE_SEPARATOR}${normalizeWarmupPhone(phone)}`;
+
+const readWarmupPhonesMap = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(WARMUP_PHONES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
 
 const readProgress = (): Record<string, number> => {
   try {
     const raw = localStorage.getItem(WARMUP_PROGRESS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    return parsed[todayKey()] || {};
+    const dayData = parsed[todayKey()] || {};
+    const phonesMap = readWarmupPhonesMap();
+    const visibleProgress: Record<string, number> = {};
+    for (const [instanceId, phone] of Object.entries(phonesMap)) {
+      visibleProgress[instanceId] = Number(dayData[warmupProgressPhoneKey(instanceId, phone)] || 0);
+    }
+    return visibleProgress;
   } catch {
     return {};
   }

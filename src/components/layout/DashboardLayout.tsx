@@ -20,8 +20,33 @@ const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
 const WARMUP_PROGRESS_KEY = "zaplynx-warmup-progress";
 const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
 const WARMUP_PHONES_KEY = "zaplynx-warmup-phones";
+const WARMUP_PROGRESS_PHONE_SEPARATOR = "::";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const normalizeWarmupPhone = (phone: string) => String(phone || "").replace(/\D/g, "");
+
+const warmupProgressPhoneKey = (instanceId: string, phone: string) =>
+  `${instanceId}${WARMUP_PROGRESS_PHONE_SEPARATOR}${normalizeWarmupPhone(phone)}`;
+
+const readWarmupPhonesMap = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(WARMUP_PHONES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const getVisibleWarmupProgress = (dayData: Record<string, number>, instanceIds: string[]) => {
+  const phonesMap = readWarmupPhonesMap();
+  return instanceIds.reduce<Record<string, number>>((acc, id) => {
+    const phone = phonesMap[id];
+    const key = phone ? warmupProgressPhoneKey(id, phone) : id;
+    acc[id] = Number(dayData[key] || 0);
+    return acc;
+  }, {});
+};
 
 const recordWarmupProgress = (
   sentByTarget: Record<string, number>,
@@ -30,14 +55,14 @@ const recordWarmupProgress = (
   try {
     // Detecta troca de número: se o phone associado a um instanceId mudou,
     // zera o contador daquela instância antes de acumular o novo envio.
-    const phonesRaw = localStorage.getItem(WARMUP_PHONES_KEY);
-    const phonesMap: Record<string, string> = phonesRaw ? JSON.parse(phonesRaw) : {};
+    const phonesMap = readWarmupPhonesMap();
     const resetIds = new Set<string>();
     for (const [phone, instanceId] of Object.entries(targetInstanceMap || {})) {
       if (!instanceId || !phone) continue;
+      const normalizedPhone = normalizeWarmupPhone(phone);
       const prev = phonesMap[instanceId];
-      if (prev && prev !== phone) resetIds.add(instanceId);
-      phonesMap[instanceId] = phone;
+      if (prev && normalizeWarmupPhone(prev) !== normalizedPhone) resetIds.add(instanceId);
+      phonesMap[instanceId] = normalizedPhone;
     }
     localStorage.setItem(WARMUP_PHONES_KEY, JSON.stringify(phonesMap));
 
@@ -46,13 +71,20 @@ const recordWarmupProgress = (
     const day = todayKey();
     const dayData: Record<string, number> = parsed[day] || {};
     if (resetIds.size) {
-      for (const id of resetIds) dayData[id] = 0;
+      for (const id of resetIds) {
+        delete dayData[id];
+        Object.keys(dayData).forEach((key) => {
+          if (key.startsWith(`${id}${WARMUP_PROGRESS_PHONE_SEPARATOR}`)) delete dayData[key];
+        });
+      }
     }
     let changed = false;
     for (const [phone, count] of Object.entries(sentByTarget || {})) {
       const instanceId = targetInstanceMap?.[phone];
       if (!instanceId || !count) continue;
-      dayData[instanceId] = (dayData[instanceId] || 0) + Number(count);
+      const key = warmupProgressPhoneKey(instanceId, phone);
+      delete dayData[instanceId];
+      dayData[key] = (dayData[key] || 0) + Number(count);
       changed = true;
     }
     if (!changed && resetIds.size === 0) return;
@@ -164,8 +196,9 @@ export function DashboardLayout() {
       try {
         const progressRaw = localStorage.getItem(WARMUP_PROGRESS_KEY);
         const progressDay = progressRaw ? JSON.parse(progressRaw)?.[todayKey()] || {} : {};
+        const visibleProgress = getVisibleWarmupProgress(progressDay, liveConfig.instanceIds);
         const totalProgress = liveConfig.instanceIds.reduce(
-          (sum, id) => sum + Number(progressDay[id] || 0),
+          (sum, id) => sum + Number(visibleProgress[id] || 0),
           0,
         );
         const { data, error } = await supabase.functions.invoke("run-warmup", {
@@ -192,11 +225,12 @@ export function DashboardLayout() {
           try {
             const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
             const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
+            const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
             await supabase.functions.invoke("warmup-join-groups", {
               body: {
                 sentByTarget,
                 targetInstanceMap,
-                currentProgress: dayProg,
+                currentProgress: visibleDayProg,
               },
             });
           } catch (_) { /* silencioso */ }
