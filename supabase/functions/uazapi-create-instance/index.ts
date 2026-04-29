@@ -59,18 +59,40 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      try {
-        const delRes = await fetch(`${baseUrl}/instance/delete`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json', token: instanceToken, admintoken: adminToken },
-        })
-        const delText = await delRes.text()
-        console.log(`🗑️ UAZAPI delete → ${delRes.status} ${delText}`)
-      } catch (e) {
-        console.warn('Erro ao deletar na UAZAPI:', e)
+      // Try a few endpoint/method variants to be resilient across UAZAPI versions
+      const attempts: Array<{ url: string; method: string }> = [
+        { url: `${baseUrl}/instance/delete`, method: 'DELETE' },
+        { url: `${baseUrl}/instance/delete`, method: 'POST' },
+        { url: `${baseUrl}/instance`, method: 'DELETE' },
+      ]
+      let lastStatus = 0
+      let lastText = ''
+      let ok = false
+      for (const a of attempts) {
+        try {
+          const r = await fetch(a.url, {
+            method: a.method,
+            headers: { 'Content-Type': 'application/json', token: instanceToken, admintoken: adminToken },
+          })
+          lastStatus = r.status
+          lastText = await r.text()
+          console.log(`🗑️ UAZAPI delete ${a.method} ${a.url} → ${r.status} ${lastText}`)
+          if (r.ok) { ok = true; break }
+          // 404 from this endpoint variant → try next
+          if (r.status !== 404 && r.status !== 405) break
+        } catch (e) {
+          console.warn('Erro ao deletar na UAZAPI:', e)
+          lastText = String((e as any)?.message || e)
+        }
+      }
+      if (!ok) {
+        return new Response(
+          JSON.stringify({ error: `Falha ao remover no servidor (${lastStatus}): ${lastText || 'sem resposta'}` }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, status: lastStatus }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
