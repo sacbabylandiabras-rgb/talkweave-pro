@@ -452,6 +452,8 @@ serve(async (req: Request) => {
               totalSent++;
               sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
+              // doadora voltou a enviar: limpa bloqueio de capping registrado anteriormente
+              clearCapping(String(donor.id));
 
               const targetInstForOpen = findTargetInstance(target);
               if (targetInstForOpen && donorPhone && answer) {
@@ -459,8 +461,12 @@ serve(async (req: Request) => {
                 if (opener.ok) {
                   totalReplies++;
                   console.log(`  ↩ ${targetInstForOpen.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
+                  if (targetInstForOpen.dbId) clearCapping(targetInstForOpen.dbId);
                 } else if (isNewChatCapping(opener.body)) {
                   console.log(`  ⚠ ${targetInstForOpen.name}: Z-API bloqueou nova conversa (${opener.status}); enviando primeiro da doadora para liberar resposta`);
+                  if (targetInstForOpen.dbId) {
+                    recordCapping(targetInstForOpen.dbId, targetInstForOpen.phone, opener.body);
+                  }
                 } else {
                   console.log(`  ✗ envio forçado falhou: HTTP ${opener.status} ${opener.body.slice(0,200)}`);
                 }
@@ -488,8 +494,12 @@ serve(async (req: Request) => {
                       if (rr.ok) {
                         totalReplies++;
                         console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
+                        if (tInstSafe.dbId) clearCapping(tInstSafe.dbId);
                       } else {
                         console.log(`  ✗ réplica bloqueada pela Z-API: HTTP ${rr.status} ${rr.body.slice(0,200)}`);
+                        if (isNewChatCapping(rr.body) && tInstSafe.dbId) {
+                          recordCapping(tInstSafe.dbId, tInstSafe.phone, rr.body);
+                        }
                       }
                     } catch (e: any) {
                       console.log(`  ✗ réplica erro: ${e?.message}`);
@@ -502,6 +512,9 @@ serve(async (req: Request) => {
               totalFailed++;
               const t = await res.text().catch(() => "");
               errors.push(`${donor.instance_name} → ${target}: HTTP ${res.status} ${t.slice(0, 120)}`);
+              if (isNewChatCapping(t)) {
+                recordCapping(String(donor.id), donorPhone, t);
+              }
             }
           } catch (e: any) {
             totalFailed++;
