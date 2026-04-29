@@ -211,7 +211,7 @@ export function DashboardLayout() {
             maxDelay: liveConfig.maxDelay,
             dailyLimit: liveConfig.dailyLimit,
             mode: "tick",
-            batchSize: 1,
+            batchSize: 3,
             targetOffset: totalProgress,
           },
         });
