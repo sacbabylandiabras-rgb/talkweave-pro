@@ -202,6 +202,52 @@ serve(async (req: Request) => {
     const isNewChatCapping = (text: string) =>
       /new_chat_message_capping|message_capping|new chat|capping/i.test(text || "");
 
+    // Extrai cycle_end (ISO) do payload de erro de capping, quando presente.
+    const extractCycleEnd = (text: string): string | null => {
+      try {
+        const m = text.match(/"cycle_end"\s*:\s*"([^"]+)"/i);
+        if (m && m[1]) return new Date(m[1]).toISOString();
+      } catch (_) { /* ignore */ }
+      return null;
+    };
+
+    // Registra (upsert) o bloqueio na tabela warmup_instance_health para a UI mostrar.
+    const recordCapping = async (
+      instanceRef: string,
+      phone: string,
+      rawBody: string,
+    ) => {
+      try {
+        const blockedUntil = extractCycleEnd(rawBody);
+        await admin
+          .from("warmup_instance_health")
+          .upsert(
+            {
+              instance_ref: instanceRef,
+              phone: phone || null,
+              block_type: "new_chat_capping",
+              blocked_until: blockedUntil,
+              last_detected_at: new Date().toISOString(),
+              detail: (rawBody || "").slice(0, 240),
+            },
+            { onConflict: "instance_ref,block_type" },
+          );
+      } catch (e: any) {
+        console.log(`  ⚠ capping registro falhou: ${e?.message}`);
+      }
+    };
+
+    // Limpa bloqueio quando um envio dá certo (instância voltou a aceitar).
+    const clearCapping = async (instanceRef: string) => {
+      try {
+        await admin
+          .from("warmup_instance_health")
+          .delete()
+          .eq("instance_ref", instanceRef)
+          .eq("block_type", "new_chat_capping");
+      } catch (_) { /* ignore */ }
+    };
+
     const sendZapiText = async (inst: TargetInstance, phone: string, message: string) => {
       const zapiUrl = `https://api.z-api.io/instances/${inst.instanceId}/token/${inst.token}/send-text`;
       const response = await fetch(zapiUrl, {
