@@ -815,6 +815,107 @@ export default function AdminAquecimento() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users2 className="w-5 h-5 text-primary" />
+            Entrada automática em grupos
+          </CardTitle>
+          <CardDescription>
+            Cada número aquecido entrará nestes grupos automaticamente conforme o
+            progresso atingir o limite definido (ex.: a cada 100 mensagens recebidas).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <div className="md:col-span-6">
+              <Label className="text-xs">Link de convite</Label>
+              <Input
+                placeholder="https://chat.whatsapp.com/XXXXXXXXXXXX"
+                value={newGroupLink}
+                onChange={(e) => setNewGroupLink(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs">Apelido (opcional)</Label>
+              <Input
+                placeholder="Grupo VIP"
+                value={newGroupLabel}
+                onChange={(e) => setNewGroupLabel(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs">A cada N msgs</Label>
+              <Input
+                type="number"
+                min={1}
+                value={newGroupThreshold}
+                onChange={(e) => setNewGroupThreshold(Number(e.target.value) || 100)}
+              />
+            </div>
+            <div className="md:col-span-1 flex items-end">
+              <Button
+                onClick={addGroupLink}
+                disabled={savingGroupLink}
+                className="w-full"
+              >
+                {savingGroupLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {loadingGroupLinks ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : groupLinks.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum grupo cadastrado ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {groupLinks.map((g) => (
+                <div
+                  key={g.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50"
+                >
+                  <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm truncate">
+                        {g.label || "Grupo"}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        a cada {g.threshold} msgs
+                      </Badge>
+                      {!g.active && <Badge variant="outline" className="text-xs">Pausado</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{g.invite_url}</p>
+                  </div>
+                  <Switch
+                    checked={g.active}
+                    onCheckedChange={(v) => toggleGroupLink(g.id, v)}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteGroupLink(g.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            ℹ️ Cada instância entra apenas uma vez em cada grupo. Quando o progresso
+            do dia ultrapassar o limite, a próxima instância elegível será adicionada
+            automaticamente em um dos grupos disponíveis.
+          </p>
+        </CardContent>
+      </Card>
+
       <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
         <DialogContent>
           <DialogHeader>
