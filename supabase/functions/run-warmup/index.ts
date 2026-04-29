@@ -202,6 +202,52 @@ serve(async (req: Request) => {
     const isNewChatCapping = (text: string) =>
       /new_chat_message_capping|message_capping|new chat|capping/i.test(text || "");
 
+    // Extrai cycle_end (ISO) do payload de erro de capping, quando presente.
+    const extractCycleEnd = (text: string): string | null => {
+      try {
+        const m = text.match(/"cycle_end"\s*:\s*"([^"]+)"/i);
+        if (m && m[1]) return new Date(m[1]).toISOString();
+      } catch (_) { /* ignore */ }
+      return null;
+    };
+
+    // Registra (upsert) o bloqueio na tabela warmup_instance_health para a UI mostrar.
+    const recordCapping = async (
+      instanceRef: string,
+      phone: string,
+      rawBody: string,
+    ) => {
+      try {
+        const blockedUntil = extractCycleEnd(rawBody);
+        await admin
+          .from("warmup_instance_health")
+          .upsert(
+            {
+              instance_ref: instanceRef,
+              phone: phone || null,
+              block_type: "new_chat_capping",
+              blocked_until: blockedUntil,
+              last_detected_at: new Date().toISOString(),
+              detail: (rawBody || "").slice(0, 240),
+            },
+            { onConflict: "instance_ref,block_type" },
+          );
+      } catch (e: any) {
+        console.log(`  ⚠ capping registro falhou: ${e?.message}`);
+      }
+    };
+
+    // Limpa bloqueio quando um envio dá certo (instância voltou a aceitar).
+    const clearCapping = async (instanceRef: string) => {
+      try {
+        await admin
+          .from("warmup_instance_health")
+          .delete()
+          .eq("instance_ref", instanceRef)
+          .eq("block_type", "new_chat_capping");
+      } catch (_) { /* ignore */ }
+    };
+
     const sendZapiText = async (inst: TargetInstance, phone: string, message: string) => {
       const zapiUrl = `https://api.z-api.io/instances/${inst.instanceId}/token/${inst.token}/send-text`;
       const response = await fetch(zapiUrl, {
@@ -406,6 +452,8 @@ serve(async (req: Request) => {
               totalSent++;
               sentByTarget[target] = (sentByTarget[target] || 0) + 1;
               console.log(`→ ${donor.instance_name} → ${target} (${i + 1}/${sendsPerDonor}): "${question.slice(0,40)}"`);
+              // doadora voltou a enviar: limpa bloqueio de capping registrado anteriormente
+              clearCapping(String(donor.id));
 
               const targetInstForOpen = findTargetInstance(target);
               if (targetInstForOpen && donorPhone && answer) {
@@ -413,8 +461,12 @@ serve(async (req: Request) => {
                 if (opener.ok) {
                   totalReplies++;
                   console.log(`  ↩ ${targetInstForOpen.name} → ${donorPhone}: "${answer.slice(0,40)}"`);
+                  if (targetInstForOpen.dbId) clearCapping(targetInstForOpen.dbId);
                 } else if (isNewChatCapping(opener.body)) {
                   console.log(`  ⚠ ${targetInstForOpen.name}: Z-API bloqueou nova conversa (${opener.status}); enviando primeiro da doadora para liberar resposta`);
+                  if (targetInstForOpen.dbId) {
+                    recordCapping(targetInstForOpen.dbId, targetInstForOpen.phone, opener.body);
+                  }
                 } else {
                   console.log(`  ✗ envio forçado falhou: HTTP ${opener.status} ${opener.body.slice(0,200)}`);
                 }
@@ -442,8 +494,12 @@ serve(async (req: Request) => {
                       if (rr.ok) {
                         totalReplies++;
                         console.log(`  ↩ ${tInstSafe.name} → ${donorPhoneSafe}: "${answerSafe.slice(0,40)}"`);
+                        if (tInstSafe.dbId) clearCapping(tInstSafe.dbId);
                       } else {
                         console.log(`  ✗ réplica bloqueada pela Z-API: HTTP ${rr.status} ${rr.body.slice(0,200)}`);
+                        if (isNewChatCapping(rr.body) && tInstSafe.dbId) {
+                          recordCapping(tInstSafe.dbId, tInstSafe.phone, rr.body);
+                        }
                       }
                     } catch (e: any) {
                       console.log(`  ✗ réplica erro: ${e?.message}`);
@@ -456,6 +512,9 @@ serve(async (req: Request) => {
               totalFailed++;
               const t = await res.text().catch(() => "");
               errors.push(`${donor.instance_name} → ${target}: HTTP ${res.status} ${t.slice(0, 120)}`);
+              if (isNewChatCapping(t)) {
+                recordCapping(String(donor.id), donorPhone, t);
+              }
             }
           } catch (e: any) {
             totalFailed++;

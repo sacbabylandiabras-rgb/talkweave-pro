@@ -74,6 +74,8 @@ export default function AdminAquecimento() {
   const [instances, setInstances] = useState<UazInstance[]>([]);
   const [loadingInst, setLoadingInst] = useState(true);
   const [instancePhones, setInstancePhones] = useState<Record<string, { phone: string | null; connected: boolean; name?: string | null }>>({});
+  const [healthByRef, setHealthByRef] = useState<Record<string, { blocked_until: string | null; last_detected_at: string }>>({});
+  const [healthByPhone, setHealthByPhone] = useState<Record<string, { blocked_until: string | null; last_detected_at: string }>>({});
 
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectInst, setConnectInst] = useState<UazInstance | null>(null);
@@ -304,6 +306,27 @@ export default function AdminAquecimento() {
       return next;
     });
   };
+
+  const loadHealth = async () => {
+    const { data } = await (supabase as any)
+      .from("warmup_instance_health")
+      .select("instance_ref, phone, blocked_until, last_detected_at, block_type")
+      .eq("block_type", "new_chat_capping");
+    const byRef: Record<string, any> = {};
+    const byPhone: Record<string, any> = {};
+    for (const row of (data as any[]) || []) {
+      byRef[row.instance_ref] = { blocked_until: row.blocked_until, last_detected_at: row.last_detected_at };
+      if (row.phone) byPhone[row.phone] = { blocked_until: row.blocked_until, last_detected_at: row.last_detected_at };
+    }
+    setHealthByRef(byRef);
+    setHealthByPhone(byPhone);
+  };
+
+  useEffect(() => {
+    loadHealth();
+    const t = setInterval(loadHealth, 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (instances.length === 0) return;
@@ -723,6 +746,19 @@ export default function AdminAquecimento() {
                       ) : info ? (
                         <p className="text-[11px] text-destructive mt-1">Desconectado</p>
                       ) : null}
+                      {(() => {
+                        const h = healthByRef[inst.id] || (info?.phone ? healthByPhone[info.phone] : undefined);
+                        if (!h) return null;
+                        const until = h.blocked_until ? new Date(h.blocked_until) : null;
+                        const label = until
+                          ? `Limite atingido · libera ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+                          : "Limite atingido";
+                        return (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">
+                            {label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
