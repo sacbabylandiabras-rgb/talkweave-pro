@@ -127,8 +127,8 @@ export default function AquecimentoNumero() {
 
   const toggleActive = async () => {
     if (!config.active) {
-      if (config.instanceIds.length < 2) {
-        toast.error("Selecione pelo menos 2 instâncias para aquecer em PV");
+      if (!config.instanceIds.length) {
+        toast.error("Selecione ao menos uma instância para aquecer");
         return;
       }
       toast.success("Aquecimento iniciado em ciclos contínuos");
@@ -149,7 +149,7 @@ export default function AquecimentoNumero() {
             Aquecimento de Número
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Selecione ao menos 2 instâncias para elas trocarem mensagens em PV
+            Selecione as instâncias para aquecer no privado
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default function AquecimentoNumero() {
         <CardHeader>
           <CardTitle className="text-lg">Instâncias para aquecer</CardTitle>
           <CardDescription>
-            As instâncias selecionadas conversarão entre si no privado
+            Com 1 instância, ela envia para o próprio número; com 2 ou mais, elas conversam entre si
           </CardDescription>
         </CardHeader>
         <CardContent>

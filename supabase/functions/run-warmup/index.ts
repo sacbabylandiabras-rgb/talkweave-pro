@@ -384,13 +384,17 @@ serve(async (req: Request) => {
     // Primeiro tenta PV P2P: as próprias instâncias selecionadas conversam entre si.
     // Assim o aquecimento normal não fica refém das doadoras UAZAPI desconectadas.
     const work = async () => {
-      if (targetInstances.length >= 2) {
+      if (targetInstances.length >= 1) {
         const pairs: Array<[TargetInstance, TargetInstance]> = [];
         const ordered = [...targetInstances].sort((a, b) => a.dbId.localeCompare(b.dbId));
-        for (let i = 0; i < ordered.length; i++) {
-          const sender = ordered[(targetOffset + i) % ordered.length];
-          const receiver = ordered[(targetOffset + i + 1) % ordered.length];
-          if (sender.dbId !== receiver.dbId) pairs.push([sender, receiver]);
+        if (ordered.length === 1) {
+          for (let i = 0; i < sendsPerDonor; i++) pairs.push([ordered[0], ordered[0]]);
+        } else {
+          for (let i = 0; i < ordered.length; i++) {
+            const sender = ordered[(targetOffset + i) % ordered.length];
+            const receiver = ordered[(targetOffset + i + 1) % ordered.length];
+            if (sender.dbId !== receiver.dbId) pairs.push([sender, receiver]);
+          }
         }
         const selectedPairs = pairs.slice(0, Math.min(sendsPerDonor, pairs.length));
 
@@ -434,14 +438,14 @@ serve(async (req: Request) => {
           }
         }));
 
-        console.log(`✅ Aquecimento PV P2P concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
+        console.log(`✅ Aquecimento PV concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
         if (errors.length) console.log("Erros:", errors.slice(0, 20));
         return;
       }
 
       if (!donors || donors.length === 0) {
         totalFailed++;
-        errors.push("PV precisa de 2 instâncias selecionadas ou doadoras ativas como fallback");
+        errors.push("PV precisa de ao menos 1 instância selecionada ou doadoras ativas como fallback");
         console.log("✅ Aquecimento concluído: 0 enviadas, 0 respostas, 1 falha");
         return;
       }
@@ -618,7 +622,7 @@ serve(async (req: Request) => {
       donors: donors?.length || 0,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
-      plannedSends: donors.length * sendsPerDonor,
+      plannedSends: targetInstances.length >= 1 ? sendsPerDonor : ((donors?.length || 0) * sendsPerDonor),
       sent: totalSent,
       replies: totalReplies,
       failed: totalFailed,
