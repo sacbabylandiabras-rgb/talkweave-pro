@@ -50,10 +50,21 @@ Deno.serve(async (req) => {
       .from("warmup_messages")
       .select("content")
       .eq("active", true);
-    const messages: string[] = (poolMsgs || [])
-      .map((r: any) => String(r.content || "").split("||")[0].trim())
-      .filter((s: string) => s.length > 0);
-    if (messages.length === 0) return json({ sent: 0, skipped: "no messages" });
+    const conversations = (poolMsgs || [])
+      .map((r: any) => {
+        const raw = String(r.content || "").trim();
+        const sepIdx = raw.indexOf("||");
+        return {
+          question: (sepIdx >= 0 ? raw.slice(0, sepIdx) : raw).trim(),
+          answer: (sepIdx >= 0 ? raw.slice(sepIdx + 2) : "").trim(),
+        };
+      })
+      .filter((m: any) => m.question.length > 0);
+    const autoReplies = [
+      "verdade", "sim, sim", "boa! 🙂", "show", "top", "concordo", "uhum",
+      "pois é", "também acho", "tranquilo", "perfeito", "massa", "entendi",
+    ];
+    if (conversations.length === 0) return json({ sent: 0, skipped: "no messages" });
 
     // 2) Links ativos COM group_jid resolvido
     const { data: links } = await admin
