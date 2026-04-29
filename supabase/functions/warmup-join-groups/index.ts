@@ -271,12 +271,9 @@ Deno.serve(async (req) => {
         if (total < threshold) continue;
 
         const groupJid = await resolveGroupJid(link);
-        if (!groupJid) {
-          log.push({ link: link.id, error: "could not resolve group jid" });
-          continue;
-        }
-
-        const result = await addParticipant(groupJid, phone);
+        const result = groupJid
+          ? await addParticipant(groupJid, phone)
+          : await acceptInviteWithTarget(instanceId, link.invite_url);
         if (result.ok) {
           added++;
           joinedSet.add(key);
@@ -293,7 +290,7 @@ Deno.serve(async (req) => {
           break;
         } else {
           failed++;
-          log.push({ phone, link: link.id, ...result.detail });
+          log.push({ phone, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
       }
     }
