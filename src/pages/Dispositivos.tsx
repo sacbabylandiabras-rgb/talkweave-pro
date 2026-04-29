@@ -426,6 +426,30 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const isOnline = deviceStatus?.connected === true && deviceStatus?.session === true;
   const isConnected = deviceStatus?.connected === true;
 
+  // Busca status de saúde (bloqueios de envio detectados pelo aquecimento)
+  useEffect(() => {
+    let alive = true;
+    const fetchHealth = async () => {
+      try {
+        const phoneDigits = (connectedPhone || "").replace(/\D/g, "");
+        const filters: string[] = [`instance_ref.eq.${instance.id}`];
+        if (phoneDigits) filters.push(`phone.eq.${phoneDigits}`);
+        const { data } = await (supabase as any)
+          .from("warmup_instance_health")
+          .select("blocked_until, last_detected_at")
+          .eq("block_type", "new_chat_capping")
+          .or(filters.join(","))
+          .order("last_detected_at", { ascending: false })
+          .limit(1);
+        if (!alive) return;
+        setHealthBlock((data && data[0]) || null);
+      } catch { /* ignore */ }
+    };
+    fetchHealth();
+    const t = setInterval(fetchHealth, 60_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [instance.id, connectedPhone]);
+
   const [showDetails, setShowDetails] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
