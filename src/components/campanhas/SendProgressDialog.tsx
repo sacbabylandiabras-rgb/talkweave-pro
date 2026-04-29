@@ -59,6 +59,20 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   const [isPausing, setIsPausing] = useState(false);
   const channelRef = useRef<any>(null);
 
+  const resetProgressState = () => {
+    setStats({
+      total: totalContacts,
+      sending: 0,
+      pending: totalContacts,
+      sent: 0,
+      delivered: 0,
+      failed: 0,
+    });
+    setIsComplete(false);
+    setIsPaused(false);
+    setIsPausing(false);
+  };
+
   const handlePause = async () => {
     if (campaignId && !isPausing) {
       try {
@@ -84,12 +98,11 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
   useEffect(() => {
     if (!open || !campaignId) {
-      // Only reset completion/pause flags, NOT stats — preserve them for re-opening
-      setIsComplete(false);
-      setIsPaused(false);
-      setIsPausing(false);
+      resetProgressState();
       return;
     }
+
+    resetProgressState();
 
     const fetchAndUpdate = async () => {
       const [
@@ -220,7 +233,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` }, (payload) => {
         const status = (payload.new as any)?.status;
-        if (status === 'completed') setIsComplete(true);
+        fetchAndUpdate();
         if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
         if (status === 'active') { setIsPaused(false); setIsComplete(false); }
       })
