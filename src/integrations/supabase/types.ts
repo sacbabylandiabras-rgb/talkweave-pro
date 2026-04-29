@@ -1739,6 +1739,51 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_group_chat_logs: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          error_message: string | null
+          group_jid: string | null
+          http_status: number | null
+          id: string
+          link_id: string | null
+          message_preview: string | null
+          sender_instance_id: string | null
+          sender_name: string | null
+          sender_provider: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          error_message?: string | null
+          group_jid?: string | null
+          http_status?: number | null
+          id?: string
+          link_id?: string | null
+          message_preview?: string | null
+          sender_instance_id?: string | null
+          sender_name?: string | null
+          sender_provider?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          error_message?: string | null
+          group_jid?: string | null
+          http_status?: number | null
+          id?: string
+          link_id?: string | null
+          message_preview?: string | null
+          sender_instance_id?: string | null
+          sender_name?: string | null
+          sender_provider?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       warmup_group_joins: {
         Row: {
           created_at: string

@@ -1336,10 +1336,29 @@ export default function AdminAquecimento() {
                 Mensagens enviadas pelo motor de aquecimento dentro dos grupos. Filtre por data, grupo e status.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchChatLogs} disabled={loadingChatLogs}>
-              {loadingChatLogs ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    toast.loading("Disparando ciclo manual...", { id: "warmup-chat-run" });
+                    const { data, error } = await supabase.functions.invoke("warmup-group-chat", { body: {} });
+                    if (error) throw error;
+                    toast.success(`Ciclo executado: ${data?.sent ?? 0} enviadas / ${data?.errors ?? 0} erros`, { id: "warmup-chat-run" });
+                    setTimeout(fetchChatLogs, 1500);
+                  } catch (e: any) {
+                    toast.error(e?.message || "Falha ao executar ciclo", { id: "warmup-chat-run" });
+                  }
+                }}
+              >
+                Executar agora
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchChatLogs} disabled={loadingChatLogs}>
+                {loadingChatLogs ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+                Atualizar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
