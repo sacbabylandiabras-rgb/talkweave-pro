@@ -171,6 +171,18 @@ export function DashboardLayout() {
         const targetInstanceMap = (data as any)?.targetInstanceMap;
         if (sentByTarget && targetInstanceMap) {
           recordWarmupProgress(sentByTarget, targetInstanceMap);
+          // Após atualizar o progresso, dispara a checagem de entrada em grupos
+          try {
+            const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
+            const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
+            await supabase.functions.invoke("warmup-join-groups", {
+              body: {
+                sentByTarget,
+                targetInstanceMap,
+                currentProgress: dayProg,
+              },
+            });
+          } catch (_) { /* silencioso */ }
         }
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");

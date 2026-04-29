@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon, Users2, Link as LinkIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +91,70 @@ export default function AdminAquecimento() {
   const [bulkProfileFile, setBulkProfileFile] = useState<File | null>(null);
   const [bulkProfileRunning, setBulkProfileRunning] = useState(false);
   const [bulkProfileProgress, setBulkProfileProgress] = useState<{ done: number; total: number; current?: string }>({ done: 0, total: 0 });
+
+  // Entrada automática em grupos durante o aquecimento
+  const groupLinksTable = () => (supabase as any).from("warmup_group_links");
+  const [groupLinks, setGroupLinks] = useState<Array<{ id: string; invite_url: string; label: string | null; threshold: number; active: boolean }>>([]);
+  const [loadingGroupLinks, setLoadingGroupLinks] = useState(true);
+  const [newGroupLink, setNewGroupLink] = useState("");
+  const [newGroupLabel, setNewGroupLabel] = useState("");
+  const [newGroupThreshold, setNewGroupThreshold] = useState(100);
+  const [savingGroupLink, setSavingGroupLink] = useState(false);
+
+  const fetchGroupLinks = async () => {
+    setLoadingGroupLinks(true);
+    const { data, error } = await groupLinksTable()
+      .select("id, invite_url, label, threshold, active")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar grupos");
+    } else {
+      setGroupLinks((data || []) as any);
+    }
+    setLoadingGroupLinks(false);
+  };
+
+  useEffect(() => { fetchGroupLinks(); }, []);
+
+  const addGroupLink = async () => {
+    const url = newGroupLink.trim();
+    if (!/chat\.whatsapp\.com\//i.test(url)) {
+      toast.error("Informe um link de convite válido (chat.whatsapp.com/...)");
+      return;
+    }
+    const threshold = Math.max(1, Number(newGroupThreshold) || 100);
+    setSavingGroupLink(true);
+    const { error } = await groupLinksTable().insert({
+      invite_url: url,
+      label: newGroupLabel.trim() || null,
+      threshold,
+      active: true,
+    });
+    setSavingGroupLink(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Grupo adicionado");
+    setNewGroupLink("");
+    setNewGroupLabel("");
+    setNewGroupThreshold(100);
+    fetchGroupLinks();
+  };
+
+  const toggleGroupLink = async (id: string, active: boolean) => {
+    const { error } = await groupLinksTable().update({ active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else fetchGroupLinks();
+  };
+
+  const deleteGroupLink = async (id: string) => {
+    if (!confirm("Remover este grupo?")) return;
+    const { error } = await groupLinksTable().delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Removido"); fetchGroupLinks(); }
+  };
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -748,6 +812,107 @@ export default function AdminAquecimento() {
               Aplicar em {instances.length} instância(s)
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users2 className="w-5 h-5 text-primary" />
+            Entrada automática em grupos
+          </CardTitle>
+          <CardDescription>
+            Cada número aquecido entrará nestes grupos automaticamente conforme o
+            progresso atingir o limite definido (ex.: a cada 100 mensagens recebidas).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <div className="md:col-span-6">
+              <Label className="text-xs">Link de convite</Label>
+              <Input
+                placeholder="https://chat.whatsapp.com/XXXXXXXXXXXX"
+                value={newGroupLink}
+                onChange={(e) => setNewGroupLink(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs">Apelido (opcional)</Label>
+              <Input
+                placeholder="Grupo VIP"
+                value={newGroupLabel}
+                onChange={(e) => setNewGroupLabel(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs">A cada N msgs</Label>
+              <Input
+                type="number"
+                min={1}
+                value={newGroupThreshold}
+                onChange={(e) => setNewGroupThreshold(Number(e.target.value) || 100)}
+              />
+            </div>
+            <div className="md:col-span-1 flex items-end">
+              <Button
+                onClick={addGroupLink}
+                disabled={savingGroupLink}
+                className="w-full"
+              >
+                {savingGroupLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {loadingGroupLinks ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : groupLinks.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum grupo cadastrado ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {groupLinks.map((g) => (
+                <div
+                  key={g.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50"
+                >
+                  <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm truncate">
+                        {g.label || "Grupo"}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        a cada {g.threshold} msgs
+                      </Badge>
+                      {!g.active && <Badge variant="outline" className="text-xs">Pausado</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{g.invite_url}</p>
+                  </div>
+                  <Switch
+                    checked={g.active}
+                    onCheckedChange={(v) => toggleGroupLink(g.id, v)}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteGroupLink(g.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            ℹ️ Cada instância entra apenas uma vez em cada grupo. Quando o progresso
+            do dia ultrapassar o limite, a próxima instância elegível será adicionada
+            automaticamente em um dos grupos disponíveis.
+          </p>
         </CardContent>
       </Card>
 
