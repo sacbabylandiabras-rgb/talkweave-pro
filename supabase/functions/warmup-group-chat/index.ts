@@ -178,9 +178,21 @@ Deno.serve(async (req) => {
         if (shuffled.length === 0) shuffled = shuffledAll.slice(0, batchSize);
       }
 
-      for (const sender of shuffled) {
+      // Mantém uma fila de "reservas" para repor quando alguém falhar.
+      const used = new Set(shuffled.map((s) => s.id || s.dbId));
+      const reserves = shuffledAll.filter((s) => !used.has(s.id || s.dbId));
+
+      const queue = [...shuffled];
+      while (queue.length > 0) {
+        const sender = queue.shift();
+        if (!sender) break;
         const text = pickRandom(messages);
-        const res = await sendInGroup(sender, groupJid, text);
+        let res;
+        try {
+          res = await sendInGroup(sender, groupJid, text);
+        } catch (e: any) {
+          res = { ok: false, status: 0, body: e?.message || "send threw" };
+        }
         const senderName = sender.instance_name || sender.name || "";
         const senderProvider = String(sender.api_provider || sender.kind || "").toLowerCase() || "uazapi";
         const senderId = sender.id || sender.dbId || null;
@@ -218,6 +230,11 @@ Deno.serve(async (req) => {
             error_message: String(res.body || "").slice(0, 500),
             message_preview: text.slice(0, 200),
           });
+          // Repõe com uma reserva (até esgotar) se NÃO for sendAll
+          if (!sendAll && reserves.length > 0) {
+            const replacement = reserves.shift();
+            if (replacement) queue.push(replacement);
+          }
         }
         // Pequeno delay entre envios (1.5–4s) para parecer natural
         await new Promise((r) => setTimeout(r, 1500 + Math.random() * 2500));
