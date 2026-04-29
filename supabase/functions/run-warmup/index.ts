@@ -416,6 +416,7 @@ serve(async (req: Request) => {
         const selectedPairs = pairs.slice(0, Math.min(sendsPerDonor, pairs.length));
 
         await Promise.all(selectedPairs.map(async ([sender, receiver], idx) => {
+          if (!(await isRunAllowed())) return;
           const raw = pickRandom(messages);
           const sepIdx = raw.indexOf("||");
           const question = (sepIdx >= 0 ? raw.slice(0, sepIdx) : raw).trim();
@@ -433,6 +434,7 @@ serve(async (req: Request) => {
               if (sender.dbId) clearCapping(sender.dbId);
 
               await new Promise((r) => setTimeout(r, 900 + Math.random() * 2200));
+              if (!(await isRunAllowed())) return;
               const reply = await forceTargetReply(receiver, sender.phone, answer);
               if (reply.ok) {
                 totalReplies++;
