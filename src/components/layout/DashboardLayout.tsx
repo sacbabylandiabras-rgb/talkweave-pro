@@ -201,7 +201,10 @@ export function DashboardLayout() {
           (sum, id) => sum + Number(visibleProgress[id] || 0),
           0,
         );
-        const { data, error } = await supabase.functions.invoke("run-warmup", {
+
+        // Dispara DM (run-warmup) e conversa em grupo (warmup-group-chat) EM PARALELO,
+        // para que os dois fluxos aconteçam ao mesmo tempo no mesmo ciclo.
+        const dmPromise = supabase.functions.invoke("run-warmup", {
           body: {
             instanceIds: liveConfig.instanceIds,
             minDelay: liveConfig.minDelay,
@@ -212,7 +215,11 @@ export function DashboardLayout() {
             targetOffset: totalProgress,
           },
         });
+        const groupChatPromise = supabase.functions
+          .invoke("warmup-group-chat", { body: { batchSize: 2 } })
+          .catch(() => null);
 
+        const { data, error } = await dmPromise;
         if (error) throw error;
         if ((data as any)?.success === false) {
           throw new Error((data as any)?.error || "Erro ao executar ciclo");
@@ -222,25 +229,20 @@ export function DashboardLayout() {
         if (sentByTarget && targetInstanceMap) {
           recordWarmupProgress(sentByTarget, targetInstanceMap);
           // Após atualizar o progresso, dispara a checagem de entrada em grupos
+          // (em paralelo também, sem bloquear o próximo ciclo)
           try {
             const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
             const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
             const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
-            await supabase.functions.invoke("warmup-join-groups", {
-              body: {
-                sentByTarget,
-                targetInstanceMap,
-                currentProgress: visibleDayProg,
-              },
-            });
-          } catch (_) { /* silencioso */ }
-          // Após join, dispara conversa DENTRO do grupo (instâncias aquecidas + doadoras admin)
-          try {
-            await supabase.functions.invoke("warmup-group-chat", {
-              body: { batchSize: 2 },
-            });
+            supabase.functions
+              .invoke("warmup-join-groups", {
+                body: { sentByTarget, targetInstanceMap, currentProgress: visibleDayProg },
+              })
+              .catch(() => null);
           } catch (_) { /* silencioso */ }
         }
+        // Aguarda o group-chat terminar também (sem travar se falhar)
+        await groupChatPromise;
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
       } finally {
