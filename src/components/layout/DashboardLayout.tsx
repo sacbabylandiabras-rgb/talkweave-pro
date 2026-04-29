@@ -202,8 +202,8 @@ export function DashboardLayout() {
           0,
         );
 
-        // Primeiro confirma que o aquecimento normal enviou algo.
-        // Assim evitamos o comportamento de ficar enviando somente em grupo quando o normal falha.
+        // Dispara DM e conversa em grupo em PARALELO (sincronizados no mesmo ciclo).
+        // Se o DM falhar (ex.: instâncias desconectadas), o grupo ainda roda independentemente.
         const dmPromise = supabase.functions.invoke("run-warmup", {
           body: {
             instanceIds: liveConfig.instanceIds,
@@ -216,39 +216,39 @@ export function DashboardLayout() {
           },
         });
 
-        const { data, error } = await dmPromise;
-        if (error) throw error;
-        if ((data as any)?.success === false) {
-          throw new Error((data as any)?.error || "Erro ao executar ciclo");
-        }
-        const normalSent = Number((data as any)?.sent || 0) + Number((data as any)?.replies || 0);
-        if (normalSent <= 0) {
-          if (Number((data as any)?.failed || 0) > 0) {
-            throw new Error("Aquecimento normal não enviou. Verifique conexão e limite das instâncias.");
-          }
-          return;
-        }
-        const sentByTarget = (data as any)?.sentByTarget;
-        const targetInstanceMap = (data as any)?.targetInstanceMap;
-        if (sentByTarget && targetInstanceMap) {
-          recordWarmupProgress(sentByTarget, targetInstanceMap);
-          // Após atualizar o progresso, dispara a checagem de entrada em grupos
-          // (em paralelo também, sem bloquear o próximo ciclo)
-          try {
-            const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
-            const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
-            const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
-            supabase.functions
-              .invoke("warmup-join-groups", {
-                body: { sentByTarget, targetInstanceMap, currentProgress: visibleDayProg },
-              })
-              .catch(() => null);
-          } catch (_) { /* silencioso */ }
-        }
-        // Só roda conversa em grupo se o aquecimento normal também rodou neste ciclo.
-        await supabase.functions
+        const groupPromise = supabase.functions
           .invoke("warmup-group-chat", { body: { batchSize: 2 } })
           .catch(() => null);
+
+        const [dmResult] = await Promise.all([dmPromise, groupPromise]);
+        const { data, error } = dmResult;
+
+        if (error) {
+          toast.error(error.message || "Erro no aquecimento normal");
+        } else if ((data as any)?.success === false) {
+          toast.error((data as any)?.error || "Erro ao executar ciclo");
+        } else {
+          const failed = Number((data as any)?.failed || 0);
+          const normalSent = Number((data as any)?.sent || 0) + Number((data as any)?.replies || 0);
+          if (normalSent <= 0 && failed > 0) {
+            toast.error("Aquecimento normal: instâncias desconectadas ou no limite. Grupo seguiu normalmente.");
+          }
+          const sentByTarget = (data as any)?.sentByTarget;
+          const targetInstanceMap = (data as any)?.targetInstanceMap;
+          if (sentByTarget && targetInstanceMap) {
+            recordWarmupProgress(sentByTarget, targetInstanceMap);
+            try {
+              const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
+              const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
+              const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
+              supabase.functions
+                .invoke("warmup-join-groups", {
+                  body: { sentByTarget, targetInstanceMap, currentProgress: visibleDayProg },
+                })
+                .catch(() => null);
+            } catch (_) { /* silencioso */ }
+          }
+        }
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
       } finally {
