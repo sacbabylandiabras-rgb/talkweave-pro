@@ -52,10 +52,28 @@ serve(async (req: Request) => {
     const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
     const isTickMode = body?.mode === "tick" || body?.batchSize !== undefined;
     const targetOffset = Math.max(0, Number(body?.targetOffset) || 0);
+    const runId = typeof body?.runId === "string" ? body.runId : "";
     const sendsPerDonor = Math.max(
       1,
       Math.min(dailyLimit, Math.min(20, Number(body?.batchSize) || dailyLimit)),
     );
+
+    const isRunAllowed = async () => {
+      const { data, error } = await admin
+        .from("warmup_user_controls")
+        .select("active, run_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.log("warmup control check failed:", error.message);
+        return false;
+      }
+      return data?.active === true && (!runId || data.run_id === runId);
+    };
+
+    if (!(await isRunAllowed())) {
+      return json({ success: true, stopped: true, message: "Aquecimento pausado" });
+    }
 
     // Se o cliente não enviou mensagens, usa o pool global de admin (warmup_messages ativas)
     if (!messages.length) {
@@ -398,6 +416,7 @@ serve(async (req: Request) => {
         const selectedPairs = pairs.slice(0, Math.min(sendsPerDonor, pairs.length));
 
         await Promise.all(selectedPairs.map(async ([sender, receiver], idx) => {
+          if (!(await isRunAllowed())) return;
           const raw = pickRandom(messages);
           const sepIdx = raw.indexOf("||");
           const question = (sepIdx >= 0 ? raw.slice(0, sepIdx) : raw).trim();
@@ -415,6 +434,7 @@ serve(async (req: Request) => {
               if (sender.dbId) clearCapping(sender.dbId);
 
               await new Promise((r) => setTimeout(r, 900 + Math.random() * 2200));
+              if (!(await isRunAllowed())) return;
               const reply = await forceTargetReply(receiver, sender.phone, answer);
               if (reply.ok) {
                 totalReplies++;
@@ -490,6 +510,7 @@ serve(async (req: Request) => {
         }
 
         for (let i = 0; i < sendsPerDonor; i++) {
+          if (!(await isRunAllowed())) return;
           // Round-robin: garante distribuição equilibrada entre todos os alvos
           // Em modo tick com batchSize 1, o cliente envia targetOffset crescente para
           // não ficar sempre no primeiro número da lista.
@@ -553,6 +574,7 @@ serve(async (req: Request) => {
                     // Resposta FORÇADA e rápida: 0.5-1.5s para reduzir atraso do aquecimento.
                     const replyDelay = (0.5 + Math.random()) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
+                    if (!(await isRunAllowed())) return;
                     try {
                       const rr = await forceTargetReply(tInstSafe, donorPhoneSafe, answerSafe);
                       if (rr.ok) {
@@ -589,6 +611,7 @@ serve(async (req: Request) => {
           if (i < sendsPerDonor - 1) {
             const delayMs = (minDelay + Math.random() * (maxDelay - minDelay)) * 1000;
             await new Promise((r) => setTimeout(r, delayMs));
+            if (!(await isRunAllowed())) return;
           }
         }
       }));

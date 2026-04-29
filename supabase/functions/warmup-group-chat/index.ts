@@ -43,7 +43,26 @@ Deno.serve(async (req) => {
     // Default subiu para 6 para garantir participação das Z-APIs do usuário, não só da doadora.
     const batchSize = Math.max(1, Math.min(50, Number(body?.batchSize) || 6));
     const sendAll = body?.sendAll === true;
+    const runId = typeof body?.runId === "string" ? body.runId : "";
     const cycleId = crypto.randomUUID();
+
+    const isRunAllowed = async () => {
+      if (!runId) return true;
+      const { data, error } = await admin
+        .from("warmup_user_controls")
+        .select("active, run_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.log("warmup group control check failed:", error.message);
+        return false;
+      }
+      return data?.active === true && data.run_id === runId;
+    };
+
+    if (!(await isRunAllowed())) {
+      return json({ sent: 0, failed: 0, stopped: true, skipped: "paused" });
+    }
 
     // 1) Pool de mensagens
     const { data: poolMsgs } = await admin
@@ -174,6 +193,7 @@ Deno.serve(async (req) => {
       const maxConversations = Math.floor(participantTarget / 2);
       let conversationsDone = 0;
       while (queue.length > 1 && conversationsDone < maxConversations) {
+        if (!(await isRunAllowed())) break;
         conversationsDone++;
         const sender = queue.shift();
         const responder = queue.shift();
@@ -232,6 +252,7 @@ Deno.serve(async (req) => {
         }
         if (res.ok) {
           await new Promise((r) => setTimeout(r, 1200 + Math.random() * 2500));
+          if (!(await isRunAllowed())) break;
           const replyRes = await sendInGroup(responder, groupJid, secondText);
           const replyName = responder.instance_name || responder.name || "";
           const replyProvider = String(responder.api_provider || responder.kind || "").toLowerCase() || "uazapi";
@@ -269,6 +290,7 @@ Deno.serve(async (req) => {
         // Pausa entre pares para parecer conversa, não disparo.
         if (conversationsDone < maxConversations) {
           await new Promise((r) => setTimeout(r, 1800 + Math.random() * 3000));
+          if (!(await isRunAllowed())) break;
         }
       }
     }
