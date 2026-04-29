@@ -202,8 +202,8 @@ export function DashboardLayout() {
           0,
         );
 
-        // Dispara DM (run-warmup) e conversa em grupo (warmup-group-chat) EM PARALELO,
-        // para que os dois fluxos aconteçam ao mesmo tempo no mesmo ciclo.
+        // Primeiro confirma que o aquecimento normal enviou algo.
+        // Assim evitamos o comportamento de ficar enviando somente em grupo quando o normal falha.
         const dmPromise = supabase.functions.invoke("run-warmup", {
           body: {
             instanceIds: liveConfig.instanceIds,
@@ -215,14 +215,18 @@ export function DashboardLayout() {
             targetOffset: totalProgress,
           },
         });
-        const groupChatPromise = supabase.functions
-          .invoke("warmup-group-chat", { body: { batchSize: 2 } })
-          .catch(() => null);
 
         const { data, error } = await dmPromise;
         if (error) throw error;
         if ((data as any)?.success === false) {
           throw new Error((data as any)?.error || "Erro ao executar ciclo");
+        }
+        const normalSent = Number((data as any)?.sent || 0) + Number((data as any)?.replies || 0);
+        if (normalSent <= 0) {
+          if (Number((data as any)?.failed || 0) > 0) {
+            throw new Error("Aquecimento normal não enviou. Verifique conexão e limite das instâncias.");
+          }
+          return;
         }
         const sentByTarget = (data as any)?.sentByTarget;
         const targetInstanceMap = (data as any)?.targetInstanceMap;
@@ -241,8 +245,10 @@ export function DashboardLayout() {
               .catch(() => null);
           } catch (_) { /* silencioso */ }
         }
-        // Aguarda o group-chat terminar também (sem travar se falhar)
-        await groupChatPromise;
+        // Só roda conversa em grupo se o aquecimento normal também rodou neste ciclo.
+        await supabase.functions
+          .invoke("warmup-group-chat", { body: { batchSize: 2 } })
+          .catch(() => null);
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
       } finally {
