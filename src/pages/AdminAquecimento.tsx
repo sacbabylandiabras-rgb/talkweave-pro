@@ -1354,6 +1354,23 @@ export default function AdminAquecimento() {
               >
                 Executar agora
               </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    toast.loading("Disparando com TODAS as instâncias...", { id: "warmup-chat-all" });
+                    const { data, error } = await supabase.functions.invoke("warmup-group-chat", { body: { sendAll: true } });
+                    if (error) throw error;
+                    toast.success(`Ciclo completo: ${data?.sent ?? 0} enviadas / ${data?.failed ?? 0} erros`, { id: "warmup-chat-all" });
+                    setTimeout(fetchChatLogs, 1500);
+                  } catch (e: any) {
+                    toast.error(e?.message || "Falha ao executar ciclo", { id: "warmup-chat-all" });
+                  }
+                }}
+              >
+                Enviar com todas
+              </Button>
               <Button variant="outline" size="sm" onClick={fetchChatLogs} disabled={loadingChatLogs}>
                 {loadingChatLogs ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
                 Atualizar
