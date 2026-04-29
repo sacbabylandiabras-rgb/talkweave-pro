@@ -10,11 +10,11 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 /**
  * Para cada instância Z-API alvo do aquecimento, verifica se o progresso
- * acumulado do dia cruzou um múltiplo do threshold de algum link de grupo
- * ativo. Se sim, faz a instância entrar no grupo via link de convite.
+ * acumulado do dia cruzou o threshold de algum link de grupo cadastrado.
+ * Se sim, faz a UAZAPI (admin do grupo) ADICIONAR diretamente o número
+ * Z-API aquecido no grupo — sem precisar do clique no convite.
  *
  * Body: {
- *   sentByTarget: { phone: count },
  *   targetInstanceMap: { phone: instanceDbId },
  *   currentProgress: { instanceDbId: totalCountToday }
  * }
@@ -46,32 +46,39 @@ Deno.serve(async (req) => {
     const targetInstanceMap: Record<string, string> = body?.targetInstanceMap || {};
     const currentProgress: Record<string, number> = body?.currentProgress || {};
 
-    const instanceDbIds = Array.from(new Set(Object.values(targetInstanceMap))).filter(Boolean);
-    if (instanceDbIds.length === 0) return json({ joined: 0, skipped: "no instances" });
+    // phone (do número aquecido) ←→ instanceDbId
+    const phoneByInstance = new Map<string, string>();
+    for (const [phone, instId] of Object.entries(targetInstanceMap)) {
+      if (instId && phone) phoneByInstance.set(instId, phone);
+    }
+    const instanceDbIds = Array.from(phoneByInstance.keys());
+    if (instanceDbIds.length === 0) return json({ added: 0, skipped: "no instances" });
 
-    // Carrega links ativos
+    // Links ativos
     const { data: links } = await admin
       .from("warmup_group_links")
-      .select("id, invite_url, threshold, active")
+      .select("id, invite_url, threshold, active, group_jid")
       .eq("active", true);
-    if (!links || links.length === 0) return json({ joined: 0, skipped: "no links" });
+    if (!links || links.length === 0) return json({ added: 0, skipped: "no links" });
 
-    // Carrega credenciais Z-API das instâncias
-    const { data: instances } = await admin
+    // Doadoras UAZAPI ativas (qualquer admin do grupo serve)
+    const { data: donors } = await admin
       .from("zapi_instances")
-      .select("id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider")
-      .in("id", instanceDbIds);
-    const instMap = new Map<string, any>();
-    for (const inst of instances || []) {
-      if (String(inst.api_provider || "zapi").toLowerCase() === "zapi") {
-        instMap.set(inst.id, inst);
-      }
-    }
+      .select("id, instance_name, evolution_api_url, evolution_api_key, zapi_token, api_provider, is_active")
+      .ilike("api_provider", "uazapi")
+      .eq("is_active", true);
+    if (!donors || donors.length === 0) return json({ added: 0, skipped: "no uazapi donors" });
 
-    // Carrega histórico já existente
+    const donorCreds = donors.map((d: any) => ({
+      name: String(d.instance_name || ""),
+      apiUrl: String(d.evolution_api_url || "").replace(/\/+$/, ""),
+      apiToken: String(d.evolution_api_key || d.zapi_token || ""),
+    })).filter((d: any) => d.apiUrl && d.apiToken);
+
+    // Histórico de adições já feitas (instance×link único)
     const { data: existingJoins } = await admin
       .from("warmup_group_joins")
-      .select("instance_id, link_id, joined_at_count")
+      .select("instance_id, link_id")
       .in("instance_id", instanceDbIds);
     const joinedSet = new Set<string>();
     for (const j of existingJoins || []) {
@@ -83,67 +90,133 @@ Deno.serve(async (req) => {
       return m ? m[1] : String(url || "").trim();
     };
 
-    let joined = 0;
+    // Resolve o JID do grupo via UAZAPI (cacheia na coluna group_jid).
+    // Tenta múltiplos endpoints comuns da UAZAPI.
+    const resolveGroupJid = async (link: any): Promise<string | null> => {
+      if (link.group_jid) return String(link.group_jid);
+      const code = extractInviteCode(link.invite_url);
+      for (const d of donorCreds) {
+        const candidates = [
+          { url: `${d.apiUrl}/group/inviteinfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/inviteInfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/getInviteInfo`, method: "POST", body: { code } },
+        ];
+        for (const c of candidates) {
+          try {
+            const r = await fetch(c.url, {
+              method: c.method,
+              headers: { "Content-Type": "application/json", token: d.apiToken },
+              body: JSON.stringify(c.body),
+            });
+            if (!r.ok) continue;
+            const j: any = await r.json().catch(() => ({}));
+            const jid = j?.id || j?.group?.id || j?.groupId || j?.jid || j?.data?.id;
+            if (jid && String(jid).includes("@g.us")) {
+              const finalJid = String(jid);
+              await admin.from("warmup_group_links").update({ group_jid: finalJid }).eq("id", link.id);
+              return finalJid;
+            }
+          } catch (_) { /* tenta próximo */ }
+        }
+      }
+      return null;
+    };
+
+    // Adiciona um participante via UAZAPI tentando múltiplas doadoras (a primeira que for admin funciona)
+    const addParticipant = async (groupJid: string, phone: string): Promise<{ ok: boolean; detail: any }> => {
+      const errors: any[] = [];
+      for (const d of donorCreds) {
+        const attempts = [
+          {
+            url: `${d.apiUrl}/group/updateparticipants`,
+            body: { groupjid: groupJid, action: "add", participants: [phone] },
+          },
+          {
+            url: `${d.apiUrl}/group/updateParticipants`,
+            body: { groupjid: groupJid, action: "add", participants: [phone] },
+          },
+          {
+            url: `${d.apiUrl}/group/addParticipant`,
+            body: { groupjid: groupJid, participants: [phone] },
+          },
+        ];
+        for (const a of attempts) {
+          try {
+            const r = await fetch(a.url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", token: d.apiToken },
+              body: JSON.stringify(a.body),
+            });
+            const text = await r.text();
+            let j: any;
+            try { j = JSON.parse(text); } catch { j = { raw: text }; }
+            if (r.ok) {
+              return { ok: true, detail: { donor: d.name, response: j } };
+            }
+            errors.push({ donor: d.name, status: r.status, body: text.slice(0, 200) });
+          } catch (e: any) {
+            errors.push({ donor: d.name, error: e?.message });
+          }
+        }
+      }
+      return { ok: false, detail: { errors } };
+    };
+
+    let added = 0;
     let failed = 0;
     const log: any[] = [];
 
+    // Resolve credenciais Z-API do user (para registrar user_id)
+    const { data: instances } = await admin
+      .from("zapi_instances")
+      .select("id, user_id")
+      .in("id", instanceDbIds);
+    const userByInstance = new Map<string, string>();
+    for (const inst of instances || []) {
+      userByInstance.set(inst.id, inst.user_id);
+    }
+
     for (const [instanceId, count] of Object.entries(currentProgress)) {
-      const inst = instMap.get(instanceId);
-      if (!inst) continue;
+      const phone = phoneByInstance.get(instanceId);
+      if (!phone) continue;
       const total = Number(count) || 0;
 
       for (const link of links) {
         const key = `${instanceId}:${link.id}`;
         if (joinedSet.has(key)) continue;
         const threshold = Math.max(1, Number(link.threshold) || 100);
-        // Política: a cada threshold mensagens, entra em UM novo grupo.
-        // Como a unique constraint impede repetir o mesmo grupo, basta exigir
-        // que o total acumulado seja >= threshold para liberar a próxima entrada
-        // não usada por essa instância.
         if (total < threshold) continue;
 
-        const inviteCode = extractInviteCode(link.invite_url);
-        const url = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}/groups-via-invite-code`;
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Client-Token": String(inst.zapi_client_token || ""),
-            },
-            body: JSON.stringify({ url: inviteCode }),
-          });
-          const text = await resp.text();
-          let respJson: any;
-          try { respJson = JSON.parse(text); } catch { respJson = { raw: text }; }
+        const groupJid = await resolveGroupJid(link);
+        if (!groupJid) {
+          log.push({ link: link.id, error: "could not resolve group jid" });
+          continue;
+        }
 
-          if (resp.ok) {
-            joined++;
-            joinedSet.add(key);
-            await admin.from("warmup_group_joins").insert({
-              instance_id: instanceId,
-              link_id: link.id,
-              user_id: inst.user_id,
-              joined_at_count: total,
-              status: "success",
-              response: respJson,
-            });
-            log.push({ instance: inst.instance_name, link: link.id, ok: true });
-            // Apenas UMA entrada por instância por chamada para diluir no tempo
-            break;
-          } else {
-            failed++;
-            log.push({ instance: inst.instance_name, link: link.id, status: resp.status, body: text.slice(0, 200) });
-          }
-        } catch (e: any) {
+        const result = await addParticipant(groupJid, phone);
+        if (result.ok) {
+          added++;
+          joinedSet.add(key);
+          await admin.from("warmup_group_joins").insert({
+            instance_id: instanceId,
+            link_id: link.id,
+            user_id: userByInstance.get(instanceId) || null,
+            joined_at_count: total,
+            status: "success",
+            response: result.detail,
+          });
+          log.push({ phone, link: link.id, ok: true });
+          // Apenas UM grupo por instância por chamada para diluir no tempo
+          break;
+        } else {
           failed++;
-          log.push({ instance: inst.instance_name, link: link.id, error: e?.message });
+          log.push({ phone, link: link.id, ...result.detail });
         }
       }
     }
 
-    console.log("warmup-join-groups:", { joined, failed, log });
-    return json({ joined, failed, log });
+    console.log("warmup-join-groups (uazapi add):", { added, failed, log });
+    return json({ added, failed, log });
   } catch (e: any) {
     console.error("warmup-join-groups error:", e?.message);
     return json({ error: e?.message || "Internal error" }, 500);
