@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
     if (uErr || !user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const batchSize = Math.max(1, Math.min(10, Number(body?.batchSize) || 2));
+    // batchSize define quantas instâncias enviam por grupo neste ciclo.
+    // Default subiu para 6 para garantir participação das Z-APIs do usuário, não só da doadora.
+    const batchSize = Math.max(1, Math.min(50, Number(body?.batchSize) || 6));
+    const sendAll = body?.sendAll === true;
     const cycleId = crypto.randomUUID();
 
     // 1) Pool de mensagens
@@ -158,8 +161,22 @@ Deno.serve(async (req) => {
 
       if (senders.length === 0) continue;
 
-      // Embaralha e seleciona até batchSize remetentes únicos por ciclo
-      const shuffled = senders.sort(() => Math.random() - 0.5).slice(0, batchSize);
+      // Embaralha lista total
+      const shuffledAll = senders.sort(() => Math.random() - 0.5);
+
+      // Garante mistura: pelo menos metade do batch vem de Z-APIs do usuário (joinedIds),
+      // o restante completa com doadoras. Se sendAll=true, manda todo mundo.
+      let shuffled: any[];
+      if (sendAll) {
+        shuffled = shuffledAll;
+      } else {
+        const userZapis = shuffledAll.filter((s) => String(s.api_provider || s.kind || "").toLowerCase() === "zapi");
+        const donorsShuf = shuffledAll.filter((s) => String(s.api_provider || s.kind || "").toLowerCase() === "uazapi");
+        const wantUsers = Math.max(1, Math.ceil(batchSize * 0.7));
+        const wantDonors = Math.max(0, batchSize - wantUsers);
+        shuffled = [...userZapis.slice(0, wantUsers), ...donorsShuf.slice(0, wantDonors)];
+        if (shuffled.length === 0) shuffled = shuffledAll.slice(0, batchSize);
+      }
 
       for (const sender of shuffled) {
         const text = pickRandom(messages);
