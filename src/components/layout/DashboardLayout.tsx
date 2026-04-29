@@ -19,6 +19,7 @@ const WARMUP_STORAGE_KEY = "zaplynx-warmup-config";
 const WARMUP_CONFIG_EVENT = "zaplynx-warmup-config-updated";
 const WARMUP_PROGRESS_KEY = "zaplynx-warmup-progress";
 const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
+const WARMUP_PHONES_KEY = "zaplynx-warmup-phones";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -27,10 +28,26 @@ const recordWarmupProgress = (
   targetInstanceMap: Record<string, string>,
 ) => {
   try {
+    // Detecta troca de número: se o phone associado a um instanceId mudou,
+    // zera o contador daquela instância antes de acumular o novo envio.
+    const phonesRaw = localStorage.getItem(WARMUP_PHONES_KEY);
+    const phonesMap: Record<string, string> = phonesRaw ? JSON.parse(phonesRaw) : {};
+    const resetIds = new Set<string>();
+    for (const [phone, instanceId] of Object.entries(targetInstanceMap || {})) {
+      if (!instanceId || !phone) continue;
+      const prev = phonesMap[instanceId];
+      if (prev && prev !== phone) resetIds.add(instanceId);
+      phonesMap[instanceId] = phone;
+    }
+    localStorage.setItem(WARMUP_PHONES_KEY, JSON.stringify(phonesMap));
+
     const raw = localStorage.getItem(WARMUP_PROGRESS_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     const day = todayKey();
     const dayData: Record<string, number> = parsed[day] || {};
+    if (resetIds.size) {
+      for (const id of resetIds) dayData[id] = 0;
+    }
     let changed = false;
     for (const [phone, count] of Object.entries(sentByTarget || {})) {
       const instanceId = targetInstanceMap?.[phone];
@@ -38,7 +55,7 @@ const recordWarmupProgress = (
       dayData[instanceId] = (dayData[instanceId] || 0) + Number(count);
       changed = true;
     }
-    if (!changed) return;
+    if (!changed && resetIds.size === 0) return;
     const next = { [day]: dayData };
     localStorage.setItem(WARMUP_PROGRESS_KEY, JSON.stringify(next));
     window.dispatchEvent(new Event(WARMUP_PROGRESS_EVENT));
