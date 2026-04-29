@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Flame, Play, Pause, Loader2, Activity } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WarmupConfig {
   active: boolean;
@@ -15,6 +16,7 @@ interface WarmupConfig {
   minDelay: number;
   maxDelay: number;
   dailyLimit: number;
+  runId?: string;
 }
 
 const STORAGE_KEY = "zaplynx-warmup-config";
@@ -92,6 +94,25 @@ export default function AquecimentoNumero() {
     window.dispatchEvent(new Event(WARMUP_CONFIG_EVENT));
   };
 
+  const syncServerControl = async (nextConfig: WarmupConfig) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) throw new Error("Sessão expirada");
+
+    const { error } = await (supabase as any)
+      .from("warmup_user_controls")
+      .upsert({
+        user_id: session.user.id,
+        active: nextConfig.active,
+        run_id: nextConfig.runId || null,
+        instance_ids: nextConfig.instanceIds,
+        min_delay: nextConfig.minDelay,
+        max_delay: nextConfig.maxDelay,
+        daily_limit: nextConfig.dailyLimit,
+      }, { onConflict: "user_id" });
+
+    if (error) throw error;
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -117,6 +138,7 @@ export default function AquecimentoNumero() {
     setSaving(true);
     try {
       persistConfig(config);
+      await syncServerControl(config);
       toast.success("Configuração de aquecimento salva");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
@@ -126,18 +148,29 @@ export default function AquecimentoNumero() {
   };
 
   const toggleActive = async () => {
-    if (!config.active) {
-      if (config.instanceIds.length < 1) {
-        toast.error("Selecione pelo menos 1 instância para aquecer");
-        return;
-      }
-      toast.success("Aquecimento iniciado em ciclos contínuos");
-    } else {
-      toast.success("Aquecimento pausado");
+    if (!config.active && config.instanceIds.length < 1) {
+      toast.error("Selecione pelo menos 1 instância para aquecer");
+      return;
     }
-    const updated = { ...config, active: !config.active };
+
+    const updated = {
+      ...config,
+      active: !config.active,
+      runId: crypto.randomUUID(),
+    };
+
     setConfig(updated);
     persistConfig(updated);
+
+    try {
+      await syncServerControl(updated);
+      toast.success(updated.active ? "Aquecimento iniciado em ciclos contínuos" : "Aquecimento pausado");
+    } catch (err) {
+      const rolledBack = { ...config, runId: crypto.randomUUID() };
+      setConfig(rolledBack);
+      persistConfig(rolledBack);
+      toast.error(err instanceof Error ? err.message : "Não consegui atualizar o status do aquecimento");
+    }
   };
 
   return (
