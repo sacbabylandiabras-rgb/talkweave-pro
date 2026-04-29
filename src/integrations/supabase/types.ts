@@ -1816,6 +1816,42 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_instance_health: {
+        Row: {
+          block_type: string
+          blocked_until: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          instance_ref: string
+          last_detected_at: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_type?: string
+          blocked_until?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          instance_ref: string
+          last_detected_at?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          blocked_until?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          instance_ref?: string
+          last_detected_at?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       warmup_messages: {
         Row: {
           active: boolean
