@@ -216,6 +216,62 @@ serve(async (req: Request) => {
       return { ok: response.ok, status: response.status, body };
     };
 
+    // ===== Salvar contato na agenda do WhatsApp em AMBOS os lados =====
+    // Cache em memória para não re-chamar a API a cada envio (1x por par doadora↔alvo).
+    const savedPairs = new Set<string>();
+
+    // Z-API salva o contato (telefone) na agenda do número conectado
+    const zapiSaveContact = async (inst: TargetInstance, phone: string, label: string) => {
+      try {
+        const url = `https://api.z-api.io/instances/${inst.instanceId}/token/${inst.token}/contacts/add`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Client-Token": inst.clientToken },
+          body: JSON.stringify([{ firstName: (label || "Contato").slice(0, 40), phone }]),
+        });
+        if (!r.ok) {
+          const t = await r.text().catch(() => "");
+          console.log(`  ⚠ contato (Z-API) não salvo ${inst.name}↔${phone}: HTTP ${r.status} ${t.slice(0, 120)}`);
+        }
+      } catch (e: any) {
+        console.log(`  ⚠ contato (Z-API) erro: ${e?.message}`);
+      }
+    };
+
+    // UAZAPI salva o contato (telefone) na agenda do número conectado
+    const uazapiSaveContact = async (apiUrl: string, apiToken: string, phone: string, label: string) => {
+      try {
+        const r = await fetch(`${apiUrl}/contact/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: apiToken },
+          body: JSON.stringify({ phone, name: (label || "Contato").slice(0, 40) }),
+        });
+        if (!r.ok) {
+          const t = await r.text().catch(() => "");
+          console.log(`  ⚠ contato (doadora) não salvo ${phone}: HTTP ${r.status} ${t.slice(0, 120)}`);
+        }
+      } catch (e: any) {
+        console.log(`  ⚠ contato (doadora) erro: ${e?.message}`);
+      }
+    };
+
+    // Salva contato dos dois lados (idempotente via cache)
+    const ensureMutualContact = async (
+      apiUrl: string,
+      apiToken: string,
+      donorName: string,
+      donorPhone: string,
+      tInst: TargetInstance,
+    ) => {
+      const key = `${apiUrl}|${tInst.dbId}`;
+      if (savedPairs.has(key)) return;
+      savedPairs.add(key);
+      await Promise.all([
+        zapiSaveContact(tInst, donorPhone, donorName || "Aquec"),
+        uazapiSaveContact(apiUrl, apiToken, tInst.phone, tInst.name || "Aquec"),
+      ]);
+    };
+
     const forceTargetReply = async (inst: TargetInstance, donorPhone: string, message: string) => {
       const first = await sendZapiText(inst, donorPhone, message);
       if (first.ok || !isNewChatCapping(first.body)) return first;
@@ -335,6 +391,12 @@ serve(async (req: Request) => {
           const answer = sepIdx >= 0 ? raw.slice(sepIdx + 2).trim() : "";
 
           try {
+            // Salva contato em ambos os lados ANTES do primeiro envio do par doadora↔alvo
+            const targetInstForContact = findTargetInstance(target);
+            if (targetInstForContact && donorPhone) {
+              await ensureMutualContact(apiUrl, apiToken, donor.instance_name || "", donorPhone, targetInstForContact);
+            }
+
             const res = await fetch(`${apiUrl}/send/text`, {
               method: "POST",
               headers: { "Content-Type": "application/json", token: apiToken },
