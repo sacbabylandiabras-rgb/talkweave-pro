@@ -615,7 +615,7 @@ serve(async (req: Request) => {
     return json({
       success: true,
       message: isTickMode ? "Ciclo de aquecimento executado" : "Aquecimento iniciado em segundo plano",
-      donors: donors.length,
+      donors: donors?.length || 0,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
       plannedSends: donors.length * sendsPerDonor,
