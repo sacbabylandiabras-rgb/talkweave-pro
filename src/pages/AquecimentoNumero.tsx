@@ -51,7 +51,7 @@ const readProgress = (): Record<string, number> => {
     for (const [instanceId, phone] of Object.entries(phonesMap)) {
       visibleProgress[instanceId] = Number(dayData[warmupProgressPhoneKey(instanceId, phone)] || 0);
     }
-    return { ...dayData, ...visibleProgress };
+    return visibleProgress;
   } catch {
     return {};
   }
