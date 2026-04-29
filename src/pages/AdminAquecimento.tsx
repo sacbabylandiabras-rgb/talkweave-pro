@@ -746,6 +746,19 @@ export default function AdminAquecimento() {
                       ) : info ? (
                         <p className="text-[11px] text-destructive mt-1">Desconectado</p>
                       ) : null}
+                      {(() => {
+                        const h = healthByRef[inst.id] || (info?.phone ? healthByPhone[info.phone] : undefined);
+                        if (!h) return null;
+                        const until = h.blocked_until ? new Date(h.blocked_until) : null;
+                        const label = until
+                          ? `Limite atingido · libera ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+                          : "Limite atingido";
+                        return (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">
+                            {label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
