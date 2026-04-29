@@ -260,12 +260,14 @@ Deno.serve(async (req) => {
     };
 
     for (const [instanceId, count] of Object.entries(currentProgress)) {
-      const phone = phoneByInstance.get(instanceId);
+      // Suporta chaves compostas no formato `${instanceId}::${phone}` (vindas do dashboard)
+      const realInstanceId = instanceId.includes("::") ? instanceId.split("::")[0] : instanceId;
+      const phone = phoneByInstance.get(realInstanceId);
       if (!phone) continue;
       const total = Number(count) || 0;
 
       for (const link of links) {
-        const key = `${instanceId}:${link.id}`;
+        const key = `${realInstanceId}:${link.id}`;
         if (joinedSet.has(key)) continue;
         const threshold = Math.max(1, Number(link.threshold) || 100);
         if (total < threshold) continue;
@@ -273,14 +275,14 @@ Deno.serve(async (req) => {
         const groupJid = await resolveGroupJid(link);
         const result = groupJid
           ? await addParticipant(groupJid, phone)
-          : await acceptInviteWithTarget(instanceId, link.invite_url);
+          : await acceptInviteWithTarget(realInstanceId, link.invite_url);
         if (result.ok) {
           added++;
           joinedSet.add(key);
           await admin.from("warmup_group_joins").insert({
-            instance_id: instanceId,
+            instance_id: realInstanceId,
             link_id: link.id,
-            user_id: userByInstance.get(instanceId) || null,
+            user_id: userByInstance.get(realInstanceId) || null,
             joined_at_count: total,
             status: "success",
             response: result.detail,
