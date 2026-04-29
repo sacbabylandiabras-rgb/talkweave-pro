@@ -210,15 +210,54 @@ Deno.serve(async (req) => {
     let failed = 0;
     const log: any[] = [];
 
-    // Resolve credenciais Z-API do user (para registrar user_id)
+    // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
       .from("zapi_instances")
-      .select("id, user_id")
+      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
       .in("id", instanceDbIds);
     const userByInstance = new Map<string, string>();
+    const instanceById = new Map<string, any>();
     for (const inst of instances || []) {
       userByInstance.set(inst.id, inst.user_id);
+      instanceById.set(inst.id, inst);
     }
+
+    const acceptInviteWithTarget = async (instanceId: string, inviteUrl: string): Promise<{ ok: boolean; detail: any }> => {
+      const inst = instanceById.get(instanceId);
+      const code = extractInviteCode(inviteUrl);
+      if (!inst || !code) return { ok: false, detail: { error: "missing target instance credentials" } };
+      const provider = String(inst.api_provider || "zapi").toLowerCase();
+      const attempts = provider === "uazapi"
+        ? [
+            { url: `${String(inst.evolution_api_url || "").replace(/\/+$/, "")}/group/acceptinvite`, method: "POST", headers: { token: String(inst.evolution_api_key || inst.zapi_token || "") }, body: { code } },
+            { url: `${String(inst.evolution_api_url || "").replace(/\/+$/, "")}/group/acceptInvite`, method: "POST", headers: { token: String(inst.evolution_api_key || inst.zapi_token || "") }, body: { invitecode: code } },
+          ]
+        : [
+            { url: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}/accept-group-invite/${code}`, method: "GET", headers: { "Client-Token": String(inst.zapi_client_token || "") }, body: null },
+          ];
+      const errors: any[] = [];
+      for (const a of attempts) {
+        if (!a.url || a.url.includes("undefined") || a.url.includes("//group")) continue;
+        try {
+          const r = await fetch(a.url, {
+            method: a.method,
+            headers: { "Content-Type": "application/json", ...a.headers },
+            body: a.body ? JSON.stringify(a.body) : undefined,
+          });
+          const text = await r.text();
+          let j: any;
+          try { j = JSON.parse(text); } catch { j = { raw: text }; }
+          const responseText = JSON.stringify(j).toLowerCase();
+          if (r.ok || responseText.includes("already") || responseText.includes("participant")) {
+            return { ok: true, detail: { mode: "accept-invite", response: j } };
+          }
+          errors.push({ status: r.status, body: text.slice(0, 300) });
+        } catch (e: any) {
+          errors.push({ error: e?.message });
+        }
+      }
+      return { ok: false, detail: { mode: "accept-invite", errors } };
+    };
 
     for (const [instanceId, count] of Object.entries(currentProgress)) {
       const phone = phoneByInstance.get(instanceId);
