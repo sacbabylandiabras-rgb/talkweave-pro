@@ -159,19 +159,29 @@ Deno.serve(async (req) => {
     // Adiciona um participante via UAZAPI tentando múltiplas doadoras (a primeira que for admin funciona)
     const addParticipant = async (groupJid: string, phone: string): Promise<{ ok: boolean; detail: any }> => {
       const errors: any[] = [];
+      const phoneDigits = String(phone || "").replace(/\D/g, "");
+      const groupZapiId = groupJid.replace(/@g\.us$/i, "-group");
       for (const d of donorCreds) {
         const attempts = [
           {
+            url: `${d.apiUrl}/add-participant`,
+            body: { groupId: groupZapiId, phones: [phoneDigits] },
+          },
+          {
             url: `${d.apiUrl}/group/updateparticipants`,
-            body: { groupjid: groupJid, action: "add", participants: [phone] },
+            body: { groupjid: groupJid, action: "add", participants: [phoneDigits] },
           },
           {
             url: `${d.apiUrl}/group/updateParticipants`,
-            body: { groupjid: groupJid, action: "add", participants: [phone] },
+            body: { groupjid: groupJid, action: "add", participants: [phoneDigits] },
           },
           {
             url: `${d.apiUrl}/group/addParticipant`,
-            body: { groupjid: groupJid, participants: [phone] },
+            body: { groupjid: groupJid, participants: [phoneDigits] },
+          },
+          {
+            url: `${d.apiUrl}/group/addParticipant`,
+            body: { groupJid, phones: [phoneDigits] },
           },
         ];
         for (const a of attempts) {
