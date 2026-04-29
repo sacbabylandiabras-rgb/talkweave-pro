@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const batchSize = Math.max(1, Math.min(10, Number(body?.batchSize) || 2));
+    const cycleId = crypto.randomUUID();
 
     // 1) Pool de mensagens
     const { data: poolMsgs } = await admin
@@ -140,6 +141,7 @@ Deno.serve(async (req) => {
     let sent = 0;
     let failed = 0;
     const log: any[] = [];
+    const dbLogs: any[] = [];
 
     for (const link of links) {
       const groupJid = String(link.group_jid || "");
@@ -162,16 +164,42 @@ Deno.serve(async (req) => {
       for (const sender of shuffled) {
         const text = pickRandom(messages);
         const res = await sendInGroup(sender, groupJid, text);
+        const senderName = sender.instance_name || sender.name || "";
+        const senderProvider = String(sender.api_provider || sender.kind || "").toLowerCase() || "uazapi";
+        const senderId = sender.id || sender.dbId || null;
         if (res.ok) {
           sent++;
-          log.push({ link: link.id, sender: sender.instance_name || sender.name, ok: true });
+          log.push({ link: link.id, sender: senderName, ok: true });
+          dbLogs.push({
+            cycle_id: cycleId,
+            link_id: link.id,
+            group_jid: groupJid,
+            sender_instance_id: senderId,
+            sender_name: senderName,
+            sender_provider: senderProvider,
+            status: "success",
+            http_status: res.status,
+            message_preview: text.slice(0, 200),
+          });
         } else {
           failed++;
           log.push({
             link: link.id,
-            sender: sender.instance_name || sender.name,
+            sender: senderName,
             status: res.status,
             body: res.body,
+          });
+          dbLogs.push({
+            cycle_id: cycleId,
+            link_id: link.id,
+            group_jid: groupJid,
+            sender_instance_id: senderId,
+            sender_name: senderName,
+            sender_provider: senderProvider,
+            status: "error",
+            http_status: res.status,
+            error_message: String(res.body || "").slice(0, 500),
+            message_preview: text.slice(0, 200),
           });
         }
         // Pequeno delay entre envios (1.5–4s) para parecer natural
@@ -179,8 +207,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Persiste logs (em lote)
+    if (dbLogs.length > 0) {
+      try {
+        await admin.from("warmup_group_chat_logs").insert(dbLogs);
+      } catch (e: any) {
+        console.log("warmup-group-chat: falha ao salvar logs:", e?.message);
+      }
+    }
+
     console.log("warmup-group-chat:", { sent, failed, groups: links.length });
-    return json({ sent, failed, groups: links.length, log: log.slice(0, 30) });
+    return json({ sent, failed, groups: links.length, cycleId, log: log.slice(0, 30) });
   } catch (e: any) {
     console.error("warmup-group-chat error:", e?.message);
     return json({ error: e?.message || "Internal error" }, 500);

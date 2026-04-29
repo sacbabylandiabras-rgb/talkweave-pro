@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon, Users2, Link as LinkIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,54 @@ export default function AdminAquecimento() {
   const [newGroupLabel, setNewGroupLabel] = useState("");
   const [newGroupThreshold, setNewGroupThreshold] = useState(100);
   const [savingGroupLink, setSavingGroupLink] = useState(false);
+
+  // Logs do warmup-group-chat
+  const groupChatLogsTable = () => (supabase as any).from("warmup_group_chat_logs");
+  type GroupChatLog = {
+    id: string;
+    created_at: string;
+    cycle_id: string;
+    link_id: string | null;
+    group_jid: string | null;
+    sender_name: string | null;
+    sender_provider: string | null;
+    status: string;
+    http_status: number | null;
+    error_message: string | null;
+    message_preview: string | null;
+  };
+  const [chatLogs, setChatLogs] = useState<GroupChatLog[]>([]);
+  const [loadingChatLogs, setLoadingChatLogs] = useState(false);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [logDate, setLogDate] = useState<string>(todayISO);
+  const [logLinkFilter, setLogLinkFilter] = useState<string>("all");
+  const [logStatusFilter, setLogStatusFilter] = useState<string>("all");
+
+  const fetchChatLogs = async () => {
+    setLoadingChatLogs(true);
+    try {
+      const start = new Date(`${logDate}T00:00:00`).toISOString();
+      const end = new Date(`${logDate}T23:59:59.999`).toISOString();
+      let q = groupChatLogsTable()
+        .select("id, created_at, cycle_id, link_id, group_jid, sender_name, sender_provider, status, http_status, error_message, message_preview")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (logLinkFilter !== "all") q = q.eq("link_id", logLinkFilter);
+      if (logStatusFilter !== "all") q = q.eq("status", logStatusFilter);
+      const { data, error } = await q;
+      if (error) throw error;
+      setChatLogs((data || []) as GroupChatLog[]);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao carregar logs");
+    } finally {
+      setLoadingChatLogs(false);
+    }
+  };
+
+  useEffect(() => { fetchChatLogs(); }, [logDate, logLinkFilter, logStatusFilter]);
 
   const fetchGroupLinks = async () => {
     setLoadingGroupLinks(true);
@@ -1271,6 +1320,120 @@ export default function AdminAquecimento() {
                   </Button>
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users2 className="w-5 h-5" /> Logs · Conversas em grupos
+              </CardTitle>
+              <CardDescription>
+                Mensagens enviadas pelo motor de aquecimento dentro dos grupos. Filtre por data, grupo e status.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchChatLogs} disabled={loadingChatLogs}>
+              {loadingChatLogs ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+              Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <Label className="text-xs">Data</Label>
+              <Input
+                type="date"
+                value={logDate}
+                onChange={(e) => setLogDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Grupo</Label>
+              <Select value={logLinkFilter} onValueChange={setLogLinkFilter}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os grupos</SelectItem>
+                  {groupLinks.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.label || g.invite_url.replace(/^https?:\/\//, "").slice(0, 40)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="success">Enviadas</SelectItem>
+                  <SelectItem value="error">Erros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {(() => {
+            const total = chatLogs.length;
+            const ok = chatLogs.filter((l) => l.status === "success").length;
+            const err = total - ok;
+            const cycles = new Set(chatLogs.map((l) => l.cycle_id)).size;
+            return (
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="secondary">Total: {total}</Badge>
+                <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20">Enviadas: {ok}</Badge>
+                <Badge variant="destructive">Erros: {err}</Badge>
+                <Badge variant="outline">Ciclos: {cycles}</Badge>
+              </div>
+            );
+          })()}
+
+          {loadingChatLogs ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : chatLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhum envio registrado para os filtros selecionados.
+            </p>
+          ) : (
+            <div className="border rounded-md divide-y max-h-[480px] overflow-auto">
+              {chatLogs.map((l) => {
+                const link = groupLinks.find((g) => g.id === l.link_id);
+                const groupLabel = link?.label || (l.group_jid ? l.group_jid.replace(/@g\.us$/, "") : "—");
+                const time = new Date(l.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                return (
+                  <div key={l.id} className="px-3 py-2 text-xs flex items-start gap-3">
+                    <span className="text-muted-foreground tabular-nums w-20 shrink-0">{time}</span>
+                    {l.status === "success" ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 shrink-0">OK</Badge>
+                    ) : (
+                      <Badge variant="destructive" className="shrink-0">{l.http_status || "ERR"}</Badge>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span className="font-medium truncate">{l.sender_name || "—"}</span>
+                        <span className="text-muted-foreground">→ {groupLabel}</span>
+                        {l.sender_provider && (
+                          <span className="text-muted-foreground/70 uppercase text-[10px]">{l.sender_provider}</span>
+                        )}
+                      </div>
+                      {l.message_preview && (
+                        <div className="text-muted-foreground truncate">"{l.message_preview}"</div>
+                      )}
+                      {l.error_message && (
+                        <div className="text-destructive truncate">{l.error_message}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
