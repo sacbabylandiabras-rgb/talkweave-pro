@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
         const secondText = convo.answer || pickRandom(autoReplies);
         let res;
         try {
-          res = await sendInGroup(sender, groupJid, text);
+          res = await sendInGroup(sender, groupJid, firstText);
         } catch (e: any) {
           res = { ok: false, status: 0, body: e?.message || "send threw" };
         }
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
             sender_provider: senderProvider,
             status: "success",
             http_status: res.status,
-            message_preview: text.slice(0, 200),
+            message_preview: firstText.slice(0, 200),
           });
         } else {
           failed++;
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
             status: "error",
             http_status: res.status,
             error_message: String(res.body || "").slice(0, 500),
-            message_preview: text.slice(0, 200),
+            message_preview: firstText.slice(0, 200),
           });
           // Repõe com uma reserva (até esgotar) se NÃO for sendAll
           if (!sendAll && reserves.length > 0) {
@@ -250,8 +250,45 @@ Deno.serve(async (req) => {
             if (replacement) queue.push(replacement);
           }
         }
-        // Pequeno delay entre envios (1.5–4s) para parecer natural
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 2500));
+        if (res.ok) {
+          await new Promise((r) => setTimeout(r, 2500 + Math.random() * 5500));
+          const replyRes = await sendInGroup(responder, groupJid, secondText);
+          const replyName = responder.instance_name || responder.name || "";
+          const replyProvider = String(responder.api_provider || responder.kind || "").toLowerCase() || "uazapi";
+          const replyId = responder.id || responder.dbId || null;
+          if (replyRes.ok) {
+            sent++;
+            log.push({ link: link.id, sender: replyName, ok: true, replyTo: senderName });
+            dbLogs.push({
+              cycle_id: cycleId,
+              link_id: link.id,
+              group_jid: groupJid,
+              sender_instance_id: replyId,
+              sender_name: replyName,
+              sender_provider: replyProvider,
+              status: "success",
+              http_status: replyRes.status,
+              message_preview: secondText.slice(0, 200),
+            });
+          } else {
+            failed++;
+            dbLogs.push({
+              cycle_id: cycleId,
+              link_id: link.id,
+              group_jid: groupJid,
+              sender_instance_id: replyId,
+              sender_name: replyName,
+              sender_provider: replyProvider,
+              status: "error",
+              http_status: replyRes.status,
+              error_message: String(replyRes.body || "").slice(0, 500),
+              message_preview: secondText.slice(0, 200),
+            });
+          }
+        }
+        queue.push(sender, responder);
+        // Pausa entre pares para parecer conversa, não disparo.
+        await new Promise((r) => setTimeout(r, 3000 + Math.random() * 7000));
       }
     }
 
