@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
       const maxConversations = Math.floor(participantTarget / 2);
       let conversationsDone = 0;
       while (queue.length > 1 && conversationsDone < maxConversations) {
+        if (!(await isRunAllowed())) break;
         conversationsDone++;
         const sender = queue.shift();
         const responder = queue.shift();
@@ -251,6 +252,7 @@ Deno.serve(async (req) => {
         }
         if (res.ok) {
           await new Promise((r) => setTimeout(r, 1200 + Math.random() * 2500));
+          if (!(await isRunAllowed())) break;
           const replyRes = await sendInGroup(responder, groupJid, secondText);
           const replyName = responder.instance_name || responder.name || "";
           const replyProvider = String(responder.api_provider || responder.kind || "").toLowerCase() || "uazapi";
@@ -288,6 +290,7 @@ Deno.serve(async (req) => {
         // Pausa entre pares para parecer conversa, não disparo.
         if (conversationsDone < maxConversations) {
           await new Promise((r) => setTimeout(r, 1800 + Math.random() * 3000));
+          if (!(await isRunAllowed())) break;
         }
       }
     }
