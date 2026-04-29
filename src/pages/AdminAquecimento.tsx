@@ -104,6 +104,54 @@ export default function AdminAquecimento() {
   const [newGroupThreshold, setNewGroupThreshold] = useState(100);
   const [savingGroupLink, setSavingGroupLink] = useState(false);
 
+  // Logs do warmup-group-chat
+  const groupChatLogsTable = () => (supabase as any).from("warmup_group_chat_logs");
+  type GroupChatLog = {
+    id: string;
+    created_at: string;
+    cycle_id: string;
+    link_id: string | null;
+    group_jid: string | null;
+    sender_name: string | null;
+    sender_provider: string | null;
+    status: string;
+    http_status: number | null;
+    error_message: string | null;
+    message_preview: string | null;
+  };
+  const [chatLogs, setChatLogs] = useState<GroupChatLog[]>([]);
+  const [loadingChatLogs, setLoadingChatLogs] = useState(false);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [logDate, setLogDate] = useState<string>(todayISO);
+  const [logLinkFilter, setLogLinkFilter] = useState<string>("all");
+  const [logStatusFilter, setLogStatusFilter] = useState<string>("all");
+
+  const fetchChatLogs = async () => {
+    setLoadingChatLogs(true);
+    try {
+      const start = new Date(`${logDate}T00:00:00`).toISOString();
+      const end = new Date(`${logDate}T23:59:59.999`).toISOString();
+      let q = groupChatLogsTable()
+        .select("id, created_at, cycle_id, link_id, group_jid, sender_name, sender_provider, status, http_status, error_message, message_preview")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (logLinkFilter !== "all") q = q.eq("link_id", logLinkFilter);
+      if (logStatusFilter !== "all") q = q.eq("status", logStatusFilter);
+      const { data, error } = await q;
+      if (error) throw error;
+      setChatLogs((data || []) as GroupChatLog[]);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao carregar logs");
+    } finally {
+      setLoadingChatLogs(false);
+    }
+  };
+
+  useEffect(() => { fetchChatLogs(); }, [logDate, logLinkFilter, logStatusFilter]);
+
   const fetchGroupLinks = async () => {
     setLoadingGroupLinks(true);
     const { data, error } = await groupLinksTable()
