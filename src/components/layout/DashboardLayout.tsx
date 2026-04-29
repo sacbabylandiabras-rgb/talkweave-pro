@@ -13,6 +13,7 @@ interface WarmupConfig {
   minDelay: number;
   maxDelay: number;
   dailyLimit: number;
+  runId?: string;
 }
 
 const WARMUP_STORAGE_KEY = "zaplynx-warmup-config";
@@ -103,6 +104,7 @@ const readWarmupConfig = (): WarmupConfig => {
     minDelay: 30,
     maxDelay: 120,
     dailyLimit: 50,
+    runId: undefined,
   };
 
   try {
@@ -176,6 +178,7 @@ export function DashboardLayout() {
           prev.minDelay === next.minDelay &&
           prev.maxDelay === next.maxDelay &&
           prev.dailyLimit === next.dailyLimit &&
+          prev.runId === next.runId &&
           prev.instanceIds.length === next.instanceIds.length &&
           prev.instanceIds.every((id, i) => id === next.instanceIds[i])
         ) {
@@ -226,6 +229,7 @@ export function DashboardLayout() {
             minDelay: liveConfig.minDelay,
             maxDelay: liveConfig.maxDelay,
             dailyLimit: liveConfig.dailyLimit,
+            runId: liveConfig.runId,
             mode: "tick",
             batchSize: 3,
             targetOffset: totalProgress,
@@ -233,7 +237,7 @@ export function DashboardLayout() {
         });
 
         const groupPromise = supabase.functions
-          .invoke("warmup-group-chat", { body: { batchSize: 2 } })
+          .invoke("warmup-group-chat", { body: { batchSize: 2, runId: liveConfig.runId } })
           .catch(() => null);
 
         const [dmResult] = await Promise.all([dmPromise, groupPromise]);
@@ -242,7 +246,7 @@ export function DashboardLayout() {
         // Se foi pausado enquanto a chamada estava em curso, descarta o resultado
         // para não registrar progresso nem agendar próximos ciclos.
         const postCheck = readWarmupConfig();
-        if (cancelled || !postCheck.active || !postCheck.instanceIds.length) {
+        if (cancelled || !postCheck.active || postCheck.runId !== liveConfig.runId || !postCheck.instanceIds.length) {
           return;
         }
 
@@ -277,9 +281,9 @@ export function DashboardLayout() {
       } finally {
         // Re-check antes de agendar próximo ciclo: se foi pausado durante o envio, não agenda
         const stillActive = readWarmupConfig();
-        if (!cancelled && stillActive.active && stillActive.instanceIds.length) {
-          const min = Math.max(5, warmupConfig.minDelay);
-          const max = Math.max(min, warmupConfig.maxDelay);
+        if (!cancelled && stillActive.active && stillActive.runId === liveConfig.runId && stillActive.instanceIds.length) {
+          const min = Math.max(5, liveConfig.minDelay);
+          const max = Math.max(min, liveConfig.maxDelay);
           const delayMs = (min + Math.random() * (max - min)) * 1000;
           timer = setTimeout(run, delayMs);
         }
