@@ -333,7 +333,15 @@ const mapCampaignSendStatusFromWebhook = (
   const webhookStatus = String(webhook?.status || "").toUpperCase();
   const fromMe = resolveFromMe(webhook);
 
-  if (webhookType === "DeliveryCallback") return "delivered";
+  if (webhookType === "DeliveryCallback") {
+    if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") {
+      return "delivered";
+    }
+    if (webhookStatus === "READ" || webhookStatus === "PLAYED") {
+      return "read";
+    }
+    return "sent";
+  }
   if (webhookType === "MessageStatusCallback") {
     // SENT means it left pending and is in sending state; it is NOT delivery.
     if (webhookStatus === "SENT") return "sent";
@@ -351,13 +359,10 @@ const mapCampaignSendStatusFromWebhook = (
     const phone = resolveWebhookPhone(webhook);
     const isGroup = phone?.includes("@g.us") || phone?.includes("-group");
 
-    if (isGroup) {
-      // Group fromMe callbacks (with or without text) = delivery confirmation
-      return "delivered";
-    }
-
-    if (phone?.includes("@lid") || buildLidCandidateFromTechnicalId(webhook?.phone)) {
-      return "delivered";
+    if (isGroup || phone?.includes("@lid") || buildLidCandidateFromTechnicalId(webhook?.phone)) {
+      if (webhookStatus === "RECEIVED" || webhookStatus === "DELIVERED") return "delivered";
+      if (webhookStatus === "READ" || webhookStatus === "PLAYED") return "read";
+      return "sent";
     }
 
     const hasTextContent = Boolean(
