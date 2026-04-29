@@ -150,33 +150,23 @@ Deno.serve(async (req) => {
       const groupJid = String(link.group_jid || "");
       if (!groupJid) continue;
 
-      // Monta lista de remetentes possíveis: instâncias Z-API que entraram + doadoras UAZAPI
+      // Apenas instâncias Z-API do usuário que entraram no grupo conversam.
+      // As doadoras UAZAPI ficam de fora (apenas garantem o grupo existir).
       const senders: any[] = [];
       const joinedIds = joinedByLink.get(link.id) || [];
       for (const id of joinedIds) {
         const inst = instanceById.get(id);
-        if (inst) senders.push({ ...inst, kind: String(inst.api_provider || "zapi").toLowerCase() });
+        if (!inst) continue;
+        const provider = String(inst.api_provider || "zapi").toLowerCase();
+        if (provider !== "zapi") continue;
+        senders.push({ ...inst, kind: "zapi" });
       }
-      for (const d of donorList) senders.push(d);
 
       if (senders.length === 0) continue;
 
-      // Embaralha lista total
+      // Embaralha
       const shuffledAll = senders.sort(() => Math.random() - 0.5);
-
-      // Garante mistura: pelo menos metade do batch vem de Z-APIs do usuário (joinedIds),
-      // o restante completa com doadoras. Se sendAll=true, manda todo mundo.
-      let shuffled: any[];
-      if (sendAll) {
-        shuffled = shuffledAll;
-      } else {
-        const userZapis = shuffledAll.filter((s) => String(s.api_provider || s.kind || "").toLowerCase() === "zapi");
-        const donorsShuf = shuffledAll.filter((s) => String(s.api_provider || s.kind || "").toLowerCase() === "uazapi");
-        const wantUsers = Math.max(1, Math.ceil(batchSize * 0.7));
-        const wantDonors = Math.max(0, batchSize - wantUsers);
-        shuffled = [...userZapis.slice(0, wantUsers), ...donorsShuf.slice(0, wantDonors)];
-        if (shuffled.length === 0) shuffled = shuffledAll.slice(0, batchSize);
-      }
+      const shuffled = sendAll ? shuffledAll : shuffledAll.slice(0, batchSize);
 
       // Mantém uma fila de "reservas" para repor quando alguém falhar.
       const used = new Set(shuffled.map((s) => s.id || s.dbId));
