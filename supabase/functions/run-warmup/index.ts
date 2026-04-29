@@ -52,10 +52,28 @@ serve(async (req: Request) => {
     const dailyLimit = Math.max(1, Math.min(800, Number(body?.dailyLimit) || 50));
     const isTickMode = body?.mode === "tick" || body?.batchSize !== undefined;
     const targetOffset = Math.max(0, Number(body?.targetOffset) || 0);
+    const runId = typeof body?.runId === "string" ? body.runId : "";
     const sendsPerDonor = Math.max(
       1,
       Math.min(dailyLimit, Math.min(20, Number(body?.batchSize) || dailyLimit)),
     );
+
+    const isRunAllowed = async () => {
+      const { data, error } = await admin
+        .from("warmup_user_controls")
+        .select("active, run_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.log("warmup control check failed:", error.message);
+        return false;
+      }
+      return data?.active === true && (!runId || data.run_id === runId);
+    };
+
+    if (!(await isRunAllowed())) {
+      return json({ success: true, stopped: true, message: "Aquecimento pausado" });
+    }
 
     // Se o cliente não enviou mensagens, usa o pool global de admin (warmup_messages ativas)
     if (!messages.length) {
