@@ -510,6 +510,7 @@ serve(async (req: Request) => {
         }
 
         for (let i = 0; i < sendsPerDonor; i++) {
+          if (!(await isRunAllowed())) return;
           // Round-robin: garante distribuição equilibrada entre todos os alvos
           // Em modo tick com batchSize 1, o cliente envia targetOffset crescente para
           // não ficar sempre no primeiro número da lista.
@@ -573,6 +574,7 @@ serve(async (req: Request) => {
                     // Resposta FORÇADA e rápida: 0.5-1.5s para reduzir atraso do aquecimento.
                     const replyDelay = (0.5 + Math.random()) * 1000;
                     await new Promise((r) => setTimeout(r, replyDelay));
+                    if (!(await isRunAllowed())) return;
                     try {
                       const rr = await forceTargetReply(tInstSafe, donorPhoneSafe, answerSafe);
                       if (rr.ok) {
@@ -609,6 +611,7 @@ serve(async (req: Request) => {
           if (i < sendsPerDonor - 1) {
             const delayMs = (minDelay + Math.random() * (maxDelay - minDelay)) * 1000;
             await new Promise((r) => setTimeout(r, delayMs));
+            if (!(await isRunAllowed())) return;
           }
         }
       }));
