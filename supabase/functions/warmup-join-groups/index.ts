@@ -87,7 +87,35 @@ Deno.serve(async (req) => {
 
     const extractInviteCode = (url: string) => {
       const m = String(url || "").match(/chat\.whatsapp\.com\/([A-Za-z0-9_-]+)/);
-      return m ? m[1] : String(url || "").trim();
+      return m ? m[1] : String(url || "").split("?")[0].trim();
+    };
+
+    const normalizeGroupJid = (value: unknown): string | null => {
+      const raw = String(value || "").trim();
+      if (!raw) return null;
+      if (raw.includes("@g.us")) return raw;
+      if (raw.includes("-group")) return raw.replace(/-group$/i, "@g.us");
+      const digits = raw.replace(/\D/g, "");
+      return digits.length >= 12 ? `${digits}@g.us` : null;
+    };
+
+    const pickGroupJid = (payload: any): string | null => {
+      const direct = normalizeGroupJid(
+        payload?.id || payload?.JID || payload?.jid || payload?.groupId || payload?.groupJid || payload?.group_jid ||
+        payload?.remoteJid || payload?.phone || payload?.data?.id || payload?.data?.JID || payload?.data?.jid ||
+        payload?.data?.groupId || payload?.data?.groupJid || payload?.group?.id || payload?.group?.jid ||
+        payload?.groupMetadata?.id || payload?.groupMetadata?.jid || payload?.info?.id || payload?.result?.id,
+      );
+      if (direct) return direct;
+      if (payload && typeof payload === "object") {
+        for (const value of Object.values(payload)) {
+          if (value && typeof value === "object") {
+            const nested = pickGroupJid(value);
+            if (nested) return nested;
+          }
+        }
+      }
+      return null;
     };
 
     // Resolve o JID do grupo via UAZAPI (cacheia na coluna group_jid).
