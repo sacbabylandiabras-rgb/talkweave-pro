@@ -109,7 +109,9 @@ Deno.serve(async (req) => {
 
     const sendInGroup = async (sender: any, groupJid: string, text: string) => {
       const provider = String(sender.api_provider || sender.kind || "").toLowerCase();
-      const groupZapiId = groupJid.replace(/@g\.us$/i, "");
+      const groupZapiId = groupJid.endsWith("-group")
+        ? groupJid
+        : `${groupJid.replace(/@g\.us$/i, "")}-group`;
       try {
         if (provider === "uazapi") {
           const apiUrl = String(sender.evolution_api_url || sender.apiUrl || "").replace(/\/+$/, "");
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
           const t = await r.text().catch(() => "");
           return { ok: r.ok, status: r.status, body: t.slice(0, 200) };
         } else {
-          // Z-API: send-text com phone = group id (somente dígitos do JID)
+          // Z-API: mensagens em grupo exigem o identificador normalizado com sufixo -group.
           const url = `https://api.z-api.io/instances/${sender.zapi_instance_id}/token/${sender.zapi_token}/send-text`;
           const r = await fetch(url, {
             method: "POST",
