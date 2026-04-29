@@ -225,11 +225,12 @@ export function DashboardLayout() {
           try {
             const progressRaw2 = localStorage.getItem(WARMUP_PROGRESS_KEY);
             const dayProg = progressRaw2 ? JSON.parse(progressRaw2)?.[todayKey()] || {} : {};
+            const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
             await supabase.functions.invoke("warmup-join-groups", {
               body: {
                 sentByTarget,
                 targetInstanceMap,
-                currentProgress: dayProg,
+                currentProgress: visibleDayProg,
               },
             });
           } catch (_) { /* silencioso */ }
