@@ -223,6 +223,13 @@ export function DashboardLayout() {
         const [dmResult] = await Promise.all([dmPromise, groupPromise]);
         const { data, error } = dmResult;
 
+        // Se foi pausado enquanto a chamada estava em curso, descarta o resultado
+        // para não registrar progresso nem agendar próximos ciclos.
+        const postCheck = readWarmupConfig();
+        if (cancelled || !postCheck.active || !postCheck.instanceIds.length) {
+          return;
+        }
+
         if (error) {
           toast.error(error.message || "Erro no aquecimento normal");
         } else if ((data as any)?.success === false) {
