@@ -87,32 +87,66 @@ Deno.serve(async (req) => {
 
     const extractInviteCode = (url: string) => {
       const m = String(url || "").match(/chat\.whatsapp\.com\/([A-Za-z0-9_-]+)/);
-      return m ? m[1] : String(url || "").trim();
+      return m ? m[1] : String(url || "").split("?")[0].trim();
     };
 
-    // Resolve o JID do grupo via UAZAPI (cacheia na coluna group_jid).
-    // Tenta múltiplos endpoints comuns da UAZAPI.
+    const normalizeGroupJid = (value: unknown): string | null => {
+      const raw = String(value || "").trim();
+      if (!raw) return null;
+      if (raw.includes("@g.us")) return raw;
+      if (raw.includes("-group")) return raw.replace(/-group$/i, "@g.us");
+      const digits = raw.replace(/\D/g, "");
+      return digits.length >= 12 ? `${digits}@g.us` : null;
+    };
+
+    const pickGroupJid = (payload: any): string | null => {
+      const direct = normalizeGroupJid(
+        payload?.id || payload?.JID || payload?.jid || payload?.groupId || payload?.groupJid || payload?.group_jid ||
+        payload?.remoteJid || payload?.phone || payload?.data?.id || payload?.data?.JID || payload?.data?.jid ||
+        payload?.data?.groupId || payload?.data?.groupJid || payload?.group?.id || payload?.group?.jid ||
+        payload?.groupMetadata?.id || payload?.groupMetadata?.jid || payload?.info?.id || payload?.result?.id,
+      );
+      if (direct) return direct;
+      if (payload && typeof payload === "object") {
+        for (const value of Object.values(payload)) {
+          if (value && typeof value === "object") {
+            const nested = pickGroupJid(value);
+            if (nested) return nested;
+          }
+        }
+      }
+      return null;
+    };
+
+    // Resolve o JID do grupo via doadora admin (cacheia na coluna group_jid).
+    // UAZAPI nem sempre expõe inviteinfo; então também cruza o convite com /group/list + /group/info.
     const resolveGroupJid = async (link: any): Promise<string | null> => {
       if (link.group_jid) return String(link.group_jid);
       const code = extractInviteCode(link.invite_url);
       for (const d of donorCreds) {
         const candidates = [
+          { url: `${d.apiUrl}/group-invitation-metadata/${code}`, method: "GET", body: null },
+          { url: `${d.apiUrl}/group/invitationMetadata/${code}`, method: "GET", body: null },
           { url: `${d.apiUrl}/group/inviteinfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/inviteinfo`, method: "POST", body: { inviteCode: code } },
           { url: `${d.apiUrl}/group/inviteInfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/inviteInfo`, method: "POST", body: { inviteCode: code } },
           { url: `${d.apiUrl}/group/getInviteInfo`, method: "POST", body: { code } },
+          { url: `${d.apiUrl}/group/list`, method: "GET", body: null },
         ];
         for (const c of candidates) {
           try {
             const r = await fetch(c.url, {
               method: c.method,
               headers: { "Content-Type": "application/json", token: d.apiToken },
-              body: JSON.stringify(c.body),
+              body: c.body ? JSON.stringify(c.body) : undefined,
             });
             if (!r.ok) continue;
             const j: any = await r.json().catch(() => ({}));
-            const jid = j?.id || j?.group?.id || j?.groupId || j?.jid || j?.data?.id;
-            if (jid && String(jid).includes("@g.us")) {
-              const finalJid = String(jid);
+            const groups = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.groups) ? j.groups : [];
+            const matchedGroup = groups.find((g: any) => JSON.stringify(g || {}).includes(code));
+            const finalJid = pickGroupJid(matchedGroup || j);
+            if (finalJid) {
               await admin.from("warmup_group_links").update({ group_jid: finalJid }).eq("id", link.id);
               return finalJid;
             }
@@ -125,19 +159,29 @@ Deno.serve(async (req) => {
     // Adiciona um participante via UAZAPI tentando múltiplas doadoras (a primeira que for admin funciona)
     const addParticipant = async (groupJid: string, phone: string): Promise<{ ok: boolean; detail: any }> => {
       const errors: any[] = [];
+      const phoneDigits = String(phone || "").replace(/\D/g, "");
+      const groupZapiId = groupJid.replace(/@g\.us$/i, "-group");
       for (const d of donorCreds) {
         const attempts = [
           {
+            url: `${d.apiUrl}/add-participant`,
+            body: { groupId: groupZapiId, phones: [phoneDigits] },
+          },
+          {
             url: `${d.apiUrl}/group/updateparticipants`,
-            body: { groupjid: groupJid, action: "add", participants: [phone] },
+            body: { groupjid: groupJid, action: "add", participants: [phoneDigits] },
           },
           {
             url: `${d.apiUrl}/group/updateParticipants`,
-            body: { groupjid: groupJid, action: "add", participants: [phone] },
+            body: { groupjid: groupJid, action: "add", participants: [phoneDigits] },
           },
           {
             url: `${d.apiUrl}/group/addParticipant`,
-            body: { groupjid: groupJid, participants: [phone] },
+            body: { groupjid: groupJid, participants: [phoneDigits] },
+          },
+          {
+            url: `${d.apiUrl}/group/addParticipant`,
+            body: { groupJid, phones: [phoneDigits] },
           },
         ];
         for (const a of attempts) {
@@ -166,15 +210,54 @@ Deno.serve(async (req) => {
     let failed = 0;
     const log: any[] = [];
 
-    // Resolve credenciais Z-API do user (para registrar user_id)
+    // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
       .from("zapi_instances")
-      .select("id, user_id")
+      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
       .in("id", instanceDbIds);
     const userByInstance = new Map<string, string>();
+    const instanceById = new Map<string, any>();
     for (const inst of instances || []) {
       userByInstance.set(inst.id, inst.user_id);
+      instanceById.set(inst.id, inst);
     }
+
+    const acceptInviteWithTarget = async (instanceId: string, inviteUrl: string): Promise<{ ok: boolean; detail: any }> => {
+      const inst = instanceById.get(instanceId);
+      const code = extractInviteCode(inviteUrl);
+      if (!inst || !code) return { ok: false, detail: { error: "missing target instance credentials" } };
+      const provider = String(inst.api_provider || "zapi").toLowerCase();
+      const attempts = provider === "uazapi"
+        ? [
+            { url: `${String(inst.evolution_api_url || "").replace(/\/+$/, "")}/group/acceptinvite`, method: "POST", headers: { token: String(inst.evolution_api_key || inst.zapi_token || "") }, body: { code } },
+            { url: `${String(inst.evolution_api_url || "").replace(/\/+$/, "")}/group/acceptInvite`, method: "POST", headers: { token: String(inst.evolution_api_key || inst.zapi_token || "") }, body: { invitecode: code } },
+          ]
+        : [
+            { url: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}/accept-group-invite/${code}`, method: "GET", headers: { "Client-Token": String(inst.zapi_client_token || "") }, body: null },
+          ];
+      const errors: any[] = [];
+      for (const a of attempts) {
+        if (!a.url || a.url.includes("undefined") || a.url.includes("//group")) continue;
+        try {
+          const r = await fetch(a.url, {
+            method: a.method,
+            headers: { "Content-Type": "application/json", ...a.headers },
+            body: a.body ? JSON.stringify(a.body) : undefined,
+          });
+          const text = await r.text();
+          let j: any;
+          try { j = JSON.parse(text); } catch { j = { raw: text }; }
+          const responseText = JSON.stringify(j).toLowerCase();
+          if (r.ok || responseText.includes("already") || responseText.includes("participant")) {
+            return { ok: true, detail: { mode: "accept-invite", response: j } };
+          }
+          errors.push({ status: r.status, body: text.slice(0, 300) });
+        } catch (e: any) {
+          errors.push({ error: e?.message });
+        }
+      }
+      return { ok: false, detail: { mode: "accept-invite", errors } };
+    };
 
     for (const [instanceId, count] of Object.entries(currentProgress)) {
       const phone = phoneByInstance.get(instanceId);
@@ -188,12 +271,9 @@ Deno.serve(async (req) => {
         if (total < threshold) continue;
 
         const groupJid = await resolveGroupJid(link);
-        if (!groupJid) {
-          log.push({ link: link.id, error: "could not resolve group jid" });
-          continue;
-        }
-
-        const result = await addParticipant(groupJid, phone);
+        const result = groupJid
+          ? await addParticipant(groupJid, phone)
+          : await acceptInviteWithTarget(instanceId, link.invite_url);
         if (result.ok) {
           added++;
           joinedSet.add(key);
@@ -210,7 +290,7 @@ Deno.serve(async (req) => {
           break;
         } else {
           failed++;
-          log.push({ phone, link: link.id, ...result.detail });
+          log.push({ phone, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
       }
     }
