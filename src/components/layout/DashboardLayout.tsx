@@ -196,8 +196,9 @@ export function DashboardLayout() {
       try {
         const progressRaw = localStorage.getItem(WARMUP_PROGRESS_KEY);
         const progressDay = progressRaw ? JSON.parse(progressRaw)?.[todayKey()] || {} : {};
+        const visibleProgress = getVisibleWarmupProgress(progressDay, liveConfig.instanceIds);
         const totalProgress = liveConfig.instanceIds.reduce(
-          (sum, id) => sum + Number(progressDay[id] || 0),
+          (sum, id) => sum + Number(visibleProgress[id] || 0),
           0,
         );
         const { data, error } = await supabase.functions.invoke("run-warmup", {
