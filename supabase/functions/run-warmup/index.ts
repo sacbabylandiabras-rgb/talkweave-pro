@@ -382,9 +382,12 @@ serve(async (req: Request) => {
     }
 
     // Primeiro tenta PV P2P: as próprias instâncias selecionadas conversam entre si.
-    // Assim o aquecimento normal não fica refém das doadoras UAZAPI desconectadas.
+    // PRIORIDADE: doadoras UAZAPI (admin) enviam para a(s) instância(s) selecionada(s).
+    // Só cai para P2P entre as Z-APIs do usuário se NÃO houver doadoras ativas.
     const work = async () => {
-      if (targetInstances.length >= 2) {
+      const hasDonors = !!(donors && donors.length > 0);
+
+      if (!hasDonors && targetInstances.length >= 2) {
         const pairs: Array<[TargetInstance, TargetInstance]> = [];
         const ordered = [...targetInstances].sort((a, b) => a.dbId.localeCompare(b.dbId));
         for (let i = 0; i < ordered.length; i++) {
@@ -439,9 +442,9 @@ serve(async (req: Request) => {
         return;
       }
 
-      if (!donors || donors.length === 0) {
+      if (!hasDonors) {
         totalFailed++;
-        errors.push("PV precisa de 2 instâncias selecionadas ou doadoras ativas como fallback");
+        errors.push("Nenhuma doadora ativa cadastrada em /admin/aquecimento e menos de 2 instâncias selecionadas para P2P");
         console.log("✅ Aquecimento concluído: 0 enviadas, 0 respostas, 1 falha");
         return;
       }
