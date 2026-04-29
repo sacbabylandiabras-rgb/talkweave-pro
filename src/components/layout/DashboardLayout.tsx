@@ -234,6 +234,12 @@ export function DashboardLayout() {
               },
             });
           } catch (_) { /* silencioso */ }
+          // Após join, dispara conversa DENTRO do grupo (instâncias aquecidas + doadoras admin)
+          try {
+            await supabase.functions.invoke("warmup-group-chat", {
+              body: { batchSize: 2 },
+            });
+          } catch (_) { /* silencioso */ }
         }
       } catch (err: any) {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
