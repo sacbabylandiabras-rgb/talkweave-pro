@@ -231,7 +231,7 @@ export function DashboardLayout() {
             dailyLimit: liveConfig.dailyLimit,
             runId: liveConfig.runId,
             mode: "tick",
-            batchSize: 3,
+            batchSize: 1,
             targetOffset: totalProgress,
           },
         });
