@@ -50,10 +50,21 @@ Deno.serve(async (req) => {
       .from("warmup_messages")
       .select("content")
       .eq("active", true);
-    const messages: string[] = (poolMsgs || [])
-      .map((r: any) => String(r.content || "").split("||")[0].trim())
-      .filter((s: string) => s.length > 0);
-    if (messages.length === 0) return json({ sent: 0, skipped: "no messages" });
+    const conversations = (poolMsgs || [])
+      .map((r: any) => {
+        const raw = String(r.content || "").trim();
+        const sepIdx = raw.indexOf("||");
+        return {
+          question: (sepIdx >= 0 ? raw.slice(0, sepIdx) : raw).trim(),
+          answer: (sepIdx >= 0 ? raw.slice(sepIdx + 2) : "").trim(),
+        };
+      })
+      .filter((m: any) => m.question.length > 0);
+    const autoReplies = [
+      "verdade", "sim, sim", "boa! 🙂", "show", "top", "concordo", "uhum",
+      "pois é", "também acho", "tranquilo", "perfeito", "massa", "entendi",
+    ];
+    if (conversations.length === 0) return json({ sent: 0, skipped: "no messages" });
 
     // 2) Links ativos COM group_jid resolvido
     const { data: links } = await admin
@@ -166,22 +177,33 @@ Deno.serve(async (req) => {
 
       if (senders.length === 0) continue;
 
+      if (senders.length === 1 && donorList.length > 0) {
+        // Se só há uma instância Z-API no grupo, usa a doadora apenas como par de conversa.
+        senders.push(...donorList.slice(0, 1));
+      }
+
       // Embaralha
       const shuffledAll = senders.sort(() => Math.random() - 0.5);
-      const shuffled = sendAll ? shuffledAll : shuffledAll.slice(0, batchSize);
+      const pairTarget = sendAll ? shuffledAll.length : Math.min(batchSize, shuffledAll.length);
+      const shuffled = shuffledAll.slice(0, Math.max(2, pairTarget));
 
       // Mantém uma fila de "reservas" para repor quando alguém falhar.
       const used = new Set(shuffled.map((s) => s.id || s.dbId));
       const reserves = shuffledAll.filter((s) => !used.has(s.id || s.dbId));
 
       const queue = [...shuffled];
-      while (queue.length > 0) {
+      let guard = 0;
+      while (queue.length > 1 && guard < pairTarget * 3) {
+        guard++;
         const sender = queue.shift();
-        if (!sender) break;
-        const text = pickRandom(messages);
+        const responder = queue.shift();
+        if (!sender || !responder) break;
+        const convo = pickRandom(conversations);
+        const firstText = convo.question;
+        const secondText = convo.answer || pickRandom(autoReplies);
         let res;
         try {
-          res = await sendInGroup(sender, groupJid, text);
+          res = await sendInGroup(sender, groupJid, firstText);
         } catch (e: any) {
           res = { ok: false, status: 0, body: e?.message || "send threw" };
         }
@@ -200,7 +222,7 @@ Deno.serve(async (req) => {
             sender_provider: senderProvider,
             status: "success",
             http_status: res.status,
-            message_preview: text.slice(0, 200),
+            message_preview: firstText.slice(0, 200),
           });
         } else {
           failed++;
@@ -220,7 +242,7 @@ Deno.serve(async (req) => {
             status: "error",
             http_status: res.status,
             error_message: String(res.body || "").slice(0, 500),
-            message_preview: text.slice(0, 200),
+            message_preview: firstText.slice(0, 200),
           });
           // Repõe com uma reserva (até esgotar) se NÃO for sendAll
           if (!sendAll && reserves.length > 0) {
@@ -228,8 +250,45 @@ Deno.serve(async (req) => {
             if (replacement) queue.push(replacement);
           }
         }
-        // Pequeno delay entre envios (1.5–4s) para parecer natural
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 2500));
+        if (res.ok) {
+          await new Promise((r) => setTimeout(r, 2500 + Math.random() * 5500));
+          const replyRes = await sendInGroup(responder, groupJid, secondText);
+          const replyName = responder.instance_name || responder.name || "";
+          const replyProvider = String(responder.api_provider || responder.kind || "").toLowerCase() || "uazapi";
+          const replyId = responder.id || responder.dbId || null;
+          if (replyRes.ok) {
+            sent++;
+            log.push({ link: link.id, sender: replyName, ok: true, replyTo: senderName });
+            dbLogs.push({
+              cycle_id: cycleId,
+              link_id: link.id,
+              group_jid: groupJid,
+              sender_instance_id: replyId,
+              sender_name: replyName,
+              sender_provider: replyProvider,
+              status: "success",
+              http_status: replyRes.status,
+              message_preview: secondText.slice(0, 200),
+            });
+          } else {
+            failed++;
+            dbLogs.push({
+              cycle_id: cycleId,
+              link_id: link.id,
+              group_jid: groupJid,
+              sender_instance_id: replyId,
+              sender_name: replyName,
+              sender_provider: replyProvider,
+              status: "error",
+              http_status: replyRes.status,
+              error_message: String(replyRes.body || "").slice(0, 500),
+              message_preview: secondText.slice(0, 200),
+            });
+          }
+        }
+        queue.push(sender, responder);
+        // Pausa entre pares para parecer conversa, não disparo.
+        await new Promise((r) => setTimeout(r, 3000 + Math.random() * 7000));
       }
     }
 
