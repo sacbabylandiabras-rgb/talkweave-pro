@@ -167,7 +167,23 @@ export function DashboardLayout() {
   }, [navigate]);
 
   useEffect(() => {
-    const syncWarmupConfig = () => setWarmupConfig(readWarmupConfig());
+    const syncWarmupConfig = () => {
+      const next = readWarmupConfig();
+      setWarmupConfig((prev) => {
+        // Evita re-render desnecessário se nada relevante mudou
+        if (
+          prev.active === next.active &&
+          prev.minDelay === next.minDelay &&
+          prev.maxDelay === next.maxDelay &&
+          prev.dailyLimit === next.dailyLimit &&
+          prev.instanceIds.length === next.instanceIds.length &&
+          prev.instanceIds.every((id, i) => id === next.instanceIds[i])
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
 
     window.addEventListener("storage", syncWarmupConfig);
     window.addEventListener("focus", syncWarmupConfig);
@@ -222,6 +238,13 @@ export function DashboardLayout() {
 
         const [dmResult] = await Promise.all([dmPromise, groupPromise]);
         const { data, error } = dmResult;
+
+        // Se foi pausado enquanto a chamada estava em curso, descarta o resultado
+        // para não registrar progresso nem agendar próximos ciclos.
+        const postCheck = readWarmupConfig();
+        if (cancelled || !postCheck.active || !postCheck.instanceIds.length) {
+          return;
+        }
 
         if (error) {
           toast.error(error.message || "Erro no aquecimento normal");
