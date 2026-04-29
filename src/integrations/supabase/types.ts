@@ -1739,6 +1739,83 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_group_joins: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          joined_at_count: number
+          link_id: string
+          response: Json | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          joined_at_count?: number
+          link_id: string
+          response?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          joined_at_count?: number
+          link_id?: string
+          response?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_group_joins_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_group_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_group_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          group_jid: string | null
+          id: string
+          invite_url: string
+          label: string | null
+          threshold: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          group_jid?: string | null
+          id?: string
+          invite_url: string
+          label?: string | null
+          threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          group_jid?: string | null
+          id?: string
+          invite_url?: string
+          label?: string | null
+          threshold?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       warmup_messages: {
         Row: {
           active: boolean
