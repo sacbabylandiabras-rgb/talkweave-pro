@@ -1,3 +1,4 @@
+-- Tabela de logs do motor warmup-group-chat
 create table if not exists public.warmup_group_chat_logs (
   id uuid primary key default gen_random_uuid(),
   created_at timestamp with time zone not null default now(),
@@ -19,12 +20,14 @@ create index if not exists idx_wgcl_cycle on public.warmup_group_chat_logs (cycl
 
 alter table public.warmup_group_chat_logs enable row level security;
 
+drop policy if exists "Admins can view warmup_group_chat_logs" on public.warmup_group_chat_logs;
 create policy "Admins can view warmup_group_chat_logs"
   on public.warmup_group_chat_logs
   for select
   to authenticated
   using (has_role(auth.uid(), 'admin'::app_role));
 
+drop policy if exists "Service role inserts warmup_group_chat_logs" on public.warmup_group_chat_logs;
 create policy "Service role inserts warmup_group_chat_logs"
   on public.warmup_group_chat_logs
   for insert
