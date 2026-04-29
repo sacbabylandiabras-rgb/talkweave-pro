@@ -622,7 +622,7 @@ serve(async (req: Request) => {
       donors: donors?.length || 0,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
-      plannedSends: donors.length * sendsPerDonor,
+      plannedSends: targetInstances.length >= 1 ? sendsPerDonor : ((donors?.length || 0) * sendsPerDonor),
       sent: totalSent,
       replies: totalReplies,
       failed: totalFailed,
