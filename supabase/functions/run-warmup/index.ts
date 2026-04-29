@@ -621,7 +621,9 @@ serve(async (req: Request) => {
       donors: donors?.length || 0,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
-      plannedSends: targetInstances.length >= 2 ? sendsPerDonor : ((donors?.length || 0) * sendsPerDonor),
+      plannedSends: (donors && donors.length > 0)
+        ? (donors.length * sendsPerDonor)
+        : (targetInstances.length >= 2 ? sendsPerDonor : 0),
       sent: totalSent,
       replies: totalReplies,
       failed: totalFailed,
