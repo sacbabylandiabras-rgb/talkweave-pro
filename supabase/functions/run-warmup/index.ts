@@ -69,16 +69,15 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Nenhuma mensagem disponível (configure em /admin/aquecimento)" }, 400);
     }
 
-    // 1) Buscar todas instâncias UAZAPI ativas (doadoras) — independem do user
+    // 1) Buscar instâncias UAZAPI ativas (doadoras) — usadas só como fallback.
+    // O aquecimento PV principal agora é P2P entre as Z-APIs selecionadas pelo usuário,
+    // porque as doadoras podem estar desconectadas e travavam o envio normal.
     const { data: donors, error: donorsErr } = await admin
       .from("zapi_instances")
       .select("id, instance_name, evolution_api_url, evolution_api_key, zapi_token, is_active")
       .ilike("api_provider", "uazapi")
       .eq("is_active", true);
     if (donorsErr) return json({ success: false, error: donorsErr.message }, 500);
-    if (!donors || donors.length === 0) {
-      return json({ success: false, error: "Nenhuma instância UAZAPI doadora cadastrada em /admin/aquecimento" }, 400);
-    }
 
     const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
       const raw = String(value || "").trim();
