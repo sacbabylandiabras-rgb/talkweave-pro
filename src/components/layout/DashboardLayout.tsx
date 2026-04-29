@@ -230,7 +230,7 @@ export function DashboardLayout() {
         } else {
           const failed = Number((data as any)?.failed || 0);
           const normalSent = Number((data as any)?.sent || 0) + Number((data as any)?.replies || 0);
-          if (normalSent <= 0 && failed > 0) {
+          if (normalSent <= 0 && failed > 0 && liveConfig.instanceIds.length >= 2) {
             toast.error("Aquecimento normal: instâncias desconectadas ou no limite. Grupo seguiu normalmente.");
           }
           const sentByTarget = (data as any)?.sentByTarget;
