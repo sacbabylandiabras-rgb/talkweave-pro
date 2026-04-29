@@ -74,23 +74,7 @@ Deno.serve(async (req) => {
       .not("group_jid", "is", null);
     if (!links || links.length === 0) return json({ sent: 0, skipped: "no resolved groups" });
 
-    // 3) Doadoras UAZAPI (admins do grupo, sempre dentro)
-    const { data: donors } = await admin
-      .from("zapi_instances")
-      .select("id, instance_name, evolution_api_url, evolution_api_key, zapi_token")
-      .ilike("api_provider", "uazapi")
-      .eq("is_active", true);
-    const donorList = (donors || [])
-      .map((d: any) => ({
-        kind: "uazapi" as const,
-        dbId: String(d.id),
-        name: String(d.instance_name || ""),
-        apiUrl: String(d.evolution_api_url || "").replace(/\/+$/, ""),
-        apiToken: String(d.evolution_api_key || d.zapi_token || ""),
-      }))
-      .filter((d) => d.apiUrl && d.apiToken);
-
-    // 4) Joins por link
+    // 3) Joins por link
     const linkIds = links.map((l: any) => l.id);
     const { data: joins } = await admin
       .from("warmup_group_joins")
@@ -105,7 +89,7 @@ Deno.serve(async (req) => {
       joinedByLink.set(j.link_id, arr);
     }
 
-    // 5) Credenciais das instâncias alvo (Z-API e UAZAPI)
+    // 4) Credenciais das instâncias alvo (somente Z-API conversa no grupo)
     const allInstanceIds = Array.from(new Set((joins || []).map((j: any) => j.instance_id)));
     const instanceById = new Map<string, any>();
     if (allInstanceIds.length > 0) {
@@ -177,24 +161,20 @@ Deno.serve(async (req) => {
 
       if (senders.length === 0) continue;
 
-      if (senders.length === 1 && donorList.length > 0) {
-        // Se só há uma instância Z-API no grupo, usa a doadora apenas como par de conversa.
-        senders.push(...donorList.slice(0, 1));
-      }
-
       // Embaralha
       const shuffledAll = senders.sort(() => Math.random() - 0.5);
-      const pairTarget = sendAll ? shuffledAll.length : Math.min(batchSize, shuffledAll.length);
-      const shuffled = shuffledAll.slice(0, Math.max(2, pairTarget));
+      const participantTarget = sendAll ? shuffledAll.length : Math.min(batchSize, shuffledAll.length);
+      const shuffled = shuffledAll.slice(0, participantTarget);
 
       // Mantém uma fila de "reservas" para repor quando alguém falhar.
       const used = new Set(shuffled.map((s) => s.id || s.dbId));
       const reserves = shuffledAll.filter((s) => !used.has(s.id || s.dbId));
 
       const queue = [...shuffled];
-      let guard = 0;
-      while (queue.length > 1 && guard < pairTarget * 3) {
-        guard++;
+      const maxConversations = Math.floor(participantTarget / 2);
+      let conversationsDone = 0;
+      while (queue.length > 1 && conversationsDone < maxConversations) {
+        conversationsDone++;
         const sender = queue.shift();
         const responder = queue.shift();
         if (!sender || !responder) break;
@@ -251,7 +231,7 @@ Deno.serve(async (req) => {
           }
         }
         if (res.ok) {
-          await new Promise((r) => setTimeout(r, 2500 + Math.random() * 5500));
+          await new Promise((r) => setTimeout(r, 1200 + Math.random() * 2500));
           const replyRes = await sendInGroup(responder, groupJid, secondText);
           const replyName = responder.instance_name || responder.name || "";
           const replyProvider = String(responder.api_provider || responder.kind || "").toLowerCase() || "uazapi";
@@ -286,9 +266,10 @@ Deno.serve(async (req) => {
             });
           }
         }
-        queue.push(sender, responder);
         // Pausa entre pares para parecer conversa, não disparo.
-        await new Promise((r) => setTimeout(r, 3000 + Math.random() * 7000));
+        if (conversationsDone < maxConversations) {
+          await new Promise((r) => setTimeout(r, 1800 + Math.random() * 3000));
+        }
       }
     }
 
