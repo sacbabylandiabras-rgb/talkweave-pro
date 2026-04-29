@@ -69,16 +69,15 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Nenhuma mensagem disponível (configure em /admin/aquecimento)" }, 400);
     }
 
-    // 1) Buscar todas instâncias UAZAPI ativas (doadoras) — independem do user
+    // 1) Buscar instâncias UAZAPI ativas (doadoras) — usadas só como fallback.
+    // O aquecimento PV principal agora é P2P entre as Z-APIs selecionadas pelo usuário,
+    // porque as doadoras podem estar desconectadas e travavam o envio normal.
     const { data: donors, error: donorsErr } = await admin
       .from("zapi_instances")
       .select("id, instance_name, evolution_api_url, evolution_api_key, zapi_token, is_active")
       .ilike("api_provider", "uazapi")
       .eq("is_active", true);
     if (donorsErr) return json({ success: false, error: donorsErr.message }, 500);
-    if (!donors || donors.length === 0) {
-      return json({ success: false, error: "Nenhuma instância UAZAPI doadora cadastrada em /admin/aquecimento" }, 400);
-    }
 
     const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
       const raw = String(value || "").trim();
@@ -382,9 +381,71 @@ serve(async (req: Request) => {
       if (ti.dbId) targetInstanceMap[ti.phone] = ti.dbId;
     }
 
-    // Para cada doadora UAZAPI, dispara um lote pequeno, alternando alvos e textos.
-    // Lotes pequenos evitam timeout da Edge Function; a tela ativa agenda os próximos ciclos.
+    // Primeiro tenta PV P2P: as próprias instâncias selecionadas conversam entre si.
+    // Assim o aquecimento normal não fica refém das doadoras UAZAPI desconectadas.
     const work = async () => {
+      if (targetInstances.length >= 2) {
+        const pairs: Array<[TargetInstance, TargetInstance]> = [];
+        const ordered = [...targetInstances].sort((a, b) => a.dbId.localeCompare(b.dbId));
+        for (let i = 0; i < ordered.length; i++) {
+          const sender = ordered[(targetOffset + i) % ordered.length];
+          const receiver = ordered[(targetOffset + i + 1) % ordered.length];
+          if (sender.dbId !== receiver.dbId) pairs.push([sender, receiver]);
+        }
+        const selectedPairs = pairs.slice(0, Math.min(sendsPerDonor, pairs.length));
+
+        await Promise.all(selectedPairs.map(async ([sender, receiver], idx) => {
+          const raw = pickRandom(messages);
+          const sepIdx = raw.indexOf("||");
+          const question = (sepIdx >= 0 ? raw.slice(0, sepIdx) : raw).trim();
+          const answer = (sepIdx >= 0 ? raw.slice(sepIdx + 2) : "").trim() || pickRandom(autoReplies);
+
+          try {
+            await zapiSaveContact(sender, receiver.phone, receiver.name || "Aquec");
+            await zapiSaveContact(receiver, sender.phone, sender.name || "Aquec");
+
+            const res = await sendZapiText(sender, receiver.phone, question);
+            if (res.ok) {
+              totalSent++;
+              sentByTarget[receiver.phone] = (sentByTarget[receiver.phone] || 0) + 1;
+              console.log(`→ PV ${sender.name} → ${receiver.phone} (${idx + 1}/${selectedPairs.length}): "${question.slice(0,40)}"`);
+              if (sender.dbId) clearCapping(sender.dbId);
+
+              await new Promise((r) => setTimeout(r, 900 + Math.random() * 2200));
+              const reply = await forceTargetReply(receiver, sender.phone, answer);
+              if (reply.ok) {
+                totalReplies++;
+                sentByTarget[sender.phone] = (sentByTarget[sender.phone] || 0) + 1;
+                console.log(`  ↩ PV ${receiver.name} → ${sender.phone}: "${answer.slice(0,40)}"`);
+                if (receiver.dbId) clearCapping(receiver.dbId);
+              } else {
+                totalFailed++;
+                errors.push(`${receiver.name} → ${sender.phone}: HTTP ${reply.status} ${reply.body.slice(0, 120)}`);
+                if (isNewChatCapping(reply.body) && receiver.dbId) recordCapping(receiver.dbId, receiver.phone, reply.body);
+              }
+            } else {
+              totalFailed++;
+              errors.push(`${sender.name} → ${receiver.phone}: HTTP ${res.status} ${res.body.slice(0, 120)}`);
+              if (isNewChatCapping(res.body) && sender.dbId) recordCapping(sender.dbId, sender.phone, res.body);
+            }
+          } catch (e: any) {
+            totalFailed++;
+            errors.push(`${sender.name} → ${receiver.phone}: ${e?.message || "erro"}`);
+          }
+        }));
+
+        console.log(`✅ Aquecimento PV P2P concluído: ${totalSent} enviadas, ${totalReplies} respostas, ${totalFailed} falhas`);
+        if (errors.length) console.log("Erros:", errors.slice(0, 20));
+        return;
+      }
+
+      if (!donors || donors.length === 0) {
+        totalFailed++;
+        errors.push("PV precisa de 2 instâncias selecionadas ou doadoras ativas como fallback");
+        console.log("✅ Aquecimento concluído: 0 enviadas, 0 respostas, 1 falha");
+        return;
+      }
+
       // Réplicas pendentes — disparadas em background para não bloquear o ciclo
       const pendingReplies: Promise<void>[] = [];
 
@@ -554,7 +615,7 @@ serve(async (req: Request) => {
     return json({
       success: true,
       message: isTickMode ? "Ciclo de aquecimento executado" : "Aquecimento iniciado em segundo plano",
-      donors: donors.length,
+      donors: donors?.length || 0,
       targets: cleanedTargets.length,
       messagesPool: messages.length,
       plannedSends: donors.length * sendsPerDonor,
