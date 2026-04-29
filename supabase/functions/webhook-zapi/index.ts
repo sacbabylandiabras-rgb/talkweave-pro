@@ -2590,7 +2590,7 @@ serve(async (req) => {
             } else {
               // For "read" status: mark read_at without downgrading current status
               // For "delivered" / "sent": maintain previous behavior
-              const updatePayload: Record<string, string> = {};
+              const updatePayload: Record<string, string | null> = {};
               let nextStatus = campaignSend.status as string;
 
               if (campaignSendStatus === "read") {
@@ -2627,6 +2627,8 @@ serve(async (req) => {
                   if (!campaignSend.sent_at) {
                     updatePayload.sent_at = nowIso;
                   }
+                } else if (campaignSend.delivered_at) {
+                  updatePayload.delivered_at = null;
                 }
               }
 
