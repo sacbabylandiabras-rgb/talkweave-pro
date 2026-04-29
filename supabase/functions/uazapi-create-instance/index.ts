@@ -168,20 +168,22 @@ serve(async (req) => {
       }
     }
 
-    const maxInstances = Number((profile as any)?.max_instances ?? 1)
+    if (!isAdmin) {
+      const maxInstances = Number((profile as any)?.max_instances ?? 1)
 
-    const { count: currentCount } = await adminClient
-      .from('zapi_instances')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      const { count: currentCount } = await adminClient
+        .from('zapi_instances')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
 
-    if ((currentCount ?? 0) >= maxInstances) {
-      return new Response(
-        JSON.stringify({
-          error: `Limite atingido. Seu plano permite apenas ${maxInstances} instância(s). Contate o suporte para aumentar.`,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if ((currentCount ?? 0) >= maxInstances) {
+        return new Response(
+          JSON.stringify({
+            error: `Limite atingido. Seu plano permite apenas ${maxInstances} instância(s). Contate o suporte para aumentar.`,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // Check duplicates
