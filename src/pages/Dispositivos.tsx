@@ -680,6 +680,19 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <span className="text-xs font-medium text-primary">+{connectedPhone}</span>
               </div>
             )}
+            {healthBlock && (() => {
+              const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
+              const label = until
+                ? `Limite de novas conversas atingido · libera em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+                : "Limite de novas conversas atingido";
+              return (
+                <div className="mt-1.5">
+                  <Badge variant="destructive" className="text-[10px] leading-tight whitespace-normal text-left">
+                    {label}
+                  </Badge>
+                </div>
+              );
+            })()}
             <div className="flex items-center gap-1 mt-1">
               <span className="text-[10px] text-muted-foreground font-mono truncate" title={instance.zapi_instance_id}>
                 ID: {instance.zapi_instance_id}
