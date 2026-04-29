@@ -167,7 +167,23 @@ export function DashboardLayout() {
   }, [navigate]);
 
   useEffect(() => {
-    const syncWarmupConfig = () => setWarmupConfig(readWarmupConfig());
+    const syncWarmupConfig = () => {
+      const next = readWarmupConfig();
+      setWarmupConfig((prev) => {
+        // Evita re-render desnecessário se nada relevante mudou
+        if (
+          prev.active === next.active &&
+          prev.minDelay === next.minDelay &&
+          prev.maxDelay === next.maxDelay &&
+          prev.dailyLimit === next.dailyLimit &&
+          prev.instanceIds.length === next.instanceIds.length &&
+          prev.instanceIds.every((id, i) => id === next.instanceIds[i])
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
 
     window.addEventListener("storage", syncWarmupConfig);
     window.addEventListener("focus", syncWarmupConfig);
