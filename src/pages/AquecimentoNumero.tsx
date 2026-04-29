@@ -166,6 +166,10 @@ export default function AquecimentoNumero() {
       await syncServerControl(updated);
       toast.success(updated.active ? "Aquecimento iniciado em ciclos contínuos" : "Aquecimento pausado");
     } catch (err) {
+      if (!updated.active) {
+        toast.warning("Pausado nesta aba; o bloqueio do servidor será aplicado assim que sincronizar.");
+        return;
+      }
       const rolledBack = { ...config, runId: crypto.randomUUID() };
       setConfig(rolledBack);
       persistConfig(rolledBack);
