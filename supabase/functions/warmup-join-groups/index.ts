@@ -118,29 +118,35 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // Resolve o JID do grupo via UAZAPI (cacheia na coluna group_jid).
-    // Tenta múltiplos endpoints comuns da UAZAPI.
+    // Resolve o JID do grupo via doadora admin (cacheia na coluna group_jid).
+    // UAZAPI nem sempre expõe inviteinfo; então também cruza o convite com /group/list + /group/info.
     const resolveGroupJid = async (link: any): Promise<string | null> => {
       if (link.group_jid) return String(link.group_jid);
       const code = extractInviteCode(link.invite_url);
       for (const d of donorCreds) {
         const candidates = [
+          { url: `${d.apiUrl}/group-invitation-metadata/${code}`, method: "GET", body: null },
+          { url: `${d.apiUrl}/group/invitationMetadata/${code}`, method: "GET", body: null },
           { url: `${d.apiUrl}/group/inviteinfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/inviteinfo`, method: "POST", body: { inviteCode: code } },
           { url: `${d.apiUrl}/group/inviteInfo`, method: "POST", body: { invitecode: code } },
+          { url: `${d.apiUrl}/group/inviteInfo`, method: "POST", body: { inviteCode: code } },
           { url: `${d.apiUrl}/group/getInviteInfo`, method: "POST", body: { code } },
+          { url: `${d.apiUrl}/group/list`, method: "GET", body: null },
         ];
         for (const c of candidates) {
           try {
             const r = await fetch(c.url, {
               method: c.method,
               headers: { "Content-Type": "application/json", token: d.apiToken },
-              body: JSON.stringify(c.body),
+              body: c.body ? JSON.stringify(c.body) : undefined,
             });
             if (!r.ok) continue;
             const j: any = await r.json().catch(() => ({}));
-            const jid = j?.id || j?.group?.id || j?.groupId || j?.jid || j?.data?.id;
-            if (jid && String(jid).includes("@g.us")) {
-              const finalJid = String(jid);
+            const groups = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.groups) ? j.groups : [];
+            const matchedGroup = groups.find((g: any) => JSON.stringify(g || {}).includes(code));
+            const finalJid = pickGroupJid(matchedGroup || j);
+            if (finalJid) {
               await admin.from("warmup_group_links").update({ group_jid: finalJid }).eq("id", link.id);
               return finalJid;
             }
