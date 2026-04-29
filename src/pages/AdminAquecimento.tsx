@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon, Users2, Link as LinkIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +91,70 @@ export default function AdminAquecimento() {
   const [bulkProfileFile, setBulkProfileFile] = useState<File | null>(null);
   const [bulkProfileRunning, setBulkProfileRunning] = useState(false);
   const [bulkProfileProgress, setBulkProfileProgress] = useState<{ done: number; total: number; current?: string }>({ done: 0, total: 0 });
+
+  // Entrada automática em grupos durante o aquecimento
+  const groupLinksTable = () => (supabase as any).from("warmup_group_links");
+  const [groupLinks, setGroupLinks] = useState<Array<{ id: string; invite_url: string; label: string | null; threshold: number; active: boolean }>>([]);
+  const [loadingGroupLinks, setLoadingGroupLinks] = useState(true);
+  const [newGroupLink, setNewGroupLink] = useState("");
+  const [newGroupLabel, setNewGroupLabel] = useState("");
+  const [newGroupThreshold, setNewGroupThreshold] = useState(100);
+  const [savingGroupLink, setSavingGroupLink] = useState(false);
+
+  const fetchGroupLinks = async () => {
+    setLoadingGroupLinks(true);
+    const { data, error } = await groupLinksTable()
+      .select("id, invite_url, label, threshold, active")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar grupos");
+    } else {
+      setGroupLinks((data || []) as any);
+    }
+    setLoadingGroupLinks(false);
+  };
+
+  useEffect(() => { fetchGroupLinks(); }, []);
+
+  const addGroupLink = async () => {
+    const url = newGroupLink.trim();
+    if (!/chat\.whatsapp\.com\//i.test(url)) {
+      toast.error("Informe um link de convite válido (chat.whatsapp.com/...)");
+      return;
+    }
+    const threshold = Math.max(1, Number(newGroupThreshold) || 100);
+    setSavingGroupLink(true);
+    const { error } = await groupLinksTable().insert({
+      invite_url: url,
+      label: newGroupLabel.trim() || null,
+      threshold,
+      active: true,
+    });
+    setSavingGroupLink(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Grupo adicionado");
+    setNewGroupLink("");
+    setNewGroupLabel("");
+    setNewGroupThreshold(100);
+    fetchGroupLinks();
+  };
+
+  const toggleGroupLink = async (id: string, active: boolean) => {
+    const { error } = await groupLinksTable().update({ active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else fetchGroupLinks();
+  };
+
+  const deleteGroupLink = async (id: string) => {
+    if (!confirm("Remover este grupo?")) return;
+    const { error } = await groupLinksTable().delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Removido"); fetchGroupLinks(); }
+  };
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
