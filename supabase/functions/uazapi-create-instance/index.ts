@@ -168,14 +168,13 @@ serve(async (req) => {
       }
     }
 
+    const { count: currentCount } = await adminClient
+      .from('zapi_instances')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
     if (!isAdmin) {
       const maxInstances = Number((profile as any)?.max_instances ?? 1)
-
-      const { count: currentCount } = await adminClient
-        .from('zapi_instances')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-
       if ((currentCount ?? 0) >= maxInstances) {
         return new Response(
           JSON.stringify({
