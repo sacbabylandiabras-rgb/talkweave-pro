@@ -177,19 +177,30 @@ Deno.serve(async (req) => {
 
       if (senders.length === 0) continue;
 
+      if (senders.length === 1 && donorList.length > 0) {
+        // Se só há uma instância Z-API no grupo, usa a doadora apenas como par de conversa.
+        senders.push(...donorList.slice(0, 1));
+      }
+
       // Embaralha
       const shuffledAll = senders.sort(() => Math.random() - 0.5);
-      const shuffled = sendAll ? shuffledAll : shuffledAll.slice(0, batchSize);
+      const pairTarget = sendAll ? shuffledAll.length : Math.min(batchSize, shuffledAll.length);
+      const shuffled = shuffledAll.slice(0, Math.max(2, pairTarget));
 
       // Mantém uma fila de "reservas" para repor quando alguém falhar.
       const used = new Set(shuffled.map((s) => s.id || s.dbId));
       const reserves = shuffledAll.filter((s) => !used.has(s.id || s.dbId));
 
       const queue = [...shuffled];
-      while (queue.length > 0) {
+      let guard = 0;
+      while (queue.length > 1 && guard < pairTarget * 3) {
+        guard++;
         const sender = queue.shift();
-        if (!sender) break;
-        const text = pickRandom(messages);
+        const responder = queue.shift();
+        if (!sender || !responder) break;
+        const convo = pickRandom(conversations);
+        const firstText = convo.question;
+        const secondText = convo.answer || pickRandom(autoReplies);
         let res;
         try {
           res = await sendInGroup(sender, groupJid, text);
