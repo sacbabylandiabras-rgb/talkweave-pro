@@ -26,10 +26,11 @@ interface LandingPage {
 }
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
-const CHECKOUT_DOMAIN = "https://pay.zaplynxpro.online";
+const PLATFORM_CHECKOUT_DOMAIN = "pay.zaplynxpro.online";
 
-const buildLandingUrl = (pageId: string, fileName?: string | null) => {
-  const base = `${CHECKOUT_DOMAIN}/lp/${pageId}`;
+const buildLandingUrl = (domain: string, pageId: string, fileName?: string | null) => {
+  const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/+$/, "") || PLATFORM_CHECKOUT_DOMAIN;
+  const base = `https://${cleanDomain}/lp/${pageId}`;
   if (!fileName) return base;
   const encodedPath = fileName.split("/").map(encodeURIComponent).join("/");
   return `${base}/${encodedPath}`;
@@ -43,14 +44,38 @@ export default function PayLandingPages() {
   const [description, setDescription] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [checkoutDomain, setCheckoutDomain] = useState(PLATFORM_CHECKOUT_DOMAIN);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id || null);
+      const currentUserId = session?.user?.id || null;
+      setUserId(currentUserId);
+      loadCheckoutDomain(currentUserId);
     });
     load();
   }, []);
+
+  const loadCheckoutDomain = async (currentUserId: string | null) => {
+    const storedDomain = localStorage.getItem("checkout_custom_domain") || "";
+    if (!currentUserId) {
+      setCheckoutDomain(storedDomain || PLATFORM_CHECKOUT_DOMAIN);
+      return;
+    }
+
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("custom_domain")
+        .eq("id", currentUserId)
+        .maybeSingle();
+      const resolvedDomain = (profile as { custom_domain?: string | null } | null)?.custom_domain || storedDomain;
+      if (resolvedDomain) localStorage.setItem("checkout_custom_domain", resolvedDomain);
+      setCheckoutDomain(resolvedDomain || PLATFORM_CHECKOUT_DOMAIN);
+    } catch {
+      setCheckoutDomain(storedDomain || PLATFORM_CHECKOUT_DOMAIN);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -175,7 +200,7 @@ export default function PayLandingPages() {
 
   const entryUrl = (page: LandingPage) => {
     const entry = page.entry_file || page.files[0]?.name;
-    return entry ? buildLandingUrl(page.id, entry) : null;
+    return entry ? buildLandingUrl(checkoutDomain, page.id, entry) : null;
   };
 
   return (
