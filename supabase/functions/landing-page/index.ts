@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error } = await supabase
       .from("gateway_landing_pages")
-      .select("id, files, entry_file, status, checkout_id, user_id")
+      .select("*")
       .eq("id", pageId)
       .eq("status", true)
       .maybeSingle();
@@ -119,12 +119,14 @@ Deno.serve(async (req) => {
       const text = await blob.text();
       let processed = rewriteRelativeUrls(text, pageId, file.name);
 
-      if (contentType.startsWith("text/html") && (page as any).checkout_id) {
+      const linkedCheckoutId = (page as any).checkout_id || (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String((page as any).slug || "")) ? (page as any).slug : null);
+
+      if (contentType.startsWith("text/html") && linkedCheckoutId) {
         try {
           const { data: checkout } = await supabase
             .from("gateway_checkouts")
             .select("id, slug, user_id")
-            .eq("id", (page as any).checkout_id)
+            .eq("id", linkedCheckoutId)
             .maybeSingle();
           if (checkout) {
             let domain = "pay.zaplynxpro.online";
@@ -135,7 +137,7 @@ Deno.serve(async (req) => {
               .maybeSingle();
             const cd = (profile as any)?.custom_domain;
             if (cd) domain = String(cd).replace(/^https?:\/\//, "").replace(/\/+$/, "");
-            const checkoutUrl = `https://${domain}/c/${(checkout as any).slug || (checkout as any).id}`;
+            const checkoutUrl = `https://${domain}/checkout/${(checkout as any).slug || (checkout as any).id}`;
 
             // Replace placeholders and special targets
             processed = processed
@@ -195,7 +197,7 @@ Deno.serve(async (req) => {
             ];
 
             const externalCheckoutRegex = new RegExp(
-              `(href|action|data-href|data-url|data-link)=(['"])https?:\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\s]*\\2`,
+              `(href|action|data-href|data-url|data-link|data-checkout-url)=(['"])(?:https?:)?\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\s]*\\2`,
               "gi"
             );
             processed = processed.replace(externalCheckoutRegex, (_m, attr, quote) => {
@@ -204,7 +206,7 @@ Deno.serve(async (req) => {
 
             // Also rewrite inline JS redirects (window.location = "https://pay.hotmart.com/...")
             const jsRedirectRegex = new RegExp(
-              `(['"\\\`])https?:\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\\`\\s]*\\1`,
+              `(['"\\\`])(?:https?:)?\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\\`\\s]*\\1`,
               "gi"
             );
             processed = processed.replace(jsRedirectRegex, (_m, quote) => {
