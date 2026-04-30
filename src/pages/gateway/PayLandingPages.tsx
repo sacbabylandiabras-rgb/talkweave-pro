@@ -28,7 +28,7 @@ interface LandingPage {
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
 
 const buildLandingUrl = (pageId: string, fileName?: string | null) => {
-  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/landing-page/${pageId}`;
+  const base = `${window.location.origin}/lp/${pageId}`;
   if (!fileName) return base;
   const encodedPath = fileName.split("/").map(encodeURIComponent).join("/");
   return `${base}/${encodedPath}`;
