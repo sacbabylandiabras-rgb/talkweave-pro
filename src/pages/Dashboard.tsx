@@ -1,6 +1,7 @@
 import { TopMetrics } from "@/components/dashboard/TopMetrics";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { VolumeChart } from "@/components/dashboard/VolumeChart";
+import { RevenueMetrics } from "@/components/dashboard/RevenueMetrics";
 
 const Dashboard = () => {
   return (
@@ -13,6 +14,7 @@ const Dashboard = () => {
         <span className="plan-badge">ZapLynx Pro</span>
       </div>
       <TopMetrics />
+      <RevenueMetrics />
       <StatsGrid />
       <VolumeChart />
     </div>
