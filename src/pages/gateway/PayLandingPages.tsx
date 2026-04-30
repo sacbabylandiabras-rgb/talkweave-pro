@@ -19,6 +19,7 @@ interface LandingFile {
 interface LandingPage {
   id: string;
   name: string;
+  slug?: string | null;
   description: string | null;
   files: LandingFile[];
   entry_file: string | null;
@@ -220,14 +221,14 @@ export default function PayLandingPages() {
   const updateCheckoutLink = async (pageId: string, checkoutId: string | null) => {
     const { error } = await (supabase as any)
       .from("gateway_landing_pages")
-      .update({ checkout_id: checkoutId })
+      .update({ checkout_id: checkoutId, slug: checkoutId })
       .eq("id", pageId);
     if (error) {
       toast.error("Não foi possível vincular o checkout");
       return;
     }
     toast.success(checkoutId ? "Checkout vinculado" : "Vínculo removido");
-    setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId } : p)));
+    setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId, slug: checkoutId } : p)));
   };
 
   const entryUrl = (page: LandingPage) => {
