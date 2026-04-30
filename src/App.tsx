@@ -85,6 +85,9 @@ import TelegramAdministradores from "./pages/telegram/TelegramAdministradores";
 import TelegramGruposCanais from "./pages/telegram/TelegramGruposCanais";
 import TelegramCanalFree from "./pages/telegram/TelegramCanalFree";
 import TelegramReferencia from "./pages/telegram/TelegramReferencia";
+import TelegramContatos from "./pages/telegram/TelegramContatos";
+import TelegramVendas from "./pages/telegram/TelegramVendas";
+import TelegramChat from "./pages/telegram/TelegramChat";
 import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
 import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
 import TelegramDashboard from "./pages/telegram/TelegramDashboard";
@@ -176,10 +179,9 @@ const App = () => (
                   <Route path="/telegram/grupos-canais" element={<TelegramGruposCanais />} />
                   <Route path="/telegram/canal-free" element={<TelegramCanalFree />} />
                   <Route path="/telegram/referencia" element={<TelegramReferencia />} />
-                  <Route path="/telegram/resultados" element={<TelegramPlaceholder title="Resultados" description="Acompanhe resultados e provas sociais." />} />
-                  <Route path="/telegram/contatos" element={<TelegramPlaceholder title="Contatos" description="Lista de usuários que interagiram com o bot." />} />
-                  <Route path="/telegram/vendas" element={<TelegramPlaceholder title="Gestão de Vendas" description="Acompanhe vendas, assinaturas e renovações." />} />
-                  <Route path="/telegram/chat" element={<TelegramPlaceholder title="Chat ao vivo" description="Atenda seus usuários do Telegram em tempo real." />} />
+                  <Route path="/telegram/contatos" element={<TelegramContatos />} />
+                  <Route path="/telegram/vendas" element={<TelegramVendas />} />
+                  <Route path="/telegram/chat" element={<TelegramChat />} />
                   <Route path="/telegram/remarketing" element={<TelegramPlaceholder title="Remarketing" description="Envie campanhas de remarketing para a base." />} />
                   <Route path="/telegram/alertas" element={<TelegramPlaceholder title="Alertas" description="Configure alertas automáticos para eventos importantes." />} />
                   <Route path="/telegram/downsell" element={<TelegramPlaceholder title="Downsell" description="Crie ofertas de downsell para usuários que recusaram a oferta principal." />} />

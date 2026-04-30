@@ -88,10 +88,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-resultados", label: "Resultados", icon: Trophy, path: "/telegram/resultados" },
-  { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
-  { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas" },
-  { id: "tg-chat", label: "Chat ao vivo", icon: MessagesSquare, path: "/telegram/chat" },
   { id: "tg-remarketing", label: "Remarketing", icon: Repeat, path: "/telegram/remarketing" },
   { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
   { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
@@ -113,6 +109,12 @@ const telegramExtrasSubItems = [
   { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
   { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
   { id: "tg-referencia", label: "Links de Referência", icon: LinkIcon, path: "/telegram/referencia" },
+];
+
+const telegramResultadosSubItems = [
+  { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
+  { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas", badge: "NOVO" },
+  { id: "tg-chat", label: "Chat ao vivo", icon: MessagesSquare, path: "/telegram/chat" },
 ];
 
 const metaMenuItems = [
@@ -169,6 +171,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const [extrasOpen, setExtrasOpen] = useState(
     ["tg-admins", "tg-grupos-canais", "tg-canal-free", "tg-referencia"].includes(activeItem),
   );
+  const [resultadosOpen, setResultadosOpen] = useState(
+    ["tg-contatos", "tg-vendas", "tg-chat"].includes(activeItem),
+  );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
 
@@ -183,7 +188,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const bottomItems = isNative ? [] : allBottomItems;
   const brandLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
-  const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean; external?: boolean }) => {
+  const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean; external?: boolean; badge?: string }) => {
     if (item.adminOnly && !loading && !isAdmin) return null;
 
     const Icon = item.icon;
@@ -197,7 +202,14 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
         )} />
         {!collapsed && (
-          <span className="truncate">{item.label}</span>
+          <>
+            <span className="truncate flex-1">{item.label}</span>
+            {item.badge && (
+              <span className="ml-auto rounded-full bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 leading-none">
+                {item.badge}
+              </span>
+            )}
+          </>
         )}
       </>
     );
@@ -399,6 +411,62 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                 {extrasOpen && collapsed && (
                   <ul className="mt-0.5 space-y-0.5">
                     {telegramExtrasSubItems.map(renderItem)}
+                  </ul>
+                )}
+              </li>
+
+              {/* Grupo expansível "Resultados" */}
+              <li>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setResultadosOpen((v) => !v)}
+                      className={cn(
+                        "group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 sidebar-item border border-transparent",
+                        collapsed && "justify-center px-2",
+                      )}
+                    >
+                      <Trophy
+                        className={cn(
+                          "shrink-0 transition-colors duration-200",
+                          collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+                          resultadosOpen
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground",
+                        )}
+                      />
+                      {!collapsed && (
+                        <>
+                          <span className="truncate flex-1 text-left">Resultados</span>
+                          <span className="rounded-full bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 leading-none">
+                            NOVO
+                          </span>
+                          <ChevronDown
+                            className={cn(
+                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ml-1",
+                              resultadosOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Resultados
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+
+                {resultadosOpen && !collapsed && (
+                  <ul className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {telegramResultadosSubItems.map(renderItem)}
+                  </ul>
+                )}
+                {resultadosOpen && collapsed && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {telegramResultadosSubItems.map(renderItem)}
                   </ul>
                 )}
               </li>
