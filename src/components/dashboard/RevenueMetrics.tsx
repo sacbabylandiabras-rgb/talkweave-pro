@@ -8,15 +8,15 @@ const formatBRL = (cents: number) =>
 
 export function RevenueMetrics() {
   const [loading, setLoading] = useState(true);
-  const [revenue, setRevenue] = useState({ gross: 0, net: 0 });
+  const [revenue, setRevenue] = useState({ pixGenerated: 0, approved: 0 });
 
   const loadRevenue = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      let gross = 0;
-      let net = 0;
+      let pixGenerated = 0;
+      let approved = 0;
       let from = 0;
       const pageSize = 1000;
       while (true) {
@@ -24,17 +24,18 @@ export function RevenueMetrics() {
           .from("gateway_transactions")
           .select("amount, net, fee, status")
           .eq("user_id", user.id)
-          .in("status", ["approved", "paid"])
           .range(from, from + pageSize - 1);
         if (error || !data || data.length === 0) break;
         for (const t of data) {
-          gross += t.amount || 0;
-          net += (t.net ?? ((t.amount || 0) - (t.fee || 0)));
+          pixGenerated += t.amount || 0;
+          if (t.status === "approved" || t.status === "paid") {
+            approved += t.amount || 0;
+          }
         }
         if (data.length < pageSize) break;
         from += pageSize;
       }
-      setRevenue({ gross, net });
+      setRevenue({ pixGenerated, approved });
     } catch (e) {
       console.error("Error loading revenue:", e);
     } finally {
@@ -72,8 +73,8 @@ export function RevenueMetrics() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <MetricCard title="Faturamento" value={formatBRL(revenue.gross)} subtitle="Pix gerado" icon={DollarSign} variant="success" />
-      <MetricCard title="Faturamento Líquido" value={formatBRL(revenue.net)} subtitle="Venda aprovada" icon={Wallet} variant="info" />
+      <MetricCard title="Pix Gerado" value={formatBRL(revenue.pixGenerated)} icon={DollarSign} variant="info" />
+      <MetricCard title="Venda Aprovada" value={formatBRL(revenue.approved)} icon={Wallet} variant="success" />
     </div>
   );
 }
