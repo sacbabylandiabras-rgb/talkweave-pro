@@ -88,10 +88,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-integracoes", label: "Integrações", icon: PlugZap, path: "/telegram/integracoes" },
-  { id: "tg-traqueamento", label: "Traqueamento", icon: Target, path: "/telegram/traqueamento" },
-  { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
-  { id: "tg-links-utm", label: "Links UTM", icon: LinkIcon, path: "/telegram/links-utm" },
 ];
 
 const telegramBotSubItems = [
@@ -117,6 +113,12 @@ const telegramResultadosSubItems = [
 const telegramRemarketingSubItems = [
   { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
   { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
+];
+
+const telegramIntegracoesSubItems = [
+  { id: "tg-integracoes", label: "Traqueamento", icon: Target, path: "/telegram/integracoes" },
+  { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
+  { id: "tg-links-utm", label: "Links UTM", icon: LinkIcon, path: "/telegram/links-utm" },
 ];
 
 const metaMenuItems = [
@@ -178,6 +180,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   );
   const [remarketingOpen, setRemarketingOpen] = useState(
     ["tg-alertas", "tg-downsell"].includes(activeItem),
+  );
+  const [integracoesOpen, setIntegracoesOpen] = useState(
+    ["tg-integracoes", "tg-links-traq", "tg-links-utm"].includes(activeItem),
   );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
