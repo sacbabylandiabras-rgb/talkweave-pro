@@ -498,3 +498,61 @@ function extractTransactionId(payload: any): string | null {
   // Only accept UUID-ish (gateway_transactions.id is uuid)
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) ? s : null
 }
+
+function extractAnyId(payload: any): string | null {
+  const id =
+    payload?.transaction?.id ||
+    payload?.data?.transaction?.id ||
+    payload?.transaction_id ||
+    payload?.data?.transaction_id ||
+    payload?.order_id ||
+    payload?.data?.order_id ||
+    payload?.purchase?.transaction ||
+    payload?.id ||
+    payload?.code ||
+    null
+  return id ? String(id) : null
+}
+
+function extractEmail(payload: any): string | null {
+  return (
+    payload?.customer?.email ||
+    payload?.buyer?.email ||
+    payload?.client?.email ||
+    payload?.email ||
+    payload?.customer_email ||
+    payload?.data?.customer?.email ||
+    null
+  )
+}
+
+function extractAmountCents(payload: any): number {
+  const raw =
+    payload?.amount ??
+    payload?.value ??
+    payload?.valor ??
+    payload?.transaction?.amount ??
+    payload?.payment?.amount ??
+    payload?.data?.amount ??
+    payload?.purchase?.price?.value ??
+    payload?.total ??
+    null
+  if (raw == null) return 0
+  const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^\d.,-]/g, '').replace(',', '.'))
+  if (isNaN(num)) return 0
+  // Heuristic: small numbers or with decimal separator → reais (convert to cents)
+  if (num < 1000 || String(raw).includes('.') || String(raw).includes(',')) {
+    return Math.round(num * 100)
+  }
+  return Math.round(num)
+}
+
+function mapEventToStatus(eventType: string): string {
+  switch (eventType) {
+    case 'payment_approved': return 'approved'
+    case 'payment_refunded': return 'refunded'
+    case 'payment_refused':
+    case 'payment_cancelled': return 'refused'
+    default: return 'pending'
+  }
+}
