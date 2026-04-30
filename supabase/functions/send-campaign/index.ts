@@ -1808,28 +1808,31 @@ serve(async (req) => {
       // If target audience is 0 (edge case), use the current batch as reference
       const effectiveTarget = totalTargetContacts > 0 ? totalTargetContacts : totalProcessed;
 
-      if (totalTargetContacts > 0 && totalProcessed < totalTargetContacts) {
-        // Still missing contacts - DO NOT mark as completed
-        const missingContacts = campaignTargetContacts.slice(totalProcessed);
-        console.log(`⚠️ Campaign ${campaignId}: blocking completion because only ${totalProcessed}/${totalTargetContacts} contacts were processed. Re-invoking ${missingContacts.length} missing contacts.`);
+      if (totalTargetContacts > 0) {
+        // Still missing accepted contacts - DO NOT mark as completed.
+        // Use phone keys instead of array position so stalled/duplicate batches resume the real remainder.
+        const missingContacts = await getRemainingAudienceContacts(supabase, campaignId, campaignTargetContacts);
+        if (missingContacts.length > 0) {
+          console.log(`⚠️ Campaign ${campaignId}: blocking completion because ${missingContacts.length}/${totalTargetContacts} contacts are still not accepted. Re-invoking missing contacts.`);
 
-        const continuationSuccess = await queueContinuation(missingContacts, currentBatch.length);
-        if (!continuationSuccess) {
-          await sleep(2000);
-          const retrySuccess = await queueContinuation(missingContacts, currentBatch.length);
-          if (!retrySuccess) {
-            console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}. ${missingContacts.length} contacts not processed.`);
+          const continuationSuccess = await queueContinuation(missingContacts, currentBatch.length);
+          if (!continuationSuccess) {
+            await sleep(2000);
+            const retrySuccess = await queueContinuation(missingContacts, currentBatch.length);
+            if (!retrySuccess) {
+              console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}. ${missingContacts.length} contacts not processed.`);
+            }
           }
-        }
 
-        return new Response(JSON.stringify({
-          success: true,
-          message: 'Missing contacts queued before completion',
-          campaignId,
-          processed: currentBatch.length,
-          remaining: missingContacts.length,
-          results,
-        }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Missing contacts queued before completion',
+            campaignId,
+            processed: currentBatch.length,
+            remaining: missingContacts.length,
+            results,
+          }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
       }
 
       if (totalProcessed === 0 || (actualDeliveries === 0 && awaitingCallbackCount === 0)) {
