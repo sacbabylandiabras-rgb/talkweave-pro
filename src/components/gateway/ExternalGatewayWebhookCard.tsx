@@ -23,7 +23,7 @@ export function ExternalGatewayWebhookCard() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("external_gateway_tokens")
         .select("token")
         .eq("user_id", user.id)
@@ -32,7 +32,7 @@ export function ExternalGatewayWebhookCard() {
         setToken(data.token);
       } else {
         const newTok = generateToken();
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("external_gateway_tokens")
           .insert({ user_id: user.id, token: newTok });
         if (!error) setToken(newTok);
