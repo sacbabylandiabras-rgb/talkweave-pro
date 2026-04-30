@@ -87,8 +87,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-planos", label: "Planos de Pagamento", icon: CreditCard, path: "/telegram/planos" },
-  { id: "tg-redirect", label: "Botões de Redirecionamento", icon: Share2, path: "/telegram/redirecionamento" },
   { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
   { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
   { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
@@ -110,6 +108,8 @@ const telegramMenuItems = [
 const telegramBotSubItems = [
   { id: "tg-criar-bot", label: "Criar novo bot", icon: Bot, path: "/telegram/criar-bot" },
   { id: "tg-atualizar-bot", label: "Atualizar bot", icon: CloudUpload, path: "/telegram/atualizar-bot" },
+  { id: "tg-planos", label: "Planos de pagamento", icon: CreditCard, path: "/telegram/planos" },
+  { id: "tg-redirect", label: "Botões de redirecionamento", icon: Share2, path: "/telegram/redirecionamento" },
 ];
 
 const metaMenuItems = [
