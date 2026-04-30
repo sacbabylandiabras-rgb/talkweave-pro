@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
               // Yampi
               "seguro\\.[a-z0-9-]+\\.com\\.br", "checkout\\.yampi\\.com\\.br", "[a-z0-9-]+\\.pages\\.yampi\\.com\\.br",
               // Ticto
-              "checkout\\.ticto\\.com\\.br", "payment\\.ticto\\.com\\.br",
+              "checkout\\.ticto\\.com\\.br", "payment\\.ticto\\.com\\.br", "checkout\\.ticto\\.app", "pay\\.ticto\\.app",
               // Hubla
               "pay\\.hub\\.la", "checkout\\.hub\\.la", "hub\\.la/checkout",
               // Greenn
