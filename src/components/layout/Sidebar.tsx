@@ -88,9 +88,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-remarketing", label: "Remarketing", icon: Repeat, path: "/telegram/remarketing" },
-  { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
-  { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
   { id: "tg-integracoes", label: "Integrações", icon: PlugZap, path: "/telegram/integracoes" },
   { id: "tg-traqueamento", label: "Traqueamento", icon: Target, path: "/telegram/traqueamento" },
   { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
@@ -115,6 +112,11 @@ const telegramResultadosSubItems = [
   { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
   { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas" },
   { id: "tg-chat", label: "Chat ao vivo", icon: MessagesSquare, path: "/telegram/chat" },
+];
+
+const telegramRemarketingSubItems = [
+  { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
+  { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
 ];
 
 const metaMenuItems = [
@@ -173,6 +175,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   );
   const [resultadosOpen, setResultadosOpen] = useState(
     ["tg-contatos", "tg-vendas", "tg-chat"].includes(activeItem),
+  );
+  const [remarketingOpen, setRemarketingOpen] = useState(
+    ["tg-alertas", "tg-downsell"].includes(activeItem),
   );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
