@@ -605,6 +605,46 @@ const getBatchSizeForDelay = (delayMs: number) => {
   return Math.max(MIN_BATCH_SIZE, Math.min(MAX_BATCH_SIZE, Math.floor(MAX_BATCH_RUNTIME_MS / estimatedPerContactMs)));
 };
 
+const normalizeCampaignPhoneKey = (phone?: string | null) => {
+  if (!phone) return '';
+  return String(phone).replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
+const getRemainingAudienceContacts = async (
+  supabase: any,
+  campaignId: string,
+  targetContacts: SendCampaignRequest['contacts'],
+) => {
+  const acceptedPhones = new Set<string>();
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('campaign_sends')
+      .select('phone, status')
+      .eq('campaign_id', campaignId)
+      .in('status', ['pending', 'sent', 'delivered'])
+      .range(from, from + pageSize - 1);
+
+    if (error || !data || data.length === 0) break;
+    for (const send of data) {
+      const phoneKey = normalizeCampaignPhoneKey(send.phone);
+      if (phoneKey) acceptedPhones.add(phoneKey);
+    }
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  const remaining = new Map<string, SendCampaignRequest['contacts'][number]>();
+  for (const contact of targetContacts) {
+    const phoneKey = normalizeCampaignPhoneKey(contact.phone);
+    if (!phoneKey || acceptedPhones.has(phoneKey) || remaining.has(phoneKey)) continue;
+    remaining.set(phoneKey, contact);
+  }
+  return Array.from(remaining.values());
+};
+
 // Best-effort fetch: retries on network errors and HTTP 5xx (UAZAPI server hiccups).
 // Returns the final Response or throws on definitive network failure after all retries.
 const fetchUazapiWithRetry = async (
