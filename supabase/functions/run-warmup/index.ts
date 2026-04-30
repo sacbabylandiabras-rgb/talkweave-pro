@@ -68,7 +68,11 @@ serve(async (req: Request) => {
         console.log("warmup control check failed:", error.message);
         return false;
       }
-      return data?.active === true && (!runId || data.run_id === runId);
+      if (!data) {
+        console.log("warmup control missing: defaulting to paused");
+        return false;
+      }
+      return data.active === true && !!runId && data.run_id === runId;
     };
 
     if (!(await isRunAllowed())) {
@@ -528,7 +532,8 @@ serve(async (req: Request) => {
               await ensureMutualContact(apiUrl, apiToken, donor.instance_name || "", donorPhone, targetInstForContact);
             }
 
-            const res = await fetch(`${apiUrl}/send/text`, {
+              if (!(await isRunAllowed())) return;
+              const res = await fetch(`${apiUrl}/send/text`, {
               method: "POST",
               headers: { "Content-Type": "application/json", token: apiToken },
               body: JSON.stringify({ number: target, text: question }),
