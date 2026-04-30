@@ -9,7 +9,6 @@ const formatBRL = (cents: number) =>
 export function RevenueMetrics() {
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState({ pixGenerated: 0, approved: 0 });
-  const [hasTransactions, setHasTransactions] = useState(false);
   const [msgPerSale, setMsgPerSale] = useState<{ messages: number; sales: number }>({ messages: 0, sales: 0 });
 
   const loadRevenue = useCallback(async () => {
@@ -21,7 +20,6 @@ export function RevenueMetrics() {
       let approved = 0;
       let approvedSalesCount = 0;
       let from = 0;
-      let totalCount = 0;
       const pageSize = 1000;
       while (true) {
         const { data, error } = await supabase
@@ -30,7 +28,6 @@ export function RevenueMetrics() {
           .eq("user_id", user.id)
           .range(from, from + pageSize - 1);
         if (error || !data || data.length === 0) break;
-        totalCount += data.length;
         for (const t of data) {
           pixGenerated += t.amount || 0;
           if (t.status === "approved" || t.status === "paid") {
@@ -51,7 +48,6 @@ export function RevenueMetrics() {
           .eq("user_id", user.id)
           .range(extFrom, extFrom + pageSize - 1);
         if (error || !data || data.length === 0) break;
-        totalCount += data.length;
         for (const t of data as Array<{ amount: number; status: string }>) {
           pixGenerated += t.amount || 0;
           if (t.status === "approved" || t.status === "paid") {
@@ -71,7 +67,6 @@ export function RevenueMetrics() {
         .in("status", ["sent", "delivered", "read"]);
 
       setRevenue({ pixGenerated, approved });
-      setHasTransactions(totalCount > 0);
       setMsgPerSale({ messages: msgCount || 0, sales: approvedSalesCount });
     } catch (e) {
       console.error("Error loading revenue:", e);
@@ -107,9 +102,6 @@ export function RevenueMetrics() {
       </div>
     );
   }
-
-  // Hide cards entirely for users that don't use the gateway
-  if (!hasTransactions) return null;
 
   const ratio = msgPerSale.messages > 0
     ? (msgPerSale.sales / msgPerSale.messages)
