@@ -32,3 +32,5 @@ verify_jwt = false
 
 [functions.telegram-poll-bots]
 verify_jwt = false
+[functions.landing-page]
+verify_jwt = false

@@ -27,6 +27,13 @@ interface LandingPage {
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
 
+const buildLandingUrl = (pageId: string, fileName?: string | null) => {
+  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/landing-page/${pageId}`;
+  if (!fileName) return base;
+  const encodedPath = fileName.split("/").map(encodeURIComponent).join("/");
+  return `${base}/${encodedPath}`;
+};
+
 export default function PayLandingPages() {
   const [pages, setPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,8 +173,8 @@ export default function PayLandingPages() {
   };
 
   const entryUrl = (page: LandingPage) => {
-    if (!page.entry_file) return null;
-    return page.files.find((f) => f.name === page.entry_file)?.url || page.files[0]?.url || null;
+    const entry = page.entry_file || page.files[0]?.name;
+    return entry ? buildLandingUrl(page.id, entry) : null;
   };
 
   return (
