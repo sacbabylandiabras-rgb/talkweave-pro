@@ -94,6 +94,7 @@ import TelegramDashboard from "./pages/telegram/TelegramDashboard";
 import TelegramAlertas from "./pages/telegram/TelegramAlertas";
 import TelegramDownsell from "./pages/telegram/TelegramDownsell";
 import TelegramIntegracoes from "./pages/telegram/TelegramIntegracoes";
+import TelegramLinksTraqueamento from "./pages/telegram/TelegramLinksTraqueamento";
 import DashboardInstagram from "./pages/instagram/DashboardInstagram";
 import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
@@ -189,7 +190,7 @@ const App = () => (
                   <Route path="/telegram/downsell" element={<TelegramDownsell />} />
                   <Route path="/telegram/integracoes" element={<TelegramIntegracoes />} />
                   <Route path="/telegram/traqueamento" element={<TelegramPlaceholder title="Traqueamento" description="Configure pixels e eventos de conversão." />} />
-                  <Route path="/telegram/links-traqueamento" element={<TelegramPlaceholder title="Links de Traqueamento" description="Gere links rastreáveis para campanhas." />} />
+                  <Route path="/telegram/links-traqueamento" element={<TelegramLinksTraqueamento />} />
                   <Route path="/telegram/links-utm" element={<TelegramPlaceholder title="Links UTM" description="Construa links com parâmetros UTM personalizados." />} />
                   <Route path="/gateway-checkout/products" element={<KycWrap><PayProducts /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts" element={<KycWrap><PayCheckouts /></KycWrap>} />
