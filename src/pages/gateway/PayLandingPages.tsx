@@ -387,7 +387,7 @@ export default function PayLandingPages() {
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">Checkout vinculado:</span>
                         <Select
-                          value={p.checkout_id || "none"}
+                          value={p.checkout_id || p.slug || "none"}
                           onValueChange={(v) => updateCheckoutLink(p.id, v === "none" ? null : v)}
                         >
                           <SelectTrigger className="h-8 w-[260px] text-xs">
