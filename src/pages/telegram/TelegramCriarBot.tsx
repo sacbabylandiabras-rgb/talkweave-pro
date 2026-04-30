@@ -140,7 +140,7 @@ export default function TelegramCriarBot() {
   }
 
   return (
-    <div className="space-y-6 w-full pb-24">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div>
         <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">
