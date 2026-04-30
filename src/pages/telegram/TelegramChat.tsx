@@ -22,41 +22,16 @@ interface Conversation {
   messages: ChatMsg[];
 }
 
-const MOCK: Conversation[] = [
-  {
-    id: "1", name: "João Silva", username: "@joaosilva", last_msg: "Beleza, vou tentar agora!", last_time: "10:42",
-    unread: 2, online: true, status: "vip",
-    messages: [
-      { id: "m1", from: "them", text: "Olá, comprei o plano mas não recebi o link", time: "10:30" },
-      { id: "m2", from: "me", text: "Oi João! Já vou verificar pra você.", time: "10:32" },
-      { id: "m3", from: "me", text: "Acabei de reenviar, dá uma olhada no chat com o bot.", time: "10:40" },
-      { id: "m4", from: "them", text: "Beleza, vou tentar agora!", time: "10:42" },
-    ],
-  },
-  {
-    id: "2", name: "Maria Souza", username: "@mariasz", last_msg: "Obrigada!!", last_time: "09:15",
-    unread: 0, online: false, status: "lead",
-    messages: [
-      { id: "m1", from: "them", text: "Como faço pra entrar no VIP?", time: "09:10" },
-      { id: "m2", from: "me", text: "É só clicar no botão /vip lá no bot 😉", time: "09:12" },
-      { id: "m3", from: "them", text: "Obrigada!!", time: "09:15" },
-    ],
-  },
-  {
-    id: "3", name: "Pedro Lima", username: "@pedrolima", last_msg: "Quando renova?", last_time: "Ontem",
-    unread: 1, online: false, status: "vip",
-    messages: [{ id: "m1", from: "them", text: "Quando renova?", time: "Ontem" }],
-  },
-];
+const MOCK: Conversation[] = [];
 
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>(MOCK);
-  const [activeId, setActiveId] = useState<string>(MOCK[0].id);
+  const [activeId, setActiveId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const active = convs.find((c) => c.id === activeId)!;
+  const active = convs.find((c) => c.id === activeId);
 
   const filtered = convs.filter((c) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.username.toLowerCase().includes(search.toLowerCase()),
@@ -64,10 +39,10 @@ export default function TelegramChat() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [activeId, active.messages.length]);
+  }, [activeId, active?.messages.length]);
 
   function send() {
-    if (!draft.trim()) return;
+    if (!draft.trim() || !active) return;
     const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora" };
     setConvs((prev) => prev.map((c) => c.id === activeId
       ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
@@ -95,7 +70,11 @@ export default function TelegramChat() {
               </div>
             </div>
             <ScrollArea className="flex-1">
-              {filtered.map((c) => (
+              {filtered.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  Nenhuma conversa.
+                </div>
+              ) : filtered.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setActiveId(c.id)}
@@ -125,7 +104,9 @@ export default function TelegramChat() {
 
           {/* Conversa */}
           <div className="flex flex-col">
-            <div className="p-3 border-b flex items-center justify-between">
+            {active ? (
+              <>
+                <div className="p-3 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="w-9 h-9"><AvatarFallback>{active.name.charAt(0)}</AvatarFallback></Avatar>
                 <div>
@@ -167,16 +148,17 @@ export default function TelegramChat() {
               />
               <Button onClick={send} disabled={!draft.trim()}><Send className="w-4 h-4" /></Button>
             </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/20">
+                <MessageCircle className="w-12 h-12 text-muted-foreground opacity-40 mb-3" />
+                <p className="text-sm text-muted-foreground">Selecione uma conversa para começar.</p>
+                <p className="text-xs text-muted-foreground mt-1">Quando seus usuários enviarem mensagens ao bot, elas aparecerão aqui.</p>
+              </div>
+            )}
           </div>
         </div>
       </Card>
-
-      {convs.length === 0 && (
-        <Card className="p-12 text-center">
-          <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-3" />
-          <p className="text-sm text-muted-foreground">Nenhuma conversa ainda.</p>
-        </Card>
-      )}
     </div>
   );
 }
