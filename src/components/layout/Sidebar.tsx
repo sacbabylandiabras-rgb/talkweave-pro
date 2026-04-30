@@ -113,7 +113,7 @@ const telegramExtrasSubItems = [
 
 const telegramResultadosSubItems = [
   { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
-  { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas", badge: "NOVO" },
+  { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas" },
   { id: "tg-chat", label: "Chat ao vivo", icon: MessagesSquare, path: "/telegram/chat" },
 ];
 
@@ -439,12 +439,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                       {!collapsed && (
                         <>
                           <span className="truncate flex-1 text-left">Resultados</span>
-                          <span className="rounded-full bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 leading-none">
-                            NOVO
-                          </span>
                           <ChevronDown
                             className={cn(
-                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ml-1",
+                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
                               resultadosOpen && "rotate-180",
                             )}
                           />
