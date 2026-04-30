@@ -167,6 +167,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const [botOpen, setBotOpen] = useState(
     ["tg-criar-bot", "tg-atualizar-bot", "tg-planos", "tg-redirect"].includes(activeItem),
   );
+  const [extrasOpen, setExtrasOpen] = useState(
+    ["tg-admins", "tg-grupos-canais", "tg-canal-free", "tg-tarefas-afiliados", "tg-referencia"].includes(activeItem),
+  );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
 
