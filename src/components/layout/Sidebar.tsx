@@ -259,7 +259,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   return (
     <div className={cn(
       "glass-sidebar h-screen flex flex-col transition-all duration-300 ease-in-out relative z-10",
-      collapsed ? "w-[60px]" : "w-[180px]"
+      collapsed ? "w-[60px]" : "w-[220px]"
     )}>
       {/* Logo + Brand */}
       <div className={cn(
