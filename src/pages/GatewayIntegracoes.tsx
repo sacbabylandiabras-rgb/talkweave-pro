@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Webhook, Plus, Trash2, RefreshCw, Copy, Pencil, MessageSquare, History, GitBranch, Smartphone, Zap, CheckCircle2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import IntegrationFlowEditor from "@/components/gateway/IntegrationFlowEditor";
+import { ExternalGatewayWebhookCard } from "@/components/gateway/ExternalGatewayWebhookCard";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
@@ -227,6 +228,8 @@ const GatewayIntegracoes = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-foreground">Integração</h1>
+
+      <ExternalGatewayWebhookCard />
 
       {/* URL Card */}
       <Card>

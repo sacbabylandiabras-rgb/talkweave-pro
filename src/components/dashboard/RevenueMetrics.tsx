@@ -38,6 +38,27 @@ export function RevenueMetrics() {
         if (data.length < pageSize) break;
         from += pageSize;
       }
+
+      // Also include external gateways (Hotmart, Kiwify, etc.) via webhook
+      let extFrom = 0;
+      while (true) {
+        const { data, error } = await (supabase as any)
+          .from("external_gateway_events")
+          .select("amount, status")
+          .eq("user_id", user.id)
+          .range(extFrom, extFrom + pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        totalCount += data.length;
+        for (const t of data as Array<{ amount: number; status: string }>) {
+          pixGenerated += t.amount || 0;
+          if (t.status === "approved" || t.status === "paid") {
+            approved += t.amount || 0;
+          }
+        }
+        if (data.length < pageSize) break;
+        extFrom += pageSize;
+      }
+
       setRevenue({ pixGenerated, approved });
       setHasTransactions(totalCount > 0);
     } catch (e) {

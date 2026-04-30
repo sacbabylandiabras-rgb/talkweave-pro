@@ -58,6 +58,59 @@ serve(async (req) => {
       status: 'received',
     })
 
+    // Also persist as an external gateway event (so dashboard cards reflect it)
+    try {
+      const amountCents = extractAmountCents(payload)
+      const externalStatus = mapEventToStatus(eventType)
+      const externalId = transactionId || extractAnyId(payload)
+      const customerEmail = extractEmail(payload)
+
+      if (externalId) {
+        const { data: existing } = await supabase
+          .from('external_gateway_events')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('external_id', externalId)
+          .maybeSingle()
+        if (existing) {
+          await supabase.from('external_gateway_events').update({
+            status: externalStatus,
+            amount: amountCents,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: phone,
+            raw_payload: payload,
+            updated_at: new Date().toISOString(),
+          }).eq('id', existing.id)
+        } else {
+          await supabase.from('external_gateway_events').insert({
+            user_id: userId,
+            external_id: externalId,
+            status: externalStatus,
+            amount: amountCents,
+            source: 'webhook',
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: phone,
+            raw_payload: payload,
+          })
+        }
+      } else {
+        await supabase.from('external_gateway_events').insert({
+          user_id: userId,
+          status: externalStatus,
+          amount: amountCents,
+          source: 'webhook',
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: phone,
+          raw_payload: payload,
+        })
+      }
+    } catch (e) {
+      console.error('external_gateway_events persist error:', e)
+    }
+
     if (!phone) {
       console.log('Sem telefone no payload, apenas registrando')
       return new Response(JSON.stringify({ ok: true, message: 'logged, no phone found' }), {
@@ -444,4 +497,62 @@ function extractTransactionId(payload: any): string | null {
   const s = String(id)
   // Only accept UUID-ish (gateway_transactions.id is uuid)
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) ? s : null
+}
+
+function extractAnyId(payload: any): string | null {
+  const id =
+    payload?.transaction?.id ||
+    payload?.data?.transaction?.id ||
+    payload?.transaction_id ||
+    payload?.data?.transaction_id ||
+    payload?.order_id ||
+    payload?.data?.order_id ||
+    payload?.purchase?.transaction ||
+    payload?.id ||
+    payload?.code ||
+    null
+  return id ? String(id) : null
+}
+
+function extractEmail(payload: any): string | null {
+  return (
+    payload?.customer?.email ||
+    payload?.buyer?.email ||
+    payload?.client?.email ||
+    payload?.email ||
+    payload?.customer_email ||
+    payload?.data?.customer?.email ||
+    null
+  )
+}
+
+function extractAmountCents(payload: any): number {
+  const raw =
+    payload?.amount ??
+    payload?.value ??
+    payload?.valor ??
+    payload?.transaction?.amount ??
+    payload?.payment?.amount ??
+    payload?.data?.amount ??
+    payload?.purchase?.price?.value ??
+    payload?.total ??
+    null
+  if (raw == null) return 0
+  const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^\d.,-]/g, '').replace(',', '.'))
+  if (isNaN(num)) return 0
+  // Heuristic: small numbers or with decimal separator → reais (convert to cents)
+  if (num < 1000 || String(raw).includes('.') || String(raw).includes(',')) {
+    return Math.round(num * 100)
+  }
+  return Math.round(num)
+}
+
+function mapEventToStatus(eventType: string): string {
+  switch (eventType) {
+    case 'payment_approved': return 'approved'
+    case 'payment_refunded': return 'refunded'
+    case 'payment_refused':
+    case 'payment_cancelled': return 'refused'
+    default: return 'pending'
+  }
 }
