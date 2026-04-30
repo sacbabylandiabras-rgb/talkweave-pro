@@ -531,6 +531,59 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                 )}
               </li>
 
+              {/* Grupo expansível "Integrações" */}
+              <li>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setIntegracoesOpen((v) => !v)}
+                      className={cn(
+                        "group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 sidebar-item border border-transparent",
+                        collapsed && "justify-center px-2",
+                      )}
+                    >
+                      <PlugZap
+                        className={cn(
+                          "shrink-0 transition-colors duration-200",
+                          collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+                          integracoesOpen
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground",
+                        )}
+                      />
+                      {!collapsed && (
+                        <>
+                          <span className="truncate flex-1 text-left">Integrações</span>
+                          <ChevronDown
+                            className={cn(
+                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+                              integracoesOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Integrações
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+
+                {integracoesOpen && !collapsed && (
+                  <ul className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {telegramIntegracoesSubItems.map(renderItem)}
+                  </ul>
+                )}
+                {integracoesOpen && collapsed && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {telegramIntegracoesSubItems.map(renderItem)}
+                  </ul>
+                )}
+              </li>
+
               {/* Restante dos itens do Telegram */}
               {telegramMenuItems.slice(1).map(renderItem)}
             </ul>
