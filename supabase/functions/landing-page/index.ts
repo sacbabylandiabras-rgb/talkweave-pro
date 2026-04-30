@@ -143,6 +143,73 @@ Deno.serve(async (req) => {
               .replace(/href=(['"])(#checkout|about:checkout|javascript:checkout\(\))\1/gi, `href=$1${checkoutUrl}$1`)
               .replace(/action=(['"])(#checkout|about:checkout)\1/gi, `action=$1${checkoutUrl}$1`)
               .replace(/data-checkout-link=(['"])[^'"]*\1/gi, `data-checkout-link=$1${checkoutUrl}$1 href=$1${checkoutUrl}$1`);
+
+            // Auto-replace external checkout/payment platform URLs with the linked checkout
+            // Detects domains commonly used by Hotmart, Kiwify, Eduzz, Monetizze, Braip,
+            // PerfectPay, Cakto, Yampi, Ticto, Hubla, Greenn, Doppus, Lastlink, Pepper,
+            // Adoorei, Payt, Guru/Digital Manager Guru, Voomp, Kirvano, Stripe, etc.
+            const externalCheckoutDomains = [
+              // Hotmart
+              "pay\\.hotmart\\.com", "checkout\\.hotmart\\.com", "hotmart\\.com/product",
+              // Kiwify
+              "pay\\.kiwify\\.com\\.br", "pay\\.kiwify\\.com", "kiwify\\.com\\.br/checkout", "kiwify\\.app",
+              // Eduzz
+              "sun\\.eduzz\\.com", "chk\\.eduzz\\.com", "checkout\\.eduzz\\.com",
+              // Monetizze
+              "app\\.monetizze\\.com\\.br/checkout", "monetizze\\.com\\.br/checkout",
+              // Braip
+              "ev\\.braip\\.com", "checkout\\.braip\\.co", "braip\\.com/checkout",
+              // PerfectPay
+              "go\\.perfectpay\\.com\\.br", "pay\\.perfectpay\\.com\\.br", "checkout\\.perfectpay\\.com\\.br",
+              // Cakto
+              "pay\\.cakto\\.com\\.br", "checkout\\.cakto\\.com\\.br",
+              // Yampi
+              "seguro\\.[a-z0-9-]+\\.com\\.br", "checkout\\.yampi\\.com\\.br", "[a-z0-9-]+\\.pages\\.yampi\\.com\\.br",
+              // Ticto
+              "checkout\\.ticto\\.com\\.br", "payment\\.ticto\\.com\\.br",
+              // Hubla
+              "pay\\.hub\\.la", "checkout\\.hub\\.la", "hub\\.la/checkout",
+              // Greenn
+              "checkout\\.greenn\\.com\\.br", "pay\\.greenn\\.com\\.br",
+              // Doppus
+              "checkout\\.doppus\\.app", "pay\\.doppus\\.app",
+              // Lastlink
+              "lastlink\\.com/p", "checkout\\.lastlink\\.com",
+              // Pepper
+              "checkout\\.pepper\\.com\\.br",
+              // Adoorei
+              "checkout\\.adoorei\\.com\\.br", "pay\\.adoorei\\.com\\.br",
+              // Payt
+              "checkout\\.payt\\.com\\.br",
+              // Guru / Digital Manager Guru
+              "clkdmg\\.site", "[a-z0-9-]+\\.dmg\\.com\\.br/checkout",
+              // Voomp
+              "checkout\\.voompplay\\.com", "pay\\.voompplay\\.com",
+              // Kirvano
+              "pay\\.kirvano\\.com", "checkout\\.kirvano\\.com",
+              // Nuvemshop
+              "[a-z0-9-]+\\.nuvemshop\\.com\\.br/checkout",
+              // Stripe / Paddle / Generic
+              "buy\\.stripe\\.com", "checkout\\.stripe\\.com",
+              "pay\\.paddle\\.com", "buy\\.paddle\\.com",
+            ];
+
+            const externalCheckoutRegex = new RegExp(
+              `(href|action|data-href|data-url|data-link)=(['"])https?:\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\s]*\\2`,
+              "gi"
+            );
+            processed = processed.replace(externalCheckoutRegex, (_m, attr, quote) => {
+              return `${attr}=${quote}${checkoutUrl}${quote}`;
+            });
+
+            // Also rewrite inline JS redirects (window.location = "https://pay.hotmart.com/...")
+            const jsRedirectRegex = new RegExp(
+              `(['"\\\`])https?:\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\\`\\s]*\\1`,
+              "gi"
+            );
+            processed = processed.replace(jsRedirectRegex, (_m, quote) => {
+              return `${quote}${checkoutUrl}${quote}`;
+            });
           }
         } catch (_e) {
           // ignore checkout resolve errors
