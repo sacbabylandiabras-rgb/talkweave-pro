@@ -24,12 +24,7 @@ interface Sale {
   expires_at: string;
 }
 
-const MOCK: Sale[] = [
-  { id: "TX-1001", contact_name: "João Silva", username: "@joaosilva", plan: "VIP Mensal", value: 47, status: "aprovada", payment_method: "pix", date: "2026-04-30", expires_at: "2026-05-30" },
-  { id: "TX-1002", contact_name: "Maria Souza", username: "@mariasz", plan: "VIP Trimestral", value: 127, status: "aprovada", payment_method: "cartao", date: "2026-04-29", expires_at: "2026-07-29" },
-  { id: "TX-1003", contact_name: "Pedro Lima", username: "@pedrolima", plan: "VIP Mensal", value: 47, status: "pendente", payment_method: "pix", date: "2026-04-30", expires_at: "—" },
-  { id: "TX-1004", contact_name: "Ana Costa", username: "@anacosta", plan: "VIP Anual", value: 397, status: "estornada", payment_method: "cartao", date: "2026-04-25", expires_at: "—" },
-];
+const MOCK: Sale[] = [];
 
 const STATUS: Record<Sale["status"], { label: string; cls: string }> = {
   aprovada: { label: "Aprovada", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
