@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const cycleId = crypto.randomUUID();
 
     const isRunAllowed = async () => {
-      if (!runId) return true;
+      if (!runId) return false;
       const { data, error } = await admin
         .from("warmup_user_controls")
         .select("active, run_id")
@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
         const secondText = convo.answer || pickRandom(autoReplies);
         let res;
         try {
+          if (!(await isRunAllowed())) break;
           res = await sendInGroup(sender, groupJid, firstText);
         } catch (e: any) {
           res = { ok: false, status: 0, body: e?.message || "send threw" };
@@ -252,6 +253,7 @@ Deno.serve(async (req) => {
         }
         if (res.ok) {
           await new Promise((r) => setTimeout(r, 1200 + Math.random() * 2500));
+          if (!(await isRunAllowed())) break;
           if (!(await isRunAllowed())) break;
           const replyRes = await sendInGroup(responder, groupJid, secondText);
           const replyName = responder.instance_name || responder.name || "";
