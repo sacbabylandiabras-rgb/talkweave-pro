@@ -595,7 +595,15 @@ const dispatchUazapiSpecial = async (
   }
 };
 
-const BATCH_SIZE = 50; // Process 50 contacts per invocation
+const MAX_BATCH_SIZE = 50;
+const MIN_BATCH_SIZE = 3;
+const MAX_BATCH_RUNTIME_MS = 85_000;
+
+const getBatchSizeForDelay = (delayMs: number) => {
+  const safeDelayMs = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 2000;
+  const estimatedPerContactMs = Math.max(safeDelayMs + 2500, 3000);
+  return Math.max(MIN_BATCH_SIZE, Math.min(MAX_BATCH_SIZE, Math.floor(MAX_BATCH_RUNTIME_MS / estimatedPerContactMs)));
+};
 
 // Best-effort fetch: retries on network errors and HTTP 5xx (UAZAPI server hiccups).
 // Returns the final Response or throws on definitive network failure after all retries.
@@ -972,7 +980,7 @@ serve(async (req) => {
       const newRotationOffset = (rotationOffset + processedInThisRun) % (rotatePool.length || 1);
 
       try {
-        const reInvokeResponse = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+        const continuationPromise = fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -986,11 +994,20 @@ serve(async (req) => {
             _isContinuation: true,
             _userId: credentials.userId,
           }),
-        });
+        })
+          .then(async (reInvokeResponse) => {
+            if (!reInvokeResponse.ok) {
+              const errorBody = await reInvokeResponse.text().catch(() => '');
+              console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${errorBody}`);
+            }
+          })
+          .catch((reError) => {
+            console.error(`❌ Re-invocation failed:`, reError);
+          });
 
-        if (!reInvokeResponse.ok) {
-          console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${await reInvokeResponse.text()}`);
-          return false;
+        const edgeRuntime = (globalThis as any).EdgeRuntime;
+        if (edgeRuntime?.waitUntil) {
+          edgeRuntime.waitUntil(continuationPromise);
         }
 
         return true;
