@@ -185,10 +185,15 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         const trulyDelivered = effectiveTotal > 0 && delivered >= effectiveTotal;
         setIsComplete(trulyDelivered);
         if (!trulyDelivered) {
-          await supabase
-            .from('campaigns')
-            .update({ status: sending + pending > 0 ? 'active' : 'paused', updated_at: new Date().toISOString() })
-            .eq('id', campaignId);
+          // Não rebaixar para "paused" só porque alguns callbacks ainda não chegaram.
+          // Mensagens com status "sent" estão aguardando confirmação do WhatsApp e não
+          // significam falha. Só voltamos para "active" se ainda há trabalho real pendente.
+          if (sending + pending > 0) {
+            await supabase
+              .from('campaigns')
+              .update({ status: 'active', updated_at: new Date().toISOString() })
+              .eq('id', campaignId);
+          }
         }
         } else if (campaignData?.status === 'active') {
         setIsComplete(false);
