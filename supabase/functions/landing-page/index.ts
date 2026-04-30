@@ -115,9 +115,9 @@ Deno.serve(async (req) => {
       "X-Content-Type-Options": "nosniff",
     });
 
-    if (contentType.startsWith("text/html")) {
-      const html = await blob.text();
-      return new Response(rewriteRelativeUrls(html, pageId, file.name), { headers });
+    if (contentType.startsWith("text/html") || contentType.startsWith("text/css")) {
+      const text = await blob.text();
+      return new Response(rewriteRelativeUrls(text, pageId, file.name), { headers });
     }
 
     return new Response(blob, { headers });
