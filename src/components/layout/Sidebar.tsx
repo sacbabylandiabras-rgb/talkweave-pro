@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Bot,
+  ChevronDown,
   Link2,
   FileCheck,
   CloudUpload,
@@ -86,8 +87,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-criar-bot", label: "Criar Bot", icon: Bot, path: "/telegram/criar-bot" },
-  { id: "tg-atualizar-bot", label: "Atualizar Bot", icon: CloudUpload, path: "/telegram/atualizar-bot" },
   { id: "tg-planos", label: "Planos de Pagamento", icon: CreditCard, path: "/telegram/planos" },
   { id: "tg-redirect", label: "Botões de Redirecionamento", icon: Share2, path: "/telegram/redirecionamento" },
   { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
@@ -106,6 +105,11 @@ const telegramMenuItems = [
   { id: "tg-traqueamento", label: "Traqueamento", icon: Target, path: "/telegram/traqueamento" },
   { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
   { id: "tg-links-utm", label: "Links UTM", icon: LinkIcon, path: "/telegram/links-utm" },
+];
+
+const telegramBotSubItems = [
+  { id: "tg-criar-bot", label: "Criar novo bot", icon: Bot, path: "/telegram/criar-bot" },
+  { id: "tg-atualizar-bot", label: "Atualizar bot", icon: CloudUpload, path: "/telegram/atualizar-bot" },
 ];
 
 const metaMenuItems = [
@@ -156,6 +160,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isNative } = useDeviceType();
   const { isPaid } = useSubscriptionStatus();
   const [collapsed, setCollapsed] = useState(false);
+  const [botOpen, setBotOpen] = useState(
+    activeItem === "tg-criar-bot" || activeItem === "tg-atualizar-bot",
+  );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
 
@@ -281,7 +288,64 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
               </div>
             )}
             <ul className="space-y-0.5">
-              {telegramMenuItems.map(renderItem)}
+              {/* Dashboard primeiro */}
+              {renderItem(telegramMenuItems[0])}
+
+              {/* Grupo expansível "Bot" */}
+              <li>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setBotOpen((v) => !v)}
+                      className={cn(
+                        "group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 sidebar-item border border-transparent",
+                        collapsed && "justify-center px-2",
+                      )}
+                    >
+                      <Bot
+                        className={cn(
+                          "shrink-0 transition-colors duration-200",
+                          collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+                          botOpen
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground",
+                        )}
+                      />
+                      {!collapsed && (
+                        <>
+                          <span className="truncate flex-1 text-left">Bot</span>
+                          <ChevronDown
+                            className={cn(
+                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+                              botOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Bot
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+
+                {botOpen && !collapsed && (
+                  <ul className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {telegramBotSubItems.map(renderItem)}
+                  </ul>
+                )}
+                {botOpen && collapsed && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {telegramBotSubItems.map(renderItem)}
+                  </ul>
+                )}
+              </li>
+
+              {/* Restante dos itens do Telegram */}
+              {telegramMenuItems.slice(1).map(renderItem)}
             </ul>
           </>
         )}
