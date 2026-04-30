@@ -361,21 +361,21 @@ export default function TelegramGruposCanais() {
 
       {/* Modal */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editing ? "Editar grupo/canal" : "Adicionar grupo ou canal"}
+              {editing ? "Editar Grupo" : "Criar Grupo"}
             </DialogTitle>
             <DialogDescription>
-              Cadastre o título, link de convite, ID e o tipo (grupo ou canal).
+              Cadastre o título, ID, planos vinculados e link de convite.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="g-title">Título</Label>
+              <Label htmlFor="g-title">Título do Grupo</Label>
               <Input
                 id="g-title"
-                placeholder="Ex: Comunidade VIP"
+                placeholder="Título do Grupo"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={80}
@@ -383,20 +383,10 @@ export default function TelegramGruposCanais() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="g-link">Link de convite</Label>
-              <Input
-                id="g-link"
-                placeholder="https://t.me/+xxxxxxxxx"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="g-id">ID do grupo/canal</Label>
+              <Label htmlFor="g-id">Id do Grupo</Label>
               <Input
                 id="g-id"
-                placeholder="Ex: -1001234567890"
+                placeholder="Id do Grupo"
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
               />
@@ -404,6 +394,67 @@ export default function TelegramGruposCanais() {
                 Use apenas números. IDs de canais costumam começar com{" "}
                 <code className="font-mono text-foreground">-100</code>.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Planos Disponíveis</Label>
+                <span className="text-xs text-muted-foreground">
+                  {planIds.length} plano(s) selecionado(s)
+                </span>
+              </div>
+              <div className="rounded-md border bg-muted/30 min-h-[140px] p-3">
+                {AVAILABLE_PLANS.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-10">
+                    Nenhum plano disponível no momento
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {AVAILABLE_PLANS.map((p) => {
+                      const checked = planIds.includes(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() =>
+                            setPlanIds((prev) =>
+                              checked
+                                ? prev.filter((x) => x !== p.id)
+                                : [...prev, p.id],
+                            )
+                          }
+                          className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition ${
+                            checked
+                              ? "border-primary bg-primary/10"
+                              : "border-border bg-background hover:bg-muted/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">{p.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {p.price}
+                            </span>
+                          </span>
+                          {checked && (
+                            <Check className="w-4 h-4 text-primary" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="g-link">Link do Grupo</Label>
+              <Input
+                id="g-link"
+                placeholder="Link do Grupo"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
