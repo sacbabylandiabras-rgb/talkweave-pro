@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { MetricCard } from "./MetricCard";
-import { DollarSign, Wallet, Loader2 } from "lucide-react";
+import { DollarSign, Wallet, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const formatBRL = (cents: number) =>
@@ -10,6 +10,7 @@ export function RevenueMetrics() {
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState({ pixGenerated: 0, approved: 0 });
   const [hasTransactions, setHasTransactions] = useState(false);
+  const [msgPerSale, setMsgPerSale] = useState<{ messages: number; sales: number }>({ messages: 0, sales: 0 });
 
   const loadRevenue = useCallback(async () => {
     try {
@@ -18,6 +19,7 @@ export function RevenueMetrics() {
 
       let pixGenerated = 0;
       let approved = 0;
+      let approvedSalesCount = 0;
       let from = 0;
       let totalCount = 0;
       const pageSize = 1000;
@@ -33,6 +35,7 @@ export function RevenueMetrics() {
           pixGenerated += t.amount || 0;
           if (t.status === "approved" || t.status === "paid") {
             approved += t.amount || 0;
+            approvedSalesCount += 1;
           }
         }
         if (data.length < pageSize) break;
@@ -53,14 +56,23 @@ export function RevenueMetrics() {
           pixGenerated += t.amount || 0;
           if (t.status === "approved" || t.status === "paid") {
             approved += t.amount || 0;
+            approvedSalesCount += 1;
           }
         }
         if (data.length < pageSize) break;
         extFrom += pageSize;
       }
 
+      // Count messages sent (sent/delivered) for this user
+      const { count: msgCount } = await supabase
+        .from("campaign_sends")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("status", ["sent", "delivered", "read"]);
+
       setRevenue({ pixGenerated, approved });
       setHasTransactions(totalCount > 0);
+      setMsgPerSale({ messages: msgCount || 0, sales: approvedSalesCount });
     } catch (e) {
       console.error("Error loading revenue:", e);
     } finally {
@@ -99,10 +111,23 @@ export function RevenueMetrics() {
   // Hide cards entirely for users that don't use the gateway
   if (!hasTransactions) return null;
 
+  const ratio = msgPerSale.sales > 0
+    ? (msgPerSale.messages / msgPerSale.sales)
+    : null;
+  const ratioLabel = ratio !== null
+    ? `${ratio.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} msg/venda`
+    : "—";
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <MetricCard title="Pix Gerado" value={formatBRL(revenue.pixGenerated)} icon={DollarSign} variant="info" />
       <MetricCard title="Venda Aprovada" value={formatBRL(revenue.approved)} icon={Wallet} variant="success" />
+      <MetricCard
+        title="Mensagens por Venda"
+        value={ratioLabel}
+        icon={Send}
+        variant="info"
+      />
     </div>
   );
 }
