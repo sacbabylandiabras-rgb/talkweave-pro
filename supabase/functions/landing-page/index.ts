@@ -39,13 +39,30 @@ const mimeByExt = (filename: string): string => {
   return map[ext] || "application/octet-stream";
 };
 
+const toAssetUrl = (value: string, pageId: string, dir: string) => {
+  const trimmed = value.trim();
+  if (/^(https?:)?\/\//i.test(trimmed) || /^(data|mailto|tel|blob):/i.test(trimmed) || trimmed.startsWith("#")) {
+    return value;
+  }
+  const clean = trimmed.startsWith("/") ? trimmed.replace(/^\/+/g, "") : `${dir}${trimmed}`;
+  return `/functions/v1/landing-page/${pageId}/${clean}`;
+};
+
 const rewriteRelativeUrls = (html: string, pageId: string, currentFile: string) => {
   const dir = currentFile.includes("/") ? `${currentFile.split("/").slice(0, -1).join("/")}/` : "";
-  const base = `/functions/v1/landing-page/${pageId}/${dir}`;
   return html.replace(
-    /\b(src|href)=(['"])(?!https?:\/\/|\/\/|data:|mailto:|tel:|#|\/)([^'"]+)\2/gi,
-    (_match, attr, quote, value) => `${attr}=${quote}${base}${value}${quote}`,
-  );
+    /\b(src|href|poster|action)=(['"])([^'"]+)\2/gi,
+    (_match, attr, quote, value) => `${attr}=${quote}${toAssetUrl(value, pageId, dir)}${quote}`,
+  ).replace(/\bsrcset=(['"])([^'"]+)\1/gi, (_match, quote, value) => {
+    const rewritten = value.split(",").map((part: string) => {
+      const pieces = part.trim().split(/\s+/);
+      if (!pieces[0]) return part;
+      return [toAssetUrl(pieces[0], pageId, dir), ...pieces.slice(1)].join(" ");
+    }).join(", ");
+    return `srcset=${quote}${rewritten}${quote}`;
+  }).replace(/url\((['"]?)(?!https?:|\/\/|data:|blob:)([^)'"]+)\1\)/gi, (_match, quote, value) => {
+    return `url(${quote}${toAssetUrl(value, pageId, dir)}${quote})`;
+  });
 };
 
 Deno.serve(async (req) => {
@@ -98,9 +115,9 @@ Deno.serve(async (req) => {
       "X-Content-Type-Options": "nosniff",
     });
 
-    if (contentType.startsWith("text/html")) {
-      const html = await blob.text();
-      return new Response(rewriteRelativeUrls(html, pageId, file.name), { headers });
+    if (contentType.startsWith("text/html") || contentType.startsWith("text/css")) {
+      const text = await blob.text();
+      return new Response(rewriteRelativeUrls(text, pageId, file.name), { headers });
     }
 
     return new Response(blob, { headers });
