@@ -2,6 +2,7 @@
   "outputDirectory": "public",
   "rewrites": [
     { "source": "/pay/:slug*", "destination": "/pay.html" },
-    { "source": "/checkout/:slug*", "destination": "/pay.html" }
+    { "source": "/checkout/:slug*", "destination": "/pay.html" },
+    { "source": "/lp/:path*", "destination": "/lp.html" }
   ]
 }
