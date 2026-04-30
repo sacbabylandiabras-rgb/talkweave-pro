@@ -597,7 +597,7 @@ const dispatchUazapiSpecial = async (
 
 const MAX_BATCH_SIZE = 50;
 const MIN_BATCH_SIZE = 3;
-const MAX_BATCH_RUNTIME_MS = 85_000;
+const MAX_BATCH_RUNTIME_MS = 40_000;
 
 const getBatchSizeForDelay = (delayMs: number) => {
   const safeDelayMs = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 2000;
