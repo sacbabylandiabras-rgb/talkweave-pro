@@ -106,7 +106,7 @@ export default function AquecimentoNumero() {
       },
     });
 
-    if (error) throw error;
+    if (error) throw new Error("Não consegui sincronizar o controle do aquecimento");
     if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao salvar controle");
   };
 
@@ -170,7 +170,7 @@ export default function AquecimentoNumero() {
       const rolledBack = { ...config, runId: crypto.randomUUID() };
       setConfig(rolledBack);
       persistConfig(rolledBack);
-      toast.error(err instanceof Error ? err.message : "Não consegui atualizar o status do aquecimento");
+      toast.error("Não consegui sincronizar o controle do aquecimento");
     }
   };
 

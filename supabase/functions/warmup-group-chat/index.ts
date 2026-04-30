@@ -49,15 +49,18 @@ Deno.serve(async (req) => {
     const isRunAllowed = async () => {
       if (!runId) return false;
       const { data, error } = await admin
-        .from("warmup_user_controls")
-        .select("active, run_id")
-        .eq("user_id", user.id)
+        .from("warmup_instance_health")
+        .select("detail")
+        .eq("instance_ref", user.id)
+        .eq("block_type", "warmup_control")
         .maybeSingle();
       if (error) {
         console.log("warmup group control check failed:", error.message);
         return false;
       }
-      return data?.active === true && data.run_id === runId;
+      if (!data) return false;
+      const detail = JSON.parse(String(data.detail || "{}"));
+      return detail.active === true && detail.runId === runId;
     };
 
     if (!(await isRunAllowed())) {

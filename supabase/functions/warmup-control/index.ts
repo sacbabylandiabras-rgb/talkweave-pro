@@ -36,18 +36,16 @@ serve(async (req: Request) => {
       return json({ success: false, error: "Selecione pelo menos 1 instância" }, 400);
     }
 
-    const { error } = await admin.from("warmup_user_controls").upsert(
+    const { error } = await admin.from("warmup_instance_health").upsert(
       {
-        user_id: user.id,
-        active,
-        run_id: active ? runId : runId,
-        instance_ids: instanceIds,
-        min_delay: minDelay,
-        max_delay: maxDelay,
-        daily_limit: dailyLimit,
-        updated_at: new Date().toISOString(),
+        instance_ref: user.id,
+        phone: null,
+        block_type: "warmup_control",
+        blocked_until: null,
+        last_detected_at: new Date().toISOString(),
+        detail: JSON.stringify({ active, runId, instanceIds, minDelay, maxDelay, dailyLimit }),
       },
-      { onConflict: "user_id" },
+      { onConflict: "instance_ref,block_type" },
     );
 
     if (error) {
