@@ -154,6 +154,7 @@ export function DashboardLayout() {
       }
 
       setUserId(session.user.id);
+      setWarmupConfig(readWarmupConfig(session.user.id));
       setLoading(false);
     };
 
@@ -164,6 +165,7 @@ export function DashboardLayout() {
         navigate("/auth");
       } else {
         setUserId(session.user.id);
+        setWarmupConfig(readWarmupConfig(session.user.id));
       }
     });
 
@@ -172,7 +174,7 @@ export function DashboardLayout() {
 
   useEffect(() => {
     const syncWarmupConfig = () => {
-      const next = readWarmupConfig();
+      const next = readWarmupConfig(userId);
       setWarmupConfig((prev) => {
         // Evita re-render desnecessário se nada relevante mudou
         if (
@@ -199,7 +201,7 @@ export function DashboardLayout() {
       window.removeEventListener("focus", syncWarmupConfig);
       window.removeEventListener(WARMUP_CONFIG_EVENT, syncWarmupConfig);
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (loading || !warmupConfig.active || !warmupConfig.instanceIds.length) return;
@@ -210,7 +212,7 @@ export function DashboardLayout() {
     const run = async () => {
       if (cancelled) return;
       // Re-check config no localStorage para abortar imediatamente se foi pausado
-      const liveConfig = readWarmupConfig();
+      const liveConfig = readWarmupConfig(userId);
       if (!liveConfig.active || !liveConfig.instanceIds.length) {
         return;
       }
@@ -247,7 +249,7 @@ export function DashboardLayout() {
 
         // Se foi pausado enquanto a chamada estava em curso, descarta o resultado
         // para não registrar progresso nem agendar próximos ciclos.
-        const postCheck = readWarmupConfig();
+        const postCheck = readWarmupConfig(userId);
         if (cancelled || !postCheck.active || postCheck.runId !== liveConfig.runId || !postCheck.instanceIds.length) {
           return;
         }
@@ -282,7 +284,7 @@ export function DashboardLayout() {
         toast.error(err?.message || "Erro no ciclo de aquecimento");
       } finally {
         // Re-check antes de agendar próximo ciclo: se foi pausado durante o envio, não agenda
-        const stillActive = readWarmupConfig();
+        const stillActive = readWarmupConfig(userId);
         if (!cancelled && stillActive.active && stillActive.runId === liveConfig.runId && stillActive.instanceIds.length) {
           const min = Math.max(5, liveConfig.minDelay);
           const max = Math.max(min, liveConfig.maxDelay);
@@ -298,7 +300,7 @@ export function DashboardLayout() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [loading, warmupConfig.active, warmupConfig.instanceIds, warmupConfig.minDelay, warmupConfig.maxDelay, warmupConfig.dailyLimit]);
+  }, [loading, userId, warmupConfig.active, warmupConfig.instanceIds, warmupConfig.minDelay, warmupConfig.maxDelay, warmupConfig.dailyLimit]);
 
   if (loading) {
     return (
