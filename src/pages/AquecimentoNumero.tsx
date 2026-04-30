@@ -118,15 +118,24 @@ export default function AquecimentoNumero() {
   };
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<WarmupConfig>;
-        setConfig((prev) => ({ ...prev, ...parsed }));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUserId = session?.user?.id;
+      setUserId(currentUserId);
+      if (!currentUserId) return;
+      try {
+        const scopedSaved = localStorage.getItem(userWarmupStorageKey(currentUserId));
+        const legacySaved = localStorage.getItem(STORAGE_KEY);
+        const saved = scopedSaved || legacySaved;
+        if (saved) {
+          const parsed = JSON.parse(saved) as Partial<WarmupConfig>;
+          setConfig({ ...DEFAULT_WARMUP_CONFIG, ...parsed, active: false });
+          localStorage.setItem(userWarmupStorageKey(currentUserId), JSON.stringify({ ...DEFAULT_WARMUP_CONFIG, ...parsed, active: false }));
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
+    });
   }, []);
 
   const toggleInstance = (id: string) => {
