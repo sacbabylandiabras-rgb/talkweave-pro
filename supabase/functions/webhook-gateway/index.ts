@@ -58,6 +58,59 @@ serve(async (req) => {
       status: 'received',
     })
 
+    // Also persist as an external gateway event (so dashboard cards reflect it)
+    try {
+      const amountCents = extractAmountCents(payload)
+      const externalStatus = mapEventToStatus(eventType)
+      const externalId = transactionId || extractAnyId(payload)
+      const customerEmail = extractEmail(payload)
+
+      if (externalId) {
+        const { data: existing } = await supabase
+          .from('external_gateway_events')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('external_id', externalId)
+          .maybeSingle()
+        if (existing) {
+          await supabase.from('external_gateway_events').update({
+            status: externalStatus,
+            amount: amountCents,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: phone,
+            raw_payload: payload,
+            updated_at: new Date().toISOString(),
+          }).eq('id', existing.id)
+        } else {
+          await supabase.from('external_gateway_events').insert({
+            user_id: userId,
+            external_id: externalId,
+            status: externalStatus,
+            amount: amountCents,
+            source: 'webhook',
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: phone,
+            raw_payload: payload,
+          })
+        }
+      } else {
+        await supabase.from('external_gateway_events').insert({
+          user_id: userId,
+          status: externalStatus,
+          amount: amountCents,
+          source: 'webhook',
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: phone,
+          raw_payload: payload,
+        })
+      }
+    } catch (e) {
+      console.error('external_gateway_events persist error:', e)
+    }
+
     if (!phone) {
       console.log('Sem telefone no payload, apenas registrando')
       return new Response(JSON.stringify({ ok: true, message: 'logged, no phone found' }), {
