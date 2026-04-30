@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Landing Page</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: #fff; }
+    #loader, #error { min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: Arial, Helvetica, sans-serif; color: #111827; text-align: center; padding: 24px; box-sizing: border-box; }
+    #loader::before { content: ''; width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 999px; animation: spin .8s linear infinite; }
+    #error { display: none; color: #6b7280; }
+    iframe { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; background: #fff; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loader"></div>
+  <div id="error">Landing page não encontrada.</div>
+  <script>
+    (function () {
+      var SB = 'https://yodgjxdekuraxquxkxhx.supabase.co';
+      var loader = document.getElementById('loader');
+      var errorBox = document.getElementById('error');
+
+      function showError(message) {
+        loader.style.display = 'none';
+        errorBox.style.display = 'flex';
+        errorBox.textContent = message || 'Landing page não encontrada.';
+      }
+
+      function encodePath(path) {
+        return path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+      }
+
+      function isExternalUrl(value) {
+        return /^(https?:)?\/\//i.test(value) || /^(data|mailto|tel|blob):/i.test(value) || value.indexOf('#') === 0;
+      }
+
+      function toAbsoluteAssetUrl(value, baseUrl) {
+        var trimmed = (value || '').trim();
+        if (!trimmed || isExternalUrl(trimmed)) return value;
+        if (trimmed.indexOf('/functions/v1/landing-page/') === 0) return SB + trimmed;
+        return baseUrl + trimmed.replace(/^\/+/, '');
+      }
+
+      function prepareHtml(html, baseUrl) {
+        var out = html
+          .replace(/\b(src|href|poster|action)=(['"])([^'"]+)\2/gi, function (_match, attr, quote, value) {
+            return attr + '=' + quote + toAbsoluteAssetUrl(value, baseUrl) + quote;
+          })
+          .replace(/\bsrcset=(['"])([^'"]+)\1/gi, function (_match, quote, value) {
+            var rewritten = value.split(',').map(function (part) {
+              var pieces = part.trim().split(/\s+/);
+              if (!pieces[0]) return part;
+              return [toAbsoluteAssetUrl(pieces[0], baseUrl)].concat(pieces.slice(1)).join(' ');
+            }).join(', ');
+            return 'srcset=' + quote + rewritten + quote;
+          })
+          .replace(/url\((['"]?)(?!https?:|\/\/|data:|blob:)([^)'"]+)\1\)/gi, function (_match, quote, value) {
+            return 'url(' + quote + toAbsoluteAssetUrl(value, baseUrl) + quote + ')';
+          });
+
+        var baseTag = '<base href="' + baseUrl + '">';
+        if (/<head[^>]*>/i.test(out)) return out.replace(/<head([^>]*)>/i, '<head$1>' + baseTag);
+        return baseTag + out;
+      }
+
+      async function loadLanding() {
+        var parts = location.pathname.split('/').filter(Boolean);
+        var lpIndex = parts.indexOf('lp');
+        var pageId = lpIndex >= 0 ? parts[lpIndex + 1] : null;
+        var filePath = lpIndex >= 0 ? parts.slice(lpIndex + 2).join('/') : '';
+
+        if (!pageId) return showError('Landing page não encontrada.');
+
+        var encodedFilePath = encodePath(filePath || '');
+        var fileDir = encodedFilePath.indexOf('/') >= 0 ? encodedFilePath.split('/').slice(0, -1).join('/') + '/' : '';
+        var root = SB + '/functions/v1/landing-page/' + encodeURIComponent(pageId);
+        var fetchUrl = root + (encodedFilePath ? '/' + encodedFilePath : '') + '?preview=1';
+        var baseUrl = root + '/' + fileDir;
+
+        try {
+          var res = await fetch(fetchUrl, { cache: 'no-store' });
+          var text = await res.text();
+          if (!res.ok) throw new Error(text || 'Não foi possível carregar a landing page.');
+
+          var frame = document.createElement('iframe');
+          frame.title = 'Landing page';
+          frame.sandbox = 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
+          frame.srcdoc = prepareHtml(text, baseUrl);
+          loader.style.display = 'none';
+          document.body.appendChild(frame);
+        } catch (err) {
+          showError(err && err.message ? err.message : 'Não foi possível carregar a landing page.');
+        }
+      }
+
+      loadLanding();
+    })();
+  </script>
+</body>
+</html>
