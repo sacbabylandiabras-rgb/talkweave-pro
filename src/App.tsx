@@ -44,6 +44,7 @@ import ShopifyEmbedded from "./pages/ShopifyEmbedded";
 import PayDashboard from "./pages/gateway/PayDashboard";
 import PayProducts from "./pages/gateway/PayProducts";
 import PayCheckouts from "./pages/gateway/PayCheckouts";
+import PayLandingPages from "./pages/gateway/PayLandingPages";
 import PayReports from "./pages/gateway/PayReports";
 import PayCartRecovery from "./pages/gateway/PayCartRecovery";
 import PayPixels from "./pages/gateway/PayPixels";
@@ -184,6 +185,7 @@ const App = () => (
                   <Route path="/gateway-checkout/checkouts" element={<KycWrap><PayCheckouts /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/new" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/edit/:id" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
+                  <Route path="/gateway-checkout/landing-pages" element={<KycWrap><PayLandingPages /></KycWrap>} />
                   <Route path="/gateway-checkout/reports" element={<KycWrap><PayReports /></KycWrap>} />
                   <Route path="/gateway-checkout/cart-recovery" element={<KycWrap><PayCartRecovery /></KycWrap>} />
                   <Route path="/gateway-checkout/pixels" element={<KycWrap><PayPixels /></KycWrap>} />
