@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error } = await supabase
       .from("gateway_landing_pages")
-      .select("id, files, entry_file, status")
+      .select("id, files, entry_file, status, checkout_id, user_id")
       .eq("id", pageId)
       .eq("status", true)
       .maybeSingle();
@@ -117,7 +117,39 @@ Deno.serve(async (req) => {
 
     if (contentType.startsWith("text/html") || contentType.startsWith("text/css")) {
       const text = await blob.text();
-      return new Response(rewriteRelativeUrls(text, pageId, file.name), { headers });
+      let processed = rewriteRelativeUrls(text, pageId, file.name);
+
+      if (contentType.startsWith("text/html") && (page as any).checkout_id) {
+        try {
+          const { data: checkout } = await supabase
+            .from("gateway_checkouts")
+            .select("id, slug, user_id")
+            .eq("id", (page as any).checkout_id)
+            .maybeSingle();
+          if (checkout) {
+            let domain = "pay.zaplynxpro.online";
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("custom_domain")
+              .eq("id", (checkout as any).user_id)
+              .maybeSingle();
+            const cd = (profile as any)?.custom_domain;
+            if (cd) domain = String(cd).replace(/^https?:\/\//, "").replace(/\/+$/, "");
+            const checkoutUrl = `https://${domain}/c/${(checkout as any).slug || (checkout as any).id}`;
+
+            // Replace placeholders and special targets
+            processed = processed
+              .replace(/\{\{\s*checkout_url\s*\}\}/gi, checkoutUrl)
+              .replace(/href=(['"])(#checkout|about:checkout|javascript:checkout\(\))\1/gi, `href=$1${checkoutUrl}$1`)
+              .replace(/action=(['"])(#checkout|about:checkout)\1/gi, `action=$1${checkoutUrl}$1`)
+              .replace(/data-checkout-link=(['"])[^'"]*\1/gi, `data-checkout-link=$1${checkoutUrl}$1 href=$1${checkoutUrl}$1`);
+          }
+        } catch (_e) {
+          // ignore checkout resolve errors
+        }
+      }
+
+      return new Response(processed, { headers });
     }
 
     return new Response(blob, { headers });
