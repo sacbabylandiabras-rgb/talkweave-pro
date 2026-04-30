@@ -1222,6 +1222,26 @@ const MensagensRecebidas = () => {
   const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
   const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
 
+  // DEBUG: log selection mismatch to help diagnose "messages not appearing"
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const match = conversations.find((c) => c.phone === normalizedSelectedPhone);
+    if (!match) {
+      console.warn('[MensagensRecebidas] selectedPhone has no matching conversation', {
+        selectedPhone,
+        normalizedSelectedPhone,
+        conversationsCount: conversations.length,
+        samplePhones: conversations.slice(0, 5).map((c) => c.phone),
+      });
+    } else {
+      console.log('[MensagensRecebidas] selected conversation', {
+        phone: match.phone,
+        messages: match.messages.length,
+        contactName: match.contactName,
+      });
+    }
+  }, [selectedPhone, normalizedSelectedPhone, conversations]);
+
   const handleSaveContact = (phone: string, currentName: string) => {
     setSaveDialogPhone(phone);
     setSaveDialogName(currentName);
