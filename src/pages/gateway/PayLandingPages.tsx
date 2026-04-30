@@ -26,10 +26,11 @@ interface LandingPage {
 }
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
-const CHECKOUT_DOMAIN = "https://pay.zaplynxpro.online";
+const PLATFORM_CHECKOUT_DOMAIN = "pay.zaplynxpro.online";
 
-const buildLandingUrl = (pageId: string, fileName?: string | null) => {
-  const base = `${CHECKOUT_DOMAIN}/lp/${pageId}`;
+const buildLandingUrl = (domain: string, pageId: string, fileName?: string | null) => {
+  const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/+$/, "") || PLATFORM_CHECKOUT_DOMAIN;
+  const base = `https://${cleanDomain}/lp/${pageId}`;
   if (!fileName) return base;
   const encodedPath = fileName.split("/").map(encodeURIComponent).join("/");
   return `${base}/${encodedPath}`;
@@ -43,6 +44,7 @@ export default function PayLandingPages() {
   const [description, setDescription] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [checkoutDomain, setCheckoutDomain] = useState(PLATFORM_CHECKOUT_DOMAIN);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
