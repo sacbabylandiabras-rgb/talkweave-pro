@@ -115,7 +115,7 @@ export function RevenueMetrics() {
     ? (msgPerSale.sales / msgPerSale.messages)
     : null;
   const ratioLabel = ratio !== null
-    ? `${(ratio * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% venda/msg`
+    ? `${ratio.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} venda/msg`
     : "—";
 
   return (
