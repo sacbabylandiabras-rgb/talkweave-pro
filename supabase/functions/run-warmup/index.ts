@@ -60,9 +60,10 @@ serve(async (req: Request) => {
 
     const isRunAllowed = async () => {
       const { data, error } = await admin
-        .from("warmup_user_controls")
-        .select("active, run_id")
-        .eq("user_id", user.id)
+        .from("warmup_instance_health")
+        .select("detail")
+        .eq("instance_ref", user.id)
+        .eq("block_type", "warmup_control")
         .maybeSingle();
       if (error) {
         console.log("warmup control check failed:", error.message);
@@ -72,7 +73,8 @@ serve(async (req: Request) => {
         console.log("warmup control missing: defaulting to paused");
         return false;
       }
-      return data.active === true && !!runId && data.run_id === runId;
+      const detail = JSON.parse(String(data.detail || "{}"));
+      return detail.active === true && !!runId && detail.runId === runId;
     };
 
     if (!(await isRunAllowed())) {
