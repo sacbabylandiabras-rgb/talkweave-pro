@@ -3,145 +3,201 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Users, Search, Download, MessageCircle, UserCheck, UserX, Crown } from "lucide-react";
+import {
+  Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Search, Download, Eye, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Contact {
   id: string;
-  name: string;
-  username: string;
-  telegram_id: string;
-  status: "lead" | "vip" | "expirado" | "trial";
-  joined_at: string;
-  last_interaction: string;
-  total_spent: number;
+  cliente: string;
+  email: string;
+  telefone: string;
+  telegram: string;
+  vencimento: string;
+  status: "ATIVO" | "INATIVO" | "TRIAL" | "EXPIRADO";
 }
 
 const MOCK: Contact[] = [];
 
-const STATUS_LABEL: Record<Contact["status"], { label: string; cls: string }> = {
-  vip: { label: "VIP", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
-  lead: { label: "Lead", cls: "bg-blue-500/15 text-blue-500 border-blue-500/30" },
-  trial: { label: "Trial", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  expirado: { label: "Expirado", cls: "bg-destructive/15 text-destructive border-destructive/30" },
+const STATUS_STYLE: Record<Contact["status"], string> = {
+  ATIVO: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  INATIVO: "bg-muted text-muted-foreground border-border",
+  TRIAL: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  EXPIRADO: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 export default function TelegramContatos() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [perPage, setPerPage] = useState("10");
 
   const filtered = useMemo(() => {
     return MOCK.filter((c) => {
       const q = search.toLowerCase();
-      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q) || c.telegram_id.includes(q);
+      const matchSearch = !q ||
+        c.cliente.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.telegram.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || c.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [search, statusFilter]);
 
-  const totals = useMemo(() => ({
-    total: MOCK.length,
-    vip: MOCK.filter((c) => c.status === "vip").length,
-    leads: MOCK.filter((c) => c.status === "lead").length,
-    expirados: MOCK.filter((c) => c.status === "expirado").length,
-  }), []);
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Contatos</h1>
-        <p className="text-sm text-muted-foreground mt-1">Lista de usuários que interagiram com o bot</p>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Contatos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie seus contatos, acompanhe atividades e consulte o histórico de assinaturas individualmente
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => toast.success("Exportação iniciada")}>
+          <Download className="w-4 h-4 mr-2" /> Exportar relatório
+        </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-bold">{totals.total}</p></div>
-          <Users className="w-8 h-8 text-primary opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">VIPs</p><p className="text-2xl font-bold">{totals.vip}</p></div>
-          <Crown className="w-8 h-8 text-emerald-500 opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Leads</p><p className="text-2xl font-bold">{totals.leads}</p></div>
-          <UserCheck className="w-8 h-8 text-blue-500 opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Expirados</p><p className="text-2xl font-bold">{totals.expirados}</p></div>
-          <UserX className="w-8 h-8 text-destructive opacity-60" />
-        </Card>
-      </div>
-
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold">Todos os contatos <Badge variant="secondary" className="ml-2">{filtered.length}</Badge></h2>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar contato..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="vip">VIPs</SelectItem>
-                <SelectItem value="lead">Leads</SelectItem>
-                <SelectItem value="trial">Trial</SelectItem>
-                <SelectItem value="expirado">Expirados</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => toast.success("Exportação iniciada")}>
-              <Download className="w-4 h-4 mr-1.5" /> Exportar
-            </Button>
+      {/* Card principal com barra lateral colorida */}
+      <Card className="overflow-hidden">
+        <div className="flex">
+          <div className="w-1 bg-primary shrink-0" />
+          <div className="flex-1 p-5">
+            <h2 className="text-lg font-semibold">Gestão de Contatos</h2>
           </div>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contato</TableHead>
-                <TableHead>ID Telegram</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Entrou em</TableHead>
-                <TableHead>Última interação</TableHead>
-                <TableHead className="text-right">Gasto total</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
-              ) : filtered.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="w-8 h-8"><AvatarFallback>{c.name.charAt(0)}</AvatarFallback></Avatar>
-                      <div>
-                        <p className="font-medium">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.username}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{c.telegram_id}</TableCell>
-                  <TableCell><Badge variant="outline" className={STATUS_LABEL[c.status].cls}>{STATUS_LABEL[c.status].label}</Badge></TableCell>
-                  <TableCell className="text-xs">{new Date(c.joined_at).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell className="text-xs">{new Date(c.last_interaction).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell className="text-right font-medium">{c.total_spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" title="Mensagem"><MessageCircle className="w-4 h-4" /></Button>
-                  </TableCell>
+        <div className="px-5 pb-5 space-y-4">
+          {/* Sub-header da tabela */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-2 border-t">
+            <div className="pt-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                Todos os contatos
+                <Badge variant="secondary" className="rounded-full">{filtered.length}</Badge>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Visualize o histórico de compras e todas as informações dos seus clientes
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-3">
+              <Button variant="outline" size="icon" onClick={() => {}}>
+                <Search className="w-4 h-4" />
+              </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="ATIVO">Ativos</SelectItem>
+                  <SelectItem value="INATIVO">Inativos</SelectItem>
+                  <SelectItem value="TRIAL">Trial</SelectItem>
+                  <SelectItem value="EXPIRADO">Expirados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Busca expansível (input simples opcional) */}
+          {search !== "" || true ? (
+            <div className="relative max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, e-mail ou telegram..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          ) : null}
+
+          {/* Tabela */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b">
+                  <TableHead className="text-center">Cliente</TableHead>
+                  <TableHead className="text-center">E-mail</TableHead>
+                  <TableHead className="text-center">Telefone</TableHead>
+                  <TableHead className="text-center">Telegram</TableHead>
+                  <TableHead className="text-center">Vencimento</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Detalhes</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
+                      Nenhum contato encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-center font-medium">{c.cliente}</TableCell>
+                    <TableCell className="text-center text-muted-foreground">{c.email || "—"}</TableCell>
+                    <TableCell className="text-center text-muted-foreground">{c.telefone || "—"}</TableCell>
+                    <TableCell className="text-center">{c.telegram || "—"}</TableCell>
+                    <TableCell className="text-center text-muted-foreground">{c.vencimento || "—"}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className={STATUS_STYLE[c.status]}>
+                        {c.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button variant="ghost" size="icon">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Paginação */}
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-muted-foreground">
+              Página 1 de 1
+            </p>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <Button variant="ghost" size="icon" disabled>
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationPrevious href="#" onClick={(e) => e.preventDefault()} />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#" isActive onClick={(e) => e.preventDefault()}>1</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext href="#" onClick={(e) => e.preventDefault()} />
+                </PaginationItem>
+                <PaginationItem>
+                  <Button variant="ghost" size="icon" disabled>
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            <Select value={perPage} onValueChange={setPerPage}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 / página</SelectItem>
+                <SelectItem value="25">25 / página</SelectItem>
+                <SelectItem value="50">50 / página</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Card>
     </div>
