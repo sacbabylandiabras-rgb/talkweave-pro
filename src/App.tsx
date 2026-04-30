@@ -80,6 +80,7 @@ import ContatosInstagram from "./pages/instagram/ContatosInstagram";
 import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
 import TelegramPlaceholder from "./pages/telegram/TelegramPlaceholder";
 import TelegramPlanos from "./pages/telegram/TelegramPlanos";
+import TelegramRedirecionamento from "./pages/telegram/TelegramRedirecionamento";
 import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
 import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
 import TelegramDashboard from "./pages/telegram/TelegramDashboard";
@@ -166,7 +167,7 @@ const App = () => (
                   <Route path="/telegram/criar-bot" element={<TelegramCriarBot />} />
                   <Route path="/telegram/atualizar-bot" element={<TelegramAtualizarBot />} />
                   <Route path="/telegram/planos" element={<TelegramPlanos />} />
-                  <Route path="/telegram/redirecionamento" element={<TelegramPlaceholder title="Botões de Redirecionamento" description="Crie botões inline com URL para redirecionar usuários." />} />
+                  <Route path="/telegram/redirecionamento" element={<TelegramRedirecionamento />} />
                   <Route path="/telegram/administradores" element={<TelegramPlaceholder title="Administradores" description="Gerencie administradores dos seus bots e canais." />} />
                   <Route path="/telegram/grupos-canais" element={<TelegramPlaceholder title="Grupos e Canais" description="Gerencie os grupos e canais conectados ao bot." />} />
                   <Route path="/telegram/canal-free" element={<TelegramPlaceholder title="Canal Free" description="Configure o canal de acesso gratuito como funil de entrada." />} />
