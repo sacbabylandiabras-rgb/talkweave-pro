@@ -38,6 +38,8 @@ import {
   Megaphone,
   Hash,
   Send,
+  Check,
+  Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +51,7 @@ interface TgGroup {
   link: string;
   group_id: string;
   kind: GroupKind;
+  plan_ids: string[];
   created_at: string;
 }
 
@@ -56,6 +59,9 @@ const KIND_LABEL: Record<GroupKind, string> = {
   group: "Grupo",
   channel: "Canal",
 };
+
+// Planos disponíveis (mock - viria da página de Planos)
+const AVAILABLE_PLANS: { id: string; name: string; price: string }[] = [];
 
 export default function TelegramGruposCanais() {
   const [items, setItems] = useState<TgGroup[]>([]);
