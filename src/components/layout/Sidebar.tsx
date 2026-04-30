@@ -161,7 +161,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { isPaid } = useSubscriptionStatus();
   const [collapsed, setCollapsed] = useState(false);
   const [botOpen, setBotOpen] = useState(
-    activeItem === "tg-criar-bot" || activeItem === "tg-atualizar-bot",
+    ["tg-criar-bot", "tg-atualizar-bot", "tg-planos", "tg-redirect"].includes(activeItem),
   );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
