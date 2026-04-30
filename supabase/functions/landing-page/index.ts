@@ -204,6 +204,9 @@ Deno.serve(async (req) => {
               return `${attr}=${quote}${checkoutUrl}${quote}`;
             });
 
+            const genericCheckoutUrlRegex = /\b(href|action|data-href|data-url|data-link|data-checkout-url)=(['"])((?:https?:)?\/\/[^'"\s]*(?:checkout|pay|payment|seguro|hotmart|kiwify|eduzz|monetizze|braip|perfectpay|cakto|ticto|lastlink|kirvano|stripe)[^'"\s]*)\2/gi;
+            processed = processed.replace(genericCheckoutUrlRegex, (_m, attr, quote) => `${attr}=${quote}${checkoutUrl}${quote}`);
+
             // Also rewrite inline JS redirects (window.location = "https://pay.hotmart.com/...")
             const jsRedirectRegex = new RegExp(
               `(['"\\\`])(?:https?:)?\\/\\/(?:${externalCheckoutDomains.join("|")})[^'"\\\`\\s]*\\1`,
