@@ -84,6 +84,7 @@ import TelegramRedirecionamento from "./pages/telegram/TelegramRedirecionamento"
 import TelegramAdministradores from "./pages/telegram/TelegramAdministradores";
 import TelegramGruposCanais from "./pages/telegram/TelegramGruposCanais";
 import TelegramCanalFree from "./pages/telegram/TelegramCanalFree";
+import TelegramReferencia from "./pages/telegram/TelegramReferencia";
 import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
 import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
 import TelegramDashboard from "./pages/telegram/TelegramDashboard";
@@ -174,7 +175,7 @@ const App = () => (
                   <Route path="/telegram/administradores" element={<TelegramAdministradores />} />
                   <Route path="/telegram/grupos-canais" element={<TelegramGruposCanais />} />
                   <Route path="/telegram/canal-free" element={<TelegramCanalFree />} />
-                  <Route path="/telegram/referencia" element={<TelegramPlaceholder title="Links de Referência" description="Gere e gerencie links de indicação." />} />
+                  <Route path="/telegram/referencia" element={<TelegramReferencia />} />
                   <Route path="/telegram/resultados" element={<TelegramPlaceholder title="Resultados" description="Acompanhe resultados e provas sociais." />} />
                   <Route path="/telegram/contatos" element={<TelegramPlaceholder title="Contatos" description="Lista de usuários que interagiram com o bot." />} />
                   <Route path="/telegram/vendas" element={<TelegramPlaceholder title="Gestão de Vendas" description="Acompanhe vendas, assinaturas e renovações." />} />
