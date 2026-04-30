@@ -69,6 +69,40 @@ export default function PayLandingPages() {
     if (!name.trim()) return toast.error("Dê um nome para a landing page");
     if (selectedFiles.length === 0) return toast.error("Selecione ao menos 1 arquivo");
 
+    const mimeByExt = (filename: string): string => {
+      const ext = filename.split(".").pop()?.toLowerCase() || "";
+      const map: Record<string, string> = {
+        html: "text/html; charset=utf-8",
+        htm: "text/html; charset=utf-8",
+        css: "text/css; charset=utf-8",
+        js: "application/javascript; charset=utf-8",
+        mjs: "application/javascript; charset=utf-8",
+        json: "application/json; charset=utf-8",
+        svg: "image/svg+xml",
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        gif: "image/gif",
+        webp: "image/webp",
+        ico: "image/x-icon",
+        avif: "image/avif",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mp3: "audio/mpeg",
+        wav: "audio/wav",
+        woff: "font/woff",
+        woff2: "font/woff2",
+        ttf: "font/ttf",
+        otf: "font/otf",
+        eot: "application/vnd.ms-fontobject",
+        txt: "text/plain; charset=utf-8",
+        xml: "application/xml; charset=utf-8",
+        pdf: "application/pdf",
+        map: "application/json; charset=utf-8",
+      };
+      return map[ext] || "application/octet-stream";
+    };
+
     setUploading(true);
     try {
       const folderId = crypto.randomUUID();
@@ -78,9 +112,11 @@ export default function PayLandingPages() {
         const relPath = (file as any).webkitRelativePath || file.name;
         const cleanRel = relPath.replace(/^\/+/, "");
         const storagePath = `${userId}/${folderId}/${cleanRel}`;
+        const contentType = mimeByExt(cleanRel) || file.type || "application/octet-stream";
+        const blob = new Blob([file], { type: contentType });
         const { error: upErr } = await supabase.storage
           .from("landing-pages")
-          .upload(storagePath, file, { cacheControl: "3600", upsert: true, contentType: file.type || undefined });
+          .upload(storagePath, blob, { cacheControl: "3600", upsert: true, contentType });
         if (upErr) throw new Error(upErr.message);
         const { data: pub } = supabase.storage.from("landing-pages").getPublicUrl(storagePath);
         uploaded.push({ path: storagePath, name: cleanRel, size: file.size, url: pub.publicUrl });
