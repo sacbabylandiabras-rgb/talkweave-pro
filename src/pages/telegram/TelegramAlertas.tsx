@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,49 +12,65 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { BellRing, Plus, Inbox, Pencil, Trash2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Search, Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface Alerta {
   id: string;
-  nome: string;
-  evento: string;
-  antecedencia: string;
-  ativo: boolean;
+  titulo: string;
+  plano: string;
+  valor_promocao: number;
+  usuarios_alvo: string;
+  status: boolean;
+  mensagem: string;
 }
 
 const MOCK: Alerta[] = [];
 
-const EVENTOS = [
-  { value: "vencimento", label: "Antes do vencimento" },
-  { value: "expirado", label: "Após expirar" },
-  { value: "abandono", label: "Carrinho abandonado" },
-  { value: "boas-vindas", label: "Boas-vindas (novo lead)" },
-];
+const PLANOS = ["Mensal", "Trimestral", "Semestral", "Anual", "Vitalício"];
+const ALVOS = ["Todos", "VIPs", "Leads", "Trial", "Expirados"];
 
 export default function TelegramAlertas() {
   const [alertas, setAlertas] = useState<Alerta[]>(MOCK);
-  const [nome, setNome] = useState("");
-  const [evento, setEvento] = useState("vencimento");
-  const [antecedencia, setAntecedencia] = useState("3");
+  const [search, setSearch] = useState("");
+  const [filtro, setFiltro] = useState("all");
+  const [open, setOpen] = useState(false);
+
+  // Form
+  const [titulo, setTitulo] = useState("");
+  const [plano, setPlano] = useState(PLANOS[0]);
+  const [valor, setValor] = useState("");
+  const [alvo, setAlvo] = useState(ALVOS[0]);
   const [mensagem, setMensagem] = useState("");
 
+  function reset() {
+    setTitulo(""); setPlano(PLANOS[0]); setValor(""); setAlvo(ALVOS[0]); setMensagem("");
+  }
+
   function criar() {
-    if (!nome.trim() || !mensagem.trim()) {
-      toast.error("Preencha nome e mensagem");
+    if (!titulo.trim() || !mensagem.trim()) {
+      toast.error("Preencha título e mensagem");
       return;
     }
-    setAlertas((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), nome, evento, antecedencia: `${antecedencia} dias`, ativo: true },
-    ]);
-    setNome("");
-    setMensagem("");
+    setAlertas((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      titulo,
+      plano,
+      valor_promocao: Number(valor) || 0,
+      usuarios_alvo: alvo,
+      status: true,
+      mensagem,
+    }]);
+    setOpen(false);
+    reset();
     toast.success("Alerta criado");
   }
 
   function toggle(id: string) {
-    setAlertas((prev) => prev.map((a) => a.id === id ? { ...a, ativo: !a.ativo } : a));
+    setAlertas((prev) => prev.map((a) => a.id === id ? { ...a, status: !a.status } : a));
   }
 
   function remover(id: string) {
@@ -62,119 +78,146 @@ export default function TelegramAlertas() {
     toast.success("Alerta removido");
   }
 
+  const filtered = useMemo(() => alertas.filter((a) => {
+    const matchSearch = !search || a.titulo.toLowerCase().includes(search.toLowerCase());
+    const matchFiltro = filtro === "all" || (filtro === "ativo" && a.status) || (filtro === "inativo" && !a.status);
+    return matchSearch && matchFiltro;
+  }), [alertas, search, filtro]);
+
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Alertas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure alertas automáticos enviados aos seus contatos antes do vencimento, após expirar e em outros eventos importantes.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Alertas</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Criar alerta */}
-        <Card className="overflow-hidden">
-          <div className="flex">
-            <div className="w-1 bg-primary shrink-0" />
-            <div className="flex-1 p-5">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <BellRing className="w-5 h-5" /> Novo alerta
-              </h2>
-            </div>
+      {/* Card principal */}
+      <Card className="p-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            Todos os alertas cadastrados
+            <Badge className="bg-primary text-primary-foreground rounded-full">{filtered.length}</Badge>
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon">
+              <Search className="w-4 h-4" />
+            </Button>
+            <Select value={filtro} onValueChange={setFiltro}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Mostrando todos</SelectItem>
+                <SelectItem value="ativo">Apenas ativos</SelectItem>
+                <SelectItem value="inativo">Apenas inativos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="w-4 h-4 mr-1.5" /> Criar novo alerta
+            </Button>
           </div>
-          <div className="p-5 pt-0 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nome do alerta</Label>
-              <Input placeholder="Ex: Lembrete 3 dias antes do vencimento" value={nome} onChange={(e) => setNome(e.target.value)} />
-            </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Busca expansível */}
+        {search !== "" && (
+          <div className="mb-3">
+            <Input placeholder="Buscar por título..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-t border-b">
+                <TableHead>Título</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead>Valor da promoção</TableHead>
+                <TableHead>Usuários alvo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-16">
+                    <div className="flex flex-col items-center gap-1 text-center">
+                      <p className="font-semibold">Nenhum alerta encontrado</p>
+                      <p className="text-xs text-muted-foreground">Tente ajustar os filtros ou criar um novo disparo</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.titulo}</TableCell>
+                  <TableCell>{a.plano}</TableCell>
+                  <TableCell>{fmt(a.valor_promocao)}</TableCell>
+                  <TableCell>{a.usuarios_alvo}</TableCell>
+                  <TableCell>
+                    <Switch checked={a.status} onCheckedChange={() => toggle(a.id)} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon"><Pencil className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => remover(a.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      {/* Modal criar */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Criar novo alerta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Título</Label>
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Promoção de boas-vindas" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Evento</Label>
-                <Select value={evento} onValueChange={setEvento}>
+                <Label className="text-xs">Plano</Label>
+                <Select value={plano} onValueChange={setPlano}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {EVENTOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                    {PLANOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Antecedência (dias)</Label>
-                <Input type="number" min={0} value={antecedencia} onChange={(e) => setAntecedencia(e.target.value)} />
+                <Label className="text-xs">Valor da promoção (R$)</Label>
+                <Input type="number" min={0} value={valor} onChange={(e) => setValor(e.target.value)} placeholder="9,90" />
               </div>
             </div>
-
+            <div className="space-y-1.5">
+              <Label className="text-xs">Usuários alvo</Label>
+              <Select value={alvo} onValueChange={setAlvo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ALVOS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Mensagem</Label>
-              <Textarea
-                rows={4}
-                placeholder="Olá {nome}, sua assinatura vence em {dias} dias. Renove agora!"
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Use variáveis: <code className="bg-muted px-1 rounded">{"{nome}"}</code>, <code className="bg-muted px-1 rounded">{"{dias}"}</code>, <code className="bg-muted px-1 rounded">{"{plano}"}</code>
-              </p>
-            </div>
-
-            <Button onClick={criar} className="w-full">
-              <Plus className="w-4 h-4 mr-1.5" /> Criar alerta
-            </Button>
-          </div>
-        </Card>
-
-        {/* Lista */}
-        <Card className="overflow-hidden">
-          <div className="flex">
-            <div className="w-1 bg-primary shrink-0" />
-            <div className="flex-1 p-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                Alertas configurados <Badge variant="secondary" className="ml-2 rounded-full">{alertas.length}</Badge>
-              </h2>
+              <Textarea rows={4} value={mensagem} onChange={(e) => setMensagem(e.target.value)} placeholder="Olá {nome}, aproveite nossa promoção!" />
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Evento</TableHead>
-                  <TableHead>Antecedência</TableHead>
-                  <TableHead className="text-center">Ativo</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {alertas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-12">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Inbox className="w-7 h-7" />
-                        <p className="text-xs uppercase tracking-wide">Nenhum alerta configurado</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : alertas.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.nome}</TableCell>
-                    <TableCell>{EVENTOS.find((e) => e.value === a.evento)?.label || a.evento}</TableCell>
-                    <TableCell>{a.antecedencia}</TableCell>
-                    <TableCell className="text-center">
-                      <Switch checked={a.ativo} onCheckedChange={() => toggle(a.id)} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"><Pencil className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => remover(a.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={criar}>Criar alerta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
