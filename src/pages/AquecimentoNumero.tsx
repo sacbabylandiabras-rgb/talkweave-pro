@@ -95,22 +95,19 @@ export default function AquecimentoNumero() {
   };
 
   const syncServerControl = async (nextConfig: WarmupConfig) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) throw new Error("Sessão expirada");
-
-    const { error } = await (supabase as any)
-      .from("warmup_user_controls")
-      .upsert({
-        user_id: session.user.id,
+    const { data, error } = await supabase.functions.invoke("warmup-control", {
+      body: {
         active: nextConfig.active,
-        run_id: nextConfig.runId || null,
-        instance_ids: nextConfig.instanceIds,
-        min_delay: nextConfig.minDelay,
-        max_delay: nextConfig.maxDelay,
-        daily_limit: nextConfig.dailyLimit,
-      }, { onConflict: "user_id" });
+        runId: nextConfig.runId,
+        instanceIds: nextConfig.instanceIds,
+        minDelay: nextConfig.minDelay,
+        maxDelay: nextConfig.maxDelay,
+        dailyLimit: nextConfig.dailyLimit,
+      },
+    });
 
     if (error) throw error;
+    if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao salvar controle");
   };
 
   useEffect(() => {
