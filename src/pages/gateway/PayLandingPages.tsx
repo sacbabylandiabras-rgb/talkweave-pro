@@ -333,7 +333,11 @@ export default function PayLandingPages() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Suas landing pages</CardTitle>
-          <CardDescription>Gerencie e acesse os links públicos.</CardDescription>
+          <CardDescription>
+            Gerencie e acesse os links públicos. Vincule um checkout para que os botões da landing page (com{" "}
+            <code className="text-xs">href="#checkout"</code>, <code className="text-xs">data-checkout-link</code> ou o
+            placeholder <code className="text-xs">{"{{checkout_url}}"}</code>) apontem automaticamente para ele.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
