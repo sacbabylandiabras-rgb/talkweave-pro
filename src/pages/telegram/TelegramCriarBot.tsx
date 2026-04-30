@@ -1,9 +1,30 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Trash2, CheckCircle2, ExternalLink, Copy, AlertCircle, Settings, Clock, PauseCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  Bot,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ExternalLink,
+  Copy,
+  Settings,
+  Clock,
+  PauseCircle,
+  Youtube,
+  LifeBuoy,
+  Workflow,
+  Info,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,16 +40,17 @@ interface TgBot {
 }
 
 export default function TelegramCriarBot() {
+  const navigate = useNavigate();
   const [bots, setBots] = useState<TgBot[]>([]);
   const [token, setToken] = useState("");
+  const [botType, setBotType] = useState("flowchat");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [revalidating, setRevalidating] = useState<string | null>(null);
 
   function formatRelative(iso: string | null) {
     if (!iso) return "nunca validado";
-    const d = new Date(iso).getTime();
-    const diff = Date.now() - d;
+    const diff = Date.now() - new Date(iso).getTime();
     const sec = Math.floor(diff / 1000);
     if (sec < 60) return "agora mesmo";
     const min = Math.floor(sec / 60);
@@ -68,7 +90,7 @@ export default function TelegramCriarBot() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success(`Bot @${(data as any).me?.username} conectado!`);
+      toast.success(`Bot @${(data as any).me?.username} cadastrado!`);
       setToken("");
       load();
     } catch (e: any) {
@@ -118,97 +140,171 @@ export default function TelegramCriarBot() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="glass-card rounded-2xl p-6 max-w-3xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(96,165,250,0.18)] border border-[rgba(96,165,250,0.30)] flex items-center justify-center">
-            <Bot className="w-5 h-5 text-[#60a5fa]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Criar Bot</h1>
-            <p className="text-sm text-white/60">
-              Conecte seu bot do Telegram colando o token gerado pelo @BotFather.
+    <div className="space-y-6 w-full pb-24">
+      {/* Header */}
+      <div>
+        <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">
+          CADASTRAR BOT
+        </h1>
+        <p className="font-nunito text-[12px] text-white/40 mt-1">
+          Crie um novo bot, configurando suas informações para começar a automatizar interações e
+          gerenciar mensagens de forma eficiente.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form principal */}
+        <div className="glass-card rounded-2xl p-6 lg:col-span-2">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-white">Configurar cadastro</h2>
+            <p className="text-xs text-white/50 mt-1">
+              Crie e gerencie tokens, tipos e configurações do bot.
             </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-white text-sm">
+                Tipo<span className="text-red-400">*</span>
+              </Label>
+              <Select value={botType} onValueChange={setBotType}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flowchat">Flow Chat</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white text-sm">
+                Token do bot principal<span className="text-red-400">*</span>
+              </Label>
+              <Input
+                type="password"
+                placeholder="Insira o token fornecido pelo bot father"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                className="font-mono bg-white/5 border-white/10"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="flex items-start gap-3 rounded-xl bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.2)] p-3">
+              <div className="w-7 h-7 rounded-lg bg-[rgba(96,165,250,0.18)] flex items-center justify-center shrink-0">
+                <Workflow className="w-4 h-4 text-[#60a5fa]" />
+              </div>
+              <p className="text-xs text-white/70 leading-relaxed">
+                Você escolheu criar o bot pelo <span className="text-[#60a5fa] font-medium">Flow Chat</span>.
+                Após a criação, acesse o Flow Chat, configure filtros para direcionar mensagens a públicos
+                específicos, inclua imagens, textos, botões e mais.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-5 space-y-2">
-          <p className="text-sm font-medium text-white">Como gerar seu token</p>
-          <ol className="text-xs text-white/60 space-y-1 list-decimal list-inside">
-            <li>
-              Abra{" "}
+        {/* Sidebar tutoriais */}
+        <div className="glass-card rounded-2xl p-6 space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Tutoriais e orientações</h2>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
+              <p className="text-xs text-white/70 leading-relaxed">
+                <span className="font-medium text-white">1.</span> Crie um bot no Telegram usando o{" "}
+                <span className="font-medium text-white">BotFather</span> e copie o token gerado para
+                prosseguir com a configuração.
+              </p>
               <a
                 href="https://t.me/BotFather"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#60a5fa] hover:underline inline-flex items-center gap-1"
+                className="text-[#60a5fa] hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
               >
-                @BotFather <ExternalLink className="w-3 h-3" />
-              </a>{" "}
-              no Telegram.
-            </li>
-            <li>Envie <code className="bg-white/10 px-1 rounded">/newbot</code> e siga as instruções.</li>
-            <li>Copie o token (formato <code className="bg-white/10 px-1 rounded">123456789:AAH...</code>) e cole abaixo.</li>
-          </ol>
-        </div>
+                <ExternalLink className="w-3.5 h-3.5" /> Acessar BotFather
+              </a>
+            </div>
 
-        <div className="space-y-3">
-          <Label className="text-white">Token do Bot</Label>
-          <div className="flex gap-2">
-            <Input
-              type="password"
-              placeholder="123456789:AAHk...."
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              className="font-mono"
-              disabled={loading}
-            />
-            <Button onClick={handleConnect} disabled={loading || !token.trim()}>
-              <Plus className="w-4 h-4 mr-1" />
-              {loading ? "Validando..." : "Conectar"}
-            </Button>
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
+              <p className="text-xs text-white/70 leading-relaxed">
+                <span className="font-medium text-white">2.</span> Se for sua primeira vez criando um
+                bot, assista ao nosso{" "}
+                <span className="font-medium text-white">vídeo tutorial</span>. Ele mostra passo a passo
+                como preencher as informações e garantir um bot funcional.
+              </p>
+              <a
+                href="https://www.youtube.com/results?search_query=como+criar+bot+telegram+botfather"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#f87171] hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
+              >
+                <Youtube className="w-3.5 h-3.5" /> Assistir tutorial
+              </a>
+            </div>
+
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+              <p className="text-xs text-white/70 leading-relaxed">
+                Se o vídeo não esclarecer todas as dúvidas, nosso suporte estará à disposição para
+                ajudar com prazer.
+              </p>
+              <Button size="sm" className="w-full" variant="default">
+                <LifeBuoy className="w-4 h-4 mr-1.5" /> Acionar suporte
+              </Button>
+            </div>
           </div>
-          <p className="text-xs text-white/50 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            O token é validado em <code>api.telegram.org/getMe</code> antes de ser salvo.
-          </p>
         </div>
       </div>
 
-      <div className="glass-card rounded-2xl p-6 max-w-4xl">
+      {/* Lista de bots conectados */}
+      <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Bots conectados</h2>
-          <span className="text-xs text-white/50">{bots.length} {bots.length === 1 ? "bot" : "bots"}</span>
+          <div>
+            <h2 className="text-base font-semibold text-white">Bots cadastrados</h2>
+            <p className="text-xs text-white/50 mt-0.5">Gerencie e acompanhe seus bots ativos</p>
+          </div>
+          <span className="text-xs text-white/50">
+            {bots.length} {bots.length === 1 ? "bot" : "bots"}
+          </span>
         </div>
         {fetching ? (
           <p className="text-white/50 text-sm">Carregando...</p>
         ) : bots.length === 0 ? (
-          <p className="text-white/50 text-sm">Nenhum bot conectado ainda.</p>
+          <div className="text-center py-10">
+            <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
+            <p className="text-white/50 text-sm">Nenhum bot cadastrado ainda.</p>
+            <p className="text-white/40 text-xs mt-1">
+              Preencha o formulário acima e clique em "Cadastrar bot" para começar.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {bots.map((b) => (
               <div
                 key={b.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10"
+                className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 flex-wrap gap-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[rgba(96,165,250,0.2)] flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-[rgba(96,165,250,0.2)] flex items-center justify-center shrink-0">
                     <Bot className="w-5 h-5 text-[#60a5fa]" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">{b.first_name || "(sem nome)"}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-white font-medium truncate">
+                        {b.first_name || "(sem nome)"}
+                      </span>
                       {b.active ? (
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> ativo
                         </span>
                       ) : (
-                        <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                           <PauseCircle className="w-3 h-3" /> pausado
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-white/50 flex items-center gap-2">
+                    <div className="text-xs text-white/50 flex items-center gap-2 flex-wrap">
                       <span>@{b.username}</span>
                       <span>·</span>
                       <span>ID {b.bot_id}</span>
@@ -235,7 +331,6 @@ export default function TelegramCriarBot() {
                     variant="ghost"
                     onClick={() => revalidate(b)}
                     disabled={revalidating === b.id}
-                    title="Revalidar token agora"
                   >
                     {revalidating === b.id ? "..." : "Revalidar"}
                   </Button>
@@ -255,6 +350,21 @@ export default function TelegramCriarBot() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Footer fixo */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-[#0f0a24]/90 backdrop-blur-md px-6 py-3 flex items-center justify-between gap-3 lg:pl-[200px]">
+        <button
+          type="button"
+          onClick={() => navigate("/telegram/dashboard")}
+          className="text-sm text-white/60 hover:text-white transition-colors inline-flex items-center gap-1.5"
+        >
+          <Info className="w-3.5 h-3.5" /> Cancelar cadastro
+        </button>
+        <Button onClick={handleConnect} disabled={loading || !token.trim()} size="lg">
+          <Plus className="w-4 h-4 mr-1.5" />
+          {loading ? "Cadastrando..." : "Cadastrar bot"}
+        </Button>
       </div>
     </div>
   );
