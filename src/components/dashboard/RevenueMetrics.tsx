@@ -111,11 +111,11 @@ export function RevenueMetrics() {
   // Hide cards entirely for users that don't use the gateway
   if (!hasTransactions) return null;
 
-  const ratio = msgPerSale.sales > 0
-    ? (msgPerSale.messages / msgPerSale.sales)
+  const ratio = msgPerSale.messages > 0
+    ? (msgPerSale.sales / msgPerSale.messages)
     : null;
   const ratioLabel = ratio !== null
-    ? `${ratio.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} msg/venda`
+    ? `${(ratio * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% venda/msg`
     : "—";
 
   return (
