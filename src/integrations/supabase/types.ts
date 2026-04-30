@@ -587,6 +587,45 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_landing_pages: {
+        Row: {
+          created_at: string
+          description: string | null
+          entry_file: string | null
+          files: Json
+          id: string
+          name: string
+          slug: string | null
+          status: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entry_file?: string | null
+          files?: Json
+          id?: string
+          name: string
+          slug?: string | null
+          status?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entry_file?: string | null
+          files?: Json
+          id?: string
+          name?: string
+          slug?: string | null
+          status?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_pixels: {
         Row: {
           active: boolean
