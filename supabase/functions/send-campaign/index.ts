@@ -595,7 +595,55 @@ const dispatchUazapiSpecial = async (
   }
 };
 
-const BATCH_SIZE = 50; // Process 50 contacts per invocation
+const MAX_BATCH_SIZE = 50;
+const MIN_BATCH_SIZE = 3;
+const MAX_BATCH_RUNTIME_MS = 40_000;
+
+const getBatchSizeForDelay = (delayMs: number) => {
+  const safeDelayMs = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 2000;
+  const estimatedPerContactMs = Math.max(safeDelayMs + 2500, 3000);
+  return Math.max(MIN_BATCH_SIZE, Math.min(MAX_BATCH_SIZE, Math.floor(MAX_BATCH_RUNTIME_MS / estimatedPerContactMs)));
+};
+
+const normalizeCampaignPhoneKey = (phone?: string | null) => {
+  if (!phone) return '';
+  return String(phone).replace(/@lid$/i, '').replace(/\D/g, '');
+};
+
+const getRemainingAudienceContacts = async (
+  supabase: any,
+  campaignId: string,
+  targetContacts: SendCampaignRequest['contacts'],
+) => {
+  const acceptedPhones = new Set<string>();
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('campaign_sends')
+      .select('phone, status')
+      .eq('campaign_id', campaignId)
+      .in('status', ['pending', 'sent', 'delivered'])
+      .range(from, from + pageSize - 1);
+
+    if (error || !data || data.length === 0) break;
+    for (const send of data) {
+      const phoneKey = normalizeCampaignPhoneKey(send.phone);
+      if (phoneKey) acceptedPhones.add(phoneKey);
+    }
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  const remaining = new Map<string, SendCampaignRequest['contacts'][number]>();
+  for (const contact of targetContacts) {
+    const phoneKey = normalizeCampaignPhoneKey(contact.phone);
+    if (!phoneKey || acceptedPhones.has(phoneKey) || remaining.has(phoneKey)) continue;
+    remaining.set(phoneKey, contact);
+  }
+  return Array.from(remaining.values());
+};
 
 // Best-effort fetch: retries on network errors and HTTP 5xx (UAZAPI server hiccups).
 // Returns the final Response or throws on definitive network failure after all retries.
@@ -972,7 +1020,7 @@ serve(async (req) => {
       const newRotationOffset = (rotationOffset + processedInThisRun) % (rotatePool.length || 1);
 
       try {
-        const reInvokeResponse = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+        const continuationPromise = fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -986,11 +1034,20 @@ serve(async (req) => {
             _isContinuation: true,
             _userId: credentials.userId,
           }),
-        });
+        })
+          .then(async (reInvokeResponse) => {
+            if (!reInvokeResponse.ok) {
+              const errorBody = await reInvokeResponse.text().catch(() => '');
+              console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${errorBody}`);
+            }
+          })
+          .catch((reError) => {
+            console.error(`❌ Re-invocation failed:`, reError);
+          });
 
-        if (!reInvokeResponse.ok) {
-          console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${await reInvokeResponse.text()}`);
-          return false;
+        const edgeRuntime = (globalThis as any).EdgeRuntime;
+        if (edgeRuntime?.waitUntil) {
+          edgeRuntime.waitUntil(continuationPromise);
         }
 
         return true;
@@ -1053,12 +1110,13 @@ serve(async (req) => {
     }
 
     const delayMs = (campaign.delay_seconds || 2) * 1000;
+    const batchSize = getBatchSizeForDelay(delayMs);
 
     // Split contacts into current batch and remaining
-    const currentBatch = executionContacts.slice(0, BATCH_SIZE);
-    const remainingContacts = executionContacts.slice(BATCH_SIZE);
+    const currentBatch = executionContacts.slice(0, batchSize);
+    const remainingContacts = executionContacts.slice(batchSize);
 
-    console.log(`📦 Processing batch of ${currentBatch.length} contacts. Remaining: ${remainingContacts.length}`);
+    console.log(`📦 Processing batch of ${currentBatch.length} contacts (batchSize=${batchSize}, delay=${delayMs}ms). Remaining: ${remainingContacts.length}`);
 
     // Check device connectivity before processing batch
     const firstInstance = getInstanceForIndex(0);
@@ -1750,28 +1808,31 @@ serve(async (req) => {
       // If target audience is 0 (edge case), use the current batch as reference
       const effectiveTarget = totalTargetContacts > 0 ? totalTargetContacts : totalProcessed;
 
-      if (totalTargetContacts > 0 && totalProcessed < totalTargetContacts) {
-        // Still missing contacts - DO NOT mark as completed
-        const missingContacts = campaignTargetContacts.slice(totalProcessed);
-        console.log(`⚠️ Campaign ${campaignId}: blocking completion because only ${totalProcessed}/${totalTargetContacts} contacts were processed. Re-invoking ${missingContacts.length} missing contacts.`);
+      if (totalTargetContacts > 0) {
+        // Still missing accepted contacts - DO NOT mark as completed.
+        // Use phone keys instead of array position so stalled/duplicate batches resume the real remainder.
+        const missingContacts = await getRemainingAudienceContacts(supabase, campaignId, campaignTargetContacts);
+        if (missingContacts.length > 0) {
+          console.log(`⚠️ Campaign ${campaignId}: blocking completion because ${missingContacts.length}/${totalTargetContacts} contacts are still not accepted. Re-invoking missing contacts.`);
 
-        const continuationSuccess = await queueContinuation(missingContacts, currentBatch.length);
-        if (!continuationSuccess) {
-          await sleep(2000);
-          const retrySuccess = await queueContinuation(missingContacts, currentBatch.length);
-          if (!retrySuccess) {
-            console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}. ${missingContacts.length} contacts not processed.`);
+          const continuationSuccess = await queueContinuation(missingContacts, currentBatch.length);
+          if (!continuationSuccess) {
+            await sleep(2000);
+            const retrySuccess = await queueContinuation(missingContacts, currentBatch.length);
+            if (!retrySuccess) {
+              console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}. ${missingContacts.length} contacts not processed.`);
+            }
           }
-        }
 
-        return new Response(JSON.stringify({
-          success: true,
-          message: 'Missing contacts queued before completion',
-          campaignId,
-          processed: currentBatch.length,
-          remaining: missingContacts.length,
-          results,
-        }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Missing contacts queued before completion',
+            campaignId,
+            processed: currentBatch.length,
+            remaining: missingContacts.length,
+            results,
+          }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
       }
 
       if (totalProcessed === 0 || (actualDeliveries === 0 && awaitingCallbackCount === 0)) {
