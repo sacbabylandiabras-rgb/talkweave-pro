@@ -26,6 +26,16 @@ const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
 const WARMUP_PHONES_KEY = "zaplynx-warmup-phones";
 const WARMUP_PROGRESS_PHONE_SEPARATOR = "::";
 
+const DEFAULT_WARMUP_CONFIG: WarmupConfig = {
+  active: false,
+  instanceIds: [],
+  minDelay: 30,
+  maxDelay: 120,
+  dailyLimit: 50,
+};
+
+const userWarmupStorageKey = (userId?: string) => `${STORAGE_KEY}:${userId || "anonymous"}`;
+
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 const normalizeWarmupPhone = (phone: string) => String(phone || "").replace(/\D/g, "");
@@ -65,13 +75,8 @@ export default function AquecimentoNumero() {
     () => allInstances.filter((i) => (i.api_provider || "zapi") === "zapi"),
     [allInstances],
   );
-  const [config, setConfig] = useState<WarmupConfig>({
-    active: false,
-    instanceIds: [],
-    minDelay: 30,
-    maxDelay: 120,
-    dailyLimit: 50,
-  });
+  const [config, setConfig] = useState<WarmupConfig>(DEFAULT_WARMUP_CONFIG);
+  const [userId, setUserId] = useState<string>();
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<Record<string, number>>(readProgress);
 
@@ -90,7 +95,9 @@ export default function AquecimentoNumero() {
   }, []);
 
   const persistConfig = (nextConfig: WarmupConfig) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
+    if (!userId) return;
+    localStorage.setItem(userWarmupStorageKey(userId), JSON.stringify(nextConfig));
+    localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event(WARMUP_CONFIG_EVENT));
   };
 
