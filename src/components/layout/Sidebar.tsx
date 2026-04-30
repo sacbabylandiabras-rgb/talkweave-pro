@@ -43,6 +43,7 @@ import {
   Target,
   LinkIcon,
   LayoutTemplate,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -87,11 +88,6 @@ const instagramMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
-  { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
-  { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
-  { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
-  { id: "tg-tarefas-afiliados", label: "Tarefas para Afiliados", icon: ListChecks, path: "/telegram/tarefas-afiliados" },
-  { id: "tg-referencia", label: "Links de Referência", icon: LinkIcon, path: "/telegram/referencia" },
   { id: "tg-resultados", label: "Resultados", icon: Trophy, path: "/telegram/resultados" },
   { id: "tg-contatos", label: "Contatos", icon: Users, path: "/telegram/contatos" },
   { id: "tg-vendas", label: "Gestão de Vendas", icon: ShoppingBag, path: "/telegram/vendas" },
@@ -110,6 +106,14 @@ const telegramBotSubItems = [
   { id: "tg-atualizar-bot", label: "Atualizar bot", icon: CloudUpload, path: "/telegram/atualizar-bot" },
   { id: "tg-planos", label: "Planos de pagamento", icon: CreditCard, path: "/telegram/planos" },
   { id: "tg-redirect", label: "Botões de redirecionamento", icon: Share2, path: "/telegram/redirecionamento" },
+];
+
+const telegramExtrasSubItems = [
+  { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
+  { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
+  { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
+  { id: "tg-tarefas-afiliados", label: "Tarefas para Afiliados", icon: ListChecks, path: "/telegram/tarefas-afiliados" },
+  { id: "tg-referencia", label: "Links de Referência", icon: LinkIcon, path: "/telegram/referencia" },
 ];
 
 const metaMenuItems = [
@@ -162,6 +166,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [botOpen, setBotOpen] = useState(
     ["tg-criar-bot", "tg-atualizar-bot", "tg-planos", "tg-redirect"].includes(activeItem),
+  );
+  const [extrasOpen, setExtrasOpen] = useState(
+    ["tg-admins", "tg-grupos-canais", "tg-canal-free", "tg-tarefas-afiliados", "tg-referencia"].includes(activeItem),
   );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
@@ -340,6 +347,59 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                 {botOpen && collapsed && (
                   <ul className="mt-0.5 space-y-0.5">
                     {telegramBotSubItems.map(renderItem)}
+                  </ul>
+                )}
+              </li>
+
+              {/* Grupo expansível "Funções Extras" */}
+              <li>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setExtrasOpen((v) => !v)}
+                      className={cn(
+                        "group w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 sidebar-item border border-transparent",
+                        collapsed && "justify-center px-2",
+                      )}
+                    >
+                      <Sparkles
+                        className={cn(
+                          "shrink-0 transition-colors duration-200",
+                          collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
+                          extrasOpen
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground",
+                        )}
+                      />
+                      {!collapsed && (
+                        <>
+                          <span className="truncate flex-1 text-left">Funções Extras</span>
+                          <ChevronDown
+                            className={cn(
+                              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+                              extrasOpen && "rotate-180",
+                            )}
+                          />
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Funções Extras
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+
+                {extrasOpen && !collapsed && (
+                  <ul className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {telegramExtrasSubItems.map(renderItem)}
+                  </ul>
+                )}
+                {extrasOpen && collapsed && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {telegramExtrasSubItems.map(renderItem)}
                   </ul>
                 )}
               </li>
