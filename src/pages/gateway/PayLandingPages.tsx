@@ -219,13 +219,25 @@ export default function PayLandingPages() {
   };
 
   const updateCheckoutLink = async (pageId: string, checkoutId: string | null) => {
+    const payload = { checkout_id: checkoutId, slug: checkoutId };
     const { error } = await (supabase as any)
       .from("gateway_landing_pages")
-      .update({ checkout_id: checkoutId, slug: checkoutId })
+      .update(payload)
       .eq("id", pageId);
     if (error) {
-      toast.error("Não foi possível vincular o checkout");
-      return;
+      const isMissingCheckoutColumn = String(error.message || "").includes("checkout_id");
+      if (!isMissingCheckoutColumn) {
+        toast.error("Não foi possível vincular o checkout");
+        return;
+      }
+      const { error: fallbackError } = await (supabase as any)
+        .from("gateway_landing_pages")
+        .update({ slug: checkoutId })
+        .eq("id", pageId);
+      if (fallbackError) {
+        toast.error("Não foi possível vincular o checkout");
+        return;
+      }
     }
     toast.success(checkoutId ? "Checkout vinculado" : "Vínculo removido");
     setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId, slug: checkoutId } : p)));
