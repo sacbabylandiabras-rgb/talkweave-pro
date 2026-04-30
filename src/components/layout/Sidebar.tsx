@@ -122,6 +122,7 @@ const gatewayMenuItems = [
   { id: "painel-gateway", label: "Dashboard", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
   { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
+  { id: "pay-landing-pages", label: "Landing Pages", icon: LayoutTemplate, path: "/gateway-checkout/landing-pages" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
   { id: "pay-cart-recovery", label: "Recuperação de Carrinhos", icon: ShoppingCart, path: "/gateway-checkout/cart-recovery" },
   { id: "pay-fees", label: "Taxas", icon: Receipt, path: "/gateway-checkout/fees" },
