@@ -23,6 +23,8 @@ const WARMUP_PROGRESS_EVENT = "zaplynx-warmup-progress-updated";
 const WARMUP_PHONES_KEY = "zaplynx-warmup-phones";
 const WARMUP_PROGRESS_PHONE_SEPARATOR = "::";
 
+const userWarmupStorageKey = (userId?: string) => `${WARMUP_STORAGE_KEY}:${userId || "anonymous"}`;
+
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 const normalizeWarmupPhone = (phone: string) => String(phone || "").replace(/\D/g, "");
@@ -97,7 +99,7 @@ const recordWarmupProgress = (
   }
 };
 
-const readWarmupConfig = (): WarmupConfig => {
+const readWarmupConfig = (userId?: string): WarmupConfig => {
   const fallback: WarmupConfig = {
     active: false,
     instanceIds: [],
@@ -108,7 +110,7 @@ const readWarmupConfig = (): WarmupConfig => {
   };
 
   try {
-    const saved = localStorage.getItem(WARMUP_STORAGE_KEY);
+    const saved = userId ? localStorage.getItem(userWarmupStorageKey(userId)) : null;
     return saved ? { ...fallback, ...JSON.parse(saved) } : fallback;
   } catch {
     return fallback;
