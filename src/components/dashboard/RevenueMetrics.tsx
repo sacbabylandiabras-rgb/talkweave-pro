@@ -72,8 +72,8 @@ export function RevenueMetrics() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <MetricCard title="Faturamento" value={formatBRL(revenue.gross)} subtitle="Total bruto aprovado" icon={DollarSign} variant="success" />
-      <MetricCard title="Faturamento Líquido" value={formatBRL(revenue.net)} subtitle="Após taxas" icon={Wallet} variant="info" />
+      <MetricCard title="Faturamento" value={formatBRL(revenue.gross)} subtitle="Pix gerado" icon={DollarSign} variant="success" />
+      <MetricCard title="Faturamento Líquido" value={formatBRL(revenue.net)} subtitle="Venda aprovada" icon={Wallet} variant="info" />
     </div>
   );
 }
