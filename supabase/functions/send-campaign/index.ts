@@ -1395,23 +1395,8 @@ serve(async (req) => {
             }
 
             if (rateLimitHitsInBatch >= 2) {
-              await persistCampaignSend(campaignSend, reusableSendId);
-              await supabase
-                .from('campaigns')
-                .update({ status: 'paused', updated_at: new Date().toISOString() })
-                .eq('id', campaignId);
-
-              return new Response(JSON.stringify({
-                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
-                stopped: true,
-                paused: true,
-                reason: 'whatsapp_rate_limit',
-                processed: i + 1,
-                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
-              }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json', ...corsHeaders },
-              });
+              console.log(`⚠️ Rate-limit detectado em ${campaignId}, mas configurado para continuar enviando.`);
+              rateLimitHitsInBatch = 0;
             }
           }
 
@@ -1666,57 +1651,11 @@ serve(async (req) => {
             }
 
             if (rateLimitHitsInBatch >= 2) {
-              console.log(`🚨 WhatsApp rate-limit detectado (error 463 / temporary restriction). Pausando campanha ${campaignId} para preservar a conta.`);
-              await persistCampaignSend(campaignSend, reusableSendId);
-              await supabase
-                .from('campaigns')
-                .update({ status: 'paused', updated_at: new Date().toISOString() })
-                .eq('id', campaignId);
-              return new Response(JSON.stringify({
-                error: 'WhatsApp temporary restriction (error 463). Campaign paused to protect the account.',
-                stopped: true,
-                paused: true,
-                reason: 'whatsapp_rate_limit',
-                processed: i + 1,
-                remaining: (currentBatch.length - i - 1) + remainingContacts.length,
-              }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json', ...corsHeaders },
-              });
+              console.log(`⚠️ Rate-limit detectado em ${campaignId}, mas configurado para continuar enviando.`);
+              rateLimitHitsInBatch = 0;
             }
-
-            // Mid-batch disconnection detection: after a send failure, check if device went offline
-            try {
-              const midBatchInstance = currentInstance;
-              const midCheck = await fetchDeviceStatusSnapshot(midBatchInstance);
-              if (midCheck.ok && midCheck.explicitlyDisconnected && !midCheck.connected) {
-                // Double-check after 1.5s to confirm
-                await sleep(1500);
-                const midRecheck = await fetchDeviceStatusSnapshot(midBatchInstance);
-                if (midRecheck.ok && midRecheck.explicitlyDisconnected && !midRecheck.connected) {
-                  console.log(`❌ DISPOSITIVO DESCONECTOU DURANTE O ENVIO! Pausando campanha ${campaignId} no contato ${i + 1}/${currentBatch.length}`);
-                  
-                  // Persist this failed send before pausing
-                  await persistCampaignSend(campaignSend, reusableSendId);
-                  
-                  await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-                  
-                  return new Response(JSON.stringify({
-                    message: 'Conexão desconectada durante o envio. Campanha pausada para retomar de onde parou.',
-                    stopped: true,
-                    paused: true,
-                    reason: 'device_disconnected',
-                    processed: i + 1,
-                    remaining: (currentBatch.length - i - 1) + remainingContacts.length,
-                  }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json', ...corsHeaders },
-                  });
-                }
-              }
-            } catch (midCheckErr) {
-              console.error('Mid-batch device check error:', midCheckErr);
-            }
+            // Mid-batch disconnection detection desabilitado a pedido do usuário:
+            // continuar tentando os próximos contatos mesmo após falha.
           }
         }
 
