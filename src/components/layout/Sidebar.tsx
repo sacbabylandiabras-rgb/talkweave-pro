@@ -112,7 +112,6 @@ const telegramExtrasSubItems = [
   { id: "tg-admins", label: "Administradores", icon: ShieldCheck, path: "/telegram/administradores" },
   { id: "tg-grupos-canais", label: "Grupos e Canais", icon: Hash, path: "/telegram/grupos-canais" },
   { id: "tg-canal-free", label: "Canal Free", icon: Crown, path: "/telegram/canal-free" },
-  { id: "tg-tarefas-afiliados", label: "Tarefas para Afiliados", icon: ListChecks, path: "/telegram/tarefas-afiliados" },
   { id: "tg-referencia", label: "Links de Referência", icon: LinkIcon, path: "/telegram/referencia" },
 ];
 
@@ -168,7 +167,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
     ["tg-criar-bot", "tg-atualizar-bot", "tg-planos", "tg-redirect"].includes(activeItem),
   );
   const [extrasOpen, setExtrasOpen] = useState(
-    ["tg-admins", "tg-grupos-canais", "tg-canal-free", "tg-tarefas-afiliados", "tg-referencia"].includes(activeItem),
+    ["tg-admins", "tg-grupos-canais", "tg-canal-free", "tg-referencia"].includes(activeItem),
   );
 
   const dashboardIds = ["painel", "painel-meta", "painel-gateway"];
