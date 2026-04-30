@@ -73,12 +73,14 @@ export default function TelegramGruposCanais() {
   const [link, setLink] = useState("");
   const [groupId, setGroupId] = useState("");
   const [kind, setKind] = useState<GroupKind>("group");
+  const [planIds, setPlanIds] = useState<string[]>([]);
 
   function reset() {
     setTitle("");
     setLink("");
     setGroupId("");
     setKind("group");
+    setPlanIds([]);
     setEditing(null);
   }
 
@@ -93,6 +95,7 @@ export default function TelegramGruposCanais() {
     setLink(g.link);
     setGroupId(g.group_id);
     setKind(g.kind);
+    setPlanIds(g.plan_ids ?? []);
     setOpen(true);
   }
 
@@ -134,6 +137,7 @@ export default function TelegramGruposCanais() {
                 link: link.trim(),
                 group_id: groupId.trim(),
                 kind,
+                plan_ids: planIds,
               }
             : i,
         ),
@@ -148,6 +152,7 @@ export default function TelegramGruposCanais() {
           link: link.trim(),
           group_id: groupId.trim(),
           kind,
+          plan_ids: planIds,
           created_at: new Date().toISOString(),
         },
       ]);
