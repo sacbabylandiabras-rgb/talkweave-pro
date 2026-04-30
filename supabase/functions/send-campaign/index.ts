@@ -1070,12 +1070,13 @@ serve(async (req) => {
     }
 
     const delayMs = (campaign.delay_seconds || 2) * 1000;
+    const batchSize = getBatchSizeForDelay(delayMs);
 
     // Split contacts into current batch and remaining
-    const currentBatch = executionContacts.slice(0, BATCH_SIZE);
-    const remainingContacts = executionContacts.slice(BATCH_SIZE);
+    const currentBatch = executionContacts.slice(0, batchSize);
+    const remainingContacts = executionContacts.slice(batchSize);
 
-    console.log(`📦 Processing batch of ${currentBatch.length} contacts. Remaining: ${remainingContacts.length}`);
+    console.log(`📦 Processing batch of ${currentBatch.length} contacts (batchSize=${batchSize}, delay=${delayMs}ms). Remaining: ${remainingContacts.length}`);
 
     // Check device connectivity before processing batch
     const firstInstance = getInstanceForIndex(0);
