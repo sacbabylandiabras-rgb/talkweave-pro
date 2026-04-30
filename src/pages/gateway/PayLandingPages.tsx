@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { LayoutTemplate, Upload, Trash2, ExternalLink, Loader2, FileCode } from "lucide-react";
+import { LayoutTemplate, Upload, Trash2, ExternalLink, Loader2, FileCode, Link2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -23,6 +24,13 @@ interface LandingPage {
   entry_file: string | null;
   status: boolean;
   created_at: string;
+  checkout_id?: string | null;
+}
+
+interface CheckoutOption {
+  id: string;
+  name: string;
+  slug: string | null;
 }
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
@@ -45,6 +53,7 @@ export default function PayLandingPages() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [checkoutDomain, setCheckoutDomain] = useState(PLATFORM_CHECKOUT_DOMAIN);
+  const [checkoutOptions, setCheckoutOptions] = useState<CheckoutOption[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,7 +63,17 @@ export default function PayLandingPages() {
       loadCheckoutDomain(currentUserId);
     });
     load();
+    loadCheckouts();
   }, []);
+
+  const loadCheckouts = async () => {
+    const { data } = await (supabase as any)
+      .from("gateway_checkouts")
+      .select("id, name, slug")
+      .eq("status", true)
+      .order("created_at", { ascending: false });
+    setCheckoutOptions((data as CheckoutOption[]) || []);
+  };
 
   const loadCheckoutDomain = async (currentUserId: string | null) => {
     const storedDomain = localStorage.getItem("checkout_custom_domain") || "";
@@ -196,6 +215,19 @@ export default function PayLandingPages() {
     } catch (e: any) {
       toast.error(e?.message || "Erro ao remover");
     }
+  };
+
+  const updateCheckoutLink = async (pageId: string, checkoutId: string | null) => {
+    const { error } = await (supabase as any)
+      .from("gateway_landing_pages")
+      .update({ checkout_id: checkoutId })
+      .eq("id", pageId);
+    if (error) {
+      toast.error("Não foi possível vincular o checkout");
+      return;
+    }
+    toast.success(checkoutId ? "Checkout vinculado" : "Vínculo removido");
+    setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId } : p)));
   };
 
   const entryUrl = (page: LandingPage) => {
@@ -343,6 +375,24 @@ export default function PayLandingPages() {
                           {url}
                         </a>
                       )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Checkout vinculado:</span>
+                        <Select
+                          value={p.checkout_id || "none"}
+                          onValueChange={(v) => updateCheckoutLink(p.id, v === "none" ? null : v)}
+                        >
+                          <SelectTrigger className="h-8 w-[260px] text-xs">
+                            <SelectValue placeholder="Selecione um checkout" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem vínculo</SelectItem>
+                            {checkoutOptions.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {url && (
