@@ -3,164 +3,230 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, ShoppingBag, TrendingUp, Search, Download, RefreshCcw, Calendar } from "lucide-react";
-import { toast } from "sonner";
+import {
+  CheckCircle2, Clock, XCircle, RotateCcw, Search, Calendar, Inbox, ChevronLeft, ChevronRight,
+} from "lucide-react";
 
 interface Sale {
   id: string;
-  contact_name: string;
-  username: string;
-  plan: string;
-  value: number;
-  status: "aprovada" | "pendente" | "estornada" | "expirada";
-  payment_method: "pix" | "cartao";
-  date: string;
-  expires_at: string;
+  bot: string;
+  cliente: string;
+  pagamento: string;
+  data: string;
+  valor: number;
+  status: "PAGO" | "PENDENTE" | "FALHOU" | "REEMBOLSADO";
 }
 
 const MOCK: Sale[] = [];
 
-const STATUS: Record<Sale["status"], { label: string; cls: string }> = {
-  aprovada: { label: "Aprovada", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
-  pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  estornada: { label: "Estornada", cls: "bg-destructive/15 text-destructive border-destructive/30" },
-  expirada: { label: "Expirada", cls: "bg-muted text-muted-foreground border-muted" },
-};
-
 export default function TelegramVendas() {
-  const [search, setSearch] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [txId, setTxId] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [period, setPeriod] = useState("month");
+  const [acquirer, setAcquirer] = useState("all");
+  const [perPage, setPerPage] = useState("10");
 
   const filtered = useMemo(() => MOCK.filter((s) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || s.contact_name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
-    const matchStatus = statusFilter === "all" || s.status === statusFilter;
-    return matchSearch && matchStatus;
-  }), [search, statusFilter]);
-
-  const totals = useMemo(() => {
-    const aprovadas = MOCK.filter((s) => s.status === "aprovada");
-    return {
-      faturamento: aprovadas.reduce((acc, s) => acc + s.value, 0),
-      vendas: aprovadas.length,
-      pendentes: MOCK.filter((s) => s.status === "pendente").length,
-      ticket: aprovadas.length ? aprovadas.reduce((a, s) => a + s.value, 0) / aprovadas.length : 0,
-    };
-  }, []);
+    return (statusFilter === "all" || s.status === statusFilter);
+  }), [statusFilter]);
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  const stats = useMemo(() => ({
+    pago: { value: MOCK.filter(s => s.status === "PAGO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PAGO").length },
+    pendente: { value: MOCK.filter(s => s.status === "PENDENTE").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PENDENTE").length },
+    falhou: { value: MOCK.filter(s => s.status === "FALHOU").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "FALHOU").length },
+    reembolsado: { value: MOCK.filter(s => s.status === "REEMBOLSADO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "REEMBOLSADO").length },
+  }), []);
+
+  const total = MOCK.length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            Gestão de Vendas <Badge className="bg-primary/20 text-primary border-0 text-[10px]">NOVO</Badge>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Acompanhe vendas, assinaturas e renovações</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-44"><Calendar className="w-4 h-4 mr-1" /><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Hoje</SelectItem>
-              <SelectItem value="week">Últimos 7 dias</SelectItem>
-              <SelectItem value="month">Últimos 30 dias</SelectItem>
-              <SelectItem value="year">Este ano</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => toast.success("Atualizado")}>
-            <RefreshCcw className="w-4 h-4 mr-1.5" /> Atualizar
-          </Button>
+          <h1 className="text-2xl font-bold">Vendas</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Monitore todas as suas vendas de maneira simples e organizada, com acesso rápido aos principais dados para acompanhar resultados e desempenho.
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-2xl font-bold">{fmt(totals.faturamento)}</p></div>
-          <DollarSign className="w-8 h-8 text-emerald-500 opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Vendas aprovadas</p><p className="text-2xl font-bold">{totals.vendas}</p></div>
-          <ShoppingBag className="w-8 h-8 text-primary opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Pendentes</p><p className="text-2xl font-bold">{totals.pendentes}</p></div>
-          <Calendar className="w-8 h-8 text-amber-500 opacity-60" />
-        </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Ticket médio</p><p className="text-2xl font-bold">{fmt(totals.ticket)}</p></div>
-          <TrendingUp className="w-8 h-8 text-blue-500 opacity-60" />
-        </Card>
-      </div>
-
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold">Transações <Badge variant="secondary" className="ml-2">{filtered.length}</Badge></h2>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome ou ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
+      {/* Card principal */}
+      <Card className="overflow-hidden">
+        <div className="flex">
+          <div className="w-1 bg-primary shrink-0" />
+          <div className="flex-1 p-5 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Gestão de Vendas</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">Ver todos os bots</Button>
+              <Button variant="outline" size="sm">
+                <Calendar className="w-4 h-4 mr-1.5" /> Filtrar por período
+              </Button>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos status</SelectItem>
-                <SelectItem value="aprovada">Aprovadas</SelectItem>
-                <SelectItem value="pendente">Pendentes</SelectItem>
-                <SelectItem value="estornada">Estornadas</SelectItem>
-                <SelectItem value="expirada">Expiradas</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => toast.success("Exportação iniciada")}>
-              <Download className="w-4 h-4 mr-1.5" /> Exportar
-            </Button>
           </div>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Expira em</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Nenhuma venda encontrada.</TableCell></TableRow>
-              ) : filtered.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-mono text-xs">{s.id}</TableCell>
-                  <TableCell>
-                    <p className="font-medium">{s.contact_name}</p>
-                    <p className="text-xs text-muted-foreground">{s.username}</p>
-                  </TableCell>
-                  <TableCell>{s.plan}</TableCell>
-                  <TableCell><Badge variant="outline" className="uppercase text-xs">{s.payment_method}</Badge></TableCell>
-                  <TableCell><Badge variant="outline" className={STATUS[s.status].cls}>{STATUS[s.status].label}</Badge></TableCell>
-                  <TableCell className="text-xs">{new Date(s.date).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell className="text-xs">{s.expires_at === "—" ? "—" : new Date(s.expires_at).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell className="text-right font-semibold">{fmt(s.value)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="px-5 pb-5 space-y-6">
+          {/* Definir Visualização */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <h3 className="font-semibold">Definir Visualização</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">ID do Pedido</Label>
+                <Input placeholder="Digite o ID do pedido" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">ID do cliente</Label>
+                <Input placeholder="Digite o ID do cliente" value={clientId} onChange={(e) => setClientId(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">ID da transação/End2End/Copia e cola</Label>
+                <Input placeholder="Digite o ID da transação" value={txId} onChange={(e) => setTxId(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger><SelectValue placeholder="Todos os status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="PAGO">Pago</SelectItem>
+                    <SelectItem value="PENDENTE">Pendente</SelectItem>
+                    <SelectItem value="FALHOU">Falhou</SelectItem>
+                    <SelectItem value="REEMBOLSADO">Reembolsado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Adquirente</Label>
+                <div className="flex gap-2">
+                  <Select value={acquirer} onValueChange={setAcquirer}>
+                    <SelectTrigger className="flex-1"><SelectValue placeholder="Todos os adquirentes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os adquirentes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon"><Search className="w-4 h-4" /></Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cards de status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatusCard label="PAGO" value={fmt(stats.pago.value)} count={`${stats.pago.count} / ${total}`} icon={<CheckCircle2 className="w-5 h-5 text-emerald-500" />} accent="emerald" />
+            <StatusCard label="PENDENTE" value={fmt(stats.pendente.value)} count={`${stats.pendente.count} / ${total}`} icon={<Clock className="w-5 h-5 text-amber-500" />} accent="amber" />
+            <StatusCard label="FALHOU" value={fmt(stats.falhou.value)} count={`${stats.falhou.count} / ${total}`} icon={<XCircle className="w-5 h-5 text-destructive" />} accent="destructive" />
+            <StatusCard label="REEMBOLSADO" value={fmt(stats.reembolsado.value)} count={`${stats.reembolsado.count} / ${total}`} icon={<RotateCcw className="w-5 h-5 text-blue-500" />} accent="blue" />
+          </div>
+
+          {/* Todas as vendas */}
+          <div className="rounded-lg border">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold flex items-center gap-2">
+                Todas as vendas
+                <Badge variant="secondary" className="rounded-full">{filtered.length}</Badge>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Visualize todos os seus registros de vendas em um só lugar e acompanhe os detalhes de cada transação.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bot</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead>Datas</TableHead>
+                    <TableHead>Valores</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-16">
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <Inbox className="w-8 h-8" />
+                          <p className="text-xs uppercase tracking-wide">Nenhuma venda registrada</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filtered.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell>{s.bot}</TableCell>
+                      <TableCell>{s.cliente}</TableCell>
+                      <TableCell>{s.pagamento}</TableCell>
+                      <TableCell className="text-xs">{s.data}</TableCell>
+                      <TableCell className="font-medium">{fmt(s.valor)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">Ver</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border-t flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <Select value={perPage} onValueChange={setPerPage}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 / página</SelectItem>
+                    <SelectItem value="25">25 / página</SelectItem>
+                    <SelectItem value="50">50 / página</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Página 1 de 1</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" disabled><ChevronLeft className="w-4 h-4" /></Button>
+                <span className="text-xs text-muted-foreground px-2">1/1</span>
+                <Button variant="ghost" size="icon" disabled><ChevronRight className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
     </div>
+  );
+}
+
+function StatusCard({
+  label, value, count, icon, accent,
+}: { label: string; value: string; count: string; icon: React.ReactNode; accent: "emerald" | "amber" | "destructive" | "blue" }) {
+  const accentMap: Record<string, string> = {
+    emerald: "border-l-emerald-500",
+    amber: "border-l-amber-500",
+    destructive: "border-l-destructive",
+    blue: "border-l-blue-500",
+  };
+  return (
+    <Card className={`p-4 border-l-4 ${accentMap[accent]}`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground">{label}</p>
+        {icon}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <p className="text-xl font-bold">{value}</p>
+        <p className="text-xs text-muted-foreground">{count}</p>
+      </div>
+    </Card>
   );
 }
