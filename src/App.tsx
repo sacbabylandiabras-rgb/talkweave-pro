@@ -174,7 +174,6 @@ const App = () => (
                   <Route path="/telegram/administradores" element={<TelegramAdministradores />} />
                   <Route path="/telegram/grupos-canais" element={<TelegramGruposCanais />} />
                   <Route path="/telegram/canal-free" element={<TelegramCanalFree />} />
-                  <Route path="/telegram/tarefas-afiliados" element={<TelegramPlaceholder title="Tarefas para Afiliados" description="Defina tarefas e missões para o programa de afiliados." />} />
                   <Route path="/telegram/referencia" element={<TelegramPlaceholder title="Links de Referência" description="Gere e gerencie links de indicação." />} />
                   <Route path="/telegram/resultados" element={<TelegramPlaceholder title="Resultados" description="Acompanhe resultados e provas sociais." />} />
                   <Route path="/telegram/contatos" element={<TelegramPlaceholder title="Contatos" description="Lista de usuários que interagiram com o bot." />} />
