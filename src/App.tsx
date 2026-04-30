@@ -68,6 +68,7 @@ import ManagerCommissions from "./pages/gateway/ManagerCommissions";
 import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
+import PublicLandingPreview from "./pages/PublicLandingPreview";
 import ThankYou from "./pages/ThankYou";
 import PublicOrder from "./pages/PublicOrder";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
@@ -216,6 +217,7 @@ const App = () => (
                 <Route path="/pay/:slug/obrigado" element={<ThankYou />} />
                 <Route path="/checkout/:slug" element={<PublicCheckout />} />
                 <Route path="/checkout/:slug/obrigado" element={<ThankYou />} />
+                <Route path="/lp/:pageId/*" element={<PublicLandingPreview />} />
                 <Route path="/pedido/:id" element={<PublicOrder />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
