@@ -140,7 +140,7 @@ export default function TelegramCriarBot() {
   }
 
   return (
-    <div className="space-y-6 w-full pb-24">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div>
         <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">
@@ -352,8 +352,8 @@ export default function TelegramCriarBot() {
         )}
       </div>
 
-      {/* Footer fixo */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-[#0f0a24]/90 backdrop-blur-md px-6 py-3 flex items-center justify-between gap-3 lg:pl-[200px]">
+      {/* Footer de ações */}
+      <div className="border-t border-white/10 bg-[#0f0a24]/60 backdrop-blur-md px-6 py-4 rounded-xl flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => navigate("/telegram/dashboard")}
