@@ -26,9 +26,10 @@ interface LandingPage {
 }
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
+const CHECKOUT_DOMAIN = "https://pay.zaplynxpro.online";
 
 const buildLandingUrl = (pageId: string, fileName?: string | null) => {
-  const base = `${window.location.origin}/lp/${pageId}`;
+  const base = `${CHECKOUT_DOMAIN}/lp/${pageId}`;
   if (!fileName) return base;
   const encodedPath = fileName.split("/").map(encodeURIComponent).join("/");
   return `${base}/${encodedPath}`;
