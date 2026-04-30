@@ -24,12 +24,7 @@ interface Contact {
   total_spent: number;
 }
 
-const MOCK: Contact[] = [
-  { id: "1", name: "João Silva", username: "@joaosilva", telegram_id: "123456789", status: "vip", joined_at: "2026-04-12", last_interaction: "2026-04-29", total_spent: 297 },
-  { id: "2", name: "Maria Souza", username: "@mariasz", telegram_id: "987654321", status: "lead", joined_at: "2026-04-25", last_interaction: "2026-04-28", total_spent: 0 },
-  { id: "3", name: "Pedro Lima", username: "@pedrolima", telegram_id: "456789123", status: "expirado", joined_at: "2026-02-10", last_interaction: "2026-04-01", total_spent: 47 },
-  { id: "4", name: "Ana Costa", username: "@anacosta", telegram_id: "321654987", status: "trial", joined_at: "2026-04-28", last_interaction: "2026-04-30", total_spent: 0 },
-];
+const MOCK: Contact[] = [];
 
 const STATUS_LABEL: Record<Contact["status"], { label: string; cls: string }> = {
   vip: { label: "VIP", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
