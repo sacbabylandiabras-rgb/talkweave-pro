@@ -123,7 +123,7 @@ export function RevenueMetrics() {
       <MetricCard title="Pix Gerado" value={formatBRL(revenue.pixGenerated)} icon={DollarSign} variant="info" />
       <MetricCard title="Venda Aprovada" value={formatBRL(revenue.approved)} icon={Wallet} variant="success" />
       <MetricCard
-        title="Mensagens por Venda"
+        title="CPA"
         value={ratioLabel}
         icon={Send}
         variant="info"
