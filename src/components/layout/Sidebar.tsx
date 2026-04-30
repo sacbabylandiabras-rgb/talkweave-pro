@@ -307,8 +307,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
-        {/* Telegram section - only for admins */}
-        {activeWorkspace === "zapi" && isAdmin && (
+        {/* Telegram section */}
+        {activeWorkspace === "zapi" && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
