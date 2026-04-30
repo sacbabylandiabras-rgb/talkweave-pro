@@ -165,7 +165,7 @@ const App = () => (
                   <Route path="/telegram/dashboard" element={<TelegramDashboard />} />
                   <Route path="/telegram/criar-bot" element={<TelegramCriarBot />} />
                   <Route path="/telegram/atualizar-bot" element={<TelegramAtualizarBot />} />
-                  <Route path="/telegram/planos" element={<TelegramPlaceholder title="Planos de Pagamento" description="Configure os planos de assinatura oferecidos pelo bot." />} />
+                  <Route path="/telegram/planos" element={<TelegramPlanos />} />
                   <Route path="/telegram/redirecionamento" element={<TelegramPlaceholder title="Botões de Redirecionamento" description="Crie botões inline com URL para redirecionar usuários." />} />
                   <Route path="/telegram/administradores" element={<TelegramPlaceholder title="Administradores" description="Gerencie administradores dos seus bots e canais." />} />
                   <Route path="/telegram/grupos-canais" element={<TelegramPlaceholder title="Grupos e Canais" description="Gerencie os grupos e canais conectados ao bot." />} />
