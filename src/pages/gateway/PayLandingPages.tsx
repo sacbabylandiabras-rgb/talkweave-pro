@@ -19,6 +19,7 @@ interface LandingFile {
 interface LandingPage {
   id: string;
   name: string;
+  slug?: string | null;
   description: string | null;
   files: LandingFile[];
   entry_file: string | null;
@@ -218,16 +219,28 @@ export default function PayLandingPages() {
   };
 
   const updateCheckoutLink = async (pageId: string, checkoutId: string | null) => {
+    const payload = { checkout_id: checkoutId, slug: checkoutId };
     const { error } = await (supabase as any)
       .from("gateway_landing_pages")
-      .update({ checkout_id: checkoutId })
+      .update(payload)
       .eq("id", pageId);
     if (error) {
-      toast.error("Não foi possível vincular o checkout");
-      return;
+      const isMissingCheckoutColumn = String(error.message || "").includes("checkout_id");
+      if (!isMissingCheckoutColumn) {
+        toast.error("Não foi possível vincular o checkout");
+        return;
+      }
+      const { error: fallbackError } = await (supabase as any)
+        .from("gateway_landing_pages")
+        .update({ slug: checkoutId })
+        .eq("id", pageId);
+      if (fallbackError) {
+        toast.error("Não foi possível vincular o checkout");
+        return;
+      }
     }
     toast.success(checkoutId ? "Checkout vinculado" : "Vínculo removido");
-    setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId } : p)));
+    setPages((prev) => prev.map((p) => (p.id === pageId ? { ...p, checkout_id: checkoutId, slug: checkoutId } : p)));
   };
 
   const entryUrl = (page: LandingPage) => {
@@ -386,7 +399,7 @@ export default function PayLandingPages() {
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">Checkout vinculado:</span>
                         <Select
-                          value={p.checkout_id || "none"}
+                          value={p.checkout_id || p.slug || "none"}
                           onValueChange={(v) => updateCheckoutLink(p.id, v === "none" ? null : v)}
                         >
                           <SelectTrigger className="h-8 w-[260px] text-xs">
