@@ -119,6 +119,7 @@ serve(async (req: Request) => {
     type TargetInstance = { phone: string; instanceId: string; token: string; clientToken: string; name: string; dbId: string };
     const targetInstances: TargetInstance[] = [];
     const resolvedFromInstances: string[] = [];
+    const disconnectedInstances: { dbId: string; name: string; instanceId: string }[] = [];
     if (instanceIds.length > 0) {
       const { data: userInstances, error: userInstancesErr } = await admin
         .from("zapi_instances")
@@ -182,11 +183,59 @@ serve(async (req: Request) => {
             console.log(`✓ ${inst.instance_name}: ${phone}`);
           } else {
             console.log(`✗ ${inst.instance_name} (${inst.zapi_instance_id}): telefone NÃO resolvido — alvo será ignorado neste ciclo`);
+            disconnectedInstances.push({
+              dbId: String(inst.id),
+              name: String(inst.instance_name || ""),
+              instanceId: String(inst.zapi_instance_id),
+            });
           }
         } catch (e) {
           console.log(`erro ao resolver ${inst.instance_name}:`, (e as any)?.message);
+          disconnectedInstances.push({
+            dbId: String(inst.id),
+            name: String(inst.instance_name || ""),
+            instanceId: String(inst.zapi_instance_id),
+          });
         }
       }
+    }
+
+    // Pausa automática: registra as instâncias desconectadas em warmup_instance_health
+    // e marca is_active=false para que o usuário precise reconectar antes de voltar.
+    if (disconnectedInstances.length > 0) {
+      try {
+        const nowIso = new Date().toISOString();
+        await admin.from("warmup_instance_health").upsert(
+          disconnectedInstances.map((d) => ({
+            instance_ref: d.dbId,
+            phone: null,
+            block_type: "disconnected",
+            blocked_until: null,
+            last_detected_at: nowIso,
+            detail: "Conexão WhatsApp desconectada — aquecimento pausado automaticamente. Reconecte a instância para retomar.",
+          })),
+          { onConflict: "instance_ref,block_type" },
+        );
+        // Limpa registros antigos de "disconnected" para as instâncias que voltaram
+        if (targetInstances.length > 0) {
+          await admin
+            .from("warmup_instance_health")
+            .delete()
+            .eq("block_type", "disconnected")
+            .in("instance_ref", targetInstances.map((t) => t.dbId));
+        }
+      } catch (e: any) {
+        console.log("⚠ falha ao registrar desconexão:", e?.message);
+      }
+    } else if (targetInstances.length > 0) {
+      // Todas conectadas: limpa qualquer registro residual de "disconnected"
+      try {
+        await admin
+          .from("warmup_instance_health")
+          .delete()
+          .eq("block_type", "disconnected")
+          .in("instance_ref", targetInstances.map((t) => t.dbId));
+      } catch (_) { /* ignore */ }
     }
 
     // Normalizar números alvo (mescla manuais + telefones das instâncias)
@@ -199,6 +248,15 @@ serve(async (req: Request) => {
     );
 
     if (cleanedTargets.length === 0) {
+      if (disconnectedInstances.length > 0 && targetPhones.length === 0) {
+        const names = disconnectedInstances.map((d) => d.name).filter(Boolean).join(", ");
+        return json({
+          success: false,
+          paused: true,
+          disconnected: disconnectedInstances.map((d) => ({ id: d.dbId, name: d.name })),
+          error: `Aquecimento pausado: a(s) conexão(ões) WhatsApp ${names || "selecionada(s)"} está(ão) desconectada(s). Reconecte para retomar.`,
+        }, 200);
+      }
       return json({ success: false, error: "Selecione ao menos uma instância (ou informe contatos extras)" }, 400);
     }
 
