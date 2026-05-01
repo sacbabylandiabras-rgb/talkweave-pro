@@ -22,7 +22,7 @@ const C = {
 };
 const MONO = "'Courier New', ui-monospace, monospace";
 
-type Tab = "painel" | "telegram" | "pagamentos";
+type Tab = "painel" | "telegram" | "pagamentos" | "notif";
 
 const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -147,12 +147,13 @@ function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
 
 /* ===== Shell ===== */
 function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void; session: any }) {
-  const titles = { painel: "Painel", telegram: "Telegram", pagamentos: "Pagamentos" };
+  const titles = { painel: "Painel", telegram: "Telegram", pagamentos: "Pagamentos", notif: "Notificações" } as const;
   const subs = {
     painel: "Visão geral das suas métricas",
     telegram: "Bots e mensagens recebidas",
     pagamentos: session?.user?.email || "",
-  };
+    notif: "Resumos às 08h · 12h · 18h · 00h",
+  } as const;
   return (
     <div className="h-full w-full flex flex-col text-white relative" style={{ background: C.bg }}>
       <div style={{ position: "absolute", top: -120, left: -100, width: 420, height: 420, borderRadius: 210, background: "rgba(200,80,220,0.15)", pointerEvents: "none" }} />
@@ -186,15 +187,17 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "pagamentos" && <Pagamentos email={session?.user?.email} />}
+        {tab === "notif" && <Notificacoes />}
       </div>
 
       {/* TAB BAR */}
-      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-3 z-20"
+      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20"
         style={{ borderTop: "0.5px solid rgba(255,255,255,0.08)", background: "rgba(10,8,20,0.85)", backdropFilter: "blur(12px)" }}>
         {([
           { k: "painel", label: "Painel", icon: "▦" },
           { k: "telegram", label: "Telegram", icon: "✈" },
           { k: "pagamentos", label: "Pagamentos", icon: "₿" },
+          { k: "notif", label: "Alertas", icon: "🔔" },
         ] as const).map(({ k, label, icon }) => {
           const active = tab === k;
           return (
@@ -567,6 +570,138 @@ function FinCard({ label, value, valColor }: { label: string; value: string; val
       <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>● {label}</p>
       <p style={{ color: valColor, fontSize: 17, fontWeight: 700, fontFamily: MONO, letterSpacing: -0.3 }}>R$ {int_}</p>
       <p style={{ color: C.textDim, fontSize: 10, marginTop: 3 }}>,{dec || "00"} neste período</p>
+    </div>
+  );
+}
+
+/* ===================== NOTIFICAÇÕES ===================== */
+/**
+ * Resumos por slot (BRT 08h, 12h, 18h, 00h):
+ * - Mensagens enviadas (campaign_sends sent/delivered) no intervalo
+ * - Vendas e total em R$ (gateway_transactions paid) no intervalo
+ * Os intervalos são calculados em horário de Brasília (UTC-3).
+ */
+const SLOT_HOURS_BRT = [0, 8, 12, 18];
+
+function brtSlotRange(slotHourBrt: number, dayOffset = 0): { startUtc: Date; endUtc: Date; labelHour: string; labelDate: string } {
+  // BRT = UTC-3 fixo. Slot começa em HH:00 BRT e termina em (HH+6):00 BRT (intervalo de 6h entre slots).
+  // Para o slot 00h, mostramos do dia anterior 18h-00h. Para 08h: 00h-08h. Para 12h: 08h-12h. Para 18h: 12h-18h.
+  const widths: Record<number, number> = { 0: 6, 8: 8, 12: 4, 18: 6 };
+  const width = widths[slotHourBrt] ?? 6;
+  // "Agora" em BRT
+  const nowUtc = new Date(Date.now() - dayOffset * 86400000);
+  const brtNow = new Date(nowUtc.getTime() - 3 * 3600000);
+  const y = brtNow.getUTCFullYear();
+  const m = brtNow.getUTCMonth();
+  const d = brtNow.getUTCDate();
+  const endBrt = new Date(Date.UTC(y, m, d, slotHourBrt, 0, 0));
+  const startBrt = new Date(endBrt.getTime() - width * 3600000);
+  // Converte BRT (UTC-3) → UTC somando 3h
+  const startUtc = new Date(startBrt.getTime() + 3 * 3600000);
+  const endUtc = new Date(endBrt.getTime() + 3 * 3600000);
+  const labelHour = `${String(slotHourBrt).padStart(2, "0")}:00`;
+  const labelDate = `${String(endBrt.getUTCDate()).padStart(2, "0")}/${String(endBrt.getUTCMonth() + 1).padStart(2, "0")}`;
+  return { startUtc, endUtc, labelHour, labelDate };
+}
+
+function Notificacoes() {
+  const [items, setItems] = useState<Array<{
+    key: string; labelHour: string; labelDate: string; msgs: number; sales: number; amount: number; isFuture: boolean;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const nowUtc = Date.now();
+      // Últimos 2 dias × 4 slots = 8 cards (mais que suficiente)
+      const slots: Array<ReturnType<typeof brtSlotRange> & { key: string; isFuture: boolean }> = [];
+      for (let day = 0; day <= 1; day++) {
+        for (const h of SLOT_HOURS_BRT) {
+          const r = brtSlotRange(h, day);
+          slots.push({ ...r, key: `${day}-${h}`, isFuture: r.endUtc.getTime() > nowUtc });
+        }
+      }
+      // Ordena do mais recente para o mais antigo
+      slots.sort((a, b) => b.endUtc.getTime() - a.endUtc.getTime());
+      const recent = slots.filter((s) => !s.isFuture).slice(0, 6);
+
+      const results = await Promise.all(
+        recent.map(async (s) => {
+          const [{ count: msgs }, txs] = await Promise.all([
+            supabase
+              .from("campaign_sends")
+              .select("id", { count: "exact", head: true })
+              .in("status", ["sent", "delivered"])
+              .gte("created_at", s.startUtc.toISOString())
+              .lt("created_at", s.endUtc.toISOString()),
+            supabase
+              .from("gateway_transactions")
+              .select("amount,status,created_at")
+              .eq("status", "paid")
+              .gte("created_at", s.startUtc.toISOString())
+              .lt("created_at", s.endUtc.toISOString())
+              .limit(1000),
+          ]);
+          const sales = (txs.data || []).length;
+          const amount = (txs.data || []).reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+          return {
+            key: s.key,
+            labelHour: s.labelHour,
+            labelDate: s.labelDate,
+            msgs: msgs || 0,
+            sales,
+            amount,
+            isFuture: false,
+          };
+        }),
+      );
+      setItems(results);
+      setLoading(false);
+    })();
+  }, []);
+
+  return (
+    <div className="space-y-2.5" style={{ paddingTop: 4 }}>
+      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
+        <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>● COMO FUNCIONA</p>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+          Você recebe um push automático com o resumo de mensagens enviadas e vendas a cada janela do dia (00h, 08h, 12h, 18h — horário de Brasília).
+        </p>
+      </div>
+
+      {loading && (
+        <div style={{ color: C.textMuted, fontSize: 11, textAlign: "center", padding: 24 }}>Carregando…</div>
+      )}
+
+      {!loading && items.length === 0 && (
+        <div style={{ color: C.textMuted, fontSize: 11, textAlign: "center", padding: 24 }}>Sem resumos no momento.</div>
+      )}
+
+      {!loading && items.map((it) => (
+        <div key={it.key} style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+            <div className="flex items-center" style={{ gap: 8 }}>
+              <span style={{ fontSize: 14 }}>📊</span>
+              <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Resumo das {it.labelHour}</span>
+            </div>
+            <span style={{ color: C.textMuted, fontSize: 10 }}>{it.labelDate}</span>
+          </div>
+          <div className="grid grid-cols-3" style={{ gap: 8 }}>
+            <MiniStat label="Msgs" value={it.msgs.toLocaleString("pt-BR")} color={C.purple} />
+            <MiniStat label="Vendas" value={String(it.sales)} color={C.green} />
+            <MiniStat label="R$" value={fmtBRL(it.amount)} color={C.blue} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 6, padding: "8px 6px", textAlign: "center" }}>
+      <p style={{ color: C.textMuted, fontSize: 8, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</p>
+      <p style={{ color, fontSize: 13, fontWeight: 700, fontFamily: MONO, marginTop: 3 }}>{value}</p>
     </div>
   );
 }
