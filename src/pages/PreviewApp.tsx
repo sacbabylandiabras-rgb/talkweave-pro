@@ -723,6 +723,9 @@ function Notificacoes() {
         </div>
       </div>
 
+      {/* PREFERÊNCIAS POR MÉTODO DE PAGAMENTO */}
+      <NotificationPrefsPanel />
+
       <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
         <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>● COMO FUNCIONA</p>
         <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
