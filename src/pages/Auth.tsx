@@ -171,6 +171,84 @@ const Auth = () => {
           </div>
         </div>
 
+        <div className="auth-float auth-float-6">
+          <div className="auth-sale-card">
+            <div className="auth-sale-icon auth-sale-icon-green">
+              <TrendingUp size={18} strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Venda confirmada</div>
+              <div className="auth-sale-value">+ R$ 547,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-7">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}>L</div>
+            <div>
+              <div className="auth-msg-name">Lucas Mendes</div>
+              <div className="auth-msg-text">Quero o link 🔗</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-8">
+          <div className="auth-sale-card auth-sale-pix">
+            <div className="auth-sale-icon auth-sale-icon-purple">
+              <Zap size={18} strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Pix recebido</div>
+              <div className="auth-sale-value">+ R$ 1.290,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-9">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#ec4899,#be185d)" }}>C</div>
+            <div>
+              <div className="auth-msg-name">Camila Rocha</div>
+              <div className="auth-msg-text">Pode enviar! 🚀</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-10">
+          <div className="auth-sale-card">
+            <div className="auth-sale-icon auth-sale-icon-green">
+              <TrendingUp size={18} strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Nova venda aprovada</div>
+              <div className="auth-sale-value">+ R$ 197,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-11">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#06b6d4,#0e7490)" }}>R</div>
+            <div>
+              <div className="auth-msg-name">Rafael Lima</div>
+              <div className="auth-msg-text">Recebi, obrigado! 🙏</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-12">
+          <div className="auth-sale-card auth-sale-pix">
+            <div className="auth-sale-icon auth-sale-icon-purple">
+              <Zap size={18} strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Pix recebido</div>
+              <div className="auth-sale-value">+ R$ 49,90</div>
+            </div>
+          </div>
+        </div>
+
         <div className="auth-left-headline">
           <h2>Vendas em tempo real</h2>
           <p>Receba notificações de cada venda e mensagem direto no seu painel.</p>
