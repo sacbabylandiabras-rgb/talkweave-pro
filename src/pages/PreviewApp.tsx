@@ -778,7 +778,7 @@ function Notificacoes() {
       const sales = (txs.data || []).length;
       const amount = (txs.data || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
       const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const title = `📊 Resumo das ${r.labelHour}`;
+      const title = `💰 Resumo das ${r.labelHour}`;
       const body = `${sales} venda${sales === 1 ? "" : "s"} • ${fmt(amount)} • ${msgs || 0} msg`;
       const { data, error } = await supabase.functions.invoke("web-push-send", {
         body: { user_id: u.user.id, title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
