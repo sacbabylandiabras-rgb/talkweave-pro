@@ -361,7 +361,7 @@ const ApanhadorGrupos = () => {
     return list
       .filter(p => !excludeAdmins || !p.isAdmin)
       .filter(p => !excludeLids || !p.isLid)
-      .map(p => p.phone.replace(/@lid$/i, '').replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, ''));
+      .map(p => p.phone);
   };
 
   const copyNumbers = (groupId: string) => {
@@ -402,9 +402,11 @@ const ApanhadorGrupos = () => {
       return;
     }
     const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
-    const header = ['Grupo', 'Telefone'].map(escape).join(',');
-    const rows = phones.map((phone) => [groupName, phone].map(escape).join(','));
-    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    // Usa ; (padrão pt-BR Excel/WPS) e remove vírgulas/quebras do nome do grupo
+    const safeGroupName = String(groupName).replace(/[\r\n;,]+/g, ' ').trim();
+    const header = ['Grupo', 'Telefone'].map(escape).join(';');
+    const rows = phones.map((phone) => [safeGroupName, phone].map(escape).join(';'));
+    const csv = '\uFEFF' + [header, ...rows].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
