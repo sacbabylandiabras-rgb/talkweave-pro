@@ -703,6 +703,11 @@ function Notificacoes() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
+      if ((await getPushSubscriptions()).length === 0) {
+        setPushEnabled(false);
+        alert("Push desativado neste navegador. Clique em Ativar push primeiro.");
+        return;
+      }
       // Calcula o último slot fechado (00/08/12/18 BRT)
       const now = new Date();
       const brtNow = new Date(now.getTime() - 3 * 3600000);
@@ -724,7 +729,7 @@ function Notificacoes() {
       const title = `📊 Resumo das ${r.labelHour}`;
       const body = `${sales} venda${sales === 1 ? "" : "s"} • ${fmt(amount)} • ${msgs || 0} msg`;
       const { data, error } = await supabase.functions.invoke("web-push-send", {
-        body: { title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
+        body: { user_id: u.user.id, title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
       });
       if (error) throw error;
       if ((data as any)?.sent === 0) {
@@ -784,6 +789,12 @@ function Notificacoes() {
       );
       setItems(results);
       setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
     })();
   }, []);
 
