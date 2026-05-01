@@ -1687,7 +1687,7 @@
   padding: 24px;
 }
 @media (min-width: 900px) {
-  .auth-right { width: 520px; }
+  .auth-right { width: 620px; }
 }
 
 .auth-sale-icon-green {
