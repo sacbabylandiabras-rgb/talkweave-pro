@@ -613,21 +613,97 @@ function Notificacoes() {
     typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
   );
   const [pushBusy, setPushBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+
+  const VAPID_PUBLIC_KEY = "BK5uD6L7-UuZ-aB1U6OmARv4bWJPgC8cx_XpOVYOjFKDr7iv6_RlFcNxw1BnnVcO9-VVk-Zi1TLIv8Rwjlbh-JU";
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
 
   const enablePush = async () => {
-    if (!("Notification" in window)) {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       alert("Seu navegador não suporta notificações push.");
       return;
     }
     setPushBusy(true);
     try {
       const perm = await Notification.requestPermission();
-      setPushEnabled(perm === "granted");
-      if (perm === "granted") {
-        new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
+      if (perm !== "granted") {
+        setPushEnabled(false);
+        return;
       }
+      const reg = await navigator.serviceWorker.register("/sw-push.js");
+      await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+      const json = sub.toJSON() as any;
+      const { data: u } = await supabase.auth.getUser();
+      if (u?.user) {
+        await (supabase as any).from("web_push_subscriptions").upsert({
+          user_id: u.user.id,
+          endpoint: json.endpoint,
+          p256dh: json.keys?.p256dh,
+          auth: json.keys?.auth,
+          user_agent: navigator.userAgent,
+          last_used_at: new Date().toISOString(),
+        }, { onConflict: "endpoint" });
+      }
+      setPushEnabled(true);
+      new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
+    } catch (e: any) {
+      alert("Erro ao ativar push: " + (e?.message || e));
     } finally {
       setPushBusy(false);
+    }
+  };
+
+  const sendTestSummary = async () => {
+    setTestBusy(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user) return;
+      // Calcula o último slot fechado (00/08/12/18 BRT)
+      const now = new Date();
+      const brtNow = new Date(now.getTime() - 3 * 3600000);
+      const h = brtNow.getUTCHours();
+      const lastSlot = SLOT_HOURS_BRT.filter((s) => s <= h).pop() ?? 18;
+      const dayOffset = lastSlot <= h ? 0 : 1;
+      const r = brtSlotRange(lastSlot, dayOffset);
+      const [{ count: msgs }, txs] = await Promise.all([
+        supabase.from("campaign_sends").select("id", { count: "exact", head: true })
+          .in("status", ["sent", "delivered"])
+          .gte("created_at", r.startUtc.toISOString()).lt("created_at", r.endUtc.toISOString()),
+        supabase.from("gateway_transactions").select("amount,status,created_at")
+          .eq("status", "paid")
+          .gte("created_at", r.startUtc.toISOString()).lt("created_at", r.endUtc.toISOString()).limit(1000),
+      ]);
+      const sales = (txs.data || []).length;
+      const amount = (txs.data || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
+      const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const title = `📊 Resumo das ${r.labelHour}`;
+      const body = `${sales} venda${sales === 1 ? "" : "s"} • ${fmt(amount)} • ${msgs || 0} msg`;
+      const { data, error } = await supabase.functions.invoke("web-push-send", {
+        body: { title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
+      });
+      if (error) throw error;
+      if ((data as any)?.sent === 0) {
+        alert("Nenhuma notificação enviada. Ative o push primeiro e recarregue a página.");
+      }
+    } catch (e: any) {
+      alert("Erro: " + (e?.message || e));
+    } finally {
+      setTestBusy(false);
     }
   };
 
@@ -721,6 +797,22 @@ function Notificacoes() {
             Telegram
           </button>
         </div>
+        <button
+          onClick={sendTestSummary}
+          disabled={testBusy || !pushEnabled}
+          style={{
+            marginTop: 8, width: "100%",
+            background: pushEnabled ? "rgba(167,139,250,0.18)" : "rgba(255,255,255,0.05)",
+            color: pushEnabled ? C.purple : "rgba(255,255,255,0.4)",
+            border: "0.5px solid " + (pushEnabled ? C.purple + "55" : "rgba(255,255,255,0.1)"),
+            borderRadius: 6, padding: "9px 8px", fontSize: 11, fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            cursor: testBusy || !pushEnabled ? "not-allowed" : "pointer",
+            opacity: testBusy ? 0.6 : 1,
+          }}
+        >
+          {testBusy ? "Enviando..." : "📤 Enviar resumo de teste agora"}
+        </button>
       </div>
 
       {/* PREFERÊNCIAS POR MÉTODO DE PAGAMENTO */}
