@@ -361,7 +361,7 @@ const ApanhadorGrupos = () => {
     return list
       .filter(p => !excludeAdmins || !p.isAdmin)
       .filter(p => !excludeLids || !p.isLid)
-      .map(p => p.phone);
+      .map(p => p.phone.replace(/@lid$/i, '').replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, ''));
   };
 
   const copyNumbers = (groupId: string) => {
