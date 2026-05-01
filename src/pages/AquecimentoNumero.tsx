@@ -128,8 +128,13 @@ export default function AquecimentoNumero() {
         const saved = scopedSaved || legacySaved;
         if (saved) {
           const parsed = JSON.parse(saved) as Partial<WarmupConfig>;
-          setConfig({ ...DEFAULT_WARMUP_CONFIG, ...parsed, active: false });
-          localStorage.setItem(userWarmupStorageKey(currentUserId), JSON.stringify({ ...DEFAULT_WARMUP_CONFIG, ...parsed, active: false }));
+          // Preserva o estado real (não força pausa ao reabrir a página),
+          // assim o aquecimento continua rodando quando o usuário navega entre rotas.
+          const restored = { ...DEFAULT_WARMUP_CONFIG, ...parsed };
+          setConfig(restored);
+          if (!scopedSaved) {
+            localStorage.setItem(userWarmupStorageKey(currentUserId), JSON.stringify(restored));
+          }
           localStorage.removeItem(STORAGE_KEY);
         }
       } catch {
