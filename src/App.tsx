@@ -135,6 +135,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/preview-app" element={<PreviewApp />} />
                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
