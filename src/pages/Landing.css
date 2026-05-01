@@ -1569,6 +1569,7 @@
 
 /* ====== Auth split layout ====== */
 .auth-page {
+  position: relative;
   background: #0d0f1a !important;
   background-image: none !important;
 }
@@ -1579,15 +1580,16 @@
 }
 
 .auth-left {
-  position: relative;
-  flex: 0 0 55%;
-  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: block;
   overflow: hidden;
   background:
     radial-gradient(ellipse 70% 50% at 30% 30%, rgba(59,130,246,0.25) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 70% 80%, rgba(167,139,250,0.20) 0%, transparent 60%),
     linear-gradient(135deg, #1a1740 0%, #0d0f1a 100%);
-  border-right: 1px solid var(--lp-border);
+  border-right: 0;
 }
 @media (min-width: 900px) { .auth-left { display: block; } }
 
@@ -1689,17 +1691,20 @@
 }
 
 .auth-right {
-  flex: 1 1 45%;
-  width: 45%;
+  position: relative;
+  z-index: 10;
+  flex: 1 1 100%;
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #0d0f1a;
+  background: transparent;
 }
 @media (min-width: 900px) {
-  .auth-right { min-width: 520px; }
-  .auth-left  { flex-basis: 55%; }
+  .auth-right { min-width: 0; }
+  .auth-left  { flex-basis: auto; }
 }
 
 .auth-sale-icon-green {
