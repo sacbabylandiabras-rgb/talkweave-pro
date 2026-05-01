@@ -670,6 +670,36 @@ function Notificacoes() {
     return out;
   }
 
+  const arrayBufferToBase64Url = (buffer: ArrayBuffer | null) => {
+    if (!buffer) return "";
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  };
+
+  const ensureFreshPushSubscription = async () => {
+    const vapidPublicKey = await getVapidPublicKey();
+    const reg = await navigator.serviceWorker.register("/sw-push.js");
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    const currentKey = arrayBufferToBase64Url(sub?.options?.applicationServerKey || null);
+    if (sub && currentKey && currentKey !== vapidPublicKey) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
+      sub = null;
+    }
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+    }
+    await savePushSubscription(sub);
+    return sub;
+  };
+
   const enablePush = async () => {
     if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       alert("Seu navegador não suporta notificações push.");
@@ -682,17 +712,7 @@ function Notificacoes() {
         setPushEnabled(false);
         return;
       }
-      const reg = await navigator.serviceWorker.register("/sw-push.js");
-      await navigator.serviceWorker.ready;
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        const vapidPublicKey = await getVapidPublicKey();
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        });
-      }
-      await savePushSubscription(sub);
+      await ensureFreshPushSubscription();
       setPushEnabled(true);
       new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
     } catch (e: any) {
@@ -733,6 +753,7 @@ function Notificacoes() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
+      if (Notification.permission === "granted") await ensureFreshPushSubscription();
       const synced = await syncPushSubscription();
       if (!synced) {
         setPushEnabled(false);
