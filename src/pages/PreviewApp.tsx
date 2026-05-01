@@ -728,7 +728,8 @@ function Notificacoes() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
-      if ((await getPushSubscriptions()).length === 0) {
+      const synced = await syncPushSubscription();
+      if (!synced) {
         setPushEnabled(false);
         alert("Push desativado neste navegador. Clique em Ativar push primeiro.");
         return;
@@ -758,7 +759,7 @@ function Notificacoes() {
       });
       if (error) throw error;
       if ((data as any)?.sent === 0) {
-        alert("Nenhuma notificação enviada. Ative o push primeiro e recarregue a página.");
+        alert("Nenhuma notificação enviada. Clique em Desativar push, depois Ativar push novamente.");
       }
     } catch (e: any) {
       alert("Erro: " + (e?.message || e));
@@ -819,7 +820,11 @@ function Notificacoes() {
 
   useEffect(() => {
     (async () => {
-      setPushEnabled((await getPushSubscriptions()).length > 0);
+      try {
+        await syncPushSubscription();
+      } catch {
+        setPushEnabled(false);
+      }
     })();
   }, []);
 
