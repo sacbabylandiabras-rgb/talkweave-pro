@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, TrendingUp, MessageSquare, Zap, Loader2 } from "lucide-react";
+import { Bell, TrendingUp, Zap, Loader2 } from "lucide-react";
 
 type Notif = {
   id: string;
-  kind: "sale" | "pix" | "message";
+  kind: "sale" | "pix";
   title: string;
   subtitle: string;
   amount?: number;
@@ -33,21 +33,13 @@ export default function NotificacoesApp() {
     if (!session) { setLoading(false); return; }
     const userId = session.user.id;
 
-    const [tx, msgs] = await Promise.all([
-      supabase
-        .from("gateway_transactions")
-        .select("id, customer_name, amount, payment_method, status, created_at")
-        .eq("user_id", userId)
-        .in("status", ["paid", "approved", "completed"])
-        .order("created_at", { ascending: false })
-        .limit(40),
-      supabase
-        .from("message_logs")
-        .select("id, phone, message_received, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(40),
-    ]);
+    const tx = await supabase
+      .from("gateway_transactions")
+      .select("id, customer_name, amount, payment_method, status, created_at")
+      .eq("user_id", userId)
+      .in("status", ["paid", "approved", "completed"])
+      .order("created_at", { ascending: false })
+      .limit(60);
 
     const merged: Notif[] = [];
 
@@ -63,16 +55,6 @@ export default function NotificacoesApp() {
       });
     });
 
-    (msgs.data || []).forEach((m: any) => {
-      merged.push({
-        id: `m-${m.id}`,
-        kind: "message",
-        title: m.phone || "Nova mensagem",
-        subtitle: (m.message_received || "").slice(0, 80) || "Mensagem recebida",
-        created_at: m.created_at,
-      });
-    });
-
     merged.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     setItems(merged.slice(0, 60));
     setLoading(false);
@@ -83,7 +65,6 @@ export default function NotificacoesApp() {
     const channel = supabase
       .channel("notif-app")
       .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, load)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_logs" }, load)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -96,7 +77,7 @@ export default function NotificacoesApp() {
         </div>
         <div>
           <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">NOTIFICAÇÕES</h1>
-          <p className="font-nunito text-[12px] text-white/40 mt-1">Vendas e mensagens em tempo real</p>
+          <p className="font-nunito text-[12px] text-white/40 mt-1">Vendas e relatórios em 08h, 12h, 18h e 00h</p>
         </div>
       </div>
 
@@ -113,10 +94,9 @@ export default function NotificacoesApp() {
       ) : (
         <div className="space-y-2">
           {items.map((n) => {
-            const Icon = n.kind === "message" ? MessageSquare : n.kind === "pix" ? Zap : TrendingUp;
+            const Icon = n.kind === "pix" ? Zap : TrendingUp;
             const iconColor =
-              n.kind === "message" ? "text-blue-400 bg-blue-500/15"
-              : n.kind === "pix" ? "text-purple-400 bg-purple-500/15"
+              n.kind === "pix" ? "text-purple-400 bg-purple-500/15"
               : "text-emerald-400 bg-emerald-500/15";
             return (
               <div key={n.id} className="glass-card p-4 flex items-center gap-3">
