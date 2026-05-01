@@ -22,7 +22,7 @@ const C = {
 };
 const MONO = "'Courier New', ui-monospace, monospace";
 
-type Tab = "painel" | "telegram" | "pagamentos";
+type Tab = "painel" | "telegram" | "pagamentos" | "notif";
 
 const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -147,12 +147,13 @@ function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
 
 /* ===== Shell ===== */
 function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void; session: any }) {
-  const titles = { painel: "Painel", telegram: "Telegram", pagamentos: "Pagamentos" };
+  const titles = { painel: "Painel", telegram: "Telegram", pagamentos: "Pagamentos", notif: "Notificações" } as const;
   const subs = {
     painel: "Visão geral das suas métricas",
     telegram: "Bots e mensagens recebidas",
     pagamentos: session?.user?.email || "",
-  };
+    notif: "Resumos às 08h · 12h · 18h · 00h",
+  } as const;
   return (
     <div className="h-full w-full flex flex-col text-white relative" style={{ background: C.bg }}>
       <div style={{ position: "absolute", top: -120, left: -100, width: 420, height: 420, borderRadius: 210, background: "rgba(200,80,220,0.15)", pointerEvents: "none" }} />
@@ -186,15 +187,17 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "pagamentos" && <Pagamentos email={session?.user?.email} />}
+        {tab === "notif" && <Notificacoes />}
       </div>
 
       {/* TAB BAR */}
-      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-3 z-20"
+      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20"
         style={{ borderTop: "0.5px solid rgba(255,255,255,0.08)", background: "rgba(10,8,20,0.85)", backdropFilter: "blur(12px)" }}>
         {([
           { k: "painel", label: "Painel", icon: "▦" },
           { k: "telegram", label: "Telegram", icon: "✈" },
           { k: "pagamentos", label: "Pagamentos", icon: "₿" },
+          { k: "notif", label: "Alertas", icon: "🔔" },
         ] as const).map(({ k, label, icon }) => {
           const active = tab === k;
           return (
