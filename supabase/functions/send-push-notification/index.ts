@@ -19,6 +19,39 @@ interface PushPayload {
   checkout_id?: string | null;
 }
 
+/**
+ * Mapeia o tipo de evento para o nome do arquivo de som (sem extensão).
+ *
+ * IMPORTANTE: Os arquivos de som DEVEM existir dentro do app nativo:
+ *  - iOS:     ios/<App>/Sounds/<nome>.wav   (formato CAF/AIFF/WAV, máx 30s)
+ *  - Android: android/app/src/main/res/raw/<nome>.mp3 (somente minúsculas e _)
+ *
+ * iOS espera o nome COM extensão (ex: "venda_aprovada.wav").
+ * Android espera SEM extensão (ex: "venda_aprovada") + um channel próprio.
+ */
+function getSoundForEvent(eventType?: string): { ios: string; android: string; channel: string } {
+  switch (eventType) {
+    case "pix_paid":
+    case "credit_card":
+    case "boleto_paid":
+    case "apple_pay":
+    case "pix_recurring":
+      return { ios: "venda_aprovada.wav", android: "venda_aprovada", channel: "venda_aprovada" };
+    case "pix_or_boleto_issued":
+      return { ios: "venda_pendente.wav", android: "venda_pendente", channel: "venda_pendente" };
+    case "credit_card_failed":
+    case "payment_failed":
+      return { ios: "venda_recusada.wav", android: "venda_recusada", channel: "venda_recusada" };
+    case "withdrawal_approved":
+    case "withdrawal_paid":
+      return { ios: "saque_aprovado.wav", android: "saque_aprovado", channel: "saque_aprovado" };
+    case "report":
+      return { ios: "relatorio.wav", android: "relatorio", channel: "relatorio" };
+    default:
+      return { ios: "default", android: "default", channel: "transactions" };
+  }
+}
+
 async function getAccessToken(serviceAccount: any): Promise<string> {
   // Create JWT for Google OAuth2
   const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -189,15 +222,26 @@ Deno.serve(async (req) => {
           message.message.data = data;
         }
 
+        // Som customizado por tipo de evento
+        const sound = getSoundForEvent(event_type);
+
         // Platform-specific config
         if (deviceToken.platform === "android") {
           message.message.android = {
             priority: "high",
-            notification: { sound: "default", channel_id: "transactions" },
+            notification: {
+              sound: sound.android,
+              channel_id: sound.channel,
+            },
           };
         } else if (deviceToken.platform === "ios") {
           message.message.apns = {
-            payload: { aps: { sound: "default", badge: 1 } },
+            payload: {
+              aps: {
+                sound: sound.ios,
+                badge: 1,
+              },
+            },
           };
         }
 
