@@ -609,6 +609,10 @@ function Notificacoes() {
     key: string; labelHour: string; labelDate: string; msgs: number; sales: number; amount: number; isFuture: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [feed, setFeed] = useState<Array<{
+    id: string; kind: "pix" | "sale"; title: string; subtitle: string; amount: number; created_at: string;
+  }>>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -660,6 +664,49 @@ function Notificacoes() {
     })();
   }, []);
 
+  // Feed em tempo real de vendas/Pix
+  const loadFeed = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setFeedLoading(false); return; }
+    const { data } = await supabase
+      .from("gateway_transactions")
+      .select("id, customer_name, amount, payment_method, status, created_at")
+      .eq("user_id", session.user.id)
+      .in("status", ["paid", "approved", "completed"])
+      .order("created_at", { ascending: false })
+      .limit(30);
+    const mapped = (data || []).map((t: any) => {
+      const isPix = (t.payment_method || "").toLowerCase().includes("pix");
+      return {
+        id: `t-${t.id}`,
+        kind: (isPix ? "pix" : "sale") as "pix" | "sale",
+        title: isPix ? "Pix recebido" : "Venda aprovada",
+        subtitle: t.customer_name || "Cliente",
+        amount: t.amount || 0,
+        created_at: t.created_at,
+      };
+    });
+    setFeed(mapped);
+    setFeedLoading(false);
+  };
+
+  useEffect(() => {
+    loadFeed();
+    const ch = supabase
+      .channel("preview-notif-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, loadFeed)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const timeAgo = (iso: string) => {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    return `${Math.floor(diff / 86400)}d`;
+  };
+
   return (
     <div className="space-y-2.5" style={{ paddingTop: 4 }}>
       <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
@@ -693,6 +740,42 @@ function Notificacoes() {
           </div>
         </div>
       ))}
+
+      {/* FEED EM TEMPO REAL */}
+      <div style={{ paddingTop: 8 }}>
+        <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, padding: "0 4px 6px" }}>
+          ● TEMPO REAL
+        </p>
+        {feedLoading && (
+          <div style={{ color: C.textMuted, fontSize: 11, textAlign: "center", padding: 16 }}>Carregando…</div>
+        )}
+        {!feedLoading && feed.length === 0 && (
+          <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 16, textAlign: "center" }}>
+            <p style={{ color: C.textMuted, fontSize: 11 }}>Nenhuma venda ainda</p>
+          </div>
+        )}
+        {!feedLoading && feed.map((n) => {
+          const isPix = n.kind === "pix";
+          const accent = isPix ? C.purple : C.green;
+          return (
+            <div key={n.id} className="flex items-center" style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, gap: 10, marginBottom: 6 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: accent + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 14 }}>{isPix ? "⚡" : "📈"}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex items-center justify-between" style={{ gap: 6 }}>
+                  <p style={{ color: "#fff", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
+                  <span style={{ color: C.textMuted, fontSize: 10, flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.subtitle}</p>
+              </div>
+              <div style={{ flexShrink: 0, textAlign: "right" }}>
+                <p style={{ color: accent, fontSize: 12, fontWeight: 700, fontFamily: MONO }}>+{fmtBRL(n.amount)}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
