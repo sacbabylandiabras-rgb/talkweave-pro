@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
 
       // Se nada aconteceu, ainda assim mandamos um resumo curto
       const horaLabel = `${String(currentHour).padStart(2, "0")}:00`;
-      const title = `📊 Resumo das ${horaLabel}`;
+      const title = `💰 Resumo das ${horaLabel}`;
       const parts: string[] = [];
       parts.push(`${messagesSent.toLocaleString("pt-BR")} mensagens enviadas`);
       if (salesCount > 0) {
