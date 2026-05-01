@@ -37,6 +37,7 @@ import TemplatesAprovados from "./pages/TemplatesAprovados";
 import EnvioCloudAPI from "./pages/EnvioCloudAPI";
 import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import PreviewApp from "./pages/PreviewApp";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
 import ShopifyOAuthCallback from "./pages/ShopifyOAuthCallback";
