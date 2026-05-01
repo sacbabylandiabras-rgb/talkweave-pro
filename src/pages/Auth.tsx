@@ -111,7 +111,70 @@ const Auth = () => {
   };
 
   return (
-    <div className="lp-root" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+    <div className="lp-root" style={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
+      {/* LEFT — animated message/sales notifications */}
+      <div className="auth-left">
+        <div className="auth-left-glow" />
+        <div className="auth-left-grid" />
+
+        <div className="auth-float auth-float-1">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)" }}>M</div>
+            <div>
+              <div className="auth-msg-name">Maria Silva</div>
+              <div className="auth-msg-text">Oi! Quero comprar 🛒</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-2">
+          <div className="auth-sale-card">
+            <div className="auth-sale-icon">💰</div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Nova venda aprovada</div>
+              <div className="auth-sale-value">+ R$ 297,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-3">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#3b82f6,#1d4ed8)" }}>J</div>
+            <div>
+              <div className="auth-msg-name">João Pedro</div>
+              <div className="auth-msg-text">Pix pago ✅</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-4">
+          <div className="auth-sale-card auth-sale-pix">
+            <div className="auth-sale-icon">⚡</div>
+            <div style={{ flex: 1 }}>
+              <div className="auth-sale-title">Pix recebido</div>
+              <div className="auth-sale-value">+ R$ 89,90</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-float auth-float-5">
+          <div className="auth-msg-bubble">
+            <div className="auth-msg-avatar" style={{ background: "linear-gradient(135deg,#a78bfa,#7c3aed)" }}>A</div>
+            <div>
+              <div className="auth-msg-name">Ana Costa</div>
+              <div className="auth-msg-text">Mensagem entregue 📩</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-left-headline">
+          <h2>Vendas em tempo real</h2>
+          <p>Receba notificações de cada venda e mensagem direto no seu painel.</p>
+        </div>
+      </div>
+
+      {/* RIGHT — login */}
+      <div className="auth-right">
       <div style={{ width: "100%", maxWidth: 440 }}>
         {/* Back button */}
         <button
@@ -192,6 +255,7 @@ const Auth = () => {
             </form>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
