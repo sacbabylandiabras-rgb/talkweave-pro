@@ -325,6 +325,7 @@ export function DashboardLayout() {
       "/admin": "admin",
       "/gateway": "gateway",
       "/mensagens": "mensagens",
+      "/notificacoes": "notificacoes",
       "/apanhador-grupos": "apanhador-grupos",
       "/agente-ia": "agente-ia",
       "/criar-grupos": "criar-grupos",

@@ -30,6 +30,7 @@ import ApanhadorGrupos from "./pages/ApanhadorGrupos";
 import CriarGrupos from "./pages/CriarGrupos";
 import AgenteIA from "./pages/AgenteIA";
 import AquecimentoNumero from "./pages/AquecimentoNumero";
+import NotificacoesApp from "./pages/NotificacoesApp";
 import AdminAquecimento from "./pages/AdminAquecimento";
 import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
@@ -154,6 +155,7 @@ const App = () => (
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
+                  <Route path="/notificacoes" element={<NotificacoesApp />} />
                   <Route path="/apanhador-grupos" element={<PaidRouteGuard><ApanhadorGrupos /></PaidRouteGuard>} />
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
