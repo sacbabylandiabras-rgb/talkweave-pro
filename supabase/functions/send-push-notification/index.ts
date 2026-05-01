@@ -11,6 +11,12 @@ interface PushPayload {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /** Tipo do evento — usado para checar preferências de notificação do usuário.
+   *  Valores aceitos: 'credit_card' | 'boleto_paid' | 'pix_paid' | 'pix_recurring'
+   *  | 'apple_pay' | 'pix_or_boleto_issued' | 'report' | undefined (sempre envia) */
+  event_type?: string;
+  /** Checkout específico — se ausente, usa preferência padrão (checkout_id IS NULL). */
+  checkout_id?: string | null;
 }
 
 async function getAccessToken(serviceAccount: any): Promise<string> {
@@ -83,7 +89,7 @@ Deno.serve(async (req) => {
     const projectId = serviceAccount.project_id;
 
     const payload: PushPayload = await req.json();
-    const { user_id, title, body, data } = payload;
+    const { user_id, title, body, data, event_type, checkout_id } = payload;
 
     if (!user_id || !title || !body) {
       return new Response(
@@ -97,6 +103,56 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Verifica preferências de notificação (se event_type for fornecido)
+    if (event_type) {
+      const prefKeyMap: Record<string, string> = {
+        credit_card: "notify_credit_card",
+        boleto_paid: "notify_boleto_paid",
+        pix_paid: "notify_pix_paid",
+        pix_recurring: "notify_pix_recurring",
+        apple_pay: "notify_apple_pay",
+        pix_or_boleto_issued: "notify_pix_or_boleto_issued",
+      };
+      const prefKey = prefKeyMap[event_type];
+      if (prefKey) {
+        // Tenta preferência específica do checkout, senão a padrão (checkout_id IS NULL)
+        let prefRow: any = null;
+        if (checkout_id) {
+          const { data: r } = await supabase
+            .from("notification_preferences")
+            .select("enabled," + prefKey)
+            .eq("user_id", user_id)
+            .eq("checkout_id", checkout_id)
+            .maybeSingle();
+          prefRow = r;
+        }
+        if (!prefRow) {
+          const { data: r } = await supabase
+            .from("notification_preferences")
+            .select("enabled," + prefKey)
+            .eq("user_id", user_id)
+            .is("checkout_id", null)
+            .maybeSingle();
+          prefRow = r;
+        }
+        // Se existir preferência, respeita; se não existir, usa default (todos ON exceto issued)
+        if (prefRow) {
+          if (prefRow.enabled === false || prefRow[prefKey] === false) {
+            return new Response(
+              JSON.stringify({ success: true, sent: 0, skipped: true, reason: "user preference disabled" }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else if (event_type === "pix_or_boleto_issued") {
+          // Default OFF para emissão
+          return new Response(
+            JSON.stringify({ success: true, sent: 0, skipped: true, reason: "default off" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
 
     const { data: tokens, error: tokensError } = await supabase
       .from("device_push_tokens")
