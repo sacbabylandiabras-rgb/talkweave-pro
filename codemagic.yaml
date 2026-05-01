@@ -1,93 +1,99 @@
 workflows:
-  ios-release:
-    name: Zaplynx Pay - iOS Release
+  ios-expo-release:
+    name: ZapLynx Expo - iOS Release
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
       groups:
         - app_store
       vars:
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
-        XCODE_SCHEME: "App"
-        APP_NAME: "Zaplynx Pay"
-      node: 22.0.0
+        BUNDLE_ID: "com.zaplynxpay.app"
+        APP_NAME: "ZapLynx"
+        APPLE_TEAM_ID: "5GF5TZZ9RQ"
+      node: 20.11.0
+      xcode: latest
+      cocoapods: default
     scripts:
-      - name: Install certificate and profile
+      - name: Validate required signing variables
         script: |
-          echo $CM_CERTIFICATE | base64 --decode > /tmp/distribution.p12
-          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          set -e
+          test -n "$CM_CERTIFICATE" || (echo "ERROR: CM_CERTIFICATE is not set" && exit 1)
+          test -n "$CM_PROVISIONING_PROFILE" || (echo "ERROR: CM_PROVISIONING_PROFILE is not set" && exit 1)
+          test -n "$APP_STORE_CONNECT_PRIVATE_KEY" || (echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY is not set" && exit 1)
+          test -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" || (echo "ERROR: APP_STORE_CONNECT_KEY_IDENTIFIER is not set" && exit 1)
+          test -n "$APP_STORE_CONNECT_ISSUER_ID" || (echo "ERROR: APP_STORE_CONNECT_ISSUER_ID is not set" && exit 1)
+      - name: Install npm dependencies
+        script: |
+          npm install
+          npx expo install expo-notifications
+      - name: Install certificate and provisioning profile
+        script: |
+          set -e
+          echo "$CM_CERTIFICATE" | base64 --decode > /tmp/distribution.p12
+          echo "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
           security create-keychain -p "build123" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "build123" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
+          security import /tmp/distribution.p12 -k build.keychain -P "${CM_CERTIFICATE_PASSWORD:-}" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild || \
           security import /tmp/distribution.p12 -k build.keychain -P "" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild || \
-          security import /tmp/distribution.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild || \
-          openssl pkcs12 -in /tmp/distribution.p12 -nodes -passin pass: -out /tmp/cert.pem 2>/dev/null || \
-          openssl pkcs12 -in /tmp/distribution.p12 -nodes -passin pass:1234 -out /tmp/cert.pem -legacy 2>/dev/null
-          if [ -f /tmp/cert.pem ]; then
-            security import /tmp/cert.pem -k build.keychain -T /usr/bin/codesign || true
-          fi
+          security import /tmp/distribution.p12 -k build.keychain -P "1234" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "build123" build.keychain
+          security cms -D -i /tmp/profile.mobileprovision > /tmp/profile.plist
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /tmp/profile.plist)
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /tmp/profile.plist)
+          PROFILE_TEAM=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" /tmp/profile.plist)
+          PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" /tmp/profile.plist)
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp /tmp/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "Installed profile UUID: $PROFILE_UUID"
+          echo "Installed profile name: $PROFILE_NAME"
+          echo "Installed profile team: $PROFILE_TEAM"
+          echo "Installed profile app id: $PROFILE_APP_ID"
           security find-identity -v -p codesigning build.keychain
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "Installed profile UUID: $UUID"
-      - name: Install dependencies
+      - name: Run Expo prebuild
         script: |
-          npm install
-      - name: Install Capacitor CLI
-        script: |
-          npm install -g @capacitor/cli
-      - name: Build web app
-        script: |
-          npm run build
-      - name: Add iOS platform (if not exists)
-        script: |
+          export CI=1
           rm -rf ios
-          npx cap add ios
-      - name: Sync Capacitor
+          npx expo prebuild --platform ios --clean
+      - name: Set app name and bundle id
         script: |
-          npx cap sync ios
-      - name: Install Firebase GoogleService-Info.plist
-        script: |
-          if [ -z "$GOOGLE_SERVICE_INFO_PLIST_B64" ]; then
-            echo "ERROR: GOOGLE_SERVICE_INFO_PLIST_B64 is not set"
-            exit 1
-          fi
-          echo "$GOOGLE_SERVICE_INFO_PLIST_B64" | base64 --decode > ios/App/App/GoogleService-Info.plist
-          if [ ! -s ios/App/App/GoogleService-Info.plist ]; then
-            echo "ERROR: GoogleService-Info.plist is empty after decode"
-            exit 1
-          fi
-          echo "GoogleService-Info.plist installed ($(wc -c < ios/App/App/GoogleService-Info.plist) bytes)"
-          # Add the plist as a resource in the Xcode project so it's bundled into the app
+          set -e
+          PROJECT_NAME=$(find ios -maxdepth 1 -name "*.xcodeproj" -exec basename {} .xcodeproj \; | head -n 1)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "ios/$PROJECT_NAME/Info.plist" || true
           gem list xcodeproj -i > /dev/null 2>&1 || sudo gem install xcodeproj
           ruby <<'RUBY'
           require 'xcodeproj'
-          project_path = 'ios/App/App.xcodeproj'
+          bundle_id = ENV.fetch('BUNDLE_ID')
+          team_id = ENV.fetch('APPLE_TEAM_ID')
+          project_path = Dir['ios/*.xcodeproj'].first
           project = Xcodeproj::Project.open(project_path)
-          target = project.targets.find { |t| t.name == 'App' }
-          group = project.main_group['App'] || project.main_group
-          file_path = 'GoogleService-Info.plist'
-          unless group.files.any? { |f| f.path == file_path }
-            file_ref = group.new_file(file_path)
-            target.add_resources([file_ref])
-            puts "Added GoogleService-Info.plist to Xcode project"
-          else
-            puts "GoogleService-Info.plist already in Xcode project"
+          project.targets.each do |target|
+            target.build_configurations.each do |config|
+              config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id if target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.application'
+              config.build_settings['DEVELOPMENT_TEAM'] = team_id
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+            end
           end
           project.save
           RUBY
-      - name: Set app name
+      - name: Install Firebase GoogleService-Info.plist
         script: |
-          cd ios/App
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName '$APP_NAME'" App/Info.plist
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST_B64" ]; then
+            PROJECT_NAME=$(find ios -maxdepth 1 -name "*.xcodeproj" -exec basename {} .xcodeproj \; | head -n 1)
+            echo "$GOOGLE_SERVICE_INFO_PLIST_B64" | base64 --decode > "ios/$PROJECT_NAME/GoogleService-Info.plist"
+            echo "GoogleService-Info.plist installed"
+          else
+            echo "GOOGLE_SERVICE_INFO_PLIST_B64 not set; skipping"
+          fi
       - name: Install CocoaPods
         script: |
-          echo "Skipping CocoaPods - using Swift Package Manager"
+          cd ios
+          pod install --repo-update
       - name: Create ExportOptions
         script: |
+          set -e
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /tmp/profile.plist)
           cat > /tmp/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -96,41 +102,43 @@ workflows:
             <key>method</key>
             <string>app-store-connect</string>
             <key>teamID</key>
-            <string>5GF5TZZ9RQ</string>
-            <key>uploadBitcode</key>
-            <false/>
+            <string>$APPLE_TEAM_ID</string>
             <key>uploadSymbols</key>
             <true/>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.zaplynxpay.app</key>
-              <string>zaplynx pay</string>
+              <key>$BUNDLE_ID</key>
+              <string>$PROFILE_NAME</string>
             </dict>
             <key>signingStyle</key>
             <string>manual</string>
-            <key>signingCertificate</key>
-            <string>iPhone Distribution</string>
           </dict>
           </plist>
           EOF
-      - name: Build iOS app
+          cat /tmp/ExportOptions.plist
+      - name: Build iOS app (archive + export IPA)
         script: |
-          xcodebuild -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
+          set -e
+          mkdir -p build/ios/ipa /tmp/xcodebuild_logs
+          WORKSPACE_PATH=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          SCHEME_NAME=$(basename "$WORKSPACE_PATH" .xcworkspace)
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /tmp/profile.plist)
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /tmp/profile.plist)
+          xcodebuild -workspace "$WORKSPACE_PATH" \
+            -scheme "$SCHEME_NAME" \
             -configuration Release \
             -archivePath /tmp/App.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="zaplynx pay" \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            DEVELOPMENT_TEAM="5GF5TZZ9RQ" \
             -destination "generic/platform=iOS" \
-            archive
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            archive | tee /tmp/xcodebuild_logs/archive.log
           xcodebuild -exportArchive \
             -archivePath /tmp/App.xcarchive \
             -exportOptionsPlist /tmp/ExportOptions.plist \
-            -exportPath build/ios/ipa
-        
-        
+            -exportPath build/ios/ipa | tee /tmp/xcodebuild_logs/export.log
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
