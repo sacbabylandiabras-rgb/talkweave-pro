@@ -613,7 +613,11 @@ function Notificacoes() {
   const [pushBusy, setPushBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
 
-  const VAPID_PUBLIC_KEY = "BK5uD6L7-UuZ-aB1U6OmARv4bWJPgC8cx_XpOVYOjFKDr7iv6_RlFcNxw1BnnVcO9-VVk-Zi1TLIv8Rwjlbh-JU";
+  const getVapidPublicKey = async () => {
+    const { data, error } = await supabase.functions.invoke("web-push-send", { body: { action: "public-key" } });
+    if (error || !(data as any)?.publicKey) throw error || new Error("Chave pública de push não configurada.");
+    return (data as any).publicKey as string;
+  };
 
   const getPushSubscriptions = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return [] as PushSubscription[];
@@ -682,9 +686,10 @@ function Notificacoes() {
       await navigator.serviceWorker.ready;
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
+        const vapidPublicKey = await getVapidPublicKey();
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
       }
       await savePushSubscription(sub);
