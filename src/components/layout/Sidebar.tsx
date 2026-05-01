@@ -65,6 +65,7 @@ const zapiMenuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
+  { id: "notificacoes", label: "Notificações", icon: BellRing, path: "/notificacoes" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
   { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
