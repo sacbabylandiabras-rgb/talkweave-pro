@@ -843,7 +843,7 @@ function NotificationPrefsPanel() {
     setLoading(true);
     (async () => {
       const checkoutFilter = selected === "__all__" ? null : selected;
-      const q = supabase
+      const q = (supabase as any)
         .from("notification_preferences")
         .select("*")
         .eq("user_id", userId);
@@ -870,7 +870,7 @@ function NotificationPrefsPanel() {
     const next = { ...prefs, [key]: value };
     setPrefs(next);
     const checkoutFilter = selected === "__all__" ? null : selected;
-    await supabase.from("notification_preferences").upsert({
+    await (supabase as any).from("notification_preferences").upsert({
       user_id: userId,
       checkout_id: checkoutFilter,
       ...next,
