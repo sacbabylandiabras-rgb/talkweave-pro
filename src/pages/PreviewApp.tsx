@@ -609,10 +609,27 @@ function Notificacoes() {
     key: string; labelHour: string; labelDate: string; msgs: number; sales: number; amount: number; isFuture: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
-  const [feed, setFeed] = useState<Array<{
-    id: string; kind: "pix" | "sale"; title: string; subtitle: string; amount: number; created_at: string;
-  }>>([]);
-  const [feedLoading, setFeedLoading] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(
+    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
+  );
+  const [pushBusy, setPushBusy] = useState(false);
+
+  const enablePush = async () => {
+    if (!("Notification" in window)) {
+      alert("Seu navegador não suporta notificações push.");
+      return;
+    }
+    setPushBusy(true);
+    try {
+      const perm = await Notification.requestPermission();
+      setPushEnabled(perm === "granted");
+      if (perm === "granted") {
+        new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -664,51 +681,48 @@ function Notificacoes() {
     })();
   }, []);
 
-  // Feed em tempo real de vendas/Pix
-  const loadFeed = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setFeedLoading(false); return; }
-    const { data } = await supabase
-      .from("gateway_transactions")
-      .select("id, customer_name, amount, payment_method, status, created_at")
-      .eq("user_id", session.user.id)
-      .in("status", ["paid", "approved", "completed"])
-      .order("created_at", { ascending: false })
-      .limit(30);
-    const mapped = (data || []).map((t: any) => {
-      const isPix = (t.payment_method || "").toLowerCase().includes("pix");
-      return {
-        id: `t-${t.id}`,
-        kind: (isPix ? "pix" : "sale") as "pix" | "sale",
-        title: isPix ? "Pix recebido" : "Venda aprovada",
-        subtitle: t.customer_name || "Cliente",
-        amount: t.amount || 0,
-        created_at: t.created_at,
-      };
-    });
-    setFeed(mapped);
-    setFeedLoading(false);
-  };
-
-  useEffect(() => {
-    loadFeed();
-    const ch = supabase
-      .channel("preview-notif-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, loadFeed)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
-
-  const timeAgo = (iso: string) => {
-    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}min`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-    return `${Math.floor(diff / 86400)}d`;
-  };
-
   return (
     <div className="space-y-2.5" style={{ paddingTop: 4 }}>
+      {/* BOTÕES DE ATIVAÇÃO */}
+      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
+        <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>● ATIVAR ALERTAS</p>
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+          Receba notificações automáticas a cada janela de resumo (00h, 08h, 12h, 18h — BRT).
+        </p>
+        <div className="grid grid-cols-2" style={{ gap: 8, marginTop: 10 }}>
+          <button
+            onClick={enablePush}
+            disabled={pushBusy || pushEnabled}
+            style={{
+              background: pushEnabled ? "rgba(52,211,153,0.15)" : C.purple,
+              color: pushEnabled ? C.green : "#fff",
+              border: pushEnabled ? "0.5px solid " + C.green + "55" : "none",
+              borderRadius: 6, padding: "9px 8px", fontSize: 11, fontWeight: 600,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              cursor: pushBusy || pushEnabled ? "default" : "pointer", opacity: pushBusy ? 0.6 : 1,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            {pushEnabled ? "Push ativado" : "Ativar push"}
+          </button>
+          <button
+            onClick={() => alert("Configure seu Telegram na aba Telegram para receber alertas por lá.")}
+            style={{
+              background: "rgba(96,165,250,0.15)", color: C.blue,
+              border: "0.5px solid " + C.blue + "55",
+              borderRadius: 6, padding: "9px 8px", fontSize: 11, fontWeight: 600,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+            Telegram
+          </button>
+        </div>
+      </div>
+
       <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
         <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>● COMO FUNCIONA</p>
         <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
@@ -732,8 +746,13 @@ function Notificacoes() {
                 width: 22, height: 22, borderRadius: 6,
                 background: "rgba(167,139,250,0.15)",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
-                color: C.purple, fontSize: 12, fontWeight: 700, fontFamily: MONO,
-              }}>{it.labelHour.slice(0, 2)}</span>
+                color: C.purple, flexShrink: 0,
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </span>
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Resumo das {it.labelHour}</span>
             </div>
             <span style={{ color: C.textMuted, fontSize: 10 }}>{it.labelDate}</span>
@@ -745,42 +764,6 @@ function Notificacoes() {
           </div>
         </div>
       ))}
-
-      {/* FEED EM TEMPO REAL */}
-      <div style={{ paddingTop: 8 }}>
-        <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, padding: "0 4px 6px" }}>
-          ● TEMPO REAL
-        </p>
-        {feedLoading && (
-          <div style={{ color: C.textMuted, fontSize: 11, textAlign: "center", padding: 16 }}>Carregando…</div>
-        )}
-        {!feedLoading && feed.length === 0 && (
-          <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 16, textAlign: "center" }}>
-            <p style={{ color: C.textMuted, fontSize: 11 }}>Nenhuma venda ainda</p>
-          </div>
-        )}
-        {!feedLoading && feed.map((n) => {
-          const isPix = n.kind === "pix";
-          const accent = isPix ? C.purple : C.green;
-          return (
-            <div key={n.id} className="flex items-center" style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: accent + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 14 }}>{isPix ? "⚡" : "📈"}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="flex items-center justify-between" style={{ gap: 6 }}>
-                  <p style={{ color: "#fff", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
-                  <span style={{ color: C.textMuted, fontSize: 10, flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
-                </div>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.subtitle}</p>
-              </div>
-              <div style={{ flexShrink: 0, textAlign: "right" }}>
-                <p style={{ color: accent, fontSize: 12, fontWeight: 700, fontFamily: MONO }}>+{fmtBRL(n.amount)}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
