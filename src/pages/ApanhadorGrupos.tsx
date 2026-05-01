@@ -832,6 +832,7 @@ const ApanhadorGrupos = () => {
                           let exportable = total;
                           if (excludeAdmins) exportable -= adminsCount;
                           if (excludeLids) exportable -= (lidsCount - (excludeAdmins ? lidAdminOverlap : 0));
+                          const allLids = total > 0 && lidsCount === total;
                           return (
                             <>
                               <Badge variant="secondary" className="text-xs">{exportable} números extraídos</Badge>
@@ -840,6 +841,16 @@ const ApanhadorGrupos = () => {
                               )}
                               {lidsCount > 0 && excludeLids && (
                                 <Badge variant="outline" className="text-xs">{lidsCount} anônimo(s) ocultos</Badge>
+                              )}
+                              {allLids && excludeLids && exportable === 0 && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs text-amber-500 hover:text-amber-400"
+                                  onClick={() => setExcludeLids(false)}
+                                >
+                                  Mostrar mesmo assim ({lidsCount})
+                                </Button>
                               )}
                             </>
                           );
