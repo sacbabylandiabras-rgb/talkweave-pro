@@ -1679,7 +1679,7 @@
 }
 
 .auth-right {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   width: 100%;
   display: flex;
   align-items: center;
@@ -1687,7 +1687,8 @@
   padding: 24px;
 }
 @media (min-width: 900px) {
-  .auth-right { width: 620px; }
+  .auth-right { width: auto; min-width: 520px; }
+  .auth-left  { flex: 0 0 55%; }
 }
 
 .auth-sale-icon-green {
