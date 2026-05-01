@@ -669,6 +669,31 @@ function Notificacoes() {
   };
 
   const sendTestSummary = async () => {
+    void 0;
+    return _sendTestSummary();
+  };
+
+  const disablePush = async () => {
+    setPushBusy(true);
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
+        const sub = await reg?.pushManager.getSubscription();
+        if (sub) {
+          const endpoint = sub.endpoint;
+          await sub.unsubscribe();
+          await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
+        }
+      }
+      setPushEnabled(false);
+    } catch (e: any) {
+      alert("Erro ao desativar: " + (e?.message || e));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const _sendTestSummary = async () => {
     setTestBusy(true);
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -767,22 +792,22 @@ function Notificacoes() {
         </p>
         <div className="grid grid-cols-2" style={{ gap: 8, marginTop: 10 }}>
           <button
-            onClick={enablePush}
-            disabled={pushBusy || pushEnabled}
+            onClick={pushEnabled ? disablePush : enablePush}
+            disabled={pushBusy}
             style={{
-              background: pushEnabled ? "rgba(52,211,153,0.15)" : C.purple,
-              color: pushEnabled ? C.green : "#fff",
-              border: pushEnabled ? "0.5px solid " + C.green + "55" : "none",
+              background: pushEnabled ? "rgba(248,113,113,0.15)" : C.purple,
+              color: pushEnabled ? "#f87171" : "#fff",
+              border: pushEnabled ? "0.5px solid #f8717155" : "none",
               borderRadius: 6, padding: "9px 8px", fontSize: 11, fontWeight: 600,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              cursor: pushBusy || pushEnabled ? "default" : "pointer", opacity: pushBusy ? 0.6 : 1,
+              cursor: pushBusy ? "default" : "pointer", opacity: pushBusy ? 0.6 : 1,
             }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
             </svg>
-            {pushEnabled ? "Push ativado" : "Ativar push"}
+            {pushBusy ? "..." : pushEnabled ? "Desativar push" : "Ativar push"}
           </button>
           <button
             onClick={() => alert("Configure seu Telegram na aba Telegram para receber alertas por lá.")}
