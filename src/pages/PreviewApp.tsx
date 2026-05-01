@@ -783,3 +783,173 @@ function MiniStat({ label, value, color }: { label: string; value: string; color
 function Loading() {
   return <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Carregando…</div>;
 }
+
+/* ===================== PREFERÊNCIAS DE NOTIFICAÇÃO ===================== */
+type Prefs = {
+  enabled: boolean;
+  notify_credit_card: boolean;
+  notify_boleto_paid: boolean;
+  notify_pix_paid: boolean;
+  notify_pix_recurring: boolean;
+  notify_apple_pay: boolean;
+  notify_pix_or_boleto_issued: boolean;
+};
+
+const DEFAULT_PREFS: Prefs = {
+  enabled: true,
+  notify_credit_card: true,
+  notify_boleto_paid: true,
+  notify_pix_paid: true,
+  notify_pix_recurring: true,
+  notify_apple_pay: true,
+  notify_pix_or_boleto_issued: false,
+};
+
+const PREF_ROWS: Array<{ key: keyof Omit<Prefs, "enabled">; label: string }> = [
+  { key: "notify_credit_card", label: "Notificar cartão de crédito" },
+  { key: "notify_boleto_paid", label: "Notificar boleto pago" },
+  { key: "notify_pix_paid", label: "Notificar pix pago" },
+  { key: "notify_pix_recurring", label: "Notificar pix recorrente" },
+  { key: "notify_apple_pay", label: "Notificar Apple Pay" },
+  { key: "notify_pix_or_boleto_issued", label: "Notificar pix ou boleto emitido" },
+];
+
+function NotificationPrefsPanel() {
+  const [checkouts, setCheckouts] = useState<Array<{ id: string; name: string }>>([]);
+  const [selected, setSelected] = useState<string>("__all__");
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Carrega checkouts do usuário
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setLoading(false); return; }
+      setUserId(session.user.id);
+      const { data } = await supabase
+        .from("gateway_checkouts")
+        .select("id, name")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+      setCheckouts((data || []) as any);
+    })();
+  }, []);
+
+  // Carrega preferências do checkout selecionado
+  useEffect(() => {
+    if (!userId) return;
+    setLoading(true);
+    (async () => {
+      const checkoutFilter = selected === "__all__" ? null : selected;
+      const q = supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", userId);
+      const { data } = checkoutFilter
+        ? await q.eq("checkout_id", checkoutFilter).maybeSingle()
+        : await q.is("checkout_id", null).maybeSingle();
+      if (data) setPrefs({
+        enabled: data.enabled,
+        notify_credit_card: data.notify_credit_card,
+        notify_boleto_paid: data.notify_boleto_paid,
+        notify_pix_paid: data.notify_pix_paid,
+        notify_pix_recurring: data.notify_pix_recurring,
+        notify_apple_pay: data.notify_apple_pay,
+        notify_pix_or_boleto_issued: data.notify_pix_or_boleto_issued,
+      });
+      else setPrefs(DEFAULT_PREFS);
+      setLoading(false);
+    })();
+  }, [userId, selected]);
+
+  const updatePref = async (key: keyof Prefs, value: boolean) => {
+    if (!userId) return;
+    setSavingKey(key as string);
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    const checkoutFilter = selected === "__all__" ? null : selected;
+    await supabase.from("notification_preferences").upsert({
+      user_id: userId,
+      checkout_id: checkoutFilter,
+      ...next,
+    }, { onConflict: "user_id,checkout_id" });
+    setSavingKey(null);
+  };
+
+  return (
+    <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+        <p style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>Notificações</p>
+        <Toggle
+          on={prefs.enabled}
+          onChange={(v) => updatePref("enabled", v)}
+          disabled={loading || savingKey === "enabled"}
+        />
+      </div>
+
+      <div style={{ borderTop: "0.5px solid " + C.cardBorder, paddingTop: 10 }}>
+        <select
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+          style={{
+            width: "100%",
+            background: "rgba(255,255,255,0.03)",
+            border: "0.5px solid " + C.cardBorder,
+            color: "#fff",
+            borderRadius: 6,
+            padding: "9px 10px",
+            fontSize: 12,
+            fontFamily: "inherit",
+            outline: "none",
+          }}
+        >
+          <option value="__all__" style={{ background: "#1a1530" }}>Todos os checkouts (padrão)</option>
+          {checkouts.map((c) => (
+            <option key={c.id} value={c.id} style={{ background: "#1a1530" }}>{c.name}</option>
+          ))}
+        </select>
+
+        <div style={{ marginTop: 10, opacity: prefs.enabled ? 1 : 0.4, pointerEvents: prefs.enabled ? "auto" : "none" }}>
+          {PREF_ROWS.map((row) => (
+            <div key={row.key} className="flex items-center justify-between" style={{ padding: "10px 0", borderBottom: "0.5px solid rgba(255,255,255,0.05)" }}>
+              <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 12 }}>{row.label}</span>
+              <Toggle
+                on={prefs[row.key]}
+                onChange={(v) => updatePref(row.key, v)}
+                disabled={loading || savingKey === row.key}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !disabled && onChange(!on)}
+      disabled={disabled}
+      style={{
+        width: 40, height: 22, borderRadius: 999,
+        background: on ? C.purple : "rgba(255,255,255,0.12)",
+        border: "none", padding: 0, position: "relative",
+        cursor: disabled ? "default" : "pointer",
+        transition: "background 0.18s ease",
+        opacity: disabled ? 0.6 : 1, flexShrink: 0,
+      }}
+    >
+      <span style={{
+        position: "absolute", top: 2, left: on ? 20 : 2,
+        width: 18, height: 18, borderRadius: "50%",
+        background: "#fff",
+        transition: "left 0.18s ease",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+      }} />
+    </button>
+  );
+}
