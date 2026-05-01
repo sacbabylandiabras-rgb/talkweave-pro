@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
 import { z } from "zod";
 import "./Landing.css";
+import lynxLogo from "@/assets/lynx-logo.png";
 
 const authSchema = z.object({
   email: z.string().email("Email inválido").max(255),
@@ -278,34 +279,8 @@ const Auth = () => {
         }}>
           {/* Header */}
           <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 4 }}>
-              <svg width="38" height="38" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="auth-bolt-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#a78bfa" />
-                    <stop offset="100%" stopColor="#f472b6" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M27 4 L9 26 H21 L17 44 L39 20 H27 L31 4 Z"
-                  fill="url(#auth-bolt-grad)"
-                  stroke="url(#auth-bolt-grad)"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <h1 style={{
-                fontSize: 26,
-                fontWeight: 900,
-                margin: 0,
-                letterSpacing: 1,
-                background: "linear-gradient(135deg, #ffffff 0%, #a78bfa 100%)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}>
-                ZAP LYNX
-              </h1>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+              <img src={lynxLogo} alt="Lynx" style={{ height: 48, width: "auto", objectFit: "contain" }} />
             </div>
             <p style={{ color: "var(--lp-muted)", fontSize: 14, marginTop: 8 }}>
               {activeTab === "login" ? "Entre na sua conta" : "Crie sua conta grátis"}
