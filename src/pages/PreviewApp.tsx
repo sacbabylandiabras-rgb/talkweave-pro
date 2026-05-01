@@ -669,6 +669,31 @@ function Notificacoes() {
   };
 
   const sendTestSummary = async () => {
+    void 0;
+    return _sendTestSummary();
+  };
+
+  const disablePush = async () => {
+    setPushBusy(true);
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
+        const sub = await reg?.pushManager.getSubscription();
+        if (sub) {
+          const endpoint = sub.endpoint;
+          await sub.unsubscribe();
+          await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
+        }
+      }
+      setPushEnabled(false);
+    } catch (e: any) {
+      alert("Erro ao desativar: " + (e?.message || e));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const _sendTestSummary = async () => {
     setTestBusy(true);
     try {
       const { data: u } = await supabase.auth.getUser();
