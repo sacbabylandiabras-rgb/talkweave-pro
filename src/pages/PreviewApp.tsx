@@ -797,6 +797,22 @@ function Notificacoes() {
             Telegram
           </button>
         </div>
+        <button
+          onClick={sendTestSummary}
+          disabled={testBusy || !pushEnabled}
+          style={{
+            marginTop: 8, width: "100%",
+            background: pushEnabled ? "rgba(167,139,250,0.18)" : "rgba(255,255,255,0.05)",
+            color: pushEnabled ? C.purple : "rgba(255,255,255,0.4)",
+            border: "0.5px solid " + (pushEnabled ? C.purple + "55" : "rgba(255,255,255,0.1)"),
+            borderRadius: 6, padding: "9px 8px", fontSize: 11, fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            cursor: testBusy || !pushEnabled ? "not-allowed" : "pointer",
+            opacity: testBusy ? 0.6 : 1,
+          }}
+        >
+          {testBusy ? "Enviando..." : "📤 Enviar resumo de teste agora"}
+        </button>
       </div>
 
       {/* PREFERÊNCIAS POR MÉTODO DE PAGAMENTO */}
