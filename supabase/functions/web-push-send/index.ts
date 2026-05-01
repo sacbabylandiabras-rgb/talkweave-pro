@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
     const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
     const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
     const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    if (!VAPID_PUBLIC_KEY) {
       return new Response(JSON.stringify({ error: "VAPID keys not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -169,7 +169,19 @@ Deno.serve(async (req) => {
       userId = data.user?.id || null;
     }
 
-    const payload = await req.json();
+    const payload = await req.json().catch(() => ({}));
+    if (payload?.action === "public-key") {
+      return new Response(JSON.stringify({ publicKey: VAPID_PUBLIC_KEY }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!VAPID_PRIVATE_KEY) {
+      return new Response(JSON.stringify({ error: "VAPID keys not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { user_id, title, body, url, tag } = payload;
     const targetUser = user_id || userId;
     if (!targetUser || !title || !body) {
