@@ -622,6 +622,41 @@ function Notificacoes() {
     return subs.filter(Boolean) as PushSubscription[];
   };
 
+  const savePushSubscription = async (sub: PushSubscription) => {
+    const json = sub.toJSON() as any;
+    const { data: u, error: userError } = await supabase.auth.getUser();
+    if (userError || !u?.user) throw new Error("Faça login novamente para ativar o push.");
+
+    const endpoint = json.endpoint || sub.endpoint;
+    const p256dh = json.keys?.p256dh;
+    const authKey = json.keys?.auth;
+    if (!endpoint || !p256dh || !authKey) throw new Error("Inscrição push inválida. Desative e ative novamente.");
+
+    const { error } = await (supabase as any).from("web_push_subscriptions").upsert({
+      user_id: u.user.id,
+      endpoint,
+      p256dh,
+      auth: authKey,
+      user_agent: navigator.userAgent,
+      last_used_at: new Date().toISOString(),
+    }, { onConflict: "endpoint" });
+    if (error) throw error;
+    return u.user.id;
+  };
+
+  const syncPushSubscription = async () => {
+    const subs = await getPushSubscriptions();
+    if (subs.length === 0) {
+      setPushEnabled(false);
+      return null;
+    }
+
+    let userId: string | null = null;
+    for (const sub of subs) userId = await savePushSubscription(sub);
+    setPushEnabled(true);
+    return { userId, count: subs.length };
+  };
+
   function urlBase64ToUint8Array(base64String: string) {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -652,23 +687,11 @@ function Notificacoes() {
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
-      const json = sub.toJSON() as any;
-      const { data: u } = await supabase.auth.getUser();
-      if (u?.user) {
-        const { error } = await (supabase as any).from("web_push_subscriptions").upsert({
-          user_id: u.user.id,
-          endpoint: json.endpoint,
-          p256dh: json.keys?.p256dh,
-          auth: json.keys?.auth,
-          user_agent: navigator.userAgent,
-          last_used_at: new Date().toISOString(),
-        }, { onConflict: "endpoint" });
-        if (error) throw error;
-      }
+      await savePushSubscription(sub);
       setPushEnabled(true);
       new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
     } catch (e: any) {
-      setPushEnabled((await getPushSubscriptions()).length > 0);
+      setPushEnabled(false);
       alert("Erro ao ativar push: " + (e?.message || e));
     } finally {
       setPushBusy(false);
@@ -683,12 +706,14 @@ function Notificacoes() {
   const disablePush = async () => {
     setPushBusy(true);
     try {
+      const { data: u } = await supabase.auth.getUser();
       const subs = await getPushSubscriptions();
       for (const sub of subs) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
         await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
       }
+      if (u?.user) await (supabase as any).from("web_push_subscriptions").delete().eq("user_id", u.user.id);
       setPushEnabled(false);
     } catch (e: any) {
       setPushEnabled((await getPushSubscriptions()).length > 0);
@@ -703,7 +728,8 @@ function Notificacoes() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
-      if ((await getPushSubscriptions()).length === 0) {
+      const synced = await syncPushSubscription();
+      if (!synced) {
         setPushEnabled(false);
         alert("Push desativado neste navegador. Clique em Ativar push primeiro.");
         return;
@@ -733,7 +759,7 @@ function Notificacoes() {
       });
       if (error) throw error;
       if ((data as any)?.sent === 0) {
-        alert("Nenhuma notificação enviada. Ative o push primeiro e recarregue a página.");
+        alert("Nenhuma notificação enviada. Clique em Desativar push, depois Ativar push novamente.");
       }
     } catch (e: any) {
       alert("Erro: " + (e?.message || e));
@@ -794,7 +820,11 @@ function Notificacoes() {
 
   useEffect(() => {
     (async () => {
-      setPushEnabled((await getPushSubscriptions()).length > 0);
+      try {
+        await syncPushSubscription();
+      } catch {
+        setPushEnabled(false);
+      }
     })();
   }, []);
 
