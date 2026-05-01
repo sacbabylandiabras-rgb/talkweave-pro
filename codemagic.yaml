@@ -49,6 +49,36 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
+      - name: Install Firebase GoogleService-Info.plist
+        script: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST_B64" ]; then
+            echo "ERROR: GOOGLE_SERVICE_INFO_PLIST_B64 is not set"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICE_INFO_PLIST_B64" | base64 --decode > ios/App/App/GoogleService-Info.plist
+          if [ ! -s ios/App/App/GoogleService-Info.plist ]; then
+            echo "ERROR: GoogleService-Info.plist is empty after decode"
+            exit 1
+          fi
+          echo "GoogleService-Info.plist installed ($(wc -c < ios/App/App/GoogleService-Info.plist) bytes)"
+          # Add the plist as a resource in the Xcode project so it's bundled into the app
+          gem list xcodeproj -i > /dev/null 2>&1 || sudo gem install xcodeproj
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          target = project.targets.find { |t| t.name == 'App' }
+          group = project.main_group['App'] || project.main_group
+          file_path = 'GoogleService-Info.plist'
+          unless group.files.any? { |f| f.path == file_path }
+            file_ref = group.new_file(file_path)
+            target.add_resources([file_ref])
+            puts "Added GoogleService-Info.plist to Xcode project"
+          else
+            puts "GoogleService-Info.plist already in Xcode project"
+          end
+          project.save
+          RUBY
       - name: Set app name
         script: |
           cd ios/App
