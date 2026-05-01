@@ -1689,3 +1689,14 @@
 @media (min-width: 900px) {
   .auth-right { width: 520px; }
 }
+
+.auth-sale-icon-green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(34,197,94,0.45);
+}
+.auth-sale-icon-purple {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(167,139,250,0.45);
+}
