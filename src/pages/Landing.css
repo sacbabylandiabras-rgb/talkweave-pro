@@ -1568,9 +1568,19 @@
 }
 
 /* ====== Auth split layout ====== */
+.auth-page {
+  background: #0d0f1a !important;
+  background-image: none !important;
+}
+
+.auth-page::before,
+.auth-page::after {
+  display: none !important;
+}
+
 .auth-left {
   position: relative;
-  flex: 1;
+  flex: 0 0 55%;
   display: none;
   overflow: hidden;
   background:
@@ -1679,16 +1689,17 @@
 }
 
 .auth-right {
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 1 1 45%;
+  width: 45%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: #0d0f1a;
 }
 @media (min-width: 900px) {
-  .auth-right { width: auto; min-width: 520px; }
-  .auth-left  { flex: 0 0 55%; }
+  .auth-right { min-width: 520px; }
+  .auth-left  { flex-basis: 55%; }
 }
 
 .auth-sale-icon-green {

@@ -111,7 +111,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="lp-root" style={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
+    <div className="lp-root auth-page" style={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
       {/* LEFT — animated message/sales notifications */}
       <div className="auth-left">
         <div className="auth-left-glow" />
