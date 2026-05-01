@@ -35,8 +35,14 @@ workflows:
             --certificate-key "@file:$CERTIFICATE_KEY_PATH" \
             --create
           keychain add-certificates
-          PROFILE_PATH=$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name "*.mobileprovision" | head -n 1)
-          test -n "$PROFILE_PATH" || (echo "ERROR: provisioning profile was not installed" && exit 1)
+          PROFILE_SOURCE_PATH=$(find "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" "$HOME/Library/MobileDevice/Provisioning Profiles" -name "*.mobileprovision" 2>/dev/null | sort | tail -n 1)
+          test -n "$PROFILE_SOURCE_PATH" || (echo "ERROR: provisioning profile was not downloaded" && exit 1)
+          security cms -D -i "$PROFILE_SOURCE_PATH" > /tmp/profile.plist
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /tmp/profile.plist)
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          cp "$PROFILE_SOURCE_PATH" "$PROFILE_PATH"
+          test -f "$PROFILE_PATH" || (echo "ERROR: provisioning profile was not installed" && exit 1)
           security cms -D -i "$PROFILE_PATH" > /tmp/profile.plist
           /usr/libexec/PlistBuddy -c "Print UUID" /tmp/profile.plist
           /usr/libexec/PlistBuddy -c "Print Name" /tmp/profile.plist
