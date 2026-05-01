@@ -609,13 +609,18 @@ function Notificacoes() {
     key: string; labelHour: string; labelDate: string; msgs: number; sales: number; amount: number; isFuture: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
-  const [pushEnabled, setPushEnabled] = useState<boolean>(
-    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
-  );
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
 
   const VAPID_PUBLIC_KEY = "BK5uD6L7-UuZ-aB1U6OmARv4bWJPgC8cx_XpOVYOjFKDr7iv6_RlFcNxw1BnnVcO9-VVk-Zi1TLIv8Rwjlbh-JU";
+
+  const getPushSubscriptions = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return [] as PushSubscription[];
+    const regs = await navigator.serviceWorker.getRegistrations();
+    const subs = await Promise.all(regs.map((reg) => reg.pushManager.getSubscription()));
+    return subs.filter(Boolean) as PushSubscription[];
+  };
 
   function urlBase64ToUint8Array(base64String: string) {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
