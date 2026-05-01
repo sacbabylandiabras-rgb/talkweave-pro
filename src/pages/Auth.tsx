@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Mail, Lock, User, Phone } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
 import { z } from "zod";
 import "./Landing.css";
 
@@ -129,7 +129,9 @@ const Auth = () => {
 
         <div className="auth-float auth-float-2">
           <div className="auth-sale-card">
-            <div className="auth-sale-icon">💰</div>
+            <div className="auth-sale-icon auth-sale-icon-green">
+              <TrendingUp size={18} strokeWidth={2.5} />
+            </div>
             <div style={{ flex: 1 }}>
               <div className="auth-sale-title">Nova venda aprovada</div>
               <div className="auth-sale-value">+ R$ 297,00</div>
@@ -149,7 +151,9 @@ const Auth = () => {
 
         <div className="auth-float auth-float-4">
           <div className="auth-sale-card auth-sale-pix">
-            <div className="auth-sale-icon">⚡</div>
+            <div className="auth-sale-icon auth-sale-icon-purple">
+              <Zap size={18} strokeWidth={2.5} />
+            </div>
             <div style={{ flex: 1 }}>
               <div className="auth-sale-title">Pix recebido</div>
               <div className="auth-sale-value">+ R$ 89,90</div>
