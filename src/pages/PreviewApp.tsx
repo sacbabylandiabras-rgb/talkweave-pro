@@ -609,13 +609,18 @@ function Notificacoes() {
     key: string; labelHour: string; labelDate: string; msgs: number; sales: number; amount: number; isFuture: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
-  const [pushEnabled, setPushEnabled] = useState<boolean>(
-    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
-  );
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
 
   const VAPID_PUBLIC_KEY = "BK5uD6L7-UuZ-aB1U6OmARv4bWJPgC8cx_XpOVYOjFKDr7iv6_RlFcNxw1BnnVcO9-VVk-Zi1TLIv8Rwjlbh-JU";
+
+  const getPushSubscriptions = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return [] as PushSubscription[];
+    const regs = await navigator.serviceWorker.getRegistrations();
+    const subs = await Promise.all(regs.map((reg) => reg.pushManager.getSubscription()));
+    return subs.filter(Boolean) as PushSubscription[];
+  };
 
   function urlBase64ToUint8Array(base64String: string) {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -650,7 +655,7 @@ function Notificacoes() {
       const json = sub.toJSON() as any;
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
-        await (supabase as any).from("web_push_subscriptions").upsert({
+        const { error } = await (supabase as any).from("web_push_subscriptions").upsert({
           user_id: u.user.id,
           endpoint: json.endpoint,
           p256dh: json.keys?.p256dh,
@@ -658,10 +663,12 @@ function Notificacoes() {
           user_agent: navigator.userAgent,
           last_used_at: new Date().toISOString(),
         }, { onConflict: "endpoint" });
+        if (error) throw error;
       }
       setPushEnabled(true);
       new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
     } catch (e: any) {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
       alert("Erro ao ativar push: " + (e?.message || e));
     } finally {
       setPushBusy(false);
@@ -676,17 +683,15 @@ function Notificacoes() {
   const disablePush = async () => {
     setPushBusy(true);
     try {
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
-        const sub = await reg?.pushManager.getSubscription();
-        if (sub) {
-          const endpoint = sub.endpoint;
-          await sub.unsubscribe();
-          await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
-        }
+      const subs = await getPushSubscriptions();
+      for (const sub of subs) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
       }
       setPushEnabled(false);
     } catch (e: any) {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
       alert("Erro ao desativar: " + (e?.message || e));
     } finally {
       setPushBusy(false);
@@ -698,6 +703,11 @@ function Notificacoes() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
+      if ((await getPushSubscriptions()).length === 0) {
+        setPushEnabled(false);
+        alert("Push desativado neste navegador. Clique em Ativar push primeiro.");
+        return;
+      }
       // Calcula o último slot fechado (00/08/12/18 BRT)
       const now = new Date();
       const brtNow = new Date(now.getTime() - 3 * 3600000);
@@ -719,7 +729,7 @@ function Notificacoes() {
       const title = `📊 Resumo das ${r.labelHour}`;
       const body = `${sales} venda${sales === 1 ? "" : "s"} • ${fmt(amount)} • ${msgs || 0} msg`;
       const { data, error } = await supabase.functions.invoke("web-push-send", {
-        body: { title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
+        body: { user_id: u.user.id, title, body, tag: `resumo-${r.labelHour}`, url: "/preview-app" },
       });
       if (error) throw error;
       if ((data as any)?.sent === 0) {
@@ -779,6 +789,12 @@ function Notificacoes() {
       );
       setItems(results);
       setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
     })();
   }, []);
 
