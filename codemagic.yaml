@@ -28,7 +28,12 @@ workflows:
         script: |
           set -e
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          CERTIFICATE_KEY_PATH="/tmp/codemagic_ios_distribution_private_key.pem"
+          openssl genrsa -out "$CERTIFICATE_KEY_PATH" 2048
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key "@file:$CERTIFICATE_KEY_PATH" \
+            --create
           keychain add-certificates
           PROFILE_PATH=$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name "*.mobileprovision" | head -n 1)
           test -n "$PROFILE_PATH" || (echo "ERROR: provisioning profile was not installed" && exit 1)
