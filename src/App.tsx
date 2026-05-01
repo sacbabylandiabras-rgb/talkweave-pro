@@ -37,6 +37,7 @@ import TemplatesAprovados from "./pages/TemplatesAprovados";
 import EnvioCloudAPI from "./pages/EnvioCloudAPI";
 import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import PreviewApp from "./pages/PreviewApp";
 import TermosServico from "./pages/TermosServico";
 import MetaOAuthCallback from "./pages/MetaOAuthCallback";
 import ShopifyOAuthCallback from "./pages/ShopifyOAuthCallback";
@@ -134,6 +135,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/preview-app" element={<PreviewApp />} />
                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
