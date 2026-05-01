@@ -161,6 +161,11 @@ serve(async (req) => {
               title: '💰 Nova venda aprovada!',
               body: `Pagamento de ${amount} recebido${tx.customer_name ? ` de ${tx.customer_name}` : ''}`,
               data: { transaction_id: tx.id, type: 'transaction_approved' },
+              event_type: ((tx.payment_method || 'pix').toLowerCase().includes('pix')) ? 'pix_paid'
+                : ((tx.payment_method || '').toLowerCase().includes('boleto')) ? 'boleto_paid'
+                : ((tx.payment_method || '').toLowerCase().includes('apple')) ? 'apple_pay'
+                : 'credit_card',
+              checkout_id: tx.checkout_id || null,
             }),
           })
           console.log('Push notification sent for transaction:', tx.id)
