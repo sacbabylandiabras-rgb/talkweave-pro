@@ -655,7 +655,7 @@ function Notificacoes() {
       const json = sub.toJSON() as any;
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
-        await (supabase as any).from("web_push_subscriptions").upsert({
+        const { error } = await (supabase as any).from("web_push_subscriptions").upsert({
           user_id: u.user.id,
           endpoint: json.endpoint,
           p256dh: json.keys?.p256dh,
@@ -663,10 +663,12 @@ function Notificacoes() {
           user_agent: navigator.userAgent,
           last_used_at: new Date().toISOString(),
         }, { onConflict: "endpoint" });
+        if (error) throw error;
       }
       setPushEnabled(true);
       new Notification("ZapLynx", { body: "Notificações ativadas! Você receberá os resumos automáticos." });
     } catch (e: any) {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
       alert("Erro ao ativar push: " + (e?.message || e));
     } finally {
       setPushBusy(false);
@@ -681,17 +683,15 @@ function Notificacoes() {
   const disablePush = async () => {
     setPushBusy(true);
     try {
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
-        const sub = await reg?.pushManager.getSubscription();
-        if (sub) {
-          const endpoint = sub.endpoint;
-          await sub.unsubscribe();
-          await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
-        }
+      const subs = await getPushSubscriptions();
+      for (const sub of subs) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await (supabase as any).from("web_push_subscriptions").delete().eq("endpoint", endpoint);
       }
       setPushEnabled(false);
     } catch (e: any) {
+      setPushEnabled((await getPushSubscriptions()).length > 0);
       alert("Erro ao desativar: " + (e?.message || e));
     } finally {
       setPushBusy(false);
