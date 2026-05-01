@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import lynxLogo from "@/assets/lynx-logo.png";
 
 /**
  * Preview do app mobile (ZapLynx) — réplica fiel do app Expo (zaplynx-app v2).
@@ -95,27 +96,8 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
 /* ===== Logo (mesmo SVG bolt do app) ===== */
 function Logo() {
   return (
-    <div className="flex items-center" style={{ gap: 8 }}>
-      <div style={{
-        width: 26, height: 26, borderRadius: 7, background: "#1e1a35",
-        border: "0.5px solid rgba(255,255,255,0.1)",
-        display: "flex", alignItems: "center", justifyContent: "center"
-      }}>
-        <svg width={14} height={14} viewBox="0 0 38 38">
-          <defs>
-            <linearGradient id="boltGrad" x1="22" y1="2" x2="14" y2="36" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#f0abfc" />
-              <stop offset="50%" stopColor="#d946ef" />
-              <stop offset="100%" stopColor="#a855f7" />
-            </linearGradient>
-          </defs>
-          <path d="M22 4L10 21h9l-3 13 12-17h-9l3-13z" fill="url(#boltGrad)" />
-        </svg>
-      </div>
-      <div className="flex">
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: -0.3 }}>ZAP</span>
-        <span style={{ color: "#c084fc", fontWeight: 700, fontSize: 16, letterSpacing: -0.3 }}>LYNX</span>
-      </div>
+    <div className="flex items-center justify-center">
+      <img src={lynxLogo} alt="Lynx" style={{ height: 28, width: "auto", objectFit: "contain" }} />
     </div>
   );
 }
