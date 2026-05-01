@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Globe, CreditCard, Loader2 } from "lucide-react";
+import { MessageSquare, Globe, CreditCard, Bell, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Dashboard from "@/pages/Dashboard";
 import DashboardMeta from "@/pages/DashboardMeta";
 import PayDashboard from "@/pages/gateway/PayDashboard";
+import NotificacoesApp from "@/pages/NotificacoesApp";
 
-type Tab = "whatsapp" | "meta" | "gateway";
+type Tab = "whatsapp" | "meta" | "gateway" | "notif";
 
 const tabs: { key: Tab; label: string; icon: typeof MessageSquare }[] = [
   { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
   { key: "meta", label: "Meta API", icon: Globe },
   { key: "gateway", label: "Gateway", icon: CreditCard },
+  { key: "notif", label: "Alertas", icon: Bell },
 ];
 
 export default function NativeAppLayout() {
@@ -68,6 +70,7 @@ export default function NativeAppLayout() {
         {activeTab === "whatsapp" && <Dashboard />}
         {activeTab === "meta" && <DashboardMeta />}
         {activeTab === "gateway" && <PayDashboard />}
+        {activeTab === "notif" && <NotificacoesApp />}
       </main>
 
       {/* Bottom Tab Bar */}
