@@ -627,7 +627,7 @@ function Notificacoes() {
       }
       // Ordena do mais recente para o mais antigo
       slots.sort((a, b) => b.endUtc.getTime() - a.endUtc.getTime());
-      const recent = slots.filter((s) => !s.isFuture).slice(0, 6);
+      const recent = slots.filter((s) => !s.isFuture).slice(0, 4);
 
       const results = await Promise.all(
         recent.map(async (s) => {
@@ -728,7 +728,12 @@ function Notificacoes() {
         <div key={it.key} style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 12 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
             <div className="flex items-center" style={{ gap: 8 }}>
-              <span style={{ fontSize: 14 }}>📊</span>
+              <span style={{
+                width: 22, height: 22, borderRadius: 6,
+                background: "rgba(167,139,250,0.15)",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                color: C.purple, fontSize: 12, fontWeight: 700, fontFamily: MONO,
+              }}>{it.labelHour.slice(0, 2)}</span>
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Resumo das {it.labelHour}</span>
             </div>
             <span style={{ color: C.textMuted, fontSize: 10 }}>{it.labelDate}</span>
