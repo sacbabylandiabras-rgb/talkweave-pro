@@ -332,10 +332,19 @@ const ApanhadorGrupos = () => {
       const participants: ExtractedParticipant[] = (data.participants || [])
         .map((p: any) => {
           const phone = String(p.phone || '');
+          const rawId = String(p.id || '');
+          // Telefones reais (E.164) têm no máximo 15 dígitos, mas WhatsApp na prática
+          // fica em 12-13 (55 + DDD + 9 + 8). IDs @lid são identificadores internos
+          // longos (14+ dígitos) sem prefixo de país válido.
+          const digits = phone.replace(/\D+/g, '');
+          const looksLikeLid =
+            /@lid$/i.test(phone) ||
+            /@lid$/i.test(rawId) ||
+            digits.length > 13;
           return {
             phone,
             isAdmin: Boolean(p.isAdmin),
-            isLid: /@lid$/i.test(phone) || /@lid$/i.test(String(p.id || '')),
+            isLid: looksLikeLid,
           };
         })
         .filter((p: ExtractedParticipant) => p.phone && p.phone.length > 5);
