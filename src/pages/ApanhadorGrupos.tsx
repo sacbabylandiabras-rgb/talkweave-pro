@@ -1179,6 +1179,69 @@ const ApanhadorGrupos = () => {
           })}
         </div>
       )}
+
+      <Sheet open={logsOpen} onOpenChange={setLogsOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5 text-primary" />
+              Logs de Boas-vindas
+            </SheetTitle>
+            <SheetDescription>
+              Diagnóstico em tempo real dos envios automáticos. Atualiza ao receber novos eventos.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={fetchWelcomeLogs} disabled={loadingLogs}>
+              {loadingLogs ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+              Recarregar
+            </Button>
+            <span className="text-xs text-muted-foreground">{welcomeLogs.length} evento(s)</span>
+          </div>
+          <div className="mt-4 space-y-2">
+            {welcomeLogs.length === 0 && !loadingLogs && (
+              <div className="text-sm text-muted-foreground p-6 text-center border border-dashed border-border rounded-lg">
+                Nenhum envio registrado ainda. Quando um novo membro entrar em um grupo com boas-vindas ativas, o evento aparecerá aqui.
+              </div>
+            )}
+            {welcomeLogs.map((log) => {
+              const isError = (log.response_sent || '').toLowerCase().includes('error') ||
+                              (log.response_sent || '').toLowerCase().includes('falha') ||
+                              (log.response_sent || '').toLowerCase().includes('failed');
+              return (
+                <div key={log.id} className="p-3 rounded-lg border border-border bg-muted/30 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {isError ? (
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      )}
+                      <span className="font-mono text-foreground">{log.phone || '—'}</span>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {new Date(log.timestamp).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Conexão:</span> {instanceLabelById(log.instance_id)}
+                  </div>
+                  {log.message_received && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Evento:</span> {log.message_received}
+                    </div>
+                  )}
+                  {log.response_sent && (
+                    <div className={isError ? 'text-destructive' : 'text-foreground'}>
+                      <span className="font-medium">Resposta:</span> {log.response_sent}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
