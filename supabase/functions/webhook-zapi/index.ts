@@ -1183,21 +1183,22 @@ serve(async (req) => {
                   }
                   const carousel = payload.cards.map((card: any) => {
                     const image = String(card?.image || "").trim();
-                    const text = [String(card?.title || "").trim(), String(card?.description || "").trim()]
+                    const title = String(card?.title || "").trim();
+                    const description = String(card?.description || "").trim();
+                    const text = [title, description]
                       .filter(Boolean)
                       .join("\n");
                     const buttons = Array.isArray(card?.buttons)
                       ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
-                          const t = String(b?.type || "REPLY").toUpperCase();
+                          const t = String(b?.type || "REPLY").trim().toUpperCase();
                           const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
-                          let id = b?.id || label;
-                          if (t === "URL" && (b?.value || b?.url)) id = b.value || b.url;
-                          if (t === "CALL" && (b?.value || b?.phone)) id = b.value || b.phone;
-                          return { id: String(id).trim(), text: label, type: t };
+                          const value = String(b?.value || b?.url || b?.phone || b?.id || label).trim();
+                          return { id: value, text: label, type: t, value };
                         }).filter((b: any) => b.id && b.text)
                       : [];
-                    return { text, image, buttons };
+                    return { title, description, text, image, buttons };
                   });
+                  console.log("📦 Welcome carousel payload:", JSON.stringify({ cards: carousel.length }).substring(0, 300));
                   request = fetch(`${providerBaseUrl}/send/carousel`, {
                     method: "POST",
                     headers: providerHeaders,
