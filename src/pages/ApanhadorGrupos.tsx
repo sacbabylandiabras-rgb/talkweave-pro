@@ -63,6 +63,70 @@ const ApanhadorGrupos = () => {
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [bulkActivating, setBulkActivating] = useState(false);
 
+  // Logs de diagnóstico de boas-vindas
+  type WelcomeLog = {
+    id: string;
+    phone: string;
+    message_received: string | null;
+    response_sent: string | null;
+    instance_id: string | null;
+    timestamp: string;
+  };
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [welcomeLogs, setWelcomeLogs] = useState<WelcomeLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const instanceLabelById = (id: string | null | undefined) => {
+    if (!id) return 'desconhecida';
+    const inst = uazapiInstances.find((i: any) => i.id === id || i.zapi_instance_id === id);
+    return inst?.instance_name || `instância ${String(id).slice(0, 8)}`;
+  };
+
+  const fetchWelcomeLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setWelcomeLogs([]); return; }
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select('id, phone, message_received, response_sent, instance_id, timestamp')
+        .eq('user_id', user.id)
+        .eq('keyword_matched', '__group_welcome__')
+        .order('timestamp', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setWelcomeLogs((data || []) as WelcomeLog[]);
+    } catch (e: any) {
+      toast.error('Falha ao carregar logs: ' + (e?.message || 'erro desconhecido'));
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  // Realtime: novos logs aparecem ao vivo enquanto o painel está aberto
+  useEffect(() => {
+    if (!logsOpen) return;
+    let channel: any;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      channel = supabase
+        .channel('welcome-logs-' + user.id)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'message_logs', filter: `user_id=eq.${user.id}` },
+          (payload: any) => {
+            const row = payload.new;
+            if (row?.keyword_matched === '__group_welcome__') {
+              setWelcomeLogs((prev) => [row as WelcomeLog, ...prev].slice(0, 100));
+            }
+          },
+        )
+        .subscribe();
+    })();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [logsOpen]);
+
   // Conectar instância uazapi via QR Code
   const [connectOpen, setConnectOpen] = useState(false);
   const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
