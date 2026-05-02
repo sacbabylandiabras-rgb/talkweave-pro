@@ -45,9 +45,23 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const targetInstanceMap: Record<string, string> = body?.targetInstanceMap || {};
     const currentProgress: Record<string, number> = body?.currentProgress || {};
-    const requestedInstanceIds = Array.isArray(body?.instanceIds)
+    let requestedInstanceIds = Array.isArray(body?.instanceIds)
       ? body.instanceIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
       : [];
+    if (requestedInstanceIds.length === 0) {
+      const { data: control } = await admin
+        .from("warmup_instance_health")
+        .select("detail")
+        .eq("instance_ref", user.id)
+        .eq("block_type", "warmup_control")
+        .maybeSingle();
+      try {
+        const detail = JSON.parse(String(control?.detail || "{}"));
+        requestedInstanceIds = Array.isArray(detail?.instanceIds)
+          ? detail.instanceIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
+          : [];
+      } catch (_) { /* mantém vazio */ }
+    }
 
     // phone (do número aquecido) ←→ instanceDbId
     const phoneByInstance = new Map<string, string>();
