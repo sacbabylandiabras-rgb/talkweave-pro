@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug, ScrollText, CheckCircle2, XCircle } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -35,6 +36,15 @@ const ApanhadorGrupos = () => {
   const { instances } = useZapiInstances();
   // Apenas instâncias uazapi devem aparecer nesta página
   const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
+  // Apenas instâncias que aparecem como fonte de algum grupo do apanhador
+  const groupSourceInstanceIds = new Set(
+    (groups || [])
+      .map((g: any) => g.sourceInstanceId)
+      .filter((id: any) => typeof id === 'string' && id.length > 0)
+  );
+  const apanhadorInstances = uazapiInstances.filter((inst: any) =>
+    groupSourceInstanceIds.size === 0 ? true : groupSourceInstanceIds.has(inst.id)
+  );
   const [extracting, setExtracting] = useState<string | null>(null);
   type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
