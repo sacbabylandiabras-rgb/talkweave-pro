@@ -1094,6 +1094,35 @@ serve(async (req) => {
                 ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
                 : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
 
+              const parseWelcomeResponse = async (res: Response, context: string) => {
+                const raw = await res.text();
+                let payload: any = null;
+                try {
+                  payload = raw ? JSON.parse(raw) : null;
+                } catch {
+                  payload = { raw };
+                }
+                const explicitError = payload?.error || payload?.erro ||
+                  payload?.details?.error || payload?.details?.message ||
+                  (payload?.success === false ? payload?.message : null);
+                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId ||
+                  payload?.id || payload?.key?.id || payload?.message?.id ||
+                  payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id ||
+                  payload?.queueId || null;
+                const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || "").toLowerCase();
+                const confirmed = Boolean(
+                  ack || payload?.queued === true || payload?.enqueued === true ||
+                    ["success", "sent", "queued", "queue", "pending", "processing", "accepted", "ok"].includes(status),
+                );
+                console.log(
+                  `${context}: status=${res.status} provider=${isUazapiWelcome ? "uazapi" : "zapi"} confirmed=${confirmed} ack=${ack || "none"} body=${raw.substring(0, 300)}`,
+                );
+                if (!res.ok || explicitError || (!isUazapiWelcome && !confirmed)) {
+                  throw new Error(String(explicitError || `Envio de boas-vindas não confirmado (${context})`));
+                }
+                return payload;
+              };
+
               const sendWelcomeText = (message: string) =>
                 isUazapiWelcome
                   ? fetch(`${baseUrl}/send/text`, {
