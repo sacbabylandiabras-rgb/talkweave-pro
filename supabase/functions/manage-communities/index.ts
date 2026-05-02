@@ -136,7 +136,18 @@ Deno.serve(async (req) => {
       case "community-invitation-link": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
+        const direct = await requestZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
+        if (direct.ok) {
+          return new Response(JSON.stringify(direct.data), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const renewed = await requestZapi("POST", `/redefine-invitation-link/${encodeURIComponent(communityId)}`);
+        const status = renewed.ok ? 200 : renewed.status;
+        return new Response(JSON.stringify(renewed.data), {
+          status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       case "add-community-participant": {
