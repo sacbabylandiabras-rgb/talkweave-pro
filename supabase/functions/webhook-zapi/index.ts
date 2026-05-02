@@ -1139,7 +1139,7 @@ serve(async (req) => {
                   "Welcome text",
                 );
 
-              const sendWelcomeMedia = (
+              const sendWelcomeMedia = async (
                 kind: "image" | "video" | "audio",
                 file: string,
                 caption: string,
