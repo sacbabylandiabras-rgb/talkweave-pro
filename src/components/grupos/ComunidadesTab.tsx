@@ -764,8 +764,6 @@ export default function ComunidadesTab() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={async (e) => {
                   e.preventDefault();
@@ -788,6 +786,28 @@ export default function ComunidadesTab() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={inviteLinkOpen} onOpenChange={setInviteLinkOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Link de convite da comunidade</DialogTitle>
+              <DialogDescription>
+                Compartilhe este link para convidar pessoas para a comunidade.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <Input value={inviteLink} readOnly onFocus={(e) => e.target.select()} />
+              <Button size="sm" onClick={handleCopyInviteLink}>
+                <Copy className="w-4 h-4 mr-1" /> Copiar
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInviteLinkOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
