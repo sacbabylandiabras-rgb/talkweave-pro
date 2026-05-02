@@ -1105,7 +1105,7 @@ const ApanhadorGrupos = () => {
                           </div>
                         )}
 
-                        {uazapiInstances.length >= 1 && (
+                        {apanhadorInstances.length >= 1 && (
                           <div>
                             <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
                               <Smartphone className="h-3.5 w-3.5" />
@@ -1120,15 +1120,15 @@ const ApanhadorGrupos = () => {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="auto">🔄 Automática (mesma do grupo)</SelectItem>
-                                {uazapiInstances.map(inst => (
+                                {apanhadorInstances.map(inst => (
                                   <SelectItem key={inst.id} value={inst.id}>
                                     {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                              Automático usa a mesma conexão que recebeu a entrada no grupo
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Apenas conexões usadas no apanhador de grupos. Automático = mesma conexão que detectou a entrada.
                             </p>
                           </div>
                         )}
