@@ -1303,32 +1303,12 @@ serve(async (req) => {
                     canSendInteractiveButtons
                   ) {
                     // Send image first, then buttons
-                    await fetch(`${baseUrl}/send-image`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        image: tpl.media_url,
-                        caption: "",
-                      }),
-                    });
+                    await sendWelcomeMedia("image", tpl.media_url, "");
                     await new Promise((resolve) => setTimeout(resolve, 1000));
                     if (replyBtns.length > 0) {
-                      const buttonResponse = await fetch(
-                        `${baseUrl}/send-button-list`,
-                        {
-                          method: "POST",
-                          headers,
-                          body: JSON.stringify({
-                            phone: joinedPhone,
-                            message: tplMessage + urlCallSuffix,
-                            buttonList: {
-                              buttons: replyBtns.map((b: any) => ({
-                                label: b.label,
-                              })),
-                            },
-                          }),
-                        },
+                      const buttonResponse = await sendWelcomeButtons(
+                        tplMessage + urlCallSuffix,
+                        replyBtns,
                       );
                       console.log(
                         "📤 Welcome template image+buttons status:",
@@ -1336,16 +1316,8 @@ serve(async (req) => {
                         await buttonResponse.text(),
                       );
                     } else {
-                      const buttonResponse = await fetch(
-                        `${baseUrl}/send-text`,
-                        {
-                          method: "POST",
-                          headers,
-                          body: JSON.stringify({
-                            phone: joinedPhone,
-                            message: tplMessage + urlCallSuffix,
-                          }),
-                        },
+                      const buttonResponse = await sendWelcomeText(
+                        tplMessage + urlCallSuffix,
                       );
                       console.log(
                         "📤 Welcome template image+text-buttons status:",
@@ -1355,21 +1327,9 @@ serve(async (req) => {
                     }
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
                     if (replyBtns.length > 0) {
-                      const buttonResponse = await fetch(
-                        `${baseUrl}/send-button-list`,
-                        {
-                          method: "POST",
-                          headers,
-                          body: JSON.stringify({
-                            phone: joinedPhone,
-                            message: tplMessage + urlCallSuffix,
-                            buttonList: {
-                              buttons: replyBtns.map((b: any) => ({
-                                label: b.label,
-                              })),
-                            },
-                          }),
-                        },
+                      const buttonResponse = await sendWelcomeButtons(
+                        tplMessage + urlCallSuffix,
+                        replyBtns,
                       );
                       console.log(
                         "📤 Welcome template text+buttons status:",
@@ -1377,16 +1337,8 @@ serve(async (req) => {
                         await buttonResponse.text(),
                       );
                     } else {
-                      const buttonResponse = await fetch(
-                        `${baseUrl}/send-text`,
-                        {
-                          method: "POST",
-                          headers,
-                          body: JSON.stringify({
-                            phone: joinedPhone,
-                            message: tplMessage + urlCallSuffix,
-                          }),
-                        },
+                      const buttonResponse = await sendWelcomeText(
+                        tplMessage + urlCallSuffix,
                       );
                       console.log(
                         "📤 Welcome template text-only-buttons status:",
@@ -1398,15 +1350,11 @@ serve(async (req) => {
                     tpl.media_url &&
                     (tpl.type === "imagem" || tpl.type === "image")
                   ) {
-                    const sendResponse = await fetch(`${baseUrl}/send-image`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        image: tpl.media_url,
-                        caption: tplMessage,
-                      }),
-                    });
+                    const sendResponse = await sendWelcomeMedia(
+                      "image",
+                      tpl.media_url,
+                      tplMessage,
+                    );
                     console.log(
                       "📤 Welcome template image status:",
                       sendResponse.status,
@@ -1416,15 +1364,11 @@ serve(async (req) => {
                     tpl.media_url &&
                     (tpl.type === "video" || tpl.type === "vídeo")
                   ) {
-                    const sendResponse = await fetch(`${baseUrl}/send-video`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        video: tpl.media_url,
-                        caption: tplMessage,
-                      }),
-                    });
+                    const sendResponse = await sendWelcomeMedia(
+                      "video",
+                      tpl.media_url,
+                      tplMessage,
+                    );
                     console.log(
                       "📤 Welcome template video status:",
                       sendResponse.status,
@@ -1434,28 +1378,18 @@ serve(async (req) => {
                     tpl.media_url &&
                     (tpl.type === "audio" || tpl.type === "áudio")
                   ) {
-                    const audioResponse = await fetch(`${baseUrl}/send-audio`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        audio: tpl.media_url,
-                      }),
-                    });
+                    const audioResponse = await sendWelcomeMedia(
+                      "audio",
+                      tpl.media_url,
+                      "",
+                    );
                     console.log(
                       "📤 Welcome template audio status:",
                       audioResponse.status,
                       await audioResponse.text(),
                     );
                     if (tplMessage) {
-                      const textResponse = await fetch(`${baseUrl}/send-text`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify({
-                          phone: joinedPhone,
-                          message: tplMessage,
-                        }),
-                      });
+                      const textResponse = await sendWelcomeText(tplMessage);
                       console.log(
                         "📤 Welcome template text-after-audio status:",
                         textResponse.status,
@@ -1463,14 +1397,7 @@ serve(async (req) => {
                       );
                     }
                   } else {
-                    const textResponse = await fetch(`${baseUrl}/send-text`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        message: tplMessage,
-                      }),
-                    });
+                    const textResponse = await sendWelcomeText(tplMessage);
                     console.log(
                       "📤 Welcome template text status:",
                       textResponse.status,
@@ -1524,14 +1451,7 @@ serve(async (req) => {
                     welcomeConfig.group_name || "grupo",
                   );
 
-                const textResponse = await fetch(`${baseUrl}/send-text`, {
-                  method: "POST",
-                  headers,
-                  body: JSON.stringify({
-                    phone: joinedPhone,
-                    message: finalMessage,
-                  }),
-                });
+                const textResponse = await sendWelcomeText(finalMessage);
                 console.log(
                   "📤 Welcome text status:",
                   textResponse.status,
