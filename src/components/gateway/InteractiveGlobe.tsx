@@ -37,25 +37,18 @@ function hashString(value: string) {
 }
 
 const POPULATION_ZONES = [
-  { lat: -23.5, lon: -46.6, spread: 8 },
-  { lat: -22.9, lon: -43.2, spread: 5 },
-  { lat: -34.6, lon: -58.4, spread: 6 },
-  { lat: 4.7, lon: -74.1, spread: 5 },
-  { lat: -15.8, lon: -47.9, spread: 6 },
-  { lat: -12.97, lon: -38.5, spread: 5 },
-  { lat: 40.7, lon: -74.0, spread: 6 },
-  { lat: 19.4, lon: -99.1, spread: 6 },
-  { lat: 34.1, lon: -118.2, spread: 5 },
-  { lat: 48.9, lon: 2.3, spread: 5 },
-  { lat: 51.5, lon: -0.1, spread: 4 },
-  { lat: 40.4, lon: -3.7, spread: 5 },
-  { lat: 38.7, lon: -9.1, spread: 4 },
-  { lat: 6.5, lon: 3.4, spread: 5 },
-  { lat: -33.9, lon: 18.4, spread: 4 },
-  { lat: 35.7, lon: 139.7, spread: 5 },
-  { lat: 28.6, lon: 77.2, spread: 6 },
-  { lat: 1.3, lon: 103.8, spread: 3 },
-  { lat: -33.9, lon: 151.2, spread: 5 },
+  // Spread kept small (<=1.5°) so fallback markers stay over land near city centers,
+  // never drifting into the ocean or neighboring countries.
+  { lat: -23.5, lon: -46.6, spread: 1.2 },
+  { lat: -22.9, lon: -43.2, spread: 0.8 },
+  { lat: -15.8, lon: -47.9, spread: 1.0 },
+  { lat: -19.9, lon: -43.9, spread: 1.0 },
+  { lat: -25.4, lon: -49.2, spread: 1.0 },
+  { lat: -3.7, lon: -38.5, spread: 1.0 },
+  { lat: -8.0, lon: -34.9, spread: 0.8 },
+  { lat: -12.97, lon: -38.5, spread: 0.8 },
+  { lat: -30.0, lon: -51.2, spread: 1.0 },
+  { lat: -16.7, lon: -49.3, spread: 1.0 },
 ];
 
 function createFallbackCoordinates(seed: string) {
