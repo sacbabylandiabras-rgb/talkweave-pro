@@ -1524,7 +1524,10 @@ serve(async (req) => {
                   console.log("📋 Template welcome sent to", joinedPhone);
                   // Build a readable log of what was sent
                   let logContent = tplMessage || "";
-                  if (tpl.media_url) {
+                  if (isCarousel) {
+                    const cardCount = (tpl as any).carousel_cards.length;
+                    logContent = `[carrossel: ${cardCount} cards]` + (logContent ? `\n${logContent}` : "");
+                  } else if (tpl.media_url) {
                     const mediaTag = `[media:${
                       tpl.type === "imagem" || tpl.type === "imagem_botoes"
                         ? "image"
