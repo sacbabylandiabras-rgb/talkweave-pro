@@ -694,6 +694,14 @@ const ApanhadorGrupos = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setLogsOpen(true); fetchWelcomeLogs(); }}
+              className="flex items-center gap-2"
+            >
+              <ScrollText className="w-4 h-4" />
+              Ver Logs de Boas-vindas
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
