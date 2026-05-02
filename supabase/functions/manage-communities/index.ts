@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       "Client-Token": instClientToken,
     };
 
-    const callZapi = async (
+    const requestZapi = async (
       method: "GET" | "POST" | "PUT" | "DELETE",
       path: string,
       payload?: unknown,
@@ -69,13 +69,22 @@ Deno.serve(async (req) => {
         data = { raw: text };
       }
       console.log(`📡 [communities] ${method} ${path} -> ${res.status}`);
-      if (!res.ok) {
+      return { ok: res.ok, status: res.status, data };
+    };
+
+    const callZapi = async (
+      method: "GET" | "POST" | "PUT" | "DELETE",
+      path: string,
+      payload?: unknown,
+    ) => {
+      const { ok, status, data } = await requestZapi(method, path, payload);
+      if (!ok) {
         const errMsg = (data as { error?: string; message?: string })?.error
           || (data as { error?: string; message?: string })?.message
-          || `Z-API error ${res.status}`;
+          || `Z-API error ${status}`;
         return new Response(
-          JSON.stringify({ error: errMsg, details: data, status: res.status }),
-          { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: errMsg, details: data, status }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       return new Response(JSON.stringify(data), {
@@ -101,7 +110,7 @@ Deno.serve(async (req) => {
       case "community-metadata": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("GET", `/communities/${encodeURIComponent(communityId)}`);
+        return await callZapi("GET", `/communities-metadata/${encodeURIComponent(communityId)}`);
       }
 
       case "link-groups": {
@@ -121,13 +130,26 @@ Deno.serve(async (req) => {
       case "redefine-invitation-link": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/invitation-link/refresh`);
+        return await callZapi("POST", `/redefine-invitation-link/${encodeURIComponent(communityId)}`);
       }
 
       case "community-invitation-link": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
+        const direct = await requestZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
+        const directError = direct.data && typeof direct.data === "object"
+          && "error" in (direct.data as Record<string, unknown>);
+        if (direct.ok && !directError) {
+          return new Response(JSON.stringify(direct.data), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const renewed = await requestZapi("POST", `/redefine-invitation-link/${encodeURIComponent(communityId)}`);
+        const status = renewed.ok ? 200 : renewed.status;
+        return new Response(JSON.stringify(renewed.data), {
+          status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       case "add-community-participant": {
