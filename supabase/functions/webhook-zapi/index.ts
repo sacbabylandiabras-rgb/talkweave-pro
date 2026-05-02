@@ -1387,9 +1387,8 @@ serve(async (req) => {
                       tplMessage,
                     );
                     console.log(
-                      "📤 Welcome template image status:",
-                      sendResponse.status,
-                      await sendResponse.text(),
+                      "📤 Welcome template image confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
                     );
                   } else if (
                     tpl.media_url &&
@@ -1401,9 +1400,8 @@ serve(async (req) => {
                       tplMessage,
                     );
                     console.log(
-                      "📤 Welcome template video status:",
-                      sendResponse.status,
-                      await sendResponse.text(),
+                      "📤 Welcome template video confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
                     );
                   } else if (
                     tpl.media_url &&
@@ -1415,9 +1413,8 @@ serve(async (req) => {
                       "",
                     );
                     console.log(
-                      "📤 Welcome template audio status:",
-                      audioResponse.status,
-                      await audioResponse.text(),
+                      "📤 Welcome template audio confirmed:",
+                      JSON.stringify(audioResponse).substring(0, 300),
                     );
                     if (tplMessage) {
                       const textResponse = await sendWelcomeText(tplMessage);
