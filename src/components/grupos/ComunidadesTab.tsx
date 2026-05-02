@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
-  ShieldOff, Settings, Trash2, Pencil, Loader2, Users,
+  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy,
 } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
@@ -82,6 +82,9 @@ export default function ComunidadesTab() {
   const [editDesc, setEditDesc] = useState("");
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
+
+  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string>("");
 
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
@@ -153,6 +156,47 @@ export default function ComunidadesTab() {
       toast.error(err instanceof Error ? err.message : "Erro na ação");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const extractInviteLink = (data: unknown): string => {
+    if (!data) return "";
+    if (typeof data === "string") return data;
+    if (typeof data === "object") {
+      const obj = data as Record<string, unknown>;
+      const candidate =
+        obj.invitationLink || obj.invitation_link || obj.inviteLink ||
+        obj.invite_link || obj.link || obj.url;
+      if (typeof candidate === "string") return candidate;
+    }
+    return "";
+  };
+
+  const handleGetInviteLink = async () => {
+    if (!selectedCommunity) return;
+    setActionLoading("get-invite");
+    try {
+      const data = await invokeCommunity("community-invitation-link", {
+        communityId: selectedCommunity.id,
+      });
+      const link = extractInviteLink(data);
+      if (!link) throw new Error("Link não retornado pelo servidor");
+      setInviteLink(link);
+      setInviteLinkOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao obter link");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Não foi possível copiar");
     }
   };
 
@@ -360,6 +404,19 @@ export default function ComunidadesTab() {
                       <RefreshCw className="w-4 h-4 mr-1" />
                     )}
                     Metadados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGetInviteLink}
+                    disabled={actionLoading === "get-invite"}
+                  >
+                    {actionLoading === "get-invite" ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Copy className="w-4 h-4 mr-1" />
+                    )}
+                    Pegar Link
                   </Button>
                   <Button
                     variant="outline"
@@ -729,6 +786,28 @@ export default function ComunidadesTab() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={inviteLinkOpen} onOpenChange={setInviteLinkOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Link de convite da comunidade</DialogTitle>
+              <DialogDescription>
+                Compartilhe este link para convidar pessoas para a comunidade.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <Input value={inviteLink} readOnly onFocus={(e) => e.target.select()} />
+              <Button size="sm" onClick={handleCopyInviteLink}>
+                <Copy className="w-4 h-4 mr-1" /> Copiar
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInviteLinkOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
