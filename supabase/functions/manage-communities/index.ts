@@ -124,6 +124,12 @@ Deno.serve(async (req) => {
         return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/invitation-link/refresh`);
       }
 
+      case "community-invitation-link": {
+        const { communityId } = body;
+        if (!communityId) throw new Error("communityId is required");
+        return await callZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
+      }
+
       case "add-community-participant": {
         const { communityId, phones } = body;
         if (!communityId) throw new Error("communityId is required");
