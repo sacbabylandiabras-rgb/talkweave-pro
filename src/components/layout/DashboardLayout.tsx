@@ -274,7 +274,12 @@ export function DashboardLayout() {
               const visibleDayProg = getVisibleWarmupProgress(dayProg, liveConfig.instanceIds);
               supabase.functions
                 .invoke("warmup-join-groups", {
-                  body: { sentByTarget, targetInstanceMap, currentProgress: visibleDayProg },
+                  body: {
+                    sentByTarget,
+                    targetInstanceMap,
+                    currentProgress: visibleDayProg,
+                    instanceIds: liveConfig.instanceIds,
+                  },
                 })
                 .catch(() => null);
             } catch (_) { /* silencioso */ }
@@ -300,7 +305,7 @@ export function DashboardLayout() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [loading, userId, warmupConfig.active, warmupConfig.instanceIds, warmupConfig.minDelay, warmupConfig.maxDelay, warmupConfig.dailyLimit]);
+  }, [loading, userId, warmupConfig.active, warmupConfig.instanceIds, warmupConfig.minDelay, warmupConfig.maxDelay, warmupConfig.dailyLimit, warmupConfig.runId]);
 
   if (loading) {
     return (

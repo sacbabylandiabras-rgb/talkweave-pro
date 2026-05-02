@@ -45,13 +45,30 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const targetInstanceMap: Record<string, string> = body?.targetInstanceMap || {};
     const currentProgress: Record<string, number> = body?.currentProgress || {};
+    let requestedInstanceIds = Array.isArray(body?.instanceIds)
+      ? body.instanceIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
+      : [];
+    if (requestedInstanceIds.length === 0) {
+      const { data: control } = await admin
+        .from("warmup_instance_health")
+        .select("detail")
+        .eq("instance_ref", user.id)
+        .eq("block_type", "warmup_control")
+        .maybeSingle();
+      try {
+        const detail = JSON.parse(String(control?.detail || "{}"));
+        requestedInstanceIds = Array.isArray(detail?.instanceIds)
+          ? detail.instanceIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
+          : [];
+      } catch (_) { /* mantém vazio */ }
+    }
 
     // phone (do número aquecido) ←→ instanceDbId
     const phoneByInstance = new Map<string, string>();
     for (const [phone, instId] of Object.entries(targetInstanceMap)) {
       if (instId && phone) phoneByInstance.set(instId, phone);
     }
-    const instanceDbIds = Array.from(phoneByInstance.keys());
+    const instanceDbIds = Array.from(new Set([...phoneByInstance.keys(), ...requestedInstanceIds]));
     if (instanceDbIds.length === 0) return json({ added: 0, skipped: "no instances" });
 
     // Links ativos
@@ -209,6 +226,7 @@ Deno.serve(async (req) => {
     let added = 0;
     let failed = 0;
     const log: any[] = [];
+    const skipped: any[] = [];
 
     // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
@@ -259,21 +277,40 @@ Deno.serve(async (req) => {
       return { ok: false, detail: { mode: "accept-invite", errors } };
     };
 
-    for (const [instanceId, count] of Object.entries(currentProgress)) {
-      // Suporta chaves compostas no formato `${instanceId}::${phone}` (vindas do dashboard)
-      const realInstanceId = instanceId.includes("::") ? instanceId.split("::")[0] : instanceId;
+    const getProgressByInstance = () => {
+      const progress = new Map<string, number>();
+      for (const [key, count] of Object.entries(currentProgress || {})) {
+        const realInstanceId = key.includes("::") ? key.split("::")[0] : key;
+        progress.set(realInstanceId, Math.max(progress.get(realInstanceId) || 0, Number(count) || 0));
+      }
+      for (const [phone, count] of Object.entries(body?.sentByTarget || {})) {
+        const realInstanceId = targetInstanceMap?.[phone];
+        if (!realInstanceId) continue;
+        const next = (progress.get(realInstanceId) || 0) + (Number(count) || 0);
+        progress.set(realInstanceId, next);
+      }
+      return progress;
+    };
+
+    const progressByInstance = getProgressByInstance();
+    for (const realInstanceId of instanceDbIds) {
       const phone = phoneByInstance.get(realInstanceId);
-      if (!phone) continue;
-      const total = Number(count) || 0;
+      const total = Math.max(Number(progressByInstance.get(realInstanceId)) || 0, requestedInstanceIds.includes(realInstanceId) ? Number.MAX_SAFE_INTEGER : 0);
 
       for (const link of links) {
         const key = `${realInstanceId}:${link.id}`;
-        if (joinedSet.has(key)) continue;
+        if (joinedSet.has(key)) {
+          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "already_joined" });
+          continue;
+        }
         const threshold = Math.max(1, Number(link.threshold) || 100);
-        if (total < threshold) continue;
+        if (total < threshold) {
+          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "below_threshold", total, threshold });
+          continue;
+        }
 
         const groupJid = await resolveGroupJid(link);
-        const result = groupJid
+        const result = groupJid && phone
           ? await addParticipant(groupJid, phone)
           : await acceptInviteWithTarget(realInstanceId, link.invite_url);
         if (result.ok) {
@@ -287,18 +324,18 @@ Deno.serve(async (req) => {
             status: "success",
             response: result.detail,
           });
-          log.push({ phone, link: link.id, ok: true });
+          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, mode: groupJid && phone ? "admin-add" : "accept-invite" });
           // Apenas UM grupo por instância por chamada para diluir no tempo
           break;
         } else {
           failed++;
-          log.push({ phone, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
+          log.push({ phone: phone || realInstanceId, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
       }
     }
 
-    console.log("warmup-join-groups (uazapi add):", { added, failed, log });
-    return json({ added, failed, log });
+    console.log("warmup-join-groups (uazapi add):", { added, failed, instances: instanceDbIds.length, requested: requestedInstanceIds.length, log, skipped: skipped.slice(0, 30) });
+    return json({ added, failed, log, skipped: skipped.slice(0, 30) });
   } catch (e: any) {
     console.error("warmup-join-groups error:", e?.message);
     return json({ error: e?.message || "Internal error" }, 500);
