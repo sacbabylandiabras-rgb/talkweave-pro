@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       "Client-Token": instClientToken,
     };
 
-    const callZapi = async (
+    const requestZapi = async (
       method: "GET" | "POST" | "PUT" | "DELETE",
       path: string,
       payload?: unknown,
@@ -69,13 +69,22 @@ Deno.serve(async (req) => {
         data = { raw: text };
       }
       console.log(`📡 [communities] ${method} ${path} -> ${res.status}`);
-      if (!res.ok) {
+      return { ok: res.ok, status: res.status, data };
+    };
+
+    const callZapi = async (
+      method: "GET" | "POST" | "PUT" | "DELETE",
+      path: string,
+      payload?: unknown,
+    ) => {
+      const { ok, status, data } = await requestZapi(method, path, payload);
+      if (!ok) {
         const errMsg = (data as { error?: string; message?: string })?.error
           || (data as { error?: string; message?: string })?.message
-          || `Z-API error ${res.status}`;
+          || `Z-API error ${status}`;
         return new Response(
-          JSON.stringify({ error: errMsg, details: data, status: res.status }),
-          { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: errMsg, details: data, status }),
+          { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       return new Response(JSON.stringify(data), {
