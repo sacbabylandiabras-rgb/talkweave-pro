@@ -800,7 +800,7 @@ const ApanhadorGrupos = () => {
             const currentMessage = editingMessage.get(grupo.id) ?? welcomeConfig?.message ?? 'Olá {{nome}}! 👋 Bem-vindo ao grupo!';
             const currentTemplateId = editingTemplateId.get(grupo.id) ?? welcomeConfig?.template_id ?? '';
             const currentFlowId = editingFlowId.get(grupo.id) ?? welcomeConfig?.flow_id ?? '';
-            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? grupo.sourceInstanceId ?? '';
+            const currentInstanceId = editingInstanceId.get(grupo.id) ?? welcomeConfig?.instance_id ?? '';
 
             return (
               <Card key={grupo.id}>
@@ -1053,8 +1053,8 @@ const ApanhadorGrupos = () => {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <p className="text-[11px] text-muted-foreground mt-1">
-                              Escolha qual número vai enviar a mensagem de boas-vindas
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                              Automático usa a mesma conexão que recebeu a entrada no grupo
                             </p>
                           </div>
                         )}
