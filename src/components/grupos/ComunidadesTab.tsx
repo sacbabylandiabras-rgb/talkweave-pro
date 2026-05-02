@@ -408,6 +408,19 @@ export default function ComunidadesTab() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={handleGetInviteLink}
+                    disabled={actionLoading === "get-invite"}
+                  >
+                    {actionLoading === "get-invite" ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Copy className="w-4 h-4 mr-1" />
+                    )}
+                    Pegar Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() =>
                       runAction(
                         "invite",
