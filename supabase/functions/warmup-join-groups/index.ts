@@ -363,15 +363,11 @@ Deno.serve(async (req) => {
 
     const progressByInstance = getProgressByInstance();
     for (const realInstanceId of instanceDbIds) {
-      const phone = phoneByInstance.get(realInstanceId);
+      const phone = await resolveTargetPhone(realInstanceId);
       const total = Math.max(Number(progressByInstance.get(realInstanceId)) || 0, requestedInstanceIds.includes(realInstanceId) ? Number.MAX_SAFE_INTEGER : 0);
 
       for (const link of links) {
         const key = `${realInstanceId}:${link.id}`;
-        if (joinedSet.has(key)) {
-          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "already_joined" });
-          continue;
-        }
         const threshold = Math.max(1, Number(link.threshold) || 100);
         if (total < threshold) {
           skipped.push({ instanceId: realInstanceId, link: link.id, reason: "below_threshold", total, threshold });
@@ -385,18 +381,16 @@ Deno.serve(async (req) => {
         if (result.ok) {
           added++;
           joinedSet.add(key);
-          await admin.from("warmup_group_joins").insert({
-            instance_id: realInstanceId,
-            link_id: link.id,
-            user_id: userByInstance.get(realInstanceId) || null,
-            joined_at_count: total,
-            status: "success",
-            response: result.detail,
-          });
-          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, mode: groupJid && phone ? "admin-add" : "accept-invite" });
+          await upsertJoin(realInstanceId, link.id, total, result.detail);
+          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, retriedExisting: joinedSet.has(key), mode: groupJid && phone ? "admin-add" : "accept-invite" });
           // Apenas UM grupo por instância por chamada para diluir no tempo
           break;
         } else {
+          if (joinedSet.has(key) && responseLooksAlreadyMember(result.detail)) {
+            await upsertJoin(realInstanceId, link.id, total, result.detail);
+            skipped.push({ instanceId: realInstanceId, link: link.id, reason: "confirmed_already_member" });
+            break;
+          }
           failed++;
           log.push({ phone: phone || realInstanceId, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
