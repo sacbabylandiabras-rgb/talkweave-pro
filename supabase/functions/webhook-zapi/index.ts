@@ -875,7 +875,7 @@ serve(async (req) => {
         const normalizedEventId = normalizeInstanceIdentifier(eventInstanceId);
         const { data: allActiveInstances } = await supabase
           .from("zapi_instances")
-          .select("user_id, zapi_instance_id, zapi_token, zapi_client_token")
+          .select("user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
           .eq("is_active", true);
 
         const instData = (allActiveInstances || []).find((item: any) =>
@@ -1075,98 +1075,178 @@ serve(async (req) => {
                 }
               }
 
-              const isUazapiWelcome =
-                String((sendInstData as any).api_provider || "").toLowerCase() === "uazapi";
-              const uazapiBase = String((sendInstData as any).evolution_api_url || "").replace(/\/+$/, "");
-              const uazapiToken = String((sendInstData as any).evolution_api_key || "");
-              const baseUrl = isUazapiWelcome
-                ? uazapiBase
-                : `https://api.z-api.io/instances/${sendInstData.zapi_instance_id}/token/${sendInstData.zapi_token}`;
-              const headers: Record<string, string> = isUazapiWelcome
-                ? { "Content-Type": "application/json", token: uazapiToken }
-                : {
-                    "Content-Type": "application/json",
-                    "Client-Token": sendInstData.zapi_client_token,
-                  };
+              const buildWelcomeTransport = (providerInstance: any) => {
+                const isUazapiProvider =
+                  String(providerInstance?.api_provider || "").toLowerCase() === "uazapi";
+                const providerBaseUrl = isUazapiProvider
+                  ? String(providerInstance?.evolution_api_url || "").replace(/\/+$/, "")
+                  : `https://api.z-api.io/instances/${providerInstance?.zapi_instance_id}/token/${providerInstance?.zapi_token}`;
+                const providerHeaders: Record<string, string> = isUazapiProvider
+                  ? {
+                      "Content-Type": "application/json",
+                      token: String(providerInstance?.evolution_api_key || providerInstance?.zapi_token || ""),
+                    }
+                  : {
+                      "Content-Type": "application/json",
+                      "Client-Token": providerInstance?.zapi_client_token,
+                    };
+                const providerTarget = joinedPhone.includes("-group")
+                  ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
+                  : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
 
-              // Helper: build request for current provider
-              const uazapiTarget = joinedPhone.includes("-group")
-                ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
-                : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
+                return { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget };
+              };
 
-              const sendWelcomeText = (message: string) =>
-                isUazapiWelcome
-                  ? fetch(`${baseUrl}/send/text`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({ number: uazapiTarget, text: message }),
-                    })
-                  : fetch(`${baseUrl}/send-text`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({ phone: joinedPhone, message }),
-                    });
+              const parseWelcomeResponse = async (
+                res: Response,
+                context: string,
+                isUazapiProvider: boolean,
+              ) => {
+                const raw = await res.text();
+                let payload: any = null;
+                try {
+                  payload = raw ? JSON.parse(raw) : null;
+                } catch {
+                  payload = { raw };
+                }
+                const explicitError = payload?.error || payload?.erro ||
+                  payload?.details?.error || payload?.details?.message ||
+                  (payload?.success === false ? payload?.message : null);
+                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId ||
+                  payload?.id || payload?.key?.id || payload?.message?.id ||
+                  payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id ||
+                  payload?.queueId || null;
+                const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || "").toLowerCase();
+                const confirmed = Boolean(
+                  ack || payload?.queued === true || payload?.enqueued === true ||
+                    ["success", "sent", "queued", "queue", "pending", "processing", "accepted", "ok"].includes(status),
+                );
+                console.log(
+                  `${context}: status=${res.status} provider=${isUazapiProvider ? "uazapi" : "zapi"} confirmed=${confirmed} ack=${ack || "none"} body=${raw.substring(0, 300)}`,
+                );
+                if (!res.ok || explicitError || (!isUazapiProvider && !confirmed)) {
+                  throw new Error(String(explicitError || `Envio de boas-vindas não confirmado (${context})`));
+                }
+                return payload;
+              };
 
-              const sendWelcomeMedia = (
+              const dispatchWelcome = async (
+                providerInstance: any,
+                payload:
+                  | { type: "text"; message: string }
+                  | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
+                  | { type: "buttons"; message: string; buttons: any[] },
+                context: string,
+              ) => {
+                const { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget } =
+                  buildWelcomeTransport(providerInstance);
+
+                let request: Promise<Response>;
+                if (payload.type === "text") {
+                  request = isUazapiProvider
+                    ? fetch(`${providerBaseUrl}/send/text`, {
+                        method: "POST",
+                        headers: providerHeaders,
+                        body: JSON.stringify({ number: providerTarget, text: payload.message }),
+                      })
+                    : fetch(`${providerBaseUrl}/send-text`, {
+                        method: "POST",
+                        headers: providerHeaders,
+                        body: JSON.stringify({ phone: joinedPhone, message: payload.message }),
+                      });
+                } else if (payload.type === "buttons") {
+                  request = isUazapiProvider
+                    ? fetch(`${providerBaseUrl}/send/menu`, {
+                        method: "POST",
+                        headers: providerHeaders,
+                        body: JSON.stringify({
+                          number: providerTarget,
+                          type: "button",
+                          text: payload.message,
+                          choices: payload.buttons.map((b: any) => b.label),
+                        }),
+                      })
+                    : fetch(`${providerBaseUrl}/send-button-list`, {
+                        method: "POST",
+                        headers: providerHeaders,
+                        body: JSON.stringify({
+                          phone: joinedPhone,
+                          message: payload.message,
+                          buttonList: { buttons: payload.buttons.map((b: any) => ({ label: b.label })) },
+                        }),
+                      });
+                } else if (isUazapiProvider) {
+                  const mappedType = payload.kind === "audio" ? "ptt" : payload.kind;
+                  request = fetch(`${providerBaseUrl}/send/media`, {
+                    method: "POST",
+                    headers: providerHeaders,
+                    body: JSON.stringify({
+                      number: providerTarget,
+                      type: mappedType,
+                      file: payload.file,
+                      ...(payload.caption && mappedType !== "ptt" ? { text: payload.caption } : {}),
+                    }),
+                  });
+                } else if (payload.kind === "image") {
+                  request = fetch(`${providerBaseUrl}/send-image`, {
+                    method: "POST",
+                    headers: providerHeaders,
+                    body: JSON.stringify({ phone: joinedPhone, image: payload.file, caption: payload.caption }),
+                  });
+                } else if (payload.kind === "video") {
+                  request = fetch(`${providerBaseUrl}/send-video`, {
+                    method: "POST",
+                    headers: providerHeaders,
+                    body: JSON.stringify({ phone: joinedPhone, video: payload.file, caption: payload.caption }),
+                  });
+                } else {
+                  request = fetch(`${providerBaseUrl}/send-audio`, {
+                    method: "POST",
+                    headers: providerHeaders,
+                    body: JSON.stringify({ phone: joinedPhone, audio: payload.file }),
+                  });
+                }
+
+                return parseWelcomeResponse(await request, context, isUazapiProvider);
+              };
+
+              const sendWelcomeWithFallback = async (
+                payload:
+                  | { type: "text"; message: string }
+                  | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
+                  | { type: "buttons"; message: string; buttons: any[] },
+                context: string,
+              ) => {
+                try {
+                  return await dispatchWelcome(sendInstData, payload, context);
+                } catch (err) {
+                  const errorMessage = err instanceof Error ? err.message : String(err || "");
+                  const shouldFallback = Boolean(
+                    welcomeConfig.instance_id &&
+                      sendInstData?.zapi_instance_id !== instData?.zapi_instance_id &&
+                      /instance not found/i.test(errorMessage),
+                  );
+                  if (!shouldFallback) throw err;
+
+                  console.warn(
+                    "⚠️ Welcome override instance failed with Instance not found; retrying with group source instance",
+                    { override: sendInstData?.zapi_instance_id, source: instData?.zapi_instance_id },
+                  );
+                  return await dispatchWelcome(instData, payload, `${context} fallback`);
+                }
+              };
+
+              const sendWelcomeText = async (message: string) =>
+                sendWelcomeWithFallback({ type: "text", message }, "Welcome text");
+
+              const sendWelcomeMedia = async (
                 kind: "image" | "video" | "audio",
                 file: string,
                 caption: string,
-              ) => {
-                if (isUazapiWelcome) {
-                  const mappedType = kind === "audio" ? "ptt" : kind;
-                  return fetch(`${baseUrl}/send/media`, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify({
-                      number: uazapiTarget,
-                      type: mappedType,
-                      file,
-                      ...(caption && mappedType !== "ptt" ? { text: caption } : {}),
-                    }),
-                  });
-                }
-                if (kind === "image") {
-                  return fetch(`${baseUrl}/send-image`, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify({ phone: joinedPhone, image: file, caption }),
-                  });
-                }
-                if (kind === "video") {
-                  return fetch(`${baseUrl}/send-video`, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify({ phone: joinedPhone, video: file, caption }),
-                  });
-                }
-                return fetch(`${baseUrl}/send-audio`, {
-                  method: "POST",
-                  headers,
-                  body: JSON.stringify({ phone: joinedPhone, audio: file }),
-                });
-              };
+              ) => sendWelcomeWithFallback({ type: "media", kind, file, caption }, `Welcome ${kind}`);
 
-              const sendWelcomeButtons = (message: string, btns: any[]) =>
-                isUazapiWelcome
-                  ? fetch(`${baseUrl}/send/menu`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        number: uazapiTarget,
-                        type: "button",
-                        text: message,
-                        choices: btns.map((b: any) => b.label),
-                      }),
-                    })
-                  : fetch(`${baseUrl}/send-button-list`, {
-                      method: "POST",
-                      headers,
-                      body: JSON.stringify({
-                        phone: joinedPhone,
-                        message,
-                        buttonList: { buttons: btns.map((b: any) => ({ label: b.label })) },
-                      }),
-                    });
+              const sendWelcomeButtons = async (message: string, btns: any[]) =>
+                sendWelcomeWithFallback({ type: "buttons", message, buttons: btns }, "Welcome buttons");
 
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
@@ -1311,18 +1391,16 @@ serve(async (req) => {
                         replyBtns,
                       );
                       console.log(
-                        "📤 Welcome template image+buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template image+buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     } else {
                       const buttonResponse = await sendWelcomeText(
                         tplMessage + urlCallSuffix,
                       );
                       console.log(
-                        "📤 Welcome template image+text-buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template image+text-buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     }
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
@@ -1332,18 +1410,16 @@ serve(async (req) => {
                         replyBtns,
                       );
                       console.log(
-                        "📤 Welcome template text+buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template text+buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     } else {
                       const buttonResponse = await sendWelcomeText(
                         tplMessage + urlCallSuffix,
                       );
                       console.log(
-                        "📤 Welcome template text-only-buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template text-only-buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     }
                   } else if (
@@ -1356,9 +1432,8 @@ serve(async (req) => {
                       tplMessage,
                     );
                     console.log(
-                      "📤 Welcome template image status:",
-                      sendResponse.status,
-                      await sendResponse.text(),
+                      "📤 Welcome template image confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
                     );
                   } else if (
                     tpl.media_url &&
@@ -1370,9 +1445,8 @@ serve(async (req) => {
                       tplMessage,
                     );
                     console.log(
-                      "📤 Welcome template video status:",
-                      sendResponse.status,
-                      await sendResponse.text(),
+                      "📤 Welcome template video confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
                     );
                   } else if (
                     tpl.media_url &&
@@ -1384,24 +1458,21 @@ serve(async (req) => {
                       "",
                     );
                     console.log(
-                      "📤 Welcome template audio status:",
-                      audioResponse.status,
-                      await audioResponse.text(),
+                      "📤 Welcome template audio confirmed:",
+                      JSON.stringify(audioResponse).substring(0, 300),
                     );
                     if (tplMessage) {
                       const textResponse = await sendWelcomeText(tplMessage);
                       console.log(
-                        "📤 Welcome template text-after-audio status:",
-                        textResponse.status,
-                        await textResponse.text(),
+                        "📤 Welcome template text-after-audio confirmed:",
+                        JSON.stringify(textResponse).substring(0, 300),
                       );
                     }
                   } else {
                     const textResponse = await sendWelcomeText(tplMessage);
                     console.log(
-                      "📤 Welcome template text status:",
-                      textResponse.status,
-                      await textResponse.text(),
+                      "📤 Welcome template text confirmed:",
+                      JSON.stringify(textResponse).substring(0, 300),
                     );
                   }
 
@@ -1453,9 +1524,8 @@ serve(async (req) => {
 
                 const textResponse = await sendWelcomeText(finalMessage);
                 console.log(
-                  "📤 Welcome text status:",
-                  textResponse.status,
-                  await textResponse.text(),
+                  "📤 Welcome text confirmed:",
+                  JSON.stringify(textResponse).substring(0, 300),
                 );
 
                 console.log("📨 Text welcome sent to", joinedPhone);
