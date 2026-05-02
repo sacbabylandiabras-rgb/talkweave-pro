@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
       apiToken: String(d.evolution_api_key || d.zapi_token || ""),
     })).filter((d: any) => d.apiUrl && d.apiToken);
 
-    // Histórico de adições já feitas (instance×link único)
+    // Histórico de adições já feitas (instance×link único).
+    // Não usamos isso para bloquear novas tentativas: o membro pode ter saído,
+    // o grupo pode ter sido recriado ou a resposta antiga pode ter sido falso positivo.
     const { data: existingJoins } = await admin
       .from("warmup_group_joins")
       .select("instance_id, link_id")
@@ -223,6 +225,26 @@ Deno.serve(async (req) => {
       return { ok: false, detail: { errors } };
     };
 
+    const responseLooksAlreadyMember = (detail: any) => {
+      const text = JSON.stringify(detail || {}).toLowerCase();
+      return text.includes("already") || text.includes("participant") || text.includes("membro") || text.includes("member");
+    };
+
+    const upsertJoin = async (realInstanceId: string, linkId: string, total: number, detail: any) => {
+      const row = {
+        instance_id: realInstanceId,
+        link_id: linkId,
+        user_id: userByInstance.get(realInstanceId) || null,
+        joined_at_count: total,
+        status: "success",
+        response: detail,
+      };
+      const { error } = await admin
+        .from("warmup_group_joins")
+        .upsert(row, { onConflict: "instance_id,link_id" });
+      if (error) console.log("warmup_group_joins upsert error:", error.message);
+    };
+
     let added = 0;
     let failed = 0;
     const log: any[] = [];
@@ -231,14 +253,61 @@ Deno.serve(async (req) => {
     // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
       .from("zapi_instances")
-      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
+      .select("id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
       .in("id", instanceDbIds);
+    const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
+      const raw = String(value || "").trim();
+      if (!raw || raw === "true" || raw === "false") return "";
+      const jidMatch = raw.match(/(\d{10,15})(?=[:@])/);
+      if (!allowPlain && !jidMatch) return "";
+      const digits = (jidMatch?.[1] || raw.replace(/\D/g, ""));
+      if (digits.length < 10 || digits.length > 15 || /^0+$/.test(digits)) return "";
+      return digits;
+    };
+
     const userByInstance = new Map<string, string>();
     const instanceById = new Map<string, any>();
     for (const inst of instances || []) {
       userByInstance.set(inst.id, inst.user_id);
       instanceById.set(inst.id, inst);
     }
+
+    const resolveTargetPhone = async (instanceId: string): Promise<string> => {
+      const cached = phoneByInstance.get(instanceId);
+      if (cached) return cached;
+      const inst = instanceById.get(instanceId);
+      if (!inst) return "";
+      const provider = String(inst.api_provider || "zapi").toLowerCase();
+      const namePhone = normalizePhoneCandidate(inst.instance_name, true);
+      if (namePhone) {
+        phoneByInstance.set(instanceId, namePhone);
+        return namePhone;
+      }
+      if (provider !== "zapi") return "";
+      const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
+      const headers = { "Client-Token": String(inst.zapi_client_token || "") };
+      const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(`${base}${ep}`, { headers });
+          if (!r.ok) continue;
+          const j: any = await r.json().catch(() => ({}));
+          const candidates = [
+            j?.phone, j?.phoneNumber, j?.connectedPhone, j?.connected_phone,
+            j?.wid?.user, j?.user, j?.user?.phone, j?.me?.user, j?.me?.phone,
+            j?.device?.phone, j?.device?.number, j?.id, j?.wid, j?.user?.id, j?.me?.id,
+          ];
+          for (const cand of candidates) {
+            const phone = normalizePhoneCandidate(cand, true) || normalizePhoneCandidate(cand, false);
+            if (phone) {
+              phoneByInstance.set(instanceId, phone);
+              return phone;
+            }
+          }
+        } catch (_) { /* tenta próximo */ }
+      }
+      return "";
+    };
 
     const acceptInviteWithTarget = async (instanceId: string, inviteUrl: string): Promise<{ ok: boolean; detail: any }> => {
       const inst = instanceById.get(instanceId);
@@ -294,15 +363,11 @@ Deno.serve(async (req) => {
 
     const progressByInstance = getProgressByInstance();
     for (const realInstanceId of instanceDbIds) {
-      const phone = phoneByInstance.get(realInstanceId);
+      const phone = await resolveTargetPhone(realInstanceId);
       const total = Math.max(Number(progressByInstance.get(realInstanceId)) || 0, requestedInstanceIds.includes(realInstanceId) ? Number.MAX_SAFE_INTEGER : 0);
 
       for (const link of links) {
         const key = `${realInstanceId}:${link.id}`;
-        if (joinedSet.has(key)) {
-          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "already_joined" });
-          continue;
-        }
         const threshold = Math.max(1, Number(link.threshold) || 100);
         if (total < threshold) {
           skipped.push({ instanceId: realInstanceId, link: link.id, reason: "below_threshold", total, threshold });
@@ -310,24 +375,31 @@ Deno.serve(async (req) => {
         }
 
         const groupJid = await resolveGroupJid(link);
-        const result = groupJid && phone
-          ? await addParticipant(groupJid, phone)
+        const adminAddResult = groupJid && phone ? await addParticipant(groupJid, phone) : null;
+        const result = adminAddResult?.ok
+          ? adminAddResult
           : await acceptInviteWithTarget(realInstanceId, link.invite_url);
         if (result.ok) {
+          const retriedExisting = joinedSet.has(key);
           added++;
           joinedSet.add(key);
-          await admin.from("warmup_group_joins").insert({
-            instance_id: realInstanceId,
-            link_id: link.id,
-            user_id: userByInstance.get(realInstanceId) || null,
-            joined_at_count: total,
-            status: "success",
-            response: result.detail,
+          await upsertJoin(realInstanceId, link.id, total, result.detail);
+          log.push({
+            phone: phone || realInstanceId,
+            link: link.id,
+            ok: true,
+            retriedExisting,
+            mode: adminAddResult?.ok ? "admin-add" : "accept-invite",
+            adminAddFailed: Boolean(adminAddResult && !adminAddResult.ok),
           });
-          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, mode: groupJid && phone ? "admin-add" : "accept-invite" });
           // Apenas UM grupo por instância por chamada para diluir no tempo
           break;
         } else {
+          if (joinedSet.has(key) && responseLooksAlreadyMember(result.detail)) {
+            await upsertJoin(realInstanceId, link.id, total, result.detail);
+            skipped.push({ instanceId: realInstanceId, link: link.id, reason: "confirmed_already_member" });
+            break;
+          }
           failed++;
           log.push({ phone: phone || realInstanceId, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
