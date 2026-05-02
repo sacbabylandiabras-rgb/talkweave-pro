@@ -56,11 +56,7 @@ export function useGroupWelcome() {
       if (!user) throw new Error('Not authenticated');
 
       const targetInstanceId = data.instance_id || null;
-      const existing = configs.find((config) => {
-        if (config.group_id !== groupId) return false;
-        if (!targetInstanceId) return !config.instance_id;
-        return config.instance_id === targetInstanceId;
-      }) || configs.find((config) => config.group_id === groupId && !config.instance_id);
+      const existing = configs.find((config) => config.group_id === groupId);
 
       if (existing) {
         const updateData: any = { active, ...data, instance_id: targetInstanceId };
