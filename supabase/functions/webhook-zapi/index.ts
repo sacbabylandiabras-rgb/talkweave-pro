@@ -1533,7 +1533,7 @@ serve(async (req) => {
                   // Build a readable log of what was sent
                   let logContent = tplMessage || "";
                   if (isCarousel) {
-                    const cardCount = (tpl as any).carousel_cards.length;
+                    const cardCount = carouselCards.length;
                     logContent = `[carrossel: ${cardCount} cards]` + (logContent ? `\n${logContent}` : "");
                   } else if (tpl.media_url) {
                     const mediaTag = `[media:${
