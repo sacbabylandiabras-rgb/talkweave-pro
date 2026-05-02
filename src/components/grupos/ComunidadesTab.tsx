@@ -176,10 +176,27 @@ export default function ComunidadesTab() {
     if (!selectedCommunity) return;
     setActionLoading("get-invite");
     try {
-      const data = await invokeCommunity("community-invitation-link", {
-        communityId: selectedCommunity.id,
-      });
-      const link = extractInviteLink(data);
+      // Try dedicated endpoint first; fallback to metadata which usually contains the link
+      let link = "";
+      try {
+        const data = await invokeCommunity("community-invitation-link", {
+          communityId: selectedCommunity.id,
+        });
+        link = extractInviteLink(data);
+      } catch {
+        // ignore and fallback
+      }
+      if (!link) {
+        const meta = await invokeCommunity("community-metadata", {
+          communityId: selectedCommunity.id,
+        });
+        link = extractInviteLink(meta);
+        // Sometimes metadata returns nested community object
+        if (!link && meta && typeof meta === "object") {
+          const m = meta as Record<string, unknown>;
+          link = extractInviteLink(m.community) || extractInviteLink(m.data) || "";
+        }
+      }
       if (!link) throw new Error("Link não retornado pelo servidor");
       setInviteLink(link);
       setInviteLinkOpen(true);
