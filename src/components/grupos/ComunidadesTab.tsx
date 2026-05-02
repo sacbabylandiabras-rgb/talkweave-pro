@@ -166,8 +166,10 @@ export default function ComunidadesTab() {
       const obj = data as Record<string, unknown>;
       const candidate =
         obj.invitationLink || obj.invitation_link || obj.inviteLink ||
-        obj.invite_link || obj.link || obj.url;
+        obj.invite_link || obj.link || obj.url || obj.invitationCode || obj.code;
       if (typeof candidate === "string") return candidate;
+      // Some APIs return the code only — build full URL
+      if (typeof obj.code === "string") return `https://chat.whatsapp.com/${obj.code}`;
     }
     return "";
   };
