@@ -225,6 +225,26 @@ Deno.serve(async (req) => {
       return { ok: false, detail: { errors } };
     };
 
+    const responseLooksAlreadyMember = (detail: any) => {
+      const text = JSON.stringify(detail || {}).toLowerCase();
+      return text.includes("already") || text.includes("participant") || text.includes("membro") || text.includes("member");
+    };
+
+    const upsertJoin = async (realInstanceId: string, linkId: string, total: number, detail: any) => {
+      const row = {
+        instance_id: realInstanceId,
+        link_id: linkId,
+        user_id: userByInstance.get(realInstanceId) || null,
+        joined_at_count: total,
+        status: "success",
+        response: detail,
+      };
+      const { error } = await admin
+        .from("warmup_group_joins")
+        .upsert(row, { onConflict: "instance_id,link_id" });
+      if (error) console.log("warmup_group_joins upsert error:", error.message);
+    };
+
     let added = 0;
     let failed = 0;
     const log: any[] = [];
