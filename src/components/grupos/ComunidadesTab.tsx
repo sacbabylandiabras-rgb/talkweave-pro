@@ -162,14 +162,37 @@ export default function ComunidadesTab() {
   const extractInviteLink = (data: unknown): string => {
     if (!data) return "";
     if (typeof data === "string") return data;
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        const found = extractInviteLink(item);
+        if (found) return found;
+      }
+      return "";
+    }
     if (typeof data === "object") {
       const obj = data as Record<string, unknown>;
-      const candidate =
-        obj.invitationLink || obj.invitation_link || obj.inviteLink ||
-        obj.invite_link || obj.link || obj.url || obj.invitationCode || obj.code;
-      if (typeof candidate === "string") return candidate;
-      // Some APIs return the code only — build full URL
-      if (typeof obj.code === "string") return `https://chat.whatsapp.com/${obj.code}`;
+      // Direct candidates
+      for (const key of [
+        "invitationLink", "invitation_link", "inviteLink", "invite_link",
+        "invitation", "link", "url", "shortUrl", "short_url",
+      ]) {
+        const v = obj[key];
+        if (typeof v === "string" && v.includes("http")) return v;
+      }
+      // Code-only: build full URL
+      for (const key of ["invitationCode", "invitation_code", "inviteCode", "invite_code", "code"]) {
+        const v = obj[key];
+        if (typeof v === "string" && v && !v.includes("http")) {
+          return `https://chat.whatsapp.com/${v}`;
+        }
+      }
+      // Recurse into nested objects
+      for (const v of Object.values(obj)) {
+        if (v && typeof v === "object") {
+          const found = extractInviteLink(v);
+          if (found) return found;
+        }
+      }
     }
     return "";
   };
@@ -178,28 +201,16 @@ export default function ComunidadesTab() {
     if (!selectedCommunity) return;
     setActionLoading("get-invite");
     try {
-      // Try dedicated endpoint first; fallback to metadata which usually contains the link
-      let link = "";
-      try {
-        const data = await invokeCommunity("community-invitation-link", {
-          communityId: selectedCommunity.id,
-        });
-        link = extractInviteLink(data);
-      } catch {
-        // ignore and fallback
-      }
+      const data = await invokeCommunity("community-invitation-link", {
+        communityId: selectedCommunity.id,
+      });
+      console.log("[invite-link] response:", data);
+      const link = extractInviteLink(data);
       if (!link) {
-        const meta = await invokeCommunity("community-metadata", {
-          communityId: selectedCommunity.id,
-        });
-        link = extractInviteLink(meta);
-        // Sometimes metadata returns nested community object
-        if (!link && meta && typeof meta === "object") {
-          const m = meta as Record<string, unknown>;
-          link = extractInviteLink(m.community) || extractInviteLink(m.data) || "";
-        }
+        throw new Error(
+          `Link não encontrado. Resposta: ${JSON.stringify(data).slice(0, 200)}`,
+        );
       }
-      if (!link) throw new Error("Link não retornado pelo servidor");
       setInviteLink(link);
       setInviteLinkOpen(true);
     } catch (err) {
