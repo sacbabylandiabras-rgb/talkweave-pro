@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
 import { z } from "zod";
 import "./Landing.css";
-import lynxLogo from "@/assets/lynx-logo.png";
+import lynxLogo from "@/assets/logo.svg";
 
 const authSchema = z.object({
   email: z.string().email("Email inválido").max(255),
