@@ -35,6 +35,14 @@ import { toast } from "sonner";
 import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
 import ComunidadesTab from "@/components/grupos/ComunidadesTab";
 
+const formatCommunityLid = (value: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/@lid$/i.test(raw)) return raw;
+  const digits = raw.replace(/\D/g, "");
+  return digits.length > 13 ? `${digits}@lid` : raw.replace(/@c\.us$/i, "").replace(/@s\.whatsapp\.net$/i, "");
+};
+
 const CriarGrupos = () => {
   return (
     <div className="space-y-6">
@@ -2174,10 +2182,14 @@ function ParticipantesTab() {
           groupId: group.id,
           sourceInstanceId: group.sourceInstanceId || null,
           fallbackParticipants: group.participantes || [],
+          isCommunity: Boolean(group.isCommunity),
         },
       });
       if (error) throw error;
-      setParticipants(data?.participants || []);
+      setParticipants((data?.participants || []).map((p: any) => ({
+        ...p,
+        phone: group.isCommunity ? formatCommunityLid(p.phone || p.id || "") : formatCommunityLid(p.phone || p.id || ""),
+      })));
     } catch (err: any) {
       console.error("Erro ao buscar participantes:", err);
       toast.error("Erro ao buscar participantes do grupo");
@@ -2327,7 +2339,7 @@ function ParticipantesTab() {
                   </p>
                 ) : (
                   filteredParticipants.map((p: any, i: number) => {
-                    const phone = p.phone || p.id?.replace("@c.us", "") || `participante-${i}`;
+                    const phone = formatCommunityLid(p.phone || p.id || `participante-${i}`);
                     const isAdmin = p.admin === "admin" || p.isAdmin;
                     return (
                       <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border">
