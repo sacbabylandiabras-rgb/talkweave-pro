@@ -1057,7 +1057,7 @@ serve(async (req) => {
               if (welcomeConfig.instance_id) {
                 const { data: overrideInst } = await supabase
                   .from("zapi_instances")
-                  .select("zapi_instance_id, zapi_token, zapi_client_token")
+                  .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
                   .eq("user_id", instData.user_id)
                   .eq("id", welcomeConfig.instance_id)
                   .eq("is_active", true)
@@ -1075,12 +1075,98 @@ serve(async (req) => {
                 }
               }
 
-              const baseUrl =
-                `https://api.z-api.io/instances/${sendInstData.zapi_instance_id}/token/${sendInstData.zapi_token}`;
-              const headers = {
-                "Content-Type": "application/json",
-                "Client-Token": sendInstData.zapi_client_token,
+              const isUazapiWelcome =
+                String((sendInstData as any).api_provider || "").toLowerCase() === "uazapi";
+              const uazapiBase = String((sendInstData as any).evolution_api_url || "").replace(/\/+$/, "");
+              const uazapiToken = String((sendInstData as any).evolution_api_key || "");
+              const baseUrl = isUazapiWelcome
+                ? uazapiBase
+                : `https://api.z-api.io/instances/${sendInstData.zapi_instance_id}/token/${sendInstData.zapi_token}`;
+              const headers: Record<string, string> = isUazapiWelcome
+                ? { "Content-Type": "application/json", token: uazapiToken }
+                : {
+                    "Content-Type": "application/json",
+                    "Client-Token": sendInstData.zapi_client_token,
+                  };
+
+              // Helper: build request for current provider
+              const uazapiTarget = joinedPhone.includes("-group")
+                ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
+                : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
+
+              const sendWelcomeText = (message: string) =>
+                isUazapiWelcome
+                  ? fetch(`${baseUrl}/send/text`, {
+                      method: "POST",
+                      headers,
+                      body: JSON.stringify({ number: uazapiTarget, text: message }),
+                    })
+                  : fetch(`${baseUrl}/send-text`, {
+                      method: "POST",
+                      headers,
+                      body: JSON.stringify({ phone: joinedPhone, message }),
+                    });
+
+              const sendWelcomeMedia = (
+                kind: "image" | "video" | "audio",
+                file: string,
+                caption: string,
+              ) => {
+                if (isUazapiWelcome) {
+                  const mappedType = kind === "audio" ? "ptt" : kind;
+                  return fetch(`${baseUrl}/send/media`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                      number: uazapiTarget,
+                      type: mappedType,
+                      file,
+                      ...(caption && mappedType !== "ptt" ? { text: caption } : {}),
+                    }),
+                  });
+                }
+                if (kind === "image") {
+                  return fetch(`${baseUrl}/send-image`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ phone: joinedPhone, image: file, caption }),
+                  });
+                }
+                if (kind === "video") {
+                  return fetch(`${baseUrl}/send-video`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ phone: joinedPhone, video: file, caption }),
+                  });
+                }
+                return fetch(`${baseUrl}/send-audio`, {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({ phone: joinedPhone, audio: file }),
+                });
               };
+
+              const sendWelcomeButtons = (message: string, btns: any[]) =>
+                isUazapiWelcome
+                  ? fetch(`${baseUrl}/send/menu`, {
+                      method: "POST",
+                      headers,
+                      body: JSON.stringify({
+                        number: uazapiTarget,
+                        type: "button",
+                        text: message,
+                        choices: btns.map((b: any) => b.label),
+                      }),
+                    })
+                  : fetch(`${baseUrl}/send-button-list`, {
+                      method: "POST",
+                      headers,
+                      body: JSON.stringify({
+                        phone: joinedPhone,
+                        message,
+                        buttonList: { buttons: btns.map((b: any) => ({ label: b.label })) },
+                      }),
+                    });
 
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
