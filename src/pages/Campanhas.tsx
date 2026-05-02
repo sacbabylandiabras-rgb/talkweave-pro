@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { setZapiInstanceOverride, setZapiRotateMode, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
-import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, RefreshCw, Filter } from "lucide-react";
+import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, RefreshCw, Filter, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
@@ -1223,6 +1223,42 @@ const Campanhas = () => {
                     Reenviar {cancelledCount} contato(s) cancelado(s)
                   </Button>
                 )}
+
+                {/* Export CSV */}
+                <Button
+                  onClick={() => {
+                    const escape = (v: any) => {
+                      const s = v == null ? '' : String(v);
+                      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+                    };
+                    const headers = ['Nome', 'Telefone', 'Status', 'Lida', ...(statsDialogHasUrlButton ? ['Clique no link'] : []), 'Data', 'Erro'];
+                    const rows = fullContactList.map((c) => [
+                      c.name || '',
+                      c.phone || '',
+                      c.status,
+                      c.readAt ? 'Sim' : 'Não',
+                      ...(statsDialogHasUrlButton ? [c.clickedAt ? 'Sim' : 'Não'] : []),
+                      c.sentAt ? format(new Date(c.sentAt), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }) : '',
+                      c.errorMessage || '',
+                    ]);
+                    const csv = '\uFEFF' + [headers, ...rows].map((r) => r.map(escape).join(';')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const safeName = (statsDialogCampaignName || 'campanha').replace(/[^a-z0-9-_]+/gi, '_');
+                    a.href = url;
+                    a.download = `relatorio_${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar relatório (CSV)
+                </Button>
 
                 {/* Table with full contact list */}
                 <ScrollArea className="max-h-[40vh]">
