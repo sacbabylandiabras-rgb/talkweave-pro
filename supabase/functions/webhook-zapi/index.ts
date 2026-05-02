@@ -1242,7 +1242,8 @@ serve(async (req) => {
                 payload:
                   | { type: "text"; message: string }
                   | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] },
+                  | { type: "buttons"; message: string; buttons: any[] }
+                  | { type: "carousel"; message: string; cards: any[] },
                 context: string,
               ) => {
                 try {
