@@ -262,12 +262,25 @@ Deno.serve(async (req) => {
       return { ok: false, detail: { mode: "accept-invite", errors } };
     };
 
-    for (const [instanceId, count] of Object.entries(currentProgress)) {
-      // Suporta chaves compostas no formato `${instanceId}::${phone}` (vindas do dashboard)
-      const realInstanceId = instanceId.includes("::") ? instanceId.split("::")[0] : instanceId;
+    const getProgressByInstance = () => {
+      const progress = new Map<string, number>();
+      for (const [key, count] of Object.entries(currentProgress || {})) {
+        const realInstanceId = key.includes("::") ? key.split("::")[0] : key;
+        progress.set(realInstanceId, Math.max(progress.get(realInstanceId) || 0, Number(count) || 0));
+      }
+      for (const [phone, count] of Object.entries(body?.sentByTarget || {})) {
+        const realInstanceId = targetInstanceMap?.[phone];
+        if (!realInstanceId) continue;
+        const next = (progress.get(realInstanceId) || 0) + (Number(count) || 0);
+        progress.set(realInstanceId, next);
+      }
+      return progress;
+    };
+
+    const progressByInstance = getProgressByInstance();
+    for (const realInstanceId of instanceDbIds) {
       const phone = phoneByInstance.get(realInstanceId);
-      if (!phone) continue;
-      const total = Number(count) || 0;
+      const total = Math.max(Number(progressByInstance.get(realInstanceId)) || 0, requestedInstanceIds.includes(realInstanceId) ? Number.MAX_SAFE_INTEGER : 0);
 
       for (const link of links) {
         const key = `${realInstanceId}:${link.id}`;
@@ -276,7 +289,7 @@ Deno.serve(async (req) => {
         if (total < threshold) continue;
 
         const groupJid = await resolveGroupJid(link);
-        const result = groupJid
+        const result = groupJid && phone
           ? await addParticipant(groupJid, phone)
           : await acceptInviteWithTarget(realInstanceId, link.invite_url);
         if (result.ok) {
@@ -290,12 +303,12 @@ Deno.serve(async (req) => {
             status: "success",
             response: result.detail,
           });
-          log.push({ phone, link: link.id, ok: true });
+          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, mode: groupJid && phone ? "admin-add" : "accept-invite" });
           // Apenas UM grupo por instância por chamada para diluir no tempo
           break;
         } else {
           failed++;
-          log.push({ phone, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
+          log.push({ phone: phone || realInstanceId, link: link.id, groupJidResolved: Boolean(groupJid), ...result.detail });
         }
       }
     }
