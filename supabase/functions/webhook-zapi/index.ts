@@ -1135,7 +1135,8 @@ serve(async (req) => {
                 payload:
                   | { type: "text"; message: string }
                   | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] },
+                  | { type: "buttons"; message: string; buttons: any[] }
+                  | { type: "carousel"; message: string; cards: any[] },
                 context: string,
               ) => {
                 const { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget } =
@@ -1175,6 +1176,33 @@ serve(async (req) => {
                           buttonList: { buttons: payload.buttons.map((b: any) => ({ label: b.label })) },
                         }),
                       });
+                } else if (payload.type === "carousel") {
+                  // Carousel only supported on uazapi provider via /send/carousel
+                  if (!isUazapiProvider) {
+                    throw new Error("Carrossel não suportado nesta conexão");
+                  }
+                  const carousel = payload.cards.map((card: any) => {
+                    const image = String(card?.image || "").trim();
+                    const text = [String(card?.title || "").trim(), String(card?.description || "").trim()]
+                      .filter(Boolean)
+                      .join("\n");
+                    const buttons = Array.isArray(card?.buttons)
+                      ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
+                          const t = String(b?.type || "REPLY").toUpperCase();
+                          const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
+                          let id = b?.id || label;
+                          if (t === "URL" && (b?.value || b?.url)) id = b.value || b.url;
+                          if (t === "CALL" && (b?.value || b?.phone)) id = b.value || b.phone;
+                          return { id: String(id).trim(), text: label, type: t };
+                        }).filter((b: any) => b.id && b.text)
+                      : [];
+                    return { text, image, buttons };
+                  });
+                  request = fetch(`${providerBaseUrl}/send/carousel`, {
+                    method: "POST",
+                    headers: providerHeaders,
+                    body: JSON.stringify({ number: providerTarget, text: payload.message || "", carousel }),
+                  });
                 } else if (isUazapiProvider) {
                   const mappedType = payload.kind === "audio" ? "ptt" : payload.kind;
                   request = fetch(`${providerBaseUrl}/send/media`, {
@@ -1214,7 +1242,8 @@ serve(async (req) => {
                 payload:
                   | { type: "text"; message: string }
                   | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] },
+                  | { type: "buttons"; message: string; buttons: any[] }
+                  | { type: "carousel"; message: string; cards: any[] },
                 context: string,
               ) => {
                 try {
@@ -1247,6 +1276,9 @@ serve(async (req) => {
 
               const sendWelcomeButtons = async (message: string, btns: any[]) =>
                 sendWelcomeWithFallback({ type: "buttons", message, buttons: btns }, "Welcome buttons");
+
+              const sendWelcomeCarousel = async (message: string, cards: any[]) =>
+                sendWelcomeWithFallback({ type: "carousel", message, cards }, "Welcome carousel");
 
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
@@ -1296,7 +1328,7 @@ serve(async (req) => {
                 // Load template and send its content
                 const { data: tpl } = await supabase
                   .from("message_templates")
-                  .select("content, media_url, type, buttons, header, footer")
+                  .select("content, media_url, type, buttons, header, footer, carousel_cards")
                   .eq("id", welcomeConfig.template_id)
                   .maybeSingle();
 
@@ -1377,7 +1409,20 @@ serve(async (req) => {
                     ? "\n\n" + urlCallParts.join("\n")
                     : "";
 
-                  if (
+                  const isCarousel = (tpl.type === "carrossel" || tpl.type === "carousel") &&
+                    Array.isArray((tpl as any).carousel_cards) &&
+                    (tpl as any).carousel_cards.length > 0;
+
+                  if (isCarousel) {
+                    const carouselResponse = await sendWelcomeCarousel(
+                      tplMessage,
+                      (tpl as any).carousel_cards,
+                    );
+                    console.log(
+                      "📤 Welcome template carousel confirmed:",
+                      JSON.stringify(carouselResponse).substring(0, 300),
+                    );
+                  } else if (
                     tpl.media_url &&
                     (tpl.type === "imagem" || tpl.type === "image") &&
                     canSendInteractiveButtons
@@ -1479,7 +1524,10 @@ serve(async (req) => {
                   console.log("📋 Template welcome sent to", joinedPhone);
                   // Build a readable log of what was sent
                   let logContent = tplMessage || "";
-                  if (tpl.media_url) {
+                  if (isCarousel) {
+                    const cardCount = (tpl as any).carousel_cards.length;
+                    logContent = `[carrossel: ${cardCount} cards]` + (logContent ? `\n${logContent}` : "");
+                  } else if (tpl.media_url) {
                     const mediaTag = `[media:${
                       tpl.type === "imagem" || tpl.type === "imagem_botoes"
                         ? "image"
