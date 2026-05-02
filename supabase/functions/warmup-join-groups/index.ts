@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
       apiToken: String(d.evolution_api_key || d.zapi_token || ""),
     })).filter((d: any) => d.apiUrl && d.apiToken);
 
-    // Histórico de adições já feitas (instance×link único)
+    // Histórico de adições já feitas (instance×link único).
+    // Não usamos isso para bloquear novas tentativas: o membro pode ter saído,
+    // o grupo pode ter sido recriado ou a resposta antiga pode ter sido falso positivo.
     const { data: existingJoins } = await admin
       .from("warmup_group_joins")
       .select("instance_id, link_id")
@@ -233,12 +235,59 @@ Deno.serve(async (req) => {
       .from("zapi_instances")
       .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
       .in("id", instanceDbIds);
+    const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
+      const raw = String(value || "").trim();
+      if (!raw || raw === "true" || raw === "false") return "";
+      const jidMatch = raw.match(/(\d{10,15})(?=[:@])/);
+      if (!allowPlain && !jidMatch) return "";
+      const digits = (jidMatch?.[1] || raw.replace(/\D/g, ""));
+      if (digits.length < 10 || digits.length > 15 || /^0+$/.test(digits)) return "";
+      return digits;
+    };
+
     const userByInstance = new Map<string, string>();
     const instanceById = new Map<string, any>();
     for (const inst of instances || []) {
       userByInstance.set(inst.id, inst.user_id);
       instanceById.set(inst.id, inst);
     }
+
+    const resolveTargetPhone = async (instanceId: string): Promise<string> => {
+      const cached = phoneByInstance.get(instanceId);
+      if (cached) return cached;
+      const inst = instanceById.get(instanceId);
+      if (!inst) return "";
+      const provider = String(inst.api_provider || "zapi").toLowerCase();
+      const namePhone = normalizePhoneCandidate(inst.instance_name, true);
+      if (namePhone) {
+        phoneByInstance.set(instanceId, namePhone);
+        return namePhone;
+      }
+      if (provider !== "zapi") return "";
+      const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
+      const headers = { "Client-Token": String(inst.zapi_client_token || "") };
+      const endpoints = ["/device", "/me", "/profile", "/status", "/phone-code"];
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(`${base}${ep}`, { headers });
+          if (!r.ok) continue;
+          const j: any = await r.json().catch(() => ({}));
+          const candidates = [
+            j?.phone, j?.phoneNumber, j?.connectedPhone, j?.connected_phone,
+            j?.wid?.user, j?.user, j?.user?.phone, j?.me?.user, j?.me?.phone,
+            j?.device?.phone, j?.device?.number, j?.id, j?.wid, j?.user?.id, j?.me?.id,
+          ];
+          for (const cand of candidates) {
+            const phone = normalizePhoneCandidate(cand, true) || normalizePhoneCandidate(cand, false);
+            if (phone) {
+              phoneByInstance.set(instanceId, phone);
+              return phone;
+            }
+          }
+        } catch (_) { /* tenta próximo */ }
+      }
+      return "";
+    };
 
     const acceptInviteWithTarget = async (instanceId: string, inviteUrl: string): Promise<{ ok: boolean; detail: any }> => {
       const inst = instanceById.get(instanceId);
