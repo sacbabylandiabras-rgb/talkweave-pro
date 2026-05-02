@@ -137,7 +137,9 @@ Deno.serve(async (req) => {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
         const direct = await requestZapi("GET", `/communities/${encodeURIComponent(communityId)}/invitation-link`);
-        if (direct.ok) {
+        const directError = direct.data && typeof direct.data === "object"
+          && "error" in (direct.data as Record<string, unknown>);
+        if (direct.ok && !directError) {
           return new Response(JSON.stringify(direct.data), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
