@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
-  ShieldOff, Settings, Trash2, Pencil, Loader2, Users,
+  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy,
 } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
@@ -82,6 +82,9 @@ export default function ComunidadesTab() {
   const [editDesc, setEditDesc] = useState("");
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
+
+  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string>("");
 
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
@@ -153,6 +156,47 @@ export default function ComunidadesTab() {
       toast.error(err instanceof Error ? err.message : "Erro na ação");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const extractInviteLink = (data: unknown): string => {
+    if (!data) return "";
+    if (typeof data === "string") return data;
+    if (typeof data === "object") {
+      const obj = data as Record<string, unknown>;
+      const candidate =
+        obj.invitationLink || obj.invitation_link || obj.inviteLink ||
+        obj.invite_link || obj.link || obj.url;
+      if (typeof candidate === "string") return candidate;
+    }
+    return "";
+  };
+
+  const handleGetInviteLink = async () => {
+    if (!selectedCommunity) return;
+    setActionLoading("get-invite");
+    try {
+      const data = await invokeCommunity("community-invitation-link", {
+        communityId: selectedCommunity.id,
+      });
+      const link = extractInviteLink(data);
+      if (!link) throw new Error("Link não retornado pelo servidor");
+      setInviteLink(link);
+      setInviteLinkOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao obter link");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Não foi possível copiar");
     }
   };
 
