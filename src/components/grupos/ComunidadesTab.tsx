@@ -31,8 +31,12 @@ interface Community {
   raw?: Record<string, unknown>;
 }
 
-const normalizePhone = (raw: string) =>
-  raw.replace(/\D/g, "").replace(/^0+/, "");
+const normalizePhone = (raw: string) => {
+  const value = String(raw || "").trim();
+  const digits = value.replace(/\D/g, "").replace(/^0+/, "");
+  if (!digits) return "";
+  return /@lid$/i.test(value) || digits.length > 13 ? `${digits}@lid` : digits;
+};
 
 const parsePhones = (input: string): string[] =>
   input
