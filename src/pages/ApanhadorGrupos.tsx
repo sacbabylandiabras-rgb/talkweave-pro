@@ -226,19 +226,11 @@ const ApanhadorGrupos = () => {
 
   const getWelcomeConfigForGroup = (groupId: string, sourceInstanceId?: string | null) => {
     const welcomeGroupId = getGroupWelcomeId(groupId);
-    return welcomeConfigs.find((config) => {
-      if (config.group_id !== welcomeGroupId) return false;
-      if (!config.instance_id) return true;
-      return Boolean(sourceInstanceId) && config.instance_id === sourceInstanceId;
-    });
+    return welcomeConfigs.find((config) => config.group_id === welcomeGroupId);
   };
 
   const visibleWelcomeConfigs = welcomeConfigs.filter((config) =>
-    groups.some((group) => {
-      if (getGroupWelcomeId(group.id) !== config.group_id) return false;
-      if (!config.instance_id) return true;
-      return config.instance_id === group.sourceInstanceId;
-    })
+    groups.some((group) => getGroupWelcomeId(group.id) === config.group_id)
   );
 
   const toggleGroupSelection = (groupId: string) => {
