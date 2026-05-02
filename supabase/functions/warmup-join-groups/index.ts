@@ -45,13 +45,16 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const targetInstanceMap: Record<string, string> = body?.targetInstanceMap || {};
     const currentProgress: Record<string, number> = body?.currentProgress || {};
+    const requestedInstanceIds = Array.isArray(body?.instanceIds)
+      ? body.instanceIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
+      : [];
 
     // phone (do número aquecido) ←→ instanceDbId
     const phoneByInstance = new Map<string, string>();
     for (const [phone, instId] of Object.entries(targetInstanceMap)) {
       if (instId && phone) phoneByInstance.set(instId, phone);
     }
-    const instanceDbIds = Array.from(phoneByInstance.keys());
+    const instanceDbIds = Array.from(new Set([...phoneByInstance.keys(), ...requestedInstanceIds]));
     if (instanceDbIds.length === 0) return json({ added: 0, skipped: "no instances" });
 
     // Links ativos
