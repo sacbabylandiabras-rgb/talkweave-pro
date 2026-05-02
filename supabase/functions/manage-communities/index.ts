@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       case "community-metadata": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("GET", `/communities/${encodeURIComponent(communityId)}`);
+        return await callZapi("GET", `/communities-metadata/${encodeURIComponent(communityId)}`);
       }
 
       case "link-groups": {
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       case "redefine-invitation-link": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/invitation-link/refresh`);
+        return await callZapi("POST", `/redefine-invitation-link/${encodeURIComponent(communityId)}`);
       }
 
       case "community-invitation-link": {
