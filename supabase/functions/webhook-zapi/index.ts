@@ -1328,7 +1328,7 @@ serve(async (req) => {
                 // Load template and send its content
                 const { data: tpl } = await supabase
                   .from("message_templates")
-                  .select("content, media_url, type, buttons, header, footer")
+                  .select("content, media_url, type, buttons, header, footer, carousel_cards")
                   .eq("id", welcomeConfig.template_id)
                   .maybeSingle();
 
@@ -1409,7 +1409,20 @@ serve(async (req) => {
                     ? "\n\n" + urlCallParts.join("\n")
                     : "";
 
-                  if (
+                  const isCarousel = (tpl.type === "carrossel" || tpl.type === "carousel") &&
+                    Array.isArray((tpl as any).carousel_cards) &&
+                    (tpl as any).carousel_cards.length > 0;
+
+                  if (isCarousel) {
+                    const carouselResponse = await sendWelcomeCarousel(
+                      tplMessage,
+                      (tpl as any).carousel_cards,
+                    );
+                    console.log(
+                      "📤 Welcome template carousel confirmed:",
+                      JSON.stringify(carouselResponse).substring(0, 300),
+                    );
+                  } else if (
                     tpl.media_url &&
                     (tpl.type === "imagem" || tpl.type === "image") &&
                     canSendInteractiveButtons
