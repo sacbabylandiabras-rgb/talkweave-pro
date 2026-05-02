@@ -1419,17 +1419,15 @@ serve(async (req) => {
                     if (tplMessage) {
                       const textResponse = await sendWelcomeText(tplMessage);
                       console.log(
-                        "📤 Welcome template text-after-audio status:",
-                        textResponse.status,
-                        await textResponse.text(),
+                        "📤 Welcome template text-after-audio confirmed:",
+                        JSON.stringify(textResponse).substring(0, 300),
                       );
                     }
                   } else {
                     const textResponse = await sendWelcomeText(tplMessage);
                     console.log(
-                      "📤 Welcome template text status:",
-                      textResponse.status,
-                      await textResponse.text(),
+                      "📤 Welcome template text confirmed:",
+                      JSON.stringify(textResponse).substring(0, 300),
                     );
                   }
 
@@ -1481,9 +1479,8 @@ serve(async (req) => {
 
                 const textResponse = await sendWelcomeText(finalMessage);
                 console.log(
-                  "📤 Welcome text status:",
-                  textResponse.status,
-                  await textResponse.text(),
+                  "📤 Welcome text confirmed:",
+                  JSON.stringify(textResponse).substring(0, 300),
                 );
 
                 console.log("📨 Text welcome sent to", joinedPhone);
