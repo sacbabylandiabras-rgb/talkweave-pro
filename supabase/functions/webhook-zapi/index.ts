@@ -1410,14 +1410,21 @@ serve(async (req) => {
                     ? "\n\n" + urlCallParts.join("\n")
                     : "";
 
-                  const isCarousel = (tpl.type === "carrossel" || tpl.type === "carousel") &&
-                    Array.isArray((tpl as any).carousel_cards) &&
-                    (tpl as any).carousel_cards.length > 0;
+                  const carouselCards = Array.isArray((tpl as any).carousel_cards)
+                    ? (tpl as any).carousel_cards
+                    : [];
+                  const normalizedTemplateType = String(tpl.type || "")
+                    .trim()
+                    .toLowerCase();
+                  const isCarousel = carouselCards.length > 0 &&
+                    (normalizedTemplateType === "carrossel" ||
+                      normalizedTemplateType === "carousel" ||
+                      normalizedTemplateType.includes("carrossel"));
 
                   if (isCarousel) {
                     const carouselResponse = await sendWelcomeCarousel(
                       tplMessage,
-                      (tpl as any).carousel_cards,
+                      carouselCards,
                     );
                     console.log(
                       "📤 Welcome template carousel confirmed:",
