@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
     // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
       .from("zapi_instances")
-      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
+      .select("id, user_id, instance_name, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
       .in("id", instanceDbIds);
     const normalizePhoneCandidate = (value: unknown, allowPlain = true): string => {
       const raw = String(value || "").trim();
