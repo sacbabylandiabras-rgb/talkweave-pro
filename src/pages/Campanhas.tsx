@@ -1241,13 +1241,19 @@ const Campanhas = () => {
                       c.sentAt ? format(new Date(c.sentAt), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }) : '',
                       c.errorMessage || '',
                     ]);
-                    const csv = '\uFEFF' + [headers, ...rows].map((r) => r.map(escape).join(';')).join('\n');
+                    const brandingRows = [
+                      ['ZapLynx - Relatório de Campanha'],
+                      ['Campanha', statsDialogCampaignName || ''],
+                      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })],
+                      [],
+                    ];
+                    const csv = '\uFEFF' + [...brandingRows, headers, ...rows].map((r) => r.map(escape).join(';')).join('\n');
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     const safeName = (statsDialogCampaignName || 'campanha').replace(/[^a-z0-9-_]+/gi, '_');
                     a.href = url;
-                    a.download = `relatorio_${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
+                    a.download = `zaplynx_relatorio_${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
