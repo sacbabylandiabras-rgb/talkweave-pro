@@ -1123,18 +1123,21 @@ serve(async (req) => {
                 return payload;
               };
 
-              const sendWelcomeText = (message: string) =>
-                isUazapiWelcome
-                  ? fetch(`${baseUrl}/send/text`, {
+              const sendWelcomeText = async (message: string) =>
+                parseWelcomeResponse(
+                  await (isUazapiWelcome
+                    ? fetch(`${baseUrl}/send/text`, {
                       method: "POST",
                       headers,
                       body: JSON.stringify({ number: uazapiTarget, text: message }),
                     })
-                  : fetch(`${baseUrl}/send-text`, {
+                    : fetch(`${baseUrl}/send-text`, {
                       method: "POST",
                       headers,
                       body: JSON.stringify({ phone: joinedPhone, message }),
-                    });
+                    })),
+                  "Welcome text",
+                );
 
               const sendWelcomeMedia = (
                 kind: "image" | "video" | "audio",
@@ -1143,7 +1146,7 @@ serve(async (req) => {
               ) => {
                 if (isUazapiWelcome) {
                   const mappedType = kind === "audio" ? "ptt" : kind;
-                  return fetch(`${baseUrl}/send/media`, {
+                  return parseWelcomeResponse(await fetch(`${baseUrl}/send/media`, {
                     method: "POST",
                     headers,
                     body: JSON.stringify({
@@ -1152,32 +1155,33 @@ serve(async (req) => {
                       file,
                       ...(caption && mappedType !== "ptt" ? { text: caption } : {}),
                     }),
-                  });
+                  }), `Welcome ${kind}`);
                 }
                 if (kind === "image") {
-                  return fetch(`${baseUrl}/send-image`, {
+                  return parseWelcomeResponse(await fetch(`${baseUrl}/send-image`, {
                     method: "POST",
                     headers,
                     body: JSON.stringify({ phone: joinedPhone, image: file, caption }),
-                  });
+                  }), "Welcome image");
                 }
                 if (kind === "video") {
-                  return fetch(`${baseUrl}/send-video`, {
+                  return parseWelcomeResponse(await fetch(`${baseUrl}/send-video`, {
                     method: "POST",
                     headers,
                     body: JSON.stringify({ phone: joinedPhone, video: file, caption }),
-                  });
+                  }), "Welcome video");
                 }
-                return fetch(`${baseUrl}/send-audio`, {
+                return parseWelcomeResponse(await fetch(`${baseUrl}/send-audio`, {
                   method: "POST",
                   headers,
                   body: JSON.stringify({ phone: joinedPhone, audio: file }),
-                });
+                }), "Welcome audio");
               };
 
-              const sendWelcomeButtons = (message: string, btns: any[]) =>
-                isUazapiWelcome
-                  ? fetch(`${baseUrl}/send/menu`, {
+              const sendWelcomeButtons = async (message: string, btns: any[]) =>
+                parseWelcomeResponse(
+                  await (isUazapiWelcome
+                    ? fetch(`${baseUrl}/send/menu`, {
                       method: "POST",
                       headers,
                       body: JSON.stringify({
@@ -1187,7 +1191,7 @@ serve(async (req) => {
                         choices: btns.map((b: any) => b.label),
                       }),
                     })
-                  : fetch(`${baseUrl}/send-button-list`, {
+                    : fetch(`${baseUrl}/send-button-list`, {
                       method: "POST",
                       headers,
                       body: JSON.stringify({
@@ -1195,7 +1199,9 @@ serve(async (req) => {
                         message,
                         buttonList: { buttons: btns.map((b: any) => ({ label: b.label })) },
                       }),
-                    });
+                    })),
+                  "Welcome buttons",
+                );
 
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
