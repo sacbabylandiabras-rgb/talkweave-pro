@@ -17,6 +17,14 @@ export interface GroupWelcomeConfig {
   updated_at: string;
 }
 
+type GroupWelcomeSaveData = {
+  message?: string;
+  response_type?: 'text' | 'template' | 'flow';
+  template_id?: string | null;
+  flow_id?: string | null;
+  instance_id?: string | null;
+};
+
 export function useGroupWelcome() {
   const [configs, setConfigs] = useState<GroupWelcomeConfig[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,12 +33,12 @@ export function useGroupWelcome() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('group_welcome_config' as any)
+        .from('group_welcome_config')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setConfigs((data as any[]) || []);
+      setConfigs((data as GroupWelcomeConfig[]) || []);
     } catch (err) {
       console.error('Error fetching group welcome configs:', err);
     } finally {
@@ -42,45 +50,28 @@ export function useGroupWelcome() {
     groupId: string,
     groupName: string,
     active: boolean,
-    data: {
-      message?: string;
-      response_type?: 'text' | 'template' | 'flow';
-      template_id?: string | null;
-      flow_id?: string | null;
-      instance_id?: string | null;
-    },
+    data: GroupWelcomeSaveData,
     options: { silent?: boolean; refetch?: boolean } = {}
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const targetInstanceId = data.instance_id || null;
-      const existing = configs.find((config) => config.group_id === groupId);
-
-      if (existing) {
-        const updateData: any = { active, ...data, instance_id: targetInstanceId };
-        const { error } = await supabase
-          .from('group_welcome_config' as any)
-          .update(updateData)
-          .eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('group_welcome_config' as any)
-          .insert({
-            user_id: user.id,
-            group_id: groupId,
-            group_name: groupName,
-            message: data.message || 'Olá {{nome}}! 👋 Bem-vindo ao grupo!',
-            response_type: data.response_type || 'text',
-            template_id: data.template_id || null,
-            flow_id: data.flow_id || null,
-            instance_id: targetInstanceId,
-            active,
-          });
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('group_welcome_config')
+        .upsert({
+          user_id: user.id,
+          group_id: groupId,
+          group_name: groupName,
+          message: data.message || 'Olá {{nome}}! 👋 Bem-vindo ao grupo!',
+          response_type: data.response_type || 'text',
+          template_id: data.template_id || null,
+          flow_id: data.flow_id || null,
+          instance_id: data.instance_id || null,
+          active,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,group_id' });
+      if (error) throw error;
 
       if (options.refetch !== false) {
         await fetchConfigs();
