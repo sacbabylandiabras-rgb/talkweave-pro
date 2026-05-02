@@ -35,6 +35,14 @@ import { toast } from "sonner";
 import WhatsAppGroupPreview from "@/components/grupos/WhatsAppGroupPreview";
 import ComunidadesTab from "@/components/grupos/ComunidadesTab";
 
+const formatCommunityLid = (value: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/@lid$/i.test(raw)) return raw;
+  const digits = raw.replace(/\D/g, "");
+  return digits.length > 13 ? `${digits}@lid` : raw.replace(/@c\.us$/i, "").replace(/@s\.whatsapp\.net$/i, "");
+};
+
 const CriarGrupos = () => {
   return (
     <div className="space-y-6">
