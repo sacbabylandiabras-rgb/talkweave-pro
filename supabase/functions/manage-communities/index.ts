@@ -128,7 +128,11 @@ Deno.serve(async (req) => {
         const { communityId, phones } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(phones) || !phones.length) throw new Error("phones is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/add-participant`, { phones });
+        return await callZapi("POST", "/add-participant", {
+          autoInvite: true,
+          communityId,
+          phones,
+        });
       }
 
       case "remove-community-participant": {
