@@ -226,6 +226,7 @@ Deno.serve(async (req) => {
     let added = 0;
     let failed = 0;
     const log: any[] = [];
+    const skipped: any[] = [];
 
     // Resolve credenciais das instâncias alvo (para registrar user_id e fallback por convite)
     const { data: instances } = await admin
@@ -298,9 +299,15 @@ Deno.serve(async (req) => {
 
       for (const link of links) {
         const key = `${realInstanceId}:${link.id}`;
-        if (joinedSet.has(key)) continue;
+        if (joinedSet.has(key)) {
+          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "already_joined" });
+          continue;
+        }
         const threshold = Math.max(1, Number(link.threshold) || 100);
-        if (total < threshold) continue;
+        if (total < threshold) {
+          skipped.push({ instanceId: realInstanceId, link: link.id, reason: "below_threshold", total, threshold });
+          continue;
+        }
 
         const groupJid = await resolveGroupJid(link);
         const result = groupJid && phone
@@ -327,8 +334,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("warmup-join-groups (uazapi add):", { added, failed, log });
-    return json({ added, failed, log });
+    console.log("warmup-join-groups (uazapi add):", { added, failed, instances: instanceDbIds.length, requested: requestedInstanceIds.length, log, skipped: skipped.slice(0, 30) });
+    return json({ added, failed, log, skipped: skipped.slice(0, 30) });
   } catch (e: any) {
     console.error("warmup-join-groups error:", e?.message);
     return json({ error: e?.message || "Internal error" }, 500);
