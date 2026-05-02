@@ -35,7 +35,17 @@ const normalizePhone = (raw: string) => {
   const value = String(raw || "").trim();
   const digits = value.replace(/\D/g, "").replace(/^0+/, "");
   if (!digits) return "";
-  return /@lid$/i.test(value) || digits.length > 13 ? `${digits}@lid` : digits;
+  if (/@lid$/i.test(value) || digits.length > 13) return `${digits}@lid`;
+  // Auto-corrige celular BR sem o 9: 55 + DDD(2) + 8 dígitos = 12 → insere 9
+  if (digits.length === 12 && digits.startsWith("55")) {
+    const ddd = digits.slice(2, 4);
+    const rest = digits.slice(4);
+    // DDDs válidos BR começam com 1-9; insere 9 só se o primeiro dígito do número não for já 9
+    if (/^[1-9]\d$/.test(ddd) && rest[0] !== "9") {
+      return `55${ddd}9${rest}`;
+    }
+  }
+  return digits;
 };
 
 const parsePhones = (input: string): string[] =>
