@@ -1346,18 +1346,16 @@ serve(async (req) => {
                         replyBtns,
                       );
                       console.log(
-                        "📤 Welcome template image+buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template image+buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     } else {
                       const buttonResponse = await sendWelcomeText(
                         tplMessage + urlCallSuffix,
                       );
                       console.log(
-                        "📤 Welcome template image+text-buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template image+text-buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     }
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
@@ -1367,18 +1365,16 @@ serve(async (req) => {
                         replyBtns,
                       );
                       console.log(
-                        "📤 Welcome template text+buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template text+buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     } else {
                       const buttonResponse = await sendWelcomeText(
                         tplMessage + urlCallSuffix,
                       );
                       console.log(
-                        "📤 Welcome template text-only-buttons status:",
-                        buttonResponse.status,
-                        await buttonResponse.text(),
+                        "📤 Welcome template text-only-buttons confirmed:",
+                        JSON.stringify(buttonResponse).substring(0, 300),
                       );
                     }
                   } else if (
