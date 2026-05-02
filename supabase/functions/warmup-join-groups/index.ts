@@ -375,15 +375,23 @@ Deno.serve(async (req) => {
         }
 
         const groupJid = await resolveGroupJid(link);
-        const result = groupJid && phone
-          ? await addParticipant(groupJid, phone)
+        const adminAddResult = groupJid && phone ? await addParticipant(groupJid, phone) : null;
+        const result = adminAddResult?.ok
+          ? adminAddResult
           : await acceptInviteWithTarget(realInstanceId, link.invite_url);
         if (result.ok) {
           const retriedExisting = joinedSet.has(key);
           added++;
           joinedSet.add(key);
           await upsertJoin(realInstanceId, link.id, total, result.detail);
-          log.push({ phone: phone || realInstanceId, link: link.id, ok: true, retriedExisting, mode: groupJid && phone ? "admin-add" : "accept-invite" });
+          log.push({
+            phone: phone || realInstanceId,
+            link: link.id,
+            ok: true,
+            retriedExisting,
+            mode: adminAddResult?.ok ? "admin-add" : "accept-invite",
+            adminAddFailed: Boolean(adminAddResult && !adminAddResult.ok),
+          });
           // Apenas UM grupo por instância por chamada para diluir no tempo
           break;
         } else {
