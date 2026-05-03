@@ -62,13 +62,16 @@ const InvitePage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div
+        style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
+        className="flex items-center justify-center px-4"
+      >
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8 text-red-500" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Link não encontrado</h1>
-          <p className="text-gray-500 text-sm">
+          <h1 className="text-xl font-semibold mb-2" style={{ color: "#1f2937" }}>Link não encontrado</h1>
+          <p className="text-sm" style={{ color: "#6b7280" }}>
             Este link de convite não existe ou foi desativado.
           </p>
         </div>
@@ -77,8 +80,11 @@ const InvitePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+    <div
+      style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
+      className="flex items-center justify-center px-4"
+    >
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#9ca3af" }} />
     </div>
   );
 };

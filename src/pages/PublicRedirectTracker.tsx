@@ -26,8 +26,11 @@ const PublicRedirectTracker = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
-      <p className="text-sm text-muted-foreground">Redirecionando...</p>
+    <main
+      style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
+      className="flex items-center justify-center px-4"
+    >
+      <p className="text-sm" style={{ color: "#6b7280" }}>Redirecionando...</p>
     </main>
   );
 };
