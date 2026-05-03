@@ -53,14 +53,14 @@ type CampaignCredentials = {
   uazapiToken?: string;
 };
 
-const PUBLIC_TRACKING_URL = "https://pay.zaplynxpro.online/r";
+const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
 
 const normalizePublicInviteUrl = (url: string) => {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname === 'go.zaplynxpro.online') {
+    if (parsed.hostname === 'pay.zaplynxpro.online') {
       const slug = parsed.pathname.replace(/^\/invite\//, '/').replace(/^\/+|\/+$/g, '').split('/')[0];
-      if (slug) return `https://pay.zaplynxpro.online/invite/${encodeURIComponent(slug)}${parsed.hash}`;
+      if (slug) return `https://go.zaplynxpro.online/invite/${encodeURIComponent(slug)}${parsed.hash}`;
     }
   } catch {
     // keep original
@@ -374,7 +374,7 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
+  return cleanUrl.includes('go.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
 
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
@@ -727,7 +727,7 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    return finalUrl.includes('pay.zaplynxpro.online/invite/') ? finalUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
+    return finalUrl.includes('go.zaplynxpro.online/invite/') ? finalUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   };
 
   const buildChoices = (buttons: any[]) =>
