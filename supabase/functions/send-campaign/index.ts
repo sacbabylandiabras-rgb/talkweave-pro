@@ -361,7 +361,6 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  params.set('mode', 'log');
   const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : trackedUrl;
 };
@@ -715,7 +714,6 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    params.set('mode', 'log');
     const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
     return url.includes('pay.zaplynxpro.online/invite/') ? url : trackedUrl;
   };
