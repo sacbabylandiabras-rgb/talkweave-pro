@@ -78,6 +78,17 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
   const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
   const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>([]);
+  const [statsDialogLinkClicks, setStatsDialogLinkClicks] = useState<Array<{
+    id: string;
+    created_at: string;
+    ip: string | null;
+    country: string | null;
+    city: string | null;
+    region: string | null;
+    user_agent: string | null;
+    phone: string | null;
+    btn_text: string | null;
+  }>>([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [showFilterDialog, setShowFilterDialog] = useState(false);
 
