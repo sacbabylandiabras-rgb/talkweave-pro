@@ -68,6 +68,13 @@ const normalizePublicInviteUrl = (url: string) => {
   return url;
 };
 
+const normalizePublicRedirectUrlsInText = (text: string) => {
+  if (!text) return text;
+  return text
+    .replace(/https?:\/\/pay\.zaplynxpro\.online\/invite\/([^\s)\]}>"']+)/gi, (_match, slug) => `https://go.zaplynxpro.online/invite/${slug}`)
+    .replace(/https?:\/\/pay\.zaplynxpro\.online\/r\?/gi, 'https://go.zaplynxpro.online/r?');
+};
+
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
   zapi_token: string | null;
