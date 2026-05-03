@@ -658,7 +658,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 <CardContent className="text-center py-8">
                   <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    Nenhuma campanha de contatos. Crie uma nova campanha!
+                    {isGroupsMode
+                      ? "Nenhuma campanha em grupo. Crie uma nova campanha!"
+                      : "Nenhuma campanha de contatos. Crie uma nova campanha!"}
                   </p>
                   <Button onClick={() => setShowCreateDialog(true)}>
                     <Plus className="w-4 h-4 mr-2" />
