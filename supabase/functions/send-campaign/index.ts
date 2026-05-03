@@ -55,6 +55,19 @@ type CampaignCredentials = {
 
 const PUBLIC_TRACKING_URL = "https://pay.zaplynxpro.online/r";
 
+const normalizePublicInviteUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'go.zaplynxpro.online') {
+      const slug = parsed.pathname.replace(/^\/invite\//, '/').replace(/^\/+|\/+$/g, '').split('/')[0];
+      if (slug) return `https://pay.zaplynxpro.online/invite/${encodeURIComponent(slug)}${parsed.hash}`;
+    }
+  } catch {
+    // keep original
+  }
+  return url;
+};
+
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
   zapi_token: string | null;
@@ -348,7 +361,7 @@ const getZapiTargetPhone = (phone: string) => {
 };
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
-  const cleanUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
 
   const params = new URLSearchParams({
@@ -361,7 +374,7 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
+  return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
 
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
