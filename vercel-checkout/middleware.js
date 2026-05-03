@@ -7,6 +7,12 @@ export default function middleware(request) {
   }
 
   const hostname = request.headers.get('host') || '';
+
+  if (hostname === 'pay.zaplynxpro.online' && (url.pathname === '/r' || url.pathname.startsWith('/invite/'))) {
+    url.hostname = 'go.zaplynxpro.online';
+    return Response.redirect(url, 307);
+  }
+
   const parts = hostname.split('.');
 
   // Skip for localhost or bare domains (2 parts)
