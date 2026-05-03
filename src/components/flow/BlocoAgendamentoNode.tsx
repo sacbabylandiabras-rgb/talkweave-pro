@@ -13,8 +13,8 @@ export function BlocoAgendamentoNode({ data }: any) {
       : "Não configurado";
 
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-violet-500 bg-card min-w-[200px]">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-500 text-white rounded">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px]">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-violet-500/90 text-white rounded-md">
         Agendamento
       </span>
       <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-violet-500" />
