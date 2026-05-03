@@ -12,8 +12,8 @@ export function IGGatilhoNode({ data }: any) {
   const shortcode = getPostShortcode(data.postUrl || "");
 
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-lg rounded-lg border-2 border-orange-500 bg-card min-w-[200px] max-w-[280px]">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px]">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-orange-500/90 text-white rounded-md">
         Gatilho
       </span>
       <div className="flex items-center gap-2">
