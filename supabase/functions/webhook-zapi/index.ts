@@ -4737,7 +4737,7 @@ async function sendNodeContent(
       uid: userId,
       ph: phone,
     });
-    return `https://pay.zaplynxpro.online/r?${params.toString()}`;
+    return `https://go.zaplynxpro.online/r?${params.toString()}`;
   }
 
   function buildReplyButtons(btns: typeof allSendButtons) {
