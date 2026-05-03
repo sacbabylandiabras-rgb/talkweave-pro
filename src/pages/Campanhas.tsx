@@ -78,6 +78,17 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [statsDialogHasUrlButton, setStatsDialogHasUrlButton] = useState(false);
   const [statsDialogClickMap, setStatsDialogClickMap] = useState<Map<string, string>>(new Map());
   const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>([]);
+  const [statsDialogLinkClicks, setStatsDialogLinkClicks] = useState<Array<{
+    id: string;
+    created_at: string;
+    ip: string | null;
+    country: string | null;
+    city: string | null;
+    region: string | null;
+    user_agent: string | null;
+    phone: string | null;
+    btn_text: string | null;
+  }>>([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [showFilterDialog, setShowFilterDialog] = useState(false);
 
@@ -314,6 +325,31 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       active = false;
     };
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
+
+  // Carrega cliques aproximados (IP, país, cidade, user agent)
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogLinkClicks([]);
+      return;
+    }
+    let active = true;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from('link_clicks')
+        .select('id, created_at, ip, country, city, region, user_agent, phone, btn_text')
+        .eq('campaign_id', statsDialogCampaignId)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (!active) return;
+      if (error) {
+        console.error('Erro ao carregar link_clicks:', error);
+        setStatsDialogLinkClicks([]);
+        return;
+      }
+      setStatsDialogLinkClicks((data || []) as any);
+    })();
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
 
   const isCancelledSendStatus = (status?: string | null) =>
     status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'error' || status === 'rejected';
@@ -1355,6 +1391,65 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+
+                {statsDialogHasUrlButton && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Cliques aproximados</p>
+                      <Badge variant="outline" className="text-xs">
+                        {statsDialogLinkClicks.length} registro(s)
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Em campanhas de grupo não é possível identificar o número exato. Mostramos IP, localização aproximada e dispositivo de quem clicou.
+                    </p>
+                    {statsDialogLinkClicks.length === 0 ? (
+                      <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">
+                        Nenhum clique registrado ainda.
+                      </div>
+                    ) : (
+                      <ScrollArea className="max-h-[30vh] border rounded-md">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data</TableHead>
+                              <TableHead>IP</TableHead>
+                              <TableHead>Localização</TableHead>
+                              <TableHead>Dispositivo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {statsDialogLinkClicks.map((click) => {
+                              const loc = [click.city, click.region, click.country].filter(Boolean).join(', ');
+                              const ua = click.user_agent || '';
+                              const device = /iPhone|iPad/i.test(ua)
+                                ? 'iOS'
+                                : /Android/i.test(ua)
+                                  ? 'Android'
+                                  : /Windows/i.test(ua)
+                                    ? 'Windows'
+                                    : /Macintosh|Mac OS/i.test(ua)
+                                      ? 'macOS'
+                                      : /Linux/i.test(ua)
+                                        ? 'Linux'
+                                        : 'Outro';
+                              return (
+                                <TableRow key={click.id}>
+                                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {format(new Date(click.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-mono">{click.ip || '-'}</TableCell>
+                                  <TableCell className="text-xs">{loc || '-'}</TableCell>
+                                  <TableCell className="text-xs" title={ua}>{device}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    )}
+                  </div>
+                )}
               </>
             );
           })()}

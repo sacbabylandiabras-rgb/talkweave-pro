@@ -49,26 +49,40 @@ async function handleInvite(slug) {
   }
 }
 
-async function handleRedirect(reqUrl) {
+async function handleRedirect(reqUrl, request, ctx) {
   const target = reqUrl.searchParams.get("url");
   if (!target) {
     return new Response(notFoundHtml("Parametro url ausente."), { status: 400, headers: { "content-type": "text/html; charset=utf-8" } });
   }
-  // Dispara o tracking sem bloquear o redirect
-  try {
-    const trackUrl = `${SUPABASE_URL}/functions/v1/track-flow-click?mode=log&${reqUrl.searchParams.toString()}`;
-    fetch(trackUrl, {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    }).catch(() => {});
-  } catch (_) {}
+  // Coleta dados aproximados do clique (IP, geo, UA) e encaminha pra edge
+  const cf = (request && request.cf) || {};
+  const extra = new URLSearchParams();
+  const ip = request.headers.get("cf-connecting-ip") || "";
+  if (ip) extra.set("ip", ip);
+  if (cf.country) extra.set("country", String(cf.country));
+  if (cf.city) extra.set("city", String(cf.city));
+  if (cf.region) extra.set("region", String(cf.region));
+  const ua = request.headers.get("user-agent") || "";
+  if (ua) extra.set("ua", ua);
+  const ref = request.headers.get("referer") || "";
+  if (ref) extra.set("ref", ref);
+
+  const qs = `${reqUrl.searchParams.toString()}&${extra.toString()}`;
+  const trackUrl = `${SUPABASE_URL}/functions/v1/track-flow-click?mode=log&${qs}`;
+  const trackPromise = fetch(trackUrl, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  }).catch(() => {});
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(trackPromise);
+  }
   return new Response(loadingHtml(target), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/invite/")) {
@@ -77,7 +91,7 @@ export default {
     }
 
     if (url.pathname === "/r" || url.pathname === "/r/") {
-      return handleRedirect(url);
+      return handleRedirect(url, request, ctx);
     }
 
     if (url.pathname === "/" || url.pathname === "") {
