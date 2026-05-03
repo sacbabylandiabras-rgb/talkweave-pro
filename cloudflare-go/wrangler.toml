@@ -1,0 +1,10 @@
+name = "go-zaplynxpro"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# Conecte este Worker ao dominio go.zaplynxpro.online no painel da Cloudflare
+# (Workers & Pages -> seu Worker -> Settings -> Triggers -> Custom Domains)
+# ou via routes:
+# routes = [
+#   { pattern = "go.zaplynxpro.online/*", custom_domain = true }
+# ]
