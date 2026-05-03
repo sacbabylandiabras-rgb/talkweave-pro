@@ -326,6 +326,31 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     };
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
+  // Carrega cliques aproximados (IP, país, cidade, user agent)
+  useEffect(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) {
+      setStatsDialogLinkClicks([]);
+      return;
+    }
+    let active = true;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from('link_clicks')
+        .select('id, created_at, ip, country, city, region, user_agent, phone, btn_text')
+        .eq('campaign_id', statsDialogCampaignId)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (!active) return;
+      if (error) {
+        console.error('Erro ao carregar link_clicks:', error);
+        setStatsDialogLinkClicks([]);
+        return;
+      }
+      setStatsDialogLinkClicks((data || []) as any);
+    })();
+    return () => { active = false; };
+  }, [statsDialogOpen, statsDialogCampaignId]);
+
   const isCancelledSendStatus = (status?: string | null) =>
     status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'error' || status === 'rejected';
 
