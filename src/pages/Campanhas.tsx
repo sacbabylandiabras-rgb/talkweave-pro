@@ -1391,6 +1391,65 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+
+                {statsDialogHasUrlButton && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Cliques aproximados</p>
+                      <Badge variant="outline" className="text-xs">
+                        {statsDialogLinkClicks.length} registro(s)
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Em campanhas de grupo não é possível identificar o número exato. Mostramos IP, localização aproximada e dispositivo de quem clicou.
+                    </p>
+                    {statsDialogLinkClicks.length === 0 ? (
+                      <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">
+                        Nenhum clique registrado ainda.
+                      </div>
+                    ) : (
+                      <ScrollArea className="max-h-[30vh] border rounded-md">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data</TableHead>
+                              <TableHead>IP</TableHead>
+                              <TableHead>Localização</TableHead>
+                              <TableHead>Dispositivo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {statsDialogLinkClicks.map((click) => {
+                              const loc = [click.city, click.region, click.country].filter(Boolean).join(', ');
+                              const ua = click.user_agent || '';
+                              const device = /iPhone|iPad/i.test(ua)
+                                ? 'iOS'
+                                : /Android/i.test(ua)
+                                  ? 'Android'
+                                  : /Windows/i.test(ua)
+                                    ? 'Windows'
+                                    : /Macintosh|Mac OS/i.test(ua)
+                                      ? 'macOS'
+                                      : /Linux/i.test(ua)
+                                        ? 'Linux'
+                                        : 'Outro';
+                              return (
+                                <TableRow key={click.id}>
+                                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {format(new Date(click.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-mono">{click.ip || '-'}</TableCell>
+                                  <TableCell className="text-xs">{loc || '-'}</TableCell>
+                                  <TableCell className="text-xs" title={ua}>{device}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    )}
+                  </div>
+                )}
               </>
             );
           })()}
