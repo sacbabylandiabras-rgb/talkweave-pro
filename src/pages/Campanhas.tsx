@@ -11,6 +11,7 @@ import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
+import { CreateGroupCampaignDialog } from "@/components/campanhas/CreateGroupCampaignDialog";
 import { EditCampaignDialog } from "@/components/campanhas/EditCampaignDialog";
 import { SendProgressDialog } from "@/components/campanhas/SendProgressDialog";
 import { FilterNumbersDialog } from "@/components/campanhas/FilterNumbersDialog";
@@ -31,7 +32,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const Campanhas = () => {
+interface CampanhasProps {
+  mode?: "contacts" | "groups";
+}
+
+const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
+  const isGroupsMode = mode === "groups";
   const { 
     campaigns, 
     loading, 
@@ -527,12 +533,16 @@ const Campanhas = () => {
     );
   }
 
-  const contactCampaigns = campaigns.filter(c => c.target_audience?.type !== 'groups');
+  const contactCampaigns = isGroupsMode
+    ? campaigns.filter(c => c.target_audience?.type === 'groups')
+    : campaigns.filter(c => c.target_audience?.type !== 'groups');
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Campanhas</h1>
+        <h1 className="text-lg font-semibold text-foreground">
+          {isGroupsMode ? "Campanhas em Grupo" : "Campanhas"}
+        </h1>
         <div className="flex items-center gap-2">
           {campaigns.length > 0 && (
             <Button
