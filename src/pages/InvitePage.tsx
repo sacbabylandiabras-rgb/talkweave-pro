@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Check, Copy, ExternalLink, Loader2, QrCode, Users, X } from "lucide-react";
 
+const APP_INVITE_BASE_URL = "https://pay.zaplynxpro.online/invite/";
+
 interface InviteData {
   name: string;
   slug: string;
@@ -28,6 +30,13 @@ const InvitePage = () => {
   const [showQR, setShowQR] = useState(false);
 
   const [pageConfig, setPageConfig] = useState<PageConfig>({});
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    if (slug && hostname === "go.zaplynxpro.online") {
+      window.location.replace(`${APP_INVITE_BASE_URL}${encodeURIComponent(slug)}${window.location.hash}`);
+    }
+  }, [slug]);
 
   useEffect(() => {
     // Read page config from URL hash

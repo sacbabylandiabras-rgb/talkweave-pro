@@ -1,9 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "npm:@supabase/supabase-js@2.58.0"
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   const url = new URL(req.url)
   const destUrl = url.searchParams.get('url')
+  const logOnly = url.searchParams.get('mode') === 'log'
   const flowName = url.searchParams.get('flow')
   const btnText = url.searchParams.get('btn')
   const userId = url.searchParams.get('uid')
@@ -13,7 +23,7 @@ serve(async (req) => {
   const sendId = url.searchParams.get('cs')
 
   if (!destUrl) {
-    return new Response('Missing url parameter', { status: 400 })
+    return new Response('Missing url parameter', { status: 400, headers: corsHeaders })
   }
 
   // Log the click asynchronously - don't block the redirect
@@ -74,9 +84,16 @@ serve(async (req) => {
     console.error('Error logging click:', e)
   }
 
+  if (logOnly) {
+    return new Response(JSON.stringify({ ok: true, url: destUrl }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // 302 redirect to destination
   return new Response(null, {
     status: 302,
-    headers: { Location: destUrl },
+    headers: { ...corsHeaders, Location: destUrl },
   })
 })
