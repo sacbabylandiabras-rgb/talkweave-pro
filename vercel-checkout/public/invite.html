@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecionando</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; background: #ffffff !important; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100vh; overflow: hidden; }
+    main { position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: #ffffff !important; padding: 16px; }
+    .spinner { width: 32px; height: 32px; border-radius: 999px; border: 3px solid #e5e7eb; border-top-color: #9ca3af; animation: spin .8s linear infinite; }
+    .message { max-width: 320px; text-align: center; }
+    .message h1 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; font-weight: 700; color: #1f2937; }
+    .message p { margin: 0; font-size: 14px; line-height: 1.5; color: #6b7280; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <main id="screen"><div class="spinner" aria-label="Redirecionando"></div></main>
+  <script>
+    (function () {
+      var PROJECT_ID = "yodgjxdekuraxquxkxhx";
+      var screen = document.getElementById("screen");
+      function showError() {
+        screen.innerHTML = '<div class="message"><h1>Link não encontrado</h1><p>Este link de convite não existe ou foi desativado.</p></div>';
+      }
+      function getSlug() {
+        var match = window.location.pathname.match(/^\/invite\/([^/?#]+)/i);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+      var slug = getSlug();
+      if (!slug) { showError(); return; }
+      fetch("https://" + PROJECT_ID + ".supabase.co/functions/v1/redirect-link?slug=" + encodeURIComponent(slug))
+        .then(function (res) { return res.json().then(function (json) { return { ok: res.ok, json: json }; }); })
+        .then(function (result) {
+          if (!result.ok || !result.json || !result.json.invite_link) { showError(); return; }
+          window.location.replace(result.json.invite_link);
+        })
+        .catch(showError);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecionando</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; background: #ffffff !important; color: #6b7280; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: #ffffff !important; padding: 16px; }
+    p { margin: 0; font-size: 14px; line-height: 1.5; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <main><p>Redirecionando...</p></main>
+  <script>
+    (function () {
+      var SUPABASE_URL = "https://yodgjxdekuraxquxkxhx.supabase.co";
+      var params = new URLSearchParams(window.location.search);
+      function normalize(value) {
+        return String(value || "")
+          .replace(/^https?:\/\/pay\.zaplynxpro\.online\/invite\//i, "https://go.zaplynxpro.online/invite/")
+          .replace(/^https?:\/\/pay\.zaplynxpro\.online\/r\?/i, "https://go.zaplynxpro.online/r?");
+      }
+      var destination = normalize(params.get("url"));
+      if (!destination) { window.location.replace("/"); return; }
+      var trackingParams = new URLSearchParams(params);
+      trackingParams.set("url", destination);
+      trackingParams.set("mode", "log");
+      fetch(SUPABASE_URL + "/functions/v1/track-flow-click?" + trackingParams.toString())
+        .catch(function () {})
+        .finally(function () { window.location.replace(destination); });
+    })();
+  </script>
+</body>
+</html>
