@@ -30,6 +30,17 @@ serve(async (req) => {
     return new Response('Missing url parameter', { status: 400, headers: corsHeaders })
   }
 
+  // Capture geo/UA data from request (works directly OR forwarded by Worker via query params)
+  const ip = url.searchParams.get('ip') ||
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') || null
+  const country = url.searchParams.get('country') || req.headers.get('cf-ipcountry') || null
+  const city = url.searchParams.get('city') || req.headers.get('cf-ipcity') || null
+  const region = url.searchParams.get('region') || req.headers.get('cf-region') || null
+  const userAgent = url.searchParams.get('ua') || req.headers.get('user-agent') || null
+  const referer = url.searchParams.get('ref') || req.headers.get('referer') || null
+
   // Log the click asynchronously - don't block the redirect
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -47,6 +58,29 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
       })
       console.log(`✅ URL click tracked: flow="${flowName}", btn="${btnText}", phone=${phone}, src=${source}`)
+    }
+
+    // Save geo/UA snapshot for approximate identification (esp. group campaigns)
+    if (userId || campaignId) {
+      try {
+        await supabase.from('link_clicks').insert({
+          user_id: userId || null,
+          campaign_id: campaignId || null,
+          send_id: sendId || null,
+          phone: phone || null,
+          flow_name: flowName || null,
+          btn_text: btnText || null,
+          ip,
+          country,
+          city,
+          region,
+          user_agent: userAgent,
+          referer,
+          destination_url: destUrl,
+        })
+      } catch (lerr) {
+        console.error('Error inserting link_clicks:', lerr)
+      }
     }
 
     // Mark campaign_send as clicked (for campaign link-click metrics)
