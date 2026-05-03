@@ -53,6 +53,8 @@ type CampaignCredentials = {
   uazapiToken?: string;
 };
 
+const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/track-flow-click";
+
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
   zapi_token: string | null;
@@ -347,8 +349,7 @@ const getZapiTargetPhone = (phone: string) => {
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
   const cleanUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  if (!supabaseUrl || !opts.campaignId || !opts.userId) return cleanUrl;
+  if (!opts.campaignId || !opts.userId) return cleanUrl;
 
   const params = new URLSearchParams({
     url: cleanUrl,
@@ -360,7 +361,7 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+  return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
 
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
@@ -700,11 +701,9 @@ const dispatchUazapiCampaign = async (
   let body: Record<string, unknown> = { number: targetNumber, text: fullMessage };
 
   // Wrap URL buttons with track-flow-click for click-tracking metrics
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const wrapUrlForTracking = (url: string, btnLabel: string) => {
-    if (!opts.campaignId || !opts.userId || !SUPABASE_URL) return url;
+    if (!opts.campaignId || !opts.userId) return url;
     if (!/^https?:\/\//i.test(url)) return url;
-    const base = `${SUPABASE_URL}/functions/v1/track-flow-click`;
     const params = new URLSearchParams({
       url,
       cid: opts.campaignId,
@@ -714,7 +713,7 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    return `${base}?${params.toString()}`;
+    return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   };
 
   const buildChoices = (buttons: any[]) =>
