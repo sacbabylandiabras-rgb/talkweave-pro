@@ -606,13 +606,23 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <CreateCampaignDialog 
-        open={showCreateDialog} 
-        onOpenChange={(open) => {
-          setShowCreateDialog(open);
-          if (!open) refetchCampaigns();
-        }} 
-      />
+      {isGroupsMode ? (
+        <CreateGroupCampaignDialog
+          open={showCreateDialog}
+          onOpenChange={(open) => {
+            setShowCreateDialog(open);
+            if (!open) refetchCampaigns();
+          }}
+        />
+      ) : (
+        <CreateCampaignDialog
+          open={showCreateDialog}
+          onOpenChange={(open) => {
+            setShowCreateDialog(open);
+            if (!open) refetchCampaigns();
+          }}
+        />
+      )}
 
       <EditCampaignDialog 
         open={showEditDialog} 
