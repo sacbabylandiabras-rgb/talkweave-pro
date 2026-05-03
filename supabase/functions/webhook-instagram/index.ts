@@ -11,9 +11,8 @@ const corsHeaders = {
 
 // Shared URL tracker wrapper for click metrics
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
-  const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!;
   return (originalUrl: string, btnTitle: string) => {
-    const trackBase = `${SUPABASE_URL_BASE}/functions/v1/track-flow-click`;
+    const trackBase = "https://pay.zaplynxpro.online/r";
     const params = new URLSearchParams({
       url: originalUrl,
       flow: autoName,
@@ -460,9 +459,8 @@ serve(async (req) => {
                           const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
 
                           // Wrap URL buttons with click tracker
-                          const SUPABASE_URL_BASE = Deno.env.get("SUPABASE_URL")!;
                           const wrapUrl = (originalUrl: string, btnTitle: string) => {
-                            const trackBase = `${SUPABASE_URL_BASE}/functions/v1/track-flow-click`;
+                            const trackBase = "https://pay.zaplynxpro.online/r";
                             const params = new URLSearchParams({
                               url: originalUrl,
                               flow: auto.name,

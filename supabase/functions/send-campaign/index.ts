@@ -53,7 +53,20 @@ type CampaignCredentials = {
   uazapiToken?: string;
 };
 
-const PUBLIC_TRACKING_URL = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/track-flow-click";
+const PUBLIC_TRACKING_URL = "https://pay.zaplynxpro.online/r";
+
+const normalizePublicInviteUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'go.zaplynxpro.online') {
+      const slug = parsed.pathname.replace(/^\/invite\//, '/').replace(/^\/+|\/+$/g, '').split('/')[0];
+      if (slug) return `https://pay.zaplynxpro.online/invite/${encodeURIComponent(slug)}${parsed.hash}`;
+    }
+  } catch {
+    // keep original
+  }
+  return url;
+};
 
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
@@ -348,7 +361,7 @@ const getZapiTargetPhone = (phone: string) => {
 };
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
-  const cleanUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
 
   const params = new URLSearchParams({
@@ -361,8 +374,7 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
-  return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : trackedUrl;
+  return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
 
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
@@ -703,10 +715,11 @@ const dispatchUazapiCampaign = async (
 
   // Wrap URL buttons with track-flow-click for click-tracking metrics
   const wrapUrlForTracking = (url: string, btnLabel: string) => {
-    if (!opts.campaignId || !opts.userId) return url;
-    if (!/^https?:\/\//i.test(url)) return url;
+    if (!opts.campaignId || !opts.userId) return normalizePublicInviteUrl(url);
+    if (!/^https?:\/\//i.test(url)) return normalizePublicInviteUrl(url);
+    const finalUrl = normalizePublicInviteUrl(url);
     const params = new URLSearchParams({
-      url,
+      url: finalUrl,
       cid: opts.campaignId,
       uid: opts.userId,
       ph: phone.replace(/\D/g, ''),
@@ -714,8 +727,7 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
-    return url.includes('pay.zaplynxpro.online/invite/') ? url : trackedUrl;
+    return finalUrl.includes('pay.zaplynxpro.online/invite/') ? finalUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   };
 
   const buildChoices = (buttons: any[]) =>

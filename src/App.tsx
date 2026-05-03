@@ -71,6 +71,7 @@ import ManagerReferral from "./pages/gateway/ManagerReferral";
 import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
 import PublicCheckout from "./pages/PublicCheckout";
 import PublicLandingPreview from "./pages/PublicLandingPreview";
+import PublicRedirectTracker from "./pages/PublicRedirectTracker";
 import ThankYou from "./pages/ThankYou";
 import PublicOrder from "./pages/PublicOrder";
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
@@ -236,6 +237,7 @@ const App = () => (
                 <Route path="/pedido/:id" element={<PublicOrder />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
+                <Route path="/r" element={<PublicRedirectTracker />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             )}

@@ -890,8 +890,6 @@ export default function FluxoVisual() {
         };
 
         const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-          if (!supabaseUrl) return rawUrl;
           const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
           const params = new URLSearchParams({
             url: finalUrl,
@@ -900,7 +898,7 @@ export default function FluxoVisual() {
             uid: userId || '',
             ph: phone,
           });
-          return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+          return `https://pay.zaplynxpro.online/r?${params.toString()}`;
         };
 
         // === CAPTURE BLOCK: send only the prompt and pause until user replies ===

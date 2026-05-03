@@ -4726,7 +4726,7 @@ async function sendNodeContent(
   });
 
   function wrapUrlWithTracking(rawUrl: string, btnText: string): string {
-    if (!supabaseUrl || !flowName || !userId) return rawUrl;
+    if (!flowName || !userId) return rawUrl;
     const finalUrl = rawUrl.match(/^https?:\/\//)
       ? rawUrl
       : `https://${rawUrl}`;
@@ -4737,7 +4737,7 @@ async function sendNodeContent(
       uid: userId,
       ph: phone,
     });
-    return `${supabaseUrl}/functions/v1/track-flow-click?${params.toString()}`;
+    return `https://pay.zaplynxpro.online/r?${params.toString()}`;
   }
 
   function buildReplyButtons(btns: typeof allSendButtons) {
