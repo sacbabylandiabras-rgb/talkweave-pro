@@ -53,7 +53,7 @@ type CampaignCredentials = {
   uazapiToken?: string;
 };
 
-const PUBLIC_TRACKING_URL = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/track-flow-click";
+const PUBLIC_TRACKING_URL = "https://pay.zaplynxpro.online/r";
 
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
@@ -361,8 +361,7 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     src: 'campaign',
   });
 
-  const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
-  return cleanUrl.includes('pay.zaplynxpro.online/invite/') ? cleanUrl : trackedUrl;
+  return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
 
 const isConfirmedRateLimitHit = (payload: any, errorMessage?: string | null, httpStatus?: number) => {
@@ -714,8 +713,7 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    const trackedUrl = `${PUBLIC_TRACKING_URL}?${params.toString()}`;
-    return url.includes('pay.zaplynxpro.online/invite/') ? url : trackedUrl;
+    return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   };
 
   const buildChoices = (buttons: any[]) =>
