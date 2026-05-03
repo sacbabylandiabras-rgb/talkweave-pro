@@ -7,7 +7,8 @@ export default function WhatsAppFloatingButton() {
   if (
     location.pathname.startsWith('/pay/') ||
     location.pathname.startsWith('/invite/') ||
-    location.pathname.startsWith('/r')
+    location.pathname === '/r' ||
+    location.pathname.startsWith('/r/')
   ) {
     return null;
   }
