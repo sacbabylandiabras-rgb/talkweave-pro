@@ -12,7 +12,11 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url)
-  const destUrl = url.searchParams.get('url')
+  const normalizeDestination = (value: string) => value
+    .replace(/^https?:\/\/pay\.zaplynxpro\.online\/invite\//i, 'https://go.zaplynxpro.online/invite/')
+    .replace(/^https?:\/\/pay\.zaplynxpro\.online\/r\?/i, 'https://go.zaplynxpro.online/r?')
+  const rawDestUrl = url.searchParams.get('url')
+  const destUrl = rawDestUrl ? normalizeDestination(rawDestUrl) : null
   const logOnly = url.searchParams.get('mode') === 'log'
   const flowName = url.searchParams.get('flow')
   const btnText = url.searchParams.get('btn')

@@ -68,6 +68,13 @@ const normalizePublicInviteUrl = (url: string) => {
   return url;
 };
 
+const normalizePublicRedirectUrlsInText = (text: string) => {
+  if (!text) return text;
+  return text
+    .replace(/https?:\/\/pay\.zaplynxpro\.online\/invite\/([^\s)\]}>"']+)/gi, (_match, slug) => `https://go.zaplynxpro.online/invite/${slug}`)
+    .replace(/https?:\/\/pay\.zaplynxpro\.online\/r\?/gi, 'https://go.zaplynxpro.online/r?');
+};
+
 const mapResolvedInstance = (instance: {
   zapi_instance_id: string;
   zapi_token: string | null;
@@ -1359,7 +1366,7 @@ serve(async (req) => {
         }
 
         // === TEMPLATE-BASED CAMPAIGN ===
-        let messageContent = campaign.template.content;
+        let messageContent = normalizePublicRedirectUrlsInText(campaign.template.content);
         messageContent = messageContent.replace(/{nome}/g, contact.name || 'Cliente');
         messageContent = messageContent.replace(/{empresa}/g, 'Nossa Empresa');
         messageContent = messageContent.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
@@ -1382,9 +1389,9 @@ serve(async (req) => {
         };
 
         let fullMessage = '';
-        if (campaign.template.header) fullMessage += campaign.template.header + '\n\n';
+        if (campaign.template.header) fullMessage += normalizePublicRedirectUrlsInText(campaign.template.header) + '\n\n';
         fullMessage += messageContent;
-        if (campaign.template.footer) fullMessage += '\n\n' + campaign.template.footer;
+        if (campaign.template.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaign.template.footer);
 
         const templateType = campaign.template.type || 'texto';
         const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;

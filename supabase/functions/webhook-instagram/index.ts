@@ -12,7 +12,7 @@ const corsHeaders = {
 // Shared URL tracker wrapper for click metrics
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
   return (originalUrl: string, btnTitle: string) => {
-    const trackBase = "https://pay.zaplynxpro.online/r";
+    const trackBase = "https://go.zaplynxpro.online/r";
     const params = new URLSearchParams({
       url: originalUrl,
       flow: autoName,
@@ -460,7 +460,7 @@ serve(async (req) => {
 
                           // Wrap URL buttons with click tracker
                           const wrapUrl = (originalUrl: string, btnTitle: string) => {
-                            const trackBase = "https://pay.zaplynxpro.online/r";
+                            const trackBase = "https://go.zaplynxpro.online/r";
                             const params = new URLSearchParams({
                               url: originalUrl,
                               flow: auto.name,
