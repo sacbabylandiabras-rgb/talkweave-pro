@@ -237,8 +237,8 @@ const App = () => (
                 <Route path="/pedido/:id" element={<PublicOrder />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
-                <Route path="*" element={<NotFound />} />
                 <Route path="/r" element={<PublicRedirectTracker />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             )}
             {!isNative && <WhatsAppFloatingButton />}
