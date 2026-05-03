@@ -147,6 +147,7 @@ const App = () => (
                   <Route path="/gateway-checkout/dashboard" element={<KycWrap><PayDashboard /></KycWrap>} />
                   <Route path="/perfil" element={<Perfil />} />
                   <Route path="/campanhas" element={<Campanhas />} />
+                  <Route path="/campanhas-grupo" element={<Campanhas mode="groups" />} />
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
