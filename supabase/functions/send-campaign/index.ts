@@ -715,10 +715,11 @@ const dispatchUazapiCampaign = async (
 
   // Wrap URL buttons with track-flow-click for click-tracking metrics
   const wrapUrlForTracking = (url: string, btnLabel: string) => {
-    if (!opts.campaignId || !opts.userId) return url;
-    if (!/^https?:\/\//i.test(url)) return url;
+    if (!opts.campaignId || !opts.userId) return normalizePublicInviteUrl(url);
+    if (!/^https?:\/\//i.test(url)) return normalizePublicInviteUrl(url);
+    const finalUrl = normalizePublicInviteUrl(url);
     const params = new URLSearchParams({
-      url,
+      url: finalUrl,
       cid: opts.campaignId,
       uid: opts.userId,
       ph: phone.replace(/\D/g, ''),
@@ -726,7 +727,7 @@ const dispatchUazapiCampaign = async (
       flow: opts.campaignName || 'Campanha',
       src: 'campaign',
     });
-    return `${PUBLIC_TRACKING_URL}?${params.toString()}`;
+    return finalUrl.includes('pay.zaplynxpro.online/invite/') ? finalUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
   };
 
   const buildChoices = (buttons: any[]) =>
