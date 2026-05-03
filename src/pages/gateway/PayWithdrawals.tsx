@@ -271,7 +271,14 @@ export default function PayWithdrawals() {
                       </TableCell>
                       <TableCell>{getStatusBadge(w.status)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                        {w.admin_notes || "—"}
+                        {(() => {
+                          const note = w.admin_notes || "";
+                          // Hide automatic PIX dispatch messages from user view
+                          if (/pix enviado|transfer id|correlation|automaticamente/i.test(note)) {
+                            return "—";
+                          }
+                          return note || "—";
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))}
