@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2, X } from "lucide-react";
 
-const APP_INVITE_BASE_URL = "https://pay.zaplynxpro.online/invite/";
+const APP_INVITE_BASE_URL = "https://go.zaplynxpro.online/invite/";
 
 interface InviteData {
   name: string;
@@ -29,7 +29,7 @@ const InvitePage = () => {
 
   useEffect(() => {
     const hostname = window.location.hostname;
-    if (slug && hostname === "go.zaplynxpro.online") {
+    if (slug && hostname === "pay.zaplynxpro.online") {
       window.location.replace(`${APP_INVITE_BASE_URL}${encodeURIComponent(slug)}${window.location.hash}`);
     }
   }, [slug]);

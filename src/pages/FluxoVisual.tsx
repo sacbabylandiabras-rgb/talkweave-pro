@@ -898,7 +898,7 @@ export default function FluxoVisual() {
             uid: userId || '',
             ph: phone,
           });
-          return `https://pay.zaplynxpro.online/r?${params.toString()}`;
+          return `https://go.zaplynxpro.online/r?${params.toString()}`;
         };
 
         // === CAPTURE BLOCK: send only the prompt and pause until user replies ===
