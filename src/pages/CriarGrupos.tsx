@@ -1270,7 +1270,7 @@ function LinksRotativosTab() {
     localStorage.setItem("link-page-config", JSON.stringify(updated));
   };
 
-  const baseRedirectUrl = `${window.location.origin}/invite/`;
+  const baseRedirectUrl = `https://go.zaplynxpro.online/`;
   const editingLink = links.find(l => l.id === editPageLinkId);
   const editingConfig = editPageLinkId ? (pageConfig[editPageLinkId] || {}) : {};
 
