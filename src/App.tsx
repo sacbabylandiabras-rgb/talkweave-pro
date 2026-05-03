@@ -19,6 +19,7 @@ import Admin from "./pages/Admin";
 import Dispositivos from "./pages/Dispositivos";
 import Perfil from "./pages/Perfil";
 import Campanhas from "./pages/Campanhas";
+import CampanhaGrupoFluxo from "./pages/CampanhaGrupoFluxo";
 import Contatos from "./pages/Contatos";
 import Modelos from "./pages/Modelos";
 import EnviarMensagem from "./pages/EnviarMensagem";
@@ -148,6 +149,7 @@ const App = () => (
                   <Route path="/perfil" element={<Perfil />} />
                   <Route path="/campanhas" element={<Campanhas />} />
                   <Route path="/campanhas-grupo" element={<Campanhas mode="groups" />} />
+                  <Route path="/campanhas-grupo/nova" element={<CampanhaGrupoFluxo />} />
                   <Route path="/contatos" element={<Contatos />} />
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />

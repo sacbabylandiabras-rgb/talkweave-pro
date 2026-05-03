@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ interface CampanhasProps {
 
 const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const isGroupsMode = mode === "groups";
+  const navigate = useNavigate();
   const { 
     campaigns, 
     loading, 
@@ -558,7 +560,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             <Filter className="w-4 h-4 mr-1" />
             Filtrar Números
           </Button>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Button size="sm" onClick={() => isGroupsMode ? navigate('/campanhas-grupo/nova') : setShowCreateDialog(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Nova
           </Button>
@@ -662,7 +664,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                       ? "Nenhuma campanha em grupo. Crie uma nova campanha!"
                       : "Nenhuma campanha de contatos. Crie uma nova campanha!"}
                   </p>
-                  <Button onClick={() => setShowCreateDialog(true)}>
+                  <Button onClick={() => isGroupsMode ? navigate('/campanhas-grupo/nova') : setShowCreateDialog(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Criar Campanha
                   </Button>
