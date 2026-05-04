@@ -69,6 +69,7 @@ import {
   Mail,
   User,
   Database,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -207,6 +208,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
 
+  // Para modo grupos: grupos pré-selecionados antes de criar/abrir o fluxo
+  const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
+  const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
+  const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
+  const [preselectedMetaPhoneId, setPreselectedMetaPhoneId] = useState<string | undefined>(undefined);
+  // Quando true, o diálogo de seleção é apenas para escolher grupos antes
+  // de abrir o editor (não dispara envio ao confirmar).
+  const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
+
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
     try {
@@ -299,7 +309,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setCurrentFluxoId(null);
     setNodes(initialNodes);
     setEdges(initialEdges);
-    setShowFluxosList(false);
+    if (isGroupsMode) {
+      // No modo grupos, primeiro o usuário escolhe os grupos, depois abre o editor
+      setPreselectedGroups([]);
+      setPreselectedInstanceIds([]);
+      setPreselectedProvider("zapi");
+      setPreselectedMetaPhoneId(undefined);
+      setIsSelectingPreGroups(true);
+      setShowContactsDialog(true);
+    } else {
+      setShowFluxosList(false);
+    }
   };
 
   const handleCarregarFluxo = (fluxo: FlowAutomation) => {
@@ -756,10 +776,33 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       return;
     }
     handleSaveFluxo();
+    if (isGroupsMode && preselectedGroups.length > 0) {
+      // Já temos os grupos selecionados — envia direto
+      handleConfirmSend(
+        preselectedGroups,
+        preselectedInstanceIds.length > 0 ? preselectedInstanceIds : undefined,
+        preselectedProvider,
+        preselectedMetaPhoneId,
+      );
+      return;
+    }
+    setIsSelectingPreGroups(false);
     setShowContactsDialog(true);
   };
 
   const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
+    // Se for apenas pré-seleção de grupos antes do editor, não envia: salva e abre editor
+    if (isSelectingPreGroups) {
+      setPreselectedGroups(selectedContacts);
+      setPreselectedInstanceIds(instanceIds || []);
+      setPreselectedProvider(provider || "zapi");
+      setPreselectedMetaPhoneId(metaPhoneNumberId);
+      setIsSelectingPreGroups(false);
+      setShowContactsDialog(false);
+      setShowFluxosList(false);
+      toast.success(`${selectedContacts.length} grupo(s) selecionado(s). Monte seu fluxo e clique em Enviar.`);
+      return;
+    }
     const recipientLabel = isGroupsMode ? "grupo" : "contato";
     toast.success(`Iniciando envio para ${selectedContacts.length} ${recipientLabel}(s)...`);
 
@@ -1245,6 +1288,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
               </Button>
+              {isGroupsMode && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => {
+                    setIsSelectingPreGroups(true);
+                    setShowContactsDialog(true);
+                  }}
+                >
+                  <Users className="h-4 w-4 mr-1.5" />
+                  Grupos{preselectedGroups.length > 0 ? ` (${preselectedGroups.length})` : ""}
+                </Button>
+              )}
               <Button size="sm" onClick={handleEnviarAgora} className="h-8">
                 <Send className="h-4 w-4 mr-1.5" />
                 Enviar
