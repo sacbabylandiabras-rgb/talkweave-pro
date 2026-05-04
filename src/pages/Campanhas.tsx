@@ -202,7 +202,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     };
   }, [statsDialogOpen]);
 
-  // Detect if the campaign template has a URL button (to show/hide "Cliques" column)
+  // Detect if the campaign template has trackable links (to show click metrics)
   useEffect(() => {
     if (!statsDialogOpen || !statsDialogCampaignId) {
       setStatsDialogHasUrlButton(false);
@@ -230,7 +230,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
       if (!active) return;
       const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
-      const hasUrl = buttons.some((b: any) => String(b?.type || '').toUpperCase() === 'URL');
+      const hasUrl = buttons.some((b: any) => {
+        const type = String(b?.type || '').toUpperCase();
+        return type === 'URL' || Boolean(b?.url || b?.value);
+      });
       setStatsDialogHasUrlButton(hasUrl);
     };
 
