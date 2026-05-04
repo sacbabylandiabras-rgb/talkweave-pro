@@ -517,6 +517,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
+        category: isGroupsMode ? 'groups' : 'contacts',
       };
 
       if (currentFluxoId) {
