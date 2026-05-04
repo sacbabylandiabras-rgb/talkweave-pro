@@ -1482,6 +1482,27 @@ serve(async (req) => {
           return buttonData;
         });
 
+        const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
+          const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
+          const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
+          const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
+
+          if (actionButtons.length > 0 && replyButtons.length > 0) {
+            const replyFallback = replyButtons
+              .map((btn: any) => String(btn.label || '').trim())
+              .filter(Boolean)
+              .map((label: string) => `• Responda: ${label}`)
+              .join('\n');
+            console.log(`⚠️ Botões mistos detectados; mantendo botões de ação e convertendo respostas em texto para evitar falha silenciosa no WhatsApp.`);
+            return {
+              message: [message, replyFallback].filter(Boolean).join('\n\n'),
+              buttonActions: actionButtons,
+            };
+          }
+
+          return { message, buttonActions: formattedButtons };
+        };
+
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
