@@ -25,6 +25,7 @@ import Modelos from "./pages/Modelos";
 import EnviarMensagem from "./pages/EnviarMensagem";
 import Relatorio from "./pages/Relatorio";
 import FluxoVisual from "./pages/FluxoVisual";
+import FluxoGrupos from "./pages/FluxoGrupos";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
@@ -157,6 +158,7 @@ const App = () => (
                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
+                  <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />

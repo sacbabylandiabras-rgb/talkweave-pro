@@ -167,9 +167,22 @@ interface FlowAutomation {
   active: boolean;
   created_at: string;
   updated_at: string;
+  category?: string;
 }
 
-export default function FluxoVisual() {
+interface FluxoVisualProps {
+  mode?: "contacts" | "groups";
+}
+
+export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
+  const isGroupsMode = mode === "groups";
+  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isGroupsMode
+    ? "Crie automações visuais para grupos do WhatsApp"
+    : "Crie automações visuais disparadas por palavra-chave";
+  const emptyHelp = isGroupsMode
+    ? "Crie seu primeiro fluxo visual para grupos"
+    : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -238,6 +251,7 @@ export default function FluxoVisual() {
       const { data, error } = await (supabase as any)
         .from('flow_automations')
         .select('*')
+        .eq('category', isGroupsMode ? 'groups' : 'contacts')
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -260,7 +274,7 @@ export default function FluxoVisual() {
 
   useEffect(() => {
     fetchFluxos();
-  }, []);
+  }, [isGroupsMode]);
 
   useEffect(() => {
     const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
@@ -317,6 +331,7 @@ export default function FluxoVisual() {
           nodes: fluxo.nodes,
           edges: fluxo.edges,
           active: false,
+          category: isGroupsMode ? 'groups' : 'contacts',
         });
 
       if (error) throw error;
@@ -503,6 +518,7 @@ export default function FluxoVisual() {
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
+        category: isGroupsMode ? 'groups' : 'contacts',
       };
 
       if (currentFluxoId) {
@@ -1087,9 +1103,9 @@ export default function FluxoVisual() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Fluxos Visuais</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{pageTitle}</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Crie automações visuais disparadas por palavra-chave
+              {pageSubtitle}
             </p>
           </div>
           <Button onClick={handleNovoFluxo} className="gap-2">
@@ -1111,7 +1127,7 @@ export default function FluxoVisual() {
             </div>
             <h3 className="font-semibold text-lg mb-1">Nenhum fluxo criado</h3>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm text-center">
-              Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp
+              {emptyHelp}
             </p>
             <Button onClick={handleNovoFluxo} className="gap-2">
               <Plus className="h-4 w-4" />
