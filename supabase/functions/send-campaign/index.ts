@@ -1784,6 +1784,8 @@ serve(async (req) => {
         if (zapiUrl) {
           const isZapiButtonActionSend = zapiUrl.endsWith('/send-button-actions');
           const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
+          const replyButtonFollowUp = requestBody?._replyButtonFollowUp;
+          if (replyButtonFollowUp) delete requestBody._replyButtonFollowUp;
 
           if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
             console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando texto completo antes dos botões para evitar falha silenciosa.`);
@@ -1838,6 +1840,18 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
+            if (isZapiButtonActionSend && replyButtonFollowUp?.buttonActions?.length) {
+              await sleep(1200);
+              const replyResponse = await fetch(`${baseZapiUrl}/send-button-actions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+                body: JSON.stringify({ phone: contact.phone, ...replyButtonFollowUp }),
+              });
+              const replyText = await replyResponse.text().catch(() => '');
+              console.log(`📬 Campaign Z-API REPLY buttons response for ${contact.phone}: status=${replyResponse.status}, body=${replyText.substring(0, 300)}`);
+              if (!replyResponse.ok) throw new Error(`Erro ao enviar botões de resposta: ${replyText || replyResponse.status}`);
+            }
+
             if (specialTpl?.type === 'uaz_location_button') {
               await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
               const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
