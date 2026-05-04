@@ -1076,6 +1076,60 @@ export type Database = {
         }
         Relationships: []
       }
+      link_clicks: {
+        Row: {
+          btn_text: string | null
+          campaign_id: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          destination_url: string | null
+          flow_name: string | null
+          id: string
+          ip: string | null
+          phone: string | null
+          referer: string | null
+          region: string | null
+          send_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          btn_text?: string | null
+          campaign_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          destination_url?: string | null
+          flow_name?: string | null
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          referer?: string | null
+          region?: string | null
+          send_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          btn_text?: string | null
+          campaign_id?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          destination_url?: string | null
+          flow_name?: string | null
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          referer?: string | null
+          region?: string | null
+          send_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       message_logs: {
         Row: {
           created_at: string
