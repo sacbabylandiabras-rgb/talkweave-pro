@@ -167,9 +167,22 @@ interface FlowAutomation {
   active: boolean;
   created_at: string;
   updated_at: string;
+  category?: string;
 }
 
-export default function FluxoVisual() {
+interface FluxoVisualProps {
+  mode?: "contacts" | "groups";
+}
+
+export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
+  const isGroupsMode = mode === "groups";
+  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isGroupsMode
+    ? "Crie automações visuais para grupos do WhatsApp"
+    : "Crie automações visuais disparadas por palavra-chave";
+  const emptyHelp = isGroupsMode
+    ? "Crie seu primeiro fluxo visual para grupos"
+    : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
