@@ -414,7 +414,23 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
     
     if (prevConnected === true && deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
-      pauseActiveCampaigns();
+      // Confirma a desconexão com uma segunda checagem após 5s para evitar
+      // pausar campanhas por causa de uma oscilação momentânea da API de status.
+      setTimeout(async () => {
+        try {
+          const { data } = await supabase.functions.invoke('get-device-status', {
+            body: { instanceId: instance.id },
+          });
+          const stillDown = data?.connected === false && data?.smartphoneConnected === false;
+          if (stillDown) {
+            pauseActiveCampaigns();
+          } else {
+            console.log('🔄 Falsa desconexão detectada, campanhas mantidas ativas.');
+          }
+        } catch (e) {
+          console.warn('Re-checagem de desconexão falhou, ignorando pausa:', e);
+        }
+      }, 5000);
     }
     if (deviceStatus?.connected === false) {
       fetchQRCode();
