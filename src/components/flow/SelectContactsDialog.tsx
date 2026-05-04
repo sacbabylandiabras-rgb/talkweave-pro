@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
-import { Search, Users, Loader2, Plus, X, Phone, UsersRound } from "lucide-react";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -47,7 +47,7 @@ export function SelectContactsDialog({
 }: SelectContactsDialogProps) {
   const isGroupsMode = mode === "groups";
   const { contacts, loading } = useContacts();
-  const { groups, loading: loadingGroups } = useWhatsAppGroups(
+  const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups(
     isGroupsMode ? {} : undefined
   );
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -244,6 +244,20 @@ export function SelectContactsDialog({
                 </div>
                 <Button variant="outline" size="sm" onClick={handleSelectAll}>
                   {selectedContacts.length === filteredGroups.length && filteredGroups.length > 0 ? "Desmarcar" : "Selecionar"} Todos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchGroups()}
+                  disabled={loadingGroups}
+                  title="Sincronizar grupos"
+                >
+                  {loadingGroups ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-1.5">Sincronizar</span>
                 </Button>
               </div>
 
