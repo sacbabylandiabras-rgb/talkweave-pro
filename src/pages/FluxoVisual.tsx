@@ -80,6 +80,8 @@ import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
+import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
+import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
