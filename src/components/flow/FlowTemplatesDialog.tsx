@@ -68,8 +68,8 @@ export function FlowTemplatesDialog({
                 className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl shrink-0">
-                    {tpl.emoji}
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <tpl.icon className={`h-5 w-5 ${tpl.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm mb-1">{tpl.name}</h3>
