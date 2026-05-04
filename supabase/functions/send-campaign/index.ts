@@ -390,7 +390,7 @@ const resolveLidToRealPhoneForSend = async (
   return realPhone && !realPhone.includes('@lid') && realPhone.length >= 8 ? realPhone : lidPhone;
 };
 
-const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
+const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
 
@@ -403,6 +403,8 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     flow: opts.campaignName || 'Campanha',
     src: 'campaign',
   });
+
+  if (opts.sendId) params.set('cs', opts.sendId);
 
   return cleanUrl.includes('go.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
