@@ -1549,6 +1549,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
+        mode={isGroupsMode ? "groups" : "contacts"}
       />
 
       {/* Dialog de Edição */}
