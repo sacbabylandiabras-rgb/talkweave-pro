@@ -1527,34 +1527,20 @@ serve(async (req) => {
 
         const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
           const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
-          const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
-          const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
+          const hasAction = formattedButtons.some((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
+          const onlyReply = !hasAction && formattedButtons.length > 0;
 
-          if (actionButtons.length > 0) {
-            const payload: any = { message, buttonActions: actionButtons };
-            if (replyButtons.length > 0) {
-              console.log(`📌 Botões mistos detectados; enviando URL/CALL primeiro e REPLY em mensagem separada (button-list).`);
-              payload._replyButtonFollowUp = {
-                message: ' ',
-                buttonList: {
-                  buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
-                },
-                _useButtonList: true,
-              };
-            }
-            return payload;
-          }
-
-          if (replyButtons.length > 0) {
+          if (onlyReply) {
             return {
               message,
               buttonList: {
-                buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
+                buttons: formattedButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
               },
               _useButtonList: true,
             };
           }
 
+          // Mistos ou apenas URL/CALL: enviar tudo junto em send-button-actions
           return { message, buttonActions: formattedButtons };
         };
 
