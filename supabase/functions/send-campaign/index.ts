@@ -1516,14 +1516,7 @@ serve(async (req) => {
               buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
             } else {
               const rawUrl = btn?.url || btn?.value || '';
-              const trackedRaw = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
-                campaignId,
-                userId: credentials.userId,
-                phone: contact.phone,
-                label,
-                campaignName: campaign?.name,
-              });
-              const finalUrl = ensureHttpUrl(trackedRaw);
+              const finalUrl = ensureHttpUrl(normalizePublicInviteUrl(rawUrl || 'https://z-api.io'));
               if (!finalUrl) return null;
               buttonData.type = 'URL';
               buttonData.url = finalUrl;
@@ -1537,15 +1530,20 @@ serve(async (req) => {
           const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
-          if (actionButtons.length > 0 && replyButtons.length > 0) {
-            console.log(`⚠️ Botões mistos detectados; enviando CALL/URL primeiro e REPLY em mensagem separada conforme documentação.`);
+          if (actionButtons.length > 0) {
+            if (replyButtons.length > 0) {
+              console.log(`⚠️ Botões mistos detectados; priorizando botões URL/CALL para evitar que uma segunda mensagem interativa oculte o botão principal.`);
+            }
+            return { message, buttonActions: actionButtons };
+          }
+
+          if (replyButtons.length > 0) {
             return {
               message,
-              buttonActions: actionButtons,
-              _replyButtonFollowUp: {
-                message: 'Você também pode responder por aqui:',
-                buttonActions: replyButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
+              buttonList: {
+                buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
               },
+              _useButtonList: true,
             };
           }
 
@@ -1811,13 +1809,21 @@ serve(async (req) => {
         }
 
         if (zapiUrl) {
+          if (zapiUrl.endsWith('/send-button-actions') && requestBody?._useButtonList) {
+            zapiUrl = `${baseZapiUrl}/send-button-list`;
+            delete requestBody._useButtonList;
+            console.log(`📌 Enviando respostas rápidas por lista de botões para melhor renderização no WhatsApp.`);
+          }
+
           const isZapiButtonActionSend = zapiUrl.endsWith('/send-button-actions');
           const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
           const replyButtonFollowUp = requestBody?._replyButtonFollowUp;
           if (replyButtonFollowUp) delete requestBody._replyButtonFollowUp;
+          const textAfterButtons = requestBody?._textAfterButtons;
+          if (textAfterButtons) delete requestBody._textAfterButtons;
 
           if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
-            console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando texto completo antes dos botões para evitar falha silenciosa.`);
+            console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando botão primeiro e texto completo depois para preservar o render do botão.`);
 
             // Construir fallback textual dos botões (URL/CALL) para garantir que o link/telefone sempre apareça,
             // mesmo que o card interativo não renderize na conta Z-API atual.
@@ -1837,19 +1843,8 @@ serve(async (req) => {
               ? `${buttonActionMessage}\n\n${buttonTextFallback}`
               : buttonActionMessage;
 
-            const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-              body: JSON.stringify({ phone: contact.phone, message: fullTextWithButtons }),
-            });
-
-            if (!textResponse.ok) {
-              const textError = await textResponse.text().catch(() => '');
-              throw new Error(`Erro ao enviar texto completo antes dos botões: ${textError || textResponse.status}`);
-            }
-
-            await sleep(1200);
             requestBody.message = INTERACTIVE_FALLBACK_BODY;
+            requestBody._textAfterButtons = fullTextWithButtons;
           }
 
           const zapiResponse = await fetch(zapiUrl, {
@@ -1869,6 +1864,19 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
+            if (isZapiButtonActionSend && textAfterButtons) {
+              await sleep(1200);
+              const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+                body: JSON.stringify({ phone: contact.phone, message: textAfterButtons }),
+              });
+              if (!textResponse.ok) {
+                const textError = await textResponse.text().catch(() => '');
+                throw new Error(`Erro ao enviar texto completo após os botões: ${textError || textResponse.status}`);
+              }
+            }
+
             if (isZapiButtonActionSend && replyButtonFollowUp?.buttonActions?.length) {
               await sleep(1200);
               const replyResponse = await fetch(`${baseZapiUrl}/send-button-actions`, {
