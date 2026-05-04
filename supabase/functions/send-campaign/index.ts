@@ -1655,10 +1655,9 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
           // Z-API não suporta áudio + botões em uma única chamada.
@@ -1673,16 +1672,14 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage || ' ', buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ');
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage, image: campaign.template.media_url, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, image: campaign.template.media_url, ...buttonPayload };
 
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
