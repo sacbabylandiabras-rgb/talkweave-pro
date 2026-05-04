@@ -1382,10 +1382,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   Grupos{preselectedGroups.length > 0 ? ` (${preselectedGroups.length})` : ""}
                 </Button>
               )}
-              <Button size="sm" onClick={handleEnviarAgora} className="h-8">
+              <Button size="sm" onClick={handleEnviarAgora} className="h-8" disabled={isSending}>
                 <Send className="h-4 w-4 mr-1.5" />
-                Enviar
+                {isSending ? "Enviando..." : "Enviar"}
               </Button>
+              {isSending && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    cancelSendRef.current = true;
+                    toast.info("Cancelando envio...");
+                  }}
+                  className="h-8"
+                >
+                  <X className="h-4 w-4 mr-1.5" />
+                  Cancelar Envio
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={handleExportJson} className="h-8">
                 <Download className="h-4 w-4 mr-1.5" />
                 Exportar
