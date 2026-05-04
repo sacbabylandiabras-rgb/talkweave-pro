@@ -1,10 +1,24 @@
 import type { Node, Edge } from "reactflow";
+import type { LucideIcon } from "lucide-react";
+import {
+  Hand,
+  Target,
+  ListChecks,
+  ShoppingCart,
+  Star,
+  Megaphone,
+  Flame,
+  Rocket,
+  CalendarDays,
+  BarChart3,
+} from "lucide-react";
 
 export interface FlowTemplate {
   id: string;
   name: string;
   description: string;
-  emoji: string;
+  icon: LucideIcon;
+  color: string;
   mode: "contacts" | "groups" | "both";
   nodes: Node[];
   edges: Edge[];
