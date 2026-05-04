@@ -1462,9 +1462,12 @@ serve(async (req) => {
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
         const specialTpl = parseSpecialTemplate(campaign.template.content);
 
-        const formatZapiButtons = (buttons: any[]) => buttons.map((btn: any) => {
+        const formatZapiButtons = (buttons: any[]) => buttons.map((btn: any, index: number) => {
           const btnType = (btn.type || 'url').toUpperCase();
-          const buttonData: any = { label: btn.text || btn.label };
+          const buttonData: any = {
+            id: String(btn.id || index + 1),
+            label: String(btn.text || btn.label || `Botão ${index + 1}`).trim().slice(0, 25),
+          };
           if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
           else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
           else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
@@ -1478,7 +1481,6 @@ serve(async (req) => {
               campaignName: campaign?.name,
             });
           }
-          if (btn.id) buttonData.id = btn.id;
           return buttonData;
         });
 
@@ -1791,6 +1793,7 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar texto completo antes dos botões: ${textError || textResponse.status}`);
             }
 
+            await sleep(1200);
             requestBody.message = INTERACTIVE_FALLBACK_BODY;
           }
 
