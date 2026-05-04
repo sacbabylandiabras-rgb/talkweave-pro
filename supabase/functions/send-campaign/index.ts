@@ -1761,10 +1761,29 @@ serve(async (req) => {
 
           if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
             console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando texto completo antes dos botões para evitar falha silenciosa.`);
+
+            // Construir fallback textual dos botões (URL/CALL) para garantir que o link/telefone sempre apareça,
+            // mesmo que o card interativo não renderize na conta Z-API atual.
+            const actionButtonsForFallback = Array.isArray(requestBody?.buttonActions) ? requestBody.buttonActions : [];
+            const buttonTextFallback = actionButtonsForFallback
+              .map((btn: any) => {
+                const label = String(btn?.label || '').trim() || 'Acessar';
+                const t = String(btn?.type || '').toUpperCase();
+                if (t === 'URL' && btn?.url) return `👉 ${label}: ${btn.url}`;
+                if (t === 'CALL' && btn?.phone) return `📞 ${label}: ${btn.phone}`;
+                return '';
+              })
+              .filter(Boolean)
+              .join('\n');
+
+            const fullTextWithButtons = buttonTextFallback
+              ? `${buttonActionMessage}\n\n${buttonTextFallback}`
+              : buttonActionMessage;
+
             const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-              body: JSON.stringify({ phone: contact.phone, message: buttonActionMessage }),
+              body: JSON.stringify({ phone: contact.phone, message: fullTextWithButtons }),
             });
 
             if (!textResponse.ok) {
