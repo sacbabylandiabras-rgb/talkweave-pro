@@ -1103,9 +1103,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Fluxos Visuais</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{pageTitle}</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Crie automações visuais disparadas por palavra-chave
+              {pageSubtitle}
             </p>
           </div>
           <Button onClick={handleNovoFluxo} className="gap-2">
@@ -1127,7 +1127,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             </div>
             <h3 className="font-semibold text-lg mb-1">Nenhum fluxo criado</h3>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm text-center">
-              Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp
+              {emptyHelp}
             </p>
             <Button onClick={handleNovoFluxo} className="gap-2">
               <Plus className="h-4 w-4" />
