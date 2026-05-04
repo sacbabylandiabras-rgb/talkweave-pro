@@ -220,6 +220,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
   const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const cancelSendRef = useRef(false);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
