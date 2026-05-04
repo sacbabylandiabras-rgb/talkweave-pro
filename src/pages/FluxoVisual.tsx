@@ -775,10 +775,33 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       return;
     }
     handleSaveFluxo();
+    if (isGroupsMode && preselectedGroups.length > 0) {
+      // Já temos os grupos selecionados — envia direto
+      handleConfirmSend(
+        preselectedGroups,
+        preselectedInstanceIds.length > 0 ? preselectedInstanceIds : undefined,
+        preselectedProvider,
+        preselectedMetaPhoneId,
+      );
+      return;
+    }
+    setIsSelectingPreGroups(false);
     setShowContactsDialog(true);
   };
 
   const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
+    // Se for apenas pré-seleção de grupos antes do editor, não envia: salva e abre editor
+    if (isSelectingPreGroups) {
+      setPreselectedGroups(selectedContacts);
+      setPreselectedInstanceIds(instanceIds || []);
+      setPreselectedProvider(provider || "zapi");
+      setPreselectedMetaPhoneId(metaPhoneNumberId);
+      setIsSelectingPreGroups(false);
+      setShowContactsDialog(false);
+      setShowFluxosList(false);
+      toast.success(`${selectedContacts.length} grupo(s) selecionado(s). Monte seu fluxo e clique em Enviar.`);
+      return;
+    }
     const recipientLabel = isGroupsMode ? "grupo" : "contato";
     toast.success(`Iniciando envio para ${selectedContacts.length} ${recipientLabel}(s)...`);
 
