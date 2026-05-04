@@ -1653,6 +1653,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         mode={isGroupsMode ? "groups" : "contacts"}
       />
 
+      <FlowTemplatesDialog
+        open={showTemplatesDialog}
+        onOpenChange={setShowTemplatesDialog}
+        mode={isGroupsMode ? "groups" : "contacts"}
+        onSelect={handleSelectTemplate}
+        onStartBlank={handleStartBlank}
+      />
+
       {/* Dialog de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
