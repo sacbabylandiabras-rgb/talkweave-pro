@@ -245,6 +245,20 @@ export function SelectContactsDialog({
                 <Button variant="outline" size="sm" onClick={handleSelectAll}>
                   {selectedContacts.length === filteredGroups.length && filteredGroups.length > 0 ? "Desmarcar" : "Selecionar"} Todos
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchGroups()}
+                  disabled={loadingGroups}
+                  title="Sincronizar grupos"
+                >
+                  {loadingGroups ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-1.5">Sincronizar</span>
+                </Button>
               </div>
 
               <div className="flex items-center justify-between text-sm">
