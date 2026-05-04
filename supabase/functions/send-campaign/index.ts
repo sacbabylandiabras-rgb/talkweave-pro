@@ -1809,6 +1809,12 @@ serve(async (req) => {
         }
 
         if (zapiUrl) {
+          if (zapiUrl.endsWith('/send-button-actions') && requestBody?._useButtonList) {
+            zapiUrl = `${baseZapiUrl}/send-button-list`;
+            delete requestBody._useButtonList;
+            console.log(`📌 Enviando respostas rápidas por lista de botões para melhor renderização no WhatsApp.`);
+          }
+
           const isZapiButtonActionSend = zapiUrl.endsWith('/send-button-actions');
           const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
           const replyButtonFollowUp = requestBody?._replyButtonFollowUp;
