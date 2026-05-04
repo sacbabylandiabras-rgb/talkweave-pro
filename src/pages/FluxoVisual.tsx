@@ -70,6 +70,7 @@ import {
   User,
   Database,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -80,6 +81,8 @@ import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
+import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
+import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,6 +219,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
+  const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
@@ -303,14 +307,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, [instances]);
 
   const handleNovoFluxo = () => {
-    setNomeFluxo("Novo Fluxo");
-    setKeywordFluxo("");
-    setFluxoAtivo(true);
-    setCurrentFluxoId(null);
-    setNodes(initialNodes);
-    setEdges(initialEdges);
+    // Abre a galeria de modelos prontos
+    setShowTemplatesDialog(true);
+  };
+
+  const proceedAfterTemplateChoice = () => {
     if (isGroupsMode) {
-      // No modo grupos, primeiro o usuário escolhe os grupos, depois abre o editor
       setPreselectedGroups([]);
       setPreselectedInstanceIds([]);
       setPreselectedProvider("zapi");
@@ -320,6 +322,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     } else {
       setShowFluxosList(false);
     }
+  };
+
+  const handleSelectTemplate = (tpl: FlowTemplate) => {
+    setNomeFluxo(tpl.name);
+    setKeywordFluxo(tpl.suggestedKeyword || "");
+    setFluxoAtivo(true);
+    setCurrentFluxoId(null);
+    setNodes(tpl.nodes);
+    setEdges(tpl.edges);
+    setShowTemplatesDialog(false);
+    toast.success(`Modelo "${tpl.name}" carregado!`);
+    proceedAfterTemplateChoice();
+  };
+
+  const handleStartBlank = () => {
+    setNomeFluxo("Novo Fluxo");
+    setKeywordFluxo("");
+    setFluxoAtivo(true);
+    setCurrentFluxoId(null);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setShowTemplatesDialog(false);
+    proceedAfterTemplateChoice();
   };
 
   const handleCarregarFluxo = (fluxo: FlowAutomation) => {
@@ -1267,6 +1292,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         onConfirm={handleConfirmSend}
         mode={isGroupsMode ? "groups" : "contacts"}
       />
+      <FlowTemplatesDialog
+        open={showTemplatesDialog}
+        onOpenChange={setShowTemplatesDialog}
+        mode={isGroupsMode ? "groups" : "contacts"}
+        onSelect={handleSelectTemplate}
+        onStartBlank={handleStartBlank}
+      />
       </>
     );
   }
@@ -1299,6 +1331,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="h-8" disabled={savingFluxo}>
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => setShowTemplatesDialog(true)}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Modelos
               </Button>
               {isGroupsMode && (
                 <Button
@@ -1620,6 +1661,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
         mode={isGroupsMode ? "groups" : "contacts"}
+      />
+
+      <FlowTemplatesDialog
+        open={showTemplatesDialog}
+        onOpenChange={setShowTemplatesDialog}
+        mode={isGroupsMode ? "groups" : "contacts"}
+        onSelect={handleSelectTemplate}
+        onStartBlank={handleStartBlank}
       />
 
       {/* Dialog de Edição */}
