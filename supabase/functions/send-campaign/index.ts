@@ -1527,20 +1527,23 @@ serve(async (req) => {
 
         const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
           const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
-          const hasAction = formattedButtons.some((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
-          const onlyReply = !hasAction && formattedButtons.length > 0;
+          const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
+          const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
-          if (onlyReply) {
+          // Z-API/WhatsApp não renderiza REPLY misturado com URL/CALL de forma confiável.
+          // Quando vier misto, mantém texto + botão juntos em cada mensagem interativa.
+          if (actionButtons.length > 0 && replyButtons.length > 0) {
             return {
               message,
-              buttonList: {
-                buttons: formattedButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
+              buttonActions: actionButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
+              _replyButtonFollowUp: {
+                message,
+                buttonActions: replyButtons.map((btn: any, idx: number) => ({ ...btn, id: String(actionButtons.length + idx + 1) })),
               },
-              _useButtonList: true,
             };
           }
 
-          // Mistos ou apenas URL/CALL: enviar tudo junto em send-button-actions
+          // REPLY sozinho também precisa ir como buttonActions para gerar callback de resposta.
           return { message, buttonActions: formattedButtons };
         };
 
