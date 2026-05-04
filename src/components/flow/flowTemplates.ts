@@ -47,7 +47,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "boas-vindas",
     name: "Boas-vindas",
     description: "Saudação inicial + apresentação rápida da empresa.",
-    emoji: "👋",
+    icon: Hand,
+    color: "text-sky-500",
     mode: "contacts",
     suggestedKeyword: "oi",
     nodes: [
@@ -80,7 +81,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "qualificacao-lead",
     name: "Qualificação de Lead",
     description: "Captura nome, WhatsApp e e-mail antes de seguir.",
-    emoji: "🎯",
+    icon: Target,
+    color: "text-violet-500",
     mode: "contacts",
     suggestedKeyword: "quero",
     nodes: [
@@ -124,7 +126,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "menu-interativo",
     name: "Menu de Atendimento",
     description: "Menu com botões para direcionar o cliente.",
-    emoji: "📋",
+    icon: ListChecks,
+    color: "text-indigo-500",
     mode: "contacts",
     suggestedKeyword: "menu",
     nodes: [
@@ -151,7 +154,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "recuperacao-carrinho",
     name: "Recuperação de Carrinho",
     description: "Lembrete + cupom de desconto após carrinho abandonado.",
-    emoji: "🛒",
+    icon: ShoppingCart,
+    color: "text-amber-500",
     mode: "contacts",
     nodes: [
       baseInicial,
@@ -192,7 +196,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "pos-venda",
     name: "Pós-venda",
     description: "Agradecimento + pesquisa de satisfação.",
-    emoji: "⭐",
+    icon: Star,
+    color: "text-yellow-500",
     mode: "contacts",
     nodes: [
       baseInicial,
@@ -240,7 +245,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "anuncio-grupo",
     name: "Anúncio para Grupo",
     description: "Mensagem única de anúncio com mídia opcional.",
-    emoji: "📢",
+    icon: Megaphone,
+    color: "text-blue-500",
     mode: "groups",
     nodes: [
       baseInicial,
@@ -261,7 +267,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "promocao-grupo",
     name: "Promoção em Grupo",
     description: "Anúncio + link da oferta com botão.",
-    emoji: "🔥",
+    icon: Flame,
+    color: "text-orange-500",
     mode: "groups",
     nodes: [
       baseInicial,
@@ -285,7 +292,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "lancamento-grupo",
     name: "Lançamento em 3 partes",
     description: "Sequência de 3 mensagens com intervalos.",
-    emoji: "🚀",
+    icon: Rocket,
+    color: "text-fuchsia-500",
     mode: "groups",
     nodes: [
       baseInicial,
@@ -339,7 +347,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "lembrete-evento",
     name: "Lembrete de Evento",
     description: "Aviso de evento com data e horário.",
-    emoji: "📅",
+    icon: CalendarDays,
+    color: "text-emerald-500",
     mode: "groups",
     nodes: [
       baseInicial,
@@ -360,7 +369,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "enquete-grupo",
     name: "Enquete simples",
     description: "Pergunta com botões de resposta para o grupo.",
-    emoji: "📊",
+    icon: BarChart3,
+    color: "text-pink-500",
     mode: "groups",
     nodes: [
       baseInicial,
