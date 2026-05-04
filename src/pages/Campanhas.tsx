@@ -368,7 +368,32 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       }
       setStatsDialogLinkClicks((data || []) as any);
     })();
-    return () => { active = false; };
+
+    const channel = supabase
+      .channel(`campaign-link-clicks-${statsDialogCampaignId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'link_clicks', filter: `campaign_id=eq.${statsDialogCampaignId}` },
+        (payload) => {
+          const row = payload.new as any;
+          setStatsDialogLinkClicks((prev) => [row, ...prev].slice(0, 500));
+          const phoneKey = normalizePhoneKey(row.phone);
+          if (phoneKey) {
+            setStatsDialogClickMap((prev) => {
+              if (prev.has(phoneKey)) return prev;
+              const next = new Map(prev);
+              next.set(phoneKey, row.created_at);
+              return next;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
   const isCancelledSendStatus = (status?: string | null) =>
