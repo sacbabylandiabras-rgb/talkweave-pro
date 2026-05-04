@@ -989,7 +989,19 @@ serve(async (req) => {
     } else if (requestedInstanceId) {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
-      if (specificInstance) {
+      // Se a instância configurada existe, valida se está conectada;
+      // caso contrário, troca por outra conectada do mesmo usuário.
+      let resolvedInstance: ResolvedInstance | null = specificInstance;
+      if (resolvedInstance) {
+        const status = await fetchDeviceStatusSnapshot(resolvedInstance);
+        if (!status.connected) {
+          console.log(`⚠️ Configured instance ${resolvedInstance.instanceName} is offline. Searching for any connected instance.`);
+          resolvedInstance = null;
+        }
+      }
+
+      if (resolvedInstance) {
+        const specificInstance = resolvedInstance;
         forcedRequestedInstance = specificInstance;
         zapiInstanceId = specificInstance.zapiInstanceId;
         zapiToken = specificInstance.zapiToken;
