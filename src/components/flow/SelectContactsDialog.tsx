@@ -164,13 +164,16 @@ export function SelectContactsDialog({
   };
 
   const handleConfirm = () => {
-    const allPhones = [...new Set([...selectedContacts, ...manualPhones])];
+    const allPhones = isGroupsMode
+      ? [...new Set(selectedContacts)]
+      : [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
+    const finalProvider: FlowSendProvider = isGroupsMode ? "zapi" : effectiveProvider;
     onConfirm(
       allPhones,
-      effectiveProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
-      effectiveProvider,
-      effectiveProvider === "meta" ? selectedMetaPhoneId : undefined
+      finalProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
+      finalProvider,
+      finalProvider === "meta" ? selectedMetaPhoneId : undefined
     );
     onOpenChange(false);
   };
