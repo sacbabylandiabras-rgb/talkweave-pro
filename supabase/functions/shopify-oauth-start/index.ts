@@ -5,7 +5,7 @@ const corsHeaders = {
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const APP_ORIGIN = "https://zaplynx.com";
-const CALLBACK_PATH = "/shopify-oauth-callback";
+const CALLBACK_PATH = "/shopify/callback";
 const SHOPIFY_SCOPES = [
   "read_products",
   "write_products",
