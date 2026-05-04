@@ -166,7 +166,9 @@ export default function DashboardMeta() {
 
     setUploadingPhoto(true);
     try {
-      const fileName = `meta-profile-${Date.now()}.${file.name.split(".").pop()}`;
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error("Usuário não autenticado");
+      const fileName = `${currentUser.id}/meta-profile-${Date.now()}.${file.name.split(".").pop()}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("template-media")
         .upload(fileName, file, { upsert: true });
