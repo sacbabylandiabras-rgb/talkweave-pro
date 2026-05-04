@@ -24,7 +24,16 @@ const getSessionId = (checkoutSlug: string) => {
   return nextSessionId;
 };
 
-const getCoordinatesByIP = async (): Promise<{ latitude?: number; longitude?: number }> => {
+interface IpInfo {
+  latitude?: number;
+  longitude?: number;
+  ip?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+}
+
+const getCoordinatesByIP = async (): Promise<IpInfo> => {
   // Try multiple providers for better accuracy
   const providers = [
     async () => {
@@ -32,7 +41,14 @@ const getCoordinatesByIP = async (): Promise<{ latitude?: number; longitude?: nu
       if (!res.ok) return null;
       const data = await res.json();
       if (data.success && typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return { latitude: data.latitude, longitude: data.longitude };
+        return {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          ip: data.ip,
+          city: data.city,
+          region: data.region,
+          country: data.country,
+        };
       }
       return null;
     },
@@ -41,16 +57,30 @@ const getCoordinatesByIP = async (): Promise<{ latitude?: number; longitude?: nu
       if (!res.ok) return null;
       const data = await res.json();
       if (typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return { latitude: data.latitude, longitude: data.longitude };
+        return {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          ip: data.ip,
+          city: data.city,
+          region: data.region,
+          country: data.country_name,
+        };
       }
       return null;
     },
     async () => {
-      const res = await fetch("https://ip-api.com/json/?fields=lat,lon", { signal: AbortSignal.timeout(4000) });
+      const res = await fetch("https://ip-api.com/json/?fields=lat,lon,query,city,regionName,country", { signal: AbortSignal.timeout(4000) });
       if (!res.ok) return null;
       const data = await res.json();
       if (typeof data.lat === "number" && typeof data.lon === "number") {
-        return { latitude: data.lat, longitude: data.lon };
+        return {
+          latitude: data.lat,
+          longitude: data.lon,
+          ip: data.query,
+          city: data.city,
+          region: data.regionName,
+          country: data.country,
+        };
       }
       return null;
     },
@@ -86,7 +116,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     const trackPresence = async () => {
       if (!isSubscribed) return;
 
-      const coordinates = await getCoordinatesByIP();
+      const ipInfo = await getCoordinatesByIP();
 
       await channel.track({
         kind: "checkout",
@@ -95,8 +125,12 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
         ownerUserId,
         joinedAt,
         productName: productName || checkoutSlug || "",
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
+        latitude: ipInfo.latitude,
+        longitude: ipInfo.longitude,
+        ip: ipInfo.ip,
+        city: ipInfo.city,
+        region: ipInfo.region,
+        country: ipInfo.country,
       });
     };
 
