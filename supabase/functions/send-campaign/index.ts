@@ -1482,6 +1482,27 @@ serve(async (req) => {
           return buttonData;
         });
 
+        const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
+          const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
+          const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
+          const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
+
+          if (actionButtons.length > 0 && replyButtons.length > 0) {
+            const replyFallback = replyButtons
+              .map((btn: any) => String(btn.label || '').trim())
+              .filter(Boolean)
+              .map((label: string) => `• Responda: ${label}`)
+              .join('\n');
+            console.log(`⚠️ Botões mistos detectados; mantendo botões de ação e convertendo respostas em texto para evitar falha silenciosa no WhatsApp.`);
+            return {
+              message: [message, replyFallback].filter(Boolean).join('\n\n'),
+              buttonActions: actionButtons,
+            };
+          }
+
+          return { message, buttonActions: formattedButtons };
+        };
+
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
@@ -1634,10 +1655,9 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
           // Z-API não suporta áudio + botões em uma única chamada.
@@ -1652,16 +1672,14 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage || ' ', buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ');
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          requestBody = { phone: contact.phone, message: fullMessage, image: campaign.template.media_url, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, image: campaign.template.media_url, ...buttonPayload };
 
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
@@ -1729,8 +1747,8 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-          requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-text`;
