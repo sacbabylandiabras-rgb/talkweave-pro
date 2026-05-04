@@ -829,14 +829,19 @@ const dispatchUazapiCampaign = async (
 };
 
 const readDeviceConnectivity = (deviceStatus: any) => {
-  const isConnected = deviceStatus?.connected === true ||
-    (typeof deviceStatus?.connected === 'string' && deviceStatus.connected.toLowerCase() === 'true') ||
-    deviceStatus?.status === 'CONNECTED' ||
-    (typeof deviceStatus?.status === 'string' && deviceStatus.status.toLowerCase() === 'connected');
+  const status = String(deviceStatus?.status || deviceStatus?.device?.status || '').toLowerCase();
+  const connectedFlag = deviceStatus?.connected;
+  const isConnected = connectedFlag === true ||
+    (typeof connectedFlag === 'string' && connectedFlag.toLowerCase() === 'true') ||
+    deviceStatus?.session === true ||
+    deviceStatus?.smartphoneConnected === true ||
+    deviceStatus?.device?.connected === true ||
+    ['connected', 'open', 'online'].includes(status);
 
-  const isExplicitlyDisconnected = deviceStatus?.connected === false ||
-    deviceStatus?.status === 'DISCONNECTED' ||
-    (typeof deviceStatus?.status === 'string' && deviceStatus.status.toLowerCase() === 'disconnected');
+  const isExplicitlyDisconnected = !isConnected && (
+    connectedFlag === false ||
+    ['disconnected', 'close', 'closed'].includes(status)
+  );
 
   return { connected: isConnected, explicitlyDisconnected: isExplicitlyDisconnected };
 };
@@ -855,8 +860,8 @@ const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
       }
       const uazRaw = await uazRes.json().catch(() => ({}));
       const status = String(uazRaw?.instance?.status || uazRaw?.status || '').toLowerCase();
-      const connected = status === 'connected' || status === 'open' || uazRaw?.connected === true;
-      const explicitlyDisconnected = status === 'disconnected' || status === 'closed' || uazRaw?.connected === false;
+      const connected = status === 'connected' || status === 'open' || uazRaw?.connected === true || uazRaw?.loggedIn === true;
+      const explicitlyDisconnected = !connected && (status === 'disconnected' || status === 'closed' || uazRaw?.connected === false);
       return { connected, explicitlyDisconnected, ok: true, raw: uazRaw };
     }
 
