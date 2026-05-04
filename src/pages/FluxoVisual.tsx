@@ -218,6 +218,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
+  const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
