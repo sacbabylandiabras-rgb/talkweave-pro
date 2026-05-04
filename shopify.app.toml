@@ -7,7 +7,7 @@ embedded = true
 scopes = "read_orders,write_orders,read_products,write_products,customer_read_orders,customer_write_orders"
 
 [auth]
-redirect_urls = []
+redirect_urls = ["https://zaplynx.com/shopify-oauth-callback"]
 
 [webhooks]
 api_version = "2026-04"
