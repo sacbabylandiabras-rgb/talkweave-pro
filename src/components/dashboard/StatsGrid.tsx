@@ -3,18 +3,31 @@ import { MetricCard } from "./MetricCard";
 import { MessageSquare, Send, CheckCircle2, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-export function StatsGrid() {
+interface StatsGridProps {
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+const startOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+const endOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+
+export function StatsGrid({ dateFrom, dateTo }: StatsGridProps = {}) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0, failed: 0 });
 
   const loadStats = useCallback(async () => {
     try {
-      // Use individual count queries to avoid the 1000-row default limit
+      const applyRange = <T extends { gte: any; lte: any }>(q: T): T => {
+        let r: any = q;
+        if (dateFrom) r = r.gte('created_at', startOfDayIso(dateFrom));
+        if (dateTo) r = r.lte('created_at', endOfDayIso(dateTo));
+        return r as T;
+      };
       const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered']),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered']),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
-        supabase.from('campaign_sends').select('id', { count: 'exact', head: true }),
+        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
+        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
+        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
+        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true })),
       ]);
       setStats({
         total: totalRes.count ?? 0,
@@ -27,7 +40,7 @@ export function StatsGrid() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -41,28 +54,8 @@ export function StatsGrid() {
 
     const channel = supabase
       .channel('stats-grid-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, (payload) => {
-        const status = (payload.new as any)?.status;
-        setStats(prev => ({
-          total: prev.total + 1,
-          sent: (status === 'sent' || status === 'delivered') ? prev.sent + 1 : prev.sent,
-          delivered: (status === 'sent' || status === 'delivered') ? prev.delivered + 1 : prev.delivered,
-          failed: status === 'failed' ? prev.failed + 1 : prev.failed,
-        }));
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_sends' }, (payload) => {
-        const oldStatus = (payload.old as any)?.status;
-        const newStatus = (payload.new as any)?.status;
-        if (oldStatus === newStatus) return;
-        const wasSentOrDelivered = oldStatus === 'sent' || oldStatus === 'delivered';
-        const isSentOrDelivered = newStatus === 'sent' || newStatus === 'delivered';
-        setStats(prev => ({
-          total: prev.total,
-          sent: prev.sent + (isSentOrDelivered ? 1 : 0) - (wasSentOrDelivered ? 1 : 0),
-          delivered: prev.delivered + (isSentOrDelivered ? 1 : 0) - (wasSentOrDelivered ? 1 : 0),
-          failed: prev.failed + (newStatus === 'failed' ? 1 : 0) - (oldStatus === 'failed' ? 1 : 0),
-        }));
-      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, () => loadStats())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_sends' }, () => loadStats())
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'campaign_sends' }, () => loadStats())
       .subscribe();
 
