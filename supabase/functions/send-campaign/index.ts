@@ -1536,24 +1536,10 @@ serve(async (req) => {
 
         const buildZapiButtonActionPayload = (buttons: any[], message: string, sendId?: string | null) => {
           const formattedButtons = formatZapiButtons(buttons, sendId).slice(0, 3);
-          const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
-          const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
-
-          // Z-API/WhatsApp não renderiza REPLY misturado com URL/CALL de forma confiável.
-          // Quando vier misto, mantém texto + botão juntos em cada mensagem interativa.
-          if (actionButtons.length > 0 && replyButtons.length > 0) {
-            return {
-              message,
-              buttonActions: actionButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
-              _replyButtonFollowUp: {
-                message,
-                buttonActions: replyButtons.map((btn: any, idx: number) => ({ ...btn, id: String(actionButtons.length + idx + 1) })),
-              },
-            };
-          }
-
-          // REPLY sozinho também precisa ir como buttonActions para gerar callback de resposta.
-          return { message, buttonActions: formattedButtons };
+          // Sempre enviar todos os botões (URL/CALL/REPLY) juntos com o texto
+          // em uma única mensagem interativa, conforme o modelo cadastrado.
+          const reindexed = formattedButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) }));
+          return { message, buttonActions: reindexed };
         };
 
         const instId = currentInstance.zapiInstanceId;
