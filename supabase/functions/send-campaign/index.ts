@@ -619,6 +619,10 @@ const dispatchUazapiSpecial = async (
 const MAX_BATCH_SIZE = 50;
 const MIN_BATCH_SIZE = 3;
 const MAX_BATCH_RUNTIME_MS = 40_000;
+const MAX_INTERACTIVE_BODY_CHARS = 1000;
+const INTERACTIVE_FALLBACK_BODY = 'Escolha uma opção abaixo:';
+
+const isInteractiveBodyTooLong = (message?: string | null) => String(message || '').length > MAX_INTERACTIVE_BODY_CHARS;
 
 const getBatchSizeForDelay = (delayMs: number) => {
   const safeDelayMs = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 2000;
