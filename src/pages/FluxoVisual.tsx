@@ -502,7 +502,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         return false;
       }
 
-      const normalizedName = nomeFluxo.trim() || "Novo Fluxo";
+      const normalizedName = (nomeFluxo || "").trim() || "Novo Fluxo";
       const nodesToPersist = selectedNode
         ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
         : nodes;
@@ -514,7 +514,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const fluxoData = {
         user_id: user.id,
         name: normalizedName,
-        keyword: keywordFluxo.trim().toLowerCase(),
+        keyword: (keywordFluxo || "").trim().toLowerCase(),
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
