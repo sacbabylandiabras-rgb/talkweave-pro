@@ -3,16 +3,34 @@ import { MetricCard } from "./MetricCard";
 import { BarChart3, FileText, Users, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-export function TopMetrics() {
+interface TopMetricsProps {
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+const startOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+const endOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+
+export function TopMetrics({ dateFrom, dateTo }: TopMetricsProps = {}) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({ campaigns: 0, templates: 0, contacts: 0 });
 
   const loadMetrics = useCallback(async () => {
     try {
+      let campaignsQ = supabase.from('campaigns').select('id', { count: 'exact', head: true });
+      let sendsQ = supabase.from('campaign_sends').select('phone');
+      if (dateFrom) {
+        campaignsQ = campaignsQ.gte('created_at', startOfDayIso(dateFrom));
+        sendsQ = sendsQ.gte('created_at', startOfDayIso(dateFrom));
+      }
+      if (dateTo) {
+        campaignsQ = campaignsQ.lte('created_at', endOfDayIso(dateTo));
+        sendsQ = sendsQ.lte('created_at', endOfDayIso(dateTo));
+      }
       const [campaignsRes, templatesRes, contactsRes] = await Promise.all([
-        supabase.from('campaigns').select('id', { count: 'exact', head: true }),
+        campaignsQ,
         supabase.from('message_templates').select('id', { count: 'exact', head: true }).eq('active', true),
-        supabase.from('campaign_sends').select('phone'),
+        sendsQ,
       ]);
 
       // Paginate to get all unique phones if over 1000
@@ -22,7 +40,10 @@ export function TopMetrics() {
         const batchSize = 1000;
         let hasMore = true;
         while (hasMore) {
-          const { data } = await supabase.from('campaign_sends').select('phone').range(from, from + batchSize - 1);
+          let pageQ = supabase.from('campaign_sends').select('phone').range(from, from + batchSize - 1);
+          if (dateFrom) pageQ = pageQ.gte('created_at', startOfDayIso(dateFrom));
+          if (dateTo) pageQ = pageQ.lte('created_at', endOfDayIso(dateTo));
+          const { data } = await pageQ;
           if (!data || data.length === 0) { hasMore = false; break; }
           allPhones = [...allPhones, ...data.map(s => s.phone)];
           hasMore = data.length === batchSize;
@@ -40,7 +61,7 @@ export function TopMetrics() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -55,13 +76,13 @@ export function TopMetrics() {
     const channel = supabase
       .channel('top-metrics-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_sends' }, () => {
-        setMetrics(prev => ({ ...prev, contacts: prev.contacts + 1 }));
+        loadMetrics();
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaigns' }, () => {
-        setMetrics(prev => ({ ...prev, campaigns: prev.campaigns + 1 }));
+        loadMetrics();
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'campaigns' }, () => {
-        setMetrics(prev => ({ ...prev, campaigns: Math.max(0, prev.campaigns - 1) }));
+        loadMetrics();
       })
       .subscribe();
 

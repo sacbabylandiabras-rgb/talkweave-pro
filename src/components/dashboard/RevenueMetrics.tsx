@@ -6,7 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 const formatBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function RevenueMetrics() {
+interface RevenueMetricsProps {
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+const startOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+const endOfDayIso = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+
+export function RevenueMetrics({ dateFrom, dateTo }: RevenueMetricsProps = {}) {
   const [loading, setLoading] = useState(true);
   const [revenue, setRevenue] = useState({ pixGenerated: 0, approved: 0 });
   const [msgPerSale, setMsgPerSale] = useState<{ messages: number; sales: number }>({ messages: 0, sales: 0 });
@@ -22,11 +30,14 @@ export function RevenueMetrics() {
       let from = 0;
       const pageSize = 1000;
       while (true) {
-        const { data, error } = await supabase
+        let q: any = supabase
           .from("gateway_transactions")
           .select("amount, net, fee, status")
           .eq("user_id", user.id)
           .range(from, from + pageSize - 1);
+        if (dateFrom) q = q.gte('created_at', startOfDayIso(dateFrom));
+        if (dateTo) q = q.lte('created_at', endOfDayIso(dateTo));
+        const { data, error } = await q;
         if (error || !data || data.length === 0) break;
         for (const t of data) {
           pixGenerated += t.amount || 0;
@@ -42,11 +53,14 @@ export function RevenueMetrics() {
       // Also include external gateways (Hotmart, Kiwify, etc.) via webhook
       let extFrom = 0;
       while (true) {
-        const { data, error } = await (supabase as any)
+        let q: any = (supabase as any)
           .from("external_gateway_events")
           .select("amount, status")
           .eq("user_id", user.id)
           .range(extFrom, extFrom + pageSize - 1);
+        if (dateFrom) q = q.gte('created_at', startOfDayIso(dateFrom));
+        if (dateTo) q = q.lte('created_at', endOfDayIso(dateTo));
+        const { data, error } = await q;
         if (error || !data || data.length === 0) break;
         for (const t of data as Array<{ amount: number; status: string }>) {
           pixGenerated += t.amount || 0;
@@ -60,11 +74,14 @@ export function RevenueMetrics() {
       }
 
       // Count messages sent (sent/delivered) for this user
-      const { count: msgCount } = await supabase
+      let msgQ: any = supabase
         .from("campaign_sends")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .in("status", ["sent", "delivered", "read"]);
+      if (dateFrom) msgQ = msgQ.gte('created_at', startOfDayIso(dateFrom));
+      if (dateTo) msgQ = msgQ.lte('created_at', endOfDayIso(dateTo));
+      const { count: msgCount } = await msgQ;
 
       setRevenue({ pixGenerated, approved });
       setMsgPerSale({ messages: msgCount || 0, sales: approvedSalesCount });
@@ -73,7 +90,7 @@ export function RevenueMetrics() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
