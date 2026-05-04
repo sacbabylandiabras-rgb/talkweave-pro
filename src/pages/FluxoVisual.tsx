@@ -1331,6 +1331,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => setShowTemplatesDialog(true)}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Modelos
+              </Button>
               {isGroupsMode && (
                 <Button
                   size="sm"
