@@ -181,33 +181,127 @@ export function SelectContactsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col z-[100]">
         <DialogHeader>
-          <DialogTitle>Selecionar Contatos</DialogTitle>
+          <DialogTitle>
+            {isGroupsMode ? "Selecionar Grupos" : "Selecionar Contatos"}
+          </DialogTitle>
           <DialogDescription>
-            Escolha contatos ou digite números manualmente
+            {isGroupsMode
+              ? "Escolha os grupos do WhatsApp que receberão o fluxo"
+              : "Escolha contatos ou digite números manualmente"}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="contacts" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Contatos
-              {selectedContacts.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {selectedContacts.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="manual" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Digitar Número
-              {manualPhones.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {manualPhones.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+          <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : "grid-cols-2"}`}>
+            {isGroupsMode ? (
+              <TabsTrigger value="groups" className="flex items-center gap-2">
+                <UsersRound className="h-4 w-4" />
+                Grupos
+                {selectedContacts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                    {selectedContacts.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ) : (
+              <>
+                <TabsTrigger value="contacts" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Contatos
+                  {selectedContacts.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                      {selectedContacts.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Digitar Número
+                  {manualPhones.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                      {manualPhones.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
+
+          {isGroupsMode && (
+            <TabsContent value="groups" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar grupo pelo nome..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                  {selectedContacts.length === filteredGroups.length && filteredGroups.length > 0 ? "Desmarcar" : "Selecionar"} Todos
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <UsersRound className="h-4 w-4" />
+                  {filteredGroups.length} grupos encontrados
+                </span>
+                <Badge variant="secondary">
+                  {selectedContacts.length} selecionados
+                </Badge>
+              </div>
+
+              {loadingGroups ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 border rounded-lg">
+                  <div className="p-4 space-y-2">
+                    {filteredGroups.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {searchQuery ? "Nenhum grupo encontrado" : "Nenhum grupo disponível na sua conexão"}
+                      </div>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <div
+                          key={group.id}
+                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                          onClick={() => handleToggleContact(group.id)}
+                        >
+                          <Checkbox
+                            checked={selectedContacts.includes(group.id)}
+                            onCheckedChange={() => handleToggleContact(group.id)}
+                          />
+                          {group.foto ? (
+                            <img
+                              src={group.foto}
+                              alt={group.nome}
+                              className="w-9 h-9 rounded-full object-cover bg-muted"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                              <UsersRound className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{group.nome || "Grupo sem nome"}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {group.membros || 0} membros
+                              {group.sourceInstanceName ? ` · ${group.sourceInstanceName}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="contacts" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
             <div className="flex items-center gap-2">
