@@ -390,7 +390,7 @@ const resolveLidToRealPhoneForSend = async (
   return realPhone && !realPhone.includes('@lid') && realPhone.length >= 8 ? realPhone : lidPhone;
 };
 
-const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null }) => {
+const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
 
@@ -403,6 +403,8 @@ const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId
     flow: opts.campaignName || 'Campanha',
     src: 'campaign',
   });
+
+  if (opts.sendId) params.set('cs', opts.sendId);
 
   return cleanUrl.includes('go.zaplynxpro.online/invite/') ? cleanUrl : `${PUBLIC_TRACKING_URL}?${params.toString()}`;
 };
@@ -1493,7 +1495,7 @@ serve(async (req) => {
         };
         const sanitizeCallPhone = (raw: string) => String(raw || '').replace(/\D+/g, '');
 
-        const formatZapiButtons = (buttons: any[]) => buttons
+          const formatZapiButtons = (buttons: any[], sendId?: string | null) => buttons
           .map((btn: any, index: number) => {
             const btnType = String(btn?.type || 'url').toUpperCase();
             const label = String(btn?.text || btn?.label || `Botão ${index + 1}`).trim().slice(0, 20);
@@ -1516,7 +1518,14 @@ serve(async (req) => {
               buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
             } else {
               const rawUrl = btn?.url || btn?.value || '';
-              const finalUrl = ensureHttpUrl(normalizePublicInviteUrl(rawUrl || 'https://z-api.io'));
+              const finalUrl = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
+                campaignId,
+                userId: credentials.userId,
+                phone: contact.phone,
+                label,
+                campaignName: campaign?.name,
+                sendId,
+              });
               if (!finalUrl) return null;
               buttonData.type = 'URL';
               buttonData.url = finalUrl;
@@ -1525,8 +1534,8 @@ serve(async (req) => {
           })
           .filter(Boolean);
 
-        const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
-          const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
+        const buildZapiButtonActionPayload = (buttons: any[], message: string, sendId?: string | null) => {
+          const formattedButtons = formatZapiButtons(buttons, sendId).slice(0, 3);
           const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
@@ -1706,7 +1715,7 @@ serve(async (req) => {
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
@@ -1723,12 +1732,12 @@ serve(async (req) => {
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ');
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ', reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, image: campaign.template.media_url, ...buttonPayload };
 
         } else if (templateType === 'imagem') {
@@ -1797,7 +1806,7 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else {

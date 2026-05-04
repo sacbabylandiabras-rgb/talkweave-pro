@@ -202,7 +202,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     };
   }, [statsDialogOpen]);
 
-  // Detect if the campaign template has a URL button (to show/hide "Cliques" column)
+  // Detect if the campaign template has trackable links (to show click metrics)
   useEffect(() => {
     if (!statsDialogOpen || !statsDialogCampaignId) {
       setStatsDialogHasUrlButton(false);
@@ -230,7 +230,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
       if (!active) return;
       const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
-      const hasUrl = buttons.some((b: any) => String(b?.type || '').toUpperCase() === 'URL');
+      const hasUrl = buttons.some((b: any) => {
+        const type = String(b?.type || '').toUpperCase();
+        return type === 'URL' || Boolean(b?.url || b?.value);
+      });
       setStatsDialogHasUrlButton(hasUrl);
     };
 
@@ -316,6 +319,23 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         nextMap.set(phoneKey, row.created_at);
       });
 
+      const { data: linkRows, error: linkError } = await (supabase as any)
+        .from('link_clicks')
+        .select('phone, created_at')
+        .eq('campaign_id', statsDialogCampaignId)
+        .order('created_at', { ascending: false })
+        .limit(5000);
+
+      if (linkError) {
+        console.error('Erro ao carregar cliques da campanha:', linkError);
+      }
+
+      (linkRows || []).forEach((row: any) => {
+        const phoneKey = normalizePhoneKey(row.phone);
+        if (!phoneKey || nextMap.has(phoneKey)) return;
+        nextMap.set(phoneKey, row.created_at);
+      });
+
       setStatsDialogClickMap(nextMap);
     };
 
@@ -348,7 +368,32 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       }
       setStatsDialogLinkClicks((data || []) as any);
     })();
-    return () => { active = false; };
+
+    const channel = supabase
+      .channel(`campaign-link-clicks-${statsDialogCampaignId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'link_clicks', filter: `campaign_id=eq.${statsDialogCampaignId}` },
+        (payload) => {
+          const row = payload.new as any;
+          setStatsDialogLinkClicks((prev) => [row, ...prev].slice(0, 500));
+          const phoneKey = normalizePhoneKey(row.phone);
+          if (phoneKey) {
+            setStatsDialogClickMap((prev) => {
+              if (prev.has(phoneKey)) return prev;
+              const next = new Map(prev);
+              next.set(phoneKey, row.created_at);
+              return next;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
   const isCancelledSendStatus = (status?: string | null) =>
@@ -1181,7 +1226,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
             const readCount = fullContactList.filter(c => c.readAt).length;
-            const clickedCount = fullContactList.filter(c => c.clickedAt).length;
+            const identifiedClickCount = fullContactList.filter(c => c.clickedAt).length;
+            const clickedCount = Math.max(identifiedClickCount, statsDialogLinkClicks.length);
 
             const handleRetryCancelled = async () => {
               const cancelledContacts = fullContactList
