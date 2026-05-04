@@ -48,7 +48,7 @@ export function SelectContactsDialog({
   const isGroupsMode = mode === "groups";
   const { contacts, loading } = useContacts();
   const { groups, loading: loadingGroups } = useWhatsAppGroups(
-    isGroupsMode ? { provider: "uazapi" } : undefined
+    isGroupsMode ? {} : undefined
   );
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
