@@ -251,6 +251,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const { data, error } = await (supabase as any)
         .from('flow_automations')
         .select('*')
+        .eq('category', isGroupsMode ? 'groups' : 'contacts')
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -273,7 +274,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   useEffect(() => {
     fetchFluxos();
-  }, []);
+  }, [isGroupsMode]);
 
   useEffect(() => {
     const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
