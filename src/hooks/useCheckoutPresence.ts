@@ -34,8 +34,43 @@ interface IpInfo {
 }
 
 const getCoordinatesByIP = async (): Promise<IpInfo> => {
-  // Try multiple providers for better accuracy
-  const providers = [
+  // Provedores ordenados por precisão (bases mais atualizadas primeiro).
+  // ipapi.is e freeipapi.com têm dados de cidade significativamente mais
+  // recentes para BR do que ipwho.is/ip-api/ipapi.co.
+  const providers: Array<() => Promise<IpInfo | null>> = [
+    async () => {
+      const res = await fetch("https://api.ipapi.is/", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const loc = data?.location;
+      if (loc && typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+        return {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          ip: data.ip,
+          city: loc.city,
+          region: loc.state,
+          country: loc.country,
+        };
+      }
+      return null;
+    },
+    async () => {
+      const res = await fetch("https://freeipapi.com/api/json/", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+        return {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          ip: data.ipAddress,
+          city: data.cityName,
+          region: data.regionName,
+          country: data.countryName,
+        };
+      }
+      return null;
+    },
     async () => {
       const res = await fetch("https://ipwho.is/", { signal: AbortSignal.timeout(4000) });
       if (!res.ok) return null;
@@ -53,26 +88,13 @@ const getCoordinatesByIP = async (): Promise<IpInfo> => {
       return null;
     },
     async () => {
-      const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(
+        "https://ip-api.com/json/?fields=lat,lon,query,city,regionName,country,status",
+        { signal: AbortSignal.timeout(4000) }
+      );
       if (!res.ok) return null;
       const data = await res.json();
-      if (typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          ip: data.ip,
-          city: data.city,
-          region: data.region,
-          country: data.country_name,
-        };
-      }
-      return null;
-    },
-    async () => {
-      const res = await fetch("https://ip-api.com/json/?fields=lat,lon,query,city,regionName,country", { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (typeof data.lat === "number" && typeof data.lon === "number") {
+      if (data.status === "success" && typeof data.lat === "number" && typeof data.lon === "number") {
         return {
           latitude: data.lat,
           longitude: data.lon,
@@ -86,15 +108,22 @@ const getCoordinatesByIP = async (): Promise<IpInfo> => {
     },
   ];
 
+  // Considera resultado "bom" só se vier com cidade (lat/lon sem cidade
+  // costuma ser o ponto central do estado/país, o que polui o globo).
+  let fallback: IpInfo | null = null;
   for (const provider of providers) {
     try {
       const result = await provider();
-      if (result) return result;
+      if (!result) continue;
+      if (result.city && String(result.city).trim().length > 0) {
+        return result;
+      }
+      if (!fallback) fallback = result;
     } catch {
       continue;
     }
   }
-  return {};
+  return fallback ?? {};
 };
 
 export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
