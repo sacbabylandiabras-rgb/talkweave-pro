@@ -1495,7 +1495,7 @@ serve(async (req) => {
         };
         const sanitizeCallPhone = (raw: string) => String(raw || '').replace(/\D+/g, '');
 
-        const formatZapiButtons = (buttons: any[]) => buttons
+          const formatZapiButtons = (buttons: any[], sendId?: string | null) => buttons
           .map((btn: any, index: number) => {
             const btnType = String(btn?.type || 'url').toUpperCase();
             const label = String(btn?.text || btn?.label || `Botão ${index + 1}`).trim().slice(0, 20);
@@ -1518,7 +1518,14 @@ serve(async (req) => {
               buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
             } else {
               const rawUrl = btn?.url || btn?.value || '';
-              const finalUrl = ensureHttpUrl(normalizePublicInviteUrl(rawUrl || 'https://z-api.io'));
+              const finalUrl = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
+                campaignId,
+                userId: credentials.userId,
+                phone: contact.phone,
+                label,
+                campaignName: campaign?.name,
+                sendId,
+              });
               if (!finalUrl) return null;
               buttonData.type = 'URL';
               buttonData.url = finalUrl;
@@ -1527,8 +1534,8 @@ serve(async (req) => {
           })
           .filter(Boolean);
 
-        const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
-          const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
+        const buildZapiButtonActionPayload = (buttons: any[], message: string, sendId?: string | null) => {
+          const formattedButtons = formatZapiButtons(buttons, sendId).slice(0, 3);
           const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
