@@ -1201,7 +1201,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
             const totalCount = fullContactList.length;
             const readCount = fullContactList.filter(c => c.readAt).length;
-            const clickedCount = fullContactList.filter(c => c.clickedAt).length;
+            const identifiedClickCount = fullContactList.filter(c => c.clickedAt).length;
+            const clickedCount = Math.max(identifiedClickCount, statsDialogLinkClicks.length);
 
             const handleRetryCancelled = async () => {
               const cancelledContacts = fullContactList
