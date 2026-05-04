@@ -447,14 +447,14 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            {effectiveProvider === "zapi" && (
+            {(isGroupsMode || effectiveProvider === "zapi") && (
               <InstanceSelector
                 providerFilter="uazapi"
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
               />
             )}
 
-            {effectiveProvider === "meta" && (
+            {!isGroupsMode && effectiveProvider === "meta" && (
               <div className="space-y-2">
                 <Label className="text-xs">Número remetente</Label>
                 {loadingMetaPhones ? (
@@ -494,7 +494,7 @@ export function SelectContactsDialog({
             onClick={handleConfirm}
             disabled={totalSelected === 0}
           >
-            Enviar para {totalSelected} contato{totalSelected !== 1 ? "s" : ""}
+            Enviar para {totalSelected} {isGroupsMode ? `grupo${totalSelected !== 1 ? "s" : ""}` : `contato${totalSelected !== 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
