@@ -38,6 +38,10 @@ interface ActiveVisitor {
   joinedAt?: string;
   latitude?: number;
   longitude?: number;
+  ip?: string;
+  city?: string;
+  region?: string;
+  country?: string;
 }
 
 export default function PayDashboard() {
@@ -155,6 +159,10 @@ export default function PayDashboard() {
                 joinedAt: visitor.joinedAt,
                 latitude: visitor.latitude,
                 longitude: visitor.longitude,
+                ip: visitor.ip,
+                city: visitor.city,
+                region: visitor.region,
+                country: visitor.country,
               } satisfies ActiveVisitor,
             ])
         ).values()
