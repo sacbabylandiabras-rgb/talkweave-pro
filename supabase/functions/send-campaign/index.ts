@@ -1821,7 +1821,7 @@ serve(async (req) => {
           if (replyButtonFollowUp) delete requestBody._replyButtonFollowUp;
 
           if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
-            console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando texto completo antes dos botões para evitar falha silenciosa.`);
+            console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando botão primeiro e texto completo depois para preservar o render do botão.`);
 
             // Construir fallback textual dos botões (URL/CALL) para garantir que o link/telefone sempre apareça,
             // mesmo que o card interativo não renderize na conta Z-API atual.
@@ -1841,19 +1841,8 @@ serve(async (req) => {
               ? `${buttonActionMessage}\n\n${buttonTextFallback}`
               : buttonActionMessage;
 
-            const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-              body: JSON.stringify({ phone: contact.phone, message: fullTextWithButtons }),
-            });
-
-            if (!textResponse.ok) {
-              const textError = await textResponse.text().catch(() => '');
-              throw new Error(`Erro ao enviar texto completo antes dos botões: ${textError || textResponse.status}`);
-            }
-
-            await sleep(1200);
             requestBody.message = INTERACTIVE_FALLBACK_BODY;
+            requestBody._textAfterButtons = fullTextWithButtons;
           }
 
           const zapiResponse = await fetch(zapiUrl, {
