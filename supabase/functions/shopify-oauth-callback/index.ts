@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
-const DEFAULT_ORIGIN = "https://talkweave-pro.lovable.app";
+const DEFAULT_ORIGIN = "https://zaplynx.com";
 const SUCCESS_PATH = "/gateway-checkout/integrations";
 const API_VERSION = "2025-01";
 

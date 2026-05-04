@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
         type: "recovery",
         email: customerEmail,
         options: {
-          redirectTo: "https://talkweave-pro.lovable.app/auth",
+          redirectTo: "https://zaplynx.com/auth",
         },
       });
 

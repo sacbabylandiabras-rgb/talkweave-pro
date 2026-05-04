@@ -830,7 +830,7 @@ function FlowMock() {
               <rect x="1" y="5" width="10" height="7" rx="1.5" stroke="#28c840" strokeWidth="1.2"/>
               <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#28c840" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
-            zaplynx.pro/fluxo-visual
+            zaplynx.com/fluxo-visual
           </div>
           <div style={{width:48}} />
         </div>

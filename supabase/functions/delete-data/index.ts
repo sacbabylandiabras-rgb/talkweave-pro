@@ -17,7 +17,7 @@ serve(async (req) => {
     // Meta sends a signed_request with user_id
     // We acknowledge receipt and return a confirmation
     const confirmationCode = crypto.randomUUID();
-    const url = `https://zaplynx.pro/politica-privacidade`;
+    const url = `https://zaplynx.com/politica-privacidade`;
 
     console.log("Data deletion request received:", JSON.stringify(body));
 
@@ -34,7 +34,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing data deletion:", error);
     return new Response(
-      JSON.stringify({ url: "https://zaplynx.pro/politica-privacidade", confirmation_code: "error" }),
+      JSON.stringify({ url: "https://zaplynx.com/politica-privacidade", confirmation_code: "error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   }

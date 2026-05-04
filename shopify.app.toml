@@ -1,6 +1,6 @@
 name = "ZapLynx 2.0"
 client_id = "0a4a4627f4e668ba37162e209e84862a"
-application_url = "https://talkweave-pro.lovable.app/shopify/callback"
+application_url = "https://zaplynx.com/shopify/callback"
 embedded = true
 
 [access_scopes]

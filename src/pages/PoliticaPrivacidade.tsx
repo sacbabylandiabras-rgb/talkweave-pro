@@ -78,7 +78,7 @@ Você pode revogar essas permissões a qualquer momento nas configurações do F
             title: "10. Contato",
             content: `Para dúvidas sobre esta Política de Privacidade ou sobre o tratamento dos seus dados:
 • E-mail: zaplynx2.0@gmail.com
-• Plataforma: talkweave-pro.lovable.app`
+• Plataforma: zaplynx.com`
           },
         ].map((section) => (
           <div key={section.title} className="mb-6">
