@@ -1487,12 +1487,6 @@ serve(async (req) => {
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
         const specialTpl = parseSpecialTemplate(campaign.template.content);
 
-        const ensureHttpUrl = (raw: string) => {
-          const v = String(raw || '').trim();
-          if (!v) return '';
-          if (/^https?:\/\//i.test(v)) return v;
-          return `https://${v.replace(/^\/+/, '')}`;
-        };
         const sanitizeCallPhone = (raw: string) => String(raw || '').replace(/\D+/g, '');
 
           const formatZapiButtons = (buttons: any[], sendId?: string | null) => buttons
@@ -1807,13 +1801,6 @@ serve(async (req) => {
             console.log(`📌 Enviando respostas rápidas por lista de botões para melhor renderização no WhatsApp.`);
           }
 
-          const isZapiButtonActionSend = zapiUrl.endsWith('/send-button-actions');
-          const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
-          const replyButtonFollowUp = requestBody?._replyButtonFollowUp;
-          if (replyButtonFollowUp) delete requestBody._replyButtonFollowUp;
-          const textAfterButtons = requestBody?._textAfterButtons;
-          if (textAfterButtons) delete requestBody._textAfterButtons;
-
           // Sempre enviar texto + botões juntos na mesma mensagem interativa,
           // conforme o modelo cadastrado pelo usuário.
 
@@ -1834,39 +1821,6 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
-            if (isZapiButtonActionSend && textAfterButtons) {
-              await sleep(1200);
-              const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-                body: JSON.stringify({ phone: contact.phone, message: textAfterButtons }),
-              });
-              if (!textResponse.ok) {
-                const textError = await textResponse.text().catch(() => '');
-                throw new Error(`Erro ao enviar texto completo após os botões: ${textError || textResponse.status}`);
-              }
-            }
-
-            if (isZapiButtonActionSend && replyButtonFollowUp) {
-              await sleep(1200);
-              const useList = !!replyButtonFollowUp._useButtonList;
-              const followUrl = useList
-                ? `${baseZapiUrl}/send-button-list`
-                : `${baseZapiUrl}/send-button-actions`;
-              const followBody: any = { phone: contact.phone, ...replyButtonFollowUp };
-              delete followBody._useButtonList;
-              if (useList ? followBody.buttonList?.buttons?.length : followBody.buttonActions?.length) {
-                const replyResponse = await fetch(followUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-                  body: JSON.stringify(followBody),
-                });
-                const replyText = await replyResponse.text().catch(() => '');
-                console.log(`📬 Campaign Z-API REPLY follow-up for ${contact.phone}: status=${replyResponse.status}, body=${replyText.substring(0, 300)}`);
-                if (!replyResponse.ok) throw new Error(`Erro ao enviar botões de resposta: ${replyText || replyResponse.status}`);
-              }
-            }
-
             if (specialTpl?.type === 'uaz_location_button') {
               await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
               const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
