@@ -331,6 +331,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           nodes: fluxo.nodes,
           edges: fluxo.edges,
           active: false,
+          category: isGroupsMode ? 'groups' : 'contacts',
         });
 
       if (error) throw error;
