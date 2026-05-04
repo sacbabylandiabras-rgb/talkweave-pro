@@ -318,6 +318,7 @@ export type Database = {
       flow_automations: {
         Row: {
           active: boolean
+          category: string
           created_at: string
           edges: Json
           id: string
@@ -329,6 +330,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          category?: string
           created_at?: string
           edges?: Json
           id?: string
@@ -340,6 +342,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          category?: string
           created_at?: string
           edges?: Json
           id?: string
