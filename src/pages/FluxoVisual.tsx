@@ -1287,6 +1287,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
               </Button>
+              {isGroupsMode && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => {
+                    setIsSelectingPreGroups(true);
+                    setShowContactsDialog(true);
+                  }}
+                >
+                  <Users className="h-4 w-4 mr-1.5" />
+                  Grupos{preselectedGroups.length > 0 ? ` (${preselectedGroups.length})` : ""}
+                </Button>
+              )}
               <Button size="sm" onClick={handleEnviarAgora} className="h-8">
                 <Send className="h-4 w-4 mr-1.5" />
                 Enviar
