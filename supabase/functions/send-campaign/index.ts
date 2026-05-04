@@ -1000,9 +1000,35 @@ serve(async (req) => {
         credentials.instanceName = specificInstance.instanceName;
       } else {
         // Fallback: instância requisitada não existe mais (provavelmente foi reconectada
-        // e ganhou novo UUID). Em vez de pausar, usa a instância preferida do usuário.
-        console.log(`⚠️ Requested instance ${requestedInstanceId} not found. Falling back to preferred instance for user ${credentials.userId}.`);
-        const fallbackInstance = await resolvePreferredUserInstance(supabase, credentials.userId);
+        // e ganhou novo UUID). Procura qualquer instância ativa E conectada do usuário.
+        console.log(`⚠️ Requested instance ${requestedInstanceId} not found. Searching for any connected instance for user ${credentials.userId}.`);
+        const { data: activeInstances } = await supabase
+          .from('zapi_instances')
+          .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key, is_default')
+          .eq('user_id', credentials.userId)
+          .eq('is_active', true)
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false });
+
+        let fallbackInstance: ResolvedInstance | null = null;
+        for (const row of (activeInstances || [])) {
+          const candidate = mapResolvedInstance(row);
+          if (!candidate) continue;
+          const status = await fetchDeviceStatusSnapshot(candidate);
+          if (status.connected) {
+            fallbackInstance = candidate;
+            console.log(`✅ Using connected instance ${candidate.instanceName} as fallback.`);
+            break;
+          }
+        }
+
+        // Se nenhuma estava conectada, ainda usa a primeira ativa para que o check de
+        // device do batch decida (com retry) se realmente pausa.
+        if (!fallbackInstance && activeInstances && activeInstances.length > 0) {
+          fallbackInstance = mapResolvedInstance(activeInstances[0]);
+          console.log(`⚠️ No connected instance found. Trying first active: ${fallbackInstance?.instanceName}`);
+        }
+
         if (!fallbackInstance) {
           await supabase
             .from('campaigns')
