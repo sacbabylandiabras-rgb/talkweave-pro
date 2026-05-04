@@ -1,17 +1,22 @@
 export const readDeviceConnectivity = (deviceStatus: any) => {
-  const status = String(deviceStatus?.status || '').toLowerCase();
+  const status = String(deviceStatus?.status || deviceStatus?.device?.status || '').toLowerCase();
   const connectedFlag = deviceStatus?.connected;
 
   const connected =
     connectedFlag === true ||
     (typeof connectedFlag === 'string' && connectedFlag.toLowerCase() === 'true') ||
-    status === 'connected';
+    deviceStatus?.session === true ||
+    deviceStatus?.smartphoneConnected === true ||
+    deviceStatus?.device?.connected === true ||
+    ['connected', 'open', 'online'].includes(status);
 
   const explicitlyDisconnected =
-    connectedFlag === false ||
-    status === 'disconnected' ||
-    status === 'close' ||
-    status === 'closed';
+    !connected && (
+      connectedFlag === false ||
+      status === 'disconnected' ||
+      status === 'close' ||
+      status === 'closed'
+    );
 
   return { connected, explicitlyDisconnected };
 };
