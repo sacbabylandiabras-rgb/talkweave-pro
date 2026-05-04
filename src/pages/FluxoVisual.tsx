@@ -207,6 +207,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
 
+  // Para modo grupos: grupos pré-selecionados antes de criar/abrir o fluxo
+  const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
+  const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
+  const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
+  const [preselectedMetaPhoneId, setPreselectedMetaPhoneId] = useState<string | undefined>(undefined);
+  // Quando true, o diálogo de seleção é apenas para escolher grupos antes
+  // de abrir o editor (não dispara envio ao confirmar).
+  const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
+
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
     try {
