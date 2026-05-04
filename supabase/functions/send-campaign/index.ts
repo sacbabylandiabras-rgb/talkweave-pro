@@ -1715,7 +1715,7 @@ serve(async (req) => {
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
@@ -1732,12 +1732,12 @@ serve(async (req) => {
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ');
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ', reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, image: campaign.template.media_url, ...buttonPayload };
 
         } else if (templateType === 'imagem') {
@@ -1806,7 +1806,7 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else {
