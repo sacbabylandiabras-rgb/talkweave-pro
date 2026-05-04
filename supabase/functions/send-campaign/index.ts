@@ -1738,6 +1738,19 @@ serve(async (req) => {
         }
 
         if (zapiUrl) {
+          if (zapiUrl.includes('/send-button-actions') && isInteractiveBodyTooLong(requestBody?.message)) {
+            const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+              body: JSON.stringify({ phone: contact.phone, message: requestBody.message }),
+            });
+            const textBody = await textResponse.text().catch(() => '');
+            console.log(`📨 Long campaign text sent before buttons for ${contact.phone}: status=${textResponse.status}, body=${textBody.substring(0, 200)}`);
+            if (!textResponse.ok) throw new Error(`Erro ao enviar texto da campanha: ${textBody}`);
+            await sleep(1200);
+            requestBody.message = INTERACTIVE_FALLBACK_BODY;
+          }
+
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
