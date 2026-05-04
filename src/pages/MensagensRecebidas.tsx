@@ -441,7 +441,9 @@ const ChatView = ({
         // Upload to Supabase storage then send URL
         const { supabase } = await import('@/integrations/supabase/client');
         const ext = attachedFile.file.name.split('.').pop() || 'bin';
-        const path = `chat-media/${Date.now()}.${ext}`;
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error("Usuário não autenticado");
+        const path = `${currentUser.id}/chat-media/${Date.now()}.${ext}`;
         const { data: uploadData, error: uploadError } = await supabase.storage.from('template-media').upload(path, attachedFile.file);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
@@ -506,7 +508,9 @@ const ChatView = ({
         setSending(true);
         try {
           const { supabase } = await import('@/integrations/supabase/client');
-          const path = `chat-media/${Date.now()}.ogg`;
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!currentUser) throw new Error("Usuário não autenticado");
+          const path = `${currentUser.id}/chat-media/${Date.now()}.ogg`;
           const { error: uploadError } = await supabase.storage.from('template-media').upload(path, audioFile);
           if (uploadError) throw uploadError;
           const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
