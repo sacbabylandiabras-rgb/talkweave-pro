@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, Zap } from "lucide-react";
 
 const SHOPIFY_API_KEY = "0a4a4627f4e668ba37162e209e84862a";
+const OAUTH_CALLBACK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
 
 declare global {
   interface Window {
@@ -23,6 +24,11 @@ const ShopifyEmbedded = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.has("code") || params.has("hmac") || params.has("state")) {
+      window.location.replace(`${OAUTH_CALLBACK_URL}${window.location.search}`);
+      return;
+    }
+
     const shopParam = params.get("shop") || "";
     const hostParam = params.get("host") || "";
     setShop(shopParam);
