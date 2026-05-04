@@ -168,6 +168,8 @@ interface MarkerData {
   id: string;
   position: THREE.Vector3;
   label: string;
+  ip?: string;
+  location?: string;
 }
 
 function VisitorMarker({ marker, onHover, onLeave }: { marker: MarkerData; onHover: (m: MarkerData) => void; onLeave: () => void }) {
@@ -209,10 +211,13 @@ function VisitorMarkers({ visitors, onHover, onLeave }: { visitors: GlobeVisitor
   const markers = useMemo(
     () => visitors.map((visitor) => {
       const coords = resolveVisitorCoordinates(visitor);
+      const locationParts = [visitor.city, visitor.region, visitor.country].filter(Boolean);
       return {
         id: visitor.sessionId,
         position: latLonToVec3(coords.lat, coords.lon, 2.08),
         label: visitor.productName || visitor.checkoutSlug || "Visitante",
+        ip: visitor.ip,
+        location: locationParts.join(", "),
       };
     }),
     [visitors]
@@ -230,9 +235,15 @@ function VisitorMarkers({ visitors, onHover, onLeave }: { visitors: GlobeVisitor
 function TooltipOverlay({ marker }: { marker: MarkerData }) {
   return (
     <Html position={marker.position.toArray()} distanceFactor={6} zIndexRange={[100, 0]} style={{ pointerEvents: "none" }}>
-      <div className="rounded-md border border-border bg-card/95 px-3 py-1.5 shadow-lg backdrop-blur-sm whitespace-nowrap" style={{ transform: "translateY(-28px)" }}>
+      <div className="rounded-md border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm whitespace-nowrap" style={{ transform: "translateY(-28px)" }}>
         <p className="text-xs font-medium text-foreground">{marker.label}</p>
-        <p className="text-[10px] text-muted-foreground">Visitante ativo</p>
+        {marker.ip && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">IP: {marker.ip}</p>
+        )}
+        {marker.location && (
+          <p className="text-[10px] text-muted-foreground">{marker.location}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground mt-0.5">Visitante ativo</p>
       </div>
     </Html>
   );
