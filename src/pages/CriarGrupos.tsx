@@ -203,7 +203,9 @@ function GerenciarGrupoTab() {
 
   const uploadFileToStorage = async (file: File): Promise<string> => {
     const fileExt = file.name.split(".").pop();
-    const fileName = `group-photos/${Date.now()}.${fileExt}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+    const fileName = `${user.id}/group-photos/${Date.now()}.${fileExt}`;
     const { data, error } = await supabase.storage
       .from("template-media")
       .upload(fileName, file, { contentType: file.type });
@@ -1292,7 +1294,9 @@ function LinksRotativosTab() {
 
   const uploadFileToStorage = async (file: File): Promise<string> => {
     const fileExt = file.name.split(".").pop();
-    const fileName = `group-photos/${Date.now()}.${fileExt}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+    const fileName = `${user.id}/group-photos/${Date.now()}.${fileExt}`;
     const { data, error } = await supabase.storage
       .from("template-media")
       .upload(fileName, file, { contentType: file.type });
