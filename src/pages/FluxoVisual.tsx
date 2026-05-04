@@ -1162,6 +1162,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
       }
 
+      // Bloco de ação: aplica delay antes de continuar o fluxo
+      if (targetNode.type === "blocoAcao") {
+        const actionType = targetNode.data.actionType;
+        if (actionType === "delay") {
+          const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+          if (seconds > 0) {
+            await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+          }
+        }
+      }
+
       await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId);
     }
   };
