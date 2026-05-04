@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
-const APP_ORIGIN = "https://talkweave-pro.lovable.app";
+const APP_ORIGIN = "https://zaplynx.com";
 const CALLBACK_PATH = "/shopify-oauth-callback";
 const SHOPIFY_SCOPES = [
   "read_products",

@@ -20,7 +20,7 @@ Nossos principais serviços incluem:
 
 Horário de funcionamento: Segunda a Sexta, das 8h às 18h
 Localização: São Paulo, SP
-Website: www.zaplynx.com.br`);
+Website: www.zaplynx.com`);
 
   const [personalidade, setPersonalidade] = useState("Profissional, cordial e prestativo. Sempre disposto a ajudar e resolver dúvidas dos clientes.");
 

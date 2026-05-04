@@ -6,7 +6,7 @@ export default function TermosServico() {
         <p className="text-xs text-muted-foreground mb-8">Última atualização: 23 de março de 2026</p>
 
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Estes Termos de Serviço regulam o uso da plataforma <strong className="text-foreground">ZapLynx</strong>, operada por meio do domínio talkweave-pro.lovable.app. Ao utilizar nossos serviços, você concorda com os termos descritos abaixo.
+          Estes Termos de Serviço regulam o uso da plataforma <strong className="text-foreground">ZapLynx</strong>, operada por meio do domínio zaplynx.com. Ao utilizar nossos serviços, você concorda com os termos descritos abaixo.
         </p>
 
         {[
@@ -64,7 +64,7 @@ O descumprimento dessas regras pode resultar no cancelamento imediato da conta.`
           },
           {
             title: "7. Privacidade e Dados",
-            content: `O tratamento de dados pessoais é regido pela nossa Política de Privacidade, disponível em talkweave-pro.lovable.app/politica-privacidade. Ao utilizar o serviço, você concorda com a coleta e uso de dados conforme descrito nessa política.`
+            content: `O tratamento de dados pessoais é regido pela nossa Política de Privacidade, disponível em zaplynx.com/politica-privacidade. Ao utilizar o serviço, você concorda com a coleta e uso de dados conforme descrito nessa política.`
           },
           {
             title: "8. Rescisão",
@@ -84,7 +84,7 @@ O descumprimento dessas regras pode resultar no cancelamento imediato da conta.`
             title: "11. Contato",
             content: `Para dúvidas sobre estes Termos de Serviço:
 • E-mail: zaplynx2.0@gmail.com
-• Plataforma: talkweave-pro.lovable.app`
+• Plataforma: zaplynx.com`
           },
         ].map((section) => (
           <div key={section.title} className="mb-6">
