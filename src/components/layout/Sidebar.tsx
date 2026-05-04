@@ -75,6 +75,7 @@ const zapiMenuItems = [
   { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
   { id: "criar-grupos", label: "Meus Grupos", icon: Link2, path: "/criar-grupos" },
   { id: "campanhas-grupo", label: "Campanhas em Grupo", icon: Megaphone, path: "/campanhas-grupo" },
+  { id: "fluxo-grupos", label: "Fluxo Grupos", icon: Workflow, path: "/fluxo-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
   { id: "aquecimento", label: "Aquecimento de Número", icon: Flame, path: "/aquecimento" },
