@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
-import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw } from "lucide-react";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw, Link2, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,13 @@ export function SelectContactsDialog({
   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups(
     isGroupsMode ? {} : undefined
   );
+  const [rotativeLinks, setRotativeLinks] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    groups: Array<{ group_id: string; group_name: string; instance_id?: string | null }>;
+  }>>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [manualPhone, setManualPhone] = useState("");
@@ -63,6 +70,44 @@ export function SelectContactsDialog({
   const { data: metaCreds } = useMetaCredentials();
   const isMetaConnected = metaCreds?.connected === true;
   const { activeWorkspace } = useWorkspace();
+
+  const fetchRotativeLinks = async () => {
+    setLoadingLinks(true);
+    try {
+      const { data: links } = await (supabase as any)
+        .from("redirect_links")
+        .select("id, name, slug")
+        .order("created_at", { ascending: false });
+      const { data: linkGroups } = await (supabase as any)
+        .from("redirect_link_groups")
+        .select("redirect_link_id, group_id, group_name, instance_id");
+      const enriched = (links || [])
+        .map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          slug: l.slug,
+          groups: (linkGroups || [])
+            .filter((g: any) => g.redirect_link_id === l.id)
+            .map((g: any) => ({
+              group_id: g.group_id,
+              group_name: g.group_name,
+              instance_id: g.instance_id,
+            })),
+        }))
+        .filter((l: any) => l.groups.length > 0);
+      setRotativeLinks(enriched);
+    } catch {
+      setRotativeLinks([]);
+    } finally {
+      setLoadingLinks(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && isGroupsMode) {
+      fetchRotativeLinks();
+    }
+  }, [open, isGroupsMode]);
 
   // Auto-select meta provider when in Meta workspace
   const effectiveProvider = activeWorkspace === "meta" ? "meta" : sendProvider;
