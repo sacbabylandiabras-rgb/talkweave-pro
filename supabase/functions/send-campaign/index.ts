@@ -1531,10 +1531,18 @@ serve(async (req) => {
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
           if (actionButtons.length > 0) {
+            const payload: any = { message, buttonActions: actionButtons };
             if (replyButtons.length > 0) {
-              console.log(`⚠️ Botões mistos detectados; priorizando botões URL/CALL para evitar que uma segunda mensagem interativa oculte o botão principal.`);
+              console.log(`📌 Botões mistos detectados; enviando URL/CALL primeiro e REPLY em mensagem separada (button-list).`);
+              payload._replyButtonFollowUp = {
+                message: ' ',
+                buttonList: {
+                  buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
+                },
+                _useButtonList: true,
+              };
             }
-            return { message, buttonActions: actionButtons };
+            return payload;
           }
 
           if (replyButtons.length > 0) {
