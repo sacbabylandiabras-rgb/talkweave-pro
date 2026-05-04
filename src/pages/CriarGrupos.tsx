@@ -418,7 +418,12 @@ function GerenciarGrupoTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {instances.length > 1 && (
+          {(() => {
+            const zapiInstances = instances.filter(
+              (i) => (i.api_provider || "zapi").toLowerCase() === "zapi"
+            );
+            if (zapiInstances.length <= 1) return null;
+            return (
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5" />
@@ -433,7 +438,7 @@ function GerenciarGrupoTab() {
                 >
                   Todos
                 </Button>
-                {instances.map((inst) => (
+                {zapiInstances.map((inst) => (
                   <Button
                     key={inst.id}
                     variant={overrideInstanceId === inst.id ? "default" : "outline"}
@@ -446,7 +451,8 @@ function GerenciarGrupoTab() {
                 ))}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {selectedGroup && (
             <div className="flex gap-6 pt-2">
