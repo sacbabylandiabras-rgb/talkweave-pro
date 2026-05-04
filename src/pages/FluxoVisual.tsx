@@ -1143,6 +1143,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   if (showFluxosList) {
     return (
+      <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -1256,6 +1257,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
         )}
       </div>
+      {/* Dialog de Seleção de Grupos (pré-seleção antes de criar fluxo) */}
+      <SelectContactsDialog
+        open={showContactsDialog}
+        onOpenChange={(o) => {
+          setShowContactsDialog(o);
+          if (!o) setIsSelectingPreGroups(false);
+        }}
+        onConfirm={handleConfirmSend}
+        mode={isGroupsMode ? "groups" : "contacts"}
+      />
+      </>
     );
   }
 
