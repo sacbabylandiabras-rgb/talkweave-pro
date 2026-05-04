@@ -56,7 +56,7 @@ export default function PayProducts() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
-  const platformCheckoutDomain = "pay.zaplynxpro.online";
+  const platformCheckoutDomain = "zaplynx.com";
   const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
 
   const fetchProducts = async () => {

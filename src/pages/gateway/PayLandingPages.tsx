@@ -35,7 +35,7 @@ interface CheckoutOption {
 }
 
 const ACCEPTED = ".html,.htm,.css,.js,.png,.jpg,.jpeg,.webp,.svg,.gif,.ico,.woff,.woff2,.ttf,.json,.txt";
-const PLATFORM_CHECKOUT_DOMAIN = "pay.zaplynxpro.online";
+const PLATFORM_CHECKOUT_DOMAIN = "zaplynx.com";
 
 const buildLandingUrl = (domain: string, pageId: string, fileName?: string | null) => {
   const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/+$/, "") || PLATFORM_CHECKOUT_DOMAIN;

@@ -135,7 +135,7 @@ export default function CheckoutBuilder() {
   const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
   const [savedSlug, setSavedSlug] = useState("");
 
-  const platformCheckoutDomain = "pay.zaplynxpro.online";
+  const platformCheckoutDomain = "zaplynx.com";
   const activeTemplateName = config.templateId
     ? TEMPLATE_NAMES[config.templateId] || config.templateName
     : config.templateName;
