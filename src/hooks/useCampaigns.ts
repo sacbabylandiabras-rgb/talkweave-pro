@@ -544,9 +544,9 @@ export const useCampaigns = () => {
       for (const [phoneKey, send] of latestByPhone.entries()) {
         if (send.status === 'delivered') {
           successfulPhones.add(phoneKey);
-        } else if (send.status === 'pending') {
-          // Pending = ficou na fila Z-API mas não foi confirmado como entregue.
-          // Ao pausar, a fila é limpa, então esses contatos precisam ser reenviados.
+        } else if (send.status === 'pending' || send.status === 'sent') {
+          // Pending/sent = aceito pelo provedor, mas sem confirmação real de entrega.
+          // Ao retomar, reenviamos para evitar ficar preso em "enviando".
           pendingRetryPhones.push({
             phone: send.phone,
             name: send.contact_name || undefined,
