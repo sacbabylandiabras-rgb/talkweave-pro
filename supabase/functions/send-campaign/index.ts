@@ -1747,8 +1747,8 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const formattedButtons = formatZapiButtons(campaign.template.buttons);
-          requestBody = { phone: contact.phone, message: fullMessage, buttonActions: formattedButtons };
+          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage);
+          requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-text`;
