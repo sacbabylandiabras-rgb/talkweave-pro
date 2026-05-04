@@ -1756,6 +1756,25 @@ serve(async (req) => {
         }
 
         if (zapiUrl) {
+          const isZapiButtonActionSend = zapiUrl.endsWith('/send-button-actions');
+          const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
+
+          if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
+            console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando texto completo antes dos botões para evitar falha silenciosa.`);
+            const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+              body: JSON.stringify({ phone: contact.phone, message: buttonActionMessage }),
+            });
+
+            if (!textResponse.ok) {
+              const textError = await textResponse.text().catch(() => '');
+              throw new Error(`Erro ao enviar texto completo antes dos botões: ${textError || textResponse.status}`);
+            }
+
+            requestBody.message = INTERACTIVE_FALLBACK_BODY;
+          }
+
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
