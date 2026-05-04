@@ -12,6 +12,10 @@ export interface GlobeVisitor {
   joinedAt?: string;
   latitude?: number;
   longitude?: number;
+  ip?: string;
+  city?: string;
+  region?: string;
+  country?: string;
 }
 
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
