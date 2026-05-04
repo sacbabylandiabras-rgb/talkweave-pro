@@ -308,7 +308,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setCurrentFluxoId(null);
     setNodes(initialNodes);
     setEdges(initialEdges);
-    setShowFluxosList(false);
+    if (isGroupsMode) {
+      // No modo grupos, primeiro o usuário escolhe os grupos, depois abre o editor
+      setPreselectedGroups([]);
+      setPreselectedInstanceIds([]);
+      setPreselectedProvider("zapi");
+      setPreselectedMetaPhoneId(undefined);
+      setIsSelectingPreGroups(true);
+      setShowContactsDialog(true);
+    } else {
+      setShowFluxosList(false);
+    }
   };
 
   const handleCarregarFluxo = (fluxo: FlowAutomation) => {
