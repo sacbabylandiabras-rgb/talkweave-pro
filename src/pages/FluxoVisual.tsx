@@ -760,7 +760,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   };
 
   const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
-    toast.success(`Iniciando envio para ${selectedContacts.length} contato(s)...`);
+    const recipientLabel = isGroupsMode ? "grupo" : "contato";
+    toast.success(`Iniciando envio para ${selectedContacts.length} ${recipientLabel}(s)...`);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -785,7 +786,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }
 
       toast.success("Fluxo enviado com sucesso!", {
-        description: `Mensagens enviadas para ${selectedContacts.length} contato(s)`,
+        description: `Mensagens enviadas para ${selectedContacts.length} ${recipientLabel}(s)`,
       });
     } catch (error) {
       console.error("Erro ao enviar fluxo:", error);
