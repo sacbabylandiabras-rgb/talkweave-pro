@@ -619,6 +619,10 @@ const dispatchUazapiSpecial = async (
 const MAX_BATCH_SIZE = 50;
 const MIN_BATCH_SIZE = 3;
 const MAX_BATCH_RUNTIME_MS = 40_000;
+const MAX_INTERACTIVE_BODY_CHARS = 1000;
+const INTERACTIVE_FALLBACK_BODY = 'Escolha uma opção abaixo:';
+
+const isInteractiveBodyTooLong = (message?: string | null) => String(message || '').length > MAX_INTERACTIVE_BODY_CHARS;
 
 const getBatchSizeForDelay = (delayMs: number) => {
   const safeDelayMs = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 2000;
@@ -1734,6 +1738,19 @@ serve(async (req) => {
         }
 
         if (zapiUrl) {
+          if (zapiUrl.includes('/send-button-actions') && isInteractiveBodyTooLong(requestBody?.message)) {
+            const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+              body: JSON.stringify({ phone: contact.phone, message: requestBody.message }),
+            });
+            const textBody = await textResponse.text().catch(() => '');
+            console.log(`📨 Long campaign text sent before buttons for ${contact.phone}: status=${textResponse.status}, body=${textBody.substring(0, 200)}`);
+            if (!textResponse.ok) throw new Error(`Erro ao enviar texto da campanha: ${textBody}`);
+            await sleep(1200);
+            requestBody.message = INTERACTIVE_FALLBACK_BODY;
+          }
+
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
