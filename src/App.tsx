@@ -158,6 +158,7 @@ const App = () => (
                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
+                  <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
