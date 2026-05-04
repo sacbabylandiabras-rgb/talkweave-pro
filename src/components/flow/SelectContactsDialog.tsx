@@ -13,7 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
-import { Search, Users, Loader2, Plus, X, Phone } from "lucide-react";
+import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -35,19 +36,25 @@ interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
+  mode?: "contacts" | "groups";
 }
 
 export function SelectContactsDialog({ 
   open, 
   onOpenChange, 
-  onConfirm 
+  onConfirm,
+  mode = "contacts",
 }: SelectContactsDialogProps) {
+  const isGroupsMode = mode === "groups";
   const { contacts, loading } = useContacts();
+  const { groups, loading: loadingGroups } = useWhatsAppGroups(
+    isGroupsMode ? { provider: "uazapi" } : undefined
+  );
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [manualPhones, setManualPhones] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("contacts");
+  const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : "contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
   const [metaPhoneNumbers, setMetaPhoneNumbers] = useState<MetaPhoneOption[]>([]);
@@ -84,7 +91,7 @@ export function SelectContactsDialog({
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-      setActiveTab("contacts");
+      setActiveTab(isGroupsMode ? "groups" : "contacts");
       setSendProvider("zapi");
       if (activeWorkspace === "meta") {
         setSendProvider("meta");
@@ -92,7 +99,7 @@ export function SelectContactsDialog({
       setSelectedMetaPhoneId("");
       setMetaPhoneNumbers([]);
     }
-  }, [open]);
+  }, [open, isGroupsMode]);
 
   useEffect(() => {
     if (effectiveProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
