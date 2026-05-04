@@ -1516,14 +1516,7 @@ serve(async (req) => {
               buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
             } else {
               const rawUrl = btn?.url || btn?.value || '';
-              const trackedRaw = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
-                campaignId,
-                userId: credentials.userId,
-                phone: contact.phone,
-                label,
-                campaignName: campaign?.name,
-              });
-              const finalUrl = ensureHttpUrl(trackedRaw);
+              const finalUrl = ensureHttpUrl(normalizePublicInviteUrl(rawUrl || 'https://z-api.io'));
               if (!finalUrl) return null;
               buttonData.type = 'URL';
               buttonData.url = finalUrl;
@@ -1537,15 +1530,20 @@ serve(async (req) => {
           const actionButtons = formattedButtons.filter((btn: any) => ['URL', 'CALL'].includes(String(btn.type || '').toUpperCase()));
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
-          if (actionButtons.length > 0 && replyButtons.length > 0) {
-            console.log(`⚠️ Botões mistos detectados; enviando CALL/URL primeiro e REPLY em mensagem separada conforme documentação.`);
+          if (actionButtons.length > 0) {
+            if (replyButtons.length > 0) {
+              console.log(`⚠️ Botões mistos detectados; priorizando botões URL/CALL para evitar que uma segunda mensagem interativa oculte o botão principal.`);
+            }
+            return { message, buttonActions: actionButtons };
+          }
+
+          if (replyButtons.length > 0) {
             return {
               message,
-              buttonActions: actionButtons,
-              _replyButtonFollowUp: {
-                message: 'Você também pode responder por aqui:',
-                buttonActions: replyButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
+              buttonList: {
+                buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
               },
+              _useButtonList: true,
             };
           }
 
