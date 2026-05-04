@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
-import { Search, Users, Loader2, Plus, X, Phone, UsersRound } from "lucide-react";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -47,7 +47,7 @@ export function SelectContactsDialog({
 }: SelectContactsDialogProps) {
   const isGroupsMode = mode === "groups";
   const { contacts, loading } = useContacts();
-  const { groups, loading: loadingGroups } = useWhatsAppGroups(
+  const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups(
     isGroupsMode ? {} : undefined
   );
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
