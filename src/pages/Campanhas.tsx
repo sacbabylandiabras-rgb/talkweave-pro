@@ -319,6 +319,23 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         nextMap.set(phoneKey, row.created_at);
       });
 
+      const { data: linkRows, error: linkError } = await (supabase as any)
+        .from('link_clicks')
+        .select('phone, created_at')
+        .eq('campaign_id', statsDialogCampaignId)
+        .order('created_at', { ascending: false })
+        .limit(5000);
+
+      if (linkError) {
+        console.error('Erro ao carregar cliques da campanha:', linkError);
+      }
+
+      (linkRows || []).forEach((row: any) => {
+        const phoneKey = normalizePhoneKey(row.phone);
+        if (!phoneKey || nextMap.has(phoneKey)) return;
+        nextMap.set(phoneKey, row.created_at);
+      });
+
       setStatsDialogClickMap(nextMap);
     };
 
