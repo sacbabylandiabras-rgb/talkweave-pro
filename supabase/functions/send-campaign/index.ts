@@ -1531,10 +1531,18 @@ serve(async (req) => {
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
           if (actionButtons.length > 0) {
+            const payload: any = { message, buttonActions: actionButtons };
             if (replyButtons.length > 0) {
-              console.log(`⚠️ Botões mistos detectados; priorizando botões URL/CALL para evitar que uma segunda mensagem interativa oculte o botão principal.`);
+              console.log(`📌 Botões mistos detectados; enviando URL/CALL primeiro e REPLY em mensagem separada (button-list).`);
+              payload._replyButtonFollowUp = {
+                message: ' ',
+                buttonList: {
+                  buttons: replyButtons.map((btn: any, idx: number) => ({ id: String(idx + 1), label: btn.label })),
+                },
+                _useButtonList: true,
+              };
             }
-            return { message, buttonActions: actionButtons };
+            return payload;
           }
 
           if (replyButtons.length > 0) {
@@ -1877,16 +1885,24 @@ serve(async (req) => {
               }
             }
 
-            if (isZapiButtonActionSend && replyButtonFollowUp?.buttonActions?.length) {
+            if (isZapiButtonActionSend && replyButtonFollowUp) {
               await sleep(1200);
-              const replyResponse = await fetch(`${baseZapiUrl}/send-button-actions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-                body: JSON.stringify({ phone: contact.phone, ...replyButtonFollowUp }),
-              });
-              const replyText = await replyResponse.text().catch(() => '');
-              console.log(`📬 Campaign Z-API REPLY buttons response for ${contact.phone}: status=${replyResponse.status}, body=${replyText.substring(0, 300)}`);
-              if (!replyResponse.ok) throw new Error(`Erro ao enviar botões de resposta: ${replyText || replyResponse.status}`);
+              const useList = !!replyButtonFollowUp._useButtonList;
+              const followUrl = useList
+                ? `${baseZapiUrl}/send-button-list`
+                : `${baseZapiUrl}/send-button-actions`;
+              const followBody: any = { phone: contact.phone, ...replyButtonFollowUp };
+              delete followBody._useButtonList;
+              if (useList ? followBody.buttonList?.buttons?.length : followBody.buttonActions?.length) {
+                const replyResponse = await fetch(followUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+                  body: JSON.stringify(followBody),
+                });
+                const replyText = await replyResponse.text().catch(() => '');
+                console.log(`📬 Campaign Z-API REPLY follow-up for ${contact.phone}: status=${replyResponse.status}, body=${replyText.substring(0, 300)}`);
+                if (!replyResponse.ok) throw new Error(`Erro ao enviar botões de resposta: ${replyText || replyResponse.status}`);
+              }
             }
 
             if (specialTpl?.type === 'uaz_location_button') {
