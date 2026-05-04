@@ -1291,6 +1291,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         onConfirm={handleConfirmSend}
         mode={isGroupsMode ? "groups" : "contacts"}
       />
+      <FlowTemplatesDialog
+        open={showTemplatesDialog}
+        onOpenChange={setShowTemplatesDialog}
+        mode={isGroupsMode ? "groups" : "contacts"}
+        onSelect={handleSelectTemplate}
+        onStartBlank={handleStartBlank}
+      />
       </>
     );
   }
