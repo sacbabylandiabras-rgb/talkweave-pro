@@ -999,20 +999,34 @@ serve(async (req) => {
         credentials.uazapiToken = specificInstance.uazapiToken || '';
         credentials.instanceName = specificInstance.instanceName;
       } else {
-        await supabase
-          .from('campaigns')
-          .update({ status: 'paused', updated_at: new Date().toISOString() })
-          .eq('id', campaignId)
-          .eq('user_id', credentials.userId);
+        // Fallback: instância requisitada não existe mais (provavelmente foi reconectada
+        // e ganhou novo UUID). Em vez de pausar, usa a instância preferida do usuário.
+        console.log(`⚠️ Requested instance ${requestedInstanceId} not found. Falling back to preferred instance for user ${credentials.userId}.`);
+        const fallbackInstance = await resolvePreferredUserInstance(supabase, credentials.userId);
+        if (!fallbackInstance) {
+          await supabase
+            .from('campaigns')
+            .update({ status: 'paused', updated_at: new Date().toISOString() })
+            .eq('id', campaignId)
+            .eq('user_id', credentials.userId);
 
-        return new Response(JSON.stringify({
-          error: 'A instância escolhida para envio não está disponível. A campanha foi pausada para evitar marcação incorreta.',
-          stopped: true,
-          paused: true,
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+          return new Response(JSON.stringify({
+            error: 'Nenhuma conexão WhatsApp ativa encontrada. Conecte um número e retome a campanha.',
+            stopped: true,
+            paused: true,
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        }
+        forcedRequestedInstance = fallbackInstance;
+        zapiInstanceId = fallbackInstance.zapiInstanceId;
+        zapiToken = fallbackInstance.zapiToken;
+        zapiClientToken = fallbackInstance.zapiClientToken;
+        credentials.apiProvider = fallbackInstance.apiProvider || 'zapi';
+        credentials.uazapiUrl = fallbackInstance.uazapiUrl || '';
+        credentials.uazapiToken = fallbackInstance.uazapiToken || '';
+        credentials.instanceName = fallbackInstance.instanceName;
       }
     }
 
