@@ -1819,6 +1819,8 @@ serve(async (req) => {
           const buttonActionMessage = typeof requestBody?.message === 'string' ? requestBody.message : '';
           const replyButtonFollowUp = requestBody?._replyButtonFollowUp;
           if (replyButtonFollowUp) delete requestBody._replyButtonFollowUp;
+          const textAfterButtons = requestBody?._textAfterButtons;
+          if (textAfterButtons) delete requestBody._textAfterButtons;
 
           if (isZapiButtonActionSend && isInteractiveBodyTooLong(buttonActionMessage) && !requestBody.image) {
             console.log(`⚠️ Mensagem interativa muito longa (${buttonActionMessage.length} chars); enviando botão primeiro e texto completo depois para preservar o render do botão.`);
@@ -1862,6 +1864,19 @@ serve(async (req) => {
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
           if (zapiResponse.ok && !explicitError && confirmed) {
+            if (isZapiButtonActionSend && textAfterButtons) {
+              await sleep(1200);
+              const textResponse = await fetch(`${baseZapiUrl}/send-text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+                body: JSON.stringify({ phone: contact.phone, message: textAfterButtons }),
+              });
+              if (!textResponse.ok) {
+                const textError = await textResponse.text().catch(() => '');
+                throw new Error(`Erro ao enviar texto completo após os botões: ${textError || textResponse.status}`);
+              }
+            }
+
             if (isZapiButtonActionSend && replyButtonFollowUp?.buttonActions?.length) {
               await sleep(1200);
               const replyResponse = await fetch(`${baseZapiUrl}/send-button-actions`, {
