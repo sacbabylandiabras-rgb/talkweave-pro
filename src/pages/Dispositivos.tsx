@@ -49,6 +49,23 @@ const normalizeQrImageValue = (value: unknown) => {
   return trimmed;
 };
 
+const normalizeDeviceStatusPayload = (payload: any) => {
+  const status = String(payload?.status || payload?.device?.status || '').toLowerCase();
+  const connected = payload?.connected === true ||
+    payload?.session === true ||
+    payload?.smartphoneConnected === true ||
+    payload?.device?.connected === true ||
+    ['connected', 'open', 'online'].includes(status);
+
+  return {
+    ...payload,
+    connected,
+    session: connected,
+    smartphoneConnected: connected,
+    status,
+  };
+};
+
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -118,12 +135,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         throw new Error(data?.message || data?.error || 'Erro ao buscar status do dispositivo');
       }
 
-      setDeviceStatus(data?.data ?? null);
+      setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
       statusErrorShownRef.current = false;
     } catch (error) {
       console.error('Erro ao buscar status:', error);
-      // Set offline status gracefully instead of blocking
-      setDeviceStatus({ connected: false, session: false, smartphoneConnected: false });
+      // Mantém o último status conhecido para não exibir offline por falha momentânea.
       // Only show toast once per error streak
       if (!statusErrorShownRef.current) {
         statusErrorShownRef.current = true;
