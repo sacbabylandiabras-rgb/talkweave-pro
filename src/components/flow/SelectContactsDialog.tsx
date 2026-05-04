@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
-import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw } from "lucide-react";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw, Link2, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,13 @@ export function SelectContactsDialog({
   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups(
     isGroupsMode ? {} : undefined
   );
+  const [rotativeLinks, setRotativeLinks] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    groups: Array<{ group_id: string; group_name: string; instance_id?: string | null }>;
+  }>>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [manualPhone, setManualPhone] = useState("");
@@ -63,6 +70,44 @@ export function SelectContactsDialog({
   const { data: metaCreds } = useMetaCredentials();
   const isMetaConnected = metaCreds?.connected === true;
   const { activeWorkspace } = useWorkspace();
+
+  const fetchRotativeLinks = async () => {
+    setLoadingLinks(true);
+    try {
+      const { data: links } = await (supabase as any)
+        .from("redirect_links")
+        .select("id, name, slug")
+        .order("created_at", { ascending: false });
+      const { data: linkGroups } = await (supabase as any)
+        .from("redirect_link_groups")
+        .select("redirect_link_id, group_id, group_name, instance_id");
+      const enriched = (links || [])
+        .map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          slug: l.slug,
+          groups: (linkGroups || [])
+            .filter((g: any) => g.redirect_link_id === l.id)
+            .map((g: any) => ({
+              group_id: g.group_id,
+              group_name: g.group_name,
+              instance_id: g.instance_id,
+            })),
+        }))
+        .filter((l: any) => l.groups.length > 0);
+      setRotativeLinks(enriched);
+    } catch {
+      setRotativeLinks([]);
+    } finally {
+      setLoadingLinks(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && isGroupsMode) {
+      fetchRotativeLinks();
+    }
+  }, [open, isGroupsMode]);
 
   // Auto-select meta provider when in Meta workspace
   const effectiveProvider = activeWorkspace === "meta" ? "meta" : sendProvider;
@@ -150,6 +195,15 @@ export function SelectContactsDialog({
     if (manualPhones.includes(clean)) return;
     setManualPhones(prev => [...prev, clean]);
     setManualPhone("");
+  };
+
+  const handleToggleRotativeLink = (linkGroupIds: string[]) => {
+    const allSelected = linkGroupIds.every(id => selectedContacts.includes(id));
+    if (allSelected) {
+      setSelectedContacts(prev => prev.filter(id => !linkGroupIds.includes(id)));
+    } else {
+      setSelectedContacts(prev => Array.from(new Set([...prev, ...linkGroupIds])));
+    }
   };
 
   const handleRemoveManualPhone = (phone: string) => {
@@ -271,14 +325,69 @@ export function SelectContactsDialog({
                 </Badge>
               </div>
 
-              {loadingGroups ? (
+              {(loadingGroups || loadingLinks) ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
                 <ScrollArea className="flex-1 border rounded-lg">
                   <div className="p-4 space-y-2">
-                    {filteredGroups.length === 0 ? (
+                    {/* Links Rotativos */}
+                    {rotativeLinks.map(link => {
+                      const q = searchQuery.toLowerCase();
+                      const linkFilteredGroups = link.groups.filter(g =>
+                        g.group_name.toLowerCase().includes(q) ||
+                        link.name.toLowerCase().includes(q)
+                      );
+                      if (linkFilteredGroups.length === 0) return null;
+                      const linkGroupIds = linkFilteredGroups.map(g => g.group_id);
+                      const allSelected = linkGroupIds.every(id => selectedContacts.includes(id));
+                      return (
+                        <div key={link.id} className="mb-2">
+                          <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/40 rounded-md mb-1">
+                            <Link2 className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-xs font-semibold text-primary flex-1">{link.name}</span>
+                            <span className="text-[10px] text-muted-foreground">/{link.slug}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[10px]"
+                              onClick={() => handleToggleRotativeLink(linkGroupIds)}
+                            >
+                              {allSelected ? "Desmarcar todos" : "Selecionar todos"}
+                            </Button>
+                          </div>
+                          {linkFilteredGroups.map(g => (
+                            <div
+                              key={`${link.id}-${g.group_id}`}
+                              className="flex items-center space-x-3 p-2 pl-6 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                              onClick={() => handleToggleContact(g.group_id)}
+                            >
+                              <Checkbox
+                                checked={selectedContacts.includes(g.group_id)}
+                                onCheckedChange={() => handleToggleContact(g.group_id)}
+                              />
+                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                <UsersRound className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{g.group_name}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+
+                    {/* Header da seção de Grupos quando há links rotativos */}
+                    {rotativeLinks.length > 0 && filteredGroups.length > 0 && (
+                      <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/40 rounded-md mb-1 mt-2">
+                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-muted-foreground">Grupos</span>
+                      </div>
+                    )}
+
+                    {filteredGroups.length === 0 && rotativeLinks.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         {searchQuery ? "Nenhum grupo encontrado" : "Nenhum grupo disponível na sua conexão"}
                       </div>
