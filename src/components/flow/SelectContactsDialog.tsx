@@ -197,6 +197,15 @@ export function SelectContactsDialog({
     setManualPhone("");
   };
 
+  const handleToggleRotativeLink = (linkGroupIds: string[]) => {
+    const allSelected = linkGroupIds.every(id => selectedContacts.includes(id));
+    if (allSelected) {
+      setSelectedContacts(prev => prev.filter(id => !linkGroupIds.includes(id)));
+    } else {
+      setSelectedContacts(prev => Array.from(new Set([...prev, ...linkGroupIds])));
+    }
+  };
+
   const handleRemoveManualPhone = (phone: string) => {
     setManualPhones(prev => prev.filter(p => p !== phone));
   };
