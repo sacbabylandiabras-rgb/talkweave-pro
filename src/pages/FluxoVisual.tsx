@@ -306,14 +306,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, [instances]);
 
   const handleNovoFluxo = () => {
-    setNomeFluxo("Novo Fluxo");
-    setKeywordFluxo("");
-    setFluxoAtivo(true);
-    setCurrentFluxoId(null);
-    setNodes(initialNodes);
-    setEdges(initialEdges);
+    // Abre a galeria de modelos prontos
+    setShowTemplatesDialog(true);
+  };
+
+  const proceedAfterTemplateChoice = () => {
     if (isGroupsMode) {
-      // No modo grupos, primeiro o usuário escolhe os grupos, depois abre o editor
       setPreselectedGroups([]);
       setPreselectedInstanceIds([]);
       setPreselectedProvider("zapi");
@@ -323,6 +321,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     } else {
       setShowFluxosList(false);
     }
+  };
+
+  const handleSelectTemplate = (tpl: FlowTemplate) => {
+    setNomeFluxo(tpl.name);
+    setKeywordFluxo(tpl.suggestedKeyword || "");
+    setFluxoAtivo(true);
+    setCurrentFluxoId(null);
+    setNodes(tpl.nodes);
+    setEdges(tpl.edges);
+    setShowTemplatesDialog(false);
+    toast.success(`Modelo "${tpl.name}" carregado!`);
+    proceedAfterTemplateChoice();
+  };
+
+  const handleStartBlank = () => {
+    setNomeFluxo("Novo Fluxo");
+    setKeywordFluxo("");
+    setFluxoAtivo(true);
+    setCurrentFluxoId(null);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setShowTemplatesDialog(false);
+    proceedAfterTemplateChoice();
   };
 
   const handleCarregarFluxo = (fluxo: FlowAutomation) => {
