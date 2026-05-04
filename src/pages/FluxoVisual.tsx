@@ -834,12 +834,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     toast.success(`Iniciando envio para ${selectedContacts.length} ${recipientLabel}(s)...`);
 
     try {
+      cancelSendRef.current = false;
+      setIsSending(true);
       const { data: { user } } = await supabase.auth.getUser();
       const currentUserId = user?.id || '';
 
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
         toast.error("Bloco inicial não encontrado!");
+        setIsSending(false);
         return;
       }
 
@@ -847,6 +850,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       let sendCounter = 0;
 
       for (const contact of selectedContacts) {
+        if (cancelSendRef.current) break;
         const visitedNodes = new Set<string>();
         const currentInstanceId = instanceIds && instanceIds.length > 0
           ? instanceIds[sendCounter % instanceIds.length]
@@ -855,16 +859,26 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         sendCounter++;
       }
 
-      toast.success("Fluxo enviado com sucesso!", {
-        description: `Mensagens enviadas para ${selectedContacts.length} ${recipientLabel}(s)`,
-      });
+      if (cancelSendRef.current) {
+        toast.info("Envio cancelado", {
+          description: `Processados ${sendCounter} de ${selectedContacts.length} ${recipientLabel}(s)`,
+        });
+      } else {
+        toast.success("Fluxo enviado com sucesso!", {
+          description: `Mensagens enviadas para ${selectedContacts.length} ${recipientLabel}(s)`,
+        });
+      }
     } catch (error) {
       console.error("Erro ao enviar fluxo:", error);
       toast.error(await getInvokeErrorMessage(error, "Erro ao enviar fluxo"));
+    } finally {
+      setIsSending(false);
+      cancelSendRef.current = false;
     }
   };
 
   const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string) => {
+    if (cancelSendRef.current) return;
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
