@@ -116,6 +116,14 @@ export function SelectContactsDialog({
     );
   });
 
+  const filteredGroups = groups.filter(g => {
+    const query = searchQuery.toLowerCase();
+    return (
+      g.nome?.toLowerCase().includes(query) ||
+      g.id?.toLowerCase().includes(query)
+    );
+  });
+
   const handleToggleContact = (phone: string) => {
     setSelectedContacts(prev =>
       prev.includes(phone)
@@ -125,10 +133,14 @@ export function SelectContactsDialog({
   };
 
   const handleSelectAll = () => {
-    if (selectedContacts.length === filteredContacts.length) {
+    const list = isGroupsMode ? filteredGroups : filteredContacts;
+    const allIds = isGroupsMode
+      ? filteredGroups.map(g => g.id)
+      : filteredContacts.map(c => c.phone);
+    if (selectedContacts.length === list.length) {
       setSelectedContacts([]);
     } else {
-      setSelectedContacts(filteredContacts.map(c => c.phone));
+      setSelectedContacts(allIds);
     }
   };
 
