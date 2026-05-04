@@ -643,13 +643,15 @@ Deno.serve(async (req) => {
               const resolvedPhone = lidToPhone.get(participant.phone) || mappingByLid.get(participant.phone);
               if (resolvedPhone) {
                 resolvedParticipants.push({ ...participant, phone: resolvedPhone });
-              } else if (isCommunity) {
+              } else {
+                // Keep unresolved LIDs so the member count reflects reality.
+                // They cannot receive direct messages, but they are real members.
                 resolvedParticipants.push(participant);
               }
             }
           } catch (dbError) {
             console.error("❌ LID mapping error:", dbError);
-            if (isCommunity) resolvedParticipants.push(...unresolvedLidParticipants);
+            resolvedParticipants.push(...unresolvedLidParticipants);
           }
         }
 
