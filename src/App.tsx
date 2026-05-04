@@ -25,6 +25,7 @@ import Modelos from "./pages/Modelos";
 import EnviarMensagem from "./pages/EnviarMensagem";
 import Relatorio from "./pages/Relatorio";
 import FluxoVisual from "./pages/FluxoVisual";
+import FluxoGrupos from "./pages/FluxoGrupos";
 import GatewayIntegracoes from "./pages/GatewayIntegracoes";
 import MensagensRecebidas from "./pages/MensagensRecebidas";
 import ApanhadorGrupos from "./pages/ApanhadorGrupos";
