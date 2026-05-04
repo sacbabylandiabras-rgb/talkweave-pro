@@ -1475,7 +1475,7 @@ serve(async (req) => {
             const btnType = String(btn?.type || 'url').toUpperCase();
             const label = String(btn?.text || btn?.label || `Botão ${index + 1}`).trim().slice(0, 20);
             const buttonData: any = {
-              id: String(btn?.id || index + 1),
+              id: String(index + 1),
               type: 'URL',
               label,
             };
@@ -1515,15 +1515,14 @@ serve(async (req) => {
           const replyButtons = formattedButtons.filter((btn: any) => String(btn.type || '').toUpperCase() === 'REPLY');
 
           if (actionButtons.length > 0 && replyButtons.length > 0) {
-            const replyFallback = replyButtons
-              .map((btn: any) => String(btn.label || '').trim())
-              .filter(Boolean)
-              .map((label: string) => `• Responda: ${label}`)
-              .join('\n');
-            console.log(`⚠️ Botões mistos detectados; mantendo botões de ação e convertendo respostas em texto para evitar falha silenciosa no WhatsApp.`);
+            console.log(`⚠️ Botões mistos detectados; enviando CALL/URL primeiro e REPLY em mensagem separada conforme documentação.`);
             return {
-              message: [message, replyFallback].filter(Boolean).join('\n\n'),
+              message,
               buttonActions: actionButtons,
+              _replyButtonFollowUp: {
+                message: 'Você também pode responder por aqui:',
+                buttonActions: replyButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
+              },
             };
           }
 
