@@ -13,7 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
-import { Search, Users, Loader2, Plus, X, Phone } from "lucide-react";
+import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { Search, Users, Loader2, Plus, X, Phone, UsersRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Label } from "@/components/ui/label";
@@ -35,19 +36,25 @@ interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
+  mode?: "contacts" | "groups";
 }
 
 export function SelectContactsDialog({ 
   open, 
   onOpenChange, 
-  onConfirm 
+  onConfirm,
+  mode = "contacts",
 }: SelectContactsDialogProps) {
+  const isGroupsMode = mode === "groups";
   const { contacts, loading } = useContacts();
+  const { groups, loading: loadingGroups } = useWhatsAppGroups(
+    isGroupsMode ? { provider: "uazapi" } : undefined
+  );
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [manualPhones, setManualPhones] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("contacts");
+  const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : "contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
   const [metaPhoneNumbers, setMetaPhoneNumbers] = useState<MetaPhoneOption[]>([]);
@@ -84,7 +91,7 @@ export function SelectContactsDialog({
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-      setActiveTab("contacts");
+      setActiveTab(isGroupsMode ? "groups" : "contacts");
       setSendProvider("zapi");
       if (activeWorkspace === "meta") {
         setSendProvider("meta");
@@ -92,7 +99,7 @@ export function SelectContactsDialog({
       setSelectedMetaPhoneId("");
       setMetaPhoneNumbers([]);
     }
-  }, [open]);
+  }, [open, isGroupsMode]);
 
   useEffect(() => {
     if (effectiveProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
@@ -109,6 +116,14 @@ export function SelectContactsDialog({
     );
   });
 
+  const filteredGroups = groups.filter(g => {
+    const query = searchQuery.toLowerCase();
+    return (
+      g.nome?.toLowerCase().includes(query) ||
+      g.id?.toLowerCase().includes(query)
+    );
+  });
+
   const handleToggleContact = (phone: string) => {
     setSelectedContacts(prev =>
       prev.includes(phone)
@@ -118,10 +133,14 @@ export function SelectContactsDialog({
   };
 
   const handleSelectAll = () => {
-    if (selectedContacts.length === filteredContacts.length) {
+    const list = isGroupsMode ? filteredGroups : filteredContacts;
+    const allIds = isGroupsMode
+      ? filteredGroups.map(g => g.id)
+      : filteredContacts.map(c => c.phone);
+    if (selectedContacts.length === list.length) {
       setSelectedContacts([]);
     } else {
-      setSelectedContacts(filteredContacts.map(c => c.phone));
+      setSelectedContacts(allIds);
     }
   };
 
@@ -145,13 +164,16 @@ export function SelectContactsDialog({
   };
 
   const handleConfirm = () => {
-    const allPhones = [...new Set([...selectedContacts, ...manualPhones])];
+    const allPhones = isGroupsMode
+      ? [...new Set(selectedContacts)]
+      : [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
+    const finalProvider: FlowSendProvider = isGroupsMode ? "zapi" : effectiveProvider;
     onConfirm(
       allPhones,
-      effectiveProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
-      effectiveProvider,
-      effectiveProvider === "meta" ? selectedMetaPhoneId : undefined
+      finalProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
+      finalProvider,
+      finalProvider === "meta" ? selectedMetaPhoneId : undefined
     );
     onOpenChange(false);
   };
@@ -162,33 +184,127 @@ export function SelectContactsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col z-[100]">
         <DialogHeader>
-          <DialogTitle>Selecionar Contatos</DialogTitle>
+          <DialogTitle>
+            {isGroupsMode ? "Selecionar Grupos" : "Selecionar Contatos"}
+          </DialogTitle>
           <DialogDescription>
-            Escolha contatos ou digite números manualmente
+            {isGroupsMode
+              ? "Escolha os grupos do WhatsApp que receberão o fluxo"
+              : "Escolha contatos ou digite números manualmente"}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="contacts" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Contatos
-              {selectedContacts.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {selectedContacts.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="manual" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Digitar Número
-              {manualPhones.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {manualPhones.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+          <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : "grid-cols-2"}`}>
+            {isGroupsMode ? (
+              <TabsTrigger value="groups" className="flex items-center gap-2">
+                <UsersRound className="h-4 w-4" />
+                Grupos
+                {selectedContacts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                    {selectedContacts.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ) : (
+              <>
+                <TabsTrigger value="contacts" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Contatos
+                  {selectedContacts.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                      {selectedContacts.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Digitar Número
+                  {manualPhones.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                      {manualPhones.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
+
+          {isGroupsMode && (
+            <TabsContent value="groups" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar grupo pelo nome..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                  {selectedContacts.length === filteredGroups.length && filteredGroups.length > 0 ? "Desmarcar" : "Selecionar"} Todos
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <UsersRound className="h-4 w-4" />
+                  {filteredGroups.length} grupos encontrados
+                </span>
+                <Badge variant="secondary">
+                  {selectedContacts.length} selecionados
+                </Badge>
+              </div>
+
+              {loadingGroups ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 border rounded-lg">
+                  <div className="p-4 space-y-2">
+                    {filteredGroups.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {searchQuery ? "Nenhum grupo encontrado" : "Nenhum grupo disponível na sua conexão"}
+                      </div>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <div
+                          key={group.id}
+                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                          onClick={() => handleToggleContact(group.id)}
+                        >
+                          <Checkbox
+                            checked={selectedContacts.includes(group.id)}
+                            onCheckedChange={() => handleToggleContact(group.id)}
+                          />
+                          {group.foto ? (
+                            <img
+                              src={group.foto}
+                              alt={group.nome}
+                              className="w-9 h-9 rounded-full object-cover bg-muted"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                              <UsersRound className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{group.nome || "Grupo sem nome"}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {group.membros || 0} membros
+                              {group.sourceInstanceName ? ` · ${group.sourceInstanceName}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="contacts" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
             <div className="flex items-center gap-2">
@@ -334,14 +450,14 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            {effectiveProvider === "zapi" && (
+            {(isGroupsMode || effectiveProvider === "zapi") && (
               <InstanceSelector
                 providerFilter="uazapi"
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
               />
             )}
 
-            {effectiveProvider === "meta" && (
+            {!isGroupsMode && effectiveProvider === "meta" && (
               <div className="space-y-2">
                 <Label className="text-xs">Número remetente</Label>
                 {loadingMetaPhones ? (
@@ -381,7 +497,7 @@ export function SelectContactsDialog({
             onClick={handleConfirm}
             disabled={totalSelected === 0}
           >
-            Enviar para {totalSelected} contato{totalSelected !== 1 ? "s" : ""}
+            Enviar para {totalSelected} {isGroupsMode ? `grupo${totalSelected !== 1 ? "s" : ""}` : `contato${totalSelected !== 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
