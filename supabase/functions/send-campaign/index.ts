@@ -1462,27 +1462,52 @@ serve(async (req) => {
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
         const specialTpl = parseSpecialTemplate(campaign.template.content);
 
-        const formatZapiButtons = (buttons: any[]) => buttons.map((btn: any, index: number) => {
-          const btnType = (btn.type || 'url').toUpperCase();
-          const buttonData: any = {
-            id: String(btn.id || index + 1),
-            label: String(btn.text || btn.label || `Botão ${index + 1}`).trim().slice(0, 25),
-          };
-          if (btnType === 'CALL') { buttonData.type = 'CALL'; buttonData.phone = btn.phone || btn.value; }
-          else if (btnType === 'REPLY' || btnType === 'OPTION') { buttonData.type = 'REPLY'; }
-          else if (btnType === 'COPY') { buttonData.type = 'URL'; buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(btn.copyText || btn.value || '')}`; }
-          else {
-            buttonData.type = 'URL';
-            buttonData.url = buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
-              campaignId,
-              userId: credentials.userId,
-              phone: contact.phone,
-              label: buttonData.label || 'Abrir',
-              campaignName: campaign?.name,
-            });
-          }
-          return buttonData;
-        });
+        const ensureHttpUrl = (raw: string) => {
+          const v = String(raw || '').trim();
+          if (!v) return '';
+          if (/^https?:\/\//i.test(v)) return v;
+          return `https://${v.replace(/^\/+/, '')}`;
+        };
+        const sanitizeCallPhone = (raw: string) => String(raw || '').replace(/\D+/g, '');
+
+        const formatZapiButtons = (buttons: any[]) => buttons
+          .map((btn: any, index: number) => {
+            const btnType = String(btn?.type || 'url').toUpperCase();
+            const label = String(btn?.text || btn?.label || `Botão ${index + 1}`).trim().slice(0, 20);
+            const buttonData: any = {
+              id: String(btn?.id || index + 1),
+              type: 'URL',
+              label,
+            };
+            if (btnType === 'CALL') {
+              const phone = sanitizeCallPhone(btn?.phone || btn?.value);
+              if (!phone) return null;
+              buttonData.type = 'CALL';
+              buttonData.phone = phone;
+            } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+              buttonData.type = 'REPLY';
+            } else if (btnType === 'COPY') {
+              const code = String(btn?.copyText || btn?.value || '').trim();
+              if (!code) return null;
+              buttonData.type = 'URL';
+              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
+            } else {
+              const rawUrl = btn?.url || btn?.value || '';
+              const trackedRaw = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
+                campaignId,
+                userId: credentials.userId,
+                phone: contact.phone,
+                label,
+                campaignName: campaign?.name,
+              });
+              const finalUrl = ensureHttpUrl(trackedRaw);
+              if (!finalUrl) return null;
+              buttonData.type = 'URL';
+              buttonData.url = finalUrl;
+            }
+            return buttonData;
+          })
+          .filter(Boolean);
 
         const buildZapiButtonActionPayload = (buttons: any[], message: string) => {
           const formattedButtons = formatZapiButtons(buttons).slice(0, 3);
