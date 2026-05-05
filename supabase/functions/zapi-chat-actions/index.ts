@@ -1,3 +1,19 @@
+     case 'get-disallowed-contacts':
+       return { method: 'GET', path: '/privacy/disallowed-contacts' };
+     case 'set-last-seen':
+       return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
+     case 'set-photo-visualization':
+       return { method: 'POST', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
+     case 'set-privacy-description':
+       return { method: 'POST', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
+     case 'set-group-add-permission':
+       return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
+     case 'set-privacy-online':
+       return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
+     case 'set-read-receipts':
+       return { method: 'POST', path: '/privacy/read-receipts', body: { active: payload?.active } };
+     case 'set-messages-duration':
+       return { method: 'POST', path: '/privacy/messages-duration', body: { duration: payload?.duration } };
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
