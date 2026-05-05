@@ -630,13 +630,10 @@ serve(async (req) => {
 
     const deviceStatus = await assertZapiDeviceConnected(instanceId, token, clientToken);
     if (deviceStatus.explicitlyDisconnected && !deviceStatus.connected) {
-      return new Response(
-        JSON.stringify({
-          error: 'Instância WhatsApp desconectada',
-          details: deviceStatus.payload,
-        }),
-        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.warn(
+        `⚠️ Status da instância ${instanceId} retornou desconectado, mas o envio será tentado mesmo assim para evitar bloqueio falso do provedor.`,
+        JSON.stringify(deviceStatus.payload).substring(0, 300),
+      );
     }
 
     if (!deviceStatus.ok) {
