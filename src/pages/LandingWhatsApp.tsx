@@ -918,10 +918,17 @@ function ChatUnifiedMock() {
 function GroupsMock() {
   const items = ["Vendas SP", "Vendas RJ", "Promoções", "Clientes VIP", "Suporte 01", "Suporte 02"];
   const [active, setActive] = useState(0);
+  const [counts, setCounts] = useState<number[]>(() => items.map((_, i) => 120 + i * 47));
   useEffect(() => {
     const id = setInterval(() => setActive((a) => (a + 1) % items.length), 700);
     return () => clearInterval(id);
   }, [items.length]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCounts((prev) => prev.map((c) => c + Math.floor(Math.random() * 3) + 1));
+    }, 900);
+    return () => clearInterval(id);
+  }, []);
   return (
     <MockShell title="Grupos · Gerenciamento">
       <style>{`
@@ -944,7 +951,10 @@ function GroupsMock() {
               }}>{g[0]}</div>
               <div>
                 <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>{g}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{120 + i * 47} membros</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ color: "#22c55e", fontWeight: 600 }}>{counts[i].toLocaleString("pt-BR")}</span> membros
+                  <span style={{ marginLeft: 6, color: "#22c55e", fontSize: 10 }}>▲</span>
+                </div>
               </div>
             </div>
             <div style={{ marginTop: 10, fontSize: 11, color: "#22c55e", display: "flex", alignItems: "center", gap: 4 }}>
