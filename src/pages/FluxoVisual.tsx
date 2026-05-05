@@ -635,6 +635,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           }
 
           setCurrentFluxoId(createdFlow.id);
+          setNodes(nodesToPersist);
+          setNomeFluxo(normalizedName);
+          await fetchFluxos();
+          toast.success("Fluxo salvo com sucesso!");
           return createdFlow.id;
         }
       } else {
@@ -735,7 +739,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         });
 
       for (const edge of outgoing) {
-        const targetNode = nodes.find(n => n.id === edge.target);
+        const targetNode = runtimeNodes.find(n => n.id === edge.target);
         if (!targetNode) continue;
 
         if (targetNode.type === 'blocoConteudo' && !visited.has(targetNode.id)) {
@@ -934,8 +938,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
 
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-    const outgoingEdges = edges
+    const runtimeNodes = selectedNode
+      ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
+      : nodes;
+    const runtimeEdges = edges;
+    const nodeMap = new Map(runtimeNodes.map((n) => [n.id, n]));
+    const outgoingEdges = runtimeEdges
       .filter((e) => e.source === currentNodeId)
       .sort((a, b) => {
         const handlePriority = (handle?: string | null) => {
@@ -1159,7 +1167,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               `btn_${idx + 1}`,
               btn?.id ? String(btn.id) : "",
             ].filter(Boolean);
-            return edges.some((e) => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")));
+            return runtimeEdges.some((e) => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")));
           });
 
           const pendingFlowId = flowIdForPending || currentFluxoId;
@@ -1282,7 +1290,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const hasButtonEdges = buttons.some((_: any, idx: number) =>
-          edges.some((e) => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+          runtimeEdges.some((e) => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
         );
 
         if (hasButtonEdges) {
