@@ -796,7 +796,7 @@ function BlastMock() {
                 <span style={{
                   background: "rgba(167,139,250,0.15)", color: "#a78bfa",
                   padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600, textAlign: "center",
-                }}>👆 Clicou</span>
+                }}>Clicou</span>
               ) : (
                 <span style={{ color: "rgba(255,255,255,0.25)", textAlign: "center" }}>—</span>
               )}
