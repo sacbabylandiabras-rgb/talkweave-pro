@@ -41,15 +41,8 @@ const LandingWhatsApp = () => {
         <button className="lp-btn-cta" onClick={goSignup}>Começar Grátis →</button>
       </div>
 
-      {/* FEATURE CARDS */}
-      <div className="lp-cards-row">
-        <FeatureCard icon="chat" title="Disparos em Massa" desc="Envie milhares de mensagens com múltiplas instâncias e rotação automática." />
-        <FeatureCard icon="flow" title="Fluxos Visuais" desc="Monte automações arrastando blocos. Sem código." />
-        <FeatureCard icon="ai" title="Agente de IA" desc="Atendimento 24/7 com IA treinada no seu negócio." />
-        <FeatureCard icon="group" title="Grupos & Comunidades" desc="Crie, clone e gerencie grupos automaticamente." />
-        <FeatureCard icon="warm" title="Aquecimento" desc="Aqueça seus números e proteja contra banimento." />
-        <FeatureCard icon="chart" title="Relatórios" desc="Métricas em tempo real de entregas, leituras e respostas." />
-      </div>
+      {/* FEATURE CARDS - CARROSSEL EM MOVIMENTO */}
+      <FeatureCarousel />
 
       <div className="lp-divider" />
 
