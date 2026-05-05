@@ -85,6 +85,7 @@ import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
 import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
@@ -205,6 +206,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances } = useZapiInstances();
+  const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
@@ -1998,7 +2000,52 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
                 {selectedNode.data.contentType === "media-carousel" && (
                   <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
-                    <Label className="text-sm font-semibold">Carrossel de Mídia</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-sm font-semibold">Carrossel de Mídia</Label>
+                      <Select
+                        value=""
+                        onValueChange={(id) => {
+                          const tpl = messageTemplates.find((t) => t.id === id);
+                          if (!tpl) return;
+                          const cards = (tpl.carouselCards || []).map((c) => ({
+                            image: c.image,
+                            title: c.title,
+                            subtitle: c.description,
+                            buttons: (c.buttons || []).map((b) => ({
+                              label: b.text,
+                              url: b.value || "",
+                            })),
+                          }));
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: {
+                              ...selectedNode.data,
+                              carouselCardsJson: JSON.stringify(cards, null, 2),
+                            },
+                          });
+                          toast.success(`Modelo "${tpl.name}" carregado!`);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-[220px] text-xs">
+                          <SelectValue placeholder="Usar modelo pronto..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {messageTemplates.filter((t) => t.type === "carrossel" && (t.carouselCards?.length || 0) > 0).length === 0 ? (
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                              Nenhum modelo de carrossel salvo
+                            </div>
+                          ) : (
+                            messageTemplates
+                              .filter((t) => t.type === "carrossel" && (t.carouselCards?.length || 0) > 0)
+                              .map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.name} ({t.carouselCards?.length} cards)
+                                </SelectItem>
+                              ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Textarea
                       placeholder='Cole um JSON com os cards. Ex: [{"image":"https://...","title":"...","subtitle":"...","buttons":[{"label":"Ver","url":"https://..."}]}]'
                       rows={6}
