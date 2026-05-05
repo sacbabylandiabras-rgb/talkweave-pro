@@ -1,7 +1,9 @@
-console.log('ZapLynx Extension v1.0.3: Content script loaded');
+ console.log('ZapLynx Extension v1.0.4: Content script loaded');
 
 let zaplynxToken = null;
 let zaplynxInitInterval = null;
+const SUPABASE_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
 
 function loadTokenAndInit() {
   chrome.storage.local.get(['zaplynx_token'], (result) => {
@@ -33,7 +35,7 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:140px;height:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(167,139,250,0.4));">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
@@ -50,7 +52,7 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:140px;height:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(167,139,250,0.4));">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
@@ -191,10 +193,10 @@ function listGroups() {
    if (!zaplynxToken) return;
    const listEl = document.getElementById('templates-list');
    try {
-     const response = await fetch(`https://yodgjxdekuraxquxkxhx.supabase.co/rest/v1/message_templates?user_id=eq.${zaplynxToken}&select=*`, {
+     const response = await fetch(`${SUPABASE_URL}/rest/v1/message_templates?user_id=eq.${zaplynxToken}&select=*`, {
        headers: {
-         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8',
-         'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8`
+         'apikey': SUPABASE_KEY,
+         'Authorization': `Bearer ${SUPABASE_KEY}`
        }
      });
      const data = await response.json();
@@ -219,10 +221,10 @@ function listGroups() {
    if (!zaplynxToken) return;
    const listEl = document.getElementById('flows-list');
    try {
-     const response = await fetch(`https://yodgjxdekuraxquxkxhx.supabase.co/rest/v1/flow_automations?user_id=eq.${zaplynxToken}&select=*`, {
+     const response = await fetch(`${SUPABASE_URL}/rest/v1/flow_automations?user_id=eq.${zaplynxToken}&select=*`, {
        headers: {
-         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8',
-         'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8`
+         'apikey': SUPABASE_KEY,
+         'Authorization': `Bearer ${SUPABASE_KEY}`
        }
      });
      const data = await response.json();
@@ -272,17 +274,81 @@ function listGroups() {
    return titleEl ? titleEl.getAttribute('title') : 'Chat Desconhecido';
  }
  
- function extractGroupMembers() {
-   const chatTitle = getActiveChatTitle();
-   console.log('Extraindo membros de:', chatTitle);
-   alert(`Extraindo membros de "${chatTitle}"... Os contatos serão salvos na sua lista de contatos ZapLynx.`);
-   // Real logic would involve scanning the DOM of the group info page or using Z-API group metadata
- }
-
-function extractGroupMembers(specificTitle) {
+ async function extractGroupMembers(specificTitle) {
   const chatTitle = specificTitle || getActiveChatTitle();
   console.log('Extraindo membros de:', chatTitle);
-  alert(`Iniciando extração de membros de "${chatTitle}"...\n\nOs contatos serão sincronizados com seu CRM ZapLynx.`);
+   
+   // Show feedback
+   const btn = document.getElementById('btn-extract-members');
+   const originalText = btn.innerHTML;
+   btn.innerHTML = '<span>⏳</span> Extraindo...';
+   btn.disabled = true;
+
+   try {
+     // 1. Find participants string in the header (usually "você, +55...", or "X participantes")
+     const header = document.querySelector('header');
+     if (!header) throw new Error('Cabeçalho não encontrado');
+     
+     const subtitleEl = header.querySelector('span[title].copyable-text, .y339u, span[dir="auto"]');
+     let participantsStr = subtitleEl ? subtitleEl.innerText : '';
+     
+     // If we are in a group, the subtitle often contains the participants
+     // But the best way is to open the group info and get the full list
+     // For a quick extraction, we can parse the subtitle
+     
+     let members = [];
+     if (participantsStr.includes(',')) {
+       members = participantsStr.split(',').map(m => m.trim().replace(/[^0+9]/g, ''));
+     }
+     
+     // Filter only valid looking phone numbers
+     const validMembers = members.filter(m => m.length > 8);
+
+     if (validMembers.length === 0) {
+       alert('Não foi possível detectar membros automaticamente. Tente abrir os dados do grupo primeiro.');
+       btn.innerHTML = originalText;
+       btn.disabled = false;
+       return;
+     }
+
+     console.log('Membros encontrados:', validMembers);
+     
+     // 2. Save to Supabase
+     for (const phone of validMembers) {
+       await fetch(`${SUPABASE_URL}/rest/v1/saved_contacts`, {
+         method: 'POST',
+         headers: {
+           'apikey': SUPABASE_KEY,
+           'Authorization': `Bearer ${SUPABASE_KEY}`,
+           'Content-Type': 'application/json',
+           'Prefer': 'resolution=merge-duplicates'
+         },
+         body: JSON.stringify({
+           user_id: zaplynxToken,
+           phone: phone,
+           name: `Contato Extraído (${chatTitle})`
+         })
+       });
+     }
+
+     alert(`${validMembers.length} membros de "${chatTitle}" foram enviados para sua conta ZapLynx!`);
+   } catch (error) {
+     console.error('Erro na extração:', error);
+     alert('Erro ao extrair membros. Certifique-se de que o chat do grupo está aberto.');
+   } finally {
+     btn.innerHTML = originalText;
+     btn.disabled = false;
+   }
+ }
+
+ function sendTemplate(tpl) {
+   // Use WhatsApp Web's internal input to send message if possible
+   const input = document.querySelector('footer div[contenteditable="true"]');
+   if (input) {
+     input.focus();
+     document.execCommand('insertText', false, tpl.content || tpl.name);
+     // Note: Dispatching 'Enter' is tricky, but at least the text is there
+   }
 }
 
 // Message listener
