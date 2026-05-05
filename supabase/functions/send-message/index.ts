@@ -629,21 +629,11 @@ serve(async (req) => {
     }
 
     const deviceStatus = await assertZapiDeviceConnected(instanceId, token, clientToken);
-    if (deviceStatus.explicitlyDisconnected && !deviceStatus.connected) {
+    if (!deviceStatus.ok || (deviceStatus.explicitlyDisconnected && !deviceStatus.connected)) {
       console.warn(
-        `⚠️ Status da instância ${instanceId} retornou desconectado, mas o envio será tentado mesmo assim para evitar bloqueio falso do provedor.`,
+        `⚠️ Status pré-envio da instância ${instanceId} retornou indisponível, mas o envio será tentado para evitar bloqueio falso do provedor.`,
         JSON.stringify(deviceStatus.payload).substring(0, 300),
       );
-    }
-
-    if (!deviceStatus.ok) {
-      return new Response(
-        JSON.stringify({
-          error: deviceStatus.message || 'Falha ao verificar status da instância',
-          details: deviceStatus.payload,
-        }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
       let resolvedPhone = phone;
