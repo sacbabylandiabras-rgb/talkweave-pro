@@ -12,6 +12,14 @@ const getUazapiAckId = (payload: any) => {
   return getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
 };
 
+const getDocumentExtension = (fileUrl: string, fileName?: string) => {
+  const source = String(fileName || fileUrl || '')
+    .split('?')[0]
+    .split('#')[0];
+  const ext = source.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'pdf';
+  return ext && ext !== source.toLowerCase() ? ext : 'pdf';
+};
+
 const hasExplicitZapiError = (payload: any) => {
   return payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
 };
@@ -1075,10 +1083,11 @@ serve(async (req) => {
         logMessage = logMessage || '🎥 Vídeo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
       } else {
-        zapiResponse = await fetch(`${baseUrl}/send-document-url`, {
+        const extension = getDocumentExtension(mediaUrl, message);
+        zapiResponse = await fetch(`${baseUrl}/send-document/${extension}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),
+          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || `arquivo.${extension}`, caption: '' }),
         });
         logMessage = logMessage || '📎 Arquivo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'document');
