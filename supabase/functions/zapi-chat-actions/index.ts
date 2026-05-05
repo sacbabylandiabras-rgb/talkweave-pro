@@ -8,7 +8,6 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Resolve credenciais Z-API (instância default ou ativa do usuário, ou de uma específica via instanceId)
 async function resolveCreds(req: Request, instanceDbId?: string) {
   const auth = req.headers.get('authorization');
   if (!auth) throw new Error('Unauthorized');
@@ -45,43 +44,57 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 }
 
 function buildBase(c: { instanceId: string; token: string }) {
-  return `https://api.z-api.io/instances/${c.instanceId}/token/${c.token}`;
+  return "https://api.z-api.io/instances/" + c.instanceId + "/token/" + c.token;
 }
 
-// Mapeamento de actions -> { method, path(phone), body? }
 function endpointFor(action: string, phone: string, payload: any) {
   switch (action) {
     case 'list-chats':
-      // GET /chats?page=1&pageSize=...
-      return { method: 'GET', path: `/chats?page=${payload?.page ?? 1}&pageSize=${payload?.pageSize ?? 50}` };
+      return { method: 'GET', path: "/chats?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
     case 'metadata':
-      return { method: 'GET', path: `/chats/${phone}` };
+      return { method: 'GET', path: "/chats/" + phone };
     case 'read':
-      return { method: 'POST', path: `/chats/${phone}/read` };
+      return { method: 'POST', path: "/chats/" + phone + "/read" };
     case 'unread':
-      return { method: 'POST', path: `/chats/${phone}/unread` };
+      return { method: 'POST', path: "/chats/" + phone + "/unread" };
     case 'archive':
-      return { method: 'POST', path: `/modify-chat`, body: { phone, action: 'archive' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'archive' } };
     case 'unarchive':
-      return { method: 'POST', path: `/modify-chat`, body: { phone, action: 'unarchive' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unarchive' } };
     case 'pin':
-      return { method: 'POST', path: `/modify-chat`, body: { phone, action: 'pin' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'pin' } };
     case 'unpin':
-      return { method: 'POST', path: `/modify-chat`, body: { phone, action: 'unpin' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unpin' } };
     case 'mute':
-      // muteFor in seconds (default 8h)
-      return { method: 'POST', path: `/mute-chat`, body: { phone, muteFor: payload?.muteFor ?? 28800 } };
+      return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: payload?.muteFor ?? 28800 } };
     case 'unmute':
-      return { method: 'POST', path: `/mute-chat`, body: { phone, muteFor: 0 } };
+      return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: 0 } };
     case 'clear':
-      return { method: 'POST', path: `/clear-chat`, body: { phone } };
+      return { method: 'POST', path: "/clear-chat", body: { phone } };
     case 'delete':
-      return { method: 'DELETE', path: `/chats/${phone}` };
+      return { method: 'DELETE', path: "/chats/" + phone };
     case 'expiration':
-      // expiration in seconds: 0 (off), 86400 (24h), 604800 (7d), 7776000 (90d)
-      return { method: 'POST', path: `/send-chat-expiration`, body: { phone, expiration: payload?.expiration ?? 0 } };
+      return { method: 'POST', path: "/send-chat-expiration", body: { phone, expiration: payload?.expiration ?? 0 } };
+    
+    case 'get-disallowed-contacts':
+      return { method: 'GET', path: '/privacy/disallowed-contacts' };
+    case 'set-last-seen':
+      return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
+    case 'set-photo-visualization':
+      return { method: 'POST', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
+    case 'set-privacy-description':
+      return { method: 'POST', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
+    case 'set-group-add-permission':
+      return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
+    case 'set-privacy-online':
+      return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
+    case 'set-read-receipts':
+      return { method: 'POST', path: '/privacy/read-receipts', body: { active: payload?.active } };
+    case 'set-messages-duration':
+      return { method: 'POST', path: '/privacy/messages-duration', body: { duration: payload?.duration } };
+
     default:
-      throw new Error(`Unknown action: ${action}`);
+      throw new Error("Unknown action: " + action);
   }
 }
 
@@ -97,7 +110,7 @@ Deno.serve(async (req) => {
     const base = buildBase(creds);
     const ep = endpointFor(action, phone, payload);
 
-    const url = `${base}${ep.path}`;
+    const url = base + ep.path;
     const init: RequestInit = {
       method: ep.method,
       headers: {
@@ -107,14 +120,12 @@ Deno.serve(async (req) => {
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
 
-    console.log(`📡 Z-API ${ep.method} ${ep.path}`, ep.body || '');
     const resp = await fetch(url, init);
     const text = await resp.text();
     let data: any;
     try { data = JSON.parse(text); } catch { data = text; }
 
     if (!resp.ok) {
-      console.error(`❌ Z-API ${action} failed [${resp.status}]:`, data);
       return new Response(JSON.stringify({ error: data, status: resp.status }), {
         status: resp.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -125,7 +136,6 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    console.error('zapi-chat-actions error:', err?.message);
     return new Response(JSON.stringify({ error: err?.message || 'Unknown error' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

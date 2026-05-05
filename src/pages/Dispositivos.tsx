@@ -79,7 +79,48 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [showConnect, setShowConnect] = useState(false);
+   const [showConnect, setShowConnect] = useState(false);
+   const [showPrivacy, setShowPrivacy] = useState(false);
+   const [privacyLoading, setPrivacyLoading] = useState(false);
+   const [privacySettings, setPrivacySettings] = useState<any>({});
+   const updatePrivacy = async (action: string, payload: any) => {
+     setPrivacyLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { action, instanceDbId: instance.id, payload },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Configuração atualizada" });
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao atualizar privacidade');
+       toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
+     } finally {
+       setPrivacyLoading(false);
+     }
+   };
+
+   const fetchBlacklist = async () => {
+     setPrivacyLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { action: 'get-disallowed-contacts', instanceDbId: instance.id },
+       });
+       if (error) throw error;
+       const list = data?.data?.value || data?.data || [];
+       if (list.length === 0) {
+         toast({ title: "ℹ️ Lista vazia", description: "Nenhum contato na lista de bloqueados." });
+       } else {
+         toast({ title: "🚫 Lista de bloqueados", description: list.map((c: any) => c.phone || c).join(', ') });
+       }
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao buscar blacklist');
+       toast({ title: "❌ Erro ao buscar blacklist", description: message, variant: "destructive" });
+     } finally {
+       setPrivacyLoading(false);
+     }
+   };
+
   const [hasSynced, setHasSynced] = useState(false);
   const [prevConnected, setPrevConnected] = useState<boolean | null>(null);
   const { disconnectDevice, loading } = useZapi();
@@ -790,11 +831,111 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </Button>
           )}
 
-          {!isConnected && (
-            <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
-              <Wifi className="w-3 h-3 mr-1" /> Conectar
-            </Button>
-          )}
+           {!isConnected && (
+             <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
+               <Wifi className="w-3 h-3 mr-1" /> Conectar
+             </Button>
+           )}
+           {isConnected && (
+             <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
+               <User className="w-3 h-3 mr-1" /> Privacidade
+             </Button>
+           )}
+       {/* Privacy Dialog */}
+       <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+         <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+             <DialogTitle className="flex items-center gap-2">🛡️ Privacidade do WhatsApp</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-4 py-4">
+             <div className="grid grid-cols-1 gap-4">
+               <div className="space-y-2">
+                 <Label>Visto por Último</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ALL">Todos</SelectItem>
+                     <SelectItem value="CONTACTS">Contatos</SelectItem>
+                     <SelectItem value="CONTACT_BLACKLIST">Contatos, exceto...</SelectItem>
+                     <SelectItem value="NONE">Ninguém</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Foto do Perfil</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ALL">Todos</SelectItem>
+                     <SelectItem value="CONTACTS">Contatos</SelectItem>
+                     <SelectItem value="CONTACT_BLACKLIST">Contatos, exceto...</SelectItem>
+                     <SelectItem value="NONE">Ninguém</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Recado (About)</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ALL">Todos</SelectItem>
+                     <SelectItem value="CONTACTS">Contatos</SelectItem>
+                     <SelectItem value="CONTACT_BLACKLIST">Contatos, exceto...</SelectItem>
+                     <SelectItem value="NONE">Ninguém</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Quem pode me adicionar a grupos</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ALL">Todos</SelectItem>
+                     <SelectItem value="CONTACTS">Contatos</SelectItem>
+                     <SelectItem value="CONTACT_BLACKLIST">Contatos, exceto...</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Online</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ALL">Todos</SelectItem>
+                     <SelectItem value="MATCH_LAST_SEEN">Mesmo que "Visto por Último"</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Confirmações de Leitura</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="true">Ativado</SelectItem>
+                     <SelectItem value="false">Desativado</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-2">
+                 <Label>Duração Padrão das Mensagens</Label>
+                 <Select onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} disabled={privacyLoading}>
+                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="0">Desativado</SelectItem>
+                     <SelectItem value="86400">24 horas</SelectItem>
+                     <SelectItem value="604800">7 dias</SelectItem>
+                     <SelectItem value="7776000">90 dias</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+             </div>
+             <Button variant="secondary" className="w-full" onClick={fetchBlacklist} disabled={privacyLoading}>
+               <Search className="w-4 h-4 mr-2" /> Ver Lista de Bloqueados
+             </Button>
+           </div>
+         </DialogContent>
+       </Dialog>
+
           <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => setShowDetails(!showDetails)}>
             {showDetails ? 'Ocultar' : 'Detalhes'}
           </Button>
