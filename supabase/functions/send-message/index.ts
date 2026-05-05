@@ -733,6 +733,14 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
+    const sendZapiText = async (text: string, label: string) => {
+      const response = await fetch(`${baseUrl}/send-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({ phone: resolvedPhone, message: text }),
+      });
+      return parseZapiResponse(response, resolvedPhone, instanceId, label);
+    };
 
     if (specialType === 'pix' && specialPayload) {
       // Z-API: /send-payment-pix sends PIX charge with brcode
@@ -754,19 +762,28 @@ serve(async (req) => {
       logMessage = `💰 PIX ${specialPayload.merchantName || ''}`.trim();
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'pix');
     } else if (specialType === 'localizacao' && specialPayload) {
-      zapiResponse = await fetch(`${baseUrl}/send-location`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          latitude: Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0,
-          longitude: Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0,
-          title: specialPayload.title || '',
-          address: specialPayload.address || '',
-        }),
-      });
-      logMessage = `📍 ${specialPayload.title || 'Localização'}`;
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location');
+      const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
+      const lng = Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0;
+      const title = String(specialPayload.title || 'Localização');
+      const address = String(specialPayload.address || '');
+      const fallbackText = [title, address, `https://maps.google.com/?q=${lat},${lng}`].filter(Boolean).join('\n');
+      logMessage = `📍 ${title}`;
+
+      if (!lat || !lng) {
+        zapiData = await sendZapiText(fallbackText, 'location-fallback-empty');
+      } else {
+        try {
+          zapiResponse = await fetch(`${baseUrl}/send-location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, latitude: lat, longitude: lng, title, address }),
+          });
+          zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location');
+        } catch (error) {
+          console.error('⚠️ Falha ao enviar localização nativa; enviando link do mapa:', error);
+          zapiData = await sendZapiText(fallbackText, 'location-fallback-link');
+        }
+      }
     } else if (specialType === 'contato' && specialPayload) {
       const contactPhoneClean = String(specialPayload.contactPhone || '').replace(/\D/g, '');
       zapiResponse = await fetch(`${baseUrl}/send-contact`, {
