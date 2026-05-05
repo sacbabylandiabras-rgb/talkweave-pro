@@ -80,8 +80,8 @@ button:hover {
 }
 
 .status-badge.connected {
-  background-color: #064e3b;
-  color: #6ee7b7;
+  background-color: rgba(167, 139, 250, 0.16);
+  color: #f472b6;
 }
 
 .menu {
@@ -91,12 +91,12 @@ button:hover {
 }
 
 .menu-item {
-  background-color: #1e293b;
+  background-color: rgba(255, 255, 255, 0.08);
   text-align: left;
 }
 
 .menu-item:hover {
-  background-color: #334155;
+  background-color: rgba(167, 139, 250, 0.16);
 }
 
 .variant-danger {
@@ -114,15 +114,15 @@ button:hover {
   position: fixed;
   top: 0;
   right: 0;
-  width: 320px;
+  width: 360px;
   height: 100vh;
-  background-color: #ffffff;
-  color: #1f1033;
+  background: #05020a;
+  color: #f8fafc;
   z-index: 99999;
-  box-shadow: -4px 0 20px rgba(168, 85, 247, 0.15);
+  box-shadow: -4px 0 30px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #f3e8ff;
+  border-left: 1px solid rgba(167, 139, 250, 0.22);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
@@ -133,16 +133,16 @@ button:hover {
 
 .sidebar-header {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #f5e9ff 0%, #ffffff 100%);
-  color: #4a1d6b;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(244, 114, 182, 0.1) 100%);
+  color: #f8fafc;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f3e8ff;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.18);
 }
 
 .sidebar-header button {
-  color: #6b21a8 !important;
+  color: #f8fafc !important;
 }
 
 .sidebar-content {
