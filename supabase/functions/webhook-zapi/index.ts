@@ -4889,31 +4889,13 @@ async function sendNodeContent(
       if (contentType === "location") {
         const lat = Number(String(targetNode.data.locationLat || "0").replace(",", ".")) || 0;
         const lng = Number(String(targetNode.data.locationLng || "0").replace(",", ".")) || 0;
-        if (isUazapiProvider) {
-          await sendUaz(
-            "/send/location",
-            {
-              number: normalizedTargetNumber,
-              latitude: lat,
-              longitude: lng,
-              name: targetNode.data.locationName || undefined,
-              address: targetNode.data.locationAddress || undefined,
-            },
-            `Bloco ${targetNode.id} (location)`,
-          );
-        } else {
-          await sendZapi(
-            "/send-location",
-            {
-              phone,
-              latitude: lat,
-              longitude: lng,
-              title: targetNode.data.locationName || "",
-              address: targetNode.data.locationAddress || "",
-            },
-            `Bloco ${targetNode.id} (location)`,
-          );
-        }
+        await sendLocationWithFallback(
+          lat,
+          lng,
+          targetNode.data.locationName || "",
+          targetNode.data.locationAddress || "",
+          `Bloco ${targetNode.id} (location)`,
+        );
         if (!hasButtons) return false;
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
