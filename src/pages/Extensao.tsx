@@ -56,10 +56,11 @@ const Extensao = () => {
                 <li>Clique em "Carregar sem compactação" e selecione a pasta extraída.</li>
               </ol>
             </div>
-            <Button className="w-full gap-2" size="lg">
-              <Download className="w-4 h-4" />
-              Baixar Extensão (.zip)
-            </Button>
+            <Button className="w-full gap-2" size="lg" asChild>
+              <a href="/extension.zip" download="zaplynx-extension.zip">
+                <Download className="w-4 h-4" />
+                Baixar Extensão (.zip)
+              </a>
           </CardContent>
         </Card>
 
