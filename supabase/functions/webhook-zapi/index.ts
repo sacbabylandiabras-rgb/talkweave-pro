@@ -4538,8 +4538,12 @@ async function sendNodeContent(
     const source = String(fileName || fileUrl || "")
       .split("?")[0]
       .split("#")[0];
-    const ext = source.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
-    return ext && ext !== source.toLowerCase() ? ext : "pdf";
+    const parts = source.split(".");
+    if (parts.length < 2) return "pdf";
+    const ext = parts.pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "";
+    // Sanity: extensões válidas têm de 2 a 5 chars
+    if (ext.length < 2 || ext.length > 5) return "pdf";
+    return ext;
   };
   const buttons: Array<{
     text: string;
@@ -4676,7 +4680,13 @@ async function sendNodeContent(
         const res = await fetch(`${baseUrl}/send-location`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ phone, latitude: lat, longitude: lng, title, address }),
+          body: JSON.stringify({
+            phone,
+            latitude: String(lat),
+            longitude: String(lng),
+            title: title || "",
+            address: address || "",
+          }),
         });
         await parseProviderResponse(res, context);
       }
@@ -4903,7 +4913,6 @@ async function sendNodeContent(
               phone,
               contactName: targetNode.data.contactName || "",
               contactPhone: String(targetNode.data.contactPhone || "").replace(/\D/g, ""),
-              contactBusinessDescription: targetNode.data.contactOrg || "",
             },
             `Bloco ${targetNode.id} (contact)`,
           );
@@ -5109,8 +5118,7 @@ async function sendNodeContent(
         } else {
           const zapiCards = cards.map((c: any) => {
             const card: any = {
-              title: c.title || "",
-              description: c.subtitle || c.description || "",
+              text: c.text || c.title || c.subtitle || c.description || "",
             };
             if (c.image) card.image = c.image;
             if (Array.isArray(c.buttons) && c.buttons.length > 0) {
