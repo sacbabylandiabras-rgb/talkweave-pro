@@ -1032,9 +1032,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               console.error("[FluxoVisual] Falha real no envio", { body, data, error, failureMessage });
               throw new Error(failureMessage);
             }
-            if (isRawDisconnectedMessage(data?.message) || isRawDisconnectedMessage(data?.error)) {
-              console.warn("[FluxoVisual] Resposta confirmada continha aviso cru de conexão e foi suprimida", { body, data });
-            }
           }
         };
 
