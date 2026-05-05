@@ -5109,8 +5109,7 @@ async function sendNodeContent(
         } else {
           const zapiCards = cards.map((c: any) => {
             const card: any = {
-              title: c.title || "",
-              description: c.subtitle || c.description || "",
+              text: c.text || c.title || c.subtitle || c.description || "",
             };
             if (c.image) card.image = c.image;
             if (Array.isArray(c.buttons) && c.buttons.length > 0) {
