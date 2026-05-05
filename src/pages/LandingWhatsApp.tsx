@@ -422,6 +422,57 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
+function FeatureCarousel() {
+  const features = [
+    { icon: "chat", title: "Disparos em Massa", desc: "Envie milhares de mensagens com múltiplas instâncias e rotação automática." },
+    { icon: "flow", title: "Fluxos Visuais", desc: "Monte automações arrastando blocos. Sem código." },
+    { icon: "ai", title: "Agente de IA", desc: "Atendimento 24/7 com IA treinada no seu negócio." },
+    { icon: "group", title: "Grupos & Comunidades", desc: "Crie, clone e gerencie grupos automaticamente." },
+    { icon: "warm", title: "Aquecimento", desc: "Aqueça seus números e proteja contra banimento." },
+    { icon: "chart", title: "Relatórios", desc: "Métricas em tempo real de entregas, leituras e respostas." },
+  ];
+  // Duplicar para loop infinito sem cortes
+  const loop = [...features, ...features];
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        overflow: "hidden",
+        padding: "20px 0",
+        margin: "20px 0",
+        maskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+        WebkitMaskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+      }}
+    >
+      <style>{`
+        @keyframes lp-marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .lp-marquee-track {
+          display: flex;
+          gap: 20px;
+          width: max-content;
+          animation: lp-marquee 35s linear infinite;
+        }
+        .lp-marquee-track:hover { animation-play-state: paused; }
+        .lp-marquee-card {
+          flex: 0 0 280px;
+        }
+      `}</style>
+      <div className="lp-marquee-track">
+        {loop.map((f, i) => (
+          <div key={i} className="lp-marquee-card">
+            <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CheckList({ items }: { items: string[] }) {
   return (
     <div className="lp-check-list">
