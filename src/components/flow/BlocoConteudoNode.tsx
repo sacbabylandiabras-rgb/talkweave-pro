@@ -94,6 +94,27 @@ const buttonTypeIcons: Record<string, any> = {
 function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl: string }) {
   if (!mediaUrl) return null;
 
+    if (contentType === "sticker" || contentType === "gif") {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border bg-black/5 flex justify-center">
+        {contentType === "sticker" ? (
+          <img src={mediaUrl} className="w-20 h-20 object-contain" alt="Sticker" />
+        ) : (
+          <video src={mediaUrl} className="w-full max-h-32 object-contain" autoPlay loop muted playsInline />
+        )}
+      </div>
+    );
+  }
+
+  if (contentType === "link") {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border bg-muted/30 p-2">
+        {mediaUrl && <img src={mediaUrl} className="w-full h-20 object-cover rounded mb-1" alt="Preview" />}
+        <div className="text-[10px] text-primary underline truncate">{data.linkUrl || mediaUrl}</div>
+      </div>
+    );
+  }
+
   if (contentType === "image") {
     return (
       <div className="mt-2 rounded-md overflow-hidden border border-border">

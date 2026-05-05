@@ -4483,7 +4483,7 @@ async function sendNodeContent(
   };
 
   const contentType = targetNode.data.contentType || "text";
-  const isMediaContentType = ["image", "video", "audio", "document"].includes(
+  const isMediaContentType = ["image", "video", "audio", "document", "sticker", "gif"].includes(
     contentType,
   );
   const typeLabelForLog = (t: string) =>
