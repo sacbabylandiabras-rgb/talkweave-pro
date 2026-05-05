@@ -866,22 +866,30 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
-      const onlyReplyButtons = buttonActions.every((b: any) => String(b?.type || 'REPLY').toUpperCase() === 'REPLY');
+      const normalizedButtons = buttonActions.slice(0, 3).map((b: any, index: number) => ({
+        id: b.id || String(index + 1),
+        type: String(b?.type || 'REPLY').toUpperCase(),
+        label: String(b?.label || `Botão ${index + 1}`).trim(),
+        url: b.url,
+        phone: b.phone ?? b.phoneNumber,
+      }));
+      const replyButtons = normalizedButtons.filter((b: any) => b.type === 'REPLY' || b.type === 'OPTION');
+      const actionButtons = normalizedButtons.filter((b: any) => b.type === 'URL' || b.type === 'CALL');
+      const actionSuffix = actionButtons
+        .map((b: any) => b.type === 'URL' && b.url ? `🔗 ${b.label}: ${b.url}` : b.type === 'CALL' && b.phone ? `📞 ${b.label}: ${b.phone}` : '')
+        .filter(Boolean)
+        .join('\n');
+      const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
-      // Check if any button is an action type (URL/CALL) — these require /send-button-actions
-      const hasActionButtons = buttonActions.some((b: any) => {
-        const t = (b.type || '').toUpperCase();
-        return t === 'URL' || t === 'CALL';
-      });
-
-      if (onlyReplyButtons || (mediaUrl && mediaType === 'image' && !hasActionButtons) || forceReplyButtons === true) {
-        // REPLY-only buttons must use button-list; mixing them in action-buttons makes WhatsApp render them as disabled/selected rows.
+      if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image' && actionButtons.length === 0) || forceReplyButtons === true) {
+        // REPLY must use button-list; send-button-actions renders it as a selected/non-clickable row in WhatsApp.
+        const listButtons = replyButtons.length > 0 ? replyButtons : normalizedButtons;
         const buttonListPayload = {
           phone: resolvedPhone,
-          message: interactiveMessage,
+          message: listMessage,
           buttonList: {
             ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-            buttons: buttonActions.slice(0, 3).map((b: any, index: number) => ({
+            buttons: listButtons.map((b: any, index: number) => ({
               id: b.id || String(index + 1),
               label: b.label,
             })),
@@ -899,13 +907,13 @@ serve(async (req) => {
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
         logMessage = logMessage || '🔘 Botões de resposta';
       } else {
-        // Action buttons (URL/CALL) or no image → use /send-button-actions
+        // Action buttons only → use /send-button-actions
         const interactivePayload: Record<string, unknown> = {
           phone: resolvedPhone,
           message: interactiveMessage,
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
-          buttonActions: buttonActions.map((b: any, index: number) => {
+          buttonActions: actionButtons.map((b: any, index: number) => {
             const action: any = {
               id: b.id || String(index + 1),
               type: b.type,
