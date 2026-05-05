@@ -20,6 +20,19 @@ import {
   MapPinned,
   CreditCard,
   QrCode,
+  Sticker,
+  Zap as ZapIcon,
+  HelpCircle,
+  ShoppingBag,
+  Package,
+  List,
+  Smile,
+  X,
+  Reply,
+  Forward,
+  CheckCircle,
+  Trash as TrashIcon,
+  Pin,
 } from "lucide-react";
 
 const typeIcons: Record<string, any> = {
