@@ -1024,7 +1024,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               ...overrideHeader,
             });
           } else {
-            const body = instanceId ? { ...payload, instanceId } : payload;
+            const body = instanceId
+              ? { ...payload, instanceId, preferStandardConnection: true }
+              : { ...payload, preferStandardConnection: true };
             const { data, error } = await supabase.functions.invoke('send-message', { body });
             console.log("[FluxoVisual] send-message result", { body, data, error });
             const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
