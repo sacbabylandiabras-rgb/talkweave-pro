@@ -308,6 +308,7 @@ serve(async (req) => {
       buttonActions,
       buttonList,
       optionList,
+      forceReplyButtons,
       viewOnce,
       isPtv,
       specialType,
@@ -374,7 +375,7 @@ serve(async (req) => {
       }
     }
 
-    const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
+      const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
     if (shouldUseStandardConnection) {
       const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
       if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
