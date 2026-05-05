@@ -109,6 +109,19 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+const isRawDisconnectedMessage = (value: unknown) => {
+  const text = String(value || "").trim().toLowerCase();
+  return text === "whatsapp disconnected" || text.includes("whatsapp disconnected");
+};
+
+const sanitizeSendErrorMessage = (message: unknown, fallback: string) => {
+  if (!message) return fallback;
+  if (isRawDisconnectedMessage(message)) {
+    return "Envio não confirmado: o provedor retornou conexão indisponível. Veja o console para o payload real.";
+  }
+  return String(message);
+};
+
 const hasConfirmedSendResponse = (payload: any): boolean => {
   if (!payload) return false;
   if (payload.success === true) return true;
@@ -132,9 +145,9 @@ const hasConfirmedSendResponse = (payload: any): boolean => {
 
 async function getSendFailureMessage(data: any, error: unknown, fallback: string) {
   if (hasConfirmedSendResponse(data)) return null;
-  if (error) return getInvokeErrorMessage(error, fallback);
-  if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
-  if (data?.success === false) return data?.message || fallback;
+  if (error) return sanitizeSendErrorMessage(await getInvokeErrorMessage(error, fallback), fallback);
+  if (data?.error) return sanitizeSendErrorMessage(typeof data.error === "string" ? data.error : JSON.stringify(data.error), fallback);
+  if (data?.success === false) return sanitizeSendErrorMessage(data?.message, fallback);
   return null;
 }
 
