@@ -1148,8 +1148,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   description: targetNode.data.pixDescription || content || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "request-payment": {
@@ -1164,8 +1163,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   description: targetNode.data.paymentDescription || content || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "location":
@@ -1180,8 +1178,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   address: targetNode.data.locationAddress || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "contact": {
@@ -1194,8 +1191,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   contactOrg: targetNode.data.contactOrg || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
           }
