@@ -1373,7 +1373,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 </Button>
 
                 {/* Table with full contact list */}
-                <ScrollArea className="max-h-[40vh]">
+                <ScrollArea className="max-h-[60vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
