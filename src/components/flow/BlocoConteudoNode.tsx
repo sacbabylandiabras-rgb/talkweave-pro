@@ -104,8 +104,8 @@ const buttonTypeIcons: Record<string, any> = {
   flow: ArrowRight,
 };
 
-function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl: string }) {
-  if (!mediaUrl) return null;
+function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; mediaUrl: string; data?: any }) {
+  if (!mediaUrl && contentType !== "link") return null;
 
     if (contentType === "sticker" || contentType === "gif") {
     return (
@@ -119,11 +119,11 @@ function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl
     );
   }
 
-  if (contentType === "link") {
+  if (contentType === "link" && (mediaUrl || data?.linkUrl)) {
     return (
       <div className="mt-2 rounded-md overflow-hidden border border-border bg-muted/30 p-2">
         {mediaUrl && <img src={mediaUrl} className="w-full h-20 object-cover rounded mb-1" alt="Preview" />}
-        <div className="text-[10px] text-primary underline truncate">{data.linkUrl || mediaUrl}</div>
+        <div className="text-[10px] text-primary underline truncate">{data?.linkUrl || mediaUrl}</div>
       </div>
     );
   }
