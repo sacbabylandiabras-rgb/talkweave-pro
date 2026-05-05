@@ -5102,51 +5102,37 @@ async function sendNodeContent(
         return true; // pausa aguardando resposta
       }
 
-      if (contentType === "media-carousel") {
-        let cards: any[] = [];
-        try {
-          cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
-        } catch {
-          cards = [];
-        }
-        if (isUazapiProvider) {
-          await sendUaz(
-            "/send/media-carousel",
-            { number: normalizedTargetNumber, cards },
-            `Bloco ${targetNode.id} (media-carousel)`,
-          );
-        } else {
-          const zapiCards = cards.map((c: any) => {
-            const card: any = {
-              text: c.text || c.title || c.subtitle || c.description || "",
-            };
-            if (c.image) card.image = c.image;
-            if (Array.isArray(c.buttons) && c.buttons.length > 0) {
-              card.buttons = c.buttons.slice(0, 3).map((b: any, i: number) => {
-                const action: any = {
-                  id: b.id || String(i + 1),
-                  label: b.label || b.text || `Botão ${i + 1}`,
-                };
-                if (b.url) {
-                  action.type = "URL";
-                  action.url = b.url;
-                } else if (b.phone) {
-                  action.type = "CALL";
-                  action.phone = b.phone;
-                } else {
-                  action.type = "REPLY";
-                }
-                return action;
-              });
-            }
-            return card;
-          });
-          await sendZapi(
-            "/send-carousel",
-            { phone, message: content || "", carousel: zapiCards },
-            `Bloco ${targetNode.id} (media-carousel)`,
-          );
-        }
+            if (contentType === "sticker" && mediaUrl) {
+        await sendZapi("/send-sticker", { phone, sticker: mediaUrl }, `Bloco ${targetNode.id} (sticker)`);
+        return false;
+      }
+      if (contentType === "gif" && mediaUrl) {
+        await sendZapi("/send-gif", { phone, gif: mediaUrl, caption: content || "" }, `Bloco ${targetNode.id} (gif)`);
+        return false;
+      }
+      if (contentType === "link" && mediaUrl) {
+        await sendZapi("/send-link", { phone, message: content || "", image: mediaUrl, linkUrl: mediaUrl }, `Bloco ${targetNode.id} (link)`);
+        return false;
+      }
+      if (contentType === "poll") {
+        const pollOptions = (targetNode.data.buttons || []).map((b: any) => b.text || "Opção");
+        await sendZapi("/send-poll", { phone, pollName: content || "Enquete", options: pollOptions, selectableOptionsCount: 1 }, `Bloco ${targetNode.id} (poll)`);
+        return false;
+      }
+      if (contentType === "reaction") {
+        await sendZapi("/send-message-reaction", { phone, messageId: targetNode.data.targetMessageId, emoji: targetNode.data.emoji || "👍" }, `Bloco ${targetNode.id} (reaction)`);
+        return false;
+      }
+      if (contentType === "read") {
+        await sendZapi("/read-message", { phone, messageId: targetNode.data.targetMessageId }, `Bloco ${targetNode.id} (read)`);
+        return false;
+      }
+      if (contentType === "delete") {
+        await sendZapi("/delete-message", { phone, messageId: targetNode.data.targetMessageId, owner: true }, `Bloco ${targetNode.id} (delete)`);
+        return false;
+      }
+      if (contentType === "pin") {
+        await sendZapi("/send-pin-message", { phone, messageId: targetNode.data.targetMessageId, pin: true, duration: 2592000 }, `Bloco ${targetNode.id} (pin)`);
         return false;
       }
 
