@@ -1,10 +1,28 @@
 import { useTheme } from "next-themes";
+import { useEffect } from "react";
 import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
+
+  useEffect(() => {
+    const hideRawDisconnectedToast = () => {
+      document.querySelectorAll('[data-sonner-toast]').forEach((node) => {
+        const text = node.textContent?.trim().toLowerCase() || "";
+        if (text === "whatsapp disconnected" || text.includes("whatsapp disconnected")) {
+          console.warn("[Toast] Alerta cru de conexão suprimido", { text });
+          node.remove();
+        }
+      });
+    };
+
+    hideRawDisconnectedToast();
+    const observer = new MutationObserver(hideRawDisconnectedToast);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <Sonner
