@@ -4639,7 +4639,15 @@ async function sendNodeContent(
 
     try {
       if (isUazapiProvider) {
-        await sendUazapiLocation(lat, lng, title, address, context);
+        if (!uazapiUrl || !uazapiToken) {
+          throw new Error("UAZAPI URL/Token não configurados");
+        }
+        const res = await fetch(`${uazapiUrl}/send/location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: uazapiToken },
+          body: JSON.stringify({ number: normalizedTargetNumber, latitude: lat, longitude: lng, name: title || undefined, address: address || undefined }),
+        });
+        await parseProviderResponse(res, context);
       } else {
         const res = await fetch(`${baseUrl}/send-location`, {
           method: "POST",
