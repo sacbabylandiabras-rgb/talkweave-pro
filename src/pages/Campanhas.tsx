@@ -1454,44 +1454,48 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         Nenhum clique registrado ainda.
                       </div>
                     ) : (
-                      <ScrollArea className="max-h-[30vh] border rounded-md">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Data</TableHead>
-                              <TableHead>IP</TableHead>
-                              <TableHead>Localização</TableHead>
-                              <TableHead>Dispositivo</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {statsDialogLinkClicks.map((click) => {
-                              const loc = [click.city, click.region, click.country].filter(Boolean).join(', ');
-                              const ua = click.user_agent || '';
-                              const device = /iPhone|iPad/i.test(ua)
-                                ? 'iOS'
-                                : /Android/i.test(ua)
-                                  ? 'Android'
-                                  : /Windows/i.test(ua)
-                                    ? 'Windows'
-                                    : /Macintosh|Mac OS/i.test(ua)
-                                      ? 'macOS'
-                                      : /Linux/i.test(ua)
-                                        ? 'Linux'
-                                        : 'Outro';
-                              return (
-                                <TableRow key={click.id}>
-                                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                    {format(new Date(click.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                                  </TableCell>
-                                  <TableCell className="text-xs font-mono">{click.ip || '-'}</TableCell>
-                                  <TableCell className="text-xs">{loc || '-'}</TableCell>
-                                  <TableCell className="text-xs" title={ua}>{device}</TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
+                      <ScrollArea className="max-h-[30vh] w-full border rounded-md">
+                        <div className="w-full overflow-x-auto">
+                          <Table className="w-full table-fixed">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[120px]">Data</TableHead>
+                                <TableHead className="w-[130px]">IP</TableHead>
+                                <TableHead>Localização</TableHead>
+                                <TableHead className="w-[100px]">Dispositivo</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {statsDialogLinkClicks.map((click) => {
+                                const loc = [click.city, click.region, click.country].filter(Boolean).join(', ');
+                                const ua = click.user_agent || '';
+                                const device = /iPhone|iPad/i.test(ua)
+                                  ? 'iOS'
+                                  : /Android/i.test(ua)
+                                    ? 'Android'
+                                    : /Windows/i.test(ua)
+                                      ? 'Windows'
+                                      : /Macintosh|Mac OS/i.test(ua)
+                                        ? 'macOS'
+                                        : /Linux/i.test(ua)
+                                          ? 'Linux'
+                                          : 'Outro';
+                                return (
+                                  <TableRow key={click.id}>
+                                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                      {format(new Date(click.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                                    </TableCell>
+                                    <TableCell className="text-xs font-mono truncate" title={click.ip || ''}>
+                                      {click.ip || '-'}
+                                    </TableCell>
+                                    <TableCell className="text-xs truncate" title={loc}>{loc || '-'}</TableCell>
+                                    <TableCell className="text-xs truncate" title={ua}>{device}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </ScrollArea>
                     )}
                   </div>
