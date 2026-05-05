@@ -880,7 +880,7 @@ serve(async (req) => {
           phone: resolvedPhone,
           message: interactiveMessage,
           buttonList: {
-            image: mediaUrl,
+            ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
             buttons: buttonActions.slice(0, 3).map((b: any, index: number) => ({
               id: b.id || String(index + 1),
               label: b.label,
@@ -888,7 +888,7 @@ serve(async (req) => {
           },
         };
 
-        console.log(`📤 Sending button-list with image for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
+        console.log(`📤 Sending reply button-list for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
 
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
@@ -896,8 +896,8 @@ serve(async (req) => {
           body: JSON.stringify(buttonListPayload),
         });
 
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list-image');
-        logMessage = logMessage || '🔘 Botões com imagem';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
+        logMessage = logMessage || '🔘 Botões de resposta';
       } else {
         // Action buttons (URL/CALL) or no image → use /send-button-actions
         const interactivePayload: Record<string, unknown> = {
