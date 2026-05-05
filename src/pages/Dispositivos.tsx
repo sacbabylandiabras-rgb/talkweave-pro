@@ -417,7 +417,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             console.error('Erro ao sincronizar:', error);
             toast({ title: "❌ Erro ao sincronizar", description: "Não foi possível importar os contatos.", variant: "destructive" });
           } else if (data?.error === 'disconnected') {
-            toast({ title: "⚠️ WhatsApp desconectado", description: "Reconecte sua instância na página de Dispositivos.", variant: "destructive" });
+            toast({ title: "⚠️ Sessão indisponível", description: "Não foi possível importar o histórico agora. Tente novamente em instantes." });
           } else {
             toast({ 
               title: "✅ Contatos importados!", 
