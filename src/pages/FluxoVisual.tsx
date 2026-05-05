@@ -109,6 +109,35 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+const hasConfirmedSendResponse = (payload: any): boolean => {
+  if (!payload) return false;
+  if (payload.success === true) return true;
+
+  const candidates = [payload, payload.data, payload.details, payload.result].filter(Boolean);
+  return candidates.some((item) => {
+    const status = String(item?.status || item?.messageStatus || item?.state || item?.result || "").toLowerCase();
+    return Boolean(
+      item?.messageId ||
+      item?.zapiMessageId ||
+      item?.zaapId ||
+      item?.id ||
+      item?.key?.id ||
+      item?.message?.id ||
+      item?.queued === true ||
+      item?.enqueued === true ||
+      ["success", "queued", "queue", "pending", "processing", "accepted"].includes(status)
+    );
+  });
+};
+
+async function getSendFailureMessage(data: any, error: unknown, fallback: string) {
+  if (hasConfirmedSendResponse(data)) return null;
+  if (error) return getInvokeErrorMessage(error, fallback);
+  if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+  if (data?.success === false) return data?.message || fallback;
+  return null;
+}
+
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
   blocoConteudo: BlocoConteudoNode,
@@ -989,8 +1018,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           } else {
             const body = instanceId ? { ...payload, instanceId } : payload;
             const { data, error } = await supabase.functions.invoke('send-message', { body });
-            if (error) throw error;
-            if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+            if (failureMessage) throw new Error(failureMessage);
           }
         };
 
@@ -1119,8 +1148,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   description: targetNode.data.pixDescription || content || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "request-payment": {
@@ -1135,8 +1163,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   description: targetNode.data.paymentDescription || content || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "location":
@@ -1151,8 +1178,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   address: targetNode.data.locationAddress || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
             case "contact": {
@@ -1165,8 +1191,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   contactOrg: targetNode.data.contactOrg || '',
                 },
               };
-              if (instanceId) body.instanceId = instanceId;
-              await supabase.functions.invoke('send-message', { body });
+              await sendWithInstance(body);
               break;
             }
           }
