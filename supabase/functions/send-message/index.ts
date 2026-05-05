@@ -231,6 +231,26 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
 
 const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
 
+const findPreferredStandardInstance = async (adminClient: any, userId: string) => {
+  const { data, error } = await adminClient
+    .from('zapi_instances')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .or('api_provider.is.null,api_provider.eq.zapi')
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('⚠️ Falha ao buscar conexão padrão para envio:', error);
+    return null;
+  }
+
+  return data || null;
+};
+
 const logProviderSend = async (
   adminClient: any,
   params: {
