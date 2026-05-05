@@ -5235,7 +5235,7 @@ async function sendNodeContent(
     }
 
     if (hasButtons) {
-      if ((contentType === "image" || contentType === "video") && mediaUrl) {
+      if ((contentType === "image" || contentType === "video" || contentType === "audio") && mediaUrl) {
         let mediaEndpoint: string;
         const mediaBody: any = { phone };
         if (contentType === "video" && targetNode.data?.isPtv) {
@@ -5245,13 +5245,17 @@ async function sendNodeContent(
           mediaEndpoint = "/send-video";
           mediaBody.video = mediaUrl;
           if (targetNode.data?.viewOnce) mediaBody.viewOnce = true;
+        } else if (contentType === "audio") {
+          mediaEndpoint = "/send-audio";
+          mediaBody.audio = mediaUrl;
+          mediaBody.waveform = true;
         } else {
           mediaEndpoint = "/send-image";
           mediaBody.image = mediaUrl;
         }
         if (isUazapiProvider) {
           await sendProviderMedia(
-            contentType === "video" ? "video" : "image",
+            contentType as "image" | "video" | "audio",
             mediaUrl,
             "",
             `Bloco ${targetNode.id} (${contentType} mídia pré-botões)`,
