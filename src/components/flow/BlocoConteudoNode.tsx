@@ -107,7 +107,33 @@ const buttonTypeIcons: Record<string, any> = {
 function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; mediaUrl: string; data?: any }) {
   if (!mediaUrl && contentType !== "link") return null;
 
-    if (contentType === "sticker" || contentType === "gif") {
+      if (contentType === "poll") {
+    const opts = data.buttons || [];
+    return (
+      <div className="mt-2 space-y-1 bg-muted/20 p-2 rounded-md border border-border">
+        <div className="text-[10px] font-bold flex items-center gap-1"><HelpCircle className="w-3 h-3"/> Enquete:</div>
+        {opts.map((o: any, i: number) => (
+          <div key={i} className="text-[9px] px-2 py-1 bg-background border border-border rounded flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full border border-primary" /> {o.text || "Opção"}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (contentType === "product" || contentType === "order") {
+    return (
+      <div className="mt-2 flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 p-2 rounded-md">
+        <ShoppingBag className="w-4 h-4 text-blue-500" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold truncate">{contentType === "product" ? "Produto" : data.orderTitle || "Pedido"}</div>
+          <div className="text-[9px] text-muted-foreground truncate">{contentType === "product" ? `ID: ${data.productId}` : `Total: R$ ${data.orderTotal}`}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (contentType === "sticker" || contentType === "gif") {
     return (
       <div className="mt-2 rounded-md overflow-hidden border border-border bg-black/5 flex justify-center">
         {contentType === "sticker" ? (
