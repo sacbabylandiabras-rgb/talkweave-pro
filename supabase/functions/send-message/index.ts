@@ -86,8 +86,10 @@ const fetchUazapiWithRetry = async (
         await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
         continue;
       }
-      if (attempt > 1) {
+      if (attempt > 1 && res.ok) {
         console.log(`✅ UAZAPI ${label} sucesso na tentativa ${attempt}/${maxAttempts} para ${phone}`);
+      } else if (attempt === maxAttempts && !res.ok) {
+        console.error(`❌ UAZAPI ${label} falhou após ${attempt}/${maxAttempts} tentativas para ${phone}: HTTP ${res.status}`);
       }
       return res;
     } catch (err) {
@@ -155,9 +157,15 @@ const parseUazapiResponse = async (response: Response, phone: string, instanceId
     explicitError.trim() !== 'true';
 
   if (!response.ok || hasTextualError) {
+    const realError = explicitError || `Provedor de envio rejeitou a mensagem (HTTP ${response.status})`;
     throw new Response(
       JSON.stringify({
-        error: explicitError || `UAZAPI rejeitou a mensagem (HTTP ${response.status})`,
+        error: realError,
+        message: realError,
+        provider: 'uazapi',
+        httpStatus: response.status,
+        confirmed,
+        ack: getUazapiAckId(data) || null,
         details: data,
       }),
       {

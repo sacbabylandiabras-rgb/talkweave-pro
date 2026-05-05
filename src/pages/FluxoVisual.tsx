@@ -96,11 +96,13 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
     if (context) {
       try {
         const payload = await context.clone().json();
-        if (payload?.error) return payload.error;
+        const detail = payload?.details ? ` | detalhes: ${JSON.stringify(payload.details).slice(0, 500)}` : "";
+        const message = payload?.error || payload?.message || fallback;
+        return `Falha no envio (HTTP ${context.status}): ${message}${detail}`;
       } catch {
         try {
           const text = await context.clone().text();
-          if (text) return text;
+          if (text) return `Falha no envio (HTTP ${context.status}): ${text.slice(0, 700)}`;
         } catch {}
       }
     }
@@ -109,17 +111,11 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-const isRawDisconnectedMessage = (value: unknown) => {
-  const text = String(value || "").trim().toLowerCase();
-  return text === "whatsapp disconnected" || text.includes("whatsapp disconnected");
-};
-
-const sanitizeSendErrorMessage = (message: unknown, fallback: string) => {
-  if (!message) return fallback;
-  if (isRawDisconnectedMessage(message)) {
-    return "Envio não confirmado: o provedor retornou conexão indisponível. Veja o console para o payload real.";
-  }
-  return String(message);
+const formatSendFailurePayload = (data: any, fallback: string) => {
+  if (!data) return fallback;
+  const message = data?.error || data?.message || fallback;
+  const details = data?.details ? ` | detalhes: ${JSON.stringify(data.details).slice(0, 500)}` : "";
+  return `${message}${details}`;
 };
 
 const hasConfirmedSendResponse = (payload: any): boolean => {
@@ -145,9 +141,8 @@ const hasConfirmedSendResponse = (payload: any): boolean => {
 
 async function getSendFailureMessage(data: any, error: unknown, fallback: string) {
   if (hasConfirmedSendResponse(data)) return null;
-  if (error) return sanitizeSendErrorMessage(await getInvokeErrorMessage(error, fallback), fallback);
-  if (data?.error) return sanitizeSendErrorMessage(typeof data.error === "string" ? data.error : JSON.stringify(data.error), fallback);
-  if (data?.success === false) return sanitizeSendErrorMessage(data?.message, fallback);
+  if (error) return await getInvokeErrorMessage(error, fallback);
+  if (data?.error || data?.success === false) return formatSendFailurePayload(data, fallback);
   return null;
 }
 
@@ -1036,9 +1031,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             if (failureMessage) {
               console.error("[FluxoVisual] Falha real no envio", { body, data, error, failureMessage });
               throw new Error(failureMessage);
-            }
-            if (isRawDisconnectedMessage(data?.message) || isRawDisconnectedMessage(data?.error)) {
-              console.warn("[FluxoVisual] Resposta confirmada continha aviso cru de conexão e foi suprimida", { body, data });
             }
           }
         };
