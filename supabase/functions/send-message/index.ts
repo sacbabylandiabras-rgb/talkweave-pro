@@ -881,7 +881,44 @@ serve(async (req) => {
         .join('\n');
       const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
-      if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image' && actionButtons.length === 0) || forceReplyButtons === true) {
+      if (actionButtons.length > 0) {
+        // Mixed/native action buttons must stay on send-button-actions so URL/CALL render as real buttons.
+        const interactivePayload: Record<string, unknown> = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          buttonActions: normalizedButtons.map((b: any, index: number) => {
+            const action: any = {
+              id: b.id || String(index + 1),
+              type: b.type,
+              label: b.label,
+            };
+            if (b.type === 'URL' && b.url) action.url = b.url;
+            if (b.type === 'CALL') action.phone = b.phone;
+            return action;
+          }),
+        };
+
+        if (mediaUrl && mediaType === 'image') {
+          console.log(`📤 Sending image separately before native action buttons for ${resolvedPhone}`);
+          const imgResponse = await fetch(`${baseUrl}/send-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: '' }),
+          });
+          await parseZapiResponse(imgResponse, resolvedPhone, instanceId, 'pre-button-image');
+        }
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(interactivePayload),
+        });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
+        logMessage = logMessage || '🔘 Botões de ação';
+      } else if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image') || forceReplyButtons === true) {
         // REPLY must use button-list; send-button-actions renders it as a selected/non-clickable row in WhatsApp.
         const listButtons = replyButtons.length > 0 ? replyButtons : normalizedButtons;
         const buttonListPayload = {
