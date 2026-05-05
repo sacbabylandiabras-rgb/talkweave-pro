@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZapLynx Extension",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Integração direta do WhatsApp Web com a plataforma ZapLynx.",
   "permissions": [
     "storage",
@@ -13,13 +13,13 @@
     "https://web.whatsapp.com/*",
     "https://*.supabase.co/*"
   ],
-    "action": {
-      "default_icon": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-      }
-    },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
    "icons": {
      "16": "icons/icon16.png",
      "48": "icons/icon48.png",

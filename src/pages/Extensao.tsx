@@ -27,6 +27,22 @@ const Extensao = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const downloadExtension = async () => {
+    try {
+      const response = await fetch(`/zaplynx-extension.zip?v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("download-failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "zaplynx-extension.zip";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível baixar a extensão atualizada.");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -56,11 +72,9 @@ const Extensao = () => {
                 <li>Clique em "Carregar sem compactação" e selecione a pasta extraída.</li>
               </ol>
             </div>
-            <Button className="w-full gap-2" size="lg" asChild>
-              <a href="/extension.zip" download="zaplynx-extension.zip">
-                <Download className="w-4 h-4" />
-                Baixar Extensão (.zip)
-              </a>
+            <Button className="w-full gap-2" size="lg" onClick={downloadExtension}>
+              <Download className="w-4 h-4" />
+              Baixar Extensão Atualizada (.zip)
             </Button>
           </CardContent>
         </Card>

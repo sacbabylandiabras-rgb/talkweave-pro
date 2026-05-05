@@ -1,6 +1,7 @@
-console.log('ZapLynx Extension: Content script loaded');
+console.log('ZapLynx Extension v1.0.3: Content script loaded');
 
 let zaplynxToken = null;
+let zaplynxInitInterval = null;
 
 function loadTokenAndInit() {
   chrome.storage.local.get(['zaplynx_token'], (result) => {
@@ -16,7 +17,9 @@ function initExtension() {
   // Initial injection
   injectUI();
   // Keep checking in case WA Web re-renders the body
-  setInterval(injectUI, 3000);
+  if (!zaplynxInitInterval) {
+    zaplynxInitInterval = setInterval(injectUI, 3000);
+  }
 }
 
 function injectUI() {
@@ -30,15 +33,15 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
       <div class="sidebar-content">
         <div class="sidebar-section">
           <h3>Conectar Conta</h3>
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
-          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e9d5ff; background: #faf5ff; color: #4a1d6b; margin-bottom: 12px; box-sizing: border-box;">
+          <p style="font-size: 12px; color: #b9aec9; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
+          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(167, 139, 250, 0.25); background: rgba(255,255,255,0.08); color: #f8fafc; margin-bottom: 12px; box-sizing: border-box;">
           <button class="sidebar-btn primary" id="btn-save-token">Conectar Extensão</button>
         </div>
       </div>
@@ -47,7 +50,7 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
@@ -68,12 +71,12 @@ function injectUI() {
             <span>🔄</span> Listar Grupos na Tela
           </button>
           <div id="groups-list" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
-            <p style="font-size: 11px; color: #6b7280;">Clique para listar os grupos visíveis na sua barra lateral.</p>
+            <p style="font-size: 11px; color: #b9aec9;">Clique para listar os grupos visíveis na sua barra lateral.</p>
           </div>
         </div>
 
-        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #f3e8ff; padding-top: 15px;">
-          <h3 id="current-group-name" style="color: #a855f7;">Chat Ativo</h3>
+        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid rgba(167, 139, 250, 0.18); padding-top: 15px;">
+          <h3 id="current-group-name" style="color: #f472b6;">Chat Ativo</h3>
           <button class="sidebar-btn success" id="btn-extract-members">
             <span>👥</span> Extrair Membros deste Chat
           </button>
@@ -98,6 +101,7 @@ function injectUI() {
           const sidebar = document.getElementById('zaplynx-sidebar');
           if (sidebar) sidebar.remove();
           injectUI();
+          checkActiveChat();
         });
       }
     };
@@ -145,16 +149,18 @@ function listGroups() {
   listEl.innerHTML = '<p style="font-size: 12px; color: #94a3b8;">Buscando grupos...</p>';
   
   // Scrape the left sidebar for group items
-  const chats = document.querySelectorAll('div[role="listitem"]');
+  const chats = document.querySelectorAll('div[role="listitem"], [data-testid="cell-frame-container"], [aria-label="Lista de conversas"] [role="row"]');
   const groups = [];
   
   chats.forEach(chat => {
-    const titleEl = chat.querySelector('span[title]');
+    const titleEl = chat.querySelector('span[title], div[title]');
     if (titleEl) {
-      const title = titleEl.getAttribute('title');
+      const title = titleEl.getAttribute('title')?.trim();
       // Try to identify if it's a group by looking for participant info or specific icons
       // Since that's hard, we list chats that are likely groups (or just all for now)
-      groups.push({ title, element: chat });
+      if (title && !groups.some(group => group.title === title)) {
+        groups.push({ title, element: chat });
+      }
     }
   });
 
