@@ -866,6 +866,7 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
+      const onlyReplyButtons = buttonActions.every((b: any) => String(b?.type || 'REPLY').toUpperCase() === 'REPLY');
 
       // Check if any button is an action type (URL/CALL) — these require /send-button-actions
       const hasActionButtons = buttonActions.some((b: any) => {
@@ -873,8 +874,8 @@ serve(async (req) => {
         return t === 'URL' || t === 'CALL';
       });
 
-      if (mediaUrl && mediaType === 'image' && !hasActionButtons) {
-        // REPLY-only buttons + image → use /send-button-list with image inside buttonList
+      if (onlyReplyButtons || (mediaUrl && mediaType === 'image' && !hasActionButtons) || forceReplyButtons === true) {
+        // REPLY-only buttons must use button-list; mixing them in action-buttons makes WhatsApp render them as disabled/selected rows.
         const buttonListPayload = {
           phone: resolvedPhone,
           message: interactiveMessage,
