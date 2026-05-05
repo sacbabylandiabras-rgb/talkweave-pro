@@ -576,8 +576,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const handleSaveFluxo = async () => {
-    if (savingFluxo) return false;
+  const handleSaveFluxo = async (): Promise<string | false> => {
+    if (savingFluxo) return currentFluxoId || false;
     setSavingFluxo(true);
 
     try {
@@ -635,6 +635,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           }
 
           setCurrentFluxoId(createdFlow.id);
+          return createdFlow.id;
         }
       } else {
         const { data, error } = await (supabase as any)
@@ -650,13 +651,18 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
 
         setCurrentFluxoId(data.id);
+        setNodes(nodesToPersist);
+        setNomeFluxo(normalizedName);
+        await fetchFluxos();
+        toast.success("Fluxo salvo com sucesso!");
+        return data.id;
       }
 
       setNodes(nodesToPersist);
       setNomeFluxo(normalizedName);
       await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
-      return true;
+      return currentFluxoId || updatedRows?.[0]?.id || false;
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
       toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
@@ -832,7 +838,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     e.target.value = "";
   };
 
-  const handleEnviarAgora = () => {
+  const handleEnviarAgora = async () => {
     if (nodes.length <= 1) {
       toast.error("Adicione blocos ao fluxo antes de enviar!");
       return;
@@ -841,7 +847,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       toast.error("Conecte os blocos antes de enviar!");
       return;
     }
-    handleSaveFluxo();
+    const savedFlowId = await handleSaveFluxo();
+    if (!savedFlowId) return;
     if (isGroupsMode && preselectedGroups.length > 0) {
       // Já temos os grupos selecionados — envia direto
       handleConfirmSend(
@@ -878,6 +885,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const { data: { user } } = await supabase.auth.getUser();
       const currentUserId = user?.id || '';
 
+      const savedFlowId = await handleSaveFluxo();
+      if (!savedFlowId) {
+        setIsSending(false);
+        return;
+      }
+
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
         toast.error("Bloco inicial não encontrado!");
@@ -894,7 +907,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         const currentInstanceId = instanceIds && instanceIds.length > 0
           ? instanceIds[sendCounter % instanceIds.length]
           : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId);
+        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
         sendCounter++;
       }
 
@@ -916,7 +929,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string, flowIdForPending?: string) => {
     if (cancelSendRef.current) return;
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
@@ -1070,12 +1083,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           await sendWithInstance({ phone: contact, message: promptMap[captureField] });
 
           // Persist pending capture state so webhook-zapi can resume the flow when the user replies
-          if (userId && currentFluxoId) {
+          const pendingFlowId = flowIdForPending || currentFluxoId;
+          if (userId && pendingFlowId) {
             await (supabase as any).from("message_logs").insert({
               phone: contact,
               message_received: null,
               response_sent: JSON.stringify({
-                flowId: currentFluxoId,
+                flowId: pendingFlowId,
                 flowName: nomeFluxo || null,
                 nodeId: targetNode.id,
                 field: captureField,
@@ -1131,6 +1145,58 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             message: content || "Escolha uma opção:",
             buttonActions: mappedButtons.slice(0, 3),
           });
+
+          const hasButtonEdgesForPending = buttons.some((btn: any, idx: number) => {
+            if (btn?.type !== "flow" && btn?.type !== "reply") return false;
+            const aliases = [
+              `button-${idx}`,
+              `button_${idx}`,
+              `btn-${idx}`,
+              `btn_${idx}`,
+              `button-${idx + 1}`,
+              `button_${idx + 1}`,
+              `btn-${idx + 1}`,
+              `btn_${idx + 1}`,
+              btn?.id ? String(btn.id) : "",
+            ].filter(Boolean);
+            return edges.some((e) => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")));
+          });
+
+          const pendingFlowId = flowIdForPending || currentFluxoId;
+          if (hasButtonEdgesForPending && userId && pendingFlowId) {
+            await (supabase as any).from("message_logs").insert({
+              phone: contact,
+              message_received: null,
+              response_sent: JSON.stringify({
+                flowId: pendingFlowId,
+                flowName: nomeFluxo || null,
+                nodeId: targetNode.id,
+                instanceId: instanceId || null,
+                buttons: buttons
+                  .map((btn: any, idx: number) => ({
+                    text: String(btn?.text || `Botão ${idx + 1}`).trim(),
+                    handleAliases: [
+                      `button-${idx}`,
+                      `button_${idx}`,
+                      `btn-${idx}`,
+                      `btn_${idx}`,
+                      `button-${idx + 1}`,
+                      `button_${idx + 1}`,
+                      `btn-${idx + 1}`,
+                      `btn_${idx + 1}`,
+                      btn?.id ? String(btn.id) : "",
+                    ].filter(Boolean),
+                    index: idx,
+                    menuIndex: idx + 1,
+                  })),
+                captured: {},
+              }),
+              keyword_matched: `__flow_button__:${userId}`,
+              timestamp: new Date().toISOString(),
+              user_id: userId,
+              instance_id: instanceId || null,
+            });
+          }
         } else {
           switch (contentType) {
             case "text":
@@ -1235,7 +1301,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
       }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId, flowIdForPending);
     }
   };
 
