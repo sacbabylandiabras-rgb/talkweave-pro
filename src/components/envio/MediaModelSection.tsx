@@ -69,7 +69,7 @@ const MediaModelSection = ({
           <div className="space-y-3">
             <Input
               type="file"
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar,.webp,image/gif"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
