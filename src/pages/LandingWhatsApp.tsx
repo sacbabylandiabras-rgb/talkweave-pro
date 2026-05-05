@@ -42,14 +42,14 @@ const LandingWhatsApp = () => {
       </div>
 
       {/* FEATURE CARDS - CARROSSEL EM MOVIMENTO */}
-      <FeatureCarousel />
+      <FeatureMarquee />
 
       <div className="lp-divider" />
 
       {/* SEÇÃO: Disparos em Massa */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Campanhas</div>
+          <FeatureHighlight color="#22c55e" stat="+50.000 msgs/dia" tag="Campanhas" />
           <div className="lp-section-title">Disparos em Massa Inteligentes</div>
           <div className="lp-section-desc">
             Dispare campanhas para milhares de contatos usando várias conexões
@@ -73,7 +73,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Fluxos Visuais */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Automação Visual</div>
+          <FeatureHighlight color="#a78bfa" stat="100% no-code" tag="Automação Visual" />
           <div className="lp-section-title">Fluxos Visuais Drag & Drop</div>
           <div className="lp-section-desc">
             Construa jornadas completas conectando blocos visuais. Gatilhos por
@@ -97,7 +97,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Agente IA */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Inteligência Artificial</div>
+          <FeatureHighlight color="#f472b6" stat="Resposta em 2s" tag="Inteligência Artificial" />
           <div className="lp-section-title">Agente de IA que Atende e Vende 24h</div>
           <div className="lp-section-desc">
             Treine um agente com o conhecimento do seu negócio. Ele responde
@@ -120,7 +120,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Chat Unificado */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Atendimento</div>
+          <FeatureHighlight color="#34d399" stat="Tempo real" tag="Atendimento" />
           <div className="lp-section-title">Chat Unificado em Tempo Real</div>
           <div className="lp-section-desc">
             Centralize todas as conversas do WhatsApp em uma única caixa de
@@ -144,7 +144,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Grupos */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Grupos & Comunidades</div>
+          <FeatureHighlight color="#38bdf8" stat="Até 500 grupos/h" tag="Grupos & Comunidades" />
           <div className="lp-section-title">Gestão Completa de Grupos</div>
           <div className="lp-section-desc">
             Crie grupos em massa, extraia membros de comunidades, configure
@@ -168,7 +168,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Aquecimento */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Anti-Ban</div>
+          <FeatureHighlight color="#fbbf24" stat="−87% banimentos" tag="Anti-Ban" />
           <div className="lp-section-title">Aquecimento de Número</div>
           <div className="lp-section-desc">
             Proteja seus números contra banimento. Sistema simula conversas
@@ -422,214 +422,63 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
-function FeatureCarousel() {
+function FeatureMarquee() {
   const features = [
-    {
-      icon: "chat",
-      title: "Disparos em Massa",
-      desc: "Envie milhares de mensagens com múltiplas conexões e rotação automática.",
-      stat: "+50.000 msgs/dia",
-      color: "#22c55e",
-      visual: "blast",
-    },
-    {
-      icon: "flow",
-      title: "Fluxos Visuais",
-      desc: "Monte automações arrastando blocos. Sem código.",
-      stat: "100% no-code",
-      color: "#a78bfa",
-      visual: "flow",
-    },
-    {
-      icon: "ai",
-      title: "Agente de IA",
-      desc: "Atendimento 24/7 com IA treinada no seu negócio.",
-      stat: "Resposta em 2s",
-      color: "#f472b6",
-      visual: "ai",
-    },
-    {
-      icon: "group",
-      title: "Grupos & Comunidades",
-      desc: "Crie, clone e gerencie grupos automaticamente.",
-      stat: "Até 500 grupos/h",
-      color: "#38bdf8",
-      visual: "group",
-    },
-    {
-      icon: "warm",
-      title: "Aquecimento",
-      desc: "Aqueça seus números e proteja contra banimento.",
-      stat: "−87% banimentos",
-      color: "#fbbf24",
-      visual: "warm",
-    },
-    {
-      icon: "chart",
-      title: "Relatórios",
-      desc: "Métricas em tempo real de entregas, leituras e respostas.",
-      stat: "Tempo real",
-      color: "#34d399",
-      visual: "chart",
-    },
+    { icon: "chat", title: "Disparos em Massa", desc: "Múltiplas conexões com rotação automática." },
+    { icon: "flow", title: "Fluxos Visuais", desc: "Automações drag & drop sem código." },
+    { icon: "ai", title: "Agente de IA", desc: "Atendimento 24/7 treinado no seu negócio." },
+    { icon: "group", title: "Grupos & Comunidades", desc: "Crie, clone e gerencie em massa." },
+    { icon: "warm", title: "Aquecimento", desc: "Proteja seus números contra banimento." },
+    { icon: "chart", title: "Relatórios", desc: "Métricas em tempo real de entregas." },
   ];
-
-  const [active, setActive] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const DURATION = 5000;
-
-  useEffect(() => {
-    if (paused) return;
-    const start = Date.now();
-    const id = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const p = Math.min(elapsed / DURATION, 1);
-      setProgress(p);
-      if (p >= 1) setActive((a) => (a + 1) % features.length);
-    }, 30);
-    return () => clearInterval(id);
-  }, [active, paused, features.length]);
-
-  const current = features[active];
-
+  const loop = [...features, ...features];
   return (
-    <div
-      style={{ width: "100%", padding: "30px 24px", margin: "20px auto", maxWidth: 1280 }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div style={{ width: "100%", padding: "20px 0", margin: "20px auto", overflow: "hidden",
+      maskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+      WebkitMaskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)" }}>
       <style>{`
-        @keyframes lp-fc-in {
-          from { opacity: 0; transform: translateY(12px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes lp-fc-pulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.08); opacity: 0.85; }
-        }
-        .lp-fc-shell {
-          display: grid;
-          grid-template-columns: 1.1fr 1fr;
-          gap: 28px;
-          background: linear-gradient(160deg, rgba(30,32,46,0.85), rgba(15,17,27,0.95));
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 24px;
-          padding: 36px;
-          min-height: 320px;
-          box-shadow: 0 40px 80px -30px rgba(0,0,0,0.6);
-          position: relative;
-          overflow: hidden;
-        }
-        .lp-fc-shell::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 80% 20%, var(--accent-color) 0%, transparent 50%);
-          opacity: 0.12;
-          transition: opacity 0.6s ease;
-        }
-        .lp-fc-content { position: relative; z-index: 2; animation: lp-fc-in 0.6s ease; }
-        .lp-fc-tag {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 6px 12px; border-radius: 20px;
-          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
-          border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
-          color: var(--accent-color);
-          font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
-        }
-        .lp-fc-tag-dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: var(--accent-color);
-          animation: lp-fc-pulse 1.5s ease-in-out infinite;
-        }
-        .lp-fc-title {
-          font-size: 38px; font-weight: 800; color: #fff;
-          margin: 16px 0 12px; line-height: 1.1;
-          background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--accent-color) 80%, #fff));
-          -webkit-background-clip: text; background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .lp-fc-desc { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.6; max-width: 420px; }
-        .lp-fc-stat {
-          margin-top: 20px;
-          display: inline-flex; align-items: baseline; gap: 8px;
-          font-size: 22px; font-weight: 700; color: var(--accent-color);
-        }
-        .lp-fc-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-        .lp-fc-visual { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; animation: lp-fc-in 0.6s ease; }
-        .lp-fc-thumbs {
-          display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 18px;
-        }
-        .lp-fc-thumb {
-          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 14px; padding: 14px 12px; cursor: pointer; text-align: left;
-          transition: all 0.3s ease; position: relative; overflow: hidden;
-        }
-        .lp-fc-thumb:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
-        .lp-fc-thumb.active {
-          background: rgba(255,255,255,0.05);
-          border-color: color-mix(in srgb, var(--accent-color) 50%, transparent);
-          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-color) 30%, transparent), 0 12px 30px -10px color-mix(in srgb, var(--accent-color) 40%, transparent);
-        }
-        .lp-fc-thumb-icon {
-          width: 32px; height: 32px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          background: color-mix(in srgb, var(--thumb-color) 20%, transparent);
-          color: var(--thumb-color);
-          margin-bottom: 8px;
-        }
-        .lp-fc-thumb-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-        .lp-fc-thumb-title { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.3; }
-        .lp-fc-thumb-progress {
-          position: absolute; left: 0; bottom: 0; height: 2px;
-          background: var(--thumb-color);
-          transition: width 0.05s linear;
-        }
-        @media (max-width: 900px) {
-          .lp-fc-shell { grid-template-columns: 1fr; padding: 24px; }
-          .lp-fc-title { font-size: 28px; }
-          .lp-fc-thumbs { grid-template-columns: repeat(3, 1fr); }
-        }
+        @keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .lp-marquee-track { display: flex; gap: 18px; width: max-content; animation: lp-marquee 35s linear infinite; }
+        .lp-marquee-track:hover { animation-play-state: paused; }
       `}</style>
-
-      <div className="lp-fc-shell" style={{ ["--accent-color" as any]: current.color }}>
-        <div className="lp-fc-content" key={`c-${active}`}>
-          <div className="lp-fc-tag"><span className="lp-fc-tag-dot" />Funcionalidade {active + 1} de {features.length}</div>
-          <div className="lp-fc-title">{current.title}</div>
-          <div className="lp-fc-desc">{current.desc}</div>
-          <div className="lp-fc-stat">
-            {current.stat}
-            <span className="lp-fc-stat-label">no plano ZapLynx</span>
+      <div className="lp-marquee-track">
+        {loop.map((f, i) => (
+          <div key={i} style={{ width: 280, flexShrink: 0 }}>
+            <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
           </div>
-        </div>
-        <div className="lp-fc-visual" key={`v-${active}`}>
-          <FeatureVisual kind={current.visual} color={current.color} />
-        </div>
-      </div>
-
-      <div className="lp-fc-thumbs">
-        {features.map((f, i) => {
-          const isActive = i === active;
-          return (
-            <button
-              key={i}
-              className={`lp-fc-thumb ${isActive ? "active" : ""}`}
-              style={{ ["--thumb-color" as any]: f.color }}
-              onClick={() => { setActive(i); setProgress(0); }}
-            >
-              <div className="lp-fc-thumb-icon"><FeatureIconSvg icon={f.icon} /></div>
-              <div className="lp-fc-thumb-title">{f.title}</div>
-              {isActive && (
-                <div className="lp-fc-thumb-progress" style={{ width: `${progress * 100}%` }} />
-              )}
-            </button>
-          );
-        })}
+        ))}
       </div>
     </div>
   );
 }
+
+function FeatureHighlight({ color, stat, tag }: { color: string; stat: string; tag: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+      <style>{`
+        @keyframes lp-fh-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+      `}</style>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        padding: "6px 12px", borderRadius: 20,
+        background: `${color}22`, border: `1px solid ${color}66`,
+        color, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase",
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, animation: "lp-fh-pulse 1.5s ease-in-out infinite" }} />
+        {tag}
+      </div>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "6px 12px", borderRadius: 20,
+        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+        fontSize: 12, fontWeight: 700, color,
+      }}>
+        ⚡ {stat}
+      </div>
+    </div>
+  );
+}
+
 
 function FeatureIconSvg({ icon }: { icon: string }) {
   const map: Record<string, JSX.Element> = {
