@@ -835,7 +835,7 @@ function FlowVisualMock() {
     <MockShell title="Editor de Fluxo">
       <style>{`
         @keyframes lp-dash { to { stroke-dashoffset: -16; } }
-        @keyframes lp-node-pop { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+        @keyframes lp-node-pop { 0% { transform: scale(1); } 50% { transform: scale(1.18); } 100% { transform: scale(1.12); } }
       `}</style>
       <div style={{ position: "relative", height: 320 }}>
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
@@ -850,10 +850,12 @@ function FlowVisualMock() {
             <div key={n.id} style={{
               position: "absolute", left: n.x, top: n.y, padding: "10px 14px", borderRadius: 12,
               background: "rgba(20,22,32,0.95)", border: `1px solid ${n.color}`,
-              boxShadow: isActive ? `0 0 0 3px ${n.color}33, 0 0 24px ${n.color}99` : `0 0 18px ${n.color}33`,
+              boxShadow: isActive ? `0 0 0 3px ${n.color}55, 0 0 32px ${n.color}cc` : `0 0 18px ${n.color}33`,
               minWidth: 130,
-              animation: isActive ? "lp-node-pop 0.6s ease" : undefined,
-              transition: "box-shadow 0.3s ease",
+              transformOrigin: "center",
+              transform: isActive ? "scale(1.15)" : "scale(1)",
+              zIndex: isActive ? 5 : 1,
+              transition: "transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease",
             }}>
               <div style={{ fontSize: 10, color: n.color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{n.sub}</div>
               <div style={{ fontSize: 13, color: "#fff", fontWeight: 600, marginTop: 2 }}>{n.label}</div>
