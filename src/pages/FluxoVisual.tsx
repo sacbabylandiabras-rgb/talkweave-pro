@@ -109,6 +109,35 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+const hasConfirmedSendResponse = (payload: any): boolean => {
+  if (!payload) return false;
+  if (payload.success === true) return true;
+
+  const candidates = [payload, payload.data, payload.details, payload.result].filter(Boolean);
+  return candidates.some((item) => {
+    const status = String(item?.status || item?.messageStatus || item?.state || item?.result || "").toLowerCase();
+    return Boolean(
+      item?.messageId ||
+      item?.zapiMessageId ||
+      item?.zaapId ||
+      item?.id ||
+      item?.key?.id ||
+      item?.message?.id ||
+      item?.queued === true ||
+      item?.enqueued === true ||
+      ["success", "queued", "queue", "pending", "processing", "accepted"].includes(status)
+    );
+  });
+};
+
+async function getSendFailureMessage(data: any, error: unknown, fallback: string) {
+  if (hasConfirmedSendResponse(data)) return null;
+  if (error) return getInvokeErrorMessage(error, fallback);
+  if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+  if (data?.success === false) return data?.message || fallback;
+  return null;
+}
+
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
   blocoConteudo: BlocoConteudoNode,
