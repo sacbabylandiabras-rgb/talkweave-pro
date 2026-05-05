@@ -882,15 +882,15 @@ serve(async (req) => {
       const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
       if (actionButtons.length > 0) {
-        // Z-API limitation: REPLY mixed with URL/CALL in /send-button-actions renders REPLY
-        // as a non-clickable row. So when there are action buttons we send ONLY URL/CALL via
-        // /send-button-actions, and dispatch REPLY buttons separately via /send-button-list.
+        // Send ALL buttons (REPLY + URL + CALL) together in a single bubble via /send-button-actions.
+        // Z-API renders them as one card with all buttons clickable, including media when provided.
         const interactivePayload: Record<string, unknown> = {
           phone: resolvedPhone,
           message: interactiveMessage,
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
-          buttonActions: actionButtons.map((b: any, index: number) => {
+          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+          buttonActions: normalizedButtons.map((b: any, index: number) => {
             const action: any = {
               id: b.id || String(index + 1),
               type: b.type,
@@ -902,16 +902,6 @@ serve(async (req) => {
           }),
         };
 
-        if (mediaUrl && mediaType === 'image') {
-          console.log(`📤 Sending image separately before native action buttons for ${resolvedPhone}`);
-          const imgResponse = await fetch(`${baseUrl}/send-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: '' }),
-          });
-          await parseZapiResponse(imgResponse, resolvedPhone, instanceId, 'pre-button-image');
-        }
-
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
@@ -919,32 +909,7 @@ serve(async (req) => {
         });
 
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-        logMessage = logMessage || '🔘 Botões de ação';
-
-        // If there are also REPLY buttons, send them as a clickable button-list follow-up.
-        if (replyButtons.length > 0) {
-          try {
-            const replyPayload = {
-              phone: resolvedPhone,
-              message: 'Escolha uma opção:',
-              buttonList: {
-                buttons: replyButtons.map((b: any, index: number) => ({
-                  id: b.id || String(index + 1),
-                  label: b.label,
-                })),
-              },
-            };
-            console.log(`📤 Sending follow-up reply button-list for ${resolvedPhone}`);
-            const replyResponse = await fetch(`${baseUrl}/send-button-list`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-              body: JSON.stringify(replyPayload),
-            });
-            await parseZapiResponse(replyResponse, resolvedPhone, instanceId, 'button-list-followup');
-          } catch (err) {
-            console.error('⚠️ Falha ao enviar botões de resposta de follow-up:', err);
-          }
-        }
+        logMessage = logMessage || '🔘 Botões interativos';
       } else if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image') || forceReplyButtons === true) {
         // REPLY must use button-list; send-button-actions renders it as a selected/non-clickable row in WhatsApp.
         const listButtons = replyButtons.length > 0 ? replyButtons : normalizedButtons;
