@@ -1110,9 +1110,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             return { id: String(idx + 1), type: "REPLY" as const, label };
           });
-          const replyButtons = mappedButtons.filter((btn) => btn.type === "REPLY");
-          const actionButtons = mappedButtons.filter((btn) => btn.type !== "REPLY");
-
           if (contentType === "image" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1127,22 +1124,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
-          if (replyButtons.length > 0) {
-            await sendWithInstance({
-              phone: contact,
-              message: content || "Escolha uma opção:",
-              buttonActions: replyButtons.slice(0, 3),
-              forceReplyButtons: true,
-            });
-          }
-
-          if (actionButtons.length > 0) {
-            await sendWithInstance({
-              phone: contact,
-              message: replyButtons.length > 0 ? "Ações disponíveis:" : (content || "Escolha uma opção:"),
-              buttonActions: actionButtons,
-            });
-          }
+          // Send ALL buttons (REPLY + URL + CALL) in a single interactive message
+          // so the user gets one bubble with proper clickable buttons.
+          await sendWithInstance({
+            phone: contact,
+            message: content || "Escolha uma opção:",
+            buttonActions: mappedButtons.slice(0, 3),
+          });
         } else {
           switch (contentType) {
             case "text":
