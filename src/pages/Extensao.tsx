@@ -61,6 +61,7 @@ const Extensao = () => {
                 <Download className="w-4 h-4" />
                 Baixar Extensão (.zip)
               </a>
+            </Button>
           </CardContent>
         </Card>
 
