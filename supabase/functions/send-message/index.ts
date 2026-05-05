@@ -729,7 +729,7 @@ serve(async (req) => {
       }
     }
 
-    let zapiResponse: Response;
+    let zapiResponse: Response | null = null;
     let zapiData: any = null;
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
