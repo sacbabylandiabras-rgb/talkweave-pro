@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>ZapLynx Extension</title>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://lovable.dev/favicon.ico" alt="Logo" class="logo">
+      <h1>ZapLynx</h1>
+    </div>
+    
+    <div id="auth-section">
+      <p>Conecte sua conta para começar.</p>
+      <input type="text" id="token-input" placeholder="Chave da Extensão">
+      <button id="connect-btn">Conectar</button>
+      <p class="help-text">Pegue sua chave no painel ZapLynx em "Extensão".</p>
+    </div>
+
+    <div id="main-section" style="display: none;">
+      <div class="status-badge connected">Conectado</div>
+      <div class="menu">
+        <button class="menu-item" id="open-dashboard">Abrir Painel</button>
+        <button class="menu-item" id="scrape-contacts">Extrair Contatos</button>
+        <button class="menu-item variant-danger" id="disconnect-btn">Desconectar</button>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

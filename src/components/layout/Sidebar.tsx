@@ -28,6 +28,7 @@ import {
   Wallet,
   Receipt,
   Instagram,
+  Chrome,
   Flame,
   Send as SendIcon,
   Crown,
@@ -79,6 +80,7 @@ const zapiMenuItems = [
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
   { id: "aquecimento", label: "Aquecimento de Número", icon: Flame, path: "/aquecimento" },
+  { id: "extensao", label: "Extensão Chrome", icon: Chrome, path: "/extensao" },
 ];
 
 const instagramMenuItems = [
