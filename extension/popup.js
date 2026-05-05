@@ -30,9 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  openDashboardBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://zaplynx.lovable.app/dashboard' });
-  });
+   openDashboardBtn.addEventListener('click', () => {
+     // URL do painel da plataforma
+     chrome.tabs.create({ url: 'https://app.zaplynx.com.br/dashboard' });
+   });
 
   function showMain() {
     authSection.style.display = 'none';
