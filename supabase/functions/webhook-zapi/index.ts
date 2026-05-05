@@ -4840,7 +4840,8 @@ async function sendNodeContent(
             `Bloco ${targetNode.id} (contact)`,
           );
         }
-        return false;
+        if (!hasButtons) return false;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       if (contentType === "location") {
@@ -4871,7 +4872,8 @@ async function sendNodeContent(
             `Bloco ${targetNode.id} (location)`,
           );
         }
-        return false;
+        if (!hasButtons) return false;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       if (contentType === "presence") {
@@ -5410,7 +5412,11 @@ async function sendNodeContent(
       }
 
       if (endpoint) {
-        if (isUazapiProvider && contentType !== "text") {
+        if (contentType !== "text" && !mediaUrl) {
+          console.warn(
+            `⚠️ Bloco ${targetNode.id} (${contentType}) sem arquivo; seguindo o fluxo sem tentar enviar mídia`,
+          );
+        } else if (isUazapiProvider && contentType !== "text") {
           await sendProviderMedia(
             contentType as "image" | "video" | "audio" | "document",
             mediaUrl,

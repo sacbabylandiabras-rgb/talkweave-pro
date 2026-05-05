@@ -1075,7 +1075,7 @@ serve(async (req) => {
         logMessage = logMessage || '🎥 Vídeo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
       } else {
-        zapiResponse = await fetch(`${baseUrl}/send-document/pdf`, {
+        zapiResponse = await fetch(`${baseUrl}/send-document-url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || 'arquivo', caption: '' }),

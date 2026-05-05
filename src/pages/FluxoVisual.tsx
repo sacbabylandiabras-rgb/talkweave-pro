@@ -1144,6 +1144,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           } else if (contentType === "document" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' });
             await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "contact") {
+            await sendWithInstance({
+              phone: contact,
+              specialType: 'contato',
+              specialPayload: {
+                contactName: targetNode.data.contactName || '',
+                contactPhone: targetNode.data.contactPhone || '',
+                contactOrg: targetNode.data.contactOrg || '',
+              },
+            });
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "location" || contentType === "request-location") {
+            await sendWithInstance({
+              phone: contact,
+              specialType: 'localizacao',
+              specialPayload: {
+                latitude: targetNode.data.locationLat || 0,
+                longitude: targetNode.data.locationLng || 0,
+                title: targetNode.data.locationName || '',
+                address: targetNode.data.locationAddress || '',
+              },
+            });
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
           // Send ALL buttons (REPLY + URL + CALL) in a single interactive message
