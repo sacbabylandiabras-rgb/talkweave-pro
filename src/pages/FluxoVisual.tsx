@@ -666,7 +666,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       setNomeFluxo(normalizedName);
       await fetchFluxos();
       toast.success("Fluxo salvo com sucesso!");
-      return currentFluxoId || updatedRows?.[0]?.id || false;
+      return currentFluxoId || false;
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
       toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
