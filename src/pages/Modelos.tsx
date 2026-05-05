@@ -50,6 +50,19 @@ const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
 const buildSpecialContent = (type: string, data: any): string => {
   const payload: any = { type };
+    if (type === "poll") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">📊 Enquete</div>
+        <div>
+          <Label>Pergunta da Enquete</Label>
+          <Input value={data.content || ""} onChange={(e) => onChange({ content: e.target.value })} placeholder="Qual sua cor favorita?" />
+        </div>
+        <p className="text-xs text-muted-foreground">Use a seção de "Botões" abaixo para adicionar as opções da enquete.</p>
+      </div>
+    );
+  }
+
   if (type === "pix") {
     payload.pixKey = data.pixKey;
     payload.pixKeyType = data.pixKeyType;
@@ -111,7 +124,7 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string) =>
   type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-  || type === "uaz_status" || type === "uaz_location_button" || type === "uaz_request_payment";
+  || type === "uaz_status" || type === "uaz_location_button" || type === "uaz_request_payment" || type === "poll" || type === "sticker" || type === "gif" || type === "link";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";

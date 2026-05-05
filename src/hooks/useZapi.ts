@@ -39,6 +39,29 @@ const getZAPIConfig = async () => {
   if (_rotateInstances.length > 0) {
     const inst = _rotateInstances[_rotateIndex % _rotateInstances.length];
     _rotateIndex++;
+    
+  const sendSticker = async (phone: string, sticker: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge({ phone, mediaUrl: sticker, mediaType: 'sticker' }, 'Erro ao enviar figurinha');
+      toast({ title: "Figurinha enviada!" });
+      return data;
+    } catch (error: any) {
+      toast({ title: "Erro ao enviar figurinha", description: error.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
+  const sendPoll = async (phone: string, pollName: string, options: string[]) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge({ phone, message: pollName, mediaType: 'poll', specialPayload: { options } }, 'Erro ao enviar enquete');
+      toast({ title: "Enquete enviada!" });
+      return data;
+    } catch (error: any) {
+      toast({ title: "Erro ao enviar enquete", description: error.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
     return {
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
@@ -318,7 +341,7 @@ export const useZapi = () => {
     title?: string,
     footer?: string,
     mediaUrl?: string,
-    mediaType?: 'image' | 'video' | 'audio' | 'document'
+    mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog'
   ) => {
     setLoading(true);
     
