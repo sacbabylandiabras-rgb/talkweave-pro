@@ -40,8 +40,8 @@ function injectUI() {
       <div class="sidebar-content">
         <div class="sidebar-section">
           <h3>Conectar Conta</h3>
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
-          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e9d5ff; background: #faf5ff; color: #4a1d6b; margin-bottom: 12px; box-sizing: border-box;">
+          <p style="font-size: 12px; color: #b9aec9; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
+          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(167, 139, 250, 0.25); background: rgba(255,255,255,0.08); color: #f8fafc; margin-bottom: 12px; box-sizing: border-box;">
           <button class="sidebar-btn primary" id="btn-save-token">Conectar Extensão</button>
         </div>
       </div>
@@ -71,12 +71,12 @@ function injectUI() {
             <span>🔄</span> Listar Grupos na Tela
           </button>
           <div id="groups-list" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
-            <p style="font-size: 11px; color: #6b7280;">Clique para listar os grupos visíveis na sua barra lateral.</p>
+            <p style="font-size: 11px; color: #b9aec9;">Clique para listar os grupos visíveis na sua barra lateral.</p>
           </div>
         </div>
 
-        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #f3e8ff; padding-top: 15px;">
-          <h3 id="current-group-name" style="color: #a855f7;">Chat Ativo</h3>
+        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid rgba(167, 139, 250, 0.18); padding-top: 15px;">
+          <h3 id="current-group-name" style="color: #f472b6;">Chat Ativo</h3>
           <button class="sidebar-btn success" id="btn-extract-members">
             <span>👥</span> Extrair Membros deste Chat
           </button>
