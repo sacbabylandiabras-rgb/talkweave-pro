@@ -28,6 +28,7 @@ import {
   Wallet,
   Receipt,
   Instagram,
+  Chrome,
   Flame,
   Send as SendIcon,
   Crown,
