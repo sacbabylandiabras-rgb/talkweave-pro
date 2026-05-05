@@ -1421,9 +1421,25 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                           {statsDialogHasUrlButton && (
                             <TableCell>
                               {contact.clickedAt ? (
-                                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
-                                  <CheckCircle className="w-3 h-3" /> Clicou
-                                </Badge>
+                                (() => {
+                                  const phoneKey = normalizePhoneKey(contact.phone);
+                                  const click = statsDialogLinkClicks.find(
+                                    (c: any) => normalizePhoneKey(c.phone) === phoneKey
+                                  );
+                                  const loc = click ? [click.city, click.region, click.country].filter(Boolean).join(', ') : '';
+                                  return (
+                                    <div className="flex flex-col gap-1">
+                                      <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
+                                        <CheckCircle className="w-3 h-3" /> Clicou
+                                      </Badge>
+                                      {click?.ip && (
+                                        <span className="text-[10px] font-mono text-muted-foreground" title={loc}>
+                                          {click.ip}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()
                               ) : (
                                 <span className="text-xs text-muted-foreground">-</span>
                               )}
