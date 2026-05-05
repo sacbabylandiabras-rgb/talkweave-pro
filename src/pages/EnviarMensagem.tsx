@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
-import UazapiSpecialSection from "@/components/envio/UazapiSpecialSection";
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 const parseSpecialTemplate = (content?: string | null) => {
@@ -1523,10 +1522,7 @@ const EnviarMensagem = () => {
             <Users className="w-4 h-4" />
             Envio em Massa
           </TabsTrigger>
-          <TabsTrigger value="especiais" className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            Especiais
-          </TabsTrigger>
+          
         </TabsList>
 
         {/* Mensagem de Texto Simples */}
@@ -2154,9 +2150,7 @@ Formatos aceitos:
           </Card>
         </TabsContent>
 
-        <TabsContent value="especiais" className="space-y-4">
-          <UazapiSpecialSection />
-        </TabsContent>
+        
       </Tabs>
     </div>
   );
