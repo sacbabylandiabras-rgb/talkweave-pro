@@ -85,6 +85,7 @@ import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
 import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
