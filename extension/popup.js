@@ -31,8 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
    openDashboardBtn.addEventListener('click', () => {
-     // URL do painel da plataforma
      chrome.tabs.create({ url: 'https://app.zaplynx.com.br/dashboard' });
+   });
+ 
+   document.getElementById('btn-templates').addEventListener('click', () => {
+     alert('Use o painel lateral no WhatsApp Web para selecionar e enviar modelos.');
+   });
+ 
+   document.getElementById('btn-flows').addEventListener('click', () => {
+     alert('Use o painel lateral no WhatsApp Web para selecionar e enviar fluxos.');
+   });
+ 
+   document.getElementById('btn-extract').addEventListener('click', () => {
+     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+       chrome.tabs.sendMessage(tabs[0].id, { action: 'extract_members' });
+     });
    });
 
   function showMain() {
