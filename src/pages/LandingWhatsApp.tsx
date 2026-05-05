@@ -422,76 +422,71 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
-function FeatureCarousel() {
+function FeatureMarquee() {
   const features = [
-    {
-      icon: "chat",
-      title: "Disparos em Massa",
-      desc: "Envie milhares de mensagens com múltiplas conexões e rotação automática.",
-      stat: "+50.000 msgs/dia",
-      color: "#22c55e",
-      visual: "blast",
-    },
-    {
-      icon: "flow",
-      title: "Fluxos Visuais",
-      desc: "Monte automações arrastando blocos. Sem código.",
-      stat: "100% no-code",
-      color: "#a78bfa",
-      visual: "flow",
-    },
-    {
-      icon: "ai",
-      title: "Agente de IA",
-      desc: "Atendimento 24/7 com IA treinada no seu negócio.",
-      stat: "Resposta em 2s",
-      color: "#f472b6",
-      visual: "ai",
-    },
-    {
-      icon: "group",
-      title: "Grupos & Comunidades",
-      desc: "Crie, clone e gerencie grupos automaticamente.",
-      stat: "Até 500 grupos/h",
-      color: "#38bdf8",
-      visual: "group",
-    },
-    {
-      icon: "warm",
-      title: "Aquecimento",
-      desc: "Aqueça seus números e proteja contra banimento.",
-      stat: "−87% banimentos",
-      color: "#fbbf24",
-      visual: "warm",
-    },
-    {
-      icon: "chart",
-      title: "Relatórios",
-      desc: "Métricas em tempo real de entregas, leituras e respostas.",
-      stat: "Tempo real",
-      color: "#34d399",
-      visual: "chart",
-    },
+    { icon: "chat", title: "Disparos em Massa", desc: "Múltiplas conexões com rotação automática." },
+    { icon: "flow", title: "Fluxos Visuais", desc: "Automações drag & drop sem código." },
+    { icon: "ai", title: "Agente de IA", desc: "Atendimento 24/7 treinado no seu negócio." },
+    { icon: "group", title: "Grupos & Comunidades", desc: "Crie, clone e gerencie em massa." },
+    { icon: "warm", title: "Aquecimento", desc: "Proteja seus números contra banimento." },
+    { icon: "chart", title: "Relatórios", desc: "Métricas em tempo real de entregas." },
   ];
+  const loop = [...features, ...features];
+  return (
+    <div style={{ width: "100%", padding: "20px 0", margin: "20px auto", overflow: "hidden",
+      maskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+      WebkitMaskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)" }}>
+      <style>{`
+        @keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .lp-marquee-track { display: flex; gap: 18px; width: max-content; animation: lp-marquee 35s linear infinite; }
+        .lp-marquee-track:hover { animation-play-state: paused; }
+      `}</style>
+      <div className="lp-marquee-track">
+        {loop.map((f, i) => (
+          <div key={i} style={{ width: 280, flexShrink: 0 }}>
+            <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-  const [active, setActive] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const DURATION = 5000;
+function FeatureHighlight({ color, stat, tag }: { color: string; stat: string; tag: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+      <style>{`
+        @keyframes lp-fh-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+      `}</style>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        padding: "6px 12px", borderRadius: 20,
+        background: `${color}22`, border: `1px solid ${color}66`,
+        color, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase",
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, animation: "lp-fh-pulse 1.5s ease-in-out infinite" }} />
+        {tag}
+      </div>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "6px 12px", borderRadius: 20,
+        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+        fontSize: 12, fontWeight: 700, color,
+      }}>
+        ⚡ {stat}
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (paused) return;
-    const start = Date.now();
-    const id = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const p = Math.min(elapsed / DURATION, 1);
-      setProgress(p);
-      if (p >= 1) setActive((a) => (a + 1) % features.length);
-    }, 30);
-    return () => clearInterval(id);
-  }, [active, paused, features.length]);
-
-  const current = features[active];
+function _UnusedFeatureCarousel() {
+  const current = { color: "#fff", title: "", desc: "", stat: "", visual: "blast" } as any;
+  const features: any[] = [];
+  const active = 0;
+  const progress = 0;
+  const setActive = (_: number) => {};
+  const setProgress = (_: number) => {};
+  const setPaused = (_: boolean) => {};
 
   return (
     <div
