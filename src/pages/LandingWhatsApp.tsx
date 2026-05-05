@@ -424,53 +424,347 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
 
 function FeatureCarousel() {
   const features = [
-    { icon: "chat", title: "Disparos em Massa", desc: "Envie milhares de mensagens com múltiplas instâncias e rotação automática." },
-    { icon: "flow", title: "Fluxos Visuais", desc: "Monte automações arrastando blocos. Sem código." },
-    { icon: "ai", title: "Agente de IA", desc: "Atendimento 24/7 com IA treinada no seu negócio." },
-    { icon: "group", title: "Grupos & Comunidades", desc: "Crie, clone e gerencie grupos automaticamente." },
-    { icon: "warm", title: "Aquecimento", desc: "Aqueça seus números e proteja contra banimento." },
-    { icon: "chart", title: "Relatórios", desc: "Métricas em tempo real de entregas, leituras e respostas." },
+    {
+      icon: "chat",
+      title: "Disparos em Massa",
+      desc: "Envie milhares de mensagens com múltiplas conexões e rotação automática.",
+      stat: "+50.000 msgs/dia",
+      color: "#22c55e",
+      visual: "blast",
+    },
+    {
+      icon: "flow",
+      title: "Fluxos Visuais",
+      desc: "Monte automações arrastando blocos. Sem código.",
+      stat: "100% no-code",
+      color: "#a78bfa",
+      visual: "flow",
+    },
+    {
+      icon: "ai",
+      title: "Agente de IA",
+      desc: "Atendimento 24/7 com IA treinada no seu negócio.",
+      stat: "Resposta em 2s",
+      color: "#f472b6",
+      visual: "ai",
+    },
+    {
+      icon: "group",
+      title: "Grupos & Comunidades",
+      desc: "Crie, clone e gerencie grupos automaticamente.",
+      stat: "Até 500 grupos/h",
+      color: "#38bdf8",
+      visual: "group",
+    },
+    {
+      icon: "warm",
+      title: "Aquecimento",
+      desc: "Aqueça seus números e proteja contra banimento.",
+      stat: "−87% banimentos",
+      color: "#fbbf24",
+      visual: "warm",
+    },
+    {
+      icon: "chart",
+      title: "Relatórios",
+      desc: "Métricas em tempo real de entregas, leituras e respostas.",
+      stat: "Tempo real",
+      color: "#34d399",
+      visual: "chart",
+    },
   ];
-  // Duplicar para loop infinito sem cortes
-  const loop = [...features, ...features];
+
+  const [active, setActive] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const DURATION = 5000;
+
+  useEffect(() => {
+    if (paused) return;
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const p = Math.min(elapsed / DURATION, 1);
+      setProgress(p);
+      if (p >= 1) setActive((a) => (a + 1) % features.length);
+    }, 30);
+    return () => clearInterval(id);
+  }, [active, paused, features.length]);
+
+  const current = features[active];
 
   return (
     <div
-      style={{
-        position: "relative",
-        width: "100%",
-        overflow: "hidden",
-        padding: "20px 0",
-        margin: "20px 0",
-        maskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
-        WebkitMaskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
-      }}
+      style={{ width: "100%", padding: "30px 24px", margin: "20px auto", maxWidth: 1280 }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
       <style>{`
-        @keyframes lp-marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        @keyframes lp-fc-in {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .lp-marquee-track {
-          display: flex;
-          gap: 20px;
-          width: max-content;
-          animation: lp-marquee 35s linear infinite;
+        @keyframes lp-fc-pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.08); opacity: 0.85; }
         }
-        .lp-marquee-track:hover { animation-play-state: paused; }
-        .lp-marquee-card {
-          flex: 0 0 280px;
+        .lp-fc-shell {
+          display: grid;
+          grid-template-columns: 1.1fr 1fr;
+          gap: 28px;
+          background: linear-gradient(160deg, rgba(30,32,46,0.85), rgba(15,17,27,0.95));
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 24px;
+          padding: 36px;
+          min-height: 320px;
+          box-shadow: 0 40px 80px -30px rgba(0,0,0,0.6);
+          position: relative;
+          overflow: hidden;
+        }
+        .lp-fc-shell::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 80% 20%, var(--accent-color) 0%, transparent 50%);
+          opacity: 0.12;
+          transition: opacity 0.6s ease;
+        }
+        .lp-fc-content { position: relative; z-index: 2; animation: lp-fc-in 0.6s ease; }
+        .lp-fc-tag {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 6px 12px; border-radius: 20px;
+          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
+          color: var(--accent-color);
+          font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        .lp-fc-tag-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: var(--accent-color);
+          animation: lp-fc-pulse 1.5s ease-in-out infinite;
+        }
+        .lp-fc-title {
+          font-size: 38px; font-weight: 800; color: #fff;
+          margin: 16px 0 12px; line-height: 1.1;
+          background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--accent-color) 80%, #fff));
+          -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .lp-fc-desc { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.6; max-width: 420px; }
+        .lp-fc-stat {
+          margin-top: 20px;
+          display: inline-flex; align-items: baseline; gap: 8px;
+          font-size: 22px; font-weight: 700; color: var(--accent-color);
+        }
+        .lp-fc-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .lp-fc-visual { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; animation: lp-fc-in 0.6s ease; }
+        .lp-fc-thumbs {
+          display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 18px;
+        }
+        .lp-fc-thumb {
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 14px; padding: 14px 12px; cursor: pointer; text-align: left;
+          transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .lp-fc-thumb:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+        .lp-fc-thumb.active {
+          background: rgba(255,255,255,0.05);
+          border-color: color-mix(in srgb, var(--accent-color) 50%, transparent);
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-color) 30%, transparent), 0 12px 30px -10px color-mix(in srgb, var(--accent-color) 40%, transparent);
+        }
+        .lp-fc-thumb-icon {
+          width: 32px; height: 32px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--thumb-color) 20%, transparent);
+          color: var(--thumb-color);
+          margin-bottom: 8px;
+        }
+        .lp-fc-thumb-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .lp-fc-thumb-title { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.3; }
+        .lp-fc-thumb-progress {
+          position: absolute; left: 0; bottom: 0; height: 2px;
+          background: var(--thumb-color);
+          transition: width 0.05s linear;
+        }
+        @media (max-width: 900px) {
+          .lp-fc-shell { grid-template-columns: 1fr; padding: 24px; }
+          .lp-fc-title { font-size: 28px; }
+          .lp-fc-thumbs { grid-template-columns: repeat(3, 1fr); }
         }
       `}</style>
-      <div className="lp-marquee-track">
-        {loop.map((f, i) => (
-          <div key={i} className="lp-marquee-card">
-            <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
+
+      <div className="lp-fc-shell" style={{ ["--accent-color" as any]: current.color }}>
+        <div className="lp-fc-content" key={`c-${active}`}>
+          <div className="lp-fc-tag"><span className="lp-fc-tag-dot" />Funcionalidade {active + 1} de {features.length}</div>
+          <div className="lp-fc-title">{current.title}</div>
+          <div className="lp-fc-desc">{current.desc}</div>
+          <div className="lp-fc-stat">
+            {current.stat}
+            <span className="lp-fc-stat-label">no plano ZapLynx</span>
           </div>
-        ))}
+        </div>
+        <div className="lp-fc-visual" key={`v-${active}`}>
+          <FeatureVisual kind={current.visual} color={current.color} />
+        </div>
+      </div>
+
+      <div className="lp-fc-thumbs">
+        {features.map((f, i) => {
+          const isActive = i === active;
+          return (
+            <button
+              key={i}
+              className={`lp-fc-thumb ${isActive ? "active" : ""}`}
+              style={{ ["--thumb-color" as any]: f.color }}
+              onClick={() => { setActive(i); setProgress(0); }}
+            >
+              <div className="lp-fc-thumb-icon"><FeatureIconSvg icon={f.icon} /></div>
+              <div className="lp-fc-thumb-title">{f.title}</div>
+              {isActive && (
+                <div className="lp-fc-thumb-progress" style={{ width: `${progress * 100}%` }} />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
+}
+
+function FeatureIconSvg({ icon }: { icon: string }) {
+  const map: Record<string, JSX.Element> = {
+    chat: <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
+    flow: <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M6 9v0a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/></svg>,
+    ai: <svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 0-4 4v1H7a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3h1v1a4 4 0 0 0 8 0v-1h1a3 3 0 0 0 3-3v-3a3 3 0 0 0-3-3h-1V6a4 4 0 0 0-4-4z"/></svg>,
+    group: <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M14 20c0-2 2-3.5 4-3.5s4 1.5 4 3.5"/></svg>,
+    warm: <svg viewBox="0 0 24 24"><path d="M12 2s5 5 5 10a5 5 0 0 1-10 0c0-3 2-5 2-7s3-3 3-3z"/></svg>,
+    chart: <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+  };
+  return map[icon] || null;
+}
+
+function FeatureVisual({ kind, color }: { kind: string; color: string }) {
+  if (kind === "blast") {
+    return (
+      <div style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 10 }}>
+        {[85, 72, 91, 64].map((p, i) => (
+          <div key={i} style={{
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 12, padding: 12,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
+              <span>Conexão 0{i + 1}</span><span>{p}%</span>
+            </div>
+            <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${p}%`, height: "100%", background: color, borderRadius: 4, transition: "width 1s" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === "flow") {
+    const Node = ({ x, y, label, sub }: any) => (
+      <div style={{
+        position: "absolute", left: x, top: y, padding: "8px 12px", borderRadius: 10,
+        background: "rgba(20,22,32,0.95)", border: `1px solid ${color}`,
+        boxShadow: `0 0 14px ${color}33`, minWidth: 110,
+      }}>
+        <div style={{ fontSize: 9, color, fontWeight: 700, textTransform: "uppercase" }}>{sub}</div>
+        <div style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{label}</div>
+      </div>
+    );
+    return (
+      <div style={{ position: "relative", width: 360, height: 260 }}>
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+          <line x1="80" y1="40" x2="80" y2="100" stroke={color} strokeWidth="2" strokeDasharray="4 4" />
+          <line x1="80" y1="160" x2="80" y2="200" stroke={color} strokeWidth="2" strokeDasharray="4 4" />
+          <line x1="140" y1="220" x2="240" y2="220" stroke={color} strokeWidth="2" strokeDasharray="4 4" />
+        </svg>
+        <Node x={20} y={10} label="Recebeu 'oi'" sub="Gatilho" />
+        <Node x={20} y={100} label="Cliente novo?" sub="Condição" />
+        <Node x={20} y={200} label="Boas-vindas" sub="Ação" />
+        <Node x={240} y={200} label="Catálogo" sub="Ação" />
+      </div>
+    );
+  }
+  if (kind === "ai") {
+    return (
+      <div style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ alignSelf: "flex-start", maxWidth: "75%", padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13 }}>
+          Olá! Quero saber sobre o produto X
+        </div>
+        <div style={{ alignSelf: "flex-end", maxWidth: "80%", padding: "10px 14px", borderRadius: "16px 16px 4px 16px", background: color, color: "#0d0f1a", fontSize: 13, fontWeight: 500 }}>
+          Oi! Claro 😊 Posso te enviar um link com 10% off agora?
+        </div>
+        <div style={{ alignSelf: "flex-start", maxWidth: "70%", padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13 }}>
+          Sim, manda!
+        </div>
+        <div style={{ alignSelf: "flex-end", display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, animation: "lp-fc-pulse 1s infinite" }} />
+          IA digitando...
+        </div>
+      </div>
+    );
+  }
+  if (kind === "group") {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 360 }}>
+        {["Vendas SP", "Vendas RJ", "VIP", "Suporte"].map((g, i) => (
+          <div key={g} style={{ padding: 12, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#0d0f1a", fontWeight: 700 }}>{g[0]}</div>
+              <div>
+                <div style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{g}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{120 + i * 47} membros</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === "warm") {
+    return (
+      <div style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 12 }}>
+        {[{ n: "+55 11 9****-1234", l: 92 }, { n: "+55 21 9****-5678", l: 78 }, { n: "+55 31 9****-9012", l: 58 }].map((it) => (
+          <div key={it.n}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
+              <span>{it.n}</span><span style={{ color, fontWeight: 600 }}>{it.l}%</span>
+            </div>
+            <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${it.l}%`, height: "100%", background: `linear-gradient(90deg, ${color}, ${color}aa)` }} />
+            </div>
+          </div>
+        ))}
+        <div style={{ marginTop: 4, padding: 10, borderRadius: 8, background: `${color}15`, border: `1px solid ${color}40`, fontSize: 11, color }}>
+          ✓ 2.847 mensagens trocadas hoje · Risco baixo
+        </div>
+      </div>
+    );
+  }
+  if (kind === "chart") {
+    const data = [30, 45, 38, 62, 55, 78, 71, 88, 95];
+    const max = Math.max(...data);
+    return (
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 160, padding: "10px 0" }}>
+          {data.map((v, i) => (
+            <div key={i} style={{ flex: 1, height: `${(v / max) * 100}%`, background: `linear-gradient(180deg, ${color}, ${color}55)`, borderRadius: "4px 4px 0 0" }} />
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
+          {[{ l: "Entregues", v: "94.2%" }, { l: "Lidas", v: "78.5%" }, { l: "Respostas", v: "23.1%" }].map((s) => (
+            <div key={s.l} style={{ padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.04)", textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{s.l}</div>
+              <div style={{ fontSize: 16, color, fontWeight: 700 }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 function CheckList({ items }: { items: string[] }) {
