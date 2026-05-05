@@ -5412,7 +5412,11 @@ async function sendNodeContent(
       }
 
       if (endpoint) {
-        if (isUazapiProvider && contentType !== "text") {
+        if (contentType !== "text" && !mediaUrl) {
+          console.warn(
+            `⚠️ Bloco ${targetNode.id} (${contentType}) sem arquivo; seguindo o fluxo sem tentar enviar mídia`,
+          );
+        } else if (isUazapiProvider && contentType !== "text") {
           await sendProviderMedia(
             contentType as "image" | "video" | "audio" | "document",
             mediaUrl,
