@@ -4676,7 +4676,13 @@ async function sendNodeContent(
         const res = await fetch(`${baseUrl}/send-location`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ phone, latitude: lat, longitude: lng, title, address }),
+          body: JSON.stringify({
+            phone,
+            latitude: String(lat),
+            longitude: String(lng),
+            title: title || "",
+            address: address || "",
+          }),
         });
         await parseProviderResponse(res, context);
       }
