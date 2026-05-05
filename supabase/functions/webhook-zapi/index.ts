@@ -4628,6 +4628,32 @@ async function sendNodeContent(
     return parseProviderResponse(res, context);
   };
 
+  const sendLocationWithFallback = async (lat: number, lng: number, title: string, address: string, context: string) => {
+    const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    const fallbackText = [title || "Localização", address, mapsUrl].filter(Boolean).join("\n");
+
+    if (!lat || !lng) {
+      await sendProviderText(fallbackText, `${context} (fallback sem coordenadas)`);
+      return;
+    }
+
+    try {
+      if (isUazapiProvider) {
+        await sendUazapiLocation(lat, lng, title, address, context);
+      } else {
+        const res = await fetch(`${baseUrl}/send-location`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phone, latitude: lat, longitude: lng, title, address }),
+        });
+        await parseProviderResponse(res, context);
+      }
+    } catch (error) {
+      console.error(`⚠️ Falha ao enviar localização nativa; enviando link do mapa:`, error);
+      await sendProviderText(fallbackText, `${context} (fallback link)`);
+    }
+  };
+
   const sendProviderMedia = async (
     type: "image" | "video" | "audio" | "document",
     file: string,
