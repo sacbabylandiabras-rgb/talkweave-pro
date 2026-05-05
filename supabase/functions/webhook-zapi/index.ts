@@ -4538,8 +4538,12 @@ async function sendNodeContent(
     const source = String(fileName || fileUrl || "")
       .split("?")[0]
       .split("#")[0];
-    const ext = source.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
-    return ext && ext !== source.toLowerCase() ? ext : "pdf";
+    const parts = source.split(".");
+    if (parts.length < 2) return "pdf";
+    const ext = parts.pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "";
+    // Sanity: extensões válidas têm de 2 a 5 chars
+    if (ext.length < 2 || ext.length > 5) return "pdf";
+    return ext;
   };
   const buttons: Array<{
     text: string;
