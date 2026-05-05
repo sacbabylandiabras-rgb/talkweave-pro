@@ -4633,8 +4633,32 @@ async function sendNodeContent(
     const fallbackText = [title || "Localização", address, mapsUrl].filter(Boolean).join("\n");
 
     if (!lat || !lng) {
-      await sendProviderText(fallbackText, `${context} (fallback sem coordenadas)`);
-      return;
+      // Tenta geocodificar o endereço/título via Nominatim (OpenStreetMap)
+      const query = [address, title].filter(Boolean).join(", ").trim();
+      if (query) {
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+            { headers: { "User-Agent": "ZapLynx/1.0 (flow-location)" } },
+          );
+          if (geoRes.ok) {
+            const arr = await geoRes.json().catch(() => []);
+            const first = Array.isArray(arr) && arr[0];
+            if (first?.lat && first?.lon) {
+              lat = Number(first.lat);
+              lng = Number(first.lon);
+              console.log(`📍 Geocoded "${query}" → ${lat},${lng}`);
+            }
+          }
+        } catch (geoErr) {
+          console.error("⚠️ Falha no geocoding:", geoErr);
+        }
+      }
+      if (!lat || !lng) {
+        const linkOnly = [title || "Localização", address].filter(Boolean).join("\n");
+        await sendProviderText(linkOnly || "Localização não disponível", `${context} (sem coordenadas)`);
+        return;
+      }
     }
 
     try {
@@ -4658,7 +4682,9 @@ async function sendNodeContent(
       }
     } catch (error) {
       console.error(`⚠️ Falha ao enviar localização nativa; enviando link do mapa:`, error);
-      await sendProviderText(fallbackText, `${context} (fallback link)`);
+      const finalMaps = `https://maps.google.com/?q=${lat},${lng}`;
+      const finalText = [title || "Localização", address, finalMaps].filter(Boolean).join("\n");
+      await sendProviderText(finalText, `${context} (fallback link)`);
     }
   };
 
