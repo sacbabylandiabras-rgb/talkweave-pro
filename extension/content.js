@@ -1,6 +1,7 @@
-console.log('ZapLynx Extension: Content script loaded');
+console.log('ZapLynx Extension v1.0.3: Content script loaded');
 
 let zaplynxToken = null;
+let zaplynxInitInterval = null;
 
 function loadTokenAndInit() {
   chrome.storage.local.get(['zaplynx_token'], (result) => {
@@ -16,7 +17,9 @@ function initExtension() {
   // Initial injection
   injectUI();
   // Keep checking in case WA Web re-renders the body
-  setInterval(injectUI, 3000);
+  if (!zaplynxInitInterval) {
+    zaplynxInitInterval = setInterval(injectUI, 3000);
+  }
 }
 
 function injectUI() {
@@ -30,7 +33,7 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
@@ -47,7 +50,7 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" alt="ZapLynx" style="display:block;width:160px;height:auto;object-fit:contain;">
         </div>
         <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
@@ -98,6 +101,7 @@ function injectUI() {
           const sidebar = document.getElementById('zaplynx-sidebar');
           if (sidebar) sidebar.remove();
           injectUI();
+          checkActiveChat();
         });
       }
     };
