@@ -739,7 +739,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         });
 
       for (const edge of outgoing) {
-        const targetNode = runtimeNodes.find(n => n.id === edge.target);
+        const targetNode = nodes.find(n => n.id === edge.target);
         if (!targetNode) continue;
 
         if (targetNode.type === 'blocoConteudo' && !visited.has(targetNode.id)) {
