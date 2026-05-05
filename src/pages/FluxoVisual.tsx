@@ -1094,6 +1094,25 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
 
         if (allSendButtons.length > 0) {
+          const mappedButtons = allSendButtons.map((btn: any, idx: number) => {
+            const type = (btn?.type || "reply").toString().toLowerCase();
+            const value = (btn?.value || "").toString().trim();
+            const label = (btn?.text || `Botão ${idx + 1}`).toString();
+
+            if (type === "url") {
+              const url = wrapUrlWithTracking(value, label, contact);
+              return { id: String(idx + 1), type: "URL" as const, label, url };
+            }
+
+            if (type === "call") {
+              return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
+            }
+
+            return { id: String(idx + 1), type: "REPLY" as const, label };
+          });
+          const replyButtons = mappedButtons.filter((btn) => btn.type === "REPLY");
+          const actionButtons = mappedButtons.filter((btn) => btn.type !== "REPLY");
+
           if (contentType === "image" && mediaUrl) {
             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1108,26 +1127,22 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
-          await sendWithInstance({
-            phone: contact,
-            message: content || "Escolha uma opção:",
-            buttonActions: allSendButtons.map((btn: any, idx: number) => {
-              const type = (btn?.type || "reply").toString().toLowerCase();
-              const value = (btn?.value || "").toString().trim();
-              const label = (btn?.text || `Botão ${idx + 1}`).toString();
+          if (replyButtons.length > 0) {
+            await sendWithInstance({
+              phone: contact,
+              message: content || "Escolha uma opção:",
+              buttonActions: replyButtons.slice(0, 3),
+              forceReplyButtons: true,
+            });
+          }
 
-              if (type === "url") {
-                const url = wrapUrlWithTracking(value, label, contact);
-                return { id: String(idx + 1), type: "URL" as const, label, url };
-              }
-
-              if (type === "call") {
-                return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
-              }
-
-              return { id: String(idx + 1), type: "REPLY" as const, label };
-            })
-          });
+          if (actionButtons.length > 0) {
+            await sendWithInstance({
+              phone: contact,
+              message: replyButtons.length > 0 ? "Ações disponíveis:" : (content || "Escolha uma opção:"),
+              buttonActions: actionButtons,
+            });
+          }
         } else {
           switch (contentType) {
             case "text":
