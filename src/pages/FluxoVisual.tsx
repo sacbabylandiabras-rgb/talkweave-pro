@@ -988,7 +988,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             });
           } else {
             const body = instanceId ? { ...payload, instanceId } : payload;
-            await supabase.functions.invoke('send-message', { body });
+            const { data, error } = await supabase.functions.invoke('send-message', { body });
+            if (error) throw error;
+            if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
           }
         };
 
