@@ -2476,6 +2476,87 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
+                                {selectedNode.data.contentType === "poll" && (
+                  <div className="p-3 bg-accent/30 rounded-lg border border-border space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Configuração da Enquete</Label>
+                    <p className="text-[10px] text-muted-foreground">O título da enquete deve ser colocado no campo "Mensagem" abaixo. Use os botões abaixo para definir as opções.</p>
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "product" && (
+                  <div className="space-y-3">
+                    <Label>ID do Produto (Catálogo FB/WA)</Label>
+                    <Input
+                      value={selectedNode.data.productId || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, productId: e.target.value },
+                        })
+                      }
+                      placeholder="ex: 123456789"
+                    />
+                  </div>
+                )}
+
+                {selectedNode.data.contentType === "order" && (
+                  <div className="space-y-3">
+                    <Label>ID do Pedido / Título</Label>
+                    <Input
+                      value={selectedNode.data.orderTitle || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, orderTitle: e.target.value },
+                        })
+                      }
+                      placeholder="ex: Pedido #001"
+                    />
+                    <Label>Valor Total (ex: 150.00)</Label>
+                    <Input
+                      type="number"
+                      value={selectedNode.data.orderTotal || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, orderTotal: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {(selectedNode.data.contentType === "reaction" || selectedNode.data.contentType === "delete" || selectedNode.data.contentType === "pin" || selectedNode.data.contentType === "read" || selectedNode.data.contentType === "reply" || selectedNode.data.contentType === "forward") && (
+                  <div className="space-y-3 p-3 bg-orange-500/5 border border-orange-500/20 rounded-lg">
+                    <Label className="text-xs font-semibold">Mensagem Alvo (ID)</Label>
+                    <Input
+                      value={selectedNode.data.targetMessageId || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, targetMessageId: e.target.value },
+                        })
+                      }
+                      placeholder="ID da mensagem (zaapId / messageId)"
+                      className="h-8 text-xs"
+                    />
+                    {selectedNode.data.contentType === "reaction" && (
+                      <>
+                        <Label className="text-xs font-semibold">Emoji da Reação</Label>
+                        <Input
+                          value={selectedNode.data.emoji || "👍"}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, emoji: e.target.value },
+                            })
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
                 <div>
                   <Label>
                     {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}

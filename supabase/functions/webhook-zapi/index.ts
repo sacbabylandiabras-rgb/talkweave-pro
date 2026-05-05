@@ -5136,6 +5136,53 @@ async function sendNodeContent(
         await sendZapi("/delete-message", { phone, messageId: targetNode.data.targetMessageId, owner: true }, `Bloco ${targetNode.id} (delete)`);
         return false;
       }
+            if (contentType === "product") {
+        await sendZapi("/send-message-product", { 
+          phone, 
+          productId: targetNode.data.productId,
+          message: content || "",
+          footer: targetNode.data.footer || ""
+        }, `Bloco ${targetNode.id} (product)`);
+        return false;
+      }
+      if (contentType === "catalog") {
+        await sendZapi("/send-message-catalog", { 
+          phone, 
+          message: content || "",
+          footer: targetNode.data.footer || ""
+        }, `Bloco ${targetNode.id} (catalog)`);
+        return false;
+      }
+      if (contentType === "order") {
+        const total = parseFloat(String(targetNode.data.orderTotal || "0"));
+        await sendZapi("/send-message-order", { 
+          phone, 
+          orderTitle: targetNode.data.orderTitle || "Pedido",
+          message: content || "",
+          items: [{
+            name: targetNode.data.orderTitle || "Item",
+            quantity: 1,
+            price: total,
+            currency: "BRL"
+          }]
+        }, `Bloco ${targetNode.id} (order)`);
+        return false;
+      }
+      if (contentType === "reply" && targetNode.data.targetMessageId) {
+        await sendZapi("/reply-message", { 
+          phone, 
+          message: content, 
+          messageId: targetNode.data.targetMessageId 
+        }, `Bloco ${targetNode.id} (reply)`);
+        return false;
+      }
+      if (contentType === "forward" && targetNode.data.targetMessageId) {
+        await sendZapi("/forward-message", { 
+          phone, 
+          messageId: targetNode.data.targetMessageId 
+        }, `Bloco ${targetNode.id} (forward)`);
+        return false;
+      }
       if (contentType === "pin") {
         await sendZapi("/send-pin-message", { phone, messageId: targetNode.data.targetMessageId, pin: true, duration: 2592000 }, `Bloco ${targetNode.id} (pin)`);
         return false;
