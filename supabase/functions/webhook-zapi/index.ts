@@ -4628,6 +4628,40 @@ async function sendNodeContent(
     return parseProviderResponse(res, context);
   };
 
+  const sendLocationWithFallback = async (lat: number, lng: number, title: string, address: string, context: string) => {
+    const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    const fallbackText = [title || "Localização", address, mapsUrl].filter(Boolean).join("\n");
+
+    if (!lat || !lng) {
+      await sendProviderText(fallbackText, `${context} (fallback sem coordenadas)`);
+      return;
+    }
+
+    try {
+      if (isUazapiProvider) {
+        if (!uazapiUrl || !uazapiToken) {
+          throw new Error("UAZAPI URL/Token não configurados");
+        }
+        const res = await fetch(`${uazapiUrl}/send/location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: uazapiToken },
+          body: JSON.stringify({ number: normalizedTargetNumber, latitude: lat, longitude: lng, name: title || undefined, address: address || undefined }),
+        });
+        await parseProviderResponse(res, context);
+      } else {
+        const res = await fetch(`${baseUrl}/send-location`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phone, latitude: lat, longitude: lng, title, address }),
+        });
+        await parseProviderResponse(res, context);
+      }
+    } catch (error) {
+      console.error(`⚠️ Falha ao enviar localização nativa; enviando link do mapa:`, error);
+      await sendProviderText(fallbackText, `${context} (fallback link)`);
+    }
+  };
+
   const sendProviderMedia = async (
     type: "image" | "video" | "audio" | "document",
     file: string,
@@ -4855,31 +4889,13 @@ async function sendNodeContent(
       if (contentType === "location") {
         const lat = Number(String(targetNode.data.locationLat || "0").replace(",", ".")) || 0;
         const lng = Number(String(targetNode.data.locationLng || "0").replace(",", ".")) || 0;
-        if (isUazapiProvider) {
-          await sendUaz(
-            "/send/location",
-            {
-              number: normalizedTargetNumber,
-              latitude: lat,
-              longitude: lng,
-              name: targetNode.data.locationName || undefined,
-              address: targetNode.data.locationAddress || undefined,
-            },
-            `Bloco ${targetNode.id} (location)`,
-          );
-        } else {
-          await sendZapi(
-            "/send-location",
-            {
-              phone,
-              latitude: lat,
-              longitude: lng,
-              title: targetNode.data.locationName || "",
-              address: targetNode.data.locationAddress || "",
-            },
-            `Bloco ${targetNode.id} (location)`,
-          );
-        }
+        await sendLocationWithFallback(
+          lat,
+          lng,
+          targetNode.data.locationName || "",
+          targetNode.data.locationAddress || "",
+          `Bloco ${targetNode.id} (location)`,
+        );
         if (!hasButtons) return false;
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
