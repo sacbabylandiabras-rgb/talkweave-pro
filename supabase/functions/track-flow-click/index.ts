@@ -41,6 +41,47 @@ serve(async (req) => {
   const userAgent = url.searchParams.get('ua') || req.headers.get('user-agent') || null
   const referer = url.searchParams.get('ref') || req.headers.get('referer') || null
 
+  // Detect bot/crawler hits (WhatsApp/FB/Google preview fetchers) — do not log as real clicks
+  const uaLower = (userAgent || '').toLowerCase()
+  const BOT_PATTERNS = [
+    'bot', 'crawler', 'spider', 'preview', 'fetch', 'facebookexternalhit', 'facebookcatalog',
+    'whatsapp', 'telegrambot', 'twitterbot', 'linkedinbot', 'slackbot', 'discordbot',
+    'googlebot', 'google-inspectiontool', 'bingbot', 'yandex', 'baidu', 'duckduckbot',
+    'applebot', 'petalbot', 'ahrefsbot', 'semrushbot', 'mj12bot', 'dotbot', 'embedly',
+    'curl/', 'wget/', 'python-requests', 'okhttp', 'go-http-client', 'node-fetch', 'axios',
+    'headlesschrome', 'phantomjs', 'puppeteer', 'playwright',
+  ]
+  const KNOWN_BOT_IP_PREFIXES = [
+    '66.249.',         // Googlebot
+    '64.233.',         // Google
+    '66.102.',         // Google
+    '72.14.',          // Google
+    '209.85.',         // Google
+    '173.252.',        // Facebook
+    '31.13.',          // Facebook
+    '69.63.',          // Facebook
+    '157.240.',        // Facebook
+    '102.132.',        // Facebook
+    '40.77.',          // Bing
+    '157.55.',         // Bing
+  ]
+  const isBot = BOT_PATTERNS.some(p => uaLower.includes(p)) ||
+    (ip && KNOWN_BOT_IP_PREFIXES.some(p => String(ip).startsWith(p)))
+
+  if (isBot) {
+    console.log(`🤖 Bot/preview hit ignored: ua="${userAgent}", ip=${ip}`)
+    if (logOnly) {
+      return new Response(JSON.stringify({ ok: true, bot: true, url: destUrl }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, Location: destUrl },
+    })
+  }
+
   // Log the click asynchronously - don't block the redirect
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
