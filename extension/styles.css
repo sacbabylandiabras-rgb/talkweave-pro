@@ -1,3 +1,39 @@
+ .privacy-grid {
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: 12px;
+   background: rgba(255, 255, 255, 0.04);
+   padding: 12px;
+   border-radius: 8px;
+   border: 1px solid rgba(167, 139, 250, 0.1);
+ }
+
+ .privacy-item {
+   display: flex;
+   flex-direction: column;
+   gap: 5px;
+ }
+
+ .privacy-item label {
+   font-size: 11px;
+   color: #94a3b8;
+ }
+
+ .privacy-select {
+   width: 100%;
+   padding: 8px;
+   border-radius: 6px;
+   border: 1px solid rgba(167, 139, 250, 0.2);
+   background: rgba(0, 0, 0, 0.2);
+   color: #f8fafc;
+   font-size: 12px;
+   cursor: pointer;
+ }
+
+ .privacy-select:focus {
+   outline: none;
+   border-color: #f472b6;
+ }
 body {
   width: 300px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
