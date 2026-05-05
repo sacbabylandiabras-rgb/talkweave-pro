@@ -1530,10 +1530,28 @@ serve(async (req) => {
 
         const buildZapiButtonActionPayload = (buttons: any[], message: string, sendId?: string | null) => {
           const formattedButtons = formatZapiButtons(buttons, sendId).slice(0, 3);
-          // Sempre enviar todos os botões (URL/CALL/REPLY) juntos com o texto
-          // em uma única mensagem interativa, conforme o modelo cadastrado.
-          const reindexed = formattedButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) }));
-          return { message, buttonActions: reindexed };
+          const replyButtons = formattedButtons.filter((btn: any) => String(btn?.type || '').toUpperCase() === 'REPLY');
+          const actionButtons = formattedButtons.filter((btn: any) => String(btn?.type || '').toUpperCase() !== 'REPLY');
+
+          // Botão REPLY em /send-button-actions aparece no WhatsApp como resposta/clicado.
+          // Para respostas rápidas, a Z-API recomenda /send-button-list.
+          if (replyButtons.length > 0) {
+            return {
+              message,
+              buttonList: {
+                buttons: replyButtons.map((btn: any, idx: number) => ({
+                  id: String(idx + 1),
+                  label: btn.label,
+                })),
+              },
+              _useButtonList: true,
+            };
+          }
+
+          return {
+            message,
+            buttonActions: actionButtons.map((btn: any, idx: number) => ({ ...btn, id: String(idx + 1) })),
+          };
         };
 
         const instId = currentInstance.zapiInstanceId;
