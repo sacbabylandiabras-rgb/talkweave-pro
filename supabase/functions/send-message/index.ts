@@ -314,6 +314,7 @@ serve(async (req) => {
       specialPayload,
       carouselCards,
       templateId,
+      preferStandardConnection,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
