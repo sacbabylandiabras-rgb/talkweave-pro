@@ -4534,6 +4534,13 @@ async function sendNodeContent(
   };
   const content = replaceCapturedVars(targetNode.data.content || "");
   const mediaUrl = targetNode.data.mediaUrl || "";
+  const getDocumentExtension = (fileUrl: string, fileName?: string) => {
+    const source = String(fileName || fileUrl || "")
+      .split("?")[0]
+      .split("#")[0];
+    const ext = source.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+    return ext && ext !== source.toLowerCase() ? ext : "pdf";
+  };
   const buttons: Array<{
     text: string;
     type: string;
@@ -4666,9 +4673,10 @@ async function sendNodeContent(
       body.audio = file;
       body.waveform = true;
     } else {
-      endpoint = "/send-document-url";
+      const extension = getDocumentExtension(file, targetNode.data?.fileName);
+      endpoint = `/send-document/${extension}`;
       body.document = file;
-      body.fileName = "documento";
+      body.fileName = targetNode.data?.fileName || `documento.${extension}`;
       body.caption = caption;
     }
 
