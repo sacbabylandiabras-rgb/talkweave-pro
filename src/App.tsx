@@ -11,6 +11,7 @@ import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { Capacitor } from "@capacitor/core";
 
 import Landing from "./pages/Landing";
+import LandingWhatsApp from "./pages/LandingWhatsApp";
 import Auth from "./pages/Auth";
 import NativeAppLayout from "./components/layout/NativeAppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -138,6 +139,7 @@ const App = () => (
             ) : (
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/preview-app" element={<PreviewApp />} />
                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
