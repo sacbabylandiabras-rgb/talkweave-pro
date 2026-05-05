@@ -308,6 +308,7 @@ serve(async (req) => {
       buttonActions,
       buttonList,
       optionList,
+      forceReplyButtons,
       viewOnce,
       isPtv,
       specialType,
@@ -374,7 +375,7 @@ serve(async (req) => {
       }
     }
 
-    const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
+      const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
     if (shouldUseStandardConnection) {
       const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
       if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
@@ -865,6 +866,7 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
+      const onlyReplyButtons = buttonActions.every((b: any) => String(b?.type || 'REPLY').toUpperCase() === 'REPLY');
 
       // Check if any button is an action type (URL/CALL) — these require /send-button-actions
       const hasActionButtons = buttonActions.some((b: any) => {
@@ -872,13 +874,13 @@ serve(async (req) => {
         return t === 'URL' || t === 'CALL';
       });
 
-      if (mediaUrl && mediaType === 'image' && !hasActionButtons) {
-        // REPLY-only buttons + image → use /send-button-list with image inside buttonList
+      if (onlyReplyButtons || (mediaUrl && mediaType === 'image' && !hasActionButtons) || forceReplyButtons === true) {
+        // REPLY-only buttons must use button-list; mixing them in action-buttons makes WhatsApp render them as disabled/selected rows.
         const buttonListPayload = {
           phone: resolvedPhone,
           message: interactiveMessage,
           buttonList: {
-            image: mediaUrl,
+            ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
             buttons: buttonActions.slice(0, 3).map((b: any, index: number) => ({
               id: b.id || String(index + 1),
               label: b.label,
@@ -886,7 +888,7 @@ serve(async (req) => {
           },
         };
 
-        console.log(`📤 Sending button-list with image for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
+        console.log(`📤 Sending reply button-list for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
 
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
@@ -894,8 +896,8 @@ serve(async (req) => {
           body: JSON.stringify(buttonListPayload),
         });
 
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list-image');
-        logMessage = logMessage || '🔘 Botões com imagem';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
+        logMessage = logMessage || '🔘 Botões de resposta';
       } else {
         // Action buttons (URL/CALL) or no image → use /send-button-actions
         const interactivePayload: Record<string, unknown> = {
