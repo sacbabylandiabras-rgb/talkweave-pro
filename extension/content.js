@@ -30,16 +30,15 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/icon48.png')}" width="24">
-          <span style="font-weight: bold; font-size: 16px;">ZapLynx</span>
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
         </div>
-        <button id="close-zaplynx-sidebar" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
+        <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
       <div class="sidebar-content">
         <div class="sidebar-section">
           <h3>Conectar Conta</h3>
-          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
-          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 12px;">
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
+          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e9d5ff; background: #faf5ff; color: #4a1d6b; margin-bottom: 12px; box-sizing: border-box;">
           <button class="sidebar-btn primary" id="btn-save-token">Conectar Extensão</button>
         </div>
       </div>
@@ -48,10 +47,9 @@ function injectUI() {
     sidebar.innerHTML = `
       <div class="sidebar-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="${chrome.runtime.getURL('icons/icon48.png')}" width="24">
-          <span style="font-weight: bold; font-size: 16px;">ZapLynx</span>
+          <img src="${chrome.runtime.getURL('icons/logo.png')}" height="28" style="display:block;">
         </div>
-        <button id="close-zaplynx-sidebar" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
+        <button id="close-zaplynx-sidebar" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
       <div class="sidebar-content">
         <div class="sidebar-section">
@@ -70,12 +68,12 @@ function injectUI() {
             <span>🔄</span> Listar Grupos na Tela
           </button>
           <div id="groups-list" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
-            <p style="font-size: 11px; color: #94a3b8;">Clique para listar os grupos visíveis na sua barra lateral.</p>
+            <p style="font-size: 11px; color: #6b7280;">Clique para listar os grupos visíveis na sua barra lateral.</p>
           </div>
         </div>
 
-        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #334155; padding-top: 15px;">
-          <h3 id="current-group-name" style="color: #10b981;">Chat Ativo</h3>
+        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #f3e8ff; padding-top: 15px;">
+          <h3 id="current-group-name" style="color: #a855f7;">Chat Ativo</h3>
           <button class="sidebar-btn success" id="btn-extract-members">
             <span>👥</span> Extrair Membros deste Chat
           </button>
@@ -89,10 +87,6 @@ function injectUI() {
 
   document.getElementById('close-zaplynx-sidebar').onclick = () => {
     sidebar.classList.add('hidden');
-  };
-
-  document.getElementById('btn-refresh-groups').onclick = () => {
-    listGroups();
   };
 
   if (!zaplynxToken) {
