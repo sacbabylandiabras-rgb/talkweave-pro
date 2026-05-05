@@ -213,6 +213,204 @@ const LandingWhatsApp = () => {
 
 /* ===== Subcomponents ===== */
 
+function HeroSection() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const logoSources: Record<string, string> = {
+      Kiwify: logoKiwify,
+      Hotmart: logoHotmart,
+      DevZapp: logoDevzapp,
+      SendFlow: logoSendflow,
+      ManyChat: logoManychat,
+    };
+    const logoImages: Record<string, HTMLImageElement> = {};
+    Object.entries(logoSources).forEach(([name, src]) => {
+      const img = new Image();
+      img.src = src;
+      logoImages[name] = img;
+    });
+
+    const canvas = canvasRef.current;
+    const stage = stageRef.current;
+    if (!canvas || !stage) return;
+    const ctx = canvas.getContext("2d")!;
+    let H = stage.offsetHeight || 460;
+    const W = () => canvas.width;
+
+    function resize() {
+      H = stage.offsetHeight || 460;
+      canvas.width = stage.offsetWidth;
+      canvas.height = H;
+    }
+    resize();
+
+    type LogoObj = { name: string; x: number; y: number; radius: number; eaten: boolean; opacity: number; scale: number };
+    let objs: LogoObj[] = [];
+    let pacX = 0, pacY = 0, pacAngle = 0, mouthOpen = 0.25, mouthDir = 1;
+    let currentTarget = 0;
+    let phase: "eating" | "exiting" = "eating";
+    let animId: number;
+
+    function initPositions() {
+      const w = W();
+      pacX = -40;
+      pacY = H / 2 - 10;
+      const names = ["Kiwify", "Hotmart", "DevZapp", "SendFlow", "ManyChat"];
+      const spacing = (w * 0.76) / names.length;
+      objs = names.map((name, i) => ({
+        name,
+        x: w * 0.20 + i * spacing,
+        y: H / 2 - 10 + Math.sin(i * 1.4) * 28,
+        radius: 26,
+        eaten: false,
+        opacity: 1,
+        scale: 1,
+      }));
+      currentTarget = 0;
+      phase = "eating";
+    }
+    initPositions();
+
+    function drawLogo(name: string, cx: number, cy: number, r: number, alpha: number) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const clip = new Path2D();
+      clip.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.save();
+      ctx.clip(clip);
+      const img = logoImages[name];
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+      } else {
+        ctx.fillStyle = "#333";
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `bold ${r * 0.36}px Plus Jakarta Sans, sans-serif`;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(name, cx, cy + r + 4);
+      ctx.restore();
+    }
+
+    function drawPacman(x: number, y: number, r: number, angle: number, mouth: number) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.shadowColor = "#22c55e";
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, mouth * Math.PI, (2 - mouth) * Math.PI);
+      ctx.closePath();
+      ctx.fillStyle = "#f5c518";
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(r * 0.2, -r * 0.38, r * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = "#0d0f1a";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawDots() {
+      ctx.fillStyle = "rgba(245,197,24,0.18)";
+      for (let i = 0; i < 12; i++) {
+        const px = W() * 0.08 + i * (W() * 0.077);
+        if (px < pacX - 24) continue;
+        let skip = false;
+        objs.forEach(o => { if (Math.abs(px - o.x) < 24 && o.eaten) skip = true; });
+        if (skip) continue;
+        ctx.beginPath();
+        ctx.arc(px, H / 2 - 10, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGrid() {
+      ctx.fillStyle = "rgba(255,255,255,0.025)";
+      for (let gx = 0; gx < W(); gx += 36)
+        for (let gy = 0; gy < H; gy += 36) {
+          ctx.beginPath(); ctx.arc(gx, gy, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function update() {
+      if (phase === "eating") {
+        const t = objs[currentTarget];
+        if (!t) { phase = "exiting"; return; }
+        const dx = t.x - pacX, dy = t.y - pacY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        pacAngle = Math.atan2(dy, dx);
+        if (dist > t.radius + 16) {
+          pacX += (dx / dist) * 2.5;
+          pacY += (dy / dist) * 2.5;
+        } else {
+          t.scale = Math.max(0, t.scale - 0.08);
+          t.opacity = Math.max(0, t.opacity - 0.08);
+          if (t.opacity <= 0) { t.eaten = true; currentTarget++; }
+        }
+        mouthOpen += 0.05 * mouthDir;
+        if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
+      } else {
+        pacX += 2.5;
+        pacAngle = 0;
+        mouthOpen += 0.05 * mouthDir;
+        if (mouthOpen > 0.28 || mouthOpen < 0.03) mouthDir *= -1;
+        if (pacX > W() + 40) initPositions();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W(), H);
+      drawGrid();
+      drawDots();
+      objs.forEach(o => {
+        if (o.eaten && o.opacity <= 0) return;
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.scale(o.scale, o.scale);
+        ctx.translate(-o.x, -o.y);
+        drawLogo(o.name, o.x, o.y, o.radius, o.opacity);
+        ctx.restore();
+      });
+      drawPacman(pacX, pacY, 30, pacAngle, mouthOpen);
+    }
+
+    function loop() {
+      update();
+      draw();
+      animId = requestAnimationFrame(loop);
+    }
+    loop();
+
+    const onResize = () => { resize(); initPositions(); };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  return (
+    <div id="lp-hero-section">
+      <div className="lp-stage" ref={stageRef}>
+        <canvas ref={canvasRef} className="lp-canvas" />
+      </div>
+      <div className="lp-hero-tagline-block">
+        <div id="lp-tagline">ZapLynx <em>engole</em> a concorrência</div>
+        <div id="lp-sub">WhatsApp · Disparos · Fluxos · IA — tudo em um só lugar</div>
+      </div>
+    </div>
+  );
+}
+
 function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
   const svgMap: Record<string, JSX.Element> = {
     chat: <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
