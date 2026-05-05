@@ -157,7 +157,7 @@ const parseUazapiResponse = async (response: Response, phone: string, instanceId
     explicitError.trim() !== 'true';
 
   if (!response.ok || hasTextualError) {
-    const realError = explicitError || `UAZAPI rejeitou a mensagem (HTTP ${response.status})`;
+    const realError = explicitError || `Provedor de envio rejeitou a mensagem (HTTP ${response.status})`;
     throw new Response(
       JSON.stringify({
         error: realError,
