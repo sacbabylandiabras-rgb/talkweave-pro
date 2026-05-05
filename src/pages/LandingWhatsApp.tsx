@@ -650,6 +650,29 @@ function MockShell({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
+function useLoopProgress(duration = 3500) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let start = performance.now();
+    const tick = (t: number) => {
+      const elapsed = (t - start) % duration;
+      const k = elapsed / duration;
+      // ease-out then hold
+      const eased = k < 0.7 ? 1 - Math.pow(1 - k / 0.7, 3) : 1;
+      setP(eased);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [duration]);
+  return p;
+}
+
+function fmt(n: number) {
+  return Math.round(n).toLocaleString("pt-BR");
+}
+
 function BlastMock() {
   const items = [
     { name: "Conexão 01", sent: 1240, total: 1500, color: "#22c55e" },
@@ -657,28 +680,31 @@ function BlastMock() {
     { name: "Conexão 03", sent: 980, total: 1500, color: "#f472b6" },
     { name: "Conexão 04", sent: 1320, total: 1500, color: "#38bdf8" },
   ];
+  const p = useLoopProgress(3500);
   return (
     <MockShell title="Campanha · Black Friday">
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {items.map((it) => {
-          const pct = (it.sent / it.total) * 100;
+          const animSent = it.sent * p;
+          const pct = (animSent / it.total) * 100;
           return (
             <div key={it.name}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
                 <span>{it.name}</span>
-                <span style={{ color: "rgba(255,255,255,0.55)" }}>{it.sent}/{it.total}</span>
+                <span style={{ color: "rgba(255,255,255,0.55)", fontVariantNumeric: "tabular-nums" }}>{fmt(animSent)}/{it.total}</span>
               </div>
-              <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: it.color, borderRadius: 6 }} />
+              <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden", position: "relative" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: it.color, borderRadius: 6, transition: "width 0.1s linear", boxShadow: `0 0 12px ${it.color}88` }} />
+                <div style={{ position: "absolute", top: 0, left: `${pct}%`, width: 14, height: "100%", background: `linear-gradient(90deg, ${it.color}, transparent)`, filter: "blur(4px)", opacity: p < 0.95 ? 1 : 0 }} />
               </div>
             </div>
           );
         })}
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <Stat label="Enviadas" value="4.720" />
-          <Stat label="Entregues" value="4.612" />
-          <Stat label="Lidas" value="3.280" />
-          <Stat label="Respostas" value="612" />
+          <Stat label="Enviadas" value={fmt(4720 * p)} />
+          <Stat label="Entregues" value={fmt(4612 * p)} />
+          <Stat label="Lidas" value={fmt(3280 * p)} />
+          <Stat label="Respostas" value={fmt(612 * p)} />
         </div>
       </div>
     </MockShell>
@@ -689,57 +715,87 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 12px" }}>
       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{value}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{value}</div>
     </div>
   );
 }
 
 function FlowVisualMock() {
-  const node = (label: string, sub: string, x: number, y: number, color: string) => (
-    <div style={{
-      position: "absolute", left: x, top: y, padding: "10px 14px", borderRadius: 12,
-      background: "rgba(20,22,32,0.95)", border: `1px solid ${color}`,
-      boxShadow: `0 0 18px ${color}33`, minWidth: 130,
-    }}>
-      <div style={{ fontSize: 10, color: color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{sub}</div>
-      <div style={{ fontSize: 13, color: "#fff", fontWeight: 600, marginTop: 2 }}>{label}</div>
-    </div>
-  );
+  // Animate active node along flow path
+  const nodes = [
+    { id: 0, label: "Recebeu 'oi'", sub: "Gatilho", x: 30, y: 10, color: "#a78bfa" },
+    { id: 1, label: "Cliente novo?", sub: "Condição", x: 30, y: 120, color: "#fbbf24" },
+    { id: 2, label: "Boas-vindas", sub: "Mensagem", x: 30, y: 220, color: "#22c55e" },
+    { id: 3, label: "Enviar catálogo", sub: "Ação", x: 260, y: 220, color: "#22c55e" },
+    { id: 4, label: "Notificar atendente", sub: "Ação", x: 260, y: 280, color: "#f472b6" },
+  ];
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % nodes.length), 900);
+    return () => clearInterval(id);
+  }, [nodes.length]);
   return (
     <MockShell title="Editor de Fluxo">
+      <style>{`
+        @keyframes lp-dash { to { stroke-dashoffset: -16; } }
+        @keyframes lp-node-pop { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+      `}</style>
       <div style={{ position: "relative", height: 320 }}>
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-          <line x1="100" y1="50" x2="100" y2="120" stroke="#a78bfa" strokeWidth="2" strokeDasharray="4 4" />
-          <line x1="100" y1="170" x2="100" y2="220" stroke="#a78bfa" strokeWidth="2" strokeDasharray="4 4" />
-          <line x1="160" y1="245" x2="260" y2="245" stroke="#22c55e" strokeWidth="2" strokeDasharray="4 4" />
-          <line x1="160" y1="265" x2="260" y2="295" stroke="#f472b6" strokeWidth="2" strokeDasharray="4 4" />
+          <line x1="100" y1="50" x2="100" y2="120" stroke="#a78bfa" strokeWidth="2" strokeDasharray="4 4" style={{ animation: "lp-dash 1s linear infinite" }} />
+          <line x1="100" y1="170" x2="100" y2="220" stroke="#a78bfa" strokeWidth="2" strokeDasharray="4 4" style={{ animation: "lp-dash 1s linear infinite" }} />
+          <line x1="160" y1="245" x2="260" y2="245" stroke="#22c55e" strokeWidth="2" strokeDasharray="4 4" style={{ animation: "lp-dash 1s linear infinite" }} />
+          <line x1="160" y1="265" x2="260" y2="295" stroke="#f472b6" strokeWidth="2" strokeDasharray="4 4" style={{ animation: "lp-dash 1s linear infinite" }} />
         </svg>
-        {node("Recebeu 'oi'", "Gatilho", 30, 10, "#a78bfa")}
-        {node("Cliente novo?", "Condição", 30, 120, "#fbbf24")}
-        {node("Boas-vindas", "Mensagem", 30, 220, "#22c55e")}
-        {node("Enviar catálogo", "Ação", 260, 220, "#22c55e")}
-        {node("Notificar atendente", "Ação", 260, 280, "#f472b6")}
+        {nodes.map((n) => {
+          const isActive = n.id === active;
+          return (
+            <div key={n.id} style={{
+              position: "absolute", left: n.x, top: n.y, padding: "10px 14px", borderRadius: 12,
+              background: "rgba(20,22,32,0.95)", border: `1px solid ${n.color}`,
+              boxShadow: isActive ? `0 0 0 3px ${n.color}33, 0 0 24px ${n.color}99` : `0 0 18px ${n.color}33`,
+              minWidth: 130,
+              animation: isActive ? "lp-node-pop 0.6s ease" : undefined,
+              transition: "box-shadow 0.3s ease",
+            }}>
+              <div style={{ fontSize: 10, color: n.color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{n.sub}</div>
+              <div style={{ fontSize: 13, color: "#fff", fontWeight: 600, marginTop: 2 }}>{n.label}</div>
+            </div>
+          );
+        })}
       </div>
     </MockShell>
   );
 }
 
 function ChatUnifiedMock() {
-  const chats = [
+  const baseChats = [
     { name: "Maria Silva", msg: "Quero comprar 2 unidades", time: "2m", unread: 3 },
     { name: "João Pedro", msg: "Tem em estoque?", time: "5m", unread: 1 },
     { name: "Grupo VIP", msg: "Carlos: alguém disponível?", time: "12m", unread: 0 },
     { name: "Ana Costa", msg: "Obrigada! 🙏", time: "1h", unread: 0 },
   ];
+  const [highlight, setHighlight] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setHighlight((h) => (h + 1) % baseChats.length), 1800);
+    return () => clearInterval(id);
+  }, [baseChats.length]);
   return (
     <MockShell title="Chat Unificado">
+      <style>{`
+        @keyframes lp-chat-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        @keyframes lp-chat-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
       <div style={{ display: "flex", gap: 12, height: 320 }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-          {chats.map((c, i) => (
+          {baseChats.map((c, i) => (
             <div key={i} style={{
               display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-              borderRadius: 10, background: i === 0 ? "rgba(167,139,250,0.12)" : "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.05)"
+              borderRadius: 10,
+              background: i === highlight ? "rgba(167,139,250,0.18)" : "rgba(255,255,255,0.03)",
+              border: i === highlight ? "1px solid rgba(167,139,250,0.4)" : "1px solid rgba(255,255,255,0.05)",
+              animation: i === highlight ? "lp-chat-in 0.4s ease" : undefined,
+              transition: "background 0.3s ease, border-color 0.3s ease",
             }}>
               <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#a78bfa,#f472b6)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -750,7 +806,7 @@ function ChatUnifiedMock() {
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.msg}</div>
               </div>
               {c.unread > 0 && (
-                <div style={{ background: "#22c55e", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 10, padding: "2px 7px" }}>{c.unread}</div>
+                <div style={{ background: "#22c55e", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 10, padding: "2px 7px", animation: "lp-chat-pulse 1.4s ease-in-out infinite" }}>{c.unread}</div>
               )}
             </div>
           ))}
@@ -761,13 +817,24 @@ function ChatUnifiedMock() {
 }
 
 function GroupsMock() {
+  const items = ["Vendas SP", "Vendas RJ", "Promoções", "Clientes VIP", "Suporte 01", "Suporte 02"];
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % items.length), 700);
+    return () => clearInterval(id);
+  }, [items.length]);
   return (
     <MockShell title="Grupos · Gerenciamento">
+      <style>{`
+        @keyframes lp-dot-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.4; } }
+      `}</style>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {["Vendas SP", "Vendas RJ", "Promoções", "Clientes VIP", "Suporte 01", "Suporte 02"].map((g, i) => (
+        {items.map((g, i) => (
           <div key={g} style={{
             padding: 14, borderRadius: 12, background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)"
+            border: i === active ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.08)",
+            boxShadow: i === active ? "0 0 20px rgba(34,197,94,0.25)" : "none",
+            transition: "all 0.4s ease",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{
@@ -782,7 +849,7 @@ function GroupsMock() {
               </div>
             </div>
             <div style={{ marginTop: 10, fontSize: 11, color: "#22c55e", display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} /> Ativo
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", animation: "lp-dot-pulse 1.6s ease-in-out infinite" }} /> Ativo
             </div>
           </div>
         ))}
@@ -798,6 +865,8 @@ function WarmupMock() {
     { n: "+55 31 9****-9012", level: 65 },
     { n: "+55 41 9****-3456", level: 45 },
   ];
+  const p = useLoopProgress(3000);
+  const msgsCount = Math.round(2847 * p);
   return (
     <MockShell title="Aquecimento · Reputação">
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -805,18 +874,19 @@ function WarmupMock() {
           <div key={it.n}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
               <span>{it.n}</span>
-              <span style={{ color: it.level > 70 ? "#22c55e" : it.level > 50 ? "#fbbf24" : "#f472b6", fontWeight: 600 }}>{it.level}%</span>
+              <span style={{ color: it.level > 70 ? "#22c55e" : it.level > 50 ? "#fbbf24" : "#f472b6", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Math.round(it.level * p)}%</span>
             </div>
             <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
               <div style={{
-                width: `${it.level}%`, height: "100%", borderRadius: 6,
+                width: `${it.level * p}%`, height: "100%", borderRadius: 6,
                 background: `linear-gradient(90deg, ${it.level > 70 ? "#22c55e" : it.level > 50 ? "#fbbf24" : "#f472b6"}, ${it.level > 70 ? "#16a34a" : it.level > 50 ? "#f59e0b" : "#ec4899"})`,
+                transition: "width 0.1s linear",
               }} />
             </div>
           </div>
         ))}
         <div style={{ marginTop: 6, padding: 12, borderRadius: 10, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", fontSize: 12, color: "#22c55e" }}>
-          ✓ 2.847 mensagens trocadas hoje · Risco de banimento: baixo
+          ✓ <span style={{ fontVariantNumeric: "tabular-nums" }}>{msgsCount.toLocaleString("pt-BR")}</span> mensagens trocadas hoje · Risco de banimento: baixo
         </div>
       </div>
     </MockShell>
