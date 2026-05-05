@@ -4840,7 +4840,8 @@ async function sendNodeContent(
             `Bloco ${targetNode.id} (contact)`,
           );
         }
-        return false;
+        if (!hasButtons) return false;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       if (contentType === "location") {
@@ -4871,7 +4872,8 @@ async function sendNodeContent(
             `Bloco ${targetNode.id} (location)`,
           );
         }
-        return false;
+        if (!hasButtons) return false;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       if (contentType === "presence") {
