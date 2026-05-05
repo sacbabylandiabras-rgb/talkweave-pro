@@ -374,6 +374,17 @@ serve(async (req) => {
       }
     }
 
+    if (preferStandardConnection === true && uazapiOverride) {
+      const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
+      if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
+        console.log(`🔄 Preferência de envio padrão: trocando ${instanceId} por ${standardInstance.zapi_instance_id}`);
+        instanceId = standardInstance.zapi_instance_id;
+        token = standardInstance.zapi_token;
+        clientToken = standardInstance.zapi_client_token;
+        uazapiOverride = null;
+      }
+    }
+
     // ===== UAZAPI ROUTING (short-circuit) =====
       if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
       const { apiUrl, apiToken } = uazapiOverride;
