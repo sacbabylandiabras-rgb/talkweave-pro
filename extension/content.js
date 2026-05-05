@@ -150,24 +150,41 @@ function listGroups() {
   const listEl = document.getElementById('groups-list');
   listEl.innerHTML = '<p style="font-size: 12px; color: #94a3b8;">Buscando grupos...</p>';
   
-  // Scrape the left sidebar for group items
-  const chats = document.querySelectorAll('div[role="listitem"], [data-testid="cell-frame-container"], [aria-label="Lista de conversas"] [role="row"]');
+  // Scrape the left sidebar for chat items
+  const chats = document.querySelectorAll('div[role="listitem"], [data-testid="cell-frame-container"], [aria-label="Lista de conversas"] [role="row"], #pane-side div[role="listitem"]');
   const groups = [];
   
   chats.forEach(chat => {
     const titleEl = chat.querySelector('span[title], div[title]');
-    if (titleEl) {
-      const title = titleEl.getAttribute('title')?.trim();
-      // Try to identify if it's a group by looking for participant info or specific icons
-      // Since that's hard, we list chats that are likely groups (or just all for now)
-      if (title && !groups.some(group => group.title === title)) {
-        groups.push({ title, element: chat });
-      }
+    if (!titleEl) return;
+    const title = titleEl.getAttribute('title')?.trim();
+    if (!title) return;
+
+    // Heurística para identificar grupos:
+    // 1) Título começando com número (+55 ...) é contato individual, descartar
+    // 2) WhatsApp grupos geralmente NÃO têm o badge de "online"/numero formatado
+    // 3) Procurar por ícone de grupo (svg específico) ou múltiplos remetentes na pré-visualização
+    const isPhoneNumber = /^\+?\d[\d\s\-()]+$/.test(title);
+    if (isPhoneNumber) return;
+
+    // Verifica se a pré-visualização da última mensagem tem padrão "Nome: mensagem" (típico de grupos)
+    const previewEl = chat.querySelector('span[dir="ltr"] span, [data-testid="last-msg"] span');
+    const previewText = previewEl?.innerText || '';
+    const looksLikeGroupPreview = /^[^:]{1,40}:\s/.test(previewText);
+
+    // Verifica se há ícone de grupo (avatar com múltiplas pessoas)
+    const groupIcon = chat.querySelector('[data-icon="default-group"], [data-icon="default-group-refreshed"]');
+
+    const isGroup = !!groupIcon || looksLikeGroupPreview;
+    if (!isGroup) return;
+
+    if (!groups.some(group => group.title === title)) {
+      groups.push({ title, element: chat });
     }
   });
 
   if (groups.length === 0) {
-    listEl.innerHTML = '<p style="font-size: 12px; color: #f87171;">Nenhum grupo encontrado na lista visível.</p>';
+    listEl.innerHTML = '<p style="font-size: 12px; color: #f87171;">Nenhum grupo encontrado. Filtre por "Grupos" no WhatsApp e tente novamente.</p>';
     return;
   }
 

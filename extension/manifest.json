@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZapLynx Extension",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Integração direta do WhatsApp Web com a plataforma ZapLynx.",
   "permissions": [
     "storage",
