@@ -124,7 +124,7 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string) =>
   type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-  || type === "uaz_status" || type === "uaz_location_button" || type === "uaz_request_payment" || type === "poll" || type === "sticker" || type === "gif" || type === "link";
+  || type === "poll" || type === "sticker" || type === "gif" || type === "link";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
