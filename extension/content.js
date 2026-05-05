@@ -2,17 +2,21 @@ console.log('ZapLynx Extension: Content script loaded');
 
 let zaplynxToken = null;
 
-chrome.storage.local.get(['zaplynx_token'], (result) => {
-  zaplynxToken = result.zaplynx_token;
-  if (zaplynxToken) {
+function loadTokenAndInit() {
+  chrome.storage.local.get(['zaplynx_token'], (result) => {
+    zaplynxToken = result.zaplynx_token;
+    // Always init to show at least the login screen if needed
     initExtension();
-  }
-});
+  });
+}
+
+loadTokenAndInit();
 
 function initExtension() {
-  setInterval(() => {
-    injectUI();
-  }, 2000);
+  // Initial injection
+  injectUI();
+  // Keep checking in case WA Web re-renders the body
+  setInterval(injectUI, 3000);
 }
 
 function injectUI() {
@@ -20,45 +24,67 @@ function injectUI() {
 
   const sidebar = document.createElement('div');
   sidebar.id = 'zaplynx-sidebar';
-  // Start visible as requested
   sidebar.className = ''; 
-  sidebar.innerHTML = `
-    <div class="sidebar-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <img src="${chrome.runtime.getURL('icons/icon48.png')}" width="24">
-        <span style="font-weight: bold; font-size: 16px;">ZapLynx</span>
+  
+  if (!zaplynxToken) {
+    sidebar.innerHTML = `
+      <div class="sidebar-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <img src="${chrome.runtime.getURL('icons/icon48.png')}" width="24">
+          <span style="font-weight: bold; font-size: 16px;">ZapLynx</span>
+        </div>
+        <button id="close-zaplynx-sidebar" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
-      <button id="close-zaplynx-sidebar" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
-    </div>
-    <div class="sidebar-content">
-      <div class="sidebar-section">
-        <h3>Mensagens Rápidas</h3>
-        <div id="templates-list">Carregando modelos...</div>
-      </div>
-      
-      <div class="sidebar-section">
-        <h3>Fluxos de Automação</h3>
-        <div id="flows-list">Carregando fluxos...</div>
-      </div>
-
-      <div class="sidebar-section">
-        <h3>Extração de Grupos</h3>
-        <button class="sidebar-btn primary" id="btn-refresh-groups">
-          <span>🔄</span> Listar Grupos Disponíveis
-        </button>
-        <div id="groups-list" style="margin-top: 10px; max-height: 200px; overflow-y: auto;">
-          <p style="font-size: 12px; color: #94a3b8;">Clique acima para listar grupos.</p>
+      <div class="sidebar-content">
+        <div class="sidebar-section">
+          <h3>Conectar Conta</h3>
+          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">Insira sua chave de extensão para começar.</p>
+          <input type="password" id="sidebar-token-input" placeholder="Sua chave ZapLynx..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 12px;">
+          <button class="sidebar-btn primary" id="btn-save-token">Conectar Extensão</button>
         </div>
       </div>
-
-      <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #334155; pt-10">
-        <h3 id="current-group-name">Grupo Atual</h3>
-        <button class="sidebar-btn success" id="btn-extract-members">
-          <span>👥</span> Extrair Membros Deste Grupo
-        </button>
+    `;
+  } else {
+    sidebar.innerHTML = `
+      <div class="sidebar-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <img src="${chrome.runtime.getURL('icons/icon48.png')}" width="24">
+          <span style="font-weight: bold; font-size: 16px;">ZapLynx</span>
+        </div>
+        <button id="close-zaplynx-sidebar" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
       </div>
-    </div>
-  `;
+      <div class="sidebar-content">
+        <div class="sidebar-section">
+          <h3>Mensagens Rápidas</h3>
+          <div id="templates-list">Carregando modelos...</div>
+        </div>
+        
+        <div class="sidebar-section">
+          <h3>Fluxos de Automação</h3>
+          <div id="flows-list">Carregando fluxos...</div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Extração de Grupos</h3>
+          <button class="sidebar-btn primary" id="btn-refresh-groups" style="font-size: 12px;">
+            <span>🔄</span> Listar Grupos na Tela
+          </button>
+          <div id="groups-list" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
+            <p style="font-size: 11px; color: #94a3b8;">Clique para listar os grupos visíveis na sua barra lateral.</p>
+          </div>
+        </div>
+
+        <div class="sidebar-section" id="active-group-tools" style="display: none; border-top: 1px solid #334155; padding-top: 15px;">
+          <h3 id="current-group-name" style="color: #10b981;">Chat Ativo</h3>
+          <button class="sidebar-btn success" id="btn-extract-members">
+            <span>👥</span> Extrair Membros deste Chat
+          </button>
+        </div>
+
+        <button id="btn-logout" style="background: none; border: none; color: #ef4444; font-size: 11px; cursor: pointer; margin-top: 20px; width: 100%; text-align: center;">Sair da Conta</button>
+      </div>
+    `;
+  }
   document.body.appendChild(sidebar);
 
   document.getElementById('close-zaplynx-sidebar').onclick = () => {
@@ -69,15 +95,40 @@ function injectUI() {
     listGroups();
   };
 
-  document.getElementById('btn-extract-members').onclick = () => {
-    extractGroupMembers();
-  };
+  if (!zaplynxToken) {
+    document.getElementById('btn-save-token').onclick = () => {
+      const token = document.getElementById('sidebar-token-input').value.trim();
+      if (token) {
+        chrome.storage.local.set({ zaplynx_token: token }, () => {
+          zaplynxToken = token;
+          const sidebar = document.getElementById('zaplynx-sidebar');
+          if (sidebar) sidebar.remove();
+          injectUI();
+        });
+      }
+    };
+  } else {
+    document.getElementById('btn-refresh-groups').onclick = () => {
+      listGroups();
+    };
 
-  loadTemplates();
-  loadFlows();
-  
-  // Auto-detect group change
-  setInterval(checkActiveChat, 2000);
+    document.getElementById('btn-extract-members').onclick = () => {
+      extractGroupMembers();
+    };
+
+    document.getElementById('btn-logout').onclick = () => {
+      chrome.storage.local.remove(['zaplynx_token'], () => {
+        zaplynxToken = null;
+        const sidebar = document.getElementById('zaplynx-sidebar');
+        if (sidebar) sidebar.remove();
+        injectUI();
+      });
+    };
+
+    loadTemplates();
+    loadFlows();
+    setInterval(checkActiveChat, 2000);
+  }
 }
 
 function checkActiveChat() {
