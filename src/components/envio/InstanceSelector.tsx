@@ -42,7 +42,8 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
         try {
           const parsed: string[] = JSON.parse(saved);
           // Filter to only valid instance IDs that still exist
-          const valid = parsed.filter(id => instances.some(i => i.id === id));
+          const visibleIds = new Set(instances.map((i) => i.id));
+          const valid = parsed.filter(id => visibleIds.has(id));
           idsToSelect = valid.length > 0 ? valid : (fallbackId ? [fallbackId] : []);
         } catch {
           idsToSelect = fallbackId ? [fallbackId] : [];

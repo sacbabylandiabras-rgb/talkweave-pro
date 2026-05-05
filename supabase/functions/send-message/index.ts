@@ -374,10 +374,11 @@ serve(async (req) => {
       }
     }
 
-    if (preferStandardConnection === true && uazapiOverride) {
+    const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
+    if (shouldUseStandardConnection) {
       const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
       if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
-        console.log(`🔄 Preferência de envio padrão: trocando ${instanceId} por ${standardInstance.zapi_instance_id}`);
+        console.log(`🔄 Envio comum: ignorando conexão oculta ${instanceId} e usando conexão visível ${standardInstance.zapi_instance_id}`);
         instanceId = standardInstance.zapi_instance_id;
         token = standardInstance.zapi_token;
         clientToken = standardInstance.zapi_client_token;
