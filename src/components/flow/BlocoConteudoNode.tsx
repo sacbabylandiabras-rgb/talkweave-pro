@@ -20,6 +20,19 @@ import {
   MapPinned,
   CreditCard,
   QrCode,
+  Sticker,
+  Zap as ZapIcon,
+  HelpCircle,
+  ShoppingBag,
+  Package,
+  List,
+  Smile,
+  X,
+  Reply,
+  Forward,
+  CheckCircle,
+  Trash as TrashIcon,
+  Pin,
 } from "lucide-react";
 
 const typeIcons: Record<string, any> = {
@@ -91,8 +104,29 @@ const buttonTypeIcons: Record<string, any> = {
   flow: ArrowRight,
 };
 
-function MediaPreview({ contentType, mediaUrl }: { contentType: string; mediaUrl: string }) {
-  if (!mediaUrl) return null;
+function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; mediaUrl: string; data?: any }) {
+  if (!mediaUrl && contentType !== "link") return null;
+
+    if (contentType === "sticker" || contentType === "gif") {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border bg-black/5 flex justify-center">
+        {contentType === "sticker" ? (
+          <img src={mediaUrl} className="w-20 h-20 object-contain" alt="Sticker" />
+        ) : (
+          <video src={mediaUrl} className="w-full max-h-32 object-contain" autoPlay loop muted playsInline />
+        )}
+      </div>
+    );
+  }
+
+  if (contentType === "link" && (mediaUrl || data?.linkUrl)) {
+    return (
+      <div className="mt-2 rounded-md overflow-hidden border border-border bg-muted/30 p-2">
+        {mediaUrl && <img src={mediaUrl} className="w-full h-20 object-cover rounded mb-1" alt="Preview" />}
+        <div className="text-[10px] text-primary underline truncate">{data?.linkUrl || mediaUrl}</div>
+      </div>
+    );
+  }
 
   if (contentType === "image") {
     return (
@@ -184,7 +218,7 @@ export function BlocoConteudoNode({ data }: any) {
       </div>
 
       {/* Media preview */}
-      <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} />
+      <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} data={data} />
 
       {data.content && (
         <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap break-words">

@@ -2422,7 +2422,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             onChange={handleFileUpload}
                             disabled={uploadingFile}
                             accept={
-                              selectedNode.data.contentType === "image" ? "image/*" :
+                              selectedNode.data.contentType === "image" || selectedNode.data.contentType === "sticker" ? "image/*,.webp" :
+                              selectedNode.data.contentType === "gif" ? "video/*,image/gif" :
                               selectedNode.data.contentType === "video" ? "video/*" :
                               selectedNode.data.contentType === "audio" ? "audio/*" :
                               selectedNode.data.contentType === "document" ? ".pdf,.doc,.docx" : "*"

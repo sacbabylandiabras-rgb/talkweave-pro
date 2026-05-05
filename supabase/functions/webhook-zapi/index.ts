@@ -4483,7 +4483,7 @@ async function sendNodeContent(
   };
 
   const contentType = targetNode.data.contentType || "text";
-  const isMediaContentType = ["image", "video", "audio", "document"].includes(
+  const isMediaContentType = ["image", "video", "audio", "document", "sticker", "gif"].includes(
     contentType,
   );
   const typeLabelForLog = (t: string) =>
@@ -5110,8 +5110,13 @@ async function sendNodeContent(
         await sendZapi("/send-gif", { phone, gif: mediaUrl, caption: content || "" }, `Bloco ${targetNode.id} (gif)`);
         return false;
       }
-      if (contentType === "link" && mediaUrl) {
-        await sendZapi("/send-link", { phone, message: content || "", image: mediaUrl, linkUrl: mediaUrl }, `Bloco ${targetNode.id} (link)`);
+      if (contentType === "link" && (mediaUrl || targetNode.data.linkUrl)) {
+        await sendZapi("/send-link", { 
+          phone, 
+          message: content || "", 
+          image: mediaUrl || undefined, 
+          linkUrl: targetNode.data.linkUrl || mediaUrl 
+        }, `Bloco ${targetNode.id} (link)`);
         return false;
       }
       if (contentType === "poll") {
