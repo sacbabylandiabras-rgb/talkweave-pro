@@ -1421,9 +1421,25 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                           {statsDialogHasUrlButton && (
                             <TableCell>
                               {contact.clickedAt ? (
-                                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
-                                  <CheckCircle className="w-3 h-3" /> Clicou
-                                </Badge>
+                                (() => {
+                                  const phoneKey = normalizePhoneKey(contact.phone);
+                                  const click = statsDialogLinkClicks.find(
+                                    (c: any) => normalizePhoneKey(c.phone) === phoneKey
+                                  );
+                                  const loc = click ? [click.city, click.region, click.country].filter(Boolean).join(', ') : '';
+                                  return (
+                                    <div className="flex flex-col gap-1">
+                                      <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit">
+                                        <CheckCircle className="w-3 h-3" /> Clicou
+                                      </Badge>
+                                      {click?.ip && (
+                                        <span className="text-[10px] font-mono text-muted-foreground" title={loc}>
+                                          {click.ip}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()
                               ) : (
                                 <span className="text-xs text-muted-foreground">-</span>
                               )}
@@ -1438,67 +1454,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   </Table>
                 </ScrollArea>
 
-                {statsDialogHasUrlButton && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold">Cliques aproximados</p>
-                      <Badge variant="outline" className="text-xs">
-                        {statsDialogLinkClicks.length} registro(s)
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Em campanhas de grupo não é possível identificar o número exato. Mostramos IP, localização aproximada e dispositivo de quem clicou.
-                    </p>
-                    {statsDialogLinkClicks.length === 0 ? (
-                      <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">
-                        Nenhum clique registrado ainda.
-                      </div>
-                    ) : (
-                      <ScrollArea className="max-h-[30vh] w-full border rounded-md">
-                        <div className="w-full overflow-x-auto">
-                          <Table className="w-full table-fixed">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[120px]">Data</TableHead>
-                                <TableHead className="w-[130px]">IP</TableHead>
-                                <TableHead>Localização</TableHead>
-                                <TableHead className="w-[100px]">Dispositivo</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {statsDialogLinkClicks.map((click) => {
-                                const loc = [click.city, click.region, click.country].filter(Boolean).join(', ');
-                                const ua = click.user_agent || '';
-                                const device = /iPhone|iPad/i.test(ua)
-                                  ? 'iOS'
-                                  : /Android/i.test(ua)
-                                    ? 'Android'
-                                    : /Windows/i.test(ua)
-                                      ? 'Windows'
-                                      : /Macintosh|Mac OS/i.test(ua)
-                                        ? 'macOS'
-                                        : /Linux/i.test(ua)
-                                          ? 'Linux'
-                                          : 'Outro';
-                                return (
-                                  <TableRow key={click.id}>
-                                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                      {format(new Date(click.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                                    </TableCell>
-                                    <TableCell className="text-xs font-mono truncate" title={click.ip || ''}>
-                                      {click.ip || '-'}
-                                    </TableCell>
-                                    <TableCell className="text-xs truncate" title={loc}>{loc || '-'}</TableCell>
-                                    <TableCell className="text-xs truncate" title={ua}>{device}</TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </div>
+                {statsDialogHasUrlButton && statsDialogLinkClicks.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {statsDialogLinkClicks.length} clique(s) registrado(s). IP e localização aproximada exibidos ao lado de cada contato que clicou.
+                  </p>
                 )}
               </>
             );
