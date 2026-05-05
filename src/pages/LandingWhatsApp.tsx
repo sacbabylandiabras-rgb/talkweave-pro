@@ -674,38 +674,135 @@ function fmt(n: number) {
 }
 
 function BlastMock() {
-  const items = [
-    { name: "Conexão 01", sent: 1240, total: 1500, color: "#22c55e" },
-    { name: "Conexão 02", sent: 1180, total: 1500, color: "#a78bfa" },
-    { name: "Conexão 03", sent: 980, total: 1500, color: "#f472b6" },
-    { name: "Conexão 04", sent: 1320, total: 1500, color: "#38bdf8" },
+  // Lista de contatos com status que muda de "Enviando" → "Entregue" e alguns "Clicou"
+  const baseContacts = [
+    { id: 45, phone: "1819521226****", clicked: true, ip: "2804:389:a2aa:..." },
+    { id: 46, phone: "1820212175****", clicked: false },
+    { id: 47, phone: "1821539251****", clicked: true, ip: "186.237.107.132" },
+    { id: 48, phone: "1822404284****", clicked: true, ip: "170.254.113.139" },
+    { id: 49, phone: "1823325690****", clicked: false },
+    { id: 50, phone: "1825533067****", clicked: false },
+    { id: 51, phone: "1832197816****", clicked: true, ip: "45.186.221.111" },
+    { id: 52, phone: "1843275476****", clicked: true, ip: "149.78.105.224" },
+    { id: 53, phone: "1847353347****", clicked: false },
+    { id: 54, phone: "1848560635****", clicked: false },
   ];
-  const p = useLoopProgress(3500);
+
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 600);
+    return () => clearInterval(id);
+  }, []);
+
+  // Quantos já estão "Entregue" (vai aumentando, depois reseta)
+  const cycleLen = baseContacts.length + 4;
+  const deliveredCount = tick % cycleLen;
+
+  // Animação dos números do topo
+  const baseProgress = Math.min(tick / 30, 1); // ~18s para encher
+  const stats = {
+    total: 654,
+    entregues: Math.round(412 * baseProgress),
+    enviando: 10,
+    pendentes: Math.max(0, 654 - Math.round(412 * baseProgress) - 10),
+    cancelados: 0,
+    lidas: Math.round(1 * baseProgress),
+    cliques: Math.round(134 * baseProgress),
+  };
+  const progressPct = Math.round((stats.entregues / stats.total) * 100);
+
   return (
-    <MockShell title="Campanha · Black Friday">
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {items.map((it) => {
-          const animSent = it.sent * p;
-          const pct = (animSent / it.total) * 100;
+    <MockShell title="Estatísticas · Envio em Massa">
+      <style>{`
+        @keyframes lp-blast-flash { 0% { background: rgba(34,197,94,0.35); } 100% { background: rgba(34,197,94,0); } }
+        @keyframes lp-blast-spin { to { transform: rotate(360deg); } }
+        .lp-blast-row { transition: background 0.4s ease; }
+        .lp-blast-just-delivered { animation: lp-blast-flash 1.2s ease forwards; }
+      `}</style>
+
+      {/* Barra de progresso */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
+          <span>Progresso do envio</span>
+          <span style={{ fontVariantNumeric: "tabular-nums" }}>{progressPct}%</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+          <div style={{ width: `${progressPct}%`, height: "100%", background: "linear-gradient(90deg, #a78bfa, #22c55e)", transition: "width 0.4s ease" }} />
+        </div>
+      </div>
+
+      {/* Cards de stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 12 }}>
+        {[
+          { l: "Total", v: stats.total, c: "rgba(255,255,255,0.7)" },
+          { l: "Entregues", v: stats.entregues, c: "#22c55e" },
+          { l: "Enviando", v: stats.enviando, c: "#38bdf8" },
+          { l: "Pendentes", v: stats.pendentes, c: "#fbbf24" },
+          { l: "Cancelados", v: stats.cancelados, c: "#f472b6" },
+          { l: "Lidas", v: stats.lidas, c: "#a78bfa" },
+          { l: "Cliques", v: stats.cliques, c: "#34d399" },
+        ].map((s) => (
+          <div key={s.l} style={{
+            padding: "8px 6px", borderRadius: 8,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 0.3 }}>{s.l}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: s.c, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Lista de contatos */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 200, overflow: "hidden" }}>
+        {baseContacts.map((c, i) => {
+          const isDelivered = i < deliveredCount;
+          const justDelivered = i === deliveredCount - 1;
+          const isSending = i === deliveredCount;
           return (
-            <div key={it.name}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
-                <span>{it.name}</span>
-                <span style={{ color: "rgba(255,255,255,0.55)", fontVariantNumeric: "tabular-nums" }}>{fmt(animSent)}/{it.total}</span>
-              </div>
-              <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden", position: "relative" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: it.color, borderRadius: 6, transition: "width 0.1s linear", boxShadow: `0 0 12px ${it.color}88` }} />
-                <div style={{ position: "absolute", top: 0, left: `${pct}%`, width: 14, height: "100%", background: `linear-gradient(90deg, ${it.color}, transparent)`, filter: "blur(4px)", opacity: p < 0.95 ? 1 : 0 }} />
-              </div>
+            <div
+              key={c.id}
+              className={`lp-blast-row ${justDelivered ? "lp-blast-just-delivered" : ""}`}
+              style={{
+                display: "grid", gridTemplateColumns: "70px 1fr 90px 80px",
+                alignItems: "center", gap: 8,
+                padding: "6px 8px", borderRadius: 6,
+                fontSize: 11,
+              }}
+            >
+              <span style={{ color: "rgba(255,255,255,0.55)" }}>Contato {c.id}</span>
+              <span style={{ color: "rgba(255,255,255,0.75)", fontFamily: "monospace", fontSize: 10 }}>{c.phone}</span>
+              {isDelivered ? (
+                <span style={{
+                  background: "rgba(34,197,94,0.15)", color: "#22c55e",
+                  padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600, textAlign: "center",
+                }}>✓ Entregue</span>
+              ) : isSending ? (
+                <span style={{
+                  background: "rgba(56,189,248,0.15)", color: "#38bdf8",
+                  padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600, textAlign: "center",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                }}>
+                  <span style={{ width: 8, height: 8, border: "1.5px solid #38bdf8", borderTopColor: "transparent", borderRadius: "50%", animation: "lp-blast-spin 0.8s linear infinite" }} />
+                  Enviando
+                </span>
+              ) : (
+                <span style={{
+                  background: "rgba(251,191,36,0.12)", color: "#fbbf24",
+                  padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600, textAlign: "center",
+                }}>Pendente</span>
+              )}
+              {isDelivered && c.clicked ? (
+                <span style={{
+                  background: "rgba(167,139,250,0.15)", color: "#a78bfa",
+                  padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600, textAlign: "center",
+                }}>👆 Clicou</span>
+              ) : (
+                <span style={{ color: "rgba(255,255,255,0.25)", textAlign: "center" }}>—</span>
+              )}
             </div>
           );
         })}
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <Stat label="Enviadas" value={fmt(4720 * p)} />
-          <Stat label="Entregues" value={fmt(4612 * p)} />
-          <Stat label="Lidas" value={fmt(3280 * p)} />
-          <Stat label="Respostas" value={fmt(612 * p)} />
-        </div>
       </div>
     </MockShell>
   );
