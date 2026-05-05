@@ -4914,19 +4914,38 @@ async function sendNodeContent(
             `Bloco ${targetNode.id} (presence)`,
           );
         } else {
-          // Z-API: chat-state aceita "composing" / "recording" / "available" / "unavailable"
-          await sendZapi(
-            "/send-chat-state",
-            { phone, chatState: presenceType },
-            `Bloco ${targetNode.id} (presence)`,
-          );
-          if (duration > 0) {
-            await new Promise((r) => setTimeout(r, Math.min(duration, 30) * 1000));
+          // Z-API: chat-state aceita apenas "typing" / "recording" / "paused"
+          const zapiState =
+            presenceType === "recording" || presenceType === "audio"
+              ? "recording"
+              : presenceType === "paused" || presenceType === "available" || presenceType === "unavailable"
+                ? "paused"
+                : "typing";
+          try {
             await sendZapi(
               "/send-chat-state",
-              { phone, chatState: "paused" },
-              `Bloco ${targetNode.id} (presence-stop)`,
+              { phone, chatState: zapiState },
+              `Bloco ${targetNode.id} (presence)`,
             );
+          } catch (err) {
+            console.warn(`⚠️ /send-chat-state falhou, tentando /chat-state:`, err);
+            await sendZapi(
+              "/chat-state",
+              { phone, chatState: zapiState },
+              `Bloco ${targetNode.id} (presence-fallback)`,
+            );
+          }
+          if (duration > 0) {
+            await new Promise((r) => setTimeout(r, Math.min(duration, 30) * 1000));
+            try {
+              await sendZapi(
+                "/send-chat-state",
+                { phone, chatState: "paused" },
+                `Bloco ${targetNode.id} (presence-stop)`,
+              );
+            } catch (err) {
+              console.warn(`⚠️ presence-stop falhou:`, err);
+            }
           }
         }
         return false;
