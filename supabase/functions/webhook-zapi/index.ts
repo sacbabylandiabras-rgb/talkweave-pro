@@ -5260,9 +5260,10 @@ async function sendNodeContent(
           mediaBody.audio = mediaUrl;
           mediaBody.waveform = true;
         } else if (contentType === "document") {
-          mediaEndpoint = "/send-document-url";
+          const extension = getDocumentExtension(mediaUrl, targetNode.data?.fileName);
+          mediaEndpoint = `/send-document/${extension}`;
           mediaBody.document = mediaUrl;
-          mediaBody.fileName = targetNode.data?.fileName || "documento";
+          mediaBody.fileName = targetNode.data?.fileName || `documento.${extension}`;
         } else {
           mediaEndpoint = "/send-image";
           mediaBody.image = mediaUrl;
@@ -5409,9 +5410,9 @@ async function sendNodeContent(
           body.waveform = true;
           break;
         case "document":
-          endpoint = "/send-document-url";
+          endpoint = `/send-document/${getDocumentExtension(mediaUrl, targetNode.data?.fileName)}`;
           body.document = mediaUrl;
-          body.fileName = "documento";
+          body.fileName = targetNode.data?.fileName || `documento.${getDocumentExtension(mediaUrl, targetNode.data?.fileName)}`;
           body.caption = content;
           break;
         default:
