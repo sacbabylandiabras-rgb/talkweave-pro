@@ -1,4 +1,10 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback } from "react";
+import logoKiwify from "@/assets/logo-kiwify.jpg";
+import logoHotmart from "@/assets/logo-hotmart.jpg";
+import logoDevzapp from "@/assets/logo-devzapp.jpg";
+import logoSendflow from "@/assets/logo-sendflow.png";
+import logoManychat from "@/assets/logo-manychat.webp";
 import AgentChatMockup from "@/components/landing/AgentChatMockup";
 import "./Landing.css";
 
@@ -18,8 +24,11 @@ const LandingWhatsApp = () => {
         </div>
       </nav>
 
-      {/* HERO */}
-      <div className="lp-hero" style={{ paddingTop: 80 }}>
+      {/* HERO PAC-MAN */}
+      <HeroSection />
+
+      {/* HERO COPY */}
+      <div className="lp-hero">
         <div className="lp-hero-glow" />
         <h1>
           Automação de <em>WhatsApp</em> <br />
