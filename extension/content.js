@@ -149,16 +149,18 @@ function listGroups() {
   listEl.innerHTML = '<p style="font-size: 12px; color: #94a3b8;">Buscando grupos...</p>';
   
   // Scrape the left sidebar for group items
-  const chats = document.querySelectorAll('div[role="listitem"]');
+  const chats = document.querySelectorAll('div[role="listitem"], [data-testid="cell-frame-container"], [aria-label="Lista de conversas"] [role="row"]');
   const groups = [];
   
   chats.forEach(chat => {
-    const titleEl = chat.querySelector('span[title]');
+    const titleEl = chat.querySelector('span[title], div[title]');
     if (titleEl) {
-      const title = titleEl.getAttribute('title');
+      const title = titleEl.getAttribute('title')?.trim();
       // Try to identify if it's a group by looking for participant info or specific icons
       // Since that's hard, we list chats that are likely groups (or just all for now)
-      groups.push({ title, element: chat });
+      if (title && !groups.some(group => group.title === title)) {
+        groups.push({ title, element: chat });
+      }
     }
   });
 
