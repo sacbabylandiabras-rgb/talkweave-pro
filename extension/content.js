@@ -162,17 +162,11 @@ function initExtension() {
    // Real logic would involve scanning the DOM of the group info page or using Z-API group metadata
  }
 
-// Message listener for actions from popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'scrape_contacts') {
-    const contacts = scrapeContacts();
-    sendResponse({ contacts });
-  }
-  return true;
-});
-
-function scrapeContacts() {
-  // Mock scraping for now - in a real scenario, this would traverse the DOM of the group member list
-  console.log('ZapLynx: Extraindo contatos...');
-  return [];
-}
+ // Message listener for actions from popup
+ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+   if (request.action === 'scrape_contacts' || request.action === 'extract_members') {
+     extractGroupMembers();
+     sendResponse({ success: true });
+   }
+   return true;
+ });
