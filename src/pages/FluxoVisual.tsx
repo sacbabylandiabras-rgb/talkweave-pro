@@ -1898,7 +1898,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="media-carousel">Carrossel de Mídia</SelectItem>
                       <SelectItem value="request-location">Solicitar Localização</SelectItem>
                       <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
-                      <SelectItem value="pix">Botão PIX</SelectItem>
+                                            <SelectItem value="pix">Botão PIX</SelectItem>
+                      <SelectItem value="sticker">Sticker (Figurinha)</SelectItem>
+                      <SelectItem value="gif">GIF Animado</SelectItem>
+                      <SelectItem value="link">Link com Preview</SelectItem>
+                      <SelectItem value="poll">Enquete / Poll</SelectItem>
+                      <SelectItem value="order">Pedido / Checkout</SelectItem>
+                      <SelectItem value="product">Produto</SelectItem>
+                      <SelectItem value="catalog">Catálogo</SelectItem>
+                      <SelectItem value="reaction">Reagir</SelectItem>
+                      <SelectItem value="reply">Responder</SelectItem>
+                      <SelectItem value="forward">Encaminhar</SelectItem>
+                      <SelectItem value="read">Marcar como Lida</SelectItem>
+                      <SelectItem value="delete">Deletar</SelectItem>
+                      <SelectItem value="pin">Fixar</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
