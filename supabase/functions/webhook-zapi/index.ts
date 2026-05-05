@@ -4909,7 +4909,6 @@ async function sendNodeContent(
               phone,
               contactName: targetNode.data.contactName || "",
               contactPhone: String(targetNode.data.contactPhone || "").replace(/\D/g, ""),
-              contactBusinessDescription: targetNode.data.contactOrg || "",
             },
             `Bloco ${targetNode.id} (contact)`,
           );
