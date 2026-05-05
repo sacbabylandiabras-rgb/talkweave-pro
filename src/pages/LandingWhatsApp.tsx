@@ -42,14 +42,14 @@ const LandingWhatsApp = () => {
       </div>
 
       {/* FEATURE CARDS - CARROSSEL EM MOVIMENTO */}
-      <FeatureCarousel />
+      <FeatureMarquee />
 
       <div className="lp-divider" />
 
       {/* SEÇÃO: Disparos em Massa */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Campanhas</div>
+          <FeatureHighlight color="#22c55e" stat="+50.000 msgs/dia" tag="Campanhas" />
           <div className="lp-section-title">Disparos em Massa Inteligentes</div>
           <div className="lp-section-desc">
             Dispare campanhas para milhares de contatos usando várias conexões
@@ -73,7 +73,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Fluxos Visuais */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Automação Visual</div>
+          <FeatureHighlight color="#a78bfa" stat="100% no-code" tag="Automação Visual" />
           <div className="lp-section-title">Fluxos Visuais Drag & Drop</div>
           <div className="lp-section-desc">
             Construa jornadas completas conectando blocos visuais. Gatilhos por
@@ -97,7 +97,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Agente IA */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Inteligência Artificial</div>
+          <FeatureHighlight color="#f472b6" stat="Resposta em 2s" tag="Inteligência Artificial" />
           <div className="lp-section-title">Agente de IA que Atende e Vende 24h</div>
           <div className="lp-section-desc">
             Treine um agente com o conhecimento do seu negócio. Ele responde
@@ -120,7 +120,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Chat Unificado */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Atendimento</div>
+          <FeatureHighlight color="#34d399" stat="Tempo real" tag="Atendimento" />
           <div className="lp-section-title">Chat Unificado em Tempo Real</div>
           <div className="lp-section-desc">
             Centralize todas as conversas do WhatsApp em uma única caixa de
@@ -144,7 +144,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Grupos */}
       <div className="lp-section">
         <div>
-          <div className="lp-section-tag">Grupos & Comunidades</div>
+          <FeatureHighlight color="#38bdf8" stat="Até 500 grupos/h" tag="Grupos & Comunidades" />
           <div className="lp-section-title">Gestão Completa de Grupos</div>
           <div className="lp-section-desc">
             Crie grupos em massa, extraia membros de comunidades, configure
@@ -168,7 +168,7 @@ const LandingWhatsApp = () => {
       {/* SEÇÃO: Aquecimento */}
       <div className="lp-section lp-section-reverse">
         <div>
-          <div className="lp-section-tag">Anti-Ban</div>
+          <FeatureHighlight color="#fbbf24" stat="−87% banimentos" tag="Anti-Ban" />
           <div className="lp-section-title">Aquecimento de Número</div>
           <div className="lp-section-desc">
             Proteja seus números contra banimento. Sistema simula conversas
