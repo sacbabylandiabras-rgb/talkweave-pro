@@ -310,6 +310,20 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
+        {/* Instagram section - paid users or admins */}
+        {activeWorkspace === "zapi" && (isPaid || isAdmin) && (
+          <>
+            {!collapsed && (
+              <div className="px-2 pt-3 pb-1">
+                <span className="sidebar-section-label">Instagram</span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {instagramMenuItems.map(renderItem)}
+            </ul>
+          </>
+        )}
+
         {/* Telegram section - paid users or admins */}
         {activeWorkspace === "zapi" && (isPaid || isAdmin) && (
           <>
@@ -593,19 +607,6 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           </>
         )}
 
-        {/* Instagram section - paid users or admins */}
-        {activeWorkspace === "zapi" && (isPaid || isAdmin) && (
-          <>
-            {!collapsed && (
-              <div className="px-2 pt-3 pb-1">
-                <span className="sidebar-section-label">Instagram</span>
-              </div>
-            )}
-            <ul className="space-y-0.5">
-              {instagramMenuItems.map(renderItem)}
-            </ul>
-          </>
-        )}
       </nav>
 
       {/* Bottom */}
