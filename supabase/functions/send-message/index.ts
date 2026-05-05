@@ -231,6 +231,26 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
 
 const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
 
+const findPreferredStandardInstance = async (adminClient: any, userId: string) => {
+  const { data, error } = await adminClient
+    .from('zapi_instances')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .or('api_provider.is.null,api_provider.eq.zapi')
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('⚠️ Falha ao buscar conexão padrão para envio:', error);
+    return null;
+  }
+
+  return data || null;
+};
+
 const logProviderSend = async (
   adminClient: any,
   params: {
@@ -294,6 +314,7 @@ serve(async (req) => {
       specialPayload,
       carouselCards,
       templateId,
+      preferStandardConnection,
     } = await req.json()
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -350,6 +371,17 @@ serve(async (req) => {
           };
           console.log(`📌 Using default UAZAPI instance: ${instanceId}`);
         }
+      }
+    }
+
+    if (preferStandardConnection === true && uazapiOverride) {
+      const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
+      if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
+        console.log(`🔄 Preferência de envio padrão: trocando ${instanceId} por ${standardInstance.zapi_instance_id}`);
+        instanceId = standardInstance.zapi_instance_id;
+        token = standardInstance.zapi_token;
+        clientToken = standardInstance.zapi_client_token;
+        uazapiOverride = null;
       }
     }
 
