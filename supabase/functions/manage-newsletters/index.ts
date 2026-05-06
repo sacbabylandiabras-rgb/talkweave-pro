@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
         const { newsletterId, id } = body;
         const targetId = id || newsletterId;
         if (!targetId) throw new Error("newsletter id is required");
-        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(targetId)}`);
+        return await callZapi("GET", `/newsletter-metadata/${encodeURIComponent(targetId)}`);
       }
 
       case "search-newsletter": {
