@@ -900,16 +900,40 @@ serve(async (req) => {
         .join('\n');
       const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
-      if (actionButtons.length > 0) {
-        // Send ALL buttons (REPLY + URL + CALL) together in a single bubble via /send-button-actions.
-        // Z-API renders them as one card with all buttons clickable, including media when provided.
+      if (actionButtons.length > 0 && replyButtons.length > 0) {
+        // WhatsApp não permite misturar botões REPLY com URL/CALL no mesmo cartão.
+        // Para garantir que TODOS os botões apareçam juntos no mesmo balão, enviamos
+        // todos como botões de resposta (REPLY) via /send-button-list e anexamos
+        // o URL/telefone ao corpo da mensagem para preservar o link clicável.
+        const buttonListPayload: Record<string, unknown> = {
+          phone: resolvedPhone,
+          message: listMessage,
+          buttonList: {
+            ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+            buttons: normalizedButtons.map((b: any, index: number) => ({
+              id: b.id || String(index + 1),
+              label: b.label,
+            })),
+          },
+        };
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(buttonListPayload),
+        });
+
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
+        logMessage = logMessage || '🔘 Botões interativos (mistos)';
+      } else if (actionButtons.length > 0) {
+        // Apenas URL/CALL → /send-button-actions
         const interactivePayload: Record<string, unknown> = {
           phone: resolvedPhone,
           message: interactiveMessage,
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
           ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-          buttonActions: normalizedButtons.map((b: any, index: number) => {
+          buttonActions: actionButtons.map((b: any, index: number) => {
             const action: any = {
               id: b.id || String(index + 1),
               type: b.type,
@@ -928,13 +952,13 @@ serve(async (req) => {
         });
 
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-        logMessage = logMessage || '🔘 Botões interativos';
+        logMessage = logMessage || '🔘 Botões de ação';
       } else if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image') || forceReplyButtons === true) {
         // REPLY must use button-list; send-button-actions renders it as a selected/non-clickable row in WhatsApp.
         const listButtons = replyButtons.length > 0 ? replyButtons : normalizedButtons;
         const buttonListPayload = {
           phone: resolvedPhone,
-          message: listMessage,
+          message: interactiveMessage,
           buttonList: {
             ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
             buttons: listButtons.map((b: any, index: number) => ({
