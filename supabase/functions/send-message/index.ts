@@ -920,7 +920,7 @@ serve(async (req) => {
            id: b.id || String(index + 1),
            type: bType,
            label: String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim(),
-           url: bUrl,
+            url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value,
            phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
          };
        });
@@ -966,7 +966,7 @@ serve(async (req) => {
              id: b.id,
              type: b.type,
              label: b.label,
-             ...(b.type === 'URL' ? { url: b.url } : {}),
+            ...(b.type === 'URL' ? { url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value } : {}),
              ...(b.type === 'CALL' ? { phone: b.phone } : {})
            }))
          };
@@ -991,7 +991,7 @@ serve(async (req) => {
             id: b.id,
             type: b.type,
             label: b.label,
-            ...(b.type === "URL" ? { url: b.url } : {}),
+            ...(b.type === "URL" ? { url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value } : {}),
             ...(b.type === "CALL" ? { phone: b.phone } : {})
           }))
         };
