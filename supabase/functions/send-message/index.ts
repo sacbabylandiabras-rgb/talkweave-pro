@@ -884,180 +884,60 @@ serve(async (req) => {
       logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+      // Use /send-button-actions as requested by user based on documentation.
+      // This supports mixed buttons (REPLY, URL, CALL) in a single message.
       const interactiveMessage = message || 'Selecione uma opção:';
-      const normalizedButtons = buttonActions.slice(0, 3).map((b: any, index: number) => ({
-        id: b.id || String(index + 1),
-        type: String(b?.type || 'REPLY').toUpperCase(),
-        label: String(b?.label || `Botão ${index + 1}`).trim(),
-        url: b.url,
-        phone: b.phone ?? b.phoneNumber,
-      }));
-      const replyButtons = normalizedButtons.filter((b: any) => b.type === 'REPLY' || b.type === 'OPTION');
-      const actionButtons = normalizedButtons.filter((b: any) => b.type === 'URL' || b.type === 'CALL');
-      const actionSuffix = actionButtons
-        .map((b: any) => b.type === 'URL' && b.url ? `🔗 ${b.label}: ${b.url}` : b.type === 'CALL' && b.phone ? `📞 ${b.label}: ${b.phone}` : '')
-        .filter(Boolean)
-        .join('\n');
-      const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
-
-      if (actionButtons.length > 0 && (replyButtons.length > 0 || forceReplyButtons === true)) {
-        // WhatsApp (especialmente via Cloud API/Meta) NÃO permite misturar botões REPLY com URL/CALL no mesmo cartão.
-        // Para garantir que TODOS os botões funcionem (link abra e reply responda), 
-        // enviamos dois balões sequenciais: um com mídia/texto + botões de URL/CALL e outro com os botões de REPLY.
+      
+      // Map all buttons to Z-API buttonActions format
+      const normalizedButtonActions = buttonActions.slice(0, 3).map((b: any, index: number) => {
+        const type = String(b?.type || 'REPLY').toUpperCase();
+        const action: any = {
+          id: b.id || String(index + 1),
+          type: type,
+          label: String(b?.label || `Botão ${index + 1}`).trim(),
+        };
         
-        console.log(`📤 Enviando botões mistos para ${resolvedPhone} em dois balões.`);
+        if (type === 'URL' && (b.url || b.value)) action.url = b.url || b.value;
+        if (type === 'CALL' && (b.phone || b.phoneNumber || b.value)) action.phone = b.phone || b.phoneNumber || b.value;
         
-        // Se for vídeo ou documento, envia a mídia separada primeiro
-        if (mediaUrl && (mediaType === 'video' || mediaType === 'document' || mediaType === 'audio')) {
-          console.log(`📤 Enviando mídia (${mediaType}) separada antes dos botões mistos`);
-          const endpoint = mediaType === 'video' ? 'send-video' : mediaType === 'audio' ? 'send-audio' : 'send-document';
-          const mediaPayload: any = { phone: resolvedPhone, [mediaType]: mediaUrl };
-          if (mediaType === 'document') mediaPayload.fileName = 'Arquivo';
-          
-          await fetch(`${baseUrl}/${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify(mediaPayload),
-          });
-        }
+        return action;
+      });
 
-        // Balão 1: Mídia + Texto + Botões de Ação (URL/CALL)
-        const actionPayload: Record<string, unknown> = {
-          phone: resolvedPhone,
-          message: interactiveMessage || ' ',
-          ...(title ? { title } : {}),
-          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-          buttonActions: actionButtons.map((b: any, index: number) => ({
-            id: b.id || `act_${index}`,
-            type: b.type,
-            label: b.label,
-            ...(b.type === 'URL' ? { url: b.url } : { phone: b.phone })
-          }))
-        };
-
-        const firstResp = await fetch(`${baseUrl}/send-button-actions`, {
+      // If we have media (video, document, audio), send it separately first
+      if (mediaUrl && mediaType && mediaType !== 'image') {
+        console.log(`📤 Sending media (${mediaType}) separately before button actions for ${resolvedPhone}`);
+        const endpoint = mediaType === 'video' ? 'send-video' : mediaType === 'audio' ? 'send-audio' : 'send-document';
+        const mediaPayload: any = { phone: resolvedPhone, [mediaType === 'audio' ? 'audio' : (mediaType === 'video' ? 'video' : 'document')]: mediaUrl };
+        if (mediaType === 'document') mediaPayload.fileName = 'Arquivo';
+        
+        await fetch(`${baseUrl}/${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(actionPayload),
+          body: JSON.stringify(mediaPayload),
         });
-        await parseZapiResponse(firstResp, resolvedPhone, instanceId, 'button-actions-part1');
-
-        // Pequeno delay para garantir ordem no WhatsApp
-        await new Promise(r => setTimeout(r, 500));
-
-        // Balão 2: Botões de Resposta (REPLY)
-        const secondBalloonButtons = replyButtons.length > 0 ? replyButtons : actionButtons;
-        const replyPayload = {
-          phone: resolvedPhone,
-          message: footer || 'Escolha uma opção:',
-          buttonList: {
-            buttons: secondBalloonButtons.map((b: any, index: number) => ({
-              id: b.id || `rep_${index}`,
-              label: b.label
-            }))
-          }
-        };
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(replyPayload),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list-part2');
-        logMessage = logMessage || '🔘 Botões interativos (split)';
-      } else if (actionButtons.length > 0) {
-        // Apenas URL/CALL → /send-button-actions
-        const interactivePayload: Record<string, unknown> = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-          buttonActions: actionButtons.map((b: any, index: number) => {
-            const action: any = {
-              id: b.id || String(index + 1),
-              type: b.type,
-              label: b.label,
-            };
-            if (b.type === 'URL' && b.url) action.url = b.url;
-            if (b.type === 'CALL') action.phone = b.phone;
-            return action;
-          }),
-        };
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(interactivePayload),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-        logMessage = logMessage || '🔘 Botões de ação';
-      } else if (replyButtons.length > 0 || (mediaUrl && mediaType === 'image') || forceReplyButtons === true) {
-        // REPLY must use button-list; send-button-actions renders it as a selected/non-clickable row in WhatsApp.
-        const listButtons = replyButtons.length > 0 ? replyButtons : normalizedButtons;
-        const buttonListPayload = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          buttonList: {
-            ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-            buttons: listButtons.map((b: any, index: number) => ({
-              id: b.id || String(index + 1),
-              label: b.label,
-            })),
-          },
-        };
-
-        console.log(`📤 Sending reply button-list for ${resolvedPhone}: ${JSON.stringify(buttonListPayload).substring(0, 300)}`);
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(buttonListPayload),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
-        logMessage = logMessage || '🔘 Botões de resposta';
-      } else {
-        // Action buttons only → use /send-button-actions
-        const interactivePayload: Record<string, unknown> = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          buttonActions: actionButtons.map((b: any, index: number) => {
-            const action: any = {
-              id: b.id || String(index + 1),
-              type: b.type,
-              label: b.label,
-            };
-            if (b.type === 'URL' && b.url) action.url = b.url;
-            if (b.type === 'CALL') action.phone = b.phone ?? b.phoneNumber;
-            return action;
-          }),
-        };
-
-        // If there's an image but we have action buttons, send image separately first
-        if (mediaUrl && mediaType === 'image') {
-          console.log(`📤 Sending image separately before action buttons for ${resolvedPhone}`);
-          const imgResponse = await fetch(`${baseUrl}/send-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-            body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: '' }),
-          });
-          await parseZapiResponse(imgResponse, resolvedPhone, instanceId, 'pre-button-image');
-        }
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(interactivePayload),
-        });
-
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
-        logMessage = logMessage || '🔘 Botões de ação';
+        // Small delay to ensure order
+        await new Promise(r => setTimeout(r, 300));
       }
+
+      const interactivePayload: Record<string, unknown> = {
+        phone: resolvedPhone,
+        message: interactiveMessage,
+        ...(title ? { title } : {}),
+        ...(footer ? { footer } : {}),
+        ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+        buttonActions: normalizedButtonActions,
+      };
+
+      console.log(`📤 Sending combined button-actions for ${resolvedPhone}: ${JSON.stringify(interactivePayload).substring(0, 500)}`);
+
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(interactivePayload),
+      });
+
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-combined');
+      logMessage = logMessage || '🔘 Botões de ação (unificados)';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
         method: 'POST',
