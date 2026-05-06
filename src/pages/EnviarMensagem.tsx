@@ -865,82 +865,9 @@ const EnviarMensagem = () => {
           }
         }
 
-        // Verificar se o dispositivo está conectado antes de cada envio (a cada 3 contatos)
-        if (i % 3 === 0) {
-          try {
-            if (instanceSelectionMode === 'rotate' && rotateInstances.length > 0) {
-              // Em modo revezamento: checar TODAS as instâncias
-              let allDisconnected = true;
-              for (const inst of rotateInstances) {
-                const { data: statusData } = await supabase.functions.invoke('get-device-status', { body: { instanceId: inst.id } });
-                const connected = statusData?.data?.connected === true;
-                console.log(`📡 Status instância "${inst.instance_name}": ${connected ? '✅ conectada' : '❌ desconectada'}`);
-                if (connected) {
-                  allDisconnected = false;
-                }
-              }
-              if (allDisconnected) {
-                const existingAudience = campanha.target_audience && typeof campanha.target_audience === 'object'
-                  ? campanha.target_audience
-                  : {};
-
-                await supabase.from('campaigns').update({ 
-                  status: 'paused',
-                  target_audience: {
-                    ...existingAudience,
-                    __sendConfig: {
-                      instanceId: null,
-                      rotateAll: true,
-                    },
-                  },
-                }).eq('id', campanha.id);
-                try {
-                  const { data: sessionData } = await supabase.auth.getSession();
-                  const token = sessionData?.session?.access_token;
-                  if (token) {
-                    await supabase.functions.invoke('clear-zapi-queue', {
-                      headers: { Authorization: `Bearer ${token}` },
-                      body: { clearAllActive: true },
-                    });
-                  }
-                } catch {}
-                toast({
-                  title: "Todas as instâncias desconectadas!",
-                  description: `Envio pausado. ${processados} solicitações processadas. Reconecte e retome pela página de Campanhas.`,
-                  variant: "destructive"
-                });
-                setEnviandoEmMassa(false);
-                return;
-              }
-            } else {
-              // Modo instância única: checar a selecionada
-              const invokeBody = selectedInstanceId ? { body: { instanceId: selectedInstanceId } } : {};
-              const { data: statusData } = await supabase.functions.invoke('get-device-status', invokeBody);
-              if (statusData?.data?.connected === false) {
-                await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campanha.id);
-                try {
-                  const { data: sessionData } = await supabase.auth.getSession();
-                  const token = sessionData?.session?.access_token;
-                  if (token) {
-                    await supabase.functions.invoke('clear-zapi-queue', {
-                      headers: { Authorization: `Bearer ${token}` },
-                      body: selectedInstanceId ? { instanceId: selectedInstanceId } : {},
-                    });
-                  }
-                } catch {}
-                toast({
-                  title: "Dispositivo desconectado!",
-                  description: `Envio pausado. ${processados} solicitações processadas. Reconecte e retome pela página de Campanhas.`,
-                  variant: "destructive"
-                });
-                setEnviandoEmMassa(false);
-                return;
-              }
-            }
-          } catch (statusErr) {
-            console.error('Erro ao verificar status do dispositivo:', statusErr);
-          }
-        }
+        // Pré-check de conexão removido: get-device-status estava retornando falsos negativos
+        // e pausando campanhas válidas. O provedor já gerencia a fila e reportará erros reais
+        // por envio, que são tratados no catch de cada iteração abaixo.
         
         const contato = contatosProcessados[i];
         let sendStatus = 'failed';
