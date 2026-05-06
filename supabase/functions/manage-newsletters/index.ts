@@ -207,36 +207,41 @@ Deno.serve(async (req) => {
       }
 
       case "update-newsletter-config": {
-        const { newsletterId, reactionMode } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/update-newsletter-config", { newsletterId, reactionMode });
+        const { newsletterId, id, reactionMode } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/update-newsletter-config", { id: targetId, reactionMode });
       }
 
       case "accept-newsletter-admin-invite": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/accept-newsletter-admin-invite", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/accept-newsletter-admin-invite", { id: targetId });
       }
 
       case "newsletter-remove-admin": {
-        const { newsletterId, phone } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
+        const { newsletterId, id, phone } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
-        return await callZapi("POST", "/newsletter-remove-admin", { newsletterId, phone });
+        return await callZapi("POST", "/newsletter-remove-admin", { id: targetId, phone });
       }
 
       case "newsletter-revoke-admin-invite": {
-        const { newsletterId, phone } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
+        const { newsletterId, id, phone } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
-        return await callZapi("POST", "/newsletter-revoke-admin-invite", { newsletterId, phone });
+        return await callZapi("POST", "/newsletter-revoke-admin-invite", { id: targetId, phone });
       }
 
       case "transfer-newsletter-ownership": {
-        const { newsletterId, phone } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
+        const { newsletterId, id, phone } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
-        return await callZapi("POST", "/transfer-newsletter-ownership", { newsletterId, phone });
+        return await callZapi("POST", "/transfer-newsletter-ownership", { id: targetId, phone });
       }
 
       default:
