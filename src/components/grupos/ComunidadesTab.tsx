@@ -324,6 +324,38 @@ export default function ComunidadesTab() {
     );
   };
 
+  const uploadPhotoFile = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+    const fileName = `${user.id}/community-photos/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("template-media")
+      .upload(fileName, file, { contentType: file.type });
+    if (error) throw new Error("Erro no upload: " + error.message);
+    const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
+    return urlData.publicUrl;
+  };
+
+  const handlePhotoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (url: string) => void,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadPhotoFile(file);
+      setter(url);
+      toast.success("Foto enviada!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
   const toggleLinkGroup = (gid: string) =>
     setLinkGroupIds((prev) => (prev.includes(gid) ? prev.filter((g) => g !== gid) : [...prev, gid]));
 
