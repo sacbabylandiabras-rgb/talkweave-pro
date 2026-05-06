@@ -1437,50 +1437,82 @@ export const useZapi = () => {
      }
    };
 
-  const replyStatusText = async (statusId: string, phone: string, text: string) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('reply-status-text', phone, { phone, msgId: statusId, message: text });
-      toast({ title: "Resposta enviada", description: "A resposta ao status foi enviada com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao responder status:', error);
-      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const replyStatusText = async (statusId: string, phone: string, text: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone,
+         message: text,
+         specialType: 'uaz_status', // Roteado via send-message
+         specialPayload: {
+           statusType: 'reply-text',
+           statusId,
+           phone,
+           message: text
+         }
+       }, 'Erro ao responder status');
+       toast({ title: "Resposta enviada", description: "A resposta ao status foi enviada com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao responder status:', error);
+       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
-  const replyStatusGif = async (statusId: string, phone: string, gifUrl: string) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('reply-status-gif', phone, { phone, msgId: statusId, gif: gifUrl });
-      toast({ title: "Resposta enviada", description: "O GIF foi enviado como resposta com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao responder status com GIF:', error);
-      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const replyStatusGif = async (statusId: string, phone: string, gifUrl: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone,
+         mediaUrl: gifUrl,
+         mediaType: 'gif',
+         specialType: 'uaz_status',
+         specialPayload: {
+           statusType: 'reply-gif',
+           statusId,
+           phone,
+           gif: gifUrl
+         }
+       }, 'Erro ao responder status com GIF');
+       toast({ title: "Resposta enviada", description: "O GIF foi enviado como resposta com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao responder status com GIF:', error);
+       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
-  const replyStatusSticker = async (statusId: string, phone: string, stickerUrl: string) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('reply-status-sticker', phone, { phone, msgId: statusId, sticker: stickerUrl });
-      toast({ title: "Resposta enviada", description: "A figurinha foi enviada como resposta com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao responder status com figurinha:', error);
-      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const replyStatusSticker = async (statusId: string, phone: string, stickerUrl: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone,
+         mediaUrl: stickerUrl,
+         mediaType: 'sticker',
+         specialType: 'uaz_status',
+         specialPayload: {
+           statusType: 'reply-sticker',
+           statusId,
+           phone,
+           sticker: stickerUrl
+         }
+       }, 'Erro ao responder status com figurinha');
+       toast({ title: "Resposta enviada", description: "A figurinha foi enviada como resposta com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao responder status com figurinha:', error);
+       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
   return {
     sendTextStatus,
