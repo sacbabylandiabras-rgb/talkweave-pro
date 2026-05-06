@@ -11,7 +11,7 @@ interface CarouselCard {
   buttons?: Array<{
     id: string;
     text: string;
-    type: 'url' | 'call' | 'reply';
+     type: 'url' | 'call' | 'reply' | 'copy';
     value?: string;
     url?: string;
     phone?: string;

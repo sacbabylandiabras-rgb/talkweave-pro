@@ -624,7 +624,7 @@ const ButtonEditor = memo(({
   onUpdateButton, 
   onRemoveButton 
 }: { 
-  buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>, 
+   buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>, 
   isEdit?: boolean,
   onAddButton: (isEdit: boolean) => void,
   onUpdateButton: (index: number, field: string, value: string, isEdit: boolean) => void,
