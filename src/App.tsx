@@ -1,3 +1,4 @@
+import Canais from "./pages/Canais";
 import Extensao from "./pages/Extensao";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -169,6 +170,7 @@ const App = () => (
                   <Route path="/apanhador-grupos" element={<PaidRouteGuard><ApanhadorGrupos /></PaidRouteGuard>} />
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
+                  <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/extensao" element={<Extensao />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
