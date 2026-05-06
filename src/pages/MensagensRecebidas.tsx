@@ -359,11 +359,13 @@ const ConversationList = ({
             )}
           >
             <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
-              <AvatarImage
-                src={conv.profilePictureUrl || undefined}
-                className="h-full w-full object-cover"
-                onError={() => onFetchPhoto(conv.phone, true)}
-              />
+              {conv.profilePictureUrl ? (
+                <AvatarImage
+                  src={conv.profilePictureUrl}
+                  className="h-full w-full object-cover"
+                  onError={() => onFetchPhoto(conv.phone, true)}
+                />
+              ) : null}
               <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
                 <div className="w-full h-full text-white">
                   <WhatsAppDefaultAvatar />
@@ -698,11 +700,13 @@ const ChatView = ({
           </Button>
         )}
         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
-          <AvatarImage
-            src={conversation.profilePictureUrl || undefined}
-            className="h-full w-full object-cover"
-            onError={() => onFetchPhoto(conversation.phone, true)}
-          />
+          {conversation.profilePictureUrl ? (
+            <AvatarImage
+              src={conversation.profilePictureUrl}
+              className="h-full w-full object-cover"
+              onError={() => onFetchPhoto(conversation.phone, true)}
+            />
+          ) : null}
           <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
             <div className="w-full h-full text-white">
               <WhatsAppDefaultAvatar />
