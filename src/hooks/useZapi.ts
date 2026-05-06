@@ -1237,6 +1237,87 @@ export const useZapi = () => {
     }
   };
 
+  const sendCall = async (phone: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+        body: { action: 'send-call', phone },
+      });
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao realizar chamada'));
+      toast({ title: "Chamada iniciada", description: "O comando de chamada foi enviado." });
+      return data;
+    } catch (error) {
+      toast({
+        title: "Erro ao realizar chamada",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCallToken = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+        body: { action: 'call-token' },
+      });
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar token de chamada'));
+      return data?.data || data;
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar token",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSipToken = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+        body: { action: 'sip-token' },
+      });
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar token SIP'));
+      return data?.data || data;
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar token SIP",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSipInfo = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+        body: { action: 'sip-info' },
+      });
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar info SIP'));
+      return data?.data || data;
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar info SIP",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     sendMessage,
     sendButtonList,
@@ -1273,6 +1354,10 @@ export const useZapi = () => {
      clearChat,
      deleteChat,
      setChatExpiration,
+     sendCall,
+     getCallToken,
+     getSipToken,
+     getSipInfo,
      loading,
    };
  };

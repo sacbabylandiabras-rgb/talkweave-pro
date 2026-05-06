@@ -113,6 +113,16 @@ function endpointFor(action: string, phone: string, payload: any) {
     case 'set-messages-duration':
       return { method: 'POST', path: '/privacy/messages-duration', body: { duration: payload?.duration } };
 
+    // Call Actions
+    case 'send-call':
+      return { method: 'POST', path: '/send-call', body: payload };
+    case 'call-token':
+      return { method: 'GET', path: '/call-token' };
+    case 'sip-token':
+      return { method: 'GET', path: '/sip-token' };
+    case 'sip-info':
+      return { method: 'GET', path: '/sip-info' };
+
     default:
       throw new Error("Unknown action: " + action);
   }
