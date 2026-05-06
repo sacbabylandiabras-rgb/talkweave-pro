@@ -501,6 +501,53 @@ export default function ComunidadesTab() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Dialog open={editPhotoOpen} onOpenChange={setEditPhotoOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-1" />
+                        Alterar Foto
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Alterar Foto da Comunidade</DialogTitle>
+                        <DialogDescription>Cole a nova URL da imagem da comunidade.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                          <Label className="text-xs">URL da Imagem</Label>
+                          <Input
+                            value={editPhotoUrl}
+                            onChange={(e) => setEditPhotoUrl(e.target.value)}
+                            placeholder="https://exemplo.com/foto.jpg"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditPhotoOpen(false)}>Cancelar</Button>
+                        <Button
+                          onClick={() => {
+                            if (!editPhotoUrl.trim()) return toast.error("Informe a URL");
+                            runAction(
+                              "photo",
+                              "update-group-photo",
+                              { communityId: selectedCommunity.id, imageUrl: editPhotoUrl.trim() },
+                              "Foto atualizada com sucesso",
+                              () => {
+                                setEditPhotoOpen(false);
+                                setEditPhotoUrl("");
+                              }
+                            );
+                          }}
+                          disabled={actionLoading === "photo"}
+                        >
+                          {actionLoading === "photo" && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                          Salvar
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
                   <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
                     {actionLoading === "metadata" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Building2 className="w-4 h-4 mr-1" />}
                     Ver Dados
