@@ -224,8 +224,16 @@ export default function CanaisTab() {
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="flex flex-col items-center gap-4">
-                      <div onClick={() => createPhotoFileRef.current?.click()} className="relative w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors">
-                        {createPhotoUrl ? <img src={createPhotoUrl} className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+                       <div 
+                         onClick={() => createPhotoFileRef.current?.click()} 
+                         className="relative w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors"
+                         style={{ borderColor: 'hsl(var(--primary) / 0.5)' }}
+                       >
+                         {createPhotoUrl ? (
+                           <img src={createPhotoUrl} className="w-full h-full object-cover" />
+                         ) : (
+                           <Upload className="w-8 h-8 text-muted-foreground" />
+                         )}
                         {uploadingPhoto && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-white" /></div>}
                       </div>
                       <input ref={createPhotoFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)} />
