@@ -68,33 +68,17 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
   }, [instances, initialized, useSavedSelection, activeInstance]);
 
   const toggleInstance = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        // Don't allow deselecting the last one
-        if (next.size <= 1) return prev;
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      // Notify parent
-      const ids = Array.from(next);
-      if (ids.length === instances.length || ids.length > 1) {
-        onInstanceChange?.(ROTATE_ALL);
-        onMultiInstanceChange?.(ids);
-      } else if (ids.length === 1) {
-        const inst = instances.find(i => i.id === ids[0]);
-        if (inst) {
-          selectInstance(ids[0]);
-          onInstanceChange?.(ids[0]);
-          onMultiInstanceChange?.(ids);
-        }
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
-      return next;
-    });
+    // Clicar em uma instância seleciona APENAS aquela (envio único).
+    // Para revezamento entre várias, use o botão "Todas".
+    const next = new Set<string>([id]);
+    setSelectedIds(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([id]));
+    const inst = instances.find(i => i.id === id);
+    if (inst) {
+      selectInstance(id);
+      onInstanceChange?.(id);
+      onMultiInstanceChange?.([id]);
+    }
   };
 
   const selectAll = () => {
