@@ -702,14 +702,12 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Avatar className="h-10 w-10 border border-border/50">
+        <Avatar className="h-10 w-10 border border-border/50 overflow-hidden">
           {conversation.profilePictureUrl ? (
             <AvatarImage 
               src={conversation.profilePictureUrl} 
               className="object-cover"
-              onError={(e) => {
-                (e.target as any).style.display = 'none';
-              }}
+              onError={() => onFetchPhoto(conversation.phone, true)}
             />
           ) : null}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
