@@ -16,6 +16,7 @@ interface Newsletter {
   id: string;
   name?: string;
   description?: string;
+  photo?: string;
   raw?: Record<string, unknown>;
 }
 
