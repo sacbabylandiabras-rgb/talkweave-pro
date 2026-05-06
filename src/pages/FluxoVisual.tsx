@@ -1169,13 +1169,26 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
-          // Send ALL buttons (REPLY + URL + CALL) in a single interactive message
-          // so the user gets one bubble with proper clickable buttons.
-          await sendWithInstance({
-            phone: contact,
-            message: content || "Escolha uma opção:",
-            buttonActions: mappedButtons.slice(0, 3),
-          });
+          const hasUrlButtons = mappedButtons.some(b => b.type === "URL");
+          const hasCallButtons = mappedButtons.some(b => b.type === "CALL");
+          
+          if (hasUrlButtons || hasCallButtons) {
+            // Use send-button-actions for templates with URL or CALL buttons
+            await sendWithInstance({
+              phone: contact,
+              message: content || "Escolha uma opção:",
+              buttonActions: mappedButtons.slice(0, 3),
+            });
+          } else {
+            // Use standard button-list for REPLY only buttons (better compatibility)
+            await sendWithInstance({
+              phone: contact,
+              message: content || "Escolha uma opção:",
+              buttonList: {
+                buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label }))
+              },
+            });
+          }
 
           const hasButtonEdgesForPending = buttons.some((btn: any, idx: number) => {
             if (btn?.type !== "flow" && btn?.type !== "reply") return false;
