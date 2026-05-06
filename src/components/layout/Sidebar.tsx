@@ -75,6 +75,7 @@ const zapiMenuItems = [
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "apanhador-grupos", label: "Grupos", icon: UserPlus, path: "/apanhador-grupos" },
   { id: "criar-grupos", label: "Meus Grupos", icon: Link2, path: "/criar-grupos" },
+  { id: "comunidades", label: "Comunidades", icon: Building2, path: "/comunidades" },
   { id: "campanhas-grupo", label: "Campanhas em Grupo", icon: Megaphone, path: "/campanhas-grupo" },
   { id: "fluxo-grupos", label: "Fluxo Grupos", icon: Workflow, path: "/fluxo-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
