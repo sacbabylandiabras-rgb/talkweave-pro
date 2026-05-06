@@ -296,8 +296,11 @@ export default function CanaisTab() {
 
             <div className="md:col-span-2 space-y-4">
               {!selectedNewsletter ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
-                  <Hash className="w-12 h-12 mb-4 opacity-20" />
+                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+                   <Hash 
+                     className="w-12 h-12 mb-4" 
+                     style={{ opacity: 0.2 }}
+                   />
                   <p>Selecione um canal para gerenciar</p>
                 </div>
               ) : (
