@@ -623,22 +623,28 @@ serve(async (req) => {
       zapiData = await handleButtons();
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
-      zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || 'Selecione uma opção:',
-          buttonList: {
-            buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
-              id: button.id || String(index + 1),
-              label: button.label,
-            })),
-          },
-        }),
-      });
+      let endpoint = '/send-button-list';
+      const payload: any = {
+        phone: resolvedPhone,
+        message: message || 'Selecione uma opção:',
+        buttonList: {
+          buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
+            id: button.id || String(index + 1),
+            label: button.label,
+          })),
+        },
+      };
+
+      if (mediaUrl && mediaType === 'image') {
+        endpoint = '/send-button-list-image';
+        payload.buttonList.image = mediaUrl;
+      } else if (mediaUrl && mediaType === 'video') {
+        endpoint = '/send-button-list-video';
+        payload.buttonList.video = mediaUrl;
+      }
+
+      zapiData = await sendZapi(endpoint, payload, 'button-list');
       logMessage = logMessage || '🔘 Lista de botões';
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
