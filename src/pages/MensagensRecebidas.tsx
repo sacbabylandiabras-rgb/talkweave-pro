@@ -657,7 +657,6 @@ const ChatView = ({
           title: template.header || undefined,
           footer: template.footer || undefined,
           buttonActions: templateButtonActions,
-          forceReplyButtons: true,
           templateId: template.id,
         });
         incrementUsage(template.id);
