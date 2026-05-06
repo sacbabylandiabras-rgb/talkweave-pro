@@ -425,7 +425,7 @@ export default function ComunidadesTab() {
                       groupName={createName}
                       description={createDescription}
                       photoUrl={createPhotoUrl}
-                      membersCount={createGroupIds.length || 0}
+                      membersCount={createGroupIds.length + 1}
                     />
                   </div>
                 </div>
