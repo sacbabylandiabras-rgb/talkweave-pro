@@ -885,41 +885,93 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
-      const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => ({
-        id: b.id || String(index + 1),
-        type: String(b?.type || b?.buttonType || 'REPLY').toUpperCase(),
-        label: String(b?.label || `Botão ${index + 1}`).trim(),
-        url: b.url || b.value || b.urlValue,
-        phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
-      }));
+      const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
+        const bType = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
+        return {
+          id: b.id || String(index + 1),
+          type: bType,
+          label: String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim(),
+          url: b.url || b.value || b.urlValue,
+          phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
+        };
+      });
 
-      const zapiPayload: any = {
-        phone: resolvedPhone,
-        message: interactiveMessage,
-        ...(title ? { title } : {}),
-        ...(footer ? { footer } : {}),
-        ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-        ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
-        ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
-        ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
-        buttonActions: normalizedButtons.map(b => {
-          return {
+      const replyButtons = normalizedButtons.filter(b => b.type === 'REPLY');
+      const actionButtons = normalizedButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
+
+      // Z-API documentation states: "Currently, when sending the three types of buttons simultaneously, WhatsApp Web generates an error... An alternative is to send only the CALL and URL buttons together, and always send the REPLY button separately."
+      // If we have a mix of types, we split into two messages to ensure delivery of all buttons.
+      if (replyButtons.length > 0 && actionButtons.length > 0) {
+        console.log(`📤 Splitting button-actions for ${resolvedPhone} (mixed REPLY and URL/CALL)`);
+        
+        // First message: Reply buttons with the main message/media
+        const payload1 = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
+          buttonActions: replyButtons.map(b => ({ id: b.id, type: b.type, label: b.label }))
+        };
+
+        const res1 = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(payload1),
+        });
+        
+        // If the first message fails, parseZapiResponse will throw
+        await parseZapiResponse(res1, resolvedPhone, instanceId, 'button-actions-split-1');
+
+        // Second message: URL/CALL buttons with footer or placeholder text
+        const payload2 = {
+          phone: resolvedPhone,
+          message: footer || 'Links:',
+          buttonActions: actionButtons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            ...(b.type === 'URL' ? { url: b.url } : {}),
+            ...(b.type === 'CALL' ? { phone: b.phone } : {})
+          }))
+        };
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(payload2),
+        });
+      } else {
+        // Regular case (single type or just URL/CALL)
+        const zapiPayload: any = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
+          ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
+          buttonActions: normalizedButtons.map(b => ({
             id: b.id,
             type: b.type,
             label: b.label,
             ...(b.type === "URL" ? { url: b.url } : {}),
             ...(b.type === "CALL" ? { phone: b.phone } : {})
-          };
-        })
-      };
+          }))
+        };
 
-      console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
+        console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
 
-      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(zapiPayload),
-      });
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(zapiPayload),
+        });
+      }
 
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
       logMessage = logMessage || '🔘 Botões interativos';
