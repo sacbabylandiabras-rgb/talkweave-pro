@@ -297,7 +297,12 @@ export default function ComunidadesTab() {
     await runAction(
       "create",
       "create-community",
-      { name: createName.trim(), description: createDescription.trim(), groupIds: createGroupIds },
+      { 
+        name: createName.trim(), 
+        description: createDescription.trim(), 
+        groupIds: createGroupIds,
+        imageUrl: createPhotoUrl.trim() || undefined
+      },
       "Comunidade criada com sucesso",
       async () => {
         setCreateOpen(false);
