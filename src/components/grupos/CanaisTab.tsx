@@ -92,12 +92,17 @@ export default function CanaisTab() {
       // Normalização: a Z-API pode retornar um array direto ou um objeto com a lista
       const rawList = Array.isArray(data) ? data : (data as any)?.newsletters || (data as any)?.list || [];
       
-      const list: Newsletter[] = rawList.map((n: any) => ({
-        id: String(n.newsletterId || n.id || n.jid || ""),
+      const list: Newsletter[] = rawList.map((n: any) => {
+        const id = String(n.newsletterId || n.id || n.jid || "");
+        // A Z-API pode retornar 'picture' ou 'pictureUrl'
+        const photo = n.picture || n.pictureUrl || n.preview || "";
+        return {
+        id,
         name: n.name || n.subject || n.title || "Canal",
         description: n.description || n.desc || "",
-        raw: n
-      })).filter((n: any) => n.id);
+        photo,
+        raw: { ...n, picture: photo }
+      }}).filter((n: any) => n.id);
 
       setNewsletters(list);
       if (list.length && !selectedId) setSelectedId(list[0].id);
