@@ -1938,10 +1938,15 @@ function LinksRotativosTab() {
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
                             <div className="flex items-center gap-2">
-                              {(g as any).isCommunity && <Building2 className="w-3.5 h-3.5 text-blue-500" />}
-                              {(g as any).isChannel && <Smartphone className="w-3.5 h-3.5 text-purple-500" />}
-                              {!((g as any).isCommunity || (g as any).isChannel) && <Users className="w-3.5 h-3.5 text-green-500" />}
-                              <span>{g.nome}</span>
+                              {(g as any).isCommunity && <Building2 className="w-4 h-4 text-blue-500" />}
+                              {(g as any).isChannel && <Smartphone className="w-4 h-4 text-purple-500" />}
+                              {!((g as any).isCommunity || (g as any).isChannel) && <Users className="w-4 h-4 text-green-500" />}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">{g.nome}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {(g as any).isCommunity ? "Comunidade" : (g as any).isChannel ? "Canal" : "Grupo"}
+                                </span>
+                              </div>
                             </div>
                           </SelectItem>
                         ))}
