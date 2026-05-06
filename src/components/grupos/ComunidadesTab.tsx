@@ -347,54 +347,64 @@ export default function ComunidadesTab() {
                   Nova Comunidade
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Criar Comunidade</DialogTitle>
                   <DialogDescription>
                     Defina nome, descrição e grupos iniciais.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <Label className="text-xs">Nome</Label>
-                    <Input
-                      value={createName}
-                      onChange={(e) => setCreateName(e.target.value)}
-                      placeholder="Minha Comunidade"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Descrição</Label>
-                    <Textarea
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      placeholder="Descrição (opcional)"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Vincular grupos (opcional)</Label>
-                    <div className="mt-2 max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
-                      {loadingGroups ? (
-                        <div className="text-xs text-muted-foreground">Carregando...</div>
-                      ) : groups.length === 0 ? (
-                        <div className="text-xs text-muted-foreground">Nenhum grupo encontrado</div>
-                      ) : (
-                        groups.map((g) => (
-                          <label
-                            key={g.id}
-                            className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={createGroupIds.includes(g.id)}
-                              onChange={() => toggleCreateGroup(g.id)}
-                            />
-                            <span className="truncate">{g.nome}</span>
-                          </label>
-                        ))
-                      )}
+                <div className="grid md:grid-cols-2 gap-6 pt-2">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-xs">Nome da Comunidade</Label>
+                      <Input
+                        value={createName}
+                        onChange={(e) => setCreateName(e.target.value)}
+                        placeholder="Minha Comunidade"
+                      />
                     </div>
+                    <div>
+                      <Label className="text-xs">Descrição</Label>
+                      <Textarea
+                        value={createDescription}
+                        onChange={(e) => setCreateDescription(e.target.value)}
+                        placeholder="Descrição (opcional)"
+                        rows={4}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Vincular grupos (opcional)</Label>
+                      <div className="mt-2 max-h-48 overflow-y-auto border rounded-md p-2 space-y-1 bg-muted/20">
+                        {loadingGroups ? (
+                          <div className="text-xs text-muted-foreground">Carregando...</div>
+                        ) : groups.length === 0 ? (
+                          <div className="text-xs text-muted-foreground">Nenhum grupo encontrado</div>
+                        ) : (
+                          groups.map((g) => (
+                            <label
+                              key={g.id}
+                              className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={createGroupIds.includes(g.id)}
+                                onChange={() => toggleCreateGroup(g.id)}
+                              />
+                              <span className="truncate">{g.nome}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center justify-center p-4 bg-muted/10 rounded-xl border border-dashed">
+                    <WhatsAppGroupPreview
+                      groupName={createName}
+                      description={createDescription}
+                      membersCount={createGroupIds.length || 0}
+                    />
                   </div>
                 </div>
                 <DialogFooter>
