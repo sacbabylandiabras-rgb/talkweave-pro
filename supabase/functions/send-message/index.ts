@@ -437,24 +437,29 @@ serve(async (req) => {
     };
 
     if (specialType === 'pix' && specialPayload) {
-      // Z-API: /send-payment-pix sends PIX charge with brcode
-      const pixBody: Record<string, unknown> = {
+      const pixPayload: any = {
         phone: resolvedPhone,
         pixKey: specialPayload.pixKey || '',
         type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
-        merchantName: specialPayload.merchantName || '',
+        merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
       };
-      if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
-      if (specialPayload.city) pixBody.city = specialPayload.city;
-      if (specialPayload.description) pixBody.description = specialPayload.description;
+      if (specialPayload.amount) pixPayload.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+      if (specialPayload.city) pixPayload.city = specialPayload.city.slice(0, 15);
+      if (specialPayload.description) pixPayload.description = specialPayload.description;
 
-      zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(pixBody),
-      });
-      logMessage = `💰 PIX ${specialPayload.merchantName || ''}`.trim();
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'pix');
+      // Use /send-button-pix if buttons are present, otherwise /send-payment-pix
+      if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+        const btns = (buttonActions || []).slice(0, 3).map((b: any, idx: number) => ({
+          id: b.id || String(idx + 1),
+          label: (b.label || b.text || `Botão ${idx + 1}`).slice(0, 25)
+        }));
+        pixPayload.message = message || 'Escaneie o QR Code para pagar';
+        pixPayload.buttonActions = btns;
+        zapiData = await sendZapi('/send-button-pix', pixPayload, 'button-pix');
+      } else {
+        zapiData = await sendZapi('/send-payment-pix', pixPayload, 'pix');
+      }
+      logMessage = `💰 PIX ${pixPayload.merchantName}`.trim();
     } else if (specialType === 'localizacao' && specialPayload) {
       const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
       const lng = Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0;
