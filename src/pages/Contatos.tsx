@@ -113,11 +113,13 @@ const Contatos = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
-                    <AvatarImage 
-                      src={contato.profilePictureUrl || undefined} 
-                      className="h-full w-full object-cover"
-                      onError={() => refreshProfilePicture(contato.phone)}
-                    />
+                    {contato.profilePictureUrl ? (
+                      <AvatarImage 
+                        src={contato.profilePictureUrl} 
+                        className="h-full w-full object-cover"
+                        onError={() => refreshProfilePicture(contato.phone)}
+                      />
+                    ) : null}
                     <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
                       <div className="w-full h-full text-white">
                         <WhatsAppDefaultAvatar />
