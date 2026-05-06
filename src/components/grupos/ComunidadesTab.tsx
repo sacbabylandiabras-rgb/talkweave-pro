@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
-  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow
+  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow, Image, Upload
 } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
