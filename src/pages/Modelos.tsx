@@ -822,28 +822,8 @@ const Modelos = () => {
     locTitle: "",
     // Contato (vCard)
     contactName: "",
-    contactPhone: "",
-    // UAZAPI - Status / Stories
-    uazStatusType: "text",
-    uazStatusText: "",
-    uazStatusBgColor: "#000000",
-    uazStatusFont: "1",
-    uazStatusMedia: "",
-    uazStatusCaption: "",
-    // UAZAPI - Botão de Localização
-    uazLocBtnLatitude: "",
-    uazLocBtnLongitude: "",
-    uazLocBtnName: "",
-    uazLocBtnAddress: "",
-    uazLocBtnText: "",
-    uazLocBtnUrl: "",
-    uazLocBtnLabel: "Ver no mapa",
-    // UAZAPI - Solicitar Pagamento
-    uazPayAmount: "",
-    uazPayCurrency: "BRL",
-    uazPayNote: "",
-    uazPayExpiry: "",
-  });
+     contactPhone: "",
+   });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -873,30 +853,10 @@ const Modelos = () => {
     locLongitude: "",
     locAddress: "",
     locTitle: "",
-    contactName: "",
-    contactPhone: "",
-    variables: {} as Record<string, any>,
-    // UAZAPI - Status
-    uazStatusType: "text",
-    uazStatusText: "",
-    uazStatusBgColor: "#000000",
-    uazStatusFont: "1",
-    uazStatusMedia: "",
-    uazStatusCaption: "",
-    // UAZAPI - Botão Localização
-    uazLocBtnLatitude: "",
-    uazLocBtnLongitude: "",
-    uazLocBtnName: "",
-    uazLocBtnAddress: "",
-    uazLocBtnText: "",
-    uazLocBtnUrl: "",
-    uazLocBtnLabel: "Ver no mapa",
-    // UAZAPI - Solicitar Pagamento
-    uazPayAmount: "",
-    uazPayCurrency: "BRL",
-    uazPayNote: "",
-    uazPayExpiry: "",
-  });
+     contactName: "",
+     contactPhone: "",
+     variables: {} as Record<string, any>,
+   });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
