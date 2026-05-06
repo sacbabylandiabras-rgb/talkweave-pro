@@ -71,6 +71,7 @@ export default function ComunidadesTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
+  const [createPhotoUrl, setCreatePhotoUrl] = useState("");
   const [createGroupIds, setCreateGroupIds] = useState<string[]>([]);
 
   const [linkGroupIds, setLinkGroupIds] = useState<string[]>([]);
@@ -84,6 +85,9 @@ export default function ComunidadesTab() {
 
   const [editDescOpen, setEditDescOpen] = useState(false);
   const [editDesc, setEditDesc] = useState("");
+
+  const [editPhotoOpen, setEditPhotoOpen] = useState(false);
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
