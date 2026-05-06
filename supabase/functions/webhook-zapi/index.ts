@@ -202,11 +202,7 @@ const normalizeInstanceIdentifier = (value: unknown) => {
 };
 
 const resolveWebhookInstanceReference = (webhook: any) => {
-  const provider = String(webhook?.provider || webhook?.api_provider || "")
-    .toLowerCase();
-  const isUazapiWebhook = provider === "uazapi" || webhook?.isUazapi === true;
-  const raw = webhook?.instanceId || webhook?.instance_id ||
-    (isUazapiWebhook ? "" : (webhook?.instanceName || webhook?.instance_name || ""));
+  const raw = webhook?.instanceId || webhook?.instance_id || webhook?.instanceName || webhook?.instance_name || "";
   return {
     raw,
     normalized: normalizeInstanceIdentifier(raw),
@@ -518,250 +514,6 @@ serve(async (req) => {
       });
     }
 
-    // === UAZAPI PAYLOAD NORMALIZATION ===
-    // UAZAPI sends a different schema; normalize to Z-API-like shape so the
-    // downstream engine works without changes.
-    try {
-      const reqUrl = new URL(req.url);
-      const isUazapi = reqUrl.searchParams.get("provider") === "uazapi" ||
-        webhook?.EventType !== undefined ||
-        webhook?.event !== undefined && webhook?.message?.sender !== undefined;
-      const uazInstanceId = reqUrl.searchParams.get("instanceId") || "";
-
-      if (isUazapi) {
-        const eventPayload = webhook?.event && typeof webhook.event === "object"
-          ? webhook.event
-          : {};
-        const m = webhook?.message || webhook?.data || eventPayload || {};
-        const eventType = String(webhook?.EventType || webhook?.event || "")
-          .toLowerCase();
-
-        // Extract phone/chat from both nested and root-level UAZAPI payloads
-        const rawChatId = String(
-          m?.chatid || m?.chatId || m?.remoteJid || m?.from ||
-            eventPayload?.Chat || eventPayload?.JID ||
-            webhook?.chatid || webhook?.chatId || webhook?.remoteJid ||
-            webhook?.from || "",
-        );
-        const rawPhoneValue = String(
-          webhook?.phone || m?.phone || rawChatId || "",
-        );
-        const rawSenderPhone = String(
-          webhook?.senderPhone || m?.senderPhone || m?.sender ||
-            m?.participant || m?.author || rawPhoneValue,
-        );
-        const isGroup = webhook?.isGroup === true || m?.isGroup === true ||
-          rawChatId.includes("@g.us") || rawPhoneValue.includes("@g.us");
-        const phone = (isGroup ? (rawChatId || rawPhoneValue) : rawPhoneValue)
-          .replace("@s.whatsapp.net", "")
-          .replace("@c.us", "")
-          .replace(/\D/g, "");
-        const normalizedEventFromMe = parseBooleanLike(eventPayload?.IsFromMe);
-        const fromMe = Boolean(
-          (normalizedEventFromMe ?? webhook?.fromMe ?? m?.fromMe ?? m?.fromme ??
-            m?.key?.fromMe),
-        );
-        const messageUpdateStatus = String(
-          eventPayload?.Type || webhook?.state || webhook?.status || "",
-        ).trim();
-        const isUazapiStatusUpdate = eventType === "messages_update" &&
-          ["delivered", "delivery", "sent", "read", "played", "ack"].includes(
-            messageUpdateStatus.toLowerCase(),
-          );
-        const selectedButtonId = [
-          eventPayload?.SelectedButtonId,
-          eventPayload?.selectedButtonId,
-          eventPayload?.SelectedId,
-          eventPayload?.selectedId,
-          eventPayload?.buttonsResponseMessage?.buttonId,
-          eventPayload?.buttonsResponseMessage?.selectedButtonId,
-          eventPayload?.buttonResponseMessage?.buttonId,
-          eventPayload?.buttonResponseMessage?.selectedButtonId,
-          m?.selectedButtonId,
-          m?.selectedId,
-          m?.buttonsResponseMessage?.buttonId,
-          m?.buttonsResponseMessage?.selectedButtonId,
-          m?.buttonResponseMessage?.buttonId,
-          m?.buttonResponseMessage?.selectedButtonId,
-          webhook?.selectedButtonId,
-          webhook?.selectedId,
-          webhook?.buttonsResponseMessage?.buttonId,
-          webhook?.buttonsResponseMessage?.selectedButtonId,
-          webhook?.buttonResponseMessage?.buttonId,
-          webhook?.buttonResponseMessage?.selectedButtonId,
-          webhook?.text?.selectedButtonId,
-          webhook?.text?.selectedId,
-          webhook?.buttonReply?.selectedButtonId,
-          webhook?.buttonReply?.selectedId,
-        ].find((value) => typeof value === "string" && value.trim()) || "";
-        const selectedRowId = [
-          eventPayload?.SelectedRowId,
-          eventPayload?.selectedRowId,
-          eventPayload?.listResponseMessage?.selectedRowId,
-          eventPayload?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          m?.selectedRowId,
-          m?.listResponseMessage?.selectedRowId,
-          m?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          webhook?.selectedRowId,
-          webhook?.listResponseMessage?.selectedRowId,
-          webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          webhook?.text?.selectedRowId,
-          webhook?.buttonReply?.selectedRowId,
-        ].find((value) => typeof value === "string" && value.trim()) || "";
-        const buttonSelectionCandidates = pickPreferredInteractiveText([
-          eventPayload?.SelectedDisplayText,
-          eventPayload?.SelectedButtonText,
-          eventPayload?.selectedDisplayText,
-          eventPayload?.selectedButtonText,
-          eventPayload?.buttonsResponseMessage?.selectedButtonText,
-          eventPayload?.buttonsResponseMessage?.selectedDisplayText,
-          eventPayload?.buttonsResponseMessage?.message,
-          eventPayload?.buttonsResponseMessage?.text,
-          eventPayload?.listResponseMessage?.selectedRowId,
-          eventPayload?.listResponseMessage?.message,
-          eventPayload?.listResponseMessage?.title,
-          eventPayload?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          eventPayload?.listResponseMessage?.singleSelectReply?.title,
-          eventPayload?.listResponseMessage?.singleSelectReply?.selectedRowTitle,
-          m?.selectedDisplayText,
-          m?.selectedButtonText,
-          m?.buttonText,
-          m?.title,
-          m?.buttonsResponseMessage?.selectedButtonText,
-          m?.buttonsResponseMessage?.selectedDisplayText,
-          m?.buttonsResponseMessage?.message,
-          m?.buttonsResponseMessage?.text,
-          m?.listResponseMessage?.selectedRowId,
-          m?.listResponseMessage?.message,
-          m?.listResponseMessage?.title,
-          m?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          m?.listResponseMessage?.singleSelectReply?.title,
-          m?.listResponseMessage?.singleSelectReply?.selectedRowTitle,
-          webhook?.selectedDisplayText,
-          webhook?.selectedButtonText,
-          webhook?.buttonsResponseMessage?.selectedButtonText,
-          webhook?.buttonsResponseMessage?.selectedDisplayText,
-          webhook?.buttonsResponseMessage?.message,
-          webhook?.buttonsResponseMessage?.text,
-          webhook?.listResponseMessage?.selectedRowId,
-          webhook?.listResponseMessage?.message,
-          webhook?.listResponseMessage?.title,
-          webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
-          webhook?.listResponseMessage?.singleSelectReply?.title,
-          webhook?.listResponseMessage?.singleSelectReply?.selectedRowTitle,
-          webhook?.text?.selectedDisplayText,
-          webhook?.text?.selectedButtonText,
-          webhook?.buttonReply?.title,
-          webhook?.buttonReply?.text,
-          webhook?.buttonReply?.label,
-          webhook?.buttonReply?.selectedDisplayText,
-          webhook?.contextInfo?.quotedMessage?.buttonsMessage?.contentText,
-          webhook?.contextInfo?.quotedMessage?.templateMessage?.hydratedTemplate?.hydratedContentText,
-          webhook?.message?.contextInfo?.quotedMessage?.buttonsMessage?.contentText,
-          webhook?.message?.contextInfo?.quotedMessage?.templateMessage?.hydratedTemplate?.hydratedContentText,
-          selectedButtonId,
-          selectedRowId,
-        ]);
-        const hasInteractiveSelection = Boolean(
-          buttonSelectionCandidates || selectedButtonId || selectedRowId,
-        );
-        const text = isUazapiStatusUpdate
-          ? ""
-          : buttonSelectionCandidates || selectedButtonId || selectedRowId ||
-          webhook?.text?.message || webhook?.text?.body ||
-          (typeof webhook?.text === "string" ? webhook.text : "") || webhook?.body ||
-          webhook?.conversation ||
-          m?.text || m?.message?.text || m?.body || m?.conversation ||
-          m?.message?.conversation || m?.message?.extendedTextMessage?.text ||
-          "";
-        const senderName = webhook?.senderName || m?.senderName ||
-          m?.pushName || m?.notifyName || m?.sender_name || "";
-        const senderPhone = rawSenderPhone
-          .replace("@s.whatsapp.net", "")
-          .replace("@c.us", "")
-          .replace(/\D/g, "");
-
-        // Map to Z-API ReceivedCallback shape
-        const normalized: any = {
-          ...webhook,
-          provider: "uazapi",
-          isUazapi: true,
-          phone,
-          isGroup,
-          fromMe,
-          instanceId: uazInstanceId || webhook?.instanceId ||
-            webhook?.instance_id || m?.instanceId || m?.instance_id ||
-            webhook?.instanceUuid || m?.instanceUuid || "",
-          senderName,
-          senderPhone,
-          chatName: webhook?.chatName || m?.chatName || webhook?.groupName ||
-            m?.groupName || senderName,
-          messageId: m?.id || m?.messageId || m?.key?.id ||
-            eventPayload?.MessageIDs?.[0] || null,
-          type: isUazapiStatusUpdate ? "MessageStatusCallback" : "ReceivedCallback",
-          status: messageUpdateStatus ? messageUpdateStatus.toUpperCase() : undefined,
-          hasInteractiveSelection,
-          rawPayload: {
-            eventPayload,
-            message: m,
-            webhook,
-          },
-          text: text || selectedButtonId || selectedRowId
-            ? {
-              message: text || selectedButtonId || selectedRowId,
-              selectedDisplayText: buttonSelectionCandidates || undefined,
-              selectedButtonText: buttonSelectionCandidates || undefined,
-              selectedButtonId: selectedButtonId || undefined,
-              selectedRowId: selectedRowId || undefined,
-            }
-            : undefined,
-          buttonReply: buttonSelectionCandidates || selectedButtonId || selectedRowId
-            ? {
-              title: buttonSelectionCandidates || selectedButtonId || selectedRowId,
-              text: buttonSelectionCandidates || selectedButtonId || selectedRowId,
-              label: buttonSelectionCandidates || selectedButtonId || selectedRowId,
-              selectedDisplayText: buttonSelectionCandidates,
-              selectedButtonId: selectedButtonId || undefined,
-              selectedRowId: selectedRowId || undefined,
-            }
-            : undefined,
-        };
-
-        // Connection event normalization
-        if (eventType.includes("connection")) {
-          normalized.type = "ConnectionStatusCallback";
-          normalized.connected = webhook?.connected === true ||
-            webhook?.status === "connected";
-        }
-
-        webhook = normalized;
-        console.log(
-          "🔄 UAZAPI payload normalized:",
-          JSON.stringify({
-            phone,
-            isGroup,
-            fromMe,
-            hasText: !!text,
-            instanceId: normalized.instanceId,
-          }).substring(0, 300),
-        );
-
-        // 🔍 DEBUG: when text looks like a JID:msgId reference (UAZAPI button reply quirk),
-        // dump the full raw payload to discover where the actual button label lives.
-        if (
-          !fromMe &&
-          typeof text === "string" &&
-          /^\d{10,}:[A-Z0-9]{10,}$/i.test(text.trim())
-        ) {
-          console.log(
-            "🪲 UAZAPI button-reply RAW payload:",
-            (rawBody || "").substring(0, 4000),
-          );
-        }
-      }
-    } catch (normErr) {
-      console.error("UAZAPI normalization error:", normErr);
-    }
 
     // === GROUP PARTICIPANT JOIN DETECTION ===
     // Z-API sends group join events in multiple formats:
@@ -1076,167 +828,41 @@ serve(async (req) => {
               }
 
               const buildWelcomeTransport = (providerInstance: any) => {
-                const isUazapiProvider =
-                  String(providerInstance?.api_provider || "").toLowerCase() === "uazapi";
-                const providerBaseUrl = isUazapiProvider
-                  ? String(providerInstance?.evolution_api_url || "").replace(/\/+$/, "")
-                  : `https://api.z-api.io/instances/${providerInstance?.zapi_instance_id}/token/${providerInstance?.zapi_token}`;
-                const providerHeaders: Record<string, string> = isUazapiProvider
-                  ? {
-                      "Content-Type": "application/json",
-                      token: String(providerInstance?.evolution_api_key || providerInstance?.zapi_token || ""),
-                    }
-                  : {
-                      "Content-Type": "application/json",
-                      "Client-Token": providerInstance?.zapi_client_token,
-                    };
-                const providerTarget = joinedPhone.includes("-group")
-                  ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
-                  : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
-
-                return { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget };
+                const providerBaseUrl = `https://api.z-api.io/instances/${providerInstance?.zapi_instance_id}/token/${providerInstance?.zapi_token}`;
+                const providerHeaders = { "Content-Type": "application/json", "Client-Token": providerInstance?.zapi_client_token };
+                return { providerBaseUrl, providerHeaders };
               };
 
-              const parseWelcomeResponse = async (
-                res: Response,
-                context: string,
-                isUazapiProvider: boolean,
-              ) => {
+              const parseWelcomeResponse = async (res: Response, context: string) => {
                 const raw = await res.text();
                 let payload: any = null;
-                try {
-                  payload = raw ? JSON.parse(raw) : null;
-                } catch {
-                  payload = { raw };
-                }
-                const explicitError = payload?.error || payload?.erro ||
-                  payload?.details?.error || payload?.details?.message ||
-                  (payload?.success === false ? payload?.message : null);
-                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId ||
-                  payload?.id || payload?.key?.id || payload?.message?.id ||
-                  payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id ||
-                  payload?.queueId || null;
-                const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || "").toLowerCase();
-                const confirmed = Boolean(
-                  ack || payload?.queued === true || payload?.enqueued === true ||
-                    ["success", "sent", "queued", "queue", "pending", "processing", "accepted", "ok"].includes(status),
-                );
-                console.log(
-                  `${context}: status=${res.status} provider=${isUazapiProvider ? "uazapi" : "zapi"} confirmed=${confirmed} ack=${ack || "none"} body=${raw.substring(0, 300)}`,
-                );
-                if (!res.ok || explicitError || (!isUazapiProvider && !confirmed)) {
-                  throw new Error(String(explicitError || `Envio de boas-vindas não confirmado (${context})`));
-                }
+                try { payload = raw ? JSON.parse(raw) : null; } catch { payload = { raw }; }
+                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
+                const status = String(payload?.status || payload?.messageStatus || payload?.state || "").toLowerCase();
+                const confirmed = Boolean(ack || ["success", "sent", "queued", "accepted", "ok"].includes(status));
+                console.log(`${context}: status=${res.status} confirmed=${confirmed} ack=${ack || "none"}`);
+                if (!res.ok || !confirmed) throw new Error(`Envio falhou (${context})`);
                 return payload;
               };
 
-              const dispatchWelcome = async (
-                providerInstance: any,
-                payload:
-                  | { type: "text"; message: string }
-                  | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] }
-                  | { type: "carousel"; message: string; cards: any[] },
-                context: string,
-              ) => {
-                const { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget } =
-                  buildWelcomeTransport(providerInstance);
-
-                let request: Promise<Response>;
+              const dispatchWelcome = async (providerInstance: any, payload: any, context: string) => {
+                const { providerBaseUrl, providerHeaders } = buildWelcomeTransport(providerInstance);
+                let endpoint = "/send-text";
+                let body: any = { phone: joinedPhone };
                 if (payload.type === "text") {
-                  request = isUazapiProvider
-                    ? fetch(`${providerBaseUrl}/send/text`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({ number: providerTarget, text: payload.message }),
-                      })
-                    : fetch(`${providerBaseUrl}/send-text`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({ phone: joinedPhone, message: payload.message }),
-                      });
+                  body.message = payload.message;
                 } else if (payload.type === "buttons") {
-                  request = isUazapiProvider
-                    ? fetch(`${providerBaseUrl}/send/menu`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({
-                          number: providerTarget,
-                          type: "button",
-                          text: payload.message,
-                          choices: payload.buttons.map((b: any) => b.label),
-                        }),
-                      })
-                    : fetch(`${providerBaseUrl}/send-button-list`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({
-                          phone: joinedPhone,
-                          message: payload.message,
-                          buttonList: { buttons: payload.buttons.map((b: any) => ({ label: b.label })) },
-                        }),
-                      });
-                } else if (payload.type === "carousel") {
-                  // Carousel only supported on uazapi provider via /send/carousel
-                  if (!isUazapiProvider) {
-                    throw new Error("Carrossel não suportado nesta conexão");
-                  }
-                  const carousel = payload.cards.map((card: any) => {
-                    const image = String(card?.image || "").trim();
-                    const title = String(card?.title || "").trim();
-                    const description = String(card?.description || "").trim();
-                    const text = [title, description]
-                      .filter(Boolean)
-                      .join("\n");
-                    const buttons = Array.isArray(card?.buttons)
-                      ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
-                          const t = String(b?.type || "REPLY").trim().toUpperCase();
-                          const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
-                          const value = String(b?.value || b?.url || b?.phone || b?.id || label).trim();
-                          return { id: value, text: label, type: t, value };
-                        }).filter((b: any) => b.id && b.text)
-                      : [];
-                    return { title, description, text, image, buttons };
-                  });
-                  console.log("📦 Welcome carousel payload:", JSON.stringify({ cards: carousel.length }).substring(0, 300));
-                  request = fetch(`${providerBaseUrl}/send/carousel`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ number: providerTarget, text: payload.message || "", carousel }),
-                  });
-                } else if (isUazapiProvider) {
-                  const mappedType = payload.kind === "audio" ? "ptt" : payload.kind;
-                  request = fetch(`${providerBaseUrl}/send/media`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({
-                      number: providerTarget,
-                      type: mappedType,
-                      file: payload.file,
-                      ...(payload.caption && mappedType !== "ptt" ? { text: payload.caption } : {}),
-                    }),
-                  });
-                } else if (payload.kind === "image") {
-                  request = fetch(`${providerBaseUrl}/send-image`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, image: payload.file, caption: payload.caption }),
-                  });
-                } else if (payload.kind === "video") {
-                  request = fetch(`${providerBaseUrl}/send-video`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, video: payload.file, caption: payload.caption }),
-                  });
+                  endpoint = "/send-button-list";
+                  body.message = payload.message;
+                  body.buttonList = { buttons: payload.buttons.map((b: any) => ({ label: b.label })) };
                 } else {
-                  request = fetch(`${providerBaseUrl}/send-audio`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, audio: payload.file }),
-                  });
+                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio" };
+                  endpoint = epMap[payload.kind];
+                  body[payload.kind] = payload.file;
+                  body.caption = payload.caption;
                 }
-
-                return parseWelcomeResponse(await request, context, isUazapiProvider);
+                const res = await fetch(`${providerBaseUrl}${endpoint}`, { method: "POST", headers: providerHeaders, body: JSON.stringify(body) });
+                return await parseWelcomeResponse(res, context);
               };
 
               const sendWelcomeWithFallback = async (
