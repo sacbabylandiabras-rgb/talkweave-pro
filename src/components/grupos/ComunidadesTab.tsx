@@ -424,6 +424,7 @@ export default function ComunidadesTab() {
                     <WhatsAppGroupPreview
                       groupName={createName}
                       description={createDescription}
+                      photoUrl={createPhotoUrl}
                       membersCount={createGroupIds.length || 0}
                     />
                   </div>
