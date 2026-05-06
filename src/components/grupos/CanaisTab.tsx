@@ -64,7 +64,7 @@ export default function ComunidadesTab() {
   const { links, createLink, updateLink, refetch: refetchLinks } = useRedirectLinks();
 
   const [instanceId, setInstanceId] = useState<string>("");
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -73,16 +73,11 @@ export default function ComunidadesTab() {
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [createPhotoUrl, setCreatePhotoUrl] = useState("");
-  const [createGroupIds, setCreateGroupIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
-  const [linkGroupIds, setLinkGroupIds] = useState<string[]>([]);
-  const [unlinkGroupIds, setUnlinkGroupIds] = useState<string[]>([]);
-
-  const [participantPhones, setParticipantPhones] = useState("");
-  const [adminPhones, setAdminPhones] = useState("");
-
-  const [whoCanAddNewGroups, setWhoCanAddNewGroups] = useState<"admins" | "everyone">("admins");
-
+  const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editName, setEditName] = useState("");
   const [editDescOpen, setEditDescOpen] = useState(false);
   const [editDesc, setEditDesc] = useState("");
 
@@ -92,10 +87,12 @@ export default function ComunidadesTab() {
   const createPhotoFileRef = useRef<HTMLInputElement>(null);
   const editPhotoFileRef = useRef<HTMLInputElement>(null);
 
-  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferPhone, setTransferPhone] = useState("");
 
-  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string>("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [reactionMode, setReactionMode] = useState<"ALL" | "BASIC" | "NONE">("ALL");
 
   // Redirect link automation
   const [automationDialogLink, setAutomationDialogLink] = useState<any | null>(null);
@@ -110,14 +107,14 @@ export default function ComunidadesTab() {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
   }, [activeInstance, instanceId]);
 
-  const selectedCommunity = useMemo(
-    () => communities.find((c) => c.id === selectedId) || null,
-    [communities, selectedId],
+  const selectedNewsletter = useMemo(
+    () => newsletters.find((n) => n.id === selectedId) || null,
+    [newsletters, selectedId],
   );
 
-  const invokeCommunity = async (action: string, payload: Record<string, unknown> = {}) => {
+  const invokeNewsletter = async (action: string, payload: Record<string, unknown> = {}) => {
     const inst = instances.find((i) => i.id === instanceId);
-    const { data, error } = await supabase.functions.invoke("manage-communities", {
+    const { data, error } = await supabase.functions.invoke("manage-newsletters", {
       body: {
         action,
         instanceId: inst?.zapi_instance_id,
@@ -133,31 +130,30 @@ export default function ComunidadesTab() {
     return data;
   };
 
-  const loadCommunities = async () => {
+  const loadNewsletters = async () => {
     setLoading(true);
     try {
-      const data = await invokeCommunity("list-communities");
-      const list: Community[] = Array.isArray(data)
-        ? data.map((c: Record<string, unknown>) => ({
-            id: String(c.id ?? c.communityId ?? c.phone ?? ""),
-            name: (c.name ?? c.subject ?? "Comunidade") as string,
-            description: (c.description ?? "") as string,
-            groupCount: Array.isArray(c.groups) ? (c.groups as unknown[]).length : undefined,
-            raw: c,
+      const data = await invokeNewsletter("list-newsletters");
+      const list: Newsletter[] = Array.isArray(data)
+        ? data.map((n: Record<string, unknown>) => ({
+            id: String(n.newsletterId || n.id || ""),
+            name: (n.name || n.subject || "Canal") as string,
+            description: (n.description || "") as string,
+            raw: n,
           }))
         : [];
-      setCommunities(list);
+      setNewsletters(list);
       if (list.length && !selectedId) setSelectedId(list[0].id);
     } catch (err) {
-      console.warn("[ComunidadesTab] list-communities falhou:", err);
-      setCommunities([]);
+      console.warn("[CanaisTab] list-newsletters falhou:", err);
+      setNewsletters([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (instanceId) loadCommunities();
+    if (instanceId) loadNewsletters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId]);
 
