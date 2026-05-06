@@ -47,6 +47,7 @@ export interface SavedContact {
   phone: string;
   name: string;
   profile_picture_url?: string | null;
+  updated_at?: string | null;
 }
 
 export interface Conversation {
