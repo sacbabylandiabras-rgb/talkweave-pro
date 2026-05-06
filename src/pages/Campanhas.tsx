@@ -97,10 +97,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     statsDialogOpen ? statsDialogCampaignId : null
   );
 
-  const normalizePhoneKey = (phone?: string | null) => {
-    if (!phone) return '';
-    return phone.replace(/@lid$/i, '').replace(/\D/g, '');
-  };
+   const normalizePhoneKey = (phone?: string | null) => {
+     if (!phone) return '';
+     return phone.replace(/\D/g, '');
+   };
 
   const normalizeGroupDisplayPhone = (phone?: string | null) => {
     if (!phone) return '';
@@ -109,19 +109,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     return phone;
   };
 
-  const [lidMap, setLidMap] = useState<Map<string, string>>(new Map());
-
-  const resolvePhoneKey = (phone?: string | null) => {
-    if (!phone) return '';
-    const mappedPhone = phone.includes('@lid') ? lidMap.get(phone) : null;
-    return normalizePhoneKey(mappedPhone || phone) || phone;
-  };
-
-  const resolveDisplayPhone = (phone?: string | null) => {
-    if (!phone) return '';
-    const resolved = phone.includes('@lid') ? lidMap.get(phone) || phone : phone;
-    return normalizeGroupDisplayPhone(resolved);
-  };
+   const resolvePhoneKey = (phone?: string | null) => normalizePhoneKey(phone);
+   const resolveDisplayPhone = (phone?: string | null) => normalizeGroupDisplayPhone(phone);
 
   useEffect(() => {
     if (!statsDialogOpen) {
