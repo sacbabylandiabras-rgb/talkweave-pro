@@ -1154,5 +1154,46 @@ export const useMessageLogs = (
     return data;
   }, [fetchAll, filterInstanceId]);
 
-  return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage };
+   const forceUpdateAllPhotos = async () => {
+     const { data: { session } } = await supabase.auth.getSession();
+     if (!session) return;
+
+     setLoading(true);
+     try {
+       const uniquePhones = [...new Set(conversations.map(c => c.phone))];
+       let updatedCount = 0;
+
+       for (const phone of uniquePhones) {
+         try {
+           const body: Record<string, unknown> = { phone };
+           if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+           
+           const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
+           if (error) continue;
+
+           const responsePayload = rawData?.data ?? rawData;
+           const finalUrl = extractProfilePictureUrl(responsePayload);
+
+           if (finalUrl) {
+             updatedCount++;
+             const userId = session.user.id;
+             const existing = safeMapGet(savedContacts, phone);
+             await savedContactsApi.upsert(session.access_token, {
+               phone,
+               name: existing?.name || '',
+               user_id: userId,
+               profile_picture_url: finalUrl,
+             });
+           }
+           await new Promise(r => setTimeout(r, 100));
+         } catch { /* ignore individual errors */ }
+       }
+       
+       await fetchAll();
+     } finally {
+       setLoading(false);
+     }
+   };
+
+   return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage, forceUpdateAllPhotos };
 };

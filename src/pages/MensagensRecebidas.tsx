@@ -310,19 +310,25 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto,
-}: {
-  conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
-  instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
-  onFetchPhoto: (phone: string, force?: boolean) => void;
+   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos,
+ }: {
+   conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
+   instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
+   onFetchPhoto: (phone: string, force?: boolean) => void;
+   onRefreshPhotos: () => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
-          <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-        </Button>
+         <div className="flex gap-1">
+           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onRefreshPhotos} disabled={syncing} title="Atualizar fotos de perfil">
+             <Camera className={cn("w-4 h-4", syncing && "animate-spin")} />
+           </Button>
+           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
+             <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+           </Button>
+         </div>
       </div>
       {instances.length > 1 && (
         <select
@@ -1032,7 +1038,7 @@ const MensagensRecebidas = () => {
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
-  const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch } = useMessageLogs(
+   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch, forceUpdateAllPhotos } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
     knownInstanceIds,
@@ -1308,7 +1314,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} />
+             <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={forceUpdateAllPhotos} />
           </div>
         )}
         {showChat && (

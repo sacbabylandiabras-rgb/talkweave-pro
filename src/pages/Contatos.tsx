@@ -20,7 +20,7 @@ const WhatsAppDefaultAvatar = () => (
 
 const Contatos = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { contacts, stats, loading, refetch, refreshProfilePicture } = useContacts();
+   const { contacts, stats, loading, refetch, refreshProfilePicture, forceUpdateAllPhotos } = useContacts();
   const navigate = useNavigate();
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -66,15 +66,28 @@ const Contatos = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2"
-          onClick={refetch}
-          disabled={loading}
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+         <div className="flex gap-2">
+           <Button 
+             variant="outline" 
+             className="flex items-center gap-2"
+             onClick={refetch}
+             disabled={loading}
+             title="Atualizar lista de contatos"
+           >
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+             Atualizar
+           </Button>
+           <Button 
+             variant="outline" 
+             className="flex items-center gap-2"
+             onClick={forceUpdateAllPhotos}
+             disabled={loading}
+             title="Forçar atualização de todas as fotos de perfil"
+           >
+             <Camera className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+             Atualizar Fotos
+           </Button>
+         </div>
         <Button variant="outline" className="flex items-center gap-2">
           <Filter className="w-4 h-4" />
           Filtros

@@ -277,7 +277,49 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     return null;
   };
 
-  return { contacts, stats, loading, refetch: fetchContacts, refreshProfilePicture };
+   const forceUpdateAllPhotos = async () => {
+     const { data: { session } } = await supabase.auth.getSession();
+     if (!session) return;
+     
+     setLoading(true);
+     try {
+       toast({
+         title: "Atualizando fotos",
+         description: "Buscando fotos de perfil de todos os contatos...",
+       });
+       
+       const uniquePhones = [...new Set(contacts.map(c => c.phone))];
+       let updatedCount = 0;
+       
+       for (const phone of uniquePhones) {
+         try {
+           const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+           if (error) continue;
+           const url = extractProfilePictureUrl(data?.data ?? data);
+           if (url) {
+             updatedCount++;
+             await supabase.from('saved_contacts').upsert(
+               { phone, user_id: session.user.id, profile_picture_url: url },
+               { onConflict: 'phone,user_id' }
+             );
+           }
+           // Small delay to avoid rate limits
+           await new Promise(r => setTimeout(r, 100));
+         } catch { /* ignore individual errors */ }
+       }
+       
+       await fetchContacts();
+       
+       toast({
+         title: "Atualização concluída",
+         description: `${updatedCount} fotos de perfil foram atualizadas.`,
+       });
+     } finally {
+       setLoading(false);
+     }
+   };
+
+   return { contacts, stats, loading, refetch: fetchContacts, refreshProfilePicture, forceUpdateAllPhotos };
 };
 
 // Função auxiliar para extrair nome do telefone
