@@ -739,7 +739,15 @@ const ChatView = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-3">
+      <ScrollArea
+        className="flex-1 px-4 py-3"
+        style={{
+          backgroundColor: '#efeae2',
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='none' stroke='%23d9d2c6' stroke-width='1' opacity='0.55'><circle cx='20' cy='20' r='8'/><path d='M50 15 l8 8 -8 8 -8 -8z'/><circle cx='90' cy='30' r='5'/><path d='M15 70 q10 -10 20 0 t20 0'/><circle cx='80' cy='80' r='10'/><path d='M100 95 l6 6 -6 6 -6 -6z'/><circle cx='40' cy='100' r='4'/></g></svg>\")",
+          backgroundRepeat: 'repeat',
+        }}
+      >
         <div className="max-w-3xl mx-auto space-y-1">
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
@@ -752,25 +760,31 @@ const ChatView = ({
                 <div key={msg.id} className="mb-2">
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
-                      <div className="max-w-[75%] bg-card border border-border rounded-lg rounded-tl-none px-3 py-2 shadow-sm">
+                      <div
+                        className="max-w-[75%] rounded-lg rounded-tl-none px-3 py-2 shadow-sm"
+                        style={{ backgroundColor: '#ffffff', color: '#111b21' }}
+                      >
                         <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <p className="text-[10px] text-muted-foreground text-right mt-1">
+                        <p className="text-[10px] text-right mt-1" style={{ color: '#667781' }}>
                           {formatMessageTime(msg.timestamp)}
                         </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex justify-end">
-                      <div className="max-w-[75%] bg-primary text-primary-foreground rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
+                      <div
+                        className="max-w-[75%] rounded-lg rounded-tr-none px-3 py-2 shadow-sm"
+                        style={{ backgroundColor: '#d9fdd3', color: '#111b21' }}
+                      >
                         <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <div className="flex items-center justify-end gap-1.5 mt-1">
+                        <div className="flex items-center justify-end gap-1.5 mt-1" style={{ color: '#667781' }}>
                           {msg.source !== 'message_log' && (
-                            <span className="text-[9px] opacity-70 flex items-center gap-0.5">
+                            <span className="text-[9px] flex items-center gap-0.5">
                               {getSourceIcon(msg.source)}
                               {getSourceLabel(msg.source, msg.keyword_matched)}
                             </span>
                           )}
-                          <span className="text-[10px] opacity-80">
+                          <span className="text-[10px]">
                             {formatMessageTime(msg.timestamp)}
                           </span>
                         </div>
