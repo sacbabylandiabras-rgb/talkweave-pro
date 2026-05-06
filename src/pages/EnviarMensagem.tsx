@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,11 +85,20 @@ const EnviarMensagem = () => {
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
+
+  // Subset de instâncias efetivamente escolhidas pelo usuário no seletor (modo revezamento)
+  const rotateInstances = useMemo(() => {
+    if (!selectedInstanceIds.length) return instances;
+    const ids = new Set(selectedInstanceIds);
+    const filtered = instances.filter(i => ids.has(i.id));
+    return filtered.length > 0 ? filtered : instances;
+  }, [instances, selectedInstanceIds]);
 
   // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
   // Set default instance only when no manual selection
@@ -859,10 +868,10 @@ const EnviarMensagem = () => {
         // Verificar se o dispositivo está conectado antes de cada envio (a cada 3 contatos)
         if (i % 3 === 0) {
           try {
-            if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+            if (instanceSelectionMode === 'rotate' && rotateInstances.length > 0) {
               // Em modo revezamento: checar TODAS as instâncias
               let allDisconnected = true;
-              for (const inst of instances) {
+              for (const inst of rotateInstances) {
                 const { data: statusData } = await supabase.functions.invoke('get-device-status', { body: { instanceId: inst.id } });
                 const connected = statusData?.data?.connected === true;
                 console.log(`📡 Status instância "${inst.instance_name}": ${connected ? '✅ conectada' : '❌ desconectada'}`);
@@ -964,7 +973,7 @@ const EnviarMensagem = () => {
           const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
           const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
-            ? instances[i % instances.length]
+            ? rotateInstances[i % rotateInstances.length]
             : selectedInstanceId
               ? instances.find(inst => inst.id === selectedInstanceId) || null
               : activeInstance || null;
@@ -1264,9 +1273,9 @@ const EnviarMensagem = () => {
         
         // Determinar nome da instância usada neste envio
         let instanceNameUsed: string | undefined;
-        if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+        if (instanceSelectionMode === 'rotate' && rotateInstances.length > 0) {
           // No modo revezamento, a instância usada foi a do índice i
-          const usedInst = instances[i % instances.length];
+          const usedInst = rotateInstances[i % rotateInstances.length];
           instanceNameUsed = usedInst?.instance_name;
         } else if (selectedInstanceId) {
           const usedInst = instances.find(inst => inst.id === selectedInstanceId);
@@ -1498,6 +1507,9 @@ const EnviarMensagem = () => {
               if (ids.length > 1) {
                 const selected = instances.filter(i => ids.includes(i.id));
                 setZapiRotateMode(selected);
+                setSelectedInstanceIds(ids);
+              } else {
+                setSelectedInstanceIds(ids);
               }
             }}
           />
