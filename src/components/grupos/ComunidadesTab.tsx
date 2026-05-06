@@ -22,6 +22,7 @@ import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useRedirectLinks } from "@/hooks/useRedirectLinks";
 import { LinkAutomationDialog } from "./LinkAutomationDialog";
+import WhatsAppGroupPreview from "./WhatsAppGroupPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
