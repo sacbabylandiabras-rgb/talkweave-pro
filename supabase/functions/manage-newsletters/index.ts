@@ -178,9 +178,10 @@ Deno.serve(async (req) => {
         };
         if (view) payload.view = view;
         if (query) payload.searchText = query;
-        if (countryCodes && Array.isArray(countryCodes)) {
-          payload.filters = { countryCodes };
-        }
+        // Z-API requer filters.countryCodes, mesmo que vazio
+        payload.filters = { 
+          countryCodes: (countryCodes && Array.isArray(countryCodes)) ? countryCodes : ["BR"] 
+        };
         return await callZapi("POST", "/search-newsletter", payload);
       }
 
