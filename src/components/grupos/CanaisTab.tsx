@@ -191,7 +191,7 @@ export default function ComunidadesTab() {
   ) => {
     setActionLoading(key);
     try {
-      await invokeCommunity(action, payload);
+      await invokeNewsletter(action, payload);
       toast.success(successMsg);
       if (after) await after();
     } catch (err) {
@@ -201,83 +201,26 @@ export default function ComunidadesTab() {
     }
   };
 
-  const extractInviteLink = (data: unknown): string => {
-    if (!data) return "";
-    if (typeof data === "string") return data;
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        const found = extractInviteLink(item);
-        if (found) return found;
-      }
-      return "";
-    }
-    if (typeof data === "object") {
-      const obj = data as Record<string, unknown>;
-      // Direct candidates
-      for (const key of [
-        "invitationLink", "invitation_link", "inviteLink", "invite_link",
-        "invitation", "link", "url", "shortUrl", "short_url",
-      ]) {
-        const v = obj[key];
-        if (typeof v === "string" && v.includes("http")) return v;
-      }
-      // Code-only: build full URL
-      for (const key of ["invitationCode", "invitation_code", "inviteCode", "invite_code", "code"]) {
-        const v = obj[key];
-        if (typeof v === "string" && v && !v.includes("http")) {
-          return `https://chat.whatsapp.com/${v}`;
-        }
-      }
-      // Recurse into nested objects
-      for (const v of Object.values(obj)) {
-        if (v && typeof v === "object") {
-          const found = extractInviteLink(v);
-          if (found) return found;
-        }
-      }
-    }
-    return "";
-  };
-
-  const handleGetInviteLink = async () => {
-    if (!selectedCommunity) return;
-    setActionLoading("get-invite");
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setActionLoading("search");
     try {
-      const data = await invokeCommunity("community-invitation-link", {
-        communityId: selectedCommunity.id,
-      });
-      console.log("[invite-link] response:", data);
-      const link = extractInviteLink(data);
-      if (!link) {
-        throw new Error(
-          `Link não encontrado. Resposta: ${JSON.stringify(data).slice(0, 200)}`,
-        );
-      }
-      setInviteLink(link);
-      setInviteLinkOpen(true);
+      const data = await invokeNewsletter("search-newsletter", { query: searchQuery.trim() });
+      setSearchResults(Array.isArray(data) ? data : []);
+      toast.success(`${(Array.isArray(data) ? data : []).length} canais encontrados`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao obter link");
+      toast.error(err instanceof Error ? err.message : "Erro na busca");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleCopyInviteLink = async () => {
-    if (!inviteLink) return;
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      toast.success("Link copiado!");
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
-  };
-
   const handleGetMetadata = async () => {
-    if (!selectedCommunity) return;
+    if (!selectedNewsletter) return;
     setActionLoading("metadata");
     try {
-      const data = await invokeCommunity("community-metadata", {
-        communityId: selectedCommunity.id,
+      const data = await invokeNewsletter("newsletter-metadata", {
+        newsletterId: selectedNewsletter.id,
       });
       setMetadata(data);
       setMetadataOpen(true);
@@ -290,33 +233,25 @@ export default function ComunidadesTab() {
 
   const handleCreate = async () => {
     if (!createName.trim()) {
-      toast.error("Informe o nome da comunidade");
+      toast.error("Informe o nome do canal");
       return;
     }
     await runAction(
       "create",
-      "create-community",
-      { 
-        name: createName.trim(), 
-        description: createDescription.trim(), 
-        groupIds: createGroupIds,
+      "create-newsletter",
+      {
+        name: createName.trim(),
+        description: createDescription.trim(),
         imageUrl: createPhotoUrl.trim() || undefined
       },
-      "Comunidade criada com sucesso",
+      "Canal criado com sucesso",
       async () => {
         setCreateOpen(false);
         setCreateName("");
         setCreateDescription("");
-        setCreateGroupIds([]);
         setCreatePhotoUrl("");
-        await loadCommunities();
+        await loadNewsletters();
       },
-    );
-  };
-
-  const toggleCreateGroup = (gid: string) => {
-    setCreateGroupIds((prev) =>
-      prev.includes(gid) ? prev.filter((g) => g !== gid) : [...prev, gid],
     );
   };
 
