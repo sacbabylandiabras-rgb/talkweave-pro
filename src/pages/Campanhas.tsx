@@ -112,84 +112,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
    const resolvePhoneKey = (phone?: string | null) => normalizePhoneKey(phone);
    const resolveDisplayPhone = (phone?: string | null) => normalizeGroupDisplayPhone(phone);
 
-  useEffect(() => {
-    if (!statsDialogOpen) {
-      setLidMap(new Map());
-      setStatsDialogClickMap(new Map());
-      return;
-    }
-
-    let active = true;
-
-    const fetchLidMap = async () => {
-      let allRows: Array<{ phone: string; message_received: string | null }> = [];
-      let from = 0;
-      const batchSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('message_logs')
-          .select('phone, message_received')
-          .eq('keyword_matched', '__lid_map__')
-          .order('created_at', { ascending: false })
-          .range(from, from + batchSize - 1);
-
-        if (error) {
-          console.error('Error loading LID map for campaign stats:', error);
-          return;
-        }
-
-        if (!data) {
-          hasMore = false;
-          break;
-        }
-
-        allRows = [...allRows, ...data];
-        if (data.length < batchSize) {
-          hasMore = false;
-        } else {
-          from += batchSize;
-        }
-      }
-
-      if (!active) return;
-
-      const nextMap = new Map<string, string>();
-      allRows.forEach((row) => {
-        if (row.message_received && row.phone) {
-          nextMap.set(row.message_received, row.phone);
-        }
-      });
-
-      setLidMap(nextMap);
-    };
-
-    fetchLidMap();
-
-    const channel = supabase
-      .channel(`lid-map-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'message_logs', filter: 'keyword_matched=eq.__lid_map__' },
-        (payload) => {
-          const row = payload.new as { phone?: string | null; message_received?: string | null };
-          if (!row?.message_received || !row?.phone) return;
-
-          setLidMap((prev) => {
-            const next = new Map(prev);
-            next.set(row.message_received!, row.phone!);
-            return next;
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      active = false;
-      supabase.removeChannel(channel);
-    };
-  }, [statsDialogOpen]);
+   useEffect(() => {
+     if (!statsDialogOpen) {
+       setStatsDialogClickMap(new Map());
+     }
+   }, [statsDialogOpen]);
 
   // Detect if the campaign template has trackable links (to show click metrics)
   useEffect(() => {
