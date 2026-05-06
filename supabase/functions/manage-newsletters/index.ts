@@ -115,60 +115,70 @@ Deno.serve(async (req) => {
         return await callZapi("GET", "/newsletter");
 
       case "update-newsletter-picture": {
-        const { newsletterId, imageUrl } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        if (!imageUrl) throw new Error("imageUrl is required");
-        return await callZapi("POST", "/update-newsletter-picture", { newsletterId, imageUrl });
+        const { newsletterId, id, imageUrl, pictureUrl } = body;
+        const targetId = id || newsletterId;
+        const targetUrl = pictureUrl || imageUrl;
+        if (!targetId) throw new Error("newsletter id is required");
+        if (!targetUrl) throw new Error("pictureUrl is required");
+        return await callZapi("POST", "/update-newsletter-picture", { id: targetId, pictureUrl: targetUrl });
       }
 
       case "update-newsletter-name": {
-        const { newsletterId, name } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
+        const { newsletterId, id, name } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
         if (!name) throw new Error("name is required");
-        return await callZapi("POST", "/update-newsletter-name", { newsletterId, name });
+        return await callZapi("POST", "/update-newsletter-name", { id: targetId, name });
       }
 
       case "update-newsletter-description": {
-        const { newsletterId, description } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
+        const { newsletterId, id, description } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
         if (description === undefined) throw new Error("description is required");
-        return await callZapi("POST", "/update-newsletter-description", { newsletterId, description });
+        return await callZapi("POST", "/update-newsletter-description", { id: targetId, description });
       }
 
       case "follow-newsletter": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/follow-newsletter", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/follow-newsletter", { id: targetId });
       }
 
       case "unfollow-newsletter": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/unfollow-newsletter", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/unfollow-newsletter", { id: targetId });
       }
 
       case "mute-newsletter": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/mute-newsletter", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/mute-newsletter", { id: targetId });
       }
 
       case "unmute-newsletter": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("POST", "/unmute-newsletter", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("POST", "/unmute-newsletter", { id: targetId });
       }
 
       case "delete-newsletter": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("DELETE", "/delete-newsletter", { newsletterId });
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("DELETE", "/delete-newsletter", { id: targetId });
       }
 
       case "newsletter-metadata": {
-        const { newsletterId } = body;
-        if (!newsletterId) throw new Error("newsletterId is required");
-        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(newsletterId)}`);
+        const { newsletterId, id } = body;
+        const targetId = id || newsletterId;
+        if (!targetId) throw new Error("newsletter id is required");
+        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(targetId)}`);
       }
 
       case "search-newsletter": {
