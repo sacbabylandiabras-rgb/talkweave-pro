@@ -33,6 +33,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const fetchedPhotosRef = useRef(new Set<string>());
+  const inFlightPhotosRef = useRef(new Set<string>());
   const enabled = options?.enabled ?? true;
 
   const extractProfilePictureUrl = (payload: any): string | null => {
@@ -179,13 +180,11 @@ export const useContacts = (options?: { enabled?: boolean }) => {
 
     const now = new Date();
     const toFetch = contactsList.filter(c => {
-      if (fetchedPhotosRef.current.has(c.phone)) return false;
+      if (fetchedPhotosRef.current.has(c.phone) || inFlightPhotosRef.current.has(c.phone)) return false;
       if (c.phone.includes('@lid')) return false;
       
-      // Se não tem foto, precisa buscar
       if (!c.profilePictureUrl) return true;
       
-      // Se tem foto mas é antiga (mais de 24h), buscar novamente pois URLs do WhatsApp expiram
       if (c.lastUpdated) {
         const lastUpdate = new Date(c.lastUpdated);
         const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
@@ -193,31 +192,37 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       }
       
       return false;
-    }).slice(0, 50);
+    }).slice(0, 20);
 
-    if (toFetch.length === 0) {
-      return;
-    }
+    if (toFetch.length === 0) return;
+
+    toFetch.forEach(c => inFlightPhotosRef.current.add(c.phone));
 
     let updated = false;
-    for (const contact of toFetch) {
-      fetchedPhotosRef.current.add(contact.phone);
-      try {
-        const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone } });
-        if (error) continue;
-        const url = extractProfilePictureUrl(data?.data ?? data);
-        if (url) {
-          contact.profilePictureUrl = url;
-          updated = true;
-          // Save to saved_contacts
-          await supabase.from('saved_contacts').upsert(
-            { phone: contact.phone, name: contact.name || '', user_id: session.user.id, profile_picture_url: url },
-            { onConflict: 'phone,user_id' }
-          );
+    const CHUNK_SIZE = 3;
+    for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
+      const chunk = toFetch.slice(i, i + CHUNK_SIZE);
+      await Promise.all(chunk.map(async (contact) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone } });
+          if (!error) {
+            const url = extractProfilePictureUrl(data?.data ?? data);
+            if (url) {
+              contact.profilePictureUrl = url;
+              updated = true;
+              await supabase.from('saved_contacts').upsert(
+                { phone: contact.phone, name: contact.name || '', user_id: session.user.id, profile_picture_url: url },
+                { onConflict: 'phone,user_id' }
+              );
+            }
+          }
+          fetchedPhotosRef.current.add(contact.phone);
+        } catch { /* ignore */ } finally {
+          inFlightPhotosRef.current.delete(contact.phone);
         }
-        await new Promise(r => setTimeout(r, 200));
-      } catch { /* ignore */ }
+      }));
     }
+    
     if (updated) {
       setContacts([...contactsList]);
     }
@@ -235,9 +240,12 @@ export const useContacts = (options?: { enabled?: boolean }) => {
   // Auto-fetch profile pictures after contacts load
   useEffect(() => {
     if (enabled && !loading && contacts.length > 0) {
-      autoFetchProfilePictures(contacts);
+      const timer = setTimeout(() => {
+        autoFetchProfilePictures(contacts);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [enabled, loading, contacts]);
+  }, [enabled, loading, contacts.length]);
 
 
   const refreshProfilePicture = async (phone: string) => {
