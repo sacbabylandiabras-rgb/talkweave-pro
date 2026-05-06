@@ -568,11 +568,37 @@ serve(async (req) => {
  
        console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
  
-       zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-         body: JSON.stringify(zapiPayload),
-       });
+        const hasReply = normalizedButtons.some(b => b.type === 'REPLY');
+        const hasUrl = normalizedButtons.some(b => b.type === 'URL');
+        const hasCall = normalizedButtons.some(b => b.type === 'CALL');
+        const hasCopy = normalizedButtons.some(b => b.type === 'COPY');
+
+        // Mix check: if we have REPLY + (URL or CALL or COPY), Z-API often fails to send mixed types correctly in a single payload.
+        // According to Z-API behavior, we should use /send-button-actions for everything, 
+        // but ensure the payload structure is exactly what they expect.
+        
+        console.log(`📤 Sending button-actions for ${resolvedPhone} (Mixed: R:${hasReply}, U:${hasUrl}, C:${hasCall}, CP:${hasCopy})`);
+
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: zapiPayload.message,
+            title: zapiPayload.title,
+            footer: zapiPayload.footer,
+            image: zapiPayload.image,
+            video: zapiPayload.video,
+            audio: zapiPayload.audio,
+            document: zapiPayload.document,
+            buttonActions: normalizedButtons.map(b => {
+              if (b.type === 'URL') return { id: b.id, type: 'URL', label: b.label, url: b.url };
+              if (b.type === 'CALL') return { id: b.id, type: 'CALL', label: b.label, phone: b.phone };
+              if (b.type === 'COPY') return { id: b.id, type: 'COPY', label: b.label, copyCode: b.url };
+              return { id: b.id, type: 'REPLY', label: b.label };
+            })
+          }),
+        });
 
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
       logMessage = logMessage || '🔘 Botões interativos';
