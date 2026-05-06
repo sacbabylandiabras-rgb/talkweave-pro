@@ -171,14 +171,15 @@ Deno.serve(async (req) => {
         const { newsletterId, id } = body;
         const targetId = id || newsletterId;
         if (!targetId) throw new Error("newsletter id is required");
-        return await callZapi("DELETE", "/delete-newsletter", { id: targetId });
+        return await callZapi("POST", "/delete-newsletter", { id: targetId });
       }
 
       case "newsletter-metadata": {
         const { newsletterId, id } = body;
         const targetId = id || newsletterId;
         if (!targetId) throw new Error("newsletter id is required");
-        return await callZapi("GET", `/newsletter-metadata/${encodeURIComponent(targetId)}`);
+        // Revertido para query parameter, conforme padrão da Z-API para este endpoint específico
+        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(targetId)}`);
       }
 
       case "search-newsletter": {
