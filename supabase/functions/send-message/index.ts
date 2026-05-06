@@ -900,17 +900,31 @@ serve(async (req) => {
         .join('\n');
       const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
-      if (actionButtons.length > 0 && replyButtons.length > 0) {
+      if (actionButtons.length > 0 && (replyButtons.length > 0 || forceReplyButtons === true)) {
         // WhatsApp (especialmente via Cloud API/Meta) NÃO permite misturar botões REPLY com URL/CALL no mesmo cartão.
         // Para garantir que TODOS os botões funcionem (link abra e reply responda), 
         // enviamos dois balões sequenciais: um com mídia/texto + botões de URL/CALL e outro com os botões de REPLY.
         
         console.log(`📤 Enviando botões mistos para ${resolvedPhone} em dois balões.`);
         
+        // Se for vídeo ou documento, envia a mídia separada primeiro
+        if (mediaUrl && (mediaType === 'video' || mediaType === 'document' || mediaType === 'audio')) {
+          console.log(`📤 Enviando mídia (${mediaType}) separada antes dos botões mistos`);
+          const endpoint = mediaType === 'video' ? 'send-video' : mediaType === 'audio' ? 'send-audio' : 'send-document';
+          const mediaPayload: any = { phone: resolvedPhone, [mediaType]: mediaUrl };
+          if (mediaType === 'document') mediaPayload.fileName = 'Arquivo';
+          
+          await fetch(`${baseUrl}/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify(mediaPayload),
+          });
+        }
+
         // Balão 1: Mídia + Texto + Botões de Ação (URL/CALL)
         const actionPayload: Record<string, unknown> = {
           phone: resolvedPhone,
-          message: interactiveMessage,
+          message: interactiveMessage || ' ',
           ...(title ? { title } : {}),
           ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
           buttonActions: actionButtons.map((b: any, index: number) => ({
@@ -932,11 +946,12 @@ serve(async (req) => {
         await new Promise(r => setTimeout(r, 500));
 
         // Balão 2: Botões de Resposta (REPLY)
+        const secondBalloonButtons = replyButtons.length > 0 ? replyButtons : actionButtons;
         const replyPayload = {
           phone: resolvedPhone,
           message: footer || 'Escolha uma opção:',
           buttonList: {
-            buttons: replyButtons.map((b: any, index: number) => ({
+            buttons: secondBalloonButtons.map((b: any, index: number) => ({
               id: b.id || `rep_${index}`,
               label: b.label
             }))
