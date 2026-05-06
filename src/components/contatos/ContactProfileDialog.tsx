@@ -9,13 +9,14 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
-  Hash, Clock, Pencil, Check, Send 
+   Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Contact } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+ import { useZapi } from "@/hooks/useZapi";
 
 interface ContactProfileDialogProps {
   contact: Contact | null;
@@ -86,6 +87,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
+  const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading } = useZapi();
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -224,8 +226,42 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     }
   };
 
-  const getDefaultInstanceId = async (): Promise<string> => {
-    if (!contact) return '';
+   const handleBlock = async () => {
+     if (!contact || !window.confirm(`Deseja realmente bloquear ${contact.name || contact.phone}?`)) return;
+     try {
+       await blockContact(contact.phone);
+       onUpdate?.();
+     } catch (e) {
+       console.error(e);
+     }
+   };
+ 
+   const handleReport = async () => {
+     if (!contact || !window.confirm(`Deseja realmente denunciar ${contact.name || contact.phone}?`)) return;
+     try {
+       await reportContact(contact.phone);
+       onUpdate?.();
+     } catch (e) {
+       console.error(e);
+     }
+   };
+ 
+   const handleCheckIsWhatsApp = async () => {
+     if (!contact) return;
+     try {
+       const res = await checkIsWhatsApp(contact.phone);
+       if (res?.exists) {
+         toast({ title: "Verificado!", description: "Este número possui WhatsApp." });
+       } else {
+         toast({ title: "Atenção", description: "Este número não possui WhatsApp ou não pôde ser verificado.", variant: "destructive" });
+       }
+     } catch (e) {
+       console.error(e);
+     }
+   };
+ 
+   const getDefaultInstanceId = async (): Promise<string> => {
+     if (!contact) return '';
 
     // 1) Respect explicit preferred instance — already resolved from active instances list
     if (preferredInstanceId && preferredInstanceId !== 'all' && preferredInstanceId.length > 10) {
@@ -478,14 +514,41 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <MessageSquare className="w-4 h-4" />
                   Abrir Conversa
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start gap-2"
-                  onClick={() => { onOpenChange(false); navigate(`/enviar?phone=${encodeURIComponent(contact.phone)}`); }}
-                >
-                  <Send className="w-4 h-4" />
-                  Enviar Mensagem Manual
-                </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2"
+                   onClick={() => { onOpenChange(false); navigate(`/enviar?phone=${encodeURIComponent(contact.phone)}`); }}
+                 >
+                   <Send className="w-4 h-4" />
+                   Enviar Mensagem Manual
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2"
+                   onClick={handleCheckIsWhatsApp}
+                   disabled={zapiLoading}
+                 >
+                   <UserCheck className="w-4 h-4" />
+                   Verificar WhatsApp
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                   onClick={handleReport}
+                   disabled={zapiLoading}
+                 >
+                   <ShieldAlert className="w-4 h-4" />
+                   Denunciar Contato
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                   onClick={handleBlock}
+                   disabled={zapiLoading}
+                 >
+                   <Ban className="w-4 h-4" />
+                   Bloquear Contato
+                 </Button>
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+ import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Plus, Trash2, Check, X, Upload } from "lucide-react";
+ import { Filter, Plus, Trash2, Check, X, Upload, Search, Loader2 } from "lucide-react";
+ import { useZapi } from "@/hooks/useZapi";
+ import { useToast } from "@/hooks/use-toast";
 
 const FiltroNumero = () => {
   const [filtroAtivo, setFiltroAtivo] = useState(true);
+   const [bulkPhones, setBulkPhones] = useState("");
+   const [verificationResults, setVerificationResults] = useState<{ phone: string; exists: boolean }[] | null>(null);
+   const { checkIsWhatsAppBatch, loading: zapiLoading } = useZapi();
+   const { toast } = useToast();
+ 
+   const handleBulkVerify = async () => {
+     const phones = bulkPhones.split("\n").map(p => p.trim()).filter(p => p.length > 0);
+     if (phones.length === 0) {
+       toast({ title: "Atenção", description: "Insira ao menos um número para verificar.", variant: "destructive" });
+       return;
+     }
+ 
+     try {
+       const results = await checkIsWhatsAppBatch(phones);
+       // Z-API returns an array of { phone: string, exists: boolean } or similar
+       setVerificationResults(results);
+       toast({ title: "Verificação concluída", description: `${phones.length} números processados.` });
+     } catch (e) {
+       console.error(e);
+     }
+   };
   
   const filtros = [
     {
@@ -45,8 +68,78 @@ const FiltroNumero = () => {
     { numero: "+55 11 77777-7777", status: "bloqueado", filtro: "Lista Negra" }
   ];
 
-  return (
-    <div className="space-y-6">
+   return (
+     <div className="space-y-6">
+       <Card>
+         <CardHeader>
+           <CardTitle className="flex items-center gap-2">
+             <Search className="w-5 h-5" />
+             Verificação em Lote (Z-API)
+           </CardTitle>
+           <CardDescription>
+             Verifique rapidamente se uma lista de números possui WhatsApp ativo.
+           </CardDescription>
+         </CardHeader>
+         <CardContent className="space-y-4">
+           <div>
+             <Label htmlFor="bulk-phones">Números para verificar (um por linha)</Label>
+             <Textarea 
+               id="bulk-phones"
+               placeholder="5511999999999&#10;5511888888888"
+               className="mt-1 min-h-[150px]"
+               value={bulkPhones}
+               onChange={(e) => setBulkPhones(e.target.value)}
+             />
+             <p className="text-xs text-muted-foreground mt-1">Insira os números com DDI e DDD (ex: 5511999999999)</p>
+           </div>
+ 
+           <Button 
+             onClick={handleBulkVerify} 
+             disabled={zapiLoading || !bulkPhones.trim()}
+             className="w-full sm:w-auto"
+           >
+             {zapiLoading ? (
+               <>
+                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                 Verificando...
+               </>
+             ) : (
+               <>
+                 <Search className="w-4 h-4 mr-2" />
+                 Verificar Números
+               </>
+             )}
+           </Button>
+ 
+           {verificationResults && (
+             <div className="mt-6 border rounded-lg overflow-hidden">
+               <div className="bg-muted px-4 py-2 text-sm font-medium border-b flex justify-between">
+                 <span>Resultados da Verificação</span>
+                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setVerificationResults(null)}>Limpar</Button>
+               </div>
+               <div className="max-h-[300px] overflow-y-auto">
+                 {verificationResults.length === 0 ? (
+                   <p className="p-4 text-center text-sm text-muted-foreground">Nenhum resultado retornado.</p>
+                 ) : (
+                   <div className="divide-y">
+                     {verificationResults.map((res, i) => (
+                       <div key={i} className="px-4 py-2 flex items-center justify-between text-sm">
+                         <span className="font-mono">{res.phone}</span>
+                         {res.exists ? (
+                           <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Possui WhatsApp</Badge>
+                         ) : (
+                           <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none">Não possui</Badge>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+         </CardContent>
+       </Card>
+ 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Filtro de Número</h1>
         <p className="text-muted-foreground">Configure filtros para controlar quais números podem enviar mensagens</p>

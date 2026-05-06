@@ -949,6 +949,147 @@ export const useZapi = () => {
     }
   };
 
+   const invokeZapiAction = async (action: string, phone: string = '', payload: any = {}, instanceDbId?: string) => {
+     const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+       body: {
+         action,
+         phone,
+         payload,
+         instanceDbId: instanceDbId || getSelectedInstanceId(),
+       },
+     });
+ 
+     if (error) {
+       throw new Error(error.message || `Erro ao executar ação ${action}`);
+     }
+ 
+     if (data?.error) {
+       throw new Error(data.message || data.error || `Erro na API Z-API ao executar ${action}`);
+     }
+ 
+     return data?.data ?? data;
+   };
+ 
+   const getContacts = async (page: number = 1, pageSize: number = 50) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('get-contacts', '', { page, pageSize });
+     } catch (error) {
+       console.error('Erro ao buscar contatos:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const addContacts = async (contacts: Array<{ firstName: string; lastName?: string; phone: string }>) => {
+     setLoading(true);
+     try {
+       const data = await invokeZapiAction('add-contacts', '', contacts);
+       toast({ title: "Contatos adicionados", description: "Os contatos foram salvos na agenda com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao adicionar contatos:', error);
+       toast({ title: "Erro ao adicionar contatos", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const removeContacts = async (phones: Array<{ phone: string }>) => {
+     setLoading(true);
+     try {
+       const data = await invokeZapiAction('remove-contacts', '', phones);
+       toast({ title: "Contatos removidos", description: "Os contatos foram removidos da agenda com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao remover contatos:', error);
+       toast({ title: "Erro ao remover contatos", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const getContactMetadata = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('get-metadata-contact', phone);
+     } catch (error) {
+       console.error('Erro ao buscar metadata do contato:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const getContactProfilePicture = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('get-profile-picture', phone);
+     } catch (error) {
+       console.error('Erro ao buscar foto do contato:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const checkIsWhatsApp = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('get-iswhatsapp', phone);
+     } catch (error) {
+       console.error('Erro ao verificar WhatsApp:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const checkIsWhatsAppBatch = async (phones: string[]) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('get-iswhatsapp-batch', '', { phones });
+     } catch (error) {
+       console.error('Erro ao verificar lote de WhatsApp:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const blockContact = async (phone: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeZapiAction('block-contact', phone);
+       toast({ title: "Contato bloqueado", description: "O contato foi bloqueado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao bloquear contato:', error);
+       toast({ title: "Erro ao bloquear contato", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const reportContact = async (phone: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeZapiAction('report-contact', phone);
+       toast({ title: "Contato denunciado", description: "O contato foi denunciado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao denunciar contato:', error);
+       toast({ title: "Erro ao denunciar contato", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
   const sendCarousel = async (
     phone: string,
     carouselCards: Array<{
@@ -1004,8 +1145,17 @@ export const useZapi = () => {
     getPairingCode,
     disconnectDevice,
     restartInstance,
-    updateProfileName,
-    updateProfilePicture,
-    loading,
-  };
-};
+     updateProfileName,
+     updateProfilePicture,
+     getContacts,
+     addContacts,
+     removeContacts,
+     getContactMetadata,
+     getContactProfilePicture,
+     checkIsWhatsApp,
+     checkIsWhatsAppBatch,
+     blockContact,
+     reportContact,
+     loading,
+   };
+ };
