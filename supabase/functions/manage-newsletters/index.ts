@@ -176,13 +176,24 @@ Deno.serve(async (req) => {
         const payload: Record<string, unknown> = {
           limit: limit || 50,
         };
-        if (view) payload.view = view;
+        payload.view = view || "RECOMMENDED";
         if (query) payload.searchText = query;
         // Z-API requer filters.countryCodes, mesmo que vazio
         payload.filters = { 
           countryCodes: (countryCodes && Array.isArray(countryCodes)) ? countryCodes : ["BR"] 
         };
-        return await callZapi("POST", "/search-newsletter", payload);
+        const resp = await callZapi("POST", "/search-newsletter", payload);
+        // Z-API pode retornar 200 com {"error":"NOT_FOUND"} quando não há resultados
+        try {
+          const cloned = resp.clone();
+          const json = await cloned.json();
+          if (json && !Array.isArray(json) && (json.error === "NOT_FOUND" || /not.?found/i.test(String(json.message || "")))) {
+            return new Response(JSON.stringify([]), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } catch (_) { /* ignore */ }
+        return resp;
       }
 
       case "update-newsletter-config": {
