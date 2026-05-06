@@ -841,6 +841,27 @@ export default function ComunidadesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={metadataOpen} onOpenChange={setMetadataOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Metadados da Comunidade</DialogTitle>
+              <DialogDescription>
+                Informações técnicas detalhadas da comunidade.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="bg-muted p-4 rounded-md overflow-x-auto">
+              <pre className="text-[10px] text-muted-foreground">
+                {JSON.stringify(metadata, null, 2)}
+              </pre>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMetadataOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
