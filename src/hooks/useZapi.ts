@@ -949,26 +949,31 @@ export const useZapi = () => {
     }
   };
 
-   const invokeZapiAction = async (action: string, phone: string = '', payload: any = {}, instanceDbId?: string) => {
-     const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-       body: {
-         action,
-         phone,
-         payload,
-         instanceDbId: instanceDbId || getSelectedInstanceId(),
-       },
-     });
- 
-     if (error) {
-       throw new Error(error.message || `Erro ao executar ação ${action}`);
-     }
- 
-     if (data?.error) {
-       throw new Error(data.message || data.error || `Erro na API Z-API ao executar ${action}`);
-     }
- 
-     return data?.data ?? data;
-   };
+  const invokeZapiAction = async (action: string, phone: string = '', payload: any = {}, instanceDbId?: string) => {
+    const finalInstanceDbId = instanceDbId || getSelectedInstanceId();
+    console.log(`[useZapi] Invoking action: ${action}, instanceDbId: ${finalInstanceDbId}`);
+    
+    const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+      body: {
+        action,
+        phone,
+        payload,
+        instanceDbId: finalInstanceDbId,
+      },
+    });
+
+    if (error) {
+      console.error(`[useZapi] Error invoking ${action}:`, error);
+      throw new Error(error.message || `Erro ao executar ação ${action}`);
+    }
+
+    if (data?.error) {
+      console.error(`[useZapi] API error in ${action}:`, data);
+      throw new Error(data.message || data.error || `Erro na API Z-API ao executar ${action}`);
+    }
+
+    return data?.data ?? data;
+  };
  
    const getContacts = async (page: number = 1, pageSize: number = 50) => {
      setLoading(true);
