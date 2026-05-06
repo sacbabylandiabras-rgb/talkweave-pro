@@ -24,7 +24,8 @@ const extractUrl = (payload: any): string | null => {
     payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || payload?.data?.profileThumbnail ||
     payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
     payload?.chat?.imagePreview || payload?.chat?.image || payload?.chat?.imgUrl ||
-    payload?.group?.image || payload?.group?.picture
+    payload?.group?.image || payload?.group?.picture ||
+    payload?.preview || payload?.pictureUrl
   )
 }
 
