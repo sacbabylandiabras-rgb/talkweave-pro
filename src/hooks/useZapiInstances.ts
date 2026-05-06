@@ -71,6 +71,7 @@ const fetchInstancesWithRetry = async (userId: string) => {
     const { data, error } = await fromZapiInstances()
       .select('*')
       .eq('user_id', userId)
+      .neq('api_provider', 'uazapi')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 
