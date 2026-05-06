@@ -241,9 +241,8 @@ const savedContactsApi = {
 
     return allContacts;
   },
-  async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
-    const safePic = sanitizePictureUrl(data.profile_picture_url);
-    const payload = { ...data, profile_picture_url: safePic };
+   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+     const payload = { ...data };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
       headers: {
@@ -1001,7 +1000,7 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: localManualPhotos.get(phone) || sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
+           profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),

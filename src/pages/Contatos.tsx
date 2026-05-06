@@ -119,15 +119,13 @@ const Contatos = () => {
             <Card key={contato.phone} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpenProfile(contato)}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                   <Avatar className="overflow-hidden">
-                      {contato.profilePictureUrl ? (
-                       <AvatarImage 
-                         src={contato.profilePictureUrl} 
-                         className="object-cover"
-                         onError={() => refreshProfilePicture(contato.phone)}
-                       />
-                      ) : null}
-                     <AvatarFallback className="bg-[#DFE5E7] text-primary text-xs font-medium">
+                   <Avatar className="overflow-hidden bg-[#DFE5E7]">
+                     <AvatarImage 
+                       src={contato.profilePictureUrl || undefined} 
+                       className="object-cover"
+                       onError={() => refreshProfilePicture(contato.phone)}
+                     />
+                     <AvatarFallback className="text-primary text-xs font-medium">
                        <WhatsAppDefaultAvatar />
                      </AvatarFallback>
                    </Avatar>
