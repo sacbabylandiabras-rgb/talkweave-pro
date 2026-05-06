@@ -88,9 +88,14 @@ serve(async (req) => {
     const rawPhone = String(phone).trim()
     const isGroup = rawPhone.includes('@g.us') || rawPhone.includes('-group')
     
-    // Extract numeric part for groups
-    const numericId = rawPhone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')
-    
+    // Strip @g.us / -group suffix, but PRESERVE internal hyphens used by
+    // legacy Z-API group ids (e.g. "554384923707-1482960310-group").
+    // Stripping all non-digits would corrupt those ids and break photo lookup.
+    const groupIdRaw = isGroup
+      ? rawPhone.replace(/@g\.us$/i, '').replace(/-group$/i, '')
+      : rawPhone.replace(/\D/g, '')
+    const numericId = isGroup ? groupIdRaw : groupIdRaw
+
     if (!numericId) {
       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
         status: 400,
@@ -243,8 +248,8 @@ serve(async (req) => {
           const groupsData = await groupsRes.json()
           const groups = Array.isArray(groupsData) ? groupsData : []
           const match = groups.find((g: any) => {
-            const gId = g.phone || g.id || ''
-            return gId.includes(numericId)
+            const gId = String(g.phone || g.id || '')
+            return gId.includes(numericId) || gId.replace(/\D/g, '').includes(numericId.replace(/\D/g, ''))
           })
           console.log(`📷 Groups list match: id=${match?.phone} imgUrl=${match?.imgUrl} photo=${match?.photo}`)
           const photoUrl = extractUrl(match)
