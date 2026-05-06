@@ -593,7 +593,7 @@ export const useMessageLogs = (
         return next;
       });
 
-      if (finalUrl || resolvedName) {
+      if (finalUrl || resolvedName || (!finalUrl && !isGroupPhone(phone))) {
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
@@ -602,7 +602,7 @@ export const useMessageLogs = (
             phone,
             name: resolvedName || existing?.name || '',
             user_id: userId,
-            profile_picture_url: finalUrl || existing?.profile_picture_url || null,
+            profile_picture_url: finalUrl || (isGroupPhone(phone) ? (existing?.profile_picture_url || null) : null),
           });
           await fetchSavedContacts();
         }
