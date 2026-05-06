@@ -161,6 +161,7 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
+    const payloadRaw = await req.json();
     const {
       phone,
       message,
@@ -180,7 +181,19 @@ serve(async (req) => {
       carouselCards,
       templateId,
       preferStandardConnection,
-    } = await req.json()
+    } = payloadRaw;
+
+    // OTP support
+    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
+      const otpPayload = {
+        phone: resolvedPhone, // this will be resolved below, move this check
+        message: message || "Seu código de verificação é",
+        code: payloadRaw.otpCode,
+        expirationInSeconds: payloadRaw.otpExpiration,
+        footer: footer || ""
+      };
+      // Need resolvedPhone first, moving this logic down.
+    }
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
 
