@@ -20,7 +20,7 @@ interface Newsletter {
 }
 
 export default function CanaisTab() {
-  const { instances, activeInstance } = useZapiInstances();
+  const { instances, activeInstance, selectInstance } = useZapiInstances();
   const [instanceId, setInstanceId] = useState<string>("");
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,15 @@ export default function CanaisTab() {
   const [createPhotoUrl, setCreatePhotoUrl] = useState("");
   const createPhotoFileRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Efeito para garantir que uma instância oficial Z-API esteja selecionada para canais
+  useEffect(() => {
+    const zapiOfficial = instances.find(i => (i.api_provider || '').toLowerCase() === 'zapi');
+    if (zapiOfficial && activeInstance?.id !== zapiOfficial.id) {
+      console.log("🔄 Canais: Forçando instância Z-API oficial para gerenciamento");
+      selectInstance(zapiOfficial.id);
+    }
+  }, [instances, activeInstance]);
 
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
