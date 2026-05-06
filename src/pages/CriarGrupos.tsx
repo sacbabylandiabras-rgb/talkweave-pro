@@ -1694,6 +1694,8 @@ function LinksRotativosTab() {
         body: {
           action: "get-invite-link",
           groupId: group.id,
+          isCommunity: (group as any).isCommunity,
+          isChannel: (group as any).isChannel,
           instanceId: instance?.zapi_instance_id || group.sourceInstanceId,
           instanceToken: instance?.zapi_token,
           instanceClientToken: instance?.zapi_client_token,
@@ -1935,7 +1937,12 @@ function LinksRotativosTab() {
                         .filter((g) => g.isAdmin && !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
-                            {g.nome}
+                            <div className="flex items-center gap-2">
+                              {(g as any).isCommunity && <Building2 className="w-3.5 h-3.5 text-blue-500" />}
+                              {(g as any).isChannel && <Smartphone className="w-3.5 h-3.5 text-purple-500" />}
+                              {!((g as any).isCommunity || (g as any).isChannel) && <Users className="w-3.5 h-3.5 text-green-500" />}
+                              <span>{g.nome}</span>
+                            </div>
                           </SelectItem>
                         ))}
                     </SelectContent>
