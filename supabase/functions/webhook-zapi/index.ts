@@ -832,167 +832,41 @@ serve(async (req) => {
               }
 
               const buildWelcomeTransport = (providerInstance: any) => {
-                const isUazapiProvider =
-                  String(providerInstance?.api_provider || "").toLowerCase() === "uazapi";
-                const providerBaseUrl = isUazapiProvider
-                  ? String(providerInstance?.evolution_api_url || "").replace(/\/+$/, "")
-                  : `https://api.z-api.io/instances/${providerInstance?.zapi_instance_id}/token/${providerInstance?.zapi_token}`;
-                const providerHeaders: Record<string, string> = isUazapiProvider
-                  ? {
-                      "Content-Type": "application/json",
-                      token: String(providerInstance?.evolution_api_key || providerInstance?.zapi_token || ""),
-                    }
-                  : {
-                      "Content-Type": "application/json",
-                      "Client-Token": providerInstance?.zapi_client_token,
-                    };
-                const providerTarget = joinedPhone.includes("-group")
-                  ? `${String(joinedPhone).replace(/-group$/i, "").replace(/\D/g, "")}@g.us`
-                  : String(joinedPhone).replace(/^\+/, "").replace(/\D/g, "");
-
-                return { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget };
+                const providerBaseUrl = `https://api.z-api.io/instances/${providerInstance?.zapi_instance_id}/token/${providerInstance?.zapi_token}`;
+                const providerHeaders = { "Content-Type": "application/json", "Client-Token": providerInstance?.zapi_client_token };
+                return { providerBaseUrl, providerHeaders };
               };
 
-              const parseWelcomeResponse = async (
-                res: Response,
-                context: string,
-                isUazapiProvider: boolean,
-              ) => {
+              const parseWelcomeResponse = async (res: Response, context: string) => {
                 const raw = await res.text();
                 let payload: any = null;
-                try {
-                  payload = raw ? JSON.parse(raw) : null;
-                } catch {
-                  payload = { raw };
-                }
-                const explicitError = payload?.error || payload?.erro ||
-                  payload?.details?.error || payload?.details?.message ||
-                  (payload?.success === false ? payload?.message : null);
-                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId ||
-                  payload?.id || payload?.key?.id || payload?.message?.id ||
-                  payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id ||
-                  payload?.queueId || null;
-                const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || "").toLowerCase();
-                const confirmed = Boolean(
-                  ack || payload?.queued === true || payload?.enqueued === true ||
-                    ["success", "sent", "queued", "queue", "pending", "processing", "accepted", "ok"].includes(status),
-                );
-                console.log(
-                  `${context}: status=${res.status} provider=${isUazapiProvider ? "uazapi" : "zapi"} confirmed=${confirmed} ack=${ack || "none"} body=${raw.substring(0, 300)}`,
-                );
-                if (!res.ok || explicitError || (!isUazapiProvider && !confirmed)) {
-                  throw new Error(String(explicitError || `Envio de boas-vindas não confirmado (${context})`));
-                }
+                try { payload = raw ? JSON.parse(raw) : null; } catch { payload = { raw }; }
+                const ack = payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
+                const status = String(payload?.status || payload?.messageStatus || payload?.state || "").toLowerCase();
+                const confirmed = Boolean(ack || ["success", "sent", "queued", "accepted", "ok"].includes(status));
+                console.log(`${context}: status=${res.status} confirmed=${confirmed} ack=${ack || "none"}`);
+                if (!res.ok || !confirmed) throw new Error(`Envio falhou (${context})`);
                 return payload;
               };
 
-              const dispatchWelcome = async (
-                providerInstance: any,
-                payload:
-                  | { type: "text"; message: string }
-                  | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] }
-                  | { type: "carousel"; message: string; cards: any[] },
-                context: string,
-              ) => {
-                const { isUazapiProvider, providerBaseUrl, providerHeaders, providerTarget } =
-                  buildWelcomeTransport(providerInstance);
-
-                let request: Promise<Response>;
+              const dispatchWelcome = async (providerInstance: any, payload: any, context: string) => {
+                const { providerBaseUrl, providerHeaders } = buildWelcomeTransport(providerInstance);
+                let endpoint = "/send-text";
+                let body: any = { phone: joinedPhone };
                 if (payload.type === "text") {
-                  request = isUazapiProvider
-                    ? fetch(`${providerBaseUrl}/send/text`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({ number: providerTarget, text: payload.message }),
-                      })
-                    : fetch(`${providerBaseUrl}/send-text`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({ phone: joinedPhone, message: payload.message }),
-                      });
+                  body.message = payload.message;
                 } else if (payload.type === "buttons") {
-                  request = isUazapiProvider
-                    ? fetch(`${providerBaseUrl}/send/menu`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({
-                          number: providerTarget,
-                          type: "button",
-                          text: payload.message,
-                          choices: payload.buttons.map((b: any) => b.label),
-                        }),
-                      })
-                    : fetch(`${providerBaseUrl}/send-button-list`, {
-                        method: "POST",
-                        headers: providerHeaders,
-                        body: JSON.stringify({
-                          phone: joinedPhone,
-                          message: payload.message,
-                          buttonList: { buttons: payload.buttons.map((b: any) => ({ label: b.label })) },
-                        }),
-                      });
-                } else if (payload.type === "carousel") {
-                  // Carousel only supported on uazapi provider via /send/carousel
-                  if (!isUazapiProvider) {
-                    throw new Error("Carrossel não suportado nesta conexão");
-                  }
-                  const carousel = payload.cards.map((card: any) => {
-                    const image = String(card?.image || "").trim();
-                    const title = String(card?.title || "").trim();
-                    const description = String(card?.description || "").trim();
-                    const text = [title, description]
-                      .filter(Boolean)
-                      .join("\n");
-                    const buttons = Array.isArray(card?.buttons)
-                      ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
-                          const t = String(b?.type || "REPLY").trim().toUpperCase();
-                          const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
-                          const value = String(b?.value || b?.url || b?.phone || b?.id || label).trim();
-                          return { id: value, text: label, type: t, value };
-                        }).filter((b: any) => b.id && b.text)
-                      : [];
-                    return { title, description, text, image, buttons };
-                  });
-                  console.log("📦 Welcome carousel payload:", JSON.stringify({ cards: carousel.length }).substring(0, 300));
-                  request = fetch(`${providerBaseUrl}/send/carousel`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ number: providerTarget, text: payload.message || "", carousel }),
-                  });
-                } else if (isUazapiProvider) {
-                  const mappedType = payload.kind === "audio" ? "ptt" : payload.kind;
-                  request = fetch(`${providerBaseUrl}/send/media`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({
-                      number: providerTarget,
-                      type: mappedType,
-                      file: payload.file,
-                      ...(payload.caption && mappedType !== "ptt" ? { text: payload.caption } : {}),
-                    }),
-                  });
-                } else if (payload.kind === "image") {
-                  request = fetch(`${providerBaseUrl}/send-image`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, image: payload.file, caption: payload.caption }),
-                  });
-                } else if (payload.kind === "video") {
-                  request = fetch(`${providerBaseUrl}/send-video`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, video: payload.file, caption: payload.caption }),
-                  });
+                  endpoint = "/send-button-list";
+                  body.message = payload.message;
+                  body.buttonList = { buttons: payload.buttons.map((b: any) => ({ label: b.label })) };
                 } else {
-                  request = fetch(`${providerBaseUrl}/send-audio`, {
-                    method: "POST",
-                    headers: providerHeaders,
-                    body: JSON.stringify({ phone: joinedPhone, audio: payload.file }),
-                  });
+                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio" };
+                  endpoint = epMap[payload.kind];
+                  body[payload.kind] = payload.file;
+                  body.caption = payload.caption;
                 }
-
-                return parseWelcomeResponse(await request, context, isUazapiProvider);
+                const res = await fetch(`${providerBaseUrl}${endpoint}`, { method: "POST", headers: providerHeaders, body: JSON.stringify(body) });
+                return await parseWelcomeResponse(res, context);
               };
 
               const sendWelcomeWithFallback = async (
