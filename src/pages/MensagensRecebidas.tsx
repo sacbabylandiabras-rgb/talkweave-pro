@@ -365,15 +365,13 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden">
-              {conv.profilePictureUrl ? (
-                <AvatarImage
-                  src={conv.profilePictureUrl}
-                  className="object-cover"
-                  onError={() => onFetchPhoto(conv.phone, true)}
-                />
-              ) : null}
-              <AvatarFallback className="bg-[#DFE5E7] text-primary text-sm font-medium">
+            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7]">
+              <AvatarImage
+                src={conv.profilePictureUrl || undefined}
+                className="object-cover"
+                onError={() => onFetchPhoto(conv.phone, true)}
+              />
+              <AvatarFallback className="text-primary text-sm font-medium">
                 <WhatsAppDefaultAvatar />
               </AvatarFallback>
             </Avatar>
