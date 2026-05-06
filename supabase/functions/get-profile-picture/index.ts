@@ -94,7 +94,9 @@ serve(async (req) => {
     const groupIdRaw = isGroup
       ? rawPhone.replace(/@g\.us$/i, '').replace(/-group$/i, '')
       : rawPhone.replace(/\D/g, '')
-    const numericId = isGroup ? groupIdRaw : groupIdRaw
+    // For non-groups, ensure we have a clean numeric string.
+    // For groups, we preserve hyphens for legacy Z-API compatibility.
+    const numericId = isGroup ? groupIdRaw : rawPhone.replace(/\D/g, '')
 
     if (!numericId) {
       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
@@ -292,21 +294,32 @@ serve(async (req) => {
       )
     }
 
-    // For contacts (non-group)
-    const url = `${base}/profile-picture?phone=${encodeURIComponent(numericId)}`
-    const zapiResponse = await fetch(url, { method: 'GET', headers })
-    const zapiData = await zapiResponse.json().catch(() => null)
-    const link = extractUrl(zapiData)
+    // For contacts (non-group), try numericId and numericId@c.us
+    const contactFormats = [numericId, `${numericId}@c.us`]
+    console.log(`📷 Contact photo lookup: phone=${numericId}`)
+    
+    for (const format of contactFormats) {
+      const url = `${base}/profile-picture?phone=${encodeURIComponent(format)}`
+      try {
+        const zapiResponse = await fetch(url, { method: 'GET', headers })
+        const zapiData = await zapiResponse.json().catch(() => null)
+        const link = extractUrl(zapiData)
+        
+        console.log(`📷 Contact ${format} result: status=${zapiResponse.status} link=${link}`)
 
-    if (zapiResponse.ok && link) {
-      return new Response(
-        JSON.stringify({ success: true, data: { link, raw: zapiData } }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        if (zapiResponse.ok && link) {
+          return new Response(
+            JSON.stringify({ success: true, data: { link, raw: zapiData } }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } catch (e) {
+        console.error(`📷 Contact ${format} error:`, e)
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: zapiData } }),
+      JSON.stringify({ success: false, data: { link: null, raw: null } }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

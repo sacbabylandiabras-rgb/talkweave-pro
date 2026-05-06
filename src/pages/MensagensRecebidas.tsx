@@ -313,10 +313,11 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto,
 }: {
   conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
   instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
+  onFetchPhoto: (phone: string, force?: boolean) => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
@@ -361,14 +362,12 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0 border border-border/50">
+            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden">
               {conv.profilePictureUrl ? (
                 <AvatarImage 
                   src={conv.profilePictureUrl} 
                   className="object-cover"
-                  onError={(e) => {
-                    (e.target as any).style.display = 'none';
-                  }}
+                  onError={() => onFetchPhoto(conv.phone, true)}
                 />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
@@ -403,7 +402,7 @@ const ChatView = ({
   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
-  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
+  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, options?: {
     mediaUrl?: string;
     mediaType?: string;
@@ -702,14 +701,12 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Avatar className="h-10 w-10 border border-border/50">
+        <Avatar className="h-10 w-10 border border-border/50 overflow-hidden">
           {conversation.profilePictureUrl ? (
             <AvatarImage 
               src={conversation.profilePictureUrl} 
               className="object-cover"
-              onError={(e) => {
-                (e.target as any).style.display = 'none';
-              }}
+              onError={() => onFetchPhoto(conversation.phone, true)}
             />
           ) : null}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
@@ -1280,15 +1277,20 @@ const MensagensRecebidas = () => {
     toast({ title: "Contato salvo", description: `${name} foi salvo com sucesso.` });
   };
 
-  const handleFetchPhoto = async (phone: string) => {
-    setLoadingPhoto(true);
+  const handleFetchPhoto = async (phone: string, force = false) => {
+    if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
-    const url = await fetchProfilePicture(phone, selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null);
+    const url = await fetchProfilePicture(
+      phone, 
+      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null,
+      force
+    );
     if (url) setManualProfilePic(url);
-    setLoadingPhoto(false);
-    if (url) {
+    if (!force) setLoadingPhoto(false);
+    
+    if (url && !force) {
       toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
-    } else {
+    } else if (!url && !force) {
       toast({ title: "Sem foto", description: "Não foi possível obter a foto de perfil.", variant: "destructive" });
     }
   };
@@ -1309,7 +1311,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} />
+            <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} />
           </div>
         )}
         {showChat && (
