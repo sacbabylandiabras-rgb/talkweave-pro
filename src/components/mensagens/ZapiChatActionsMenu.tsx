@@ -64,7 +64,7 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Ações Z-API</DropdownMenuLabel>
+        <DropdownMenuLabel>Ações da Conversa</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => run("read", undefined, "Marcado como lido")}>
           <CheckCheck className="w-4 h-4 mr-2" /> Marcar como lido
