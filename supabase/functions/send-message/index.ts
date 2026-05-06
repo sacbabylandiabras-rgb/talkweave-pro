@@ -901,30 +901,56 @@ serve(async (req) => {
       const listMessage = actionSuffix ? `${interactiveMessage}\n\n${actionSuffix}` : interactiveMessage;
 
       if (actionButtons.length > 0 && replyButtons.length > 0) {
-        // WhatsApp não permite misturar botões REPLY com URL/CALL no mesmo cartão.
-        // Para garantir que TODOS os botões apareçam juntos no mesmo balão, enviamos
-        // todos como botões de resposta (REPLY) via /send-button-list e anexamos
-        // o URL/telefone ao corpo da mensagem para preservar o link clicável.
-        const buttonListPayload: Record<string, unknown> = {
+        // WhatsApp (especialmente via Cloud API/Meta) NÃO permite misturar botões REPLY com URL/CALL no mesmo cartão.
+        // Para garantir que TODOS os botões funcionem (link abra e reply responda), 
+        // enviamos dois balões sequenciais: um com mídia/texto + botões de URL/CALL e outro com os botões de REPLY.
+        
+        console.log(`📤 Enviando botões mistos para ${resolvedPhone} em dois balões.`);
+        
+        // Balão 1: Mídia + Texto + Botões de Ação (URL/CALL)
+        const actionPayload: Record<string, unknown> = {
           phone: resolvedPhone,
-          message: listMessage,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+          buttonActions: actionButtons.map((b: any, index: number) => ({
+            id: b.id || `act_${index}`,
+            type: b.type,
+            label: b.label,
+            ...(b.type === 'URL' ? { url: b.url } : { phone: b.phone })
+          }))
+        };
+
+        const firstResp = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(actionPayload),
+        });
+        await parseZapiResponse(firstResp, resolvedPhone, instanceId, 'button-actions-part1');
+
+        // Pequeno delay para garantir ordem no WhatsApp
+        await new Promise(r => setTimeout(r, 500));
+
+        // Balão 2: Botões de Resposta (REPLY)
+        const replyPayload = {
+          phone: resolvedPhone,
+          message: footer || 'Escolha uma opção:',
           buttonList: {
-            ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-            buttons: normalizedButtons.map((b: any, index: number) => ({
-              id: b.id || String(index + 1),
-              label: b.label,
-            })),
-          },
+            buttons: replyButtons.map((b: any, index: number) => ({
+              id: b.id || `rep_${index}`,
+              label: b.label
+            }))
+          }
         };
 
         zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(buttonListPayload),
+          body: JSON.stringify(replyPayload),
         });
 
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
-        logMessage = logMessage || '🔘 Botões interativos (mistos)';
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list-part2');
+        logMessage = logMessage || '🔘 Botões interativos (split)';
       } else if (actionButtons.length > 0) {
         // Apenas URL/CALL → /send-button-actions
         const interactivePayload: Record<string, unknown> = {
