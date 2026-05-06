@@ -670,32 +670,27 @@ serve(async (req) => {
       });
       logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
-    } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      zapiData = await handleButtons();
-      logMessage = logMessage || '🔘 Botões interativos';
-    } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
-      let endpoint = '/send-button-list';
-      const payload: any = {
-        phone: resolvedPhone,
-        message: message || 'Selecione uma opção:',
-        buttonList: {
-          buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
-            id: button.id || String(index + 1),
-            label: button.label,
-          })),
-        },
-      };
-
-      if (mediaUrl && mediaType === 'image') {
-        endpoint = '/send-button-list-image';
-        payload.buttonList.image = mediaUrl;
-      } else if (mediaUrl && mediaType === 'video') {
-        endpoint = '/send-button-list-video';
-        payload.buttonList.video = mediaUrl;
-      }
-
-      zapiData = await sendZapi(endpoint, payload, 'button-list');
-      logMessage = logMessage || '🔘 Lista de botões';
+    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
+      const cards = carouselCards.map((card: any) => {
+        const cardText = [card.title, card.description].filter(v => v && String(v).trim() !== '').join('\n\n');
+        const c: any = { text: cardText || card.text || '' };
+        if (card.image) c.image = card.image;
+        if (Array.isArray(card.buttons)) {
+          c.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
+            const t = String(b.type || 'REPLY').toUpperCase();
+            const btn: any = { id: b.id || String(idx + 1), type: t, label: b.text || b.label || `Botão ${idx + 1}` };
+            if (t === 'URL') btn.url = b.value || b.url;
+            if (t === 'CALL') btn.phone = b.value || b.phone;
+            return btn;
+          });
+        }
+        return c;
+      });
+      zapiData = await sendZapi('/send-carousel', { phone: resolvedPhone, message: message || '', carousel: cards }, 'carousel');
+      logMessage = logMessage || '🎠 Carrossel';
+    } else if ((Array.isArray(buttonActions) && buttonActions.length > 0) || (buttonList?.buttons && buttonList.buttons.length > 0)) {
+      zapiData = await smartSendButtons();
+      logMessage = logMessage || '🔘 Botões';
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
@@ -708,44 +703,6 @@ serve(async (req) => {
       });
       logMessage = logMessage || '📋 Lista de opções';
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
-    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
-      // Z-API: /send-carousel — cards com image, title, description, buttons[]
-      const cards = carouselCards.map((card: any) => {
-        // Z-API espera o campo `text` (não title/description). Concatenamos ambos.
-        const cardText = [card.title, card.description]
-          .filter((v: any) => v && String(v).trim() !== '')
-          .join('\n\n');
-        const c: any = {
-          text: cardText || card.text || '',
-        };
-        if (card.image && String(card.image).trim() !== '') c.image = card.image;
-        if (Array.isArray(card.buttons) && card.buttons.length > 0) {
-          c.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
-            const t = String(b.type || 'REPLY').toUpperCase();
-            const btn: any = {
-              id: b.id || String(idx + 1),
-              type: t,
-              label: b.text || b.label || `Botão ${idx + 1}`,
-            };
-            if (t === 'URL' && (b.value || b.url)) btn.url = b.value || b.url;
-            if (t === 'CALL' && (b.value || b.phone)) btn.phone = b.value || b.phone;
-            return btn;
-          });
-        }
-        return c;
-      });
-      console.log(`📤 Z-API send-carousel for ${resolvedPhone}: ${cards.length} cards`, JSON.stringify(cards).slice(0, 500));
-      zapiResponse = await fetch(`${baseUrl}/send-carousel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || '',
-          carousel: cards,
-        }),
-      });
-      logMessage = logMessage || '🎠 Carrossel';
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'carousel');
     } else if (mediaUrl && mediaType) {
       if (mediaType === 'audio') {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
