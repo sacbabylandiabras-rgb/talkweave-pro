@@ -592,8 +592,13 @@ export const useMessageLogs = (
     await fetchSavedContacts();
   }, [fetchSavedContacts]);
 
-  const fetchProfilePicture = useCallback(async (phone: string, instanceId?: string | null): Promise<string | null> => {
+  const fetchProfilePicture = useCallback(async (phone: string, instanceId?: string | null, force = false): Promise<string | null> => {
     try {
+      if (!force && fetchedPhotosRef.current.has(phone)) {
+        return localManualPhotos.get(phone) || null;
+      }
+      fetchedPhotosRef.current.add(phone);
+
       const body: Record<string, unknown> = { phone };
       if (instanceId) body.instanceId = instanceId;
       else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
@@ -639,10 +644,10 @@ export const useMessageLogs = (
      const toFetch = phones.filter(p => {
        const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
        return !fetchedPhotosRef.current.has(p) && 
-              !saved?.profile_picture_url &&
+               (!saved?.profile_picture_url || saved.profile_picture_url.includes('undefined')) &&
               !p.includes('@lid') &&
               !isLikelyTechnicalIdentifier(p);
-     }).slice(0, 25);
+      }).slice(0, 50);
  
       for (const phone of toFetch) {
        fetchedPhotosRef.current.add(phone);
