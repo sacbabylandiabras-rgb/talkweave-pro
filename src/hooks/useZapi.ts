@@ -1365,7 +1365,7 @@ export const useZapi = () => {
   const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('send-text-status', '', { message: text, backgroundColor, font });
+      const data = await invokeZapiAction('send-text-status', '', { message: text, backgroundColor: backgroundColor || "#000000", font: font || 1 });
       toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
       return data;
     } catch (error) {
