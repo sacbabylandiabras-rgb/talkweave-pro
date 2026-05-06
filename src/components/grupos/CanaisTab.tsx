@@ -185,46 +185,203 @@ export default function CanaisTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Hash className="w-5 h-5 text-primary" /> Canais</CardTitle>
-        <CardDescription>Gerencie seus canais (newsletters)</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex justify-end mb-4">
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Novo Canal</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar Canal</DialogTitle>
-                <DialogDescription>Preencha os dados do novo canal.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div onClick={() => createPhotoFileRef.current?.click()} className="cursor-pointer border-2 border-dashed h-24 flex items-center justify-center rounded-lg">
-                  {createPhotoUrl ? <img src={createPhotoUrl} className="h-full object-cover" /> : <Upload />}
-                </div>
-                <input ref={createPhotoFileRef} type="file" className="hidden" onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)} />
-                <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Nome do canal" />
-                <Textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Descrição" />
-                <Button onClick={handleCreate} disabled={actionLoading === "create"}>Criar</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="space-y-2">
-          {newsletters.map(n => (
-            <div key={n.id} className="p-3 rounded-lg border bg-card flex justify-between items-center">
-              <div>
-                <p className="font-semibold">{n.name}</p>
-                <p className="text-sm text-muted-foreground">{n.description}</p>
-              </div>
-              <Button variant="ghost" onClick={() => setSelectedId(n.id)}>Gerenciar</Button>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Hash className="w-5 h-5 text-primary" /> Canais
+              </CardTitle>
+              <CardDescription>Gerencie seus canais (newsletters) do WhatsApp</CardDescription>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={loadNewsletters} disabled={loading || !instanceId}>
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" disabled={!instanceId}><Plus className="w-4 h-4 mr-1" /> Novo Canal</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Canal</DialogTitle>
+                    <DialogDescription>Preencha os dados do novo canal.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="flex flex-col items-center gap-4">
+                      <div onClick={() => createPhotoFileRef.current?.click()} className="relative w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors">
+                        {createPhotoUrl ? <img src={createPhotoUrl} className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+                        {uploadingPhoto && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-white" /></div>}
+                      </div>
+                      <input ref={createPhotoFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)} />
+                      <p className="text-xs text-muted-foreground">Clique para fazer upload da foto</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nome do Canal</Label>
+                      <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Ex: Notícias ZapLynx" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descrição</Label>
+                      <Textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Uma breve descrição..." rows={3} />
+                    </div>
+                    <Button className="w-full" onClick={handleCreate} disabled={actionLoading === "create"}>
+                      {actionLoading === "create" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                      Criar Canal
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2 border-r pr-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar canais..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} className="h-8 text-xs" />
+                <Button size="sm" variant="ghost" onClick={handleSearch} disabled={actionLoading === "search"} className="h-8 px-2"><Search className="w-3.5 h-3.5" /></Button>
+              </div>
+              <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                {newsletters.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">Nenhum canal encontrado.</div>
+                ) : (
+                  newsletters.map((n) => (
+                    <button key={n.id} onClick={() => setSelectedId(n.id)} className={`w-full text-left p-3 rounded-lg border transition-all ${selectedId === n.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50 border-transparent"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{n.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-4">
+              {!selectedNewsletter ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+                  <Hash className="w-12 h-12 mb-4 opacity-20" />
+                  <p>Selecione um canal para gerenciar</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20">
+                        {(selectedNewsletter.raw as any)?.picture ? <img src={(selectedNewsletter.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-8 h-8 text-muted-foreground" />}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">{selectedNewsletter.name}</h3>
+                        <p className="text-sm text-muted-foreground">{selectedNewsletter.id}</p>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="outline" className="text-[10px] uppercase">{(selectedNewsletter.raw as any)?.role || "membro"}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
+                        {actionLoading === "metadata" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5 mr-1" />}
+                        Metadados
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Tabs defaultValue="settings">
+                    <TabsList className="grid grid-cols-3">
+                      <TabsTrigger value="settings">Configurações</TabsTrigger>
+                      <TabsTrigger value="actions">Ações</TabsTrigger>
+                      <TabsTrigger value="admins">Administração</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="settings" className="space-y-4 mt-4">
+                      <div className="grid gap-4 border rounded-lg p-4">
+                        <div className="space-y-2">
+                          <Label>Nome do Canal</Label>
+                          <div className="flex gap-2">
+                            <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                            <Button size="sm" onClick={() => runAction("update-newsletter-name", { name: editName }, "Nome atualizado")} disabled={actionLoading === "update-newsletter-name"}>Salvar</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Descrição</Label>
+                          <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+                          <Button size="sm" onClick={() => runAction("update-newsletter-description", { description: editDescription }, "Descrição atualizada")} disabled={actionLoading === "update-newsletter-description"}>Salvar</Button>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Foto do Canal</Label>
+                          <div className="flex gap-2">
+                            <Input value={editPhotoUrl} onChange={(e) => setEditPhotoUrl(e.target.value)} placeholder="URL da foto" />
+                            <Button size="sm" variant="outline" onClick={() => editPhotoFileRef.current?.click()}><Upload className="w-4 h-4" /></Button>
+                            <Button size="sm" onClick={() => runAction("update-newsletter-picture", { imageUrl: editPhotoUrl }, "Foto atualizada")} disabled={actionLoading === "update-newsletter-picture"}>Aplicar</Button>
+                          </div>
+                          <input ref={editPhotoFileRef} type="file" className="hidden" onChange={(e) => handlePhotoFileChange(e, setEditPhotoUrl)} />
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="actions" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button variant="outline" onClick={() => runAction("follow-newsletter", {}, "Seguindo")} disabled={actionLoading === "follow-newsletter"}><Heart className="w-4 h-4 mr-2" /> Seguir</Button>
+                        <Button variant="outline" onClick={() => runAction("unfollow-newsletter", {}, "Deixou de seguir")} disabled={actionLoading === "unfollow-newsletter"}><HeartOff className="w-4 h-4 mr-2" /> Deixar de Seguir</Button>
+                        <Button variant="outline" onClick={() => runAction("mute-newsletter", {}, "Silenciado")} disabled={actionLoading === "mute-newsletter"}><VolumeX className="w-4 h-4 mr-2" /> Silenciar</Button>
+                        <Button variant="outline" onClick={() => runAction("unmute-newsletter", {}, "Som ativado")} disabled={actionLoading === "unmute-newsletter"}><Volume2 className="w-4 h-4 mr-2" /> Ativar Som</Button>
+                      </div>
+                      <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                        <Label>Reações</Label>
+                        <div className="flex gap-2">
+                          <Button variant={reactionMode === "ALL" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("ALL"); runAction("update-newsletter-config", { reactionMode: "ALL" }, "Reações: Todas"); }}>Todas</Button>
+                          <Button variant={reactionMode === "BASIC" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("BASIC"); runAction("update-newsletter-config", { reactionMode: "BASIC" }, "Reações: Básicas"); }}>Básicas</Button>
+                          <Button variant={reactionMode === "NONE" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("NONE"); runAction("update-newsletter-config", { reactionMode: "NONE" }, "Reações: Nenhuma"); }}>Nenhuma</Button>
+                        </div>
+                      </div>
+                      <Button variant="destructive" className="w-full" onClick={() => runAction("delete-newsletter", {}, "Canal excluído", () => { setSelectedId(""); loadNewsletters(); })} disabled={actionLoading === "delete-newsletter"}><Trash2 className="w-4 h-4 mr-2" /> Excluir Canal</Button>
+                    </TabsContent>
+
+                    <TabsContent value="admins" className="space-y-4 mt-4">
+                      <div className="border rounded-lg p-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label>Transferir Propriedade</Label>
+                          <div className="flex gap-2">
+                            <Input placeholder="Telefone (DDI+DDD+Número)" value={transferPhone} onChange={(e) => setTransferPhone(e.target.value)} />
+                            <Button size="sm" variant="destructive" onClick={() => runAction("transfer-newsletter-ownership", { phone: transferPhone }, "Propriedade transferida")} disabled={actionLoading === "transfer-newsletter-ownership"}><UserPlus className="w-4 h-4 mr-2" /> Transferir</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Administração</Label>
+                          <div className="flex gap-2">
+                            <Input placeholder="Telefone do Admin" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
+                            <Button size="sm" variant="outline" onClick={() => runAction("newsletter-remove-admin", { phone: adminPhone }, "Admin removido")} disabled={actionLoading === "newsletter-remove-admin"}><UserMinus className="w-4 h-4 mr-2" /> Remover Admin</Button>
+                          </div>
+                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => runAction("accept-newsletter-admin-invite", {}, "Convite aceito")} disabled={actionLoading === "accept-newsletter-admin-invite"}><UserCheck className="w-4 h-4 mr-2" /> Aceitar Convite de Admin</Button>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={metadataOpen} onOpenChange={setMetadataOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Metadados do Canal</DialogTitle>
+            <DialogDescription>Dados técnicos do canal no WhatsApp.</DialogDescription>
+          </DialogHeader>
+          <pre className="p-4 rounded-lg bg-muted text-[10px] overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(metadata, null, 2)}
+          </pre>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
