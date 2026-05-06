@@ -613,16 +613,16 @@ export const useMessageLogs = (
     const userId = await getUserId();
     if (!token || !userId) return;
 
-    // Only fetch for phones we haven't tried yet and that look like real numbers (not @lid)
-    const toFetch = phones.filter(p => 
-      !fetchedPhotosRef.current.has(p) && 
-      !safeMapGet(savedContacts, p)?.profile_picture_url &&
-      !p.includes('@') &&
-      !isGroupPhone(p) &&
-      !isLikelyTechnicalIdentifier(p)
-    ).slice(0, 5); // Limit to 5 at a time to avoid rate limits
-
-    for (const phone of toFetch) {
+     // Only fetch for phones we haven't tried yet and that don't have a picture URL saved
+     const toFetch = phones.filter(p => {
+       const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
+       return !fetchedPhotosRef.current.has(p) && 
+              !saved?.profile_picture_url &&
+              !p.includes('@lid') &&
+              !isLikelyTechnicalIdentifier(p);
+     }).slice(0, 8); // Limit to 8 at a time
+ 
+     for (const phone of toFetch) {
       fetchedPhotosRef.current.add(phone);
       try {
         const body: Record<string, unknown> = { phone };
