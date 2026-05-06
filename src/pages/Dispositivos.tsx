@@ -479,17 +479,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // Try to delete on UAZAPI server first (best-effort)
-      if (instance.api_provider === 'uazapi') {
-        try {
-          await supabase.functions.invoke('uazapi-create-instance', {
-            body: { action: 'delete', instanceToken: instance.evolution_api_key },
-          });
-        } catch (e) {
-          console.warn('Falha ao deletar na UAZAPI (seguindo com remoção local):', e);
-        }
-      }
-
       const { error } = await supabase
         .from('zapi_instances')
         .delete()
