@@ -12,6 +12,7 @@ export interface Contact {
   firstContactDate?: string;
   tags: string[];
   profilePictureUrl?: string;
+  lastUpdated?: string;
 }
 
 export interface ContactStats {
@@ -146,7 +147,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       // Buscar contatos salvos para fotos de perfil e nomes
       const { data: savedContacts } = await supabase
         .from('saved_contacts')
-        .select('phone, name, profile_picture_url');
+        .select('phone, name, profile_picture_url, updated_at');
 
       // Mesclar dados dos contatos salvos
       if (savedContacts) {
@@ -156,6 +157,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
             const safe = sanitizePictureUrl(sc.profile_picture_url);
             if (safe) existing.profilePictureUrl = safe;
             if (sc.name) existing.name = sc.name;
+            if (sc.updated_at) existing.lastUpdated = sc.updated_at;
           }
         });
       }
@@ -189,11 +191,23 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-     const toFetch = contactsList.filter(c =>
-       !c.profilePictureUrl &&
-       !fetchedPhotosRef.current.has(c.phone) &&
-       !c.phone.includes('@lid')
-     ).slice(0, 50);
+    const now = new Date();
+    const toFetch = contactsList.filter(c => {
+      if (fetchedPhotosRef.current.has(c.phone)) return false;
+      if (c.phone.includes('@lid')) return false;
+      
+      // Se não tem foto, precisa buscar
+      if (!c.profilePictureUrl) return true;
+      
+      // Se tem foto mas é antiga (mais de 24h), buscar novamente pois URLs do WhatsApp expiram
+      if (c.lastUpdated) {
+        const lastUpdate = new Date(c.lastUpdated);
+        const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        return hoursSinceUpdate > 24;
+      }
+      
+      return false;
+    }).slice(0, 50);
 
     if (toFetch.length === 0) return;
 
