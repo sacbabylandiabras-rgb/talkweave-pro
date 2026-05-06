@@ -934,6 +934,17 @@ export default function ComunidadesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <LinkAutomationDialog
+          link={automationDialogLink}
+          open={!!automationDialogLink}
+          onOpenChange={(open) => !open && setAutomationDialogLink(null)}
+          onSave={handleSaveAutomation}
+          templates={templates}
+          flows={flows}
+          instances={instances.map(i => ({ id: i.zapi_instance_id, instance_name: i.instance_name }))}
+          saving={savingAutomation === automationDialogLink?.id}
+        />
       </CardContent>
     </Card>
   );
