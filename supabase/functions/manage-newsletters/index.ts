@@ -112,9 +112,22 @@ Deno.serve(async (req) => {
       }
 
       case "list-newsletters":
-        // A Z-API às vezes retorna erro no path "/newsletter-list" se o método GET não for suportado por alguma versão interna,
-        // ou se a conta não tiver nenhum canal. Testamos o path alternativo se falhar.
-        return await callZapi("GET", "/newsletter-list");
+       try {
+         const response = await callZapi("GET", "/newsletter-list");
+         // Se a resposta for 200 (ok), retornamos ela
+         if (response.status === 200) return response;
+         
+         // Se for 404 ou erro de método, tentamos o path alternativo
+         const responseBody = await response.clone().json();
+         if (response.status === 404 || responseBody.error === "NOT_FOUND" || responseBody.message?.includes("method")) {
+           console.log("🔄 Path /newsletter-list failed, trying fallback /list-newsletters");
+           return await callZapi("GET", "/list-newsletters");
+         }
+         return response;
+       } catch (err) {
+         console.log("🔄 Exception on /newsletter-list, trying fallback /list-newsletters:", err);
+         return await callZapi("GET", "/list-newsletters");
+       }
 
       case "update-newsletter-picture": {
         const { newsletterId, imageUrl } = body;
