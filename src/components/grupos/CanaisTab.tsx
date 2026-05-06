@@ -59,7 +59,7 @@ export default function CanaisTab() {
     if (selectedNewsletter) {
       setEditName(selectedNewsletter.name || "");
       setEditDescription(selectedNewsletter.description || "");
-      setEditPhotoUrl(selectedNewsletter.raw?.picture || "");
+      setEditPhotoUrl(String(selectedNewsletter.raw?.picture || ""));
     }
   }, [selectedNewsletter]);
 
