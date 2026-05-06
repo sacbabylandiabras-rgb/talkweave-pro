@@ -758,6 +758,38 @@ const ButtonEditor = memo(({
     </div>
   );
 });
+
+// Validação dos botões: garante texto e, para URL/CALL, valor preenchido e válido.
+const validateButtons = (
+  buttons: Array<{ id: string; text: string; type: 'reply' | 'url' | 'call'; value?: string }> | undefined,
+): string | null => {
+  if (!Array.isArray(buttons) || buttons.length === 0) return null;
+  for (let i = 0; i < buttons.length; i++) {
+    const b = buttons[i];
+    const label = `Botão ${i + 1}`;
+    const text = (b?.text || '').trim();
+    if (!text) return `${label}: o texto do botão é obrigatório.`;
+    if (text.length > 20) return `${label}: o texto deve ter no máximo 20 caracteres.`;
+    const value = (b?.value || '').trim();
+    if (b?.type === 'url') {
+      if (!value) return `${label}: a URL é obrigatória para botões de Link.`;
+      try {
+        const parsed = new URL(value);
+        if (!/^https?:$/i.test(parsed.protocol)) {
+          return `${label}: a URL deve começar com http:// ou https://.`;
+        }
+      } catch {
+        return `${label}: URL inválida. Use o formato https://exemplo.com.`;
+      }
+    }
+    if (b?.type === 'call') {
+      if (!value) return `${label}: o número de telefone é obrigatório para botões de Ligar.`;
+      const digits = value.replace(/\D/g, '');
+      if (digits.length < 8) return `${label}: telefone inválido. Inclua DDI/DDD (ex.: +5511999999999).`;
+    }
+  }
+  return null;
+};
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useToast } from "@/hooks/use-toast";
 
@@ -1016,6 +1048,11 @@ const Modelos = () => {
       });
       return;
     }
+    const buttonsError = validateButtons(newTemplate.buttons);
+    if (buttonsError) {
+      toast({ title: "Erro nos botões", description: buttonsError, variant: "destructive" });
+      return;
+    }
     if (!isSpecialType(newTemplate.type) && !newTemplate.content) {
       toast({
         title: "Erro",
@@ -1259,6 +1296,11 @@ const Modelos = () => {
         description: "Preencha nome e categoria",
         variant: "destructive",
       });
+      return;
+    }
+    const editButtonsError = validateButtons(editFormData.buttons);
+    if (editButtonsError) {
+      toast({ title: "Erro nos botões", description: editButtonsError, variant: "destructive" });
       return;
     }
     if (!isSpecialType(editFormData.type) && !editFormData.content) {
