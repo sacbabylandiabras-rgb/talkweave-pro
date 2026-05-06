@@ -635,9 +635,9 @@ export const useMessageLogs = (
         if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
-        const url = extractProfilePictureUrl(data?.data ?? data);
-        const url = extractProfilePictureUrl(data?.data ?? data) || 
-                   (typeof (data?.data ?? data) === 'string' ? sanitizePictureUrl(data?.data ?? data) : null);
+        const payload = data?.data ?? data;
+        const url = extractProfilePictureUrl(payload) || 
+                   (typeof payload === 'string' ? sanitizePictureUrl(payload) : null);
                    
         if (url) {
           const existing = safeMapGet(savedContacts, phone);
