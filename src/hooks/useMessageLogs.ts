@@ -583,15 +583,17 @@ export const useMessageLogs = (
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
 
-      if (finalUrl) {
-        setLocalManualPhotos(prev => {
-          const next = new Map(prev);
+      setLocalManualPhotos(prev => {
+        const next = new Map(prev);
+        if (finalUrl) {
           next.set(phone, finalUrl);
-          return next;
-        });
-      }
+        } else {
+          next.delete(phone);
+        }
+        return next;
+      });
 
-      if (finalUrl || resolvedName) {
+      if (finalUrl || resolvedName || (!finalUrl && !isGroupPhone(phone))) {
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
@@ -600,7 +602,7 @@ export const useMessageLogs = (
             phone,
             name: resolvedName || existing?.name || '',
             user_id: userId,
-            profile_picture_url: finalUrl || existing?.profile_picture_url || null,
+            profile_picture_url: finalUrl || (isGroupPhone(phone) ? (existing?.profile_picture_url || null) : null),
           });
           await fetchSavedContacts();
         }
@@ -997,10 +999,13 @@ export const useMessageLogs = (
           rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
         }
 
+        const groupOnlyPhoto = isGroup
+          ? (safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone))
+          : null;
         return {
           phone,
           contactName: resolvedContactName,
-           profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
+          profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || groupOnlyPhoto || null,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
