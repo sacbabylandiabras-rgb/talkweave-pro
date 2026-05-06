@@ -845,7 +845,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
          <DialogContent className="sm:max-w-md">
            <DialogHeader>
-             <DialogTitle className="flex items-center gap-2">🛡️ Privacidade do WhatsApp</DialogTitle>
+             <DialogTitle className="flex items-center gap-2">Privacidade do WhatsApp</DialogTitle>
            </DialogHeader>
            <div className="space-y-4 py-4">
              <div className="grid grid-cols-1 gap-4">
