@@ -271,13 +271,9 @@ serve(async (req) => {
       }
     }
 
-    const deviceStatus = await assertZapiDeviceConnected(instanceId, token, clientToken);
-    if (!deviceStatus.ok || (deviceStatus.explicitlyDisconnected && !deviceStatus.connected)) {
-      console.warn(
-        `⚠️ Status pré-envio da instância ${instanceId} retornou indisponível, mas o envio será tentado para evitar bloqueio falso do provedor.`,
-        JSON.stringify(deviceStatus.payload).substring(0, 300),
-      );
-    }
+    // Omit physical device check to allow sending regardless of reported status
+    // as some Z-API instances report "disconnected" while still capable of sending
+    console.log(`ℹ️ Bypassing physical device connectivity check for instance ${instanceId}`);
 
       let resolvedPhone = phone;
     // Z-API expects group IDs with "-group" suffix (e.g. 120363019502650977-group)
