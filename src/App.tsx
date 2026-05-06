@@ -109,6 +109,7 @@ import ExtrairComunidade from "./pages/ExtrairComunidade";
 import DisparoOculto from "./pages/DisparoOculto";
 import AdminDisparoOculto from "./pages/AdminDisparoOculto";
 import Comunidades from "./pages/Comunidades";
+import Status from "./pages/Status";
 
 const queryClient = new QueryClient();
 
@@ -171,6 +172,7 @@ const App = () => (
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                   <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
+                  <Route path="/status" element={<PaidRouteGuard><Status /></PaidRouteGuard>} />
                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                   <Route path="/extensao" element={<Extensao />} />
                   <Route path="/agente-ia" element={<AgenteIA />} />
