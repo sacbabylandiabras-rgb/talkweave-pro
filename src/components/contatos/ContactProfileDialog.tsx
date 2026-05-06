@@ -80,7 +80,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
-  const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading } = useZapi();
+    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride } = useZapi();
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -110,11 +110,31 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   };
 
   useEffect(() => {
-    if (!open || !contact) return;
+    if (!open || !contact) {
+      if (!open) setZapiInstanceOverride(null);
+      return;
+    }
     setLocalTags([...contact.tags]);
     setNewName(contact.name || '');
     loadFlows();
-  }, [open, contact?.phone]);
+
+    // If we have a preferred instance, set it in useZapi so subsequent actions use it
+    if (preferredInstanceId && preferredInstanceId !== 'all') {
+      // We need to fetch the instance details to pass to setZapiInstanceOverride
+      const fetchAndSetInstance = async () => {
+        const { data } = await supabase
+          .from('zapi_instances')
+          .select('*')
+          .eq('zapi_instance_id', preferredInstanceId)
+          .maybeSingle();
+        
+        if (data) {
+          setZapiInstanceOverride(data as any);
+        }
+      };
+      fetchAndSetInstance();
+    }
+  }, [open, contact?.phone, preferredInstanceId]);
 
   const handleOpen = (isOpen: boolean) => {
     onOpenChange(isOpen);
