@@ -606,19 +606,9 @@ export const useMessageLogs = (
       const finalUrl = extractProfilePictureUrl(responsePayload);
 
       if (finalUrl) {
-        setLocalManualPhotos(prev => {
-          const next = new Map(prev);
-          next.set(phone, finalUrl);
-          return next;
-        });
       }
 
       if (finalUrl) {
-        setLocalManualPhotos(prev => {
-          const next = new Map(prev);
-          next.set(phone, finalUrl);
-          return next;
-        });
       }
 
       if (finalUrl || resolvedName) {
