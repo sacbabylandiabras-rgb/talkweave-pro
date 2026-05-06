@@ -623,15 +623,26 @@ const ChatView = ({
         else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
         else if (template.type === 'audio') mediaType = 'audio';
         
-        await onSendMessage(conversation.phone, template.content, {
+        const hasUrlOrCall = templateButtonActions.some(b => b.type === "URL" || b.type === "CALL");
+        
+        const sendOptions: any = {
           mediaUrl: template.mediaUrl,
           mediaType,
           preferredInstanceId: conversation.preferredInstanceId,
           title: template.header || undefined,
           footer: template.footer || undefined,
-          buttonActions: templateButtonActions.length > 0 ? templateButtonActions : undefined,
           templateId: template.id,
-        });
+        };
+
+        if (hasUrlOrCall) {
+          sendOptions.buttonActions = templateButtonActions;
+        } else if (templateButtonActions.length > 0) {
+          sendOptions.buttonList = {
+            buttons: templateButtonActions.map(b => ({ id: b.id, label: b.label }))
+          };
+        }
+
+        await onSendMessage(conversation.phone, template.content, sendOptions);
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
