@@ -51,10 +51,11 @@ const buildSpecialContent = (type: string, data: any): string => {
     const vars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
       ? data.variables as Record<string, any>
       : {};
-    payload.copyText = vars.copyText || data.header || data.content || "";
-    payload.description = data.content || "";
-  return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
-};
+     payload.copyText = vars.copyText || data.header || data.content || "";
+     payload.description = data.content || "";
+   }
+   return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+ };
 
 const parseSpecialContent = (content: string): any | null => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
