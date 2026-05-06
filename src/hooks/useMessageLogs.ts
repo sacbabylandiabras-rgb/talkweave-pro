@@ -600,8 +600,7 @@ export const useMessageLogs = (
       
       const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
-      const finalUrl = extractProfilePictureUrl(responsePayload) || 
-                      (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
+      const finalUrl = extractProfilePictureUrl(responsePayload);
 
       if (finalUrl || resolvedName) {
         const token = await getToken();
@@ -644,8 +643,7 @@ export const useMessageLogs = (
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
         const payload = data?.data ?? data;
-        const url = extractProfilePictureUrl(payload) || 
-                   (typeof payload === 'string' ? sanitizePictureUrl(payload) : null);
+        const url = extractProfilePictureUrl(payload);
                    
         if (url) {
           const existing = safeMapGet(savedContacts, phone);

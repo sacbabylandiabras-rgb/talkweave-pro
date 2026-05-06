@@ -38,8 +38,9 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
 
 export const normalizeConversationPhone = (phone: string): string => {
   if (!isGroupPhone(phone)) return phone;
-  const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-  return numericId ? `${numericId}-group` : phone;
+  // Strip suffix but preserve internal hyphens for legacy groups
+  const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '');
+  return rawId ? `${rawId}-group` : phone;
 };
 
 export const rememberGroupDisplayName = (
