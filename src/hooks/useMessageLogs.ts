@@ -269,17 +269,26 @@ const sanitizePictureUrl = (value: unknown): string | null => {
   if (!str) return null;
   const lower = str.toLowerCase();
   if (lower === 'null' || lower === 'undefined' || lower === 'false') return null;
+  // Check for common placeholders that aren't real photos
+  if (str.includes('default-user') || str.includes('avatar-placeholder')) return null;
   if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null;
   return str;
 };
 
 const extractProfilePictureUrl = (payload: any): string | null => {
   if (!payload) return null;
+  
+  // Handle payload being the direct URL string
+  if (typeof payload === 'string') {
+    return sanitizePictureUrl(payload);
+  }
+
   if (Array.isArray(payload)) {
     const first = payload[0];
     return extractProfilePictureUrl(first);
   }
-  return sanitizePictureUrl(
+
+  const rawUrl = 
     payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.profileThumbnail ||
     payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture ||
     payload?.imageUrl || payload?.image || payload?.photo || payload?.groupPhoto ||
@@ -287,8 +296,9 @@ const extractProfilePictureUrl = (payload: any): string | null => {
     payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
     payload?.chat?.imagePreview || payload?.chat?.image || payload?.chat?.imgUrl ||
     payload?.group?.image || payload?.group?.picture ||
-    payload?.preview || payload?.pictureUrl
-  );
+    payload?.preview || payload?.pictureUrl;
+
+  return sanitizePictureUrl(rawUrl);
 };
 
 const extractResolvedGroupName = (payload: any): string | null => {
