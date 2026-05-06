@@ -1016,6 +1016,11 @@ const Modelos = () => {
       });
       return;
     }
+    const buttonsError = validateButtons(newTemplate.buttons);
+    if (buttonsError) {
+      toast({ title: "Erro nos botões", description: buttonsError, variant: "destructive" });
+      return;
+    }
     if (!isSpecialType(newTemplate.type) && !newTemplate.content) {
       toast({
         title: "Erro",
