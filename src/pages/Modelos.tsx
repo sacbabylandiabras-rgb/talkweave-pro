@@ -1004,25 +1004,6 @@ const Modelos = () => {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
-    if (newTemplate.type === "uaz_status") {
-      const t = newTemplate.uazStatusType || "text";
-      if (t === "text" && !newTemplate.uazStatusText) {
-        toast({ title: "Erro", description: "Informe o texto do status", variant: "destructive" });
-        return;
-      }
-      if (t !== "text" && !newTemplate.uazStatusMedia) {
-        toast({ title: "Erro", description: "Informe a URL da mídia do status", variant: "destructive" });
-        return;
-      }
-    }
-    if (newTemplate.type === "uaz_location_button" && (!newTemplate.uazLocBtnLatitude || !newTemplate.uazLocBtnLongitude)) {
-      toast({ title: "Erro", description: "Informe latitude e longitude do botão de localização", variant: "destructive" });
-      return;
-    }
-    if (newTemplate.type === "uaz_request_payment" && !newTemplate.uazPayAmount) {
-      toast({ title: "Erro", description: "Informe o valor da solicitação de pagamento", variant: "destructive" });
-      return;
-    }
 
     const validListItems = Array.isArray(newTemplate.listItems)
       ? newTemplate.listItems.filter(item => item.title.trim() !== "")
@@ -1251,25 +1232,6 @@ const Modelos = () => {
     }
     if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
-      return;
-    }
-    if (editFormData.type === "uaz_status") {
-      const t = editFormData.uazStatusType || "text";
-      if (t === "text" && !editFormData.uazStatusText) {
-        toast({ title: "Erro", description: "Informe o texto do status", variant: "destructive" });
-        return;
-      }
-      if (t !== "text" && !editFormData.uazStatusMedia) {
-        toast({ title: "Erro", description: "Informe a URL da mídia do status", variant: "destructive" });
-        return;
-      }
-    }
-    if (editFormData.type === "uaz_location_button" && (!editFormData.uazLocBtnLatitude || !editFormData.uazLocBtnLongitude)) {
-      toast({ title: "Erro", description: "Informe latitude e longitude do botão de localização", variant: "destructive" });
-      return;
-    }
-    if (editFormData.type === "uaz_request_payment" && !editFormData.uazPayAmount) {
-      toast({ title: "Erro", description: "Informe o valor da solicitação de pagamento", variant: "destructive" });
       return;
     }
 
