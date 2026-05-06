@@ -67,6 +67,20 @@ Deno.serve(async (req) => {
       "Client-Token": instClientToken
     };
 
+    // Z-API exige que o ID do canal sempre tenha o sufixo "@newsletter".
+    const normalizeNewsletterId = (raw: string): string => {
+      if (!raw) return raw;
+      let id = String(raw).trim();
+      // remove sufixos errados como @c.us, @s.whatsapp.net, @g.us
+      id = id.replace(/@(c\.us|s\.whatsapp\.net|g\.us|broadcast)$/i, "");
+      // remove "-newsletter" (alguns lugares usam esse padrão interno)
+      id = id.replace(/-newsletter$/i, "");
+      if (!/@newsletter$/i.test(id)) {
+        id = `${id}@newsletter`;
+      }
+      return id;
+    };
+
     const callZapi = async (
       method: "GET" | "POST" | "PUT" | "DELETE",
       path: string,
@@ -116,7 +130,7 @@ Deno.serve(async (req) => {
 
       case "update-newsletter-picture": {
         const { newsletterId, id, imageUrl, pictureUrl } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         const targetUrl = pictureUrl || imageUrl;
         if (!targetId) throw new Error("newsletter id is required");
         if (!targetUrl) throw new Error("pictureUrl is required");
@@ -125,7 +139,7 @@ Deno.serve(async (req) => {
 
       case "update-newsletter-name": {
         const { newsletterId, id, name } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         if (!name) throw new Error("name is required");
         return await callZapi("POST", "/update-newsletter-name", { id: targetId, name });
@@ -133,7 +147,7 @@ Deno.serve(async (req) => {
 
       case "update-newsletter-description": {
         const { newsletterId, id, description } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         if (description === undefined) throw new Error("description is required");
         return await callZapi("POST", "/update-newsletter-description", { id: targetId, description });
@@ -141,45 +155,45 @@ Deno.serve(async (req) => {
 
       case "follow-newsletter": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/follow-newsletter", { id: targetId });
       }
 
       case "unfollow-newsletter": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/unfollow-newsletter", { id: targetId });
       }
 
       case "mute-newsletter": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/mute-newsletter", { id: targetId });
       }
 
       case "unmute-newsletter": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/unmute-newsletter", { id: targetId });
       }
 
       case "delete-newsletter": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/delete-newsletter", { id: targetId });
       }
 
       case "newsletter-metadata": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
-        // Revertido para query parameter, conforme padrão da Z-API para este endpoint específico
-        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(targetId)}`);
+        // Z-API espera o ID como path parameter
+        return await callZapi("GET", `/newsletter-metadata/${encodeURIComponent(targetId)}`);
       }
 
       case "search-newsletter": {
@@ -209,21 +223,21 @@ Deno.serve(async (req) => {
 
       case "update-newsletter-config": {
         const { newsletterId, id, reactionMode } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/update-newsletter-config", { id: targetId, reactionMode });
       }
 
       case "accept-newsletter-admin-invite": {
         const { newsletterId, id } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         return await callZapi("POST", "/accept-newsletter-admin-invite", { id: targetId });
       }
 
       case "newsletter-remove-admin": {
         const { newsletterId, id, phone } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
         return await callZapi("POST", "/newsletter-remove-admin", { id: targetId, phone });
@@ -231,7 +245,7 @@ Deno.serve(async (req) => {
 
       case "newsletter-revoke-admin-invite": {
         const { newsletterId, id, phone } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
         return await callZapi("POST", "/newsletter-revoke-admin-invite", { id: targetId, phone });
@@ -239,7 +253,7 @@ Deno.serve(async (req) => {
 
       case "transfer-newsletter-ownership": {
         const { newsletterId, id, phone } = body;
-        const targetId = id || newsletterId;
+        const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
         if (!phone) throw new Error("phone is required");
         return await callZapi("POST", "/transfer-newsletter-ownership", { id: targetId, phone });
