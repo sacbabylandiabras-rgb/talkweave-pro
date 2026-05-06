@@ -80,8 +80,7 @@ export default function ComunidadesTab() {
   const [participantPhones, setParticipantPhones] = useState("");
   const [adminPhones, setAdminPhones] = useState("");
 
-  const [adminsOnlyMessage, setAdminsOnlyMessage] = useState(false);
-  const [adminsOnlyAddMember, setAdminsOnlyAddMember] = useState(false);
+  const [whoCanAddNewGroups, setWhoCanAddNewGroups] = useState<"admins" | "everyone">("admins");
 
   const [editDescOpen, setEditDescOpen] = useState(false);
   const [editDesc, setEditDesc] = useState("");
@@ -960,27 +959,18 @@ export default function ComunidadesTab() {
                 <TabsContent value="settings" className="space-y-3 pt-3">
                   <div className="flex items-center justify-between rounded-md border p-3">
                     <div>
-                      <p className="text-sm font-medium">Apenas admins podem enviar mensagens</p>
+                      <p className="text-sm font-medium">Quem pode adicionar novos grupos</p>
                       <p className="text-xs text-muted-foreground">
-                        Restringe envio de mensagens ao canal de admins.
+                        Define se apenas administradores ou qualquer pessoa pode vincular grupos à comunidade.
                       </p>
                     </div>
-                    <Switch
-                      checked={adminsOnlyMessage}
-                      onCheckedChange={setAdminsOnlyMessage}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border p-3">
-                    <div>
-                      <p className="text-sm font-medium">Apenas admins podem adicionar membros</p>
-                      <p className="text-xs text-muted-foreground">
-                        Bloqueia membros comuns de adicionar novos participantes.
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{whoCanAddNewGroups === "admins" ? "Admins" : "Todos"}</span>
+                      <Switch
+                        checked={whoCanAddNewGroups === "everyone"}
+                        onCheckedChange={(checked) => setWhoCanAddNewGroups(checked ? "everyone" : "admins")}
+                      />
                     </div>
-                    <Switch
-                      checked={adminsOnlyAddMember}
-                      onCheckedChange={setAdminsOnlyAddMember}
-                    />
                   </div>
                   <Button
                     size="sm"
@@ -991,8 +981,7 @@ export default function ComunidadesTab() {
                         "community-settings",
                         {
                           communityId: selectedCommunity.id,
-                          adminsOnlyMessage,
-                          adminsOnlyAddMember,
+                          whoCanAddNewGroups,
                         },
                         "Configurações salvas",
                       )

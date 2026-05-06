@@ -118,14 +118,14 @@ Deno.serve(async (req) => {
         const { communityId, groupIds } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(groupIds) || !groupIds.length) throw new Error("groupIds is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/link-groups`, { groupIds });
+        return await callZapi("POST", "/communities/link", { communityId, groupsPhones: groupIds });
       }
 
       case "unlink-groups": {
         const { communityId, groupIds } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(groupIds) || !groupIds.length) throw new Error("groupIds is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/unlink-groups`, { groupIds });
+        return await callZapi("POST", "/communities/unlink", { communityId, groupsPhones: groupIds });
       }
 
       case "redefine-invitation-link": {
@@ -168,30 +168,27 @@ Deno.serve(async (req) => {
         const { communityId, phones } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(phones) || !phones.length) throw new Error("phones is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/remove-participant`, { phones });
+        return await callZapi("POST", "/remove-participant", { communityId, phones });
       }
 
       case "add-community-admin": {
         const { communityId, phones } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(phones) || !phones.length) throw new Error("phones is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/add-admin`, { phones });
+        return await callZapi("POST", "/add-admin", { communityId, phones });
       }
 
       case "remove-community-admin": {
         const { communityId, phones } = body;
         if (!communityId) throw new Error("communityId is required");
         if (!Array.isArray(phones) || !phones.length) throw new Error("phones is required");
-        return await callZapi("POST", `/communities/${encodeURIComponent(communityId)}/remove-admin`, { phones });
+        return await callZapi("POST", "/remove-admin", { communityId, phones });
       }
 
       case "community-settings": {
-        const { communityId, adminsOnlyMessage, adminsOnlyAddMember } = body;
+        const { communityId, whoCanAddNewGroups } = body;
         if (!communityId) throw new Error("communityId is required");
-        const payload: Record<string, unknown> = {};
-        if (typeof adminsOnlyMessage === "boolean") payload.adminsOnlyMessage = adminsOnlyMessage;
-        if (typeof adminsOnlyAddMember === "boolean") payload.adminsOnlyAddMember = adminsOnlyAddMember;
-        return await callZapi("PUT", `/communities/${encodeURIComponent(communityId)}/settings`, payload);
+        return await callZapi("POST", "/communities/settings", { communityId, whoCanAddNewGroups });
       }
 
       case "deactivate-community": {
@@ -204,7 +201,10 @@ Deno.serve(async (req) => {
         const { communityId, description } = body;
         if (!communityId) throw new Error("communityId is required");
         if (typeof description !== "string") throw new Error("description is required");
-        return await callZapi("PUT", `/communities/${encodeURIComponent(communityId)}/description`, { description });
+        return await callZapi("POST", "/update-community-description", {
+          communityId,
+          communityDescription: description,
+        });
       }
 
       case "update-group-photo": {
