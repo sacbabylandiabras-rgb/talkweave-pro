@@ -406,24 +406,29 @@ serve(async (req) => {
 
       const hasActionButtons = buttons.some(b => b.type === 'URL' || b.type === 'CALL');
 
-      // Case 1: Media + Action Buttons -> Use Carousel (Single Card) as it supports Action Buttons + Media
+      // Case 1: Media + Action Buttons -> Prefer /send-button-actions-image or video if possible, else carousel
       if (mediaUrl && (hasActionButtons || mediaType === 'video')) {
-        return sendZapi('/send-carousel', {
+        const payload: any = {
           phone: resolvedPhone,
-          message: message || '',
-          carousel: [{
-            text: (title ? `*${title}*\n` : '') + (message || '') + (footer ? `\n\n_${footer}_` : ''),
-            image: mediaType === 'image' ? mediaUrl : undefined,
-            video: mediaType === 'video' ? mediaUrl : undefined,
-            buttons: buttons.map(b => ({
-              id: b.id,
-              type: b.type,
-              label: b.label,
-              ...(b.type === 'URL' ? { url: b.url } : {}),
-              ...(b.type === 'CALL' ? { phone: b.phone } : {}),
-            }))
-          }]
-        }, 'buttons-carousel-fallback');
+          message: message || 'Escolha uma opção:',
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          buttonActions: buttons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            ...(b.type === 'URL' ? { url: b.url } : {}),
+            ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+          }))
+        };
+
+        if (mediaType === 'image') {
+          payload.image = mediaUrl;
+          return sendZapi('/send-button-actions-image', payload, 'buttons-actions-image');
+        } else {
+          payload.video = mediaUrl;
+          return sendZapi('/send-button-actions-video', payload, 'buttons-actions-video');
+        }
       }
 
       // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
