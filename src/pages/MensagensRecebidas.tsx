@@ -739,23 +739,12 @@ const ChatView = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea
-        className="flex-1 px-4 py-3"
-        style={{
-          backgroundColor: '#efeae2',
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='none' stroke='%23d9d2c6' stroke-width='1' opacity='0.55'><circle cx='20' cy='20' r='8'/><path d='M50 15 l8 8 -8 8 -8 -8z'/><circle cx='90' cy='30' r='5'/><path d='M15 70 q10 -10 20 0 t20 0'/><circle cx='80' cy='80' r='10'/><path d='M100 95 l6 6 -6 6 -6 -6z'/><circle cx='40' cy='100' r='4'/></g></svg>\")",
-          backgroundRepeat: 'repeat',
-        }}
-      >
+      <ScrollArea className="flex-1 px-4 py-3 bg-background">
         <div className="max-w-3xl mx-auto space-y-1">
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
               <div className="flex justify-center my-3">
-                <span
-                  className="text-[12px] px-3 py-1 rounded-md shadow-sm"
-                  style={{ backgroundColor: '#ffffff', color: '#54656f' }}
-                >
+                <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm">
                   {formatDateSeparator(msgs[0].timestamp)}
                 </span>
               </div>
@@ -763,29 +752,23 @@ const ChatView = ({
                 <div key={msg.id} className="mb-2">
                   {msg.type === 'received' ? (
                     <div className="flex justify-start">
-                      <div
-                        className="max-w-[75%] rounded-lg rounded-tl-none px-3 py-2 shadow-sm"
-                        style={{ backgroundColor: '#ffffff', color: '#111b21' }}
-                      >
+                      <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
                         {isGroupPhone(conversation.phone) && msg.sender_name && (
                           <div className="text-[11px] font-semibold mb-0.5 truncate" style={{ color: '#128c7e' }}>
                             {msg.sender_name}
                           </div>
                         )}
                         <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <p className="text-[10px] text-right mt-1" style={{ color: '#667781' }}>
+                        <p className="text-[10px] text-right mt-1 opacity-70">
                           {formatMessageTime(msg.timestamp)}
                         </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex justify-end">
-                      <div
-                        className="max-w-[75%] rounded-lg rounded-tr-none px-3 py-2 shadow-sm"
-                        style={{ backgroundColor: '#d9fdd3', color: '#111b21' }}
-                      >
+                      <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-primary text-primary-foreground">
                         <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <div className="flex items-center justify-end gap-1.5 mt-1" style={{ color: '#667781' }}>
+                        <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] flex items-center gap-0.5">
                               {getSourceIcon(msg.source)}
@@ -864,7 +847,7 @@ const ChatView = ({
       )}
 
       {/* Message Input */}
-      <div className="border-t border-border bg-[#f0f2f5] px-4 py-3">
+      <div className="border-t border-border bg-background px-4 py-3">
         <input
           ref={fileInputRef}
           type="file"
