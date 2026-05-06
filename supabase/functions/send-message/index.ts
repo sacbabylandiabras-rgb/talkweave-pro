@@ -903,11 +903,14 @@ serve(async (req) => {
         ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
         ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
         buttonActions: normalizedButtons.map(b => {
-          const action: any = {
+          return {
             id: b.id,
             type: b.type,
-            label: b.label
-  ,...         ...(b.type === "URL" ? { url: b.url } : {}), ...(b.type === "CALL" ? { phone: b.phone } : {}) };
+            label: b.label,
+            ...(b.type === "URL" ? { url: b.url } : {}),
+            ...(b.type === "CALL" ? { phone: b.phone } : {})
+          };
+        })
           return action;
         })
       };
