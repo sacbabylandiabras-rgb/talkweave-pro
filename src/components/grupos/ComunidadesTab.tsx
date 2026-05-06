@@ -366,6 +366,18 @@ export default function ComunidadesTab() {
                 <div className="grid md:grid-cols-2 gap-6 pt-2">
                   <div className="space-y-4">
                     <div>
+                      <Label className="text-xs flex items-center gap-1.5 mb-2">
+                        <Image className="w-3.5 h-3.5" />
+                        Foto da Comunidade (URL)
+                      </Label>
+                      <Input
+                        value={createPhotoUrl}
+                        onChange={(e) => setCreatePhotoUrl(e.target.value)}
+                        placeholder="Cole a URL da imagem"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
                       <Label className="text-xs">Nome da Comunidade</Label>
                       <Input
                         value={createName}
