@@ -1365,7 +1365,7 @@ export const useZapi = () => {
   const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('send-text-status', '', { text, backgroundColor, font });
+      const data = await invokeZapiAction('send-text-status', '', { message: text, backgroundColor, font });
       toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
       return data;
     } catch (error) {
@@ -1410,7 +1410,7 @@ export const useZapi = () => {
   const replyStatusText = async (statusId: string, phone: string, text: string) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('reply-status-text', phone, { statusId, text });
+      const data = await invokeZapiAction('reply-status-text', phone, { phone, msgId: statusId, message: text });
       toast({ title: "Resposta enviada", description: "A resposta ao status foi enviada com sucesso." });
       return data;
     } catch (error) {
@@ -1425,7 +1425,7 @@ export const useZapi = () => {
   const replyStatusGif = async (statusId: string, phone: string, gifUrl: string) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('reply-status-gif', phone, { statusId, gifUrl });
+      const data = await invokeZapiAction('reply-status-gif', phone, { phone, msgId: statusId, gif: gifUrl });
       toast({ title: "Resposta enviada", description: "O GIF foi enviado como resposta com sucesso." });
       return data;
     } catch (error) {
@@ -1440,7 +1440,7 @@ export const useZapi = () => {
   const replyStatusSticker = async (statusId: string, phone: string, stickerUrl: string) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('reply-status-sticker', phone, { statusId, stickerUrl });
+      const data = await invokeZapiAction('reply-status-sticker', phone, { phone, msgId: statusId, sticker: stickerUrl });
       toast({ title: "Resposta enviada", description: "A figurinha foi enviada como resposta com sucesso." });
       return data;
     } catch (error) {
