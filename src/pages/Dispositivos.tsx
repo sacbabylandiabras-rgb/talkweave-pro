@@ -127,12 +127,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Proxy (uazapi apenas)
-  const [showProxyDialog, setShowProxyDialog] = useState(false);
-  const [proxyLoading, setProxyLoading] = useState(false);
-  const [proxyInfo, setProxyInfo] = useState<any>(null);
-  const [proxyUrlInput, setProxyUrlInput] = useState('');
-
   // Set instance override only for operations that still use the shared hook state
   const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setZapiInstanceOverride(instance);
@@ -194,75 +188,41 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  // Fetch connected phone number separately
-  const fetchConnectedPhone = async () => {
-    if (connectedPhone) return;
-    let foundPhone: string | null = null;
-
-    if (instance.api_provider === 'uazapi') {
-      // UAZAPI: GET {apiUrl}/instance with token header
-      const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
-      const apiToken = instance.evolution_api_key || '';
-      if (!apiUrl || !apiToken) return;
-      try {
-        const res = await fetch(`${apiUrl}/instance/status`, {
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const inst = d?.instance ?? d ?? {};
-          const num =
-            inst?.owner?.replace?.(/@.*/, '') ||
-            inst?.wid?.replace?.(/@.*/, '') ||
-            inst?.phone ||
-            inst?.phoneNumber ||
-            d?.phone ||
-            null;
-          if (num) foundPhone = String(num).replace(/\D/g, '');
-          const pic =
-            inst?.profilePicUrl ||
-            inst?.profilePictureUrl ||
-            inst?.imgUrl ||
-            inst?.picture ||
-            d?.profilePicUrl ||
-            null;
-          if (pic) setProfilePicUrl(pic);
-          const name = inst?.profileName || inst?.pushName || inst?.name || null;
-          if (name) setInstanceName(String(name));
-        }
-      } catch {}
-    } else {
-      // Z-API
-      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-      const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
-
-      try {
-        const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-        if (res.ok) {
-          const d = await res.json();
-          const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-          if (num) foundPhone = num;
-          const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
-          if (pic) setProfilePicUrl(pic);
-        }
-      } catch {}
-
-      if (!foundPhone) {
-        try {
-          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
-            if (num) foundPhone = num;
-          }
-        } catch {}
-      }
-    }
-
-    if (foundPhone) {
-      setConnectedPhone(foundPhone);
-    }
-  };
+   // Fetch connected phone number separately
+   const fetchConnectedPhone = async () => {
+     if (connectedPhone) return;
+     let foundPhone: string | null = null;
+ 
+     // Z-API
+     const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+     const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+ 
+     try {
+       const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+       if (res.ok) {
+         const d = await res.json();
+         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+         if (num) foundPhone = num;
+         const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+         if (pic) setProfilePicUrl(pic);
+       }
+     } catch {}
+ 
+     if (!foundPhone) {
+       try {
+         const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+         if (res.ok) {
+           const d = await res.json();
+           const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+           if (num) foundPhone = num;
+         }
+       } catch {}
+     }
+ 
+     if (foundPhone) {
+       setConnectedPhone(foundPhone);
+     }
+   };
 
   const fetchQRCode = async () => {
     try {
@@ -392,36 +352,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  const handleDisconnect = async () => {
-    try {
-      if (instance.api_provider === 'uazapi') {
-        const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
-          body: {
-            apiUrl: instance.evolution_api_url,
-            apiToken: instance.evolution_api_key,
-          },
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-      } else {
-        await withInstance(() => disconnectDevice());
-      }
-
-      localStorage.removeItem('readConversations');
-      setConnectedPhone(null);
-      setProfilePicUrl(null);
-      setQrCode(null);
-      setQrCodeImage(null);
-      toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
-      setTimeout(fetchDeviceStatus, 1000);
-    } catch (err) {
-      if (instance.api_provider === 'uazapi') {
-        const message = await getInvokeErrorMessage(err, 'Erro ao desconectar');
-        toast({ title: '❌ Erro ao desconectar', description: message, variant: 'destructive' });
-      }
-    }
-  };
+   const handleDisconnect = async () => {
+     try {
+       await withInstance(() => disconnectDevice());
+       localStorage.removeItem('readConversations');
+       setConnectedPhone(null);
+       setProfilePicUrl(null);
+       setQrCode(null);
+       setQrCodeImage(null);
+       toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
+       setTimeout(fetchDeviceStatus, 1000);
+     } catch (err) {
+       // Silent catch
+     }
+   };
 
   useEffect(() => {
     fetchDeviceStatus();
