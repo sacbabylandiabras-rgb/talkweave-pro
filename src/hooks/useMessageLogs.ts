@@ -604,6 +604,14 @@ export const useMessageLogs = (
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
 
+      if (finalUrl) {
+        setLocalManualPhotos(prev => {
+          const next = new Map(prev);
+          next.set(phone, finalUrl);
+          return next;
+        });
+      }
+
       if (finalUrl || resolvedName) {
         const token = await getToken();
         const userId = await getUserId();
