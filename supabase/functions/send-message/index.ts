@@ -907,7 +907,7 @@ serve(async (req) => {
             id: b.id,
             type: b.type,
             label: b.label
-            ...(b.type === "URL" ? { url: b.url } : {}), ...(b.type === "CALL" ? { phone: b.phone } : {}) };
+  ,...         ...(b.type === "URL" ? { url: b.url } : {}), ...(b.type === "CALL" ? { phone: b.phone } : {}) };
           return action;
         })
       };
