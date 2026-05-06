@@ -87,9 +87,9 @@ export const useMessageTemplates = () => {
     fileName?: string;
     fileType?: string;
     variables?: string[];
-    buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+     buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>;
     listItems?: Array<{id: string, title: string, description?: string}>;
-    carouselCards?: Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}>;
+     carouselCards?: Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>}>;
   }) => {
     try {
       // Obter o user_id do usuário autenticado
@@ -138,9 +138,9 @@ export const useMessageTemplates = () => {
         active: data.active || false,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
+         buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}> : [],
         listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : [],
-        carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
+         carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>}> : [],
       }, ...prev]);
       toast({
         title: "Sucesso",
@@ -205,9 +205,9 @@ export const useMessageTemplates = () => {
             active: data.active !== undefined ? data.active : template.active,
             created_at: data.created_at || template.created_at,
             updated_at: data.updated_at || template.updated_at,
-            buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : template.buttons || [],
+             buttons: Array.isArray(data.buttons) ? data.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}> : template.buttons || [],
             listItems: Array.isArray(data.list_items) ? data.list_items as Array<{id: string, title: string, description?: string}> : template.listItems || [],
-            carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : template.carouselCards || [],
+             carouselCards: Array.isArray((data as any).carousel_cards) ? (data as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>}> : template.carouselCards || [],
           } : template
         )
       );
