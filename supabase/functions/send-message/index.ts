@@ -371,11 +371,15 @@ serve(async (req) => {
     };
 
     // Define common button logic to be used if needed
-    const handleButtons = async () => {
-      // Normalizar botões
-      const normalized = (buttonActions || []).slice(0, 10).map((b: any, index: number) => {
+    const smartSendButtons = async () => {
+      const rawButtons = [
+        ...(buttonActions || []),
+        ...(buttonList?.buttons || []).map((b: any) => ({ ...b, type: 'REPLY' }))
+      ];
+
+      const normalized = rawButtons.slice(0, 10).map((b: any, index: number) => {
         let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-        let url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
+        let url = b.url || b.value || b.urlValue || b.link || b.website;
         let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
         let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim().slice(0, 25);
         
@@ -383,6 +387,7 @@ serve(async (req) => {
           type = 'URL';
           url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
         }
+        if (type === 'QUICK_REPLY') type = 'REPLY';
 
         return { id: b.id || String(index + 1), type, label, url, phone };
       }).filter(b => {
@@ -393,60 +398,78 @@ serve(async (req) => {
         return true;
       });
 
-      const actionBtns = normalized.filter(b => b.type === 'URL' || b.type === 'CALL').slice(0, 3);
-      const replyBtns = normalized.filter(b => b.type === 'REPLY').slice(0, 3);
-      const groups = [];
-      if (actionBtns.length > 0) groups.push({ kind: 'action', buttons: actionBtns });
-      if (replyBtns.length > 0) groups.push({ kind: 'reply', buttons: replyBtns });
-
-      console.log(`📤 Sending ${groups.length} button group(s) for ${resolvedPhone}`);
-
-       // 1. Send button groups
-       let lastRes = null;
-       for (let i = 0; i < groups.length; i++) {
-         const g = groups[i];
-         let payload: any = {
-           phone: resolvedPhone,
-           message: message || 'Escolha uma opção:',
-         };
-         if (title) payload.title = title;
-         if (footer) payload.footer = footer;
-
-         let endpoint = '';
-         if (g.kind === 'action') {
-           endpoint = '/send-button-actions';
-           payload.buttonActions = g.buttons.map((b: any) => ({
-             id: b.id,
-             type: b.type,
-             label: b.label,
-             url: b.url,
-             phone: b.phone
-           }));
-           // Try to attach media to action buttons if possible
-           if (i === 0 && mediaUrl && mediaType === 'image') payload.image = mediaUrl;
-         } else {
-           endpoint = '/send-button-list';
-           payload.buttonList = {
-             buttons: g.buttons.map((b: any) => ({ id: b.id, label: b.label }))
-           };
-           // Try to attach media to button list if possible
-           if (i === 0 && mediaUrl && mediaType === 'image') payload.buttonList.image = mediaUrl;
-           if (i === 0 && mediaUrl && mediaType === 'video') payload.buttonList.video = mediaUrl;
-         }
-
-         lastRes = await sendZapi(endpoint, payload, `buttons-${g.kind}`);
-         if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
-       }
-
-      // Fallback: If no buttons were actually valid but groups were empty, send at least the message/media
-      if (groups.length === 0) {
-        if (mediaUrl && mediaType) {
-          return sendZapiMedia(mediaUrl, mediaType, message);
-        } else {
-          return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
-        }
+      const buttons = normalized.slice(0, 3);
+      if (buttons.length === 0) {
+        if (mediaUrl && mediaType) return sendZapiMedia(mediaUrl, mediaType, message);
+        return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
       }
-      return lastRes;
+
+      const hasActionButtons = buttons.some(b => b.type === 'URL' || b.type === 'CALL');
+
+      // Case 1: Media + Action Buttons -> Use Carousel (Single Card) as it supports Action Buttons + Media
+      if (mediaUrl && (hasActionButtons || mediaType === 'video')) {
+        return sendZapi('/send-carousel', {
+          phone: resolvedPhone,
+          message: message || '',
+          carousel: [{
+            text: (title ? `*${title}*\n` : '') + (message || '') + (footer ? `\n\n_${footer}_` : ''),
+            image: mediaType === 'image' ? mediaUrl : undefined,
+            video: mediaType === 'video' ? mediaUrl : undefined,
+            buttons: buttons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : {}),
+              ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+            }))
+          }]
+        }, 'buttons-carousel-fallback');
+      }
+
+      // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
+      if (mediaUrl && !hasActionButtons) {
+        const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+        const payload: any = {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          buttonList: {
+            buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+          }
+        };
+        if (mediaType === 'image') payload.buttonList.image = mediaUrl;
+        else payload.buttonList.video = mediaUrl;
+        return sendZapi(endpoint, payload, 'buttons-media-reply');
+      }
+
+      // Case 3: No Media + Any Buttons -> Use /send-button-actions if any action btns present
+      if (!mediaUrl && hasActionButtons) {
+        return sendZapi('/send-button-actions', {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          title,
+          footer,
+          buttonActions: buttons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            url: b.url,
+            phone: b.phone
+          }))
+        }, 'buttons-actions-text');
+      }
+
+      // Case 4: No Media + Only Reply Buttons -> Use /send-button-list
+      if (!mediaUrl && !hasActionButtons) {
+        return sendZapi('/send-button-list', {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          buttonList: {
+            buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+          }
+        }, 'buttons-reply-text');
+      }
+
+      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'buttons-final-fallback');
     };
 
     // OTP support
@@ -647,32 +670,27 @@ serve(async (req) => {
       });
       logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
-    } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      zapiData = await handleButtons();
-      logMessage = logMessage || '🔘 Botões interativos';
-    } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
-      let endpoint = '/send-button-list';
-      const payload: any = {
-        phone: resolvedPhone,
-        message: message || 'Selecione uma opção:',
-        buttonList: {
-          buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
-            id: button.id || String(index + 1),
-            label: button.label,
-          })),
-        },
-      };
-
-      if (mediaUrl && mediaType === 'image') {
-        endpoint = '/send-button-list-image';
-        payload.buttonList.image = mediaUrl;
-      } else if (mediaUrl && mediaType === 'video') {
-        endpoint = '/send-button-list-video';
-        payload.buttonList.video = mediaUrl;
-      }
-
-      zapiData = await sendZapi(endpoint, payload, 'button-list');
-      logMessage = logMessage || '🔘 Lista de botões';
+    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
+      const cards = carouselCards.map((card: any) => {
+        const cardText = [card.title, card.description].filter(v => v && String(v).trim() !== '').join('\n\n');
+        const c: any = { text: cardText || card.text || '' };
+        if (card.image) c.image = card.image;
+        if (Array.isArray(card.buttons)) {
+          c.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
+            const t = String(b.type || 'REPLY').toUpperCase();
+            const btn: any = { id: b.id || String(idx + 1), type: t, label: b.text || b.label || `Botão ${idx + 1}` };
+            if (t === 'URL') btn.url = b.value || b.url;
+            if (t === 'CALL') btn.phone = b.value || b.phone;
+            return btn;
+          });
+        }
+        return c;
+      });
+      zapiData = await sendZapi('/send-carousel', { phone: resolvedPhone, message: message || '', carousel: cards }, 'carousel');
+      logMessage = logMessage || '🎠 Carrossel';
+    } else if ((Array.isArray(buttonActions) && buttonActions.length > 0) || (buttonList?.buttons && buttonList.buttons.length > 0)) {
+      zapiData = await smartSendButtons();
+      logMessage = logMessage || '🔘 Botões';
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
@@ -685,44 +703,6 @@ serve(async (req) => {
       });
       logMessage = logMessage || '📋 Lista de opções';
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
-    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
-      // Z-API: /send-carousel — cards com image, title, description, buttons[]
-      const cards = carouselCards.map((card: any) => {
-        // Z-API espera o campo `text` (não title/description). Concatenamos ambos.
-        const cardText = [card.title, card.description]
-          .filter((v: any) => v && String(v).trim() !== '')
-          .join('\n\n');
-        const c: any = {
-          text: cardText || card.text || '',
-        };
-        if (card.image && String(card.image).trim() !== '') c.image = card.image;
-        if (Array.isArray(card.buttons) && card.buttons.length > 0) {
-          c.buttons = card.buttons.slice(0, 3).map((b: any, idx: number) => {
-            const t = String(b.type || 'REPLY').toUpperCase();
-            const btn: any = {
-              id: b.id || String(idx + 1),
-              type: t,
-              label: b.text || b.label || `Botão ${idx + 1}`,
-            };
-            if (t === 'URL' && (b.value || b.url)) btn.url = b.value || b.url;
-            if (t === 'CALL' && (b.value || b.phone)) btn.phone = b.value || b.phone;
-            return btn;
-          });
-        }
-        return c;
-      });
-      console.log(`📤 Z-API send-carousel for ${resolvedPhone}: ${cards.length} cards`, JSON.stringify(cards).slice(0, 500));
-      zapiResponse = await fetch(`${baseUrl}/send-carousel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || '',
-          carousel: cards,
-        }),
-      });
-      logMessage = logMessage || '🎠 Carrossel';
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'carousel');
     } else if (mediaUrl && mediaType) {
       if (mediaType === 'audio') {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
