@@ -251,7 +251,31 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     }
   }, [enabled, loading, contacts.length]);
 
-  return { contacts, stats, loading, refetch: fetchContacts };
+
+  const refreshProfilePicture = async (phone: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone } });
+      if (error) return null;
+      const url = extractProfilePictureUrl(data?.data ?? data);
+      if (url) {
+        // Update local state
+        setContacts(prev => prev.map(c => c.phone === phone ? { ...c, profilePictureUrl: url, lastUpdated: new Date().toISOString() } : c));
+        
+        // Save to DB
+        await supabase.from('saved_contacts').upsert(
+          { phone, user_id: session.user.id, profile_picture_url: url },
+          { onConflict: 'phone,user_id' }
+        );
+        return url;
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  return { contacts, stats, loading, refetch: fetchContacts, refreshProfilePicture };
 };
 
 // Função auxiliar para extrair nome do telefone
