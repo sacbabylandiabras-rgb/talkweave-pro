@@ -438,24 +438,51 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
   const ownerLid = owner.lid;
   console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerPhone || '(unknown)'} lid=${ownerLid || '(unknown)'}`);
 
-  const response = await fetch(`${baseUrl}/groups`, { method: 'GET', headers });
-  const payload = await response.json().catch(() => []);
-  if (!response.ok) {
-    console.error(`❌ Z-API groups error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
-    return [];
+  const [groupsRes, communitiesRes, chatsRes] = await Promise.all([
+    fetch(`${baseUrl}/groups`, { method: 'GET', headers }),
+    fetch(`${baseUrl}/communities`, { method: 'GET', headers }).catch(() => null),
+    fetch(`${baseUrl}/chats`, { method: 'GET', headers }).catch(() => null),
+  ]);
+
+  const payload = await groupsRes.json().catch(() => []);
+  if (!groupsRes.ok) {
+    console.error(`❌ Z-API groups error for ${instance.instance_name}: ${groupsRes.status} - ${JSON.stringify(payload)}`);
   }
 
-  const rawGroups = Array.isArray(payload)
-    ? payload
-    : Array.isArray(payload?.groups)
-      ? payload.groups
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : [];
+  const communitiesPayload = communitiesRes ? await communitiesRes.json().catch(() => []) : [];
+  const chatsPayload = chatsRes ? await chatsRes.json().catch(() => []) : [];
+
+  const getList = (data: any) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.groups)) return data.groups;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.value)) return data.value;
+    return [];
+  };
+
+  const rawGroups = getList(payload);
+  const rawCommunities = getList(communitiesPayload);
+  const rawChannels = getList(chatsPayload).filter((c: any) => {
+    const id = String(c.id || c.phone || c.jid || "");
+    return id.includes("@newsletter");
+  });
+
+  // Combine them, marking communities and channels
+  const allRaw = [
+    ...rawGroups,
+    ...rawCommunities.map((c: any) => ({ ...c, __isCommunity: true })),
+    ...rawChannels.map((c: any) => ({ ...c, __isChannel: true })),
+  ];
 
   const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
-    const groupId = normalizeZapiGroupId(group?.phone || group?.id || group?.jid || group?.groupId || group?.remoteJid || '');
-    if (!groupId.includes('-group')) return null;
+    const isComm = group.__isCommunity === true;
+    const isChan = group.__isChannel === true;
+    
+    let groupId = String(group?.phone || group?.id || group?.jid || group?.groupId || group?.remoteJid || '');
+    if (!isComm && !isChan) {
+      groupId = normalizeZapiGroupId(groupId);
+      if (!groupId.includes('-group')) return null;
+    }
 
     let detail: any = null;
     try {
@@ -479,8 +506,10 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
-      isAdmin: explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone, ownerLid) || participants.length === 0,
+      isAdmin: isComm || isChan || explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone, ownerLid) || participants.length === 0,
       memberCount: participants.length || detail?.participantCount || detail?.ParticipantCount || group?.participantCount || group?.ParticipantCount || group?.memberCount || group?.size || 0,
+      isCommunity: isComm,
+      isChannel: isChan,
       profilePicture: detail?.profileThumbnail || detail?.groupPhoto || detail?.imgUrl || detail?.imageUrl || group?.imgUrl || group?.profilePicture || group?.image || group?.photo || null,
       __sourceInstanceName: instance.instance_name || null,
       __sourceInstanceId: instance.zapi_instance_id,
