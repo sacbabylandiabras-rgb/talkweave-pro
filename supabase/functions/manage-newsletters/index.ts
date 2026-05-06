@@ -1,0 +1,216 @@
+import { corsHeaders } from "../_shared/cors.ts";
+import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
+
+/**
+ * Manage Z-API Newsletters (Channels)
+ * Docs: https://developer.z-api.io/newsletter/introduction
+ *
+ * Supported actions:
+ * - create-newsletter
+ * - list-newsletters
+ * - update-newsletter-picture
+ * - update-newsletter-name
+ * - update-newsletter-description
+ * - follow-newsletter
+ * - unfollow-newsletter
+ * - mute-newsletter
+ * - unmute-newsletter
+ * - delete-newsletter
+ * - newsletter-metadata
+ * - search-newsletter
+ * - update-newsletter-config
+ * - accept-newsletter-admin-invite
+ * - newsletter-remove-admin
+ * - newsletter-revoke-admin-invite
+ * - transfer-newsletter-ownership
+ */
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json();
+    const { action, instanceId, instanceToken, instanceClientToken } = body;
+
+    const instId = instanceId || credentials.instanceId;
+    const instToken = instanceToken || credentials.token;
+    const instClientToken = instanceClientToken || credentials.clientToken;
+
+    if (!instId || !instToken || !instClientToken) {
+      return new Response(
+        JSON.stringify({ error: "Credenciais Z-API não configuradas" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const baseUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Client-Token": instClientToken,
+    };
+
+    const callZapi = async (
+      method: "GET" | "POST" | "PUT" | "DELETE",
+      path: string,
+      payload?: unknown,
+    ) => {
+      const init: RequestInit = { method, headers };
+      if (payload !== undefined && method !== "GET") {
+        init.body = JSON.stringify(payload);
+      }
+      const res = await fetch(`${baseUrl}${path}`, init);
+      const text = await res.text();
+      let data: unknown;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { raw: text };
+      }
+
+      if (!res.ok) {
+        const errMsg = (data as { error?: string; message?: string })?.error
+          || (data as { error?: string; message?: string })?.message
+          || `Z-API error ${res.status}`;
+        return new Response(
+          JSON.stringify({ error: errMsg, details: data, status: res.status }),
+          { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    };
+
+    switch (action) {
+      case "create-newsletter": {
+        const { name, description, imageUrl } = body;
+        if (!name) throw new Error("name is required");
+        return await callZapi("POST", "/create-newsletter", {
+          name,
+          description: description ?? "",
+          ...(imageUrl ? { imageUrl } : {}),
+        });
+      }
+
+      case "list-newsletters": {
+        return await callZapi("GET", "/newsletter-list");
+      }
+
+      case "update-newsletter-picture": {
+        const { newsletterId, imageUrl } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (!imageUrl) throw new Error("imageUrl is required");
+        return await callZapi("POST", "/update-newsletter-picture", { newsletterId, imageUrl });
+      }
+
+      case "update-newsletter-name": {
+        const { newsletterId, name } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (!name) throw new Error("name is required");
+        return await callZapi("POST", "/update-newsletter-name", { newsletterId, name });
+      }
+
+      case "update-newsletter-description": {
+        const { newsletterId, description } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (description === undefined) throw new Error("description is required");
+        return await callZapi("POST", "/update-newsletter-description", { newsletterId, description });
+      }
+
+      case "follow-newsletter": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/follow-newsletter", { newsletterId });
+      }
+
+      case "unfollow-newsletter": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/unfollow-newsletter", { newsletterId });
+      }
+
+      case "mute-newsletter": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/mute-newsletter", { newsletterId });
+      }
+
+      case "unmute-newsletter": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/unmute-newsletter", { newsletterId });
+      }
+
+      case "delete-newsletter": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("DELETE", "/delete-newsletter", { newsletterId });
+      }
+
+      case "newsletter-metadata": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("GET", `/newsletter-metadata?newsletterId=${encodeURIComponent(newsletterId)}`);
+      }
+
+      case "search-newsletter": {
+        const { query } = body;
+        if (!query) throw new Error("query is required");
+        return await callZapi("GET", `/search-newsletter?query=${encodeURIComponent(query)}`);
+      }
+
+      case "update-newsletter-config": {
+        const { newsletterId, reactionMode } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/update-newsletter-config", { newsletterId, reactionMode });
+      }
+
+      case "accept-newsletter-admin-invite": {
+        const { newsletterId } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        return await callZapi("POST", "/accept-newsletter-admin-invite", { newsletterId });
+      }
+
+      case "newsletter-remove-admin": {
+        const { newsletterId, phone } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (!phone) throw new Error("phone is required");
+        return await callZapi("POST", "/newsletter-remove-admin", { newsletterId, phone });
+      }
+
+      case "newsletter-revoke-admin-invite": {
+        const { newsletterId, phone } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (!phone) throw new Error("phone is required");
+        return await callZapi("POST", "/newsletter-revoke-admin-invite", { newsletterId, phone });
+      }
+
+      case "transfer-newsletter-ownership": {
+        const { newsletterId, phone } = body;
+        if (!newsletterId) throw new Error("newsletterId is required");
+        if (!phone) throw new Error("phone is required");
+        return await callZapi("POST", "/transfer-newsletter-ownership", { newsletterId, phone });
+      }
+
+      default:
+        return new Response(
+          JSON.stringify({ error: `Ação inválida: ${action}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("💥 manage-newsletters error:", msg);
+    return new Response(
+      JSON.stringify({ error: msg }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+*** End Patch
