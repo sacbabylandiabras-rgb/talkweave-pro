@@ -45,6 +45,7 @@ import {
   LinkIcon,
   LayoutTemplate,
   Sparkles,
+  Building2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
