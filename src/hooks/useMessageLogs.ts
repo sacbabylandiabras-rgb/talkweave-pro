@@ -620,7 +620,7 @@ export const useMessageLogs = (
               !saved?.profile_picture_url &&
               !p.includes('@lid') &&
               !isLikelyTechnicalIdentifier(p);
-     }).slice(0, 8); // Limit to 8 at a time
+     }).slice(0, 25); // Limit to 25 at a time (was 8 — too slow for big lists)
  
      for (const phone of toFetch) {
       fetchedPhotosRef.current.add(phone);
@@ -634,7 +634,7 @@ export const useMessageLogs = (
           const existing = safeMapGet(savedContacts, phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
         }
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 200));
       } catch { /* ignore */ }
     }
     if (toFetch.length > 0) {
@@ -1025,7 +1025,7 @@ export const useMessageLogs = (
 
   useEffect(() => {
     if (loading || !groupsMissingPhotoKey) return;
-    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 4);
+    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 20);
     if (entries.length === 0) return;
 
     let cancelled = false;
@@ -1039,7 +1039,7 @@ export const useMessageLogs = (
         try {
           await fetchProfilePicture(phone, instanceId || null);
         } catch { /* ignore */ }
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 200));
       }
     })();
     return () => { cancelled = true; };
