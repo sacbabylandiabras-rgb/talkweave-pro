@@ -73,11 +73,10 @@ export default function CanaisTab() {
     }
   }, [selectedNewsletter]);
 
-  const invokeNewsletter = async (action: string, payload: Record<string, unknown> = {}) => {
-    const inst = instances.find((i) => i.id === instanceId);
-    const { data, error } = await supabase.functions.invoke("manage-newsletters", {
-      body: { action, instanceId: inst?.zapi_instance_id, instanceToken: inst?.zapi_token, instanceClientToken: inst?.zapi_client_token, ...payload },
-    });
+   const invokeNewsletter = async (action: string, payload: Record<string, unknown> = {}) => {
+     const { data, error } = await supabase.functions.invoke("manage-newsletters", {
+       body: { action, ...payload },
+     });
     if (error) throw new Error(error.message || "Erro ao chamar Z-API");
     if (data && typeof data === "object" && "error" in (data as Record<string, unknown>)) {
       throw new Error(String((data as { error: string }).error));
