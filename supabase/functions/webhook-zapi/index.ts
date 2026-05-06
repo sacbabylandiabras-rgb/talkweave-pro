@@ -202,11 +202,7 @@ const normalizeInstanceIdentifier = (value: unknown) => {
 };
 
 const resolveWebhookInstanceReference = (webhook: any) => {
-  const provider = String(webhook?.provider || webhook?.api_provider || "")
-    .toLowerCase();
-  const isUazapiWebhook = provider === "uazapi" || webhook?.isUazapi === true;
-  const raw = webhook?.instanceId || webhook?.instance_id ||
-    (isUazapiWebhook ? "" : (webhook?.instanceName || webhook?.instance_name || ""));
+  const raw = webhook?.instanceId || webhook?.instance_id || webhook?.instanceName || webhook?.instance_name || "";
   return {
     raw,
     normalized: normalizeInstanceIdentifier(raw),
