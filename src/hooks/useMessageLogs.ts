@@ -589,13 +589,11 @@ export const useMessageLogs = (
       if (error) return null;
       
       const responsePayload = rawData?.data ?? rawData;
-      const url = extractProfilePictureUrl(responsePayload);
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
-      
-      // Final confirmation: if the response itself is just a string (sometimes Z-API returns a direct URL string)
-      const finalUrl = url || (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
+      const finalUrl = extractProfilePictureUrl(responsePayload) || 
+                      (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
 
-      if (url || resolvedName) {
+      if (finalUrl || resolvedName) {
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
@@ -604,12 +602,12 @@ export const useMessageLogs = (
             phone,
             name: resolvedName || existing?.name || '',
             user_id: userId,
-            profile_picture_url: url || existing?.profile_picture_url || null,
+            profile_picture_url: finalUrl || existing?.profile_picture_url || null,
           });
           await fetchSavedContacts();
         }
       }
-      return url;
+      return finalUrl;
     } catch { return null; }
   }, [savedContacts, fetchSavedContacts]);
 
