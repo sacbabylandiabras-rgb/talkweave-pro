@@ -1298,6 +1298,11 @@ const Modelos = () => {
       });
       return;
     }
+    const editButtonsError = validateButtons(editFormData.buttons);
+    if (editButtonsError) {
+      toast({ title: "Erro nos botões", description: editButtonsError, variant: "destructive" });
+      return;
+    }
     if (!isSpecialType(editFormData.type) && !editFormData.content) {
       toast({
         title: "Erro",
