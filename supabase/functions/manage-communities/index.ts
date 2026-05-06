@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       case "deactivate-community": {
         const { communityId } = body;
         if (!communityId) throw new Error("communityId is required");
-        return await callZapi("POST", "/deactivate-community", { communityId });
+        return await callZapi("DELETE", `/communities/${encodeURIComponent(communityId)}`);
       }
 
       case "update-community-description": {
