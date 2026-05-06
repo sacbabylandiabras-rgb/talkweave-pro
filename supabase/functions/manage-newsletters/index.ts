@@ -51,12 +51,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseUrl = isUazapi 
-      ? `https://api.uazapi.com/instances/${instId}/token/${instToken}`
-      : `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+    const baseUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (!isUazapi) headers["Client-Token"] = instClientToken;
+    const headers: Record<string, string> = { 
+      "Content-Type": "application/json",
+      "Client-Token": instClientToken
+    };
 
     const callZapi = async (
       method: "GET" | "POST" | "PUT" | "DELETE",
