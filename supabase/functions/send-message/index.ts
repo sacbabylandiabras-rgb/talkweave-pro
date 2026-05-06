@@ -535,47 +535,42 @@ serve(async (req) => {
         return { id: b.id || String(index + 1), type, label, url, phone };
       });
 
-      console.log(`📤 Enviando botões (Z-API unified): ${allButtons.length} botões`);
-      
-      // Payload base
-      const buttonActionsPayload: any = {
+      // Z-API: enviar TODOS os tipos de botão (REPLY, URL, CALL) em UMA ÚNICA mensagem.
+      // Misturar tipos diferentes era a causa de botões sumirem — agora deixamos a Z-API
+      // resolver. Se houver instabilidade, enviamos como uma única ação consolidada.
+      const normalized = allButtons
+        .filter(b => ['REPLY', 'URL', 'CALL'].includes(b.type))
+        .map(b => {
+          const btn: any = { id: b.id, type: b.type, label: b.label.slice(0, 25) };
+          if (b.type === 'URL') btn.url = b.url;
+          else if (b.type === 'CALL') btn.phone = b.phone;
+          return btn;
+        })
+        .slice(0, 3); // WhatsApp aceita no máx. 3 botões por mensagem
+
+      console.log(`📤 Enviando botões (Z-API unified): ${normalized.length} botões em uma única mensagem`, normalized.map(b => b.type));
+
+      const payload: any = {
         phone: resolvedPhone,
         message: interactiveMessage,
         ...(title ? { title } : {}),
         ...(footer ? { footer } : {}),
-        buttonActions: allButtons.map(b => {
-          const btn: any = {
-            id: b.id,
-            type: b.type,
-            label: b.label
-          };
-          
-          if (b.type === 'URL') btn.url = b.url;
-          else if (b.type === 'CALL') btn.phone = b.phone;
-          else if (b.type === 'COPY') {
-            btn.type = 'COPY';
-            btn.copyCode = b.url; // Usamos o campo url como o código a ser copiado
-          }
-          
-          return btn;
-        })
+        buttonActions: normalized,
       };
 
-      // Z-API support for media with button-actions:
-      // According to recent Z-API docs, some versions support image/video/document inside button-actions
       if (mediaUrl && mediaType) {
-        if (mediaType === 'image') buttonActionsPayload.image = mediaUrl;
-        else if (mediaType === 'video') buttonActionsPayload.video = mediaUrl;
+        if (mediaType === 'image') payload.image = mediaUrl;
+        else if (mediaType === 'video') payload.video = mediaUrl;
         else if (mediaType === 'document') {
-          buttonActionsPayload.document = mediaUrl;
-          buttonActionsPayload.fileName = message || 'arquivo';
+          payload.document = mediaUrl;
+          payload.fileName = message || 'arquivo';
         }
       }
 
       zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(buttonActionsPayload),
+        body: JSON.stringify(payload),
       });
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-unified');
       logMessage = logMessage || '🔘 Botões interativos';
