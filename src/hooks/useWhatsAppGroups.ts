@@ -14,6 +14,7 @@ export interface WhatsAppGroup {
   sourceInstanceId?: string | null;
   sourceInstanceName?: string | null;
   isCommunity?: boolean;
+  isChannel?: boolean;
 }
 
 export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi'; source?: 'profile' }) {
