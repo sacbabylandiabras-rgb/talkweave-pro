@@ -98,8 +98,16 @@ const Contatos = () => {
             <Card key={contato.phone} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpenProfile(contato)}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                   <Avatar>
-                     {contato.profilePictureUrl && <AvatarImage src={contato.profilePictureUrl} />}
+                   <Avatar className="overflow-hidden">
+                     {contato.profilePictureUrl && (
+                       <AvatarImage 
+                         src={contato.profilePictureUrl} 
+                         className="object-cover"
+                         onError={(e) => {
+                           (e.currentTarget as HTMLImageElement).style.display = 'none';
+                         }}
+                       />
+                     )}
                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                        {getInitials(contato.name, contato.phone)}
                      </AvatarFallback>
