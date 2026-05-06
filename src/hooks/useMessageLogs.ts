@@ -585,12 +585,15 @@ export const useMessageLogs = (
       if (instanceId) body.instanceId = instanceId;
       else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
 
-      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
+      const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
       if (error) return null;
-      const responsePayload = data?.data ?? data;
-      const url = extractProfilePictureUrl(responsePayload);
+      
+      const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
-      if (url || resolvedName) {
+      const finalUrl = extractProfilePictureUrl(responsePayload) || 
+                      (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
+
+      if (finalUrl || resolvedName) {
         const token = await getToken();
         const userId = await getUserId();
         if (token && userId) {
@@ -599,12 +602,12 @@ export const useMessageLogs = (
             phone,
             name: resolvedName || existing?.name || '',
             user_id: userId,
-            profile_picture_url: url || existing?.profile_picture_url || null,
+            profile_picture_url: finalUrl || existing?.profile_picture_url || null,
           });
           await fetchSavedContacts();
         }
       }
-      return url;
+      return finalUrl;
     } catch { return null; }
   }, [savedContacts, fetchSavedContacts]);
 
@@ -630,7 +633,10 @@ export const useMessageLogs = (
         if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
-        const url = extractProfilePictureUrl(data?.data ?? data);
+        const payload = data?.data ?? data;
+        const url = extractProfilePictureUrl(payload) || 
+                   (typeof payload === 'string' ? sanitizePictureUrl(payload) : null);
+                   
         if (url) {
           const existing = safeMapGet(savedContacts, phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
