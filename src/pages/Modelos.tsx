@@ -643,7 +643,7 @@ const ButtonEditor = memo(({
             e.stopPropagation();
             onAddButton(isEdit);
           }}
-          disabled={buttons.length >= 3}
+           disabled={buttons.length >= 10}
         >
           <Plus className="w-4 h-4 mr-1" />
           Adicionar Botão
@@ -700,34 +700,48 @@ const ButtonEditor = memo(({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="reply">
-                    <div className="flex items-center">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Resposta Rápida
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="url">
-                    <div className="flex items-center">
-                      <Link className="w-4 h-4 mr-2" />
-                      Link/URL
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="call">
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Ligar
-                    </div>
-                  </SelectItem>
+                   <SelectItem value="reply">
+                     <div className="flex items-center">
+                       <MessageCircle className="w-4 h-4 mr-2" />
+                       Resposta Rápida
+                     </div>
+                   </SelectItem>
+                   <SelectItem value="url">
+                     <div className="flex items-center">
+                       <Link className="w-4 h-4 mr-2" />
+                       Link/URL
+                     </div>
+                   </SelectItem>
+                   <SelectItem value="call">
+                     <div className="flex items-center">
+                       <Phone className="w-4 h-4 mr-2" />
+                       Ligar
+                     </div>
+                   </SelectItem>
+                   <SelectItem value="copy">
+                     <div className="flex items-center">
+                       <Copy className="w-4 h-4 mr-2" />
+                       Copiar Texto
+                     </div>
+                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           
-          {(button.type === 'url' || button.type === 'call') && (
+           {(button.type === 'url' || button.type === 'call' || button.type === 'copy') && (
             <div>
-              <Label>{button.type === 'url' ? 'URL' : 'Número de Telefone'}</Label>
+               <Label>
+                 {button.type === 'url' ? 'URL' : button.type === 'copy' ? 'Texto para Copiar' : 'Número de Telefone'}
+               </Label>
               <Input
-                placeholder={button.type === 'url' ? "https://exemplo.com" : "+5511999999999"}
+                 placeholder={
+                   button.type === 'url' 
+                     ? "https://exemplo.com" 
+                     : button.type === 'copy' 
+                       ? "Texto que será copiado" 
+                       : "+5511999999999"
+                 }
                 value={button.value || ''}
                 onChange={(e) => {
                   e.stopPropagation();
