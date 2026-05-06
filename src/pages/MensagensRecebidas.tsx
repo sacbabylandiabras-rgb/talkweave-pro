@@ -643,13 +643,24 @@ const ChatView = ({
       if (!conversation) return;
       setSending(true);
       try {
-        await onSendMessage(conversation.phone, template.content, {
+        const hasUrlOrCall = templateButtonActions.some(b => b.type === "URL" || b.type === "CALL");
+        
+        const sendOptions: any = {
           preferredInstanceId: conversation.preferredInstanceId,
           title: template.header || undefined,
           footer: template.footer || undefined,
-          buttonActions: templateButtonActions,
           templateId: template.id,
-        });
+        };
+
+        if (hasUrlOrCall) {
+          sendOptions.buttonActions = templateButtonActions;
+        } else {
+          sendOptions.buttonList = {
+            buttons: templateButtonActions.map(b => ({ id: b.id, label: b.label }))
+          };
+        }
+
+        await onSendMessage(conversation.phone, template.content, sendOptions);
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
