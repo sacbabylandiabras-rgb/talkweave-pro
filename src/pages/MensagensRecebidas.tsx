@@ -1282,9 +1282,9 @@ const MensagensRecebidas = () => {
     if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
     const url = await fetchProfilePicture(
-      phone, 
-      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null,
-      force
+      phone,
+      force,
+      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null
     );
     if (url) setManualProfilePic(url);
     if (!force) setLoadingPhoto(false);
