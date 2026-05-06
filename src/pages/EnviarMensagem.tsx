@@ -87,6 +87,14 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
+  // Subset de instâncias efetivamente escolhidas pelo usuário no seletor (modo revezamento)
+  const rotateInstances = useMemo(() => {
+    if (!selectedInstanceIds.length) return instances;
+    const ids = new Set(selectedInstanceIds);
+    const filtered = instances.filter(i => ids.has(i.id));
+    return filtered.length > 0 ? filtered : instances;
+  }, [instances, selectedInstanceIds]);
+
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
