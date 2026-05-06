@@ -535,92 +535,49 @@ serve(async (req) => {
         return { id: b.id || String(index + 1), type, label, url, phone };
       });
 
-      const actionButtons = allButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
-      const replyButtons = allButtons.filter(b => b.type === 'REPLY');
+      console.log(`📤 Enviando botões (Z-API unified): ${allButtons.length} botões`);
+      
+      // Payload base
+      const buttonActionsPayload: any = {
+        phone: resolvedPhone,
+        message: interactiveMessage,
+        ...(title ? { title } : {}),
+        ...(footer ? { footer } : {}),
+        buttonActions: allButtons.map(b => {
+          const btn: any = {
+            id: b.id,
+            type: b.type,
+            label: b.label
+          };
+          
+          if (b.type === 'URL') btn.url = b.url;
+          else if (b.type === 'CALL') btn.phone = b.phone;
+          else if (b.type === 'COPY') {
+            btn.type = 'COPY';
+            btn.copyCode = b.url; // Usamos o campo url como o código a ser copiado
+          }
+          
+          return btn;
+        })
+      };
 
-      // Se houver mídia, enviamos separadamente primeiro, pois send-button-actions não suporta mídia no payload
+      // Z-API support for media with button-actions:
+      // According to recent Z-API docs, some versions support image/video/document inside button-actions
       if (mediaUrl && mediaType) {
-        console.log(`📤 Enviando mídia preparatória para botões: ${mediaType}`);
-        const mediaEndpoint = mediaType === 'image' ? '/send-image' : 
-                            mediaType === 'video' ? '/send-video' : 
-                            mediaType === 'audio' ? '/send-audio' : `/send-document/${getDocumentExtension(mediaUrl)}`;
-        const mediaPayload: any = { phone: resolvedPhone };
-        if (mediaType === 'image') mediaPayload.image = mediaUrl;
-        else if (mediaType === 'video') mediaPayload.video = mediaUrl;
-        else if (mediaType === 'audio') mediaPayload.audio = mediaUrl;
-        else mediaPayload.document = mediaUrl;
-        
-        if (message) mediaPayload.caption = message;
-
-        await fetch(`${baseUrl}${mediaEndpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(mediaPayload),
-        });
+        if (mediaType === 'image') buttonActionsPayload.image = mediaUrl;
+        else if (mediaType === 'video') buttonActionsPayload.video = mediaUrl;
+        else if (mediaType === 'document') {
+          buttonActionsPayload.document = mediaUrl;
+          buttonActionsPayload.fileName = message || 'arquivo';
+        }
       }
 
-      // Se houver mix (Action + Reply), precisamos enviar separadamente conforme documentação da Z-API
-      if (actionButtons.length > 0 && replyButtons.length > 0) {
-        console.log(`📤 Enviando botões mistos (split): ${actionButtons.length} ações + ${replyButtons.length} respostas`);
-        
-        // 1. Enviar CALL/URL
-        const actionRes = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: interactiveMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: actionButtons.map(b => ({
-              id: b.id,
-              type: b.type,
-              label: b.label,
-              ...(b.type === 'URL' ? { url: b.url } : { phone: b.phone })
-            }))
-          }),
-        });
-        await parseZapiResponse(actionRes, resolvedPhone, instanceId, 'button-actions-part1');
-
-        // 2. Enviar REPLY
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: 'Escolha uma opção:',
-            buttonActions: replyButtons.map(b => ({
-              id: b.id,
-              type: 'REPLY',
-              label: b.label
-            }))
-          }),
-        });
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-part2');
-      } else {
-        // Apenas um tipo ou apenas um grupo, envia normal
-        const finalButtons = allButtons.length > 0 ? allButtons : replyButtons;
-        console.log(`📤 Enviando botões (único tipo): ${finalButtons.length} botões`);
-        
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({
-            phone: resolvedPhone,
-            message: interactiveMessage,
-            ...(title ? { title } : {}),
-            ...(footer ? { footer } : {}),
-            buttonActions: finalButtons.map(b => ({
-              id: b.id,
-              type: b.type,
-              label: b.label,
-              ...(b.type === 'URL' ? { url: b.url } : {}),
-              ...(b.type === 'CALL' ? { phone: b.phone } : {})
-            }))
-          }),
-        });
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-unified');
-      }
+      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify(buttonActionsPayload),
+      });
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-unified');
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
