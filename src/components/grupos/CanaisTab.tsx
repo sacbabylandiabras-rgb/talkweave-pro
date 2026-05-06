@@ -355,7 +355,21 @@ export default function CanaisTab() {
                           <Button variant={reactionMode === "NONE" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("NONE"); runAction("update-newsletter-config", { reactionMode: "NONE" }, "Reações: Nenhuma"); }}>Nenhuma</Button>
                         </div>
                       </div>
-                      <Button variant="destructive" className="w-full" onClick={() => runAction("delete-newsletter", {}, "Canal excluído", () => { setSelectedId(""); loadNewsletters(); })} disabled={actionLoading === "delete-newsletter"}><Trash2 className="w-4 h-4 mr-2" /> Excluir Canal</Button>
+                       <Button 
+                         variant="destructive" 
+                         className="w-full" 
+                         onClick={() => {
+                           if (window.confirm("Tem certeza que deseja excluir permanentemente este canal? Esta ação não pode ser desfeita.")) {
+                             runAction("delete-newsletter", {}, "Canal excluído", () => { 
+                               setSelectedId(""); 
+                               loadNewsletters(); 
+                             });
+                           }
+                         }} 
+                         disabled={actionLoading === "delete-newsletter"}
+                       >
+                         <Trash2 className="w-4 h-4 mr-2" /> Excluir Canal
+                       </Button>
                     </TabsContent>
 
                     <TabsContent value="admins" className="space-y-4 mt-4">
