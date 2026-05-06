@@ -260,35 +260,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
      }
    };
  
-  const getDefaultInstanceId = async (): Promise<string> => {
-                 <Button 
-                   variant="outline" 
-                   className="justify-start gap-2"
-                   onClick={handleCheckIsWhatsApp}
-                   disabled={zapiLoading}
-                 >
-                   <UserCheck className="w-4 h-4" />
-                   Verificar WhatsApp
-                 </Button>
-                 <Button 
-                   variant="outline" 
-                   className="justify-start gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                   onClick={handleReport}
-                   disabled={zapiLoading}
-                 >
-                   <ShieldAlert className="w-4 h-4" />
-                   Denunciar Contato
-                 </Button>
-                 <Button 
-                   variant="outline" 
-                   className="justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                   onClick={handleBlock}
-                   disabled={zapiLoading}
-                 >
-                   <Ban className="w-4 h-4" />
-                   Bloquear Contato
-                 </Button>
-    if (!contact) return '';
+   const getDefaultInstanceId = async (): Promise<string> => {
+     if (!contact) return '';
 
     // 1) Respect explicit preferred instance — already resolved from active instances list
     if (preferredInstanceId && preferredInstanceId !== 'all' && preferredInstanceId.length > 10) {
@@ -541,14 +514,41 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <MessageSquare className="w-4 h-4" />
                   Abrir Conversa
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start gap-2"
-                  onClick={() => { onOpenChange(false); navigate(`/enviar?phone=${encodeURIComponent(contact.phone)}`); }}
-                >
-                  <Send className="w-4 h-4" />
-                  Enviar Mensagem Manual
-                </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2"
+                   onClick={() => { onOpenChange(false); navigate(`/enviar?phone=${encodeURIComponent(contact.phone)}`); }}
+                 >
+                   <Send className="w-4 h-4" />
+                   Enviar Mensagem Manual
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2"
+                   onClick={handleCheckIsWhatsApp}
+                   disabled={zapiLoading}
+                 >
+                   <UserCheck className="w-4 h-4" />
+                   Verificar WhatsApp
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                   onClick={handleReport}
+                   disabled={zapiLoading}
+                 >
+                   <ShieldAlert className="w-4 h-4" />
+                   Denunciar Contato
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   className="justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                   onClick={handleBlock}
+                   disabled={zapiLoading}
+                 >
+                   <Ban className="w-4 h-4" />
+                   Bloquear Contato
+                 </Button>
               </div>
             </div>
           </div>
