@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       } catch {
         data = { raw: text };
       }
-      console.log(`📡 [communities] ${method} ${path} -> ${res.status}`);
+      console.log(`📡 [communities] ${method} ${path} -> ${res.status}:`, text);
       return { ok: res.ok, status: res.status, data };
     };
 
