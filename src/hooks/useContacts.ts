@@ -251,7 +251,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     if (enabled && !loading && contacts.length > 0) {
       autoFetchProfilePictures(contacts);
     }
-  }, [enabled, loading, contacts.length]);
+  }, [enabled, loading, contacts]);
 
 
   const refreshProfilePicture = async (phone: string) => {
