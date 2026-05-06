@@ -606,6 +606,139 @@ export const useMessageLogs = (
       const finalUrl = extractProfilePictureUrl(responsePayload);
 
       if (finalUrl) {
+        setLocalManualPhotos(prev => {
+          const next = new Map(prev);
+          next.set(phone, finalUrl);
+          return next;
+        });
+      }
+
+      if (finalUrl || resolvedName) {
+        const token = await getToken();
+        const userId = await getUserId();
+        if (token && userId) {
+          const existing = safeMapGet(savedContacts, phone);
+          await savedContactsApi.upsert(token, {
+            phone,
+            name: resolvedName || existing?.name || '',
+            user_id: userId,
+            profile_picture_url: finalUrl || existing?.profile_picture_url || null,
+          });
+          await fetchSavedContacts();
+        }
+      }
+      return finalUrl;
+    } catch { return null; }
+  }, [savedContacts, fetchSavedContacts, filterInstanceId]);
+
+  const autoFetchPhotos = useCallback(async (phones: string[]) => {
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+
+     const toFetch = phones.filter(p => {
+       const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
+       return !fetchedPhotosRef.current.has(p) && 
+              !saved?.profile_picture_url &&
+              !p.includes('@lid') &&
+              !isLikelyTechnicalIdentifier(p);
+     }).slice(0, 25);
+ 
+      for (const phone of toFetch) {
+       fetchedPhotosRef.current.add(phone);
+       try {
+         const body: Record<string, unknown> = { phone };
+         if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
+         if (error) continue;
+         const payload = data?.data ?? data;
+         const url = extractProfilePictureUrl(payload);
+                    
+         if (url) {
+           const existing = safeMapGet(savedContacts, phone);
+           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
+         }
+         await new Promise(r => setTimeout(r, 200));
+       } catch { /* ignore */ }
+     }
+     if (toFetch.length > 0) {
+       await fetchSavedContacts();
+     }
+  }, [savedContacts, fetchSavedContacts, filterInstanceId]);
+
+  const autoResolveGroupMetadata = useCallback(async (conversationsToCheck: Conversation[]) => {
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+
+    const unresolvedGroups = conversationsToCheck.filter((conversation) => {
+      if (!isGroupPhone(conversation.phone)) return false;
+      if (conversation.contactName && conversation.contactName !== 'Grupo') return false;
+      const saved = safeMapGet(savedContacts, conversation.phone) || safeMapGet(savedContacts, normalizeConversationPhone(conversation.phone));
+      return !saved || !isUsableGroupDisplayName(saved.name) || !saved.profile_picture_url;
+    }).slice(0, 4);
+
+    for (const conversation of unresolvedGroups) {
+      const phone = conversation.phone;
+      if (fetchedPhotosRef.current.has(`group-meta:${phone}`)) continue;
+      fetchedPhotosRef.current.add(`group-meta:${phone}`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('get-profile-picture', {
+          body: { phone, instanceId: conversation.preferredInstanceId || filterInstanceId || null },
+        });
+        if (error) continue;
+
+        const responsePayload = data?.data ?? data;
+        const url = extractProfilePictureUrl(responsePayload);
+        const resolvedName = extractResolvedGroupName(responsePayload);
+        if (!url && !resolvedName) continue;
+
+        const existing = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalizeConversationPhone(phone));
+        await savedContactsApi.upsert(token, {
+          phone,
+          name: resolvedName || existing?.name || '',
+          user_id: userId,
+          profile_picture_url: url || existing?.profile_picture_url || null,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    if (unresolvedGroups.length > 0) {
+      await fetchSavedContacts();
+    }
+  }, [filterInstanceId, savedContacts, fetchSavedContacts]);
+
+  const fetchAll = useCallback(async () => {
+    await fetchLidMap();
+    await Promise.all([fetchMessageLogs(), fetchCampaignSends(), fetchSavedContacts()]);
+    setLoading(false);
+  }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
+
+  const saveContact = useCallback(async (phone: string, name: string) => {
+    const token = await getToken();
+    const userId = await getUserId();
+    if (!token || !userId) return;
+    await savedContactsApi.upsert(token, { phone, name, user_id: userId });
+    await fetchSavedContacts();
+  }, [fetchSavedContacts]);
+
+  const fetchProfilePicture = useCallback(async (phone: string, instanceId?: string | null): Promise<string | null> => {
+    try {
+      const body: Record<string, unknown> = { phone };
+      if (instanceId) body.instanceId = instanceId;
+      else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+
+      const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
+      if (error) return null;
+      
+      const responsePayload = rawData?.data ?? rawData;
+      const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
+      const finalUrl = extractProfilePictureUrl(responsePayload);
+
+      if (finalUrl) {
       }
 
       if (finalUrl) {
