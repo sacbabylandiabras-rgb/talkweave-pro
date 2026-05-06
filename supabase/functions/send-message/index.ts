@@ -535,9 +535,10 @@ serve(async (req) => {
         return { id: b.id || String(index + 1), type, label, url, phone };
       });
 
-      // Z-API: enviar TODOS os tipos de botão (REPLY, URL, CALL) em UMA ÚNICA mensagem.
-      // Misturar tipos diferentes era a causa de botões sumirem — agora deixamos a Z-API
-      // resolver. Se houver instabilidade, enviamos como uma única ação consolidada.
+      // Z-API/WhatsApp regra oficial:
+      // "Sending all three button types simultaneously causes an error on WhatsApp Web.
+      //  Combine CALL and URL buttons together, and send REPLY buttons separately."
+      // → Separamos em até 2 mensagens: (1) ACTION = URL+CALL, (2) REPLY.
       const normalized = allButtons
         .filter(b => ['REPLY', 'URL', 'CALL'].includes(b.type))
         .map(b => {
@@ -545,34 +546,48 @@ serve(async (req) => {
           if (b.type === 'URL') btn.url = b.url;
           else if (b.type === 'CALL') btn.phone = b.phone;
           return btn;
-        })
-        .slice(0, 3); // WhatsApp aceita no máx. 3 botões por mensagem
+        });
 
-      console.log(`📤 Enviando botões (Z-API unified): ${normalized.length} botões em uma única mensagem`, normalized.map(b => b.type));
+      const actionBtns = normalized.filter(b => b.type === 'URL' || b.type === 'CALL').slice(0, 3);
+      const replyBtns = normalized.filter(b => b.type === 'REPLY').slice(0, 3);
+      const groups: { kind: string; buttons: any[] }[] = [];
+      if (actionBtns.length > 0) groups.push({ kind: 'action', buttons: actionBtns });
+      if (replyBtns.length > 0) groups.push({ kind: 'reply', buttons: replyBtns });
 
-      const payload: any = {
-        phone: resolvedPhone,
-        message: interactiveMessage,
-        ...(title ? { title } : {}),
-        ...(footer ? { footer } : {}),
-        buttonActions: normalized,
-      };
+      console.log(`📤 Botões Z-API: ${actionBtns.length} ação (URL/CALL) + ${replyBtns.length} resposta — ${groups.length} mensagem(ns)`);
 
-      if (mediaUrl && mediaType) {
-        if (mediaType === 'image') payload.image = mediaUrl;
-        else if (mediaType === 'video') payload.video = mediaUrl;
-        else if (mediaType === 'document') {
-          payload.document = mediaUrl;
-          payload.fileName = message || 'arquivo';
+      let lastResponse: Response | null = null;
+      let lastData: any = null;
+      for (let i = 0; i < groups.length; i++) {
+        const g = groups[i];
+        const payload: any = {
+          phone: resolvedPhone,
+          message: interactiveMessage,
+          ...(title ? { title } : {}),
+          ...(footer ? { footer } : {}),
+          buttonActions: g.buttons,
+        };
+        // Mídia apenas na primeira mensagem para não duplicar
+        if (i === 0 && mediaUrl && mediaType) {
+          if (mediaType === 'image') payload.image = mediaUrl;
+          else if (mediaType === 'video') payload.video = mediaUrl;
+          else if (mediaType === 'document') {
+            payload.document = mediaUrl;
+            payload.fileName = message || 'arquivo';
+          }
         }
-      }
 
-      zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(payload),
-      });
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-unified');
+        console.log(`  ↳ Enviando grupo ${g.kind}:`, JSON.stringify(payload.buttonActions));
+        lastResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(payload),
+        });
+        lastData = await parseZapiResponse(lastResponse, resolvedPhone, instanceId, `button-actions-${g.kind}`);
+        if (i < groups.length - 1) await new Promise(r => setTimeout(r, 800));
+      }
+      zapiResponse = lastResponse!;
+      zapiData = lastData;
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
