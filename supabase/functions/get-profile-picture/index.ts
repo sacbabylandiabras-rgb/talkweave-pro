@@ -132,6 +132,36 @@ serve(async (req) => {
       }
     }
 
+    // If no specific instance was provided, resolve provider from the user's
+    // default/active instance so UAZAPI accounts don't fall back to Z-API URLs.
+    if (!instanceId) {
+      const { data: defaultInstance } = await adminClient
+        .from('zapi_instances')
+        .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default')
+        .eq('user_id', credentials.userId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (defaultInstance) {
+        provider = defaultInstance.api_provider || 'zapi'
+        if (provider === 'uazapi') {
+          uazapiUrl = (defaultInstance.evolution_api_url || '').replace(/\/+$/, '')
+          headers = {
+            'Content-Type': 'application/json',
+            token: defaultInstance.evolution_api_key || ''
+          }
+        } else {
+          base = `https://api.z-api.io/instances/${defaultInstance.zapi_instance_id}/token/${defaultInstance.zapi_token}`
+          headers = {
+            'Content-Type': 'application/json',
+            'Client-Token': defaultInstance.zapi_client_token || ''
+          }
+        }
+      }
+    }
+
     if (provider === 'uazapi') {
       try {
         const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
