@@ -52,6 +52,8 @@ const normalizeInstances = (items: ZapiInstance[]) => {
   const dedupedMap = new Map<string, ZapiInstance>();
 
   for (const instance of items) {
+    // Ignora instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
+    if ((instance.api_provider || 'zapi').toLowerCase() === 'uazapi') continue;
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
     if (!previous) { dedupedMap.set(key, instance); continue; }
@@ -71,6 +73,7 @@ const fetchInstancesWithRetry = async (userId: string) => {
     const { data, error } = await fromZapiInstances()
       .select('*')
       .eq('user_id', userId)
+      .neq('api_provider', 'uazapi')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 
