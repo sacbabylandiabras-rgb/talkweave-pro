@@ -537,85 +537,42 @@ serve(async (req) => {
          };
        });
  
-       const replyButtons = normalizedButtons.filter(b => b.type === 'REPLY');
-       const actionButtons = normalizedButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
-
-      // Z-API documentation states: "Currently, when sending the three types of buttons simultaneously, WhatsApp Web generates an error... An alternative is to send only the CALL and URL buttons together, and always send the REPLY button separately."
-      // If we have a mix of types, we split into two messages to ensure delivery of all buttons.
-      if (replyButtons.length > 0 && actionButtons.length > 0) {
-        console.log(`📤 Splitting button-actions for ${resolvedPhone} (mixed REPLY and URL/CALL)`);
-        
-        // First message: Reply buttons with the main message/media
-        const payload1 = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
-          buttonActions: replyButtons.map(b => ({ id: b.id, type: b.type, label: b.label }))
-        };
-
-        const res1 = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(payload1),
-        });
-        
-         // If the first message fails, parseZapiResponse will throw
-         await parseZapiResponse(res1, resolvedPhone, instanceId, 'button-actions-split-1');
- 
-         // Aguarda 1 segundo entre as mensagens para evitar problemas de ordem ou bloqueio
-         await new Promise(r => setTimeout(r, 1000));
- 
-         // Second message: URL/CALL buttons with footer or placeholder text
-         const payload2 = {
-           phone: resolvedPhone,
-           message: footer || 'Opções adicionais:',
-           buttonActions: actionButtons.map(b => ({
+       // Z-API handles mixed buttons (REPLY, URL, CALL) in a single request at /send-button-actions.
+       // However, documentation notes that some combinations might be unstable.
+       // We prioritize sending everything in one go as requested by the latest API specs.
+       const zapiPayload: any = {
+         phone: resolvedPhone,
+         message: interactiveMessage,
+         ...(title ? { title } : {}),
+         ...(footer ? { footer } : {}),
+         ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
+         ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
+         ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
+         ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
+         buttonActions: normalizedButtons.map(b => {
+           const btn: any = {
              id: b.id,
              type: b.type,
-             label: b.label,
-            ...(b.type === 'URL' ? { url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value } : {}),
-             ...(b.type === 'CALL' ? { phone: b.phone } : {})
-           }))
-         };
+             label: b.label
+           };
+           
+           if (b.type === 'URL') {
+             btn.url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
+           } else if (b.type === 'CALL') {
+             btn.phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
+           }
+           
+           return btn;
+         })
+       };
  
-         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-           body: JSON.stringify(payload2),
-         });
-      } else {
-        // Regular case (single type or just URL/CALL)
-        const zapiPayload: any = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
-          ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
-          buttonActions: normalizedButtons.map(b => ({
-            id: b.id,
-            type: b.type,
-            label: b.label,
-            ...(b.type === "URL" ? { url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value } : {}),
-            ...(b.type === "CALL" ? { phone: b.phone } : {})
-          }))
-        };
-
-        console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(zapiPayload),
-        });
-      }
+       console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
+ 
+       zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+         body: JSON.stringify(zapiPayload),
+       });
 
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
       logMessage = logMessage || '🔘 Botões interativos';
