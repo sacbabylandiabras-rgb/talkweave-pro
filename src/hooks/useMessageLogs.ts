@@ -47,12 +47,14 @@ export interface SavedContact {
   phone: string;
   name: string;
   profile_picture_url?: string | null;
+  updated_at?: string | null;
 }
 
 export interface Conversation {
   phone: string;
   contactName: string | null;
   profilePictureUrl: string | null;
+  lastPictureSync?: string | null;
   lastMessage: string;
   lastTimestamp: string;
   unreadCount: number;
@@ -335,6 +337,7 @@ export const useMessageLogs = (
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
+  const [localManualPhotos, setLocalManualPhotos] = useState<Map<string, string>>(new Map());
   const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
@@ -601,6 +604,14 @@ export const useMessageLogs = (
       const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
+
+      if (finalUrl) {
+        setLocalManualPhotos(prev => {
+          const next = new Map(prev);
+          next.set(phone, finalUrl);
+          return next;
+        });
+      }
 
       if (finalUrl || resolvedName) {
         const token = await getToken();
@@ -1004,7 +1015,8 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
+          profilePictureUrl: localManualPhotos.get(phone) || sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
+          lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,

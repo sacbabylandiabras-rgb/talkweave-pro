@@ -982,6 +982,7 @@ const MensagensRecebidas = () => {
   const [saveDialogName, setSaveDialogName] = useState("");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
@@ -1281,7 +1282,9 @@ const MensagensRecebidas = () => {
 
   const handleFetchPhoto = async (phone: string) => {
     setLoadingPhoto(true);
+    setManualProfilePic(null);
     const url = await fetchProfilePicture(phone, selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null);
+    if (url) setManualProfilePic(url);
     setLoadingPhoto(false);
     if (url) {
       toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
@@ -1327,7 +1330,7 @@ const MensagensRecebidas = () => {
             status: 'ativo',
             messageCount: selectedConversation.messages.length,
             tags: [] as string[],
-            profilePictureUrl: selectedConversation.profilePictureUrl,
+            profilePictureUrl: manualProfilePic || selectedConversation.profilePictureUrl,
           }}
           preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId}
           open={profileOpen}
