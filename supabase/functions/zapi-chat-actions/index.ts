@@ -120,8 +120,54 @@ function endpointFor(action: string, phone: string, payload: any) {
       return { method: 'GET', path: '/call-token' };
     case 'sip-token':
       return { method: 'GET', path: '/sip-token' };
-    case 'sip-info':
-      return { method: 'GET', path: '/sip-info' };
+     case 'sip-info':
+       return { method: 'GET', path: '/sip-info' };
+
+    // Group Actions
+    case 'get-groups':
+      return { method: 'GET', path: "/groups?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
+    case 'create-group':
+      return { method: 'POST', path: "/create-group", body: payload };
+    case 'update-group-name':
+      return { method: 'POST', path: "/update-group-name", body: payload };
+    case 'update-group-photo':
+      return { method: 'POST', path: "/update-group-photo", body: payload };
+    case 'add-participant':
+      return { method: 'POST', path: "/add-participant", body: payload };
+    case 'remove-participant':
+      return { method: 'POST', path: "/remove-participant", body: payload };
+    case 'approve-participant':
+      return { method: 'POST', path: "/approve-participant", body: payload };
+    case 'reject-participant':
+      return { method: 'POST', path: "/reject-participant", body: payload };
+    case 'mention-participant':
+      return { method: 'POST', path: "/mention-participant", body: payload };
+    case 'mention-group':
+      return { method: 'POST', path: "/mention-group", body: payload };
+    case 'mention-all':
+      return { method: 'POST', path: "/mention-all", body: payload };
+    case 'add-admin':
+      return { method: 'POST', path: "/add-admin", body: payload };
+    case 'remove-admin':
+      return { method: 'POST', path: "/remove-admin", body: payload };
+    case 'leave-group':
+      return { method: 'POST', path: "/leave-group", body: payload };
+    case 'metadata-group':
+      return { method: 'GET', path: "/metadata-group/" + phone };
+    case 'light-group-metadata':
+      return { method: 'GET', path: "/light-group-metadata/" + phone };
+    case 'group-invitation-metadata':
+      return { method: 'GET', path: "/group-invitation-metadata?inviteUrl=" + encodeURIComponent(payload?.inviteUrl || '') };
+    case 'update-group-settings':
+      return { method: 'POST', path: "/update-group-settings", body: payload };
+    case 'update-group-description':
+      return { method: 'POST', path: "/update-group-description", body: payload };
+    case 'redefine-invitation-link':
+      return { method: 'POST', path: "/redefine-invitation-link", body: payload };
+    case 'get-invitation-link':
+      return { method: 'GET', path: "/get-invitation-link/" + phone };
+    case 'accept-group-invite':
+      return { method: 'POST', path: "/accept-group-invite", body: payload };
 
     default:
       throw new Error("Unknown action: " + action);

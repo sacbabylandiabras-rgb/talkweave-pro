@@ -1307,8 +1307,28 @@ export const useZapi = () => {
       if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar info SIP'));
       return data?.data || data;
     } catch (error) {
+       toast({
+         title: "Erro ao buscar info SIP",
+         description: error instanceof Error ? error.message : "Erro desconhecido",
+         variant: "destructive",
+       });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+
+  const invokeGroupAction = async (action: string, payload?: any, phone?: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+        body: { action, payload, phone },
+      });
+      if (error) throw new Error(await getInvokeErrorMessage(error, `Erro ao executar ação de grupo: ${action}`));
+      return data?.data || data;
+    } catch (error) {
       toast({
-        title: "Erro ao buscar info SIP",
+        title: "Erro na ação de grupo",
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
@@ -1317,6 +1337,29 @@ export const useZapi = () => {
       setLoading(false);
     }
   };
+
+  const getGroups = (page = 1, pageSize = 50) => invokeGroupAction('get-groups', { page, pageSize });
+  const createGroup = (payload: { groupName: string, phones: string[] }) => invokeGroupAction('create-group', payload);
+  const updateGroupName = (payload: { phone: string, groupName: string }) => invokeGroupAction('update-group-name', payload);
+  const updateGroupPhoto = (payload: { phone: string, image: string }) => invokeGroupAction('update-group-photo', payload);
+  const addParticipant = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('add-participant', payload);
+  const removeParticipant = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('remove-participant', payload);
+  const approveParticipant = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('approve-participant', payload);
+  const reject_participant = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('reject-participant', payload);
+  const mentionParticipant = (payload: { phone: string, participantPhone: string, message: string }) => invokeGroupAction('mention-participant', payload);
+  const mentionGroup = (payload: { phone: string, message: string }) => invokeGroupAction('mention-group', payload);
+  const mentionAll = (payload: { phone: string, message: string }) => invokeGroupAction('mention-all', payload);
+  const addAdmin = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('add-admin', payload);
+  const removeAdmin = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('remove-admin', payload);
+  const leaveGroup = (payload: { phone: string }) => invokeGroupAction('leave-group', payload);
+  const getGroupMetadata = (phone: string) => invokeGroupAction('metadata-group', null, phone);
+  const getLightGroupMetadata = (phone: string) => invokeGroupAction('light-group-metadata', null, phone);
+  const getGroupInvitationMetadata = (inviteUrl: string) => invokeGroupAction('group-invitation-metadata', { inviteUrl });
+  const updateGroupSettings = (payload: { phone: string, editGroup?: boolean, sendMessage?: boolean }) => invokeGroupAction('update-group-settings', payload);
+  const updateGroupDescription = (payload: { phone: string, description: string }) => invokeGroupAction('update-group-description', payload);
+  const redefineInvitationLink = (payload: { phone: string }) => invokeGroupAction('redefine-invitation-link', payload);
+  const getInvitationLink = (phone: string) => invokeGroupAction('get-invitation-link', null, phone);
+  const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
   return {
     sendMessage,
@@ -1357,7 +1400,29 @@ export const useZapi = () => {
      sendCall,
      getCallToken,
      getSipToken,
-     getSipInfo,
-     loading,
-   };
- };
+      getSipInfo,
+      getGroups,
+      createGroup,
+      updateGroupName,
+      updateGroupPhoto,
+      addParticipant,
+      removeParticipant,
+      approveParticipant,
+      reject_participant,
+      mentionParticipant,
+      mentionGroup,
+      mentionAll,
+      addAdmin,
+      removeAdmin,
+      leaveGroup,
+      getGroupMetadata,
+      getLightGroupMetadata,
+      getGroupInvitationMetadata,
+      updateGroupSettings,
+      updateGroupDescription,
+      redefineInvitationLink,
+      getInvitationLink,
+      acceptGroupInvite,
+      loading,
+    };
+  };
