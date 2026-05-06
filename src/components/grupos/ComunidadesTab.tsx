@@ -406,12 +406,41 @@ export default function ComunidadesTab() {
                         <Image className="w-3.5 h-3.5" />
                         Foto da Comunidade (URL)
                       </Label>
-                      <Input
-                        value={createPhotoUrl}
-                        onChange={(e) => setCreatePhotoUrl(e.target.value)}
-                        placeholder="Cole a URL da imagem"
-                        className="h-8 text-xs"
-                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="relative w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                          onClick={() => createPhotoFileRef.current?.click()}
+                        >
+                          {createPhotoUrl ? (
+                            <img src={createPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <Input
+                          value={createPhotoUrl}
+                          onChange={(e) => setCreatePhotoUrl(e.target.value)}
+                          placeholder="URL ou faça upload"
+                          className="flex-1 h-8 text-xs"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0"
+                          onClick={() => createPhotoFileRef.current?.click()}
+                          disabled={uploadingPhoto}
+                        >
+                          {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        </Button>
+                        <input
+                          ref={createPhotoFileRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)}
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs">Nome da Comunidade</Label>
