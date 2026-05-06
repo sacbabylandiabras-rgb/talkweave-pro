@@ -120,13 +120,13 @@ const Contatos = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                    <Avatar className="overflow-hidden">
-                     {contato.profilePictureUrl && (
+                      {contato.profilePictureUrl ? (
                        <AvatarImage 
                          src={contato.profilePictureUrl} 
                          className="object-cover"
                          onError={() => refreshProfilePicture(contato.phone)}
                        />
-                     )}
+                      ) : null}
                      <AvatarFallback className="bg-[#DFE5E7] text-primary text-xs font-medium">
                        <WhatsAppDefaultAvatar />
                      </AvatarFallback>

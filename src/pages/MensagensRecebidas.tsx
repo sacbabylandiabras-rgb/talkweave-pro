@@ -367,8 +367,8 @@ const ConversationList = ({
           >
             <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden">
               {conv.profilePictureUrl ? (
-                <AvatarImage 
-                  src={conv.profilePictureUrl} 
+                <AvatarImage
+                  src={conv.profilePictureUrl}
                   className="object-cover"
                   onError={() => onFetchPhoto(conv.phone, true)}
                 />
@@ -705,13 +705,13 @@ const ChatView = ({
           </Button>
         )}
         <Avatar className="h-10 w-10 border border-border/50 overflow-hidden">
-          {conversation.profilePictureUrl && (
-            <AvatarImage 
-              src={conversation.profilePictureUrl} 
+          {conversation.profilePictureUrl ? (
+            <AvatarImage
+              src={conversation.profilePictureUrl}
               className="object-cover"
               onError={() => onFetchPhoto(conversation.phone, true)}
             />
-          )}
+          ) : null}
           <AvatarFallback className="bg-[#DFE5E7] text-primary text-sm font-medium">
             <WhatsAppDefaultAvatar />
           </AvatarFallback>
