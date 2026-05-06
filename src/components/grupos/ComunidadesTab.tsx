@@ -129,7 +129,8 @@ export default function ComunidadesTab() {
       setCommunities(list);
       if (list.length && !selectedId) setSelectedId(list[0].id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao listar comunidades");
+      console.warn("[ComunidadesTab] list-communities falhou:", err);
+      setCommunities([]);
     } finally {
       setLoading(false);
     }
