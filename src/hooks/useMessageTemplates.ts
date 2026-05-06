@@ -18,14 +18,14 @@ export interface MessageTemplate {
   active: boolean;
   created_at: string;
   updated_at: string;
-  buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+   buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>;
   listItems?: Array<{id: string, title: string, description?: string}>;
   carouselCards?: Array<{
     id: string;
     image: string;
     title: string;
     description: string;
-    buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>;
+     buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>;
   }>;
 }
 
@@ -60,9 +60,9 @@ export const useMessageTemplates = () => {
         active: item.active || false,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}> : [],
+         buttons: Array.isArray(item.buttons) ? item.buttons as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}> : [],
         listItems: Array.isArray(item.list_items) ? item.list_items as Array<{id: string, title: string, description?: string}> : [],
-        carouselCards: Array.isArray((item as any).carousel_cards) ? (item as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>}> : [],
+         carouselCards: Array.isArray((item as any).carousel_cards) ? (item as any).carousel_cards as Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>}> : [],
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
