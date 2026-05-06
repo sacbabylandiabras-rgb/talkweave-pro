@@ -1,4 +1,4 @@
-import { useState } from "react";
+ import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Plus, Trash2, Check, X, Upload } from "lucide-react";
+ import { Filter, Plus, Trash2, Check, X, Upload, Search, Loader2 } from "lucide-react";
+ import { useZapi } from "@/hooks/useZapi";
+ import { useToast } from "@/hooks/use-toast";
 
 const FiltroNumero = () => {
   const [filtroAtivo, setFiltroAtivo] = useState(true);
+   const [bulkPhones, setBulkPhones] = useState("");
+   const [verificationResults, setVerificationResults] = useState<{ phone: string; exists: boolean }[] | null>(null);
+   const { checkIsWhatsAppBatch, loading: zapiLoading } = useZapi();
+   const { toast } = useToast();
+ 
+   const handleBulkVerify = async () => {
+     const phones = bulkPhones.split("\n").map(p => p.trim()).filter(p => p.length > 0);
+     if (phones.length === 0) {
+       toast({ title: "Atenção", description: "Insira ao menos um número para verificar.", variant: "destructive" });
+       return;
+     }
+ 
+     try {
+       const results = await checkIsWhatsAppBatch(phones);
+       // Z-API returns an array of { phone: string, exists: boolean } or similar
+       setVerificationResults(results);
+       toast({ title: "Verificação concluída", description: `${phones.length} números processados.` });
+     } catch (e) {
+       console.error(e);
+     }
+   };
   
   const filtros = [
     {
