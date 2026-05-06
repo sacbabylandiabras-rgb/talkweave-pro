@@ -209,7 +209,9 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       return false;
     }).slice(0, 50);
 
-    if (toFetch.length === 0) return;
+    if (toFetch.length === 0) {
+      return;
+    }
 
     let updated = false;
     for (const contact of toFetch) {
