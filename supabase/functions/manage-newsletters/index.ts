@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
         const { newsletterId, id } = body;
         const targetId = id || newsletterId;
         if (!targetId) throw new Error("newsletter id is required");
-        return await callZapi("DELETE", "/delete-newsletter", { id: targetId });
+        return await callZapi("POST", "/delete-newsletter", { id: targetId });
       }
 
       case "newsletter-metadata": {
