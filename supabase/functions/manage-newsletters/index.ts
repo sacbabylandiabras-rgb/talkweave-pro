@@ -223,12 +223,17 @@ Deno.serve(async (req) => {
       }
 
       case "update-newsletter-config": {
-        const { newsletterId, id, reactionMode } = body;
+        const { newsletterId, id, reactionMode, reactionCodes: bodyCodes } = body;
         const targetId = normalizeNewsletterId(id || newsletterId);
         if (!targetId) throw new Error("newsletter id is required");
-        // reactionCodes: 'all' | 'basic' | 'none'
-        const rawMode = String(reactionMode || body.reactionCodes || "all").toLowerCase();
+        
+        // Aceita 'reactionMode' ou 'reactionCodes' e normaliza para minúsculo
+        const rawMode = String(bodyCodes || reactionMode || "all").toLowerCase();
+        
+        // Z-API aceita: 'all' | 'basic' | 'none'
         const reactionCodes = rawMode === "none" ? "none" : rawMode === "basic" ? "basic" : "all";
+        
+        console.log(`⚙️ Updating newsletter config for ${targetId} with reactionCodes: ${reactionCodes}`);
         return await callZapi("POST", `/newsletter/settings/${targetId}`, { reactionCodes });
       }
 
