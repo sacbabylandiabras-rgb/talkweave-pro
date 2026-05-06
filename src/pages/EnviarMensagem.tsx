@@ -85,6 +85,7 @@ const EnviarMensagem = () => {
   const cancelarEnvioRef = useRef(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
   const { toast } = useToast();
@@ -1498,6 +1499,9 @@ const EnviarMensagem = () => {
               if (ids.length > 1) {
                 const selected = instances.filter(i => ids.includes(i.id));
                 setZapiRotateMode(selected);
+                setSelectedInstanceIds(ids);
+              } else {
+                setSelectedInstanceIds(ids);
               }
             }}
           />
