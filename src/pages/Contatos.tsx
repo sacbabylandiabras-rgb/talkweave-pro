@@ -119,16 +119,18 @@ const Contatos = () => {
             <Card key={contato.phone} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpenProfile(contato)}>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                   <Avatar className="overflow-hidden bg-[#DFE5E7]">
-                     <AvatarImage 
-                       src={contato.profilePictureUrl || undefined} 
-                       className="object-cover"
-                       onError={() => refreshProfilePicture(contato.phone)}
-                     />
-                     <AvatarFallback className="text-primary text-xs font-medium">
-                       <WhatsAppDefaultAvatar />
-                     </AvatarFallback>
-                   </Avatar>
+                  <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
+                    <AvatarImage 
+                      src={contato.profilePictureUrl || undefined} 
+                      className="h-full w-full object-cover"
+                      onError={() => refreshProfilePicture(contato.phone)}
+                    />
+                    <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
+                      <div className="w-full h-full text-white">
+                        <WhatsAppDefaultAvatar />
+                      </div>
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
                     <CardTitle className="text-lg">{contato.name || 'Contato'}</CardTitle>
                     <CardDescription className="flex items-center gap-2">

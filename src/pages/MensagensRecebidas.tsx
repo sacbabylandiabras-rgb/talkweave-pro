@@ -365,14 +365,16 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7]">
+            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
               <AvatarImage
                 src={conv.profilePictureUrl || undefined}
-                className="object-cover"
+                className="h-full w-full object-cover"
                 onError={() => onFetchPhoto(conv.phone, true)}
               />
-              <AvatarFallback className="text-primary text-sm font-medium">
-                <WhatsAppDefaultAvatar />
+              <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
+                <div className="w-full h-full text-white">
+                  <WhatsAppDefaultAvatar />
+                </div>
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -702,16 +704,16 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Avatar className="h-10 w-10 border border-border/50 overflow-hidden">
-          {conversation.profilePictureUrl ? (
-            <AvatarImage
-              src={conversation.profilePictureUrl}
-              className="object-cover"
-              onError={() => onFetchPhoto(conversation.phone, true)}
-            />
-          ) : null}
-          <AvatarFallback className="bg-[#DFE5E7] text-primary text-sm font-medium">
-            <WhatsAppDefaultAvatar />
+        <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
+          <AvatarImage
+            src={conversation.profilePictureUrl || undefined}
+            className="h-full w-full object-cover"
+            onError={() => onFetchPhoto(conversation.phone, true)}
+          />
+          <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
+            <div className="w-full h-full text-white">
+              <WhatsAppDefaultAvatar />
+            </div>
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
