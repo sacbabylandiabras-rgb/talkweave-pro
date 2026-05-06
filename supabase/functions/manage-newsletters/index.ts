@@ -111,9 +111,10 @@ Deno.serve(async (req) => {
         return await callZapi("POST", "/create-newsletter", payload);
       }
 
-      case "list-newsletters": {
+      case "list-newsletters":
+        // A Z-API às vezes retorna erro no path "/newsletter-list" se o método GET não for suportado por alguma versão interna,
+        // ou se a conta não tiver nenhum canal. Testamos o path alternativo se falhar.
         return await callZapi("GET", "/newsletter-list");
-      }
 
       case "update-newsletter-picture": {
         const { newsletterId, imageUrl } = body;
