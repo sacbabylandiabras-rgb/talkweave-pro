@@ -600,8 +600,7 @@ export const useMessageLogs = (
       
       const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
-      const finalUrl = extractProfilePictureUrl(responsePayload) || 
-                      (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
+      const finalUrl = extractProfilePictureUrl(responsePayload);
 
       if (finalUrl || resolvedName) {
         const token = await getToken();
