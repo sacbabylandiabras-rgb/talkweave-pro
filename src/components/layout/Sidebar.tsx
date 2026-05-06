@@ -46,6 +46,7 @@ import {
   LayoutTemplate,
   Sparkles,
   Building2,
+  Camera,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
