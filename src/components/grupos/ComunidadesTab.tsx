@@ -86,6 +86,9 @@ export default function ComunidadesTab() {
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string>("");
 
+  const [metadataOpen, setMetadataOpen] = useState(false);
+  const [metadata, setMetadata] = useState<any>(null);
+
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
   }, [activeInstance, instanceId]);
@@ -228,6 +231,22 @@ export default function ComunidadesTab() {
       toast.success("Link copiado!");
     } catch {
       toast.error("Não foi possível copiar");
+    }
+  };
+
+  const handleGetMetadata = async () => {
+    if (!selectedCommunity) return;
+    setActionLoading("metadata");
+    try {
+      const data = await invokeCommunity("community-metadata", {
+        communityId: selectedCommunity.id,
+      });
+      setMetadata(data);
+      setMetadataOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao obter metadados");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -415,26 +434,9 @@ export default function ComunidadesTab() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      runAction(
-                        "metadata",
-                        "community-metadata",
-                        { communityId: selectedCommunity.id },
-                        "Metadados atualizados",
-                        loadCommunities,
-                      )
-                    }
-                    disabled={actionLoading === "metadata"}
-                  >
-                    {actionLoading === "metadata" ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                    )}
-                    Metadados
+                  <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
+                    {actionLoading === "metadata" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Building2 className="w-4 h-4 mr-1" />}
+                    Ver Dados
                   </Button>
                   <Button
                     variant="outline"
