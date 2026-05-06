@@ -474,30 +474,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const isUazapi = instance.api_provider === 'uazapi';
 
 
-  const openProxyDialog = async () => {
-    setShowProxyDialog(true);
-    setProxyLoading(true);
-    setProxyInfo(null);
-    try {
-      const data = await callProxyFunction('get');
-      setProxyInfo(data);
-      const current =
-        data?.proxy_url ||
-        data?.proxyUrl ||
-        data?.config?.proxy_url ||
-        data?.data?.proxy_url ||
-        '';
-      setProxyUrlInput(current || '');
-    } catch (err) {
-      toast({
-        title: '❌ Erro ao carregar proxy',
-        description: err instanceof Error ? err.message : 'Falha ao buscar configuração.',
-        variant: 'destructive',
-      });
-    } finally {
-      setProxyLoading(false);
-    }
-  };
 
   const normalizeProxyUrl = (raw: string): string => {
     let s = raw.trim();
