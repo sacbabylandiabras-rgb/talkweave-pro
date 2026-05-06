@@ -269,19 +269,27 @@ export default function CanaisTab() {
                 {newsletters.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">Nenhum canal encontrado.</div>
                 ) : (
-                  newsletters.map((n) => (
-                    <button key={n.id} onClick={() => setSelectedId(n.id)} className={`w-full text-left p-3 rounded-lg border transition-all ${selectedId === n.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50 border-transparent"}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                          {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{n.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))
+                   newsletters.map((n) => {
+                     const isSelected = selectedId === n.id;
+                     return (
+                       <button 
+                         key={n.id} 
+                         onClick={() => setSelectedId(n.id)} 
+                         className={`w-full text-left p-3 rounded-lg border transition-all ${isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted/50 border-transparent"}`}
+                         style={isSelected ? { borderColor: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.1)' } : {}}
+                       >
+                         <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                             {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
+                           </div>
+                           <div className="min-w-0">
+                             <p className="font-medium text-sm truncate">{n.name}</p>
+                             <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
+                           </div>
+                         </div>
+                       </button>
+                     );
+                   })
                 )}
               </div>
             </div>
