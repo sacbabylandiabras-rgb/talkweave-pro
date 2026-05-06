@@ -345,8 +345,25 @@ serve(async (req) => {
 
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    let { instanceId, token, clientToken } = credentials;
+    let { instanceId, token, clientToken, isUazapi } = credentials;
     let uazapiOverride: { apiUrl: string; apiToken: string } | null = null;
+
+    // Se a instância resolvida for UAZAPI, configuramos o override para o roteamento abaixo
+    if (isUazapi) {
+      const { data: instData } = await adminClient
+        .from('zapi_instances')
+        .select('evolution_api_url, evolution_api_key')
+        .eq('zapi_instance_id', instanceId)
+        .maybeSingle();
+      
+      if (instData?.evolution_api_url && instData?.evolution_api_key) {
+        uazapiOverride = {
+          apiUrl: instData.evolution_api_url,
+          apiToken: instData.evolution_api_key
+        };
+        console.log(`🚀 UAZAPI routing enabled for instance ${instanceId}`);
+      }
+    }
 
     // Detect group phones
     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
@@ -426,9 +443,13 @@ serve(async (req) => {
       else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
         const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
           const t = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-          const label = String(b?.label || `Botão ${idx + 1}`).trim();
-          if (t === 'URL' && b?.url || b?.value) return `${label}|${b.url}`;
-          if (t === 'CALL' && b?.phone || b?.phoneNumber || b?.value) return `${label}|${b.phone}`;
+          const label = String(b?.label || b?.text || `Botão ${idx + 1}`).trim();
+          const url = b.url || b.value || b.urlValue;
+          const phoneVal = b.phone || b.phoneNumber || b.value || b.phoneValue;
+          
+          if (t === 'URL' && url) return `${label}|${url}`;
+          if (t === 'CALL' && phoneVal) return `${label}|${phoneVal}`;
+          if (t === 'COPY' && url) return `${label}|https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
           return label;
         });
         endpoint = '/send/menu';
