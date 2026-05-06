@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,19 @@ export default function CanaisTab() {
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [metadata, setMetadata] = useState<any>(null);
+  const [metadataOpen, setMetadataOpen] = useState(false);
+
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const editPhotoFileRef = useRef<HTMLInputElement>(null);
+
+  const [reactionMode, setReactionMode] = useState<"ALL" | "BASIC" | "NONE">("ALL");
+  const [transferPhone, setTransferPhone] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -35,6 +49,19 @@ export default function CanaisTab() {
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
   }, [activeInstance, instanceId]);
+
+  const selectedNewsletter = useMemo(
+    () => newsletters.find((n) => n.id === selectedId) || null,
+    [newsletters, selectedId],
+  );
+
+  useEffect(() => {
+    if (selectedNewsletter) {
+      setEditName(selectedNewsletter.name || "");
+      setEditDescription(selectedNewsletter.description || "");
+      setEditPhotoUrl(selectedNewsletter.raw?.picture || "");
+    }
+  }, [selectedNewsletter]);
 
   const invokeNewsletter = async (action: string, payload: Record<string, unknown> = {}) => {
     const inst = instances.find((i) => i.id === instanceId);
@@ -107,6 +134,48 @@ export default function CanaisTab() {
       setCreateName("");
       setCreateDescription("");
       setCreatePhotoUrl("");
+      await loadNewsletters();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setActionLoading("search");
+    try {
+      const data = await invokeNewsletter("search-newsletter", { query: searchQuery.trim() });
+      setSearchResults(Array.isArray(data) ? data : []);
+      toast.success(`${(Array.isArray(data) ? data : []).length} canais encontrados`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleGetMetadata = async () => {
+    if (!selectedNewsletter) return;
+    setActionLoading("metadata");
+    try {
+      const data = await invokeNewsletter("newsletter-metadata", { newsletterId: selectedNewsletter.id });
+      setMetadata(data);
+      setMetadataOpen(true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runAction = async (action: string, payload: Record<string, any>, successMsg: string, after?: () => void) => {
+    setActionLoading(action);
+    try {
+      await invokeNewsletter(action, { newsletterId: selectedNewsletter?.id, ...payload });
+      toast.success(successMsg);
+      if (after) after();
       await loadNewsletters();
     } catch (err: any) {
       toast.error(err.message);
