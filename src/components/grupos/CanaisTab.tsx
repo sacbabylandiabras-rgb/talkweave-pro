@@ -375,9 +375,9 @@ export default function CanaisTab() {
                        >
                         <Label>Reações</Label>
                         <div className="flex gap-2">
-                          <Button variant={reactionMode === "ALL" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("ALL"); runAction("update-newsletter-config", { reactionMode: "ALL" }, "Reações: Todas"); }}>Todas</Button>
-                          <Button variant={reactionMode === "BASIC" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("BASIC"); runAction("update-newsletter-config", { reactionMode: "BASIC" }, "Reações: Básicas"); }}>Básicas</Button>
-                          <Button variant={reactionMode === "NONE" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("NONE"); runAction("update-newsletter-config", { reactionMode: "NONE" }, "Reações: Nenhuma"); }}>Nenhuma</Button>
+                           <Button variant={reactionMode === "ALL" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("ALL"); runAction("update-newsletter-config", { reactionCodes: "all" }, "Reações: Todas"); }}>Todas</Button>
+                           <Button variant={reactionMode === "BASIC" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("BASIC"); runAction("update-newsletter-config", { reactionCodes: "basic" }, "Reações: Básicas"); }}>Básicas</Button>
+                           <Button variant={reactionMode === "NONE" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("NONE"); runAction("update-newsletter-config", { reactionCodes: "none" }, "Reações: Nenhuma"); }}>Nenhuma</Button>
                         </div>
                       </div>
                        <Button 
