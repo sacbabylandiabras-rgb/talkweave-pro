@@ -76,7 +76,7 @@ export default function CanaisTab() {
     const ext = file.name.split(".").pop() || "jpg";
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Não autenticado");
-    const fileName = \`\${user.id}/newsletter-photos/\${Date.now()}.\${ext}\`;
+    const fileName = `${user.id}/newsletter-photos/${Date.now()}.${ext}`;
     const { data, error } = await supabase.storage.from("template-media").upload(fileName, file, { contentType: file.type });
     if (error) throw new Error("Erro no upload: " + error.message);
     const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
