@@ -568,7 +568,7 @@ export const useMessageLogs = (
     await fetchSavedContacts();
   }, [fetchSavedContacts]);
 
-  const fetchProfilePicture = useCallback(async (phone: string, instanceId?: string | null, force = false): Promise<string | null> => {
+   const fetchProfilePicture = useCallback(async (phone: string, force = false, instanceId?: string | null): Promise<string | null> => {
     try {
       if (!force && fetchedPhotosRef.current.has(phone)) {
         return localManualPhotos.get(phone) || null;
@@ -1028,13 +1028,21 @@ export const useMessageLogs = (
           rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
         }
 
-        const groupOnlyPhoto = isGroup
-          ? (safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone))
-          : null;
+       let groupOnlyPhoto = isGroup
+         ? (safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone))
+         : null;
+       
+       if (groupOnlyPhoto === 'null' || groupOnlyPhoto === 'undefined') groupOnlyPhoto = null;
+       
+       let savedPhoto = saved?.profile_picture_url || null;
+       if (savedPhoto === 'null' || savedPhoto === 'undefined') savedPhoto = null;
+       
+       const profilePictureUrl = localManualPhotos.get(phone) || savedPhoto || groupOnlyPhoto || null;
+
         return {
           phone,
           contactName: resolvedContactName,
-          profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || groupOnlyPhoto || null,
+         profilePictureUrl,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
@@ -1078,13 +1086,13 @@ export const useMessageLogs = (
     (async () => {
       for (const entry of entries) {
         if (cancelled) return;
-        const [phone, instanceId] = entry.split('::');
-        const cacheKey = `group-photo-sync:${phone}`;
-        if (fetchedPhotosRef.current.has(cacheKey)) continue;
-        fetchedPhotosRef.current.add(cacheKey);
-        try {
-          await fetchProfilePicture(phone, instanceId || null);
-        } catch { /* ignore */ }
+         const [phone, instanceId] = entry.split('::');
+         const cacheKey = `group-photo-sync:${phone}`;
+         if (fetchedPhotosRef.current.has(cacheKey)) continue;
+         fetchedPhotosRef.current.add(cacheKey);
+         try {
+           await fetchProfilePicture(phone, false, instanceId || null);
+         } catch { /* ignore */ }
         await new Promise((r) => setTimeout(r, 200));
       }
     })();

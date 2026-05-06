@@ -358,7 +358,7 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
+             <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
               {conv.profilePictureUrl ? (
                 <AvatarImage
                   src={conv.profilePictureUrl}
@@ -366,10 +366,8 @@ const ConversationList = ({
                   onError={() => onFetchPhoto(conv.phone, true)}
                 />
               ) : null}
-              <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
-                <div className="w-full h-full text-white">
-                  <WhatsAppDefaultAvatar />
-                </div>
+               <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
+                 <WhatsAppDefaultAvatar />
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -699,7 +697,7 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
+         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           {conversation.profilePictureUrl ? (
             <AvatarImage
               src={conversation.profilePictureUrl}
@@ -707,10 +705,8 @@ const ChatView = ({
               onError={() => onFetchPhoto(conversation.phone, true)}
             />
           ) : null}
-          <AvatarFallback className="bg-[#DFE5E7] h-full w-full flex items-center justify-center">
-            <div className="w-full h-full text-white">
-              <WhatsAppDefaultAvatar />
-            </div>
+           <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
+             <WhatsAppDefaultAvatar />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
@@ -1286,9 +1282,9 @@ const MensagensRecebidas = () => {
     if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
     const url = await fetchProfilePicture(
-      phone, 
-      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null,
-      force
+      phone,
+      force,
+      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null
     );
     if (url) setManualProfilePic(url);
     if (!force) setLoadingPhoto(false);
