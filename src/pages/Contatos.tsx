@@ -32,11 +32,18 @@ const Contatos = () => {
     }
   };
 
-  const handleOpenProfile = (contact: Contact) => {
-    setSelectedContact(contact);
-    setProfileOpen(true);
-  };
-
+   const handleOpenProfile = (contact: Contact) => {
+     setSelectedContact(contact);
+     setProfileOpen(true);
+   };
+ 
+   const getInitials = (name: string | undefined, phone: string) => {
+     if (name && name !== 'Contato') {
+       return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+     }
+     return phone.replace(/\D/g, '').slice(-2) || '??';
+   };
+ 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-foreground">Contatos</h1>
