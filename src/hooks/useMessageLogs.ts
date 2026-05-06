@@ -265,43 +265,17 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id || null;
 }
 
-const sanitizePictureUrl = (value: unknown): string | null => {
-  if (value === null || value === undefined) return null;
-  const str = String(value).trim();
-  if (!str) return null;
-  const lower = str.toLowerCase();
-  if (lower === 'null' || lower === 'undefined' || lower === 'false') return null;
-  // Check for common placeholders that aren't real photos
-  if (str.includes('default-user') || str.includes('avatar-placeholder')) return null;
-  if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null;
-  return str;
-};
-
-const extractProfilePictureUrl = (payload: any): string | null => {
-  if (!payload) return null;
-  
-  // Handle payload being the direct URL string
-  if (typeof payload === 'string') {
-    return sanitizePictureUrl(payload);
-  }
-
-  if (Array.isArray(payload)) {
-    const first = payload[0];
-    return extractProfilePictureUrl(first);
-  }
-
-  const rawUrl = 
-    payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.profileThumbnail ||
-    payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture ||
-    payload?.imageUrl || payload?.image || payload?.photo || payload?.groupPhoto ||
-    payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || payload?.data?.profileThumbnail ||
-    payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
-    payload?.chat?.imagePreview || payload?.chat?.image || payload?.chat?.imgUrl ||
-    payload?.group?.image || payload?.group?.picture ||
-    payload?.preview || payload?.pictureUrl;
-
-  return sanitizePictureUrl(rawUrl);
-};
+ const extractProfilePictureUrl = (payload: any): string | null => {
+   if (!payload) return null;
+   if (typeof payload === 'string') {
+     const str = payload.trim();
+     if (!str || str.toLowerCase() === 'null' || !/^https?:\/\//i.test(str)) return null;
+     return str;
+   }
+   if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
+   const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link;
+   return extractProfilePictureUrl(rawUrl);
+ };
 
 const extractResolvedGroupName = (payload: any): string | null => {
   if (!payload) return null;
