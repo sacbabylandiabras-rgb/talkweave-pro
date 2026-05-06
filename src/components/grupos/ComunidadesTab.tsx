@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +88,9 @@ export default function ComunidadesTab() {
 
   const [editPhotoOpen, setEditPhotoOpen] = useState(false);
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const createPhotoFileRef = useRef<HTMLInputElement>(null);
+  const editPhotoFileRef = useRef<HTMLInputElement>(null);
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
@@ -321,6 +324,38 @@ export default function ComunidadesTab() {
     );
   };
 
+  const uploadPhotoFile = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+    const fileName = `${user.id}/community-photos/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("template-media")
+      .upload(fileName, file, { contentType: file.type });
+    if (error) throw new Error("Erro no upload: " + error.message);
+    const { data: urlData } = supabase.storage.from("template-media").getPublicUrl(data.path);
+    return urlData.publicUrl;
+  };
+
+  const handlePhotoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (url: string) => void,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadPhotoFile(file);
+      setter(url);
+      toast.success("Foto enviada!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
   const toggleLinkGroup = (gid: string) =>
     setLinkGroupIds((prev) => (prev.includes(gid) ? prev.filter((g) => g !== gid) : [...prev, gid]));
 
@@ -371,12 +406,41 @@ export default function ComunidadesTab() {
                         <Image className="w-3.5 h-3.5" />
                         Foto da Comunidade (URL)
                       </Label>
-                      <Input
-                        value={createPhotoUrl}
-                        onChange={(e) => setCreatePhotoUrl(e.target.value)}
-                        placeholder="Cole a URL da imagem"
-                        className="h-8 text-xs"
-                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="relative w-12 h-12 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                          onClick={() => createPhotoFileRef.current?.click()}
+                        >
+                          {createPhotoUrl ? (
+                            <img src={createPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <Input
+                          value={createPhotoUrl}
+                          onChange={(e) => setCreatePhotoUrl(e.target.value)}
+                          placeholder="URL ou faça upload"
+                          className="flex-1 h-8 text-xs"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0"
+                          onClick={() => createPhotoFileRef.current?.click()}
+                          disabled={uploadingPhoto}
+                        >
+                          {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        </Button>
+                        <input
+                          ref={createPhotoFileRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)}
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs">Nome da Comunidade</Label>
@@ -517,11 +581,41 @@ export default function ComunidadesTab() {
                       <div className="space-y-4 py-2">
                         <div className="space-y-2">
                           <Label className="text-xs">URL da Imagem</Label>
-                          <Input
-                            value={editPhotoUrl}
-                            onChange={(e) => setEditPhotoUrl(e.target.value)}
-                            placeholder="https://exemplo.com/foto.jpg"
-                          />
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="relative w-14 h-14 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                              onClick={() => editPhotoFileRef.current?.click()}
+                            >
+                              {editPhotoUrl ? (
+                                <img src={editPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <Upload className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            <Input
+                              value={editPhotoUrl}
+                              onChange={(e) => setEditPhotoUrl(e.target.value)}
+                              placeholder="URL ou faça upload"
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0"
+                              onClick={() => editPhotoFileRef.current?.click()}
+                              disabled={uploadingPhoto}
+                            >
+                              {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            </Button>
+                            <input
+                              ref={editPhotoFileRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handlePhotoFileChange(e, setEditPhotoUrl)}
+                            />
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
