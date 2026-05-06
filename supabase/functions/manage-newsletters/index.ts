@@ -91,11 +91,10 @@ Deno.serve(async (req) => {
       case "create-newsletter": {
         const { name, description, imageUrl } = body;
         if (!name) throw new Error("name is required");
-        return await callZapi("POST", "/create-newsletter", {
-          name,
-          description: description ?? "",
-          ...(imageUrl ? { imageUrl } : {}),
-        });
+        const payload: Record<string, unknown> = { name };
+        if (description) payload.description = description;
+        if (imageUrl) payload.image = imageUrl;
+        return await callZapi("POST", "/create-newsletter", payload);
       }
 
       case "list-newsletters": {
