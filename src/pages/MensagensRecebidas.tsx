@@ -95,7 +95,13 @@ const formatDateSeparator = (ts: string) => {
 };
 
 const getInitials = (name: string | null, phone?: string | null) => {
-  if (name) return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  if (name && name !== 'Comunidade') {
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  }
   return (phone || '').replace(/\D/g, '').slice(-2) || '??';
 };
 
@@ -355,8 +361,16 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0">
-              {conv.profilePictureUrl && <AvatarImage src={conv.profilePictureUrl} />}
+            <Avatar className="h-11 w-11 shrink-0 border border-border/50">
+              {conv.profilePictureUrl ? (
+                <AvatarImage 
+                  src={conv.profilePictureUrl} 
+                  className="object-cover"
+                  onError={(e) => {
+                    (e.target as any).style.display = 'none';
+                  }}
+                />
+              ) : null}
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                 {getInitials(conv.contactName, conv.phone)}
               </AvatarFallback>
@@ -688,8 +702,16 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Avatar className="h-10 w-10">
-          {conversation.profilePictureUrl && <AvatarImage src={conversation.profilePictureUrl} />}
+        <Avatar className="h-10 w-10 border border-border/50">
+          {conversation.profilePictureUrl ? (
+            <AvatarImage 
+              src={conversation.profilePictureUrl} 
+              className="object-cover"
+              onError={(e) => {
+                (e.target as any).style.display = 'none';
+              }}
+            />
+          ) : null}
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
             {getInitials(getConversationDisplayName(conversation.contactName, conversation.phone), conversation.phone)}
           </AvatarFallback>
