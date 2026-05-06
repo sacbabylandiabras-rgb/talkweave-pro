@@ -87,6 +87,11 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
+  const { toast } = useToast();
+  const { instances, activeInstance } = useZapiInstances();
+  const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
+
   // Subset de instâncias efetivamente escolhidas pelo usuário no seletor (modo revezamento)
   const rotateInstances = useMemo(() => {
     if (!selectedInstanceIds.length) return instances;
@@ -94,11 +99,6 @@ const EnviarMensagem = () => {
     const filtered = instances.filter(i => ids.has(i.id));
     return filtered.length > 0 ? filtered : instances;
   }, [instances, selectedInstanceIds]);
-
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
-  const { toast } = useToast();
-  const { instances, activeInstance } = useZapiInstances();
-  const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
   // Definir instância padrão apenas enquanto o usuário não escolheu manualmente outra opção
   // Set default instance only when no manual selection
