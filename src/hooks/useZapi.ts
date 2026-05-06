@@ -57,11 +57,13 @@ const getZAPIConfig = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado. Faça login para continuar.');
 
-  const { data: instances, error } = await (supabase as any)
+  const { data: instances, error } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider')
     .eq('user_id', user.id)
-    .eq('is_default', true)
+    .eq('is_active', true)
+    .or('api_provider.is.null,api_provider.eq.zapi')
+    .order('is_default', { ascending: false })
     .limit(1);
 
   if (error) throw new Error('Erro ao buscar credenciais: ' + error.message);

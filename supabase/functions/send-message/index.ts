@@ -353,15 +353,6 @@ serve(async (req) => {
 
     // 🚀 FORCE Z-API for standard messaging features.
     // UAZAPI is reserved ONLY for lead extraction and special community functions.
-    const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
-    if (standardInstance) {
-      console.log(`📌 Switching to Z-API instance for standard message: ${standardInstance.zapi_instance_id}`);
-      instanceId = standardInstance.zapi_instance_id;
-      token = standardInstance.zapi_token;
-      clientToken = standardInstance.zapi_client_token;
-      uazapiOverride = null; // Ensure Z-API routing
-    }
-
     // ===== UAZAPI ROUTING (short-circuit) =====
       if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
       const { apiUrl, apiToken } = uazapiOverride;
