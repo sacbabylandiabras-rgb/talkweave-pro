@@ -41,6 +41,8 @@ export interface UnifiedMessage {
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
   campaign_id?: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
 }
 
 export interface SavedContact {
@@ -878,6 +880,14 @@ export const useMessageLogs = (
 
       const inboundContent = resolveVisibleInboundContent(log);
       if (inboundContent) {
+        const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
+        let senderName = null;
+        let senderPhone = null;
+
+        if (isManualTrigger) {
+          senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;
+        }
+
         allMessages.push({
           id: `log-recv-${log.id}`,
           phone: normalizeConversationPhone(log.phone),
@@ -886,6 +896,8 @@ export const useMessageLogs = (
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
+          sender_name: senderName,
+          sender_phone: senderPhone,
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {

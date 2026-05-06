@@ -767,6 +767,11 @@ const ChatView = ({
                         className="max-w-[75%] rounded-lg rounded-tl-none px-3 py-2 shadow-sm"
                         style={{ backgroundColor: '#ffffff', color: '#111b21' }}
                       >
+                        {isGroupPhone(conversation.phone) && msg.sender_name && (
+                          <div className="text-[11px] font-semibold mb-0.5 truncate" style={{ color: '#128c7e' }}>
+                            {msg.sender_name}
+                          </div>
+                        )}
                         <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <p className="text-[10px] text-right mt-1" style={{ color: '#667781' }}>
                           {formatMessageTime(msg.timestamp)}
@@ -859,7 +864,7 @@ const ChatView = ({
       )}
 
       {/* Message Input */}
-      <div className="border-t border-border bg-card px-4 py-3">
+      <div className="border-t border-border bg-[#f0f2f5] px-4 py-3">
         <input
           ref={fileInputRef}
           type="file"
@@ -954,7 +959,7 @@ const ChatView = ({
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="min-h-[40px] max-h-[120px] resize-none text-sm"
+                className="min-h-[40px] max-h-[120px] resize-none text-sm bg-white border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg shadow-sm"
                 rows={1}
               />
               {newMessage.trim() || attachedFile ? (

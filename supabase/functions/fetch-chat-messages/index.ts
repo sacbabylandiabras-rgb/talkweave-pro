@@ -182,6 +182,10 @@ Deno.serve(async (req) => {
       const fromMe = m?.fromMe === true || m?.fromme === true || m?.key?.fromMe === true;
       const ts = normalizeTimestamp(m?.messageTimestamp || m?.timestamp || m?.t || m?.sent_at);
       const { text, mediaType, mediaUrl } = extractMessageContent(m);
+      
+      // Try to extract sender name for group messages
+      const senderName = m?.pushName || m?.pushname || m?.verifiedBizName || m?.senderName || m?.participantName || null;
+      const senderPhone = m?.participant || m?.key?.participant || null;
 
       let content = text;
       if (mediaType && mediaUrl) {
@@ -189,13 +193,15 @@ Deno.serve(async (req) => {
       }
       if (!content) content = "[mensagem]";
 
+      const keyword = senderName ? `__manual_flow_trigger__:${senderName}` : `__msg_import__:${externalId}`;
+
       rows.push({
         phone,
         user_id: user.id,
         timestamp: ts,
         message_received: fromMe ? null : content,
         response_sent: fromMe ? content : null,
-        keyword_matched: `__msg_import__:${externalId}`,
+        keyword_matched: keyword,
         instance_id: instance.zapi_instance_id,
       });
     }
