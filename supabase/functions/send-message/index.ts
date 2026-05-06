@@ -911,8 +911,6 @@ serve(async (req) => {
             ...(b.type === "CALL" ? { phone: b.phone } : {})
           };
         })
-          return action;
-        })
       };
 
       console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
