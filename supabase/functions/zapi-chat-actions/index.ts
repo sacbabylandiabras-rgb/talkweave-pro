@@ -123,6 +123,20 @@ function endpointFor(action: string, phone: string, payload: any) {
      case 'sip-info':
        return { method: 'GET', path: '/sip-info' };
 
+    // Status Actions
+    case 'send-text-status':
+      return { method: 'POST', path: "/send-text-status", body: payload };
+    case 'send-image-status':
+      return { method: 'POST', path: "/send-image-status", body: payload };
+    case 'send-video-status':
+      return { method: 'POST', path: "/send-video-status", body: payload };
+    case 'reply-status-text':
+      return { method: 'POST', path: "/reply-status-text", body: payload };
+    case 'reply-status-gif':
+      return { method: 'POST', path: "/reply-status-gif", body: payload };
+    case 'reply-status-sticker':
+      return { method: 'POST', path: "/reply-status-sticker", body: payload };
+
     // Group Actions
     case 'get-groups':
       return { method: 'GET', path: "/groups?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
