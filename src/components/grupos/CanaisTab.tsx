@@ -224,8 +224,16 @@ export default function CanaisTab() {
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="flex flex-col items-center gap-4">
-                      <div onClick={() => createPhotoFileRef.current?.click()} className="relative w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors">
-                        {createPhotoUrl ? <img src={createPhotoUrl} className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+                       <div 
+                         onClick={() => createPhotoFileRef.current?.click()} 
+                         className="relative w-24 h-24 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors"
+                         style={{ borderColor: 'hsl(var(--primary) / 0.5)' }}
+                       >
+                         {createPhotoUrl ? (
+                           <img src={createPhotoUrl} className="w-full h-full object-cover" />
+                         ) : (
+                           <Upload className="w-8 h-8 text-muted-foreground" />
+                         )}
                         {uploadingPhoto && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-white" /></div>}
                       </div>
                       <input ref={createPhotoFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoFileChange(e, setCreatePhotoUrl)} />
@@ -261,34 +269,48 @@ export default function CanaisTab() {
                 {newsletters.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">Nenhum canal encontrado.</div>
                 ) : (
-                  newsletters.map((n) => (
-                    <button key={n.id} onClick={() => setSelectedId(n.id)} className={`w-full text-left p-3 rounded-lg border transition-all ${selectedId === n.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50 border-transparent"}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                          {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{n.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))
+                   newsletters.map((n) => {
+                     const isSelected = selectedId === n.id;
+                     return (
+                       <button 
+                         key={n.id} 
+                         onClick={() => setSelectedId(n.id)} 
+                         className={`w-full text-left p-3 rounded-lg border transition-all ${isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted/50 border-transparent"}`}
+                         style={isSelected ? { borderColor: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.1)' } : {}}
+                       >
+                         <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                             {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
+                           </div>
+                           <div className="min-w-0">
+                             <p className="font-medium text-sm truncate">{n.name}</p>
+                             <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
+                           </div>
+                         </div>
+                       </button>
+                     );
+                   })
                 )}
               </div>
             </div>
 
             <div className="md:col-span-2 space-y-4">
               {!selectedNewsletter ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
-                  <Hash className="w-12 h-12 mb-4 opacity-20" />
+                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+                   <Hash 
+                     className="w-12 h-12 mb-4" 
+                     style={{ opacity: 0.2 }}
+                   />
                   <p>Selecione um canal para gerenciar</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20">
+                       <div 
+                         className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2"
+                         style={{ borderColor: 'hsl(var(--primary) / 0.2)' }}
+                       >
                         {(selectedNewsletter.raw as any)?.picture ? <img src={(selectedNewsletter.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-8 h-8 text-muted-foreground" />}
                       </div>
                       <div>
@@ -347,7 +369,10 @@ export default function CanaisTab() {
                         <Button variant="outline" onClick={() => runAction("mute-newsletter", {}, "Silenciado")} disabled={actionLoading === "mute-newsletter"}><VolumeX className="w-4 h-4 mr-2" /> Silenciar</Button>
                         <Button variant="outline" onClick={() => runAction("unmute-newsletter", {}, "Som ativado")} disabled={actionLoading === "unmute-newsletter"}><Volume2 className="w-4 h-4 mr-2" /> Ativar Som</Button>
                       </div>
-                      <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                       <div 
+                         className="border rounded-lg p-4 space-y-4"
+                         style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}
+                       >
                         <Label>Reações</Label>
                         <div className="flex gap-2">
                           <Button variant={reactionMode === "ALL" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("ALL"); runAction("update-newsletter-config", { reactionMode: "ALL" }, "Reações: Todas"); }}>Todas</Button>
