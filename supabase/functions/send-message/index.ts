@@ -324,13 +324,113 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
-    const sendZapiText = async (text: string, label: string) => {
-      const response = await fetch(`${baseUrl}/send-text`, {
+    const sendZapi = async (endpoint: string, body: any, label: string) => {
+      console.log(`📤 Z-API [${label}] to ${endpoint}:`, JSON.stringify(body).substring(0, 500));
+      const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message: text }),
+        body: JSON.stringify(body),
       });
       return parseZapiResponse(response, resolvedPhone, instanceId, label);
+    };
+
+    const sendZapiMedia = async (url: string, type: string, text?: string) => {
+      let endpoint = '/send-text';
+      let payload: any = { phone: resolvedPhone };
+
+      if (type === 'image') {
+        endpoint = '/send-image';
+        payload.image = url;
+        payload.caption = text || '';
+      } else if (type === 'video') {
+        endpoint = isPtv ? '/send-ptv' : '/send-video';
+        if (isPtv) {
+          payload.ptv = url;
+        } else {
+          payload.video = url;
+          payload.caption = text || '';
+          if (viewOnce) payload.viewOnce = true;
+        }
+      } else if (type === 'audio') {
+        endpoint = '/send-audio';
+        payload.audio = url;
+        payload.waveform = true;
+      } else {
+        const ext = getDocumentExtension(url, text);
+        endpoint = `/send-document/${ext}`;
+        payload.document = url;
+        payload.fileName = text || `arquivo.${ext}`;
+      }
+      return sendZapi(endpoint, payload, `media-${type}`);
+    };
+
+    // Define common button logic to be used if needed
+    const handleButtons = async () => {
+      // Normalizar botões
+      const normalized = (buttonActions || []).slice(0, 10).map((b: any, index: number) => {
+        let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
+        let url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
+        let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
+        let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim().slice(0, 25);
+        
+        if (type === 'COPY' && url) {
+          type = 'URL';
+          url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
+        }
+
+        return { id: b.id || String(index + 1), type, label, url, phone };
+      }).filter(b => {
+        if (!['REPLY', 'URL', 'CALL'].includes(b.type)) return false;
+        if (b.type === 'URL' && !b.url) return false;
+        if (b.type === 'CALL' && !b.phone) return false;
+        if (!b.label) return false;
+        return true;
+      });
+
+      const actionBtns = normalized.filter(b => b.type === 'URL' || b.type === 'CALL').slice(0, 3);
+      const replyBtns = normalized.filter(b => b.type === 'REPLY').slice(0, 3);
+      const groups = [];
+      if (actionBtns.length > 0) groups.push({ kind: 'action', buttons: actionBtns });
+      if (replyBtns.length > 0) groups.push({ kind: 'reply', buttons: replyBtns });
+
+      console.log(`📤 Sending ${groups.length} button group(s) for ${resolvedPhone}`);
+
+      // 1. Send Media first if it exists
+      if (mediaUrl && mediaType) {
+        await sendZapiMedia(mediaUrl, mediaType, message);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // 2. Send button groups
+      let lastRes = null;
+      for (let i = 0; i < groups.length; i++) {
+        const g = groups[i];
+        // If media was already sent, don't repeat the message text if there are multiple groups?
+        // Actually, Z-API requires a message. We'll use the original message.
+        const payload: any = {
+          phone: resolvedPhone,
+          message: (i === 0 && !mediaUrl) ? (message || 'Escolha uma opção:') : (message || '...'),
+          buttonActions: g.buttons,
+        };
+        if (title) payload.title = title;
+        if (footer) payload.footer = footer;
+
+        lastRes = await sendZapi('/send-button-actions', payload, `buttons-${g.kind}`);
+        if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // If no buttons were actually valid but groups were empty, send at least the message/media
+      if (groups.length === 0) {
+        if (mediaUrl && mediaType) {
+          // Already sent above? No, only if groups.length > 0.
+          // Let's ensure media/text is sent if buttons were intended but invalid.
+          return sendZapiMedia(mediaUrl, mediaType, message);
+        } else {
+          return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
+        }
+      }
+
+      return lastRes;
     };
 
     if (specialType === 'pix' && specialPayload) {
@@ -361,7 +461,7 @@ serve(async (req) => {
       logMessage = `📍 ${title}`;
 
       if (!lat || !lng) {
-        zapiData = await sendZapiText(fallbackText, 'location-fallback-empty');
+        zapiData = await sendZapi('/send-text', { phone: resolvedPhone, message: fallbackText }, 'location-fallback-empty');
       } else {
         try {
           zapiResponse = await fetch(`${baseUrl}/send-location`, {
@@ -372,7 +472,7 @@ serve(async (req) => {
           zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location');
         } catch (error) {
           console.error('⚠️ Falha ao enviar localização nativa; enviando link do mapa:', error);
-          zapiData = await sendZapiText(fallbackText, 'location-fallback-link');
+          zapiData = await sendZapi('/send-text', { phone: resolvedPhone, message: fallbackText }, 'location-fallback-link');
         }
       }
     } else if (specialType === 'contato' && specialPayload) {
@@ -517,77 +617,7 @@ serve(async (req) => {
       logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-      const interactiveMessage = message || 'Selecione uma opção:';
-      
-      // Normalizar botões
-      const allButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
-        let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-        let url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
-        let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
-        let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim();
-        
-        // Suporte para botão de COPIAR (conforme docs Z-API, usa link especial do WhatsApp)
-        if (type === 'COPY' && url) {
-          type = 'URL';
-          url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
-        }
-
-        return { id: b.id || String(index + 1), type, label, url, phone };
-      });
-
-      // Z-API/WhatsApp regra oficial:
-      // "Sending all three button types simultaneously causes an error on WhatsApp Web.
-      //  Combine CALL and URL buttons together, and send REPLY buttons separately."
-      // → Separamos em até 2 mensagens: (1) ACTION = URL+CALL, (2) REPLY.
-      const normalized = allButtons
-        .filter(b => ['REPLY', 'URL', 'CALL'].includes(b.type))
-        .map(b => {
-          const btn: any = { id: b.id, type: b.type, label: b.label.slice(0, 25) };
-          if (b.type === 'URL') btn.url = b.url;
-          else if (b.type === 'CALL') btn.phone = b.phone;
-          return btn;
-        });
-
-      const actionBtns = normalized.filter(b => b.type === 'URL' || b.type === 'CALL').slice(0, 3);
-      const replyBtns = normalized.filter(b => b.type === 'REPLY').slice(0, 3);
-      const groups: { kind: string; buttons: any[] }[] = [];
-      if (actionBtns.length > 0) groups.push({ kind: 'action', buttons: actionBtns });
-      if (replyBtns.length > 0) groups.push({ kind: 'reply', buttons: replyBtns });
-
-      console.log(`📤 Botões Z-API: ${actionBtns.length} ação (URL/CALL) + ${replyBtns.length} resposta — ${groups.length} mensagem(ns)`);
-
-      let lastResponse: Response | null = null;
-      let lastData: any = null;
-      for (let i = 0; i < groups.length; i++) {
-        const g = groups[i];
-        const payload: any = {
-          phone: resolvedPhone,
-          message: interactiveMessage,
-          ...(title ? { title } : {}),
-          ...(footer ? { footer } : {}),
-          buttonActions: g.buttons,
-        };
-        // Mídia apenas na primeira mensagem para não duplicar
-        if (i === 0 && mediaUrl && mediaType) {
-          if (mediaType === 'image') payload.image = mediaUrl;
-          else if (mediaType === 'video') payload.video = mediaUrl;
-          else if (mediaType === 'document') {
-            payload.document = mediaUrl;
-            payload.fileName = message || 'arquivo';
-          }
-        }
-
-        console.log(`  ↳ Enviando grupo ${g.kind}:`, JSON.stringify(payload.buttonActions));
-        lastResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(payload),
-        });
-        lastData = await parseZapiResponse(lastResponse, resolvedPhone, instanceId, `button-actions-${g.kind}`);
-        if (i < groups.length - 1) await new Promise(r => setTimeout(r, 800));
-      }
-      zapiResponse = lastResponse!;
-      zapiData = lastData;
+      zapiData = await handleButtons();
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
