@@ -36,13 +36,22 @@ Deno.serve(async (req) => {
     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { action, instanceId, instanceToken, instanceClientToken } = body;
+    const { action } = body;
 
-    const instId = instanceId || credentials.instanceId;
-    const instToken = instanceToken || credentials.token;
-    const instClientToken = instanceClientToken || credentials.clientToken;
+    // Canais (newsletters) só são suportados pela Z-API oficial.
+    // Ignoramos qualquer instanceId enviado pelo frontend (pode ser uma instância de outro provedor)
+    // e sempre usamos as credenciais Z-API resolvidas em getUserZAPICredentials.
+    if (credentials.isUazapi) {
+      return new Response(
+        JSON.stringify({ error: "Nenhuma conexão WhatsApp compatível com Canais foi encontrada. Configure uma conexão Z-API." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Forçamos o uso de Z-API conforme solicitado, ignorando provedores alternativos
+    const instId = credentials.instanceId;
+    const instToken = credentials.token;
+    const instClientToken = credentials.clientToken;
+
     if (!instId || !instToken || !instClientToken) {
       return new Response(
         JSON.stringify({ error: "Credenciais Z-API não configuradas" }),
