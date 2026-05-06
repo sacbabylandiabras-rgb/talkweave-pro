@@ -88,13 +88,18 @@ export default function CanaisTab() {
   const loadNewsletters = async () => {
     setLoading(true);
     try {
-      const data = await invokeNewsletter("list-newsletters");
-      const list: Newsletter[] = Array.isArray(data) ? data.map((n: any) => ({
-        id: String(n.newsletterId || n.id || ""),
-        name: n.name || n.subject || "Canal",
-        description: n.description || "",
+      let data = await invokeNewsletter("list-newsletters");
+      
+      // Normalização: a Z-API pode retornar um array direto ou um objeto com a lista
+      const rawList = Array.isArray(data) ? data : (data as any)?.newsletters || (data as any)?.list || [];
+      
+      const list: Newsletter[] = rawList.map((n: any) => ({
+        id: String(n.newsletterId || n.id || n.jid || ""),
+        name: n.name || n.subject || n.title || "Canal",
+        description: n.description || n.desc || "",
         raw: n
-      })) : [];
+      })).filter((n: any) => n.id);
+
       setNewsletters(list);
       if (list.length && !selectedId) setSelectedId(list[0].id);
     } catch (err) {
