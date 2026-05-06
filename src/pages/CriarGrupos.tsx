@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw, Shuffle,
-  UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings,
+  UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings, Building2,
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3, Workflow, Smartphone,
   AtSign, UserCheck, UserX
 } from "lucide-react";
@@ -1694,6 +1694,8 @@ function LinksRotativosTab() {
         body: {
           action: "get-invite-link",
           groupId: group.id,
+          isCommunity: (group as any).isCommunity,
+          isChannel: (group as any).isChannel,
           instanceId: instance?.zapi_instance_id || group.sourceInstanceId,
           instanceToken: instance?.zapi_token,
           instanceClientToken: instance?.zapi_client_token,
@@ -1935,7 +1937,17 @@ function LinksRotativosTab() {
                         .filter((g) => g.isAdmin && !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
-                            {g.nome}
+                            <div className="flex items-center gap-2">
+                              {(g as any).isCommunity && <Building2 className="w-4 h-4 text-blue-500" />}
+                              {(g as any).isChannel && <Smartphone className="w-4 h-4 text-purple-500" />}
+                              {!((g as any).isCommunity || (g as any).isChannel) && <Users className="w-4 h-4 text-green-500" />}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">{g.nome}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {(g as any).isCommunity ? "Comunidade" : (g as any).isChannel ? "Canal" : "Grupo"}
+                                </span>
+                              </div>
+                            </div>
                           </SelectItem>
                         ))}
                     </SelectContent>

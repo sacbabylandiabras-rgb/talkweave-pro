@@ -130,17 +130,46 @@ Deno.serve(async (req) => {
       }
 
       case "get-invite-link": {
-        const { groupId } = body;
+        const { groupId, isCommunity, isChannel } = body;
         if (!groupId) throw new Error("groupId is required");
 
-        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/group-invitation-link/${cleanId}`, {
-          method: "GET",
-          headers,
-        });
+        let path = "";
+        let method: "GET" | "POST" = "GET";
 
-        const data = await response.json();
-        console.log("✅ Invite link:", JSON.stringify(data));
+        if (isCommunity || String(groupId).includes("@lid")) {
+          path = `/communities/${encodeURIComponent(groupId)}/invitation-link`;
+        } else if (isChannel || String(groupId).includes("@newsletter")) {
+          // Para canais, tentamos buscar nos chats ou metadados
+          const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
+          const chats = await res.json().catch(() => []);
+          const chat = Array.isArray(chats) ? chats.find((c: any) => c.id === groupId || c.phone === groupId) : null;
+          const link = chat?.invitationLink || chat?.link || chat?.url;
+          if (link) {
+            return new Response(JSON.stringify({ link }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          // Se não achar, tenta o endpoint padrão de convite (algumas versões do Z-API podem suportar)
+          path = `/group-invitation-link/${groupId.replace("@newsletter", "")}`;
+        } else {
+          const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
+          path = `/group-invitation-link/${cleanId}`;
+        }
+
+        const response = await fetch(`${baseUrl}${path}`, { method, headers });
+        const data = await response.json().catch(() => ({}));
+        
+        // Se falhar e for comunidade, tenta redefinir/gerar (fallback comum na Z-API)
+        if (!response.ok && (isCommunity || String(groupId).includes("@lid"))) {
+          const renewRes = await fetch(`${baseUrl}/redefine-invitation-link/${encodeURIComponent(groupId)}`, { method: "POST", headers });
+          const renewData = await renewRes.json().catch(() => ({}));
+          return new Response(JSON.stringify(renewData), {
+            status: renewRes.ok ? 200 : renewRes.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log("✅ Invite link result:", JSON.stringify(data));
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
