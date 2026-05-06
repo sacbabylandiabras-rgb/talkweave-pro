@@ -94,12 +94,13 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "create-community": {
-        const { name, description, groupIds } = body;
+        const { name, description, groupIds, imageUrl } = body;
         if (!name) throw new Error("name is required");
         return await callZapi("POST", "/communities", {
           name,
           description: description ?? "",
           ...(Array.isArray(groupIds) && groupIds.length ? { groupIds } : {}),
+          ...(imageUrl ? { imageUrl } : {}),
         });
       }
 
@@ -204,6 +205,13 @@ Deno.serve(async (req) => {
         if (!communityId) throw new Error("communityId is required");
         if (typeof description !== "string") throw new Error("description is required");
         return await callZapi("PUT", `/communities/${encodeURIComponent(communityId)}/description`, { description });
+      }
+
+      case "update-group-photo": {
+        const { communityId, imageUrl } = body;
+        if (!communityId) throw new Error("communityId is required");
+        if (!imageUrl) throw new Error("imageUrl is required");
+        return await callZapi("PUT", `/communities/${encodeURIComponent(communityId)}/photo`, { imageUrl });
       }
 
       default:

@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
-  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow
+  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow, Image, Upload
 } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
@@ -71,6 +71,7 @@ export default function ComunidadesTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
+  const [createPhotoUrl, setCreatePhotoUrl] = useState("");
   const [createGroupIds, setCreateGroupIds] = useState<string[]>([]);
 
   const [linkGroupIds, setLinkGroupIds] = useState<string[]>([]);
@@ -84,6 +85,9 @@ export default function ComunidadesTab() {
 
   const [editDescOpen, setEditDescOpen] = useState(false);
   const [editDesc, setEditDesc] = useState("");
+
+  const [editPhotoOpen, setEditPhotoOpen] = useState(false);
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
@@ -293,13 +297,19 @@ export default function ComunidadesTab() {
     await runAction(
       "create",
       "create-community",
-      { name: createName.trim(), description: createDescription.trim(), groupIds: createGroupIds },
+      { 
+        name: createName.trim(), 
+        description: createDescription.trim(), 
+        groupIds: createGroupIds,
+        imageUrl: createPhotoUrl.trim() || undefined
+      },
       "Comunidade criada com sucesso",
       async () => {
         setCreateOpen(false);
         setCreateName("");
         setCreateDescription("");
         setCreateGroupIds([]);
+        setCreatePhotoUrl("");
         await loadCommunities();
       },
     );
@@ -357,6 +367,18 @@ export default function ComunidadesTab() {
                 <div className="grid md:grid-cols-2 gap-6 pt-2">
                   <div className="space-y-4">
                     <div>
+                      <Label className="text-xs flex items-center gap-1.5 mb-2">
+                        <Image className="w-3.5 h-3.5" />
+                        Foto da Comunidade (URL)
+                      </Label>
+                      <Input
+                        value={createPhotoUrl}
+                        onChange={(e) => setCreatePhotoUrl(e.target.value)}
+                        placeholder="Cole a URL da imagem"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
                       <Label className="text-xs">Nome da Comunidade</Label>
                       <Input
                         value={createName}
@@ -403,7 +425,8 @@ export default function ComunidadesTab() {
                     <WhatsAppGroupPreview
                       groupName={createName}
                       description={createDescription}
-                      membersCount={createGroupIds.length || 0}
+                      photoUrl={createPhotoUrl}
+                      membersCount={createGroupIds.length + 1}
                     />
                   </div>
                 </div>
@@ -479,6 +502,53 @@ export default function ComunidadesTab() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Dialog open={editPhotoOpen} onOpenChange={setEditPhotoOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-1" />
+                        Alterar Foto
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Alterar Foto da Comunidade</DialogTitle>
+                        <DialogDescription>Cole a nova URL da imagem da comunidade.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                          <Label className="text-xs">URL da Imagem</Label>
+                          <Input
+                            value={editPhotoUrl}
+                            onChange={(e) => setEditPhotoUrl(e.target.value)}
+                            placeholder="https://exemplo.com/foto.jpg"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditPhotoOpen(false)}>Cancelar</Button>
+                        <Button
+                          onClick={() => {
+                            if (!editPhotoUrl.trim()) return toast.error("Informe a URL");
+                            runAction(
+                              "photo",
+                              "update-group-photo",
+                              { communityId: selectedCommunity.id, imageUrl: editPhotoUrl.trim() },
+                              "Foto atualizada com sucesso",
+                              () => {
+                                setEditPhotoOpen(false);
+                                setEditPhotoUrl("");
+                              }
+                            );
+                          }}
+                          disabled={actionLoading === "photo"}
+                        >
+                          {actionLoading === "photo" && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                          Salvar
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
                   <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
                     {actionLoading === "metadata" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Building2 className="w-4 h-4 mr-1" />}
                     Ver Dados
