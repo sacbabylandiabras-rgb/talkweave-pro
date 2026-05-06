@@ -935,25 +935,8 @@ const Modelos = () => {
       locAddress: special.address || "",
       locTitle: special.title || "",
       contactName: special.contactName || "",
-      contactPhone: special.contactPhone || "",
-      uazStatusType: special.statusType || "text",
-      uazStatusText: special.text || "",
-      uazStatusBgColor: special.backgroundColor || "#000000",
-      uazStatusFont: special.font || "1",
-      uazStatusMedia: special.media || "",
-      uazStatusCaption: special.caption || "",
-      uazLocBtnLatitude: special.latitude || "",
-      uazLocBtnLongitude: special.longitude || "",
-      uazLocBtnName: special.name || "",
-      uazLocBtnAddress: special.address || "",
-      uazLocBtnText: special.text || "",
-      uazLocBtnUrl: special.url || "",
-      uazLocBtnLabel: special.buttonLabel || "Ver no mapa",
-      uazPayAmount: special.amount || "",
-      uazPayCurrency: special.currency || "BRL",
-      uazPayNote: special.note || "",
-      uazPayExpiry: special.expiry || "",
-    });
+       contactPhone: special.contactPhone || "",
+     });
     setEditingTemplate(template.id);
   };
 
