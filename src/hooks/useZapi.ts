@@ -185,7 +185,7 @@ export const useZapi = () => {
         phone?: string;
         url?: string;
       }>;
-      specialType?: 'pix' | 'localizacao' | 'contato';
+       specialType?: 'pix' | 'localizacao' | 'contato' | 'uaz_status' | 'uaz_location_button' | 'uaz_request_payment';
       specialPayload?: Record<string, any>;
       carouselCards?: Array<{
         id?: string;
