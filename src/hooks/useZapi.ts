@@ -1361,7 +1361,104 @@ export const useZapi = () => {
   const getInvitationLink = (phone: string) => invokeGroupAction('get-invitation-link', null, phone);
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
+  // Status Functions
+  const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('send-text-status', '', { text, backgroundColor, font });
+      toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar status de texto:', error);
+      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendImageStatus = async (image: string, caption?: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('send-image-status', '', { image, caption });
+      toast({ title: "Status enviado", description: "O status de imagem foi publicado com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar status de imagem:', error);
+      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendVideoStatus = async (video: string, caption?: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('send-video-status', '', { video, caption });
+      toast({ title: "Status enviado", description: "O status de vídeo foi publicado com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar status de vídeo:', error);
+      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const replyStatusText = async (statusId: string, phone: string, text: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('reply-status-text', phone, { statusId, text });
+      toast({ title: "Resposta enviada", description: "A resposta ao status foi enviada com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao responder status:', error);
+      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const replyStatusGif = async (statusId: string, phone: string, gifUrl: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('reply-status-gif', phone, { statusId, gifUrl });
+      toast({ title: "Resposta enviada", description: "O GIF foi enviado como resposta com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao responder status com GIF:', error);
+      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const replyStatusSticker = async (statusId: string, phone: string, stickerUrl: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('reply-status-sticker', phone, { statusId, stickerUrl });
+      toast({ title: "Resposta enviada", description: "A figurinha foi enviada como resposta com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao responder status com figurinha:', error);
+      toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
+    sendTextStatus,
+    sendImageStatus,
+    sendVideoStatus,
+    replyStatusText,
+    replyStatusGif,
+    replyStatusSticker,
     sendMessage,
     sendButtonList,
     sendButtonActions,
