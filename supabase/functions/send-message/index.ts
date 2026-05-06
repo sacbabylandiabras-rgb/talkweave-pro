@@ -398,13 +398,7 @@ serve(async (req) => {
 
       console.log(`📤 Sending ${groups.length} button group(s) for ${resolvedPhone}`);
 
-      // 1. Send Media first if it exists
-      if (mediaUrl && mediaType) {
-        await sendZapiMedia(mediaUrl, mediaType, message);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-
-      // 2. Send button groups
+      // 1. Send button groups
       let lastRes = null;
       for (let i = 0; i < groups.length; i++) {
         const g = groups[i];
@@ -412,27 +406,33 @@ serve(async (req) => {
         // Actually, Z-API requires a message. We'll use the original message.
         const payload: any = {
           phone: resolvedPhone,
-          message: (i === 0 && !mediaUrl) ? (message || 'Escolha uma opção:') : (message || '...'),
+          message: message || 'Escolha uma opção:',
           buttonActions: g.buttons,
         };
         if (title) payload.title = title;
         if (footer) payload.footer = footer;
 
+        // Try to attach media to the first button group
+        if (i === 0 && mediaUrl && mediaType) {
+          if (mediaType === 'image') payload.image = mediaUrl;
+          else if (mediaType === 'video') {
+            payload.video = mediaUrl;
+            if (viewOnce) payload.viewOnce = true;
+          }
+        }
+
         lastRes = await sendZapi('/send-button-actions', payload, `buttons-${g.kind}`);
         if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
       }
 
-      // If no buttons were actually valid but groups were empty, send at least the message/media
+      // Fallback: If no buttons were actually valid but groups were empty, send at least the message/media
       if (groups.length === 0) {
         if (mediaUrl && mediaType) {
-          // Already sent above? No, only if groups.length > 0.
-          // Let's ensure media/text is sent if buttons were intended but invalid.
           return sendZapiMedia(mediaUrl, mediaType, message);
         } else {
           return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
         }
       }
-
       return lastRes;
     };
 
