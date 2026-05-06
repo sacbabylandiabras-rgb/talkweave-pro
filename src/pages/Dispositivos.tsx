@@ -473,24 +473,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   const isUazapi = instance.api_provider === 'uazapi';
 
-  const callProxyFunction = async (action: 'get' | 'set' | 'delete', proxy_url?: string) => {
-    const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
-    const apiToken = instance.evolution_api_key || '';
-    if (!apiUrl || !apiToken) {
-      throw new Error('Instância UAZAPI sem URL/token configurados.');
-    }
-    const { data, error } = await supabase.functions.invoke('uazapi-proxy', {
-      body: { apiUrl, apiToken, action, proxy_url },
-    });
-    if (error) {
-      const msg = await getInvokeErrorMessage(error, 'Erro ao comunicar com a UAZAPI');
-      throw new Error(msg);
-    }
-    if (data?.error) {
-      throw new Error(data?.error);
-    }
-    return data;
-  };
 
   const openProxyDialog = async () => {
     setShowProxyDialog(true);
