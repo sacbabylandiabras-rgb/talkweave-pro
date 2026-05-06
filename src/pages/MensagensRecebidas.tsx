@@ -403,7 +403,7 @@ const ChatView = ({
   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
 }: {
   conversation: Conversation | null; onBack: () => void; isMobile: boolean;
-  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string) => void; loadingPhoto: boolean;
+  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, options?: {
     mediaUrl?: string;
     mediaType?: string;
@@ -1278,15 +1278,20 @@ const MensagensRecebidas = () => {
     toast({ title: "Contato salvo", description: `${name} foi salvo com sucesso.` });
   };
 
-  const handleFetchPhoto = async (phone: string) => {
-    setLoadingPhoto(true);
+  const handleFetchPhoto = async (phone: string, force = false) => {
+    if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
-    const url = await fetchProfilePicture(phone, selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null);
+    const url = await fetchProfilePicture(
+      phone, 
+      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null,
+      force
+    );
     if (url) setManualProfilePic(url);
-    setLoadingPhoto(false);
-    if (url) {
+    if (!force) setLoadingPhoto(false);
+    
+    if (url && !force) {
       toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
-    } else {
+    } else if (!url && !force) {
       toast({ title: "Sem foto", description: "Não foi possível obter a foto de perfil.", variant: "destructive" });
     }
   };
