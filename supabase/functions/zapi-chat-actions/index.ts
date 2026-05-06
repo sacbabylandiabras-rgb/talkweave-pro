@@ -73,10 +73,30 @@ function endpointFor(action: string, phone: string, payload: any) {
       return { method: 'POST', path: "/clear-chat", body: { phone } };
     case 'delete':
       return { method: 'DELETE', path: "/chats/" + phone };
-    case 'expiration':
-      return { method: 'POST', path: "/send-chat-expiration", body: { phone, expiration: payload?.expiration ?? 0 } };
-    
-    case 'get-disallowed-contacts':
+     case 'expiration':
+       return { method: 'POST', path: "/send-chat-expiration", body: { phone, expiration: payload?.expiration ?? 0 } };
+ 
+     // Contact Actions
+     case 'get-contacts':
+       return { method: 'GET', path: "/contacts?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
+     case 'add-contacts':
+       return { method: 'POST', path: "/add-contact", body: payload };
+     case 'remove-contacts':
+       return { method: 'POST', path: "/remove-contact", body: payload };
+     case 'get-metadata-contact':
+       return { method: 'GET', path: "/contacts/" + phone };
+     case 'get-profile-picture':
+       return { method: 'GET', path: "/profile-picture?phone=" + phone };
+     case 'get-iswhatsapp':
+       return { method: 'GET', path: "/is-whatsapp/" + phone };
+     case 'get-iswhatsapp-batch':
+       return { method: 'POST', path: "/is-whatsapp-batch", body: { phones: payload?.phones || [] } };
+     case 'block-contact':
+       return { method: 'POST', path: "/block-contact", body: { phone } };
+     case 'report-contact':
+       return { method: 'POST', path: "/report-contact", body: { phone } };
+ 
+     case 'get-disallowed-contacts':
       return { method: 'GET', path: '/privacy/disallowed-contacts' };
     case 'set-last-seen':
       return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
