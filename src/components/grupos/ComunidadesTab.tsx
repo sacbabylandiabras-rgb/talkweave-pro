@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +88,9 @@ export default function ComunidadesTab() {
 
   const [editPhotoOpen, setEditPhotoOpen] = useState(false);
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const createPhotoFileRef = useRef<HTMLInputElement>(null);
+  const editPhotoFileRef = useRef<HTMLInputElement>(null);
 
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
