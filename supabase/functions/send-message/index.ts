@@ -351,48 +351,15 @@ serve(async (req) => {
     // Detect group phones
     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
 
-    if (requestedInstanceId) {
-      const reqInstance = await findUserInstance(adminClient, credentials.userId, requestedInstanceId);
-
-      if (reqInstance) {
-        console.log(`📌 Using requested instance: ${reqInstance.zapi_instance_id} (requested: ${requestedInstanceId})`);
-        instanceId = reqInstance.zapi_instance_id;
-        token = reqInstance.zapi_token;
-        clientToken = reqInstance.zapi_client_token;
-        if (isUazapiProvider((reqInstance as any).api_provider)) {
-          uazapiOverride = {
-            apiUrl: ((reqInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
-            apiToken: (reqInstance as any).evolution_api_key || '',
-          };
-        }
-      }
-    } else {
-      const defaultInstance = await findUserInstance(adminClient, credentials.userId, instanceId);
-
-      if (defaultInstance) {
-        instanceId = defaultInstance.zapi_instance_id;
-        token = defaultInstance.zapi_token;
-        clientToken = defaultInstance.zapi_client_token;
-        if (isUazapiProvider((defaultInstance as any).api_provider)) {
-          uazapiOverride = {
-            apiUrl: ((defaultInstance as any).evolution_api_url || '').replace(/\/+$/, ''),
-            apiToken: (defaultInstance as any).evolution_api_key || '',
-          };
-          console.log(`📌 Using default UAZAPI instance: ${instanceId}`);
-        }
-      }
-    }
-
-      const shouldUseStandardConnection = uazapiOverride && !String(specialType || '').startsWith('uaz_');
-    if (shouldUseStandardConnection) {
-      const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
-      if (standardInstance?.zapi_instance_id && standardInstance?.zapi_token && standardInstance?.zapi_client_token) {
-        console.log(`🔄 Envio comum: ignorando conexão oculta ${instanceId} e usando conexão visível ${standardInstance.zapi_instance_id}`);
-        instanceId = standardInstance.zapi_instance_id;
-        token = standardInstance.zapi_token;
-        clientToken = standardInstance.zapi_client_token;
-        uazapiOverride = null;
-      }
+    // 🚀 FORCE Z-API for standard messaging features.
+    // UAZAPI is reserved ONLY for lead extraction and special community functions.
+    const standardInstance = await findPreferredStandardInstance(adminClient, credentials.userId);
+    if (standardInstance) {
+      console.log(`📌 Switching to Z-API instance for standard message: ${standardInstance.zapi_instance_id}`);
+      instanceId = standardInstance.zapi_instance_id;
+      token = standardInstance.zapi_token;
+      clientToken = standardInstance.zapi_client_token;
+      uazapiOverride = null; // Ensure Z-API routing
     }
 
     // ===== UAZAPI ROUTING (short-circuit) =====
