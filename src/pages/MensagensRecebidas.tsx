@@ -313,10 +313,11 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync,
+  conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto,
 }: {
   conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
   instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
+  onFetchPhoto: (phone: string, force?: boolean) => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
