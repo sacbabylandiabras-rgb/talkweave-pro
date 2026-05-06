@@ -16,10 +16,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
-  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy,
+  ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow
 } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useRedirectLinks } from "@/hooks/useRedirectLinks";
+import { LinkAutomationDialog } from "./LinkAutomationDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -57,6 +59,7 @@ const parsePhones = (input: string): string[] =>
 export default function ComunidadesTab() {
   const { instances, activeInstance } = useZapiInstances();
   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups();
+  const { links, createLink, updateLink, refetch: refetchLinks } = useRedirectLinks();
 
   const [instanceId, setInstanceId] = useState<string>("");
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -85,6 +88,12 @@ export default function ComunidadesTab() {
 
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string>("");
+
+  // Redirect link automation
+  const [automationDialogLink, setAutomationDialogLink] = useState<any | null>(null);
+  const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
+  const [savingAutomation, setSavingAutomation] = useState<string | null>(null);
 
   const [metadataOpen, setMetadataOpen] = useState(false);
   const [metadata, setMetadata] = useState<any>(null);
@@ -143,6 +152,31 @@ export default function ComunidadesTab() {
     if (instanceId) loadCommunities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId]);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [tplRes, flowRes] = await Promise.all([
+        supabase.from('message_templates').select('id, name, category').eq('active', true).order('name'),
+        supabase.from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
+      ]);
+      if (tplRes.data) setTemplates(tplRes.data);
+      if (flowRes.data) setFlows(flowRes.data);
+    };
+    loadOptions();
+  }, []);
+
+  const handleSaveAutomation = async (linkId: string, updates: Record<string, any>) => {
+    setSavingAutomation(linkId);
+    try {
+      await updateLink(linkId, updates);
+      setAutomationDialogLink((prev: any) => prev ? { ...prev, ...updates } : null);
+      toast.success("Automação atualizada!");
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || ""));
+    } finally {
+      setSavingAutomation(null);
+    }
+  };
 
   const runAction = async (
     key: string,
@@ -437,6 +471,44 @@ export default function ComunidadesTab() {
                   <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
                     {actionLoading === "metadata" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Building2 className="w-4 h-4 mr-1" />}
                     Ver Dados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setActionLoading("auto-link");
+                      try {
+                        // Create a redirect link for this community if it doesn't exist
+                        const linkName = `Comunidade: ${selectedCommunity.name}`;
+                        const slug = `comm-${selectedCommunity.id.split('@')[0]}-${Math.random().toString(36).slice(2, 5)}`;
+                        let existing = links.find(l => l.name === linkName);
+                        
+                        if (!existing) {
+                          await createLink(linkName, slug, 5000);
+                          await refetchLinks();
+                          const { data: freshLinks } = await (supabase as any).from("redirect_links").select("*").eq("name", linkName).limit(1);
+                          existing = freshLinks?.[0];
+                        }
+
+                        if (existing) {
+                          setAutomationDialogLink(existing);
+                        } else {
+                          toast.error("Erro ao preparar automação");
+                        }
+                      } catch (err) {
+                        toast.error("Erro ao configurar automação");
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
+                    disabled={actionLoading === "auto-link"}
+                  >
+                    {actionLoading === "auto-link" ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Workflow className="w-4 h-4 mr-1" />
+                    )}
+                    Automação
                   </Button>
                   <Button
                     variant="outline"
@@ -862,6 +934,17 @@ export default function ComunidadesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <LinkAutomationDialog
+          link={automationDialogLink}
+          open={!!automationDialogLink}
+          onOpenChange={(open) => !open && setAutomationDialogLink(null)}
+          onSave={handleSaveAutomation}
+          templates={templates}
+          flows={flows}
+          instances={instances.map(i => ({ id: i.zapi_instance_id, instance_name: i.instance_name }))}
+          saving={savingAutomation === automationDialogLink?.id}
+        />
       </CardContent>
     </Card>
   );
