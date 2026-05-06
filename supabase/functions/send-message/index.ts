@@ -518,89 +518,109 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
-       const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
-         let bType = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-         let bUrl = b.url || b.value || b.urlValue;
-         
-         // Suporte para botão de COPIAR (mapeado para URL especial do WhatsApp)
-         if (bType === 'COPY' && bUrl) {
-           bType = 'URL';
-           bUrl = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(bUrl)}`;
-         }
- 
-         return {
-           id: b.id || String(index + 1),
-           type: bType,
-           label: String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim(),
-            url: b.url || b.value || b.urlValue || b.link || b.website || b.url_value,
-           phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
-         };
-       });
- 
-       // Z-API handles mixed buttons (REPLY, URL, CALL) in a single request at /send-button-actions.
-       // However, documentation notes that some combinations might be unstable.
-       // We prioritize sending everything in one go as requested by the latest API specs.
-       const zapiPayload: any = {
-         phone: resolvedPhone,
-         message: interactiveMessage,
-         ...(title ? { title } : {}),
-         ...(footer ? { footer } : {}),
-         ...(mediaUrl && mediaType === 'image' ? { image: mediaUrl } : {}),
-         ...(mediaUrl && mediaType === 'video' ? { video: mediaUrl } : {}),
-         ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
-         ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
-         buttonActions: normalizedButtons.map(b => {
-           const btn: any = {
-             id: b.id,
-             type: b.type,
-             label: b.label
-           };
-           
-           if (b.type === 'URL') {
-             btn.url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
-           } else if (b.type === 'CALL') {
-             btn.phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
-           }
-           
-           return btn;
-         })
-       };
- 
-       console.log(`📤 Sending button-actions for ${resolvedPhone}: ${JSON.stringify(zapiPayload).substring(0, 500)}`);
- 
-        const hasReply = normalizedButtons.some(b => b.type === 'REPLY');
-        const hasUrl = normalizedButtons.some(b => b.type === 'URL');
-        const hasCall = normalizedButtons.some(b => b.type === 'CALL');
-        const hasCopy = normalizedButtons.some(b => b.type === 'COPY');
-
-        // Mix check: if we have REPLY + (URL or CALL or COPY), Z-API often fails to send mixed types correctly in a single payload.
-        // According to Z-API behavior, we should use /send-button-actions for everything, 
-        // but ensure the payload structure is exactly what they expect.
+      
+      // Normalizar botões
+      const allButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
+        let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
+        let url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
+        let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
+        let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim();
         
-        console.log(`📤 Sending button-actions for ${resolvedPhone} (Mixed: R:${hasReply}, U:${hasUrl}, C:${hasCall}, CP:${hasCopy})`);
+        // Suporte para botão de COPIAR (conforme docs Z-API, usa link especial do WhatsApp)
+        if (type === 'COPY' && url) {
+          type = 'URL';
+          url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
+        }
 
+        return { id: b.id || String(index + 1), type, label, url, phone };
+      });
+
+      const actionButtons = allButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
+      const replyButtons = allButtons.filter(b => b.type === 'REPLY');
+
+      // Se houver mídia, enviamos separadamente primeiro, pois send-button-actions não suporta mídia no payload
+      if (mediaUrl && mediaType) {
+        console.log(`📤 Enviando mídia preparatória para botões: ${mediaType}`);
+        const mediaEndpoint = mediaType === 'image' ? '/send-image' : 
+                            mediaType === 'video' ? '/send-video' : 
+                            mediaType === 'audio' ? '/send-audio' : `/send-document/${getDocumentExtension(mediaUrl)}`;
+        const mediaPayload: any = { phone: resolvedPhone };
+        if (mediaType === 'image') mediaPayload.image = mediaUrl;
+        else if (mediaType === 'video') mediaPayload.video = mediaUrl;
+        else if (mediaType === 'audio') mediaPayload.audio = mediaUrl;
+        else mediaPayload.document = mediaUrl;
+        
+        if (message) mediaPayload.caption = message;
+
+        await fetch(`${baseUrl}${mediaEndpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(mediaPayload),
+        });
+      }
+
+      // Se houver mix (Action + Reply), precisamos enviar separadamente conforme documentação da Z-API
+      if (actionButtons.length > 0 && replyButtons.length > 0) {
+        console.log(`📤 Enviando botões mistos (split): ${actionButtons.length} ações + ${replyButtons.length} respostas`);
+        
+        // 1. Enviar CALL/URL
+        const actionRes = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: interactiveMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: actionButtons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : { phone: b.phone })
+            }))
+          }),
+        });
+        await parseZapiResponse(actionRes, resolvedPhone, instanceId, 'button-actions-part1');
+
+        // 2. Enviar REPLY
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({
             phone: resolvedPhone,
-            message: zapiPayload.message,
-            title: zapiPayload.title,
-            footer: zapiPayload.footer,
-            image: zapiPayload.image,
-            video: zapiPayload.video,
-            audio: zapiPayload.audio,
-            document: zapiPayload.document,
-            buttonActions: normalizedButtons.map(b => {
-              if (b.type === 'URL') return { id: b.id, type: 'URL', label: b.label, url: b.url };
-              if (b.type === 'CALL') return { id: b.id, type: 'CALL', label: b.label, phone: b.phone };
-              if (b.type === 'COPY') return { id: b.id, type: 'COPY', label: b.label, copyCode: b.url };
-              return { id: b.id, type: 'REPLY', label: b.label };
-            })
+            message: 'Escolha uma opção:',
+            buttonActions: replyButtons.map(b => ({
+              id: b.id,
+              type: 'REPLY',
+              label: b.label
+            }))
           }),
         });
-
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions');
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-part2');
+      } else {
+        // Apenas um tipo ou apenas um grupo, envia normal
+        const finalButtons = allButtons.length > 0 ? allButtons : replyButtons;
+        console.log(`📤 Enviando botões (único tipo): ${finalButtons.length} botões`);
+        
+        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: interactiveMessage,
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            buttonActions: finalButtons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : {}),
+              ...(b.type === 'CALL' ? { phone: b.phone } : {})
+            }))
+          }),
+        });
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-actions-unified');
+      }
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
