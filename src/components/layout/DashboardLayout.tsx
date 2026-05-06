@@ -334,6 +334,7 @@ export function DashboardLayout() {
       "/apanhador-grupos": "apanhador-grupos",
       "/agente-ia": "agente-ia",
       "/criar-grupos": "criar-grupos",
+      "/canais": "canais",
       // Instagram routes
       "/instagram/dashboard": "ig-dashboard",
       "/instagram/campanhas": "ig-campanhas",
