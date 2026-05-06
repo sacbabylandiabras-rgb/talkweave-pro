@@ -34,6 +34,31 @@ export const useContacts = (options?: { enabled?: boolean }) => {
   const fetchedPhotosRef = useRef(new Set<string>());
   const enabled = options?.enabled ?? true;
 
+  const sanitizePictureUrl = (value: unknown): string | null => {
+    if (value === null || value === undefined) return null;
+    const str = String(value).trim();
+    if (!str) return null;
+    const lower = str.toLowerCase();
+    if (lower === 'null' || lower === 'undefined' || lower === 'false') return null;
+    if (str.includes('default-user') || str.includes('avatar-placeholder')) return null;
+    if (!/^https?:\/\//i.test(str) && !str.startsWith('data:')) return null;
+    return str;
+  };
+
+  const extractProfilePictureUrl = (payload: any): string | null => {
+    if (!payload) return null;
+    if (typeof payload === 'string') return sanitizePictureUrl(payload);
+    if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
+    const rawUrl =
+      payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.profileThumbnail ||
+      payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture ||
+      payload?.imageUrl || payload?.image || payload?.photo ||
+      payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl || payload?.data?.profileThumbnail ||
+      payload?.data?.imagePreview || payload?.data?.profilePicUrl || payload?.data?.image ||
+      payload?.preview || payload?.pictureUrl;
+    return sanitizePictureUrl(rawUrl);
+  };
+
   const fetchContacts = async () => {
     try {
       setLoading(true);
@@ -128,7 +153,8 @@ export const useContacts = (options?: { enabled?: boolean }) => {
         savedContacts.forEach(sc => {
           const existing = contactMap.get(sc.phone);
           if (existing) {
-            if (sc.profile_picture_url) existing.profilePictureUrl = sc.profile_picture_url;
+            const safe = sanitizePictureUrl(sc.profile_picture_url);
+            if (safe) existing.profilePictureUrl = safe;
             if (sc.name) existing.name = sc.name;
           }
         });
@@ -165,8 +191,9 @@ export const useContacts = (options?: { enabled?: boolean }) => {
 
      const toFetch = contactsList.filter(c =>
        !c.profilePictureUrl &&
-       !fetchedPhotosRef.current.has(c.phone)
-     ).slice(0, 10);
+       !fetchedPhotosRef.current.has(c.phone) &&
+       !c.phone.includes('@lid')
+     ).slice(0, 50);
 
     if (toFetch.length === 0) return;
 
@@ -176,7 +203,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       try {
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone } });
         if (error) continue;
-        const url = data?.data?.link || data?.data?.imgUrl || data?.data?.profilePictureUrl || null;
+        const url = extractProfilePictureUrl(data?.data ?? data);
         if (url) {
           contact.profilePictureUrl = url;
           updated = true;
@@ -186,7 +213,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
             { onConflict: 'phone,user_id' }
           );
         }
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 200));
       } catch { /* ignore */ }
     }
     if (updated) {
@@ -208,7 +235,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     if (enabled && !loading && contacts.length > 0) {
       autoFetchProfilePictures(contacts);
     }
-  }, [enabled, loading]);
+  }, [enabled, loading, contacts.length]);
 
   return { contacts, stats, loading, refetch: fetchContacts };
 };
