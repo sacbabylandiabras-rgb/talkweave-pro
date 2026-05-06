@@ -643,8 +643,7 @@ export const useMessageLogs = (
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
         const payload = data?.data ?? data;
-        const url = extractProfilePictureUrl(payload) || 
-                   (typeof payload === 'string' ? sanitizePictureUrl(payload) : null);
+        const url = extractProfilePictureUrl(payload);
                    
         if (url) {
           const existing = safeMapGet(savedContacts, phone);
