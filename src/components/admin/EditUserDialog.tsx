@@ -43,13 +43,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [planId, setPlanId] = useState<string>('none');
   const [customPlanValue, setCustomPlanValue] = useState<string>('');
 
-  // Uazapi credentials
-  const [uazapiUrl, setUazapiUrl] = useState('');
-  const [uazapiToken, setUazapiToken] = useState('');
-  const [uazapiUrl2, setUazapiUrl2] = useState('');
-  const [uazapiToken2, setUazapiToken2] = useState('');
-  const [uazapiSaving, setUazapiSaving] = useState(false);
-
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   // Add instance form
@@ -60,9 +53,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceToken, setNewInstanceToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
-  const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
-  const [newUazapiUrl, setNewUazapiUrl] = useState('');
-  const [newUazapiToken, setNewUazapiToken] = useState('');
+   const [newProvider, setNewProvider] = useState<'zapi'>('zapi');
 
   useEffect(() => {
     if (user) {
@@ -72,20 +63,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setCustomPlanValue(
         user.custom_plan_value != null ? (user.custom_plan_value / 100).toFixed(2) : ''
       );
-      // Load uazapi credentials
-      if (user.id) {
-        supabase.from("profiles").select("uazapi_url, uazapi_token, max_instances" as any).eq("id", user.id).single().then(({ data }) => {
-          const rawUrl = String((data as any)?.uazapi_url || '');
-          const rawToken = String((data as any)?.uazapi_token || '');
-          const [u1 = '', u2 = ''] = rawUrl.split('|');
-          const [t1 = '', t2 = ''] = rawToken.split('|');
-          setUazapiUrl(u1);
-          setUazapiToken(t1);
-          setUazapiUrl2(u2);
-          setUazapiToken2(t2);
-          setMaxInstances(Number((data as any)?.max_instances ?? 1));
-        });
-      }
+       // Load max instances
+       if (user.id) {
+         supabase.from("profiles").select("max_instances").eq("id", user.id).single().then(({ data }) => {
+           setMaxInstances(Number((data as any)?.max_instances ?? 1));
+         });
+       }
     }
   }, [user]);
 
@@ -120,29 +103,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
-  const handleSaveUazapi = async () => {
-    if (!user) return;
-    setUazapiSaving(true);
-    try {
-      const url1 = uazapiUrl.trim();
-      const tok1 = uazapiToken.trim();
-      const url2 = uazapiUrl2.trim();
-      const tok2 = uazapiToken2.trim();
-      const combinedUrl = [url1, url2].filter(Boolean).join('|');
-      const combinedToken = [tok1, tok2].filter(Boolean).join('|');
-      const { error } = await supabase.from("profiles").update({
-        uazapi_url: combinedUrl || null,
-        uazapi_token: combinedToken || null,
-      } as any).eq("id", user.id);
-      if (error) throw error;
-      toast({ title: "Credenciais salvas", description: "O usuário poderá extrair membros de comunidades." });
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } finally {
-      setUazapiSaving(false);
-    }
-  };
-
   const resetAddForm = () => {
     setNewInstanceName('');
     setNewInstanceId('');
@@ -154,38 +114,27 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewUazapiToken('');
   };
 
-  const handleAddInstance = async () => {
-    if (!user) return;
-    if (newProvider === 'zapi') {
-      if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-        toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-        return;
-      }
-    } else {
-      if (!newInstanceName.trim() || !newUazapiUrl.trim() || !newUazapiToken.trim()) {
-        toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e token da uazapi.", variant: "destructive" });
-        return;
-      }
-    }
-    setAddingInstance(true);
-    const ok = await addInstance(user.id, {
-      instance_name: newInstanceName.trim(),
-      zapi_instance_id: newProvider === 'uazapi'
-        ? (newUazapiToken.trim().slice(0, 32) || `uazapi-${Date.now()}`)
-        : newInstanceId.trim(),
-      zapi_token: newProvider === 'uazapi' ? newUazapiToken.trim() : newInstanceToken.trim(),
-      zapi_client_token: newProvider === 'uazapi' ? newUazapiToken.trim() : newClientToken.trim(),
-      is_default: newIsDefault,
-      api_provider: newProvider,
-      evolution_api_url: newProvider === 'uazapi' ? newUazapiUrl.trim().replace(/\/+$/, '') : null,
-      evolution_api_key: newProvider === 'uazapi' ? newUazapiToken.trim() : null,
-    });
-    setAddingInstance(false);
-    if (ok) {
-      resetAddForm();
-      setShowAddForm(false);
-    }
-  };
+   const handleAddInstance = async () => {
+     if (!user) return;
+     if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+       toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+       return;
+     }
+     setAddingInstance(true);
+     const ok = await addInstance(user.id, {
+       instance_name: newInstanceName.trim(),
+       zapi_instance_id: newInstanceId.trim(),
+       zapi_token: newInstanceToken.trim(),
+       zapi_client_token: newClientToken.trim(),
+       is_default: newIsDefault,
+       api_provider: 'zapi',
+     });
+     setAddingInstance(false);
+     if (ok) {
+       resetAddForm();
+       setShowAddForm(false);
+     }
+   };
 
   if (!user) return null;
 
