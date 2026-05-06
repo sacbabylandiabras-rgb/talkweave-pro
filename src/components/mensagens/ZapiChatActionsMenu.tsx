@@ -41,8 +41,12 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
         body: { action, phone, instanceDbId, payload },
       });
       if (error || (data as any)?.error) {
-        const msg = (data as any)?.error?.message || (data as any)?.error || error?.message || "Falha na ação";
-        throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        const raw = (data as any)?.error;
+        const status = (data as any)?.status;
+        let msg = raw?.message || raw?.error || raw;
+        if (typeof msg !== "string") msg = JSON.stringify(msg);
+        if (status) msg = `[${status}] ${msg}`;
+        throw new Error(msg || error?.message || "Falha na ação");
       }
       toast({ title: label || "Ação realizada", description: "Operação concluída com sucesso." });
     } catch (e: any) {

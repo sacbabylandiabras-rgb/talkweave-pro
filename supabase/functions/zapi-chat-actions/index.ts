@@ -216,8 +216,9 @@ Deno.serve(async (req) => {
     try { data = JSON.parse(text); } catch { data = text; }
 
     if (!resp.ok) {
+      console.error(`[zapi-chat-actions] ${ep.method} ${url} -> ${resp.status}`, text);
       return new Response(JSON.stringify({ error: data, status: resp.status }), {
-        status: resp.status,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
