@@ -161,6 +161,7 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
 
+    const payloadRaw = await req.json();
     const {
       phone,
       message,
@@ -180,7 +181,8 @@ serve(async (req) => {
       carouselCards,
       templateId,
       preferStandardConnection,
-    } = await req.json()
+    } = payloadRaw;
+
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
 
@@ -323,6 +325,7 @@ serve(async (req) => {
     let zapiResponse: Response | null = null;
     let zapiData: any = null;
     let logMessage = message || '';
+
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
     const sendZapi = async (endpoint: string, body: any, label: string) => {
       console.log(`📤 Z-API [${label}] to ${endpoint}:`, JSON.stringify(body).substring(0, 500));
@@ -398,13 +401,7 @@ serve(async (req) => {
 
       console.log(`📤 Sending ${groups.length} button group(s) for ${resolvedPhone}`);
 
-      // 1. Send Media first if it exists
-      if (mediaUrl && mediaType) {
-        await sendZapiMedia(mediaUrl, mediaType, message);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-
-      // 2. Send button groups
+      // 1. Send button groups
       let lastRes = null;
       for (let i = 0; i < groups.length; i++) {
         const g = groups[i];
@@ -412,49 +409,70 @@ serve(async (req) => {
         // Actually, Z-API requires a message. We'll use the original message.
         const payload: any = {
           phone: resolvedPhone,
-          message: (i === 0 && !mediaUrl) ? (message || 'Escolha uma opção:') : (message || '...'),
+          message: message || 'Escolha uma opção:',
           buttonActions: g.buttons,
         };
         if (title) payload.title = title;
         if (footer) payload.footer = footer;
 
+        // Try to attach media to the first button group
+        if (i === 0 && mediaUrl && mediaType) {
+          if (mediaType === 'image') payload.image = mediaUrl;
+          else if (mediaType === 'video') {
+            payload.video = mediaUrl;
+            if (viewOnce) payload.viewOnce = true;
+          }
+        }
+
         lastRes = await sendZapi('/send-button-actions', payload, `buttons-${g.kind}`);
         if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
       }
 
-      // If no buttons were actually valid but groups were empty, send at least the message/media
+      // Fallback: If no buttons were actually valid but groups were empty, send at least the message/media
       if (groups.length === 0) {
         if (mediaUrl && mediaType) {
-          // Already sent above? No, only if groups.length > 0.
-          // Let's ensure media/text is sent if buttons were intended but invalid.
           return sendZapiMedia(mediaUrl, mediaType, message);
         } else {
           return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
         }
       }
-
       return lastRes;
     };
 
-    if (specialType === 'pix' && specialPayload) {
-      // Z-API: /send-payment-pix sends PIX charge with brcode
-      const pixBody: Record<string, unknown> = {
+    // OTP support
+    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
+      zapiData = await sendZapi('/send-button-otp', {
+        phone: resolvedPhone,
+        message: message || "Seu código de verificação é",
+        code: payloadRaw.otpCode,
+        expirationInSeconds: payloadRaw.otpExpiration,
+        footer: footer || ""
+      }, 'otp');
+      logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
+    } else if (specialType === 'pix' && specialPayload) {
+      const pixPayload: any = {
         phone: resolvedPhone,
         pixKey: specialPayload.pixKey || '',
         type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
-        merchantName: specialPayload.merchantName || '',
+        merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
       };
-      if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
-      if (specialPayload.city) pixBody.city = specialPayload.city;
-      if (specialPayload.description) pixBody.description = specialPayload.description;
+      if (specialPayload.amount) pixPayload.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+      if (specialPayload.city) pixPayload.city = specialPayload.city.slice(0, 15);
+      if (specialPayload.description) pixPayload.description = specialPayload.description;
 
-      zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(pixBody),
-      });
-      logMessage = `💰 PIX ${specialPayload.merchantName || ''}`.trim();
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'pix');
+      // Use /send-button-pix if buttons are present, otherwise /send-payment-pix
+      if (Array.isArray(buttonActions) && buttonActions.length > 0) {
+        const btns = (buttonActions || []).slice(0, 3).map((b: any, idx: number) => ({
+          id: b.id || String(idx + 1),
+          label: (b.label || b.text || `Botão ${idx + 1}`).slice(0, 25)
+        }));
+        pixPayload.message = message || 'Escaneie o QR Code para pagar';
+        pixPayload.buttonActions = btns;
+        zapiData = await sendZapi('/send-button-pix', pixPayload, 'button-pix');
+      } else {
+        zapiData = await sendZapi('/send-payment-pix', pixPayload, 'pix');
+      }
+      logMessage = `💰 PIX ${pixPayload.merchantName}`.trim();
     } else if (specialType === 'localizacao' && specialPayload) {
       const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
       const lng = Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0;
@@ -623,22 +641,28 @@ serve(async (req) => {
       zapiData = await handleButtons();
       logMessage = logMessage || '🔘 Botões interativos';
     } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
-      zapiResponse = await fetch(`${baseUrl}/send-button-list`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({
-          phone: resolvedPhone,
-          message: message || 'Selecione uma opção:',
-          buttonList: {
-            buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
-              id: button.id || String(index + 1),
-              label: button.label,
-            })),
-          },
-        }),
-      });
+      let endpoint = '/send-button-list';
+      const payload: any = {
+        phone: resolvedPhone,
+        message: message || 'Selecione uma opção:',
+        buttonList: {
+          buttons: buttonList.buttons.slice(0, 3).map((button: any, index: number) => ({
+            id: button.id || String(index + 1),
+            label: button.label,
+          })),
+        },
+      };
+
+      if (mediaUrl && mediaType === 'image') {
+        endpoint = '/send-button-list-image';
+        payload.buttonList.image = mediaUrl;
+      } else if (mediaUrl && mediaType === 'video') {
+        endpoint = '/send-button-list-video';
+        payload.buttonList.video = mediaUrl;
+      }
+
+      zapiData = await sendZapi(endpoint, payload, 'button-list');
       logMessage = logMessage || '🔘 Lista de botões';
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'button-list');
     } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
       zapiResponse = await fetch(`${baseUrl}/send-option-list`, {
         method: 'POST',
