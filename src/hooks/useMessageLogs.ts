@@ -641,12 +641,21 @@ export const useMessageLogs = (
     const userId = await getUserId();
     if (!token || !userId) return;
 
-     const toFetch = phones.filter(p => {
-       const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
-       return !fetchedPhotosRef.current.has(p) && 
-               (!saved?.profile_picture_url || saved.profile_picture_url.includes('undefined')) &&
-              !p.includes('@lid') &&
-              !isLikelyTechnicalIdentifier(p);
+      const now = new Date();
+      const toFetch = phones.filter(p => {
+        if (fetchedPhotosRef.current.has(p)) return false;
+        if (p.includes('@lid')) return false;
+        if (isLikelyTechnicalIdentifier(p)) return false;
+
+        const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
+        if (!saved?.profile_picture_url || saved.profile_picture_url.includes('undefined')) return true;
+
+        if (saved.updated_at) {
+          const lastUpdate = new Date(saved.updated_at);
+          const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+          return hoursSinceUpdate > 24;
+        }
+        return false;
       }).slice(0, 50);
  
       for (const phone of toFetch) {
