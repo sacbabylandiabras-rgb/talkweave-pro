@@ -105,13 +105,16 @@ serve(async (req) => {
       })
     }
 
-    let provider = 'zapi'
-    let base = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`
-    let headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Client-Token': credentials.clientToken
+    // Build the list of instances to try. If a specific one was requested, only try that.
+    // Otherwise, iterate through ALL active instances of the user (Z-API + UAZAPI) so that
+    // a contact synced via UAZAPI does not silently fail because Z-API was preferred.
+    type InstanceCfg = {
+      provider: string
+      base: string
+      headers: Record<string, string>
+      uazapiUrl: string
     }
-    let uazapiUrl = ''
+    const instancesToTry: InstanceCfg[] = []
 
     if (instanceId) {
       const { data: specificInstance } = await adminClient
@@ -123,54 +126,70 @@ serve(async (req) => {
         .maybeSingle()
 
       if (specificInstance) {
-        provider = specificInstance.api_provider || 'zapi'
+        const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
         if (provider === 'uazapi') {
-          uazapiUrl = (specificInstance.evolution_api_url || '').replace(/\/+$/, '')
-          headers = {
-            'Content-Type': 'application/json',
-            token: specificInstance.evolution_api_key || ''
-          }
+          instancesToTry.push({
+            provider,
+            base: '',
+            uazapiUrl: (specificInstance.evolution_api_url || '').replace(/\/+$/, ''),
+            headers: { 'Content-Type': 'application/json', token: specificInstance.evolution_api_key || '' },
+          })
         } else {
-          base = `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`
-          headers = {
-            'Content-Type': 'application/json',
-            'Client-Token': specificInstance.zapi_client_token
-          }
+          instancesToTry.push({
+            provider,
+            base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
+            uazapiUrl: '',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
+          })
         }
       }
-    }
-
-    // If no specific instance was provided, resolve provider from the user's
-    // default/active instance so UAZAPI accounts don't fall back to Z-API URLs.
-    if (!instanceId) {
-      const { data: defaultInstance } = await adminClient
+    } else {
+      const { data: allInstances } = await adminClient
         .from('zapi_instances')
         .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('is_default', { ascending: false })
-        .limit(1)
-        .maybeSingle()
 
-      if (defaultInstance) {
-        provider = defaultInstance.api_provider || 'zapi'
+      for (const inst of allInstances || []) {
+        const provider = (inst.api_provider || 'zapi').toLowerCase()
         if (provider === 'uazapi') {
-          uazapiUrl = (defaultInstance.evolution_api_url || '').replace(/\/+$/, '')
-          headers = {
-            'Content-Type': 'application/json',
-            token: defaultInstance.evolution_api_key || ''
-          }
+          const url = (inst.evolution_api_url || '').replace(/\/+$/, '')
+          if (!url) continue
+          instancesToTry.push({
+            provider,
+            base: '',
+            uazapiUrl: url,
+            headers: { 'Content-Type': 'application/json', token: inst.evolution_api_key || '' },
+          })
         } else {
-          base = `https://api.z-api.io/instances/${defaultInstance.zapi_instance_id}/token/${defaultInstance.zapi_token}`
-          headers = {
-            'Content-Type': 'application/json',
-            'Client-Token': defaultInstance.zapi_client_token || ''
-          }
+          if (!inst.zapi_instance_id || !inst.zapi_token) continue
+          instancesToTry.push({
+            provider,
+            base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
+            uazapiUrl: '',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
+          })
         }
       }
     }
 
-    if (provider === 'uazapi') {
+    if (instancesToTry.length === 0) {
+      // Fallback to legacy single credential resolution
+      instancesToTry.push({
+        provider: 'zapi',
+        base: `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`,
+        uazapiUrl: '',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken },
+      })
+    }
+
+    // Try every instance until one returns a usable photo/name.
+    for (const cfg of instancesToTry) {
+      const { provider, base, uazapiUrl, headers } = cfg
+      console.log(`📷 Trying instance provider=${provider} for ${numericId}`)
+
+      if (provider === 'uazapi') {
       try {
         const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
           method: 'POST',
@@ -208,10 +227,7 @@ serve(async (req) => {
         }
       }
 
-      return new Response(
-        JSON.stringify({ success: false, data: { link: null, raw: null } }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      continue
     }
 
     // For groups, try multiple formats and also try group-metadata for photo
@@ -287,11 +303,8 @@ serve(async (req) => {
         console.log(`📷 Metadata error: ${e}`)
       }
 
-      console.log(`📷 All strategies failed for group ${numericId}`)
-      return new Response(
-        JSON.stringify({ success: false, data: { link: null, raw: null } }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.log(`📷 Z-API strategies failed for group ${numericId} on this instance, trying next`)
+      continue
     }
 
     // For contacts (non-group), try numericId and numericId@c.us
@@ -317,6 +330,7 @@ serve(async (req) => {
         console.error(`📷 Contact ${format} error:`, e)
       }
     }
+    } // end for instancesToTry
 
     return new Response(
       JSON.stringify({ success: false, data: { link: null, raw: null } }),
