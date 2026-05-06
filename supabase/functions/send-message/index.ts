@@ -371,11 +371,15 @@ serve(async (req) => {
     };
 
     // Define common button logic to be used if needed
-    const handleButtons = async () => {
-      // Normalizar botões
-      const normalized = (buttonActions || []).slice(0, 10).map((b: any, index: number) => {
+    const smartSendButtons = async () => {
+      const rawButtons = [
+        ...(buttonActions || []),
+        ...(buttonList?.buttons || []).map((b: any) => ({ ...b, type: 'REPLY' }))
+      ];
+
+      const normalized = rawButtons.slice(0, 10).map((b: any, index: number) => {
         let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-        let url = b.url || b.value || b.urlValue || b.link || b.website || b.url_value;
+        let url = b.url || b.value || b.urlValue || b.link || b.website;
         let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
         let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim().slice(0, 25);
         
@@ -383,6 +387,7 @@ serve(async (req) => {
           type = 'URL';
           url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
         }
+        if (type === 'QUICK_REPLY') type = 'REPLY';
 
         return { id: b.id || String(index + 1), type, label, url, phone };
       }).filter(b => {
@@ -393,39 +398,78 @@ serve(async (req) => {
         return true;
       });
 
-      const buttons = normalized.slice(0, 3); // Z-API supports up to 3 buttons per message
-      const payload: any = {
-        phone: resolvedPhone,
-        message: message || 'Escolha uma opção:',
-        ...(title ? { title } : {}),
-        ...(footer ? { footer } : {}),
-        buttonActions: buttons.map(b => ({
-          id: b.id,
-          type: b.type,
-          label: b.label,
-          url: b.url,
-          phone: b.phone
-        }))
-      };
-
-      let endpoint = '/send-button-actions';
-      if (mediaUrl && mediaType === 'image') {
-        payload.image = mediaUrl;
-      } else if (mediaUrl && mediaType === 'video') {
-        payload.video = mediaUrl;
+      const buttons = normalized.slice(0, 3);
+      if (buttons.length === 0) {
+        if (mediaUrl && mediaType) return sendZapiMedia(mediaUrl, mediaType, message);
+        return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
       }
 
-      const lastRes = await sendZapi(endpoint, payload, 'buttons-unified');
+      const hasActionButtons = buttons.some(b => b.type === 'URL' || b.type === 'CALL');
 
-      // Fallback: If no buttons were actually valid but groups were empty, send at least the message/media
-      if (groups.length === 0) {
-        if (mediaUrl && mediaType) {
-          return sendZapiMedia(mediaUrl, mediaType, message);
-        } else {
-          return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'text-fallback');
-        }
+      // Case 1: Media + Action Buttons -> Use Carousel (Single Card) as it supports Action Buttons + Media
+      if (mediaUrl && (hasActionButtons || mediaType === 'video')) {
+        return sendZapi('/send-carousel', {
+          phone: resolvedPhone,
+          message: message || '',
+          carousel: [{
+            text: (title ? `*${title}*\n` : '') + (message || '') + (footer ? `\n\n_${footer}_` : ''),
+            image: mediaType === 'image' ? mediaUrl : undefined,
+            video: mediaType === 'video' ? mediaUrl : undefined,
+            buttons: buttons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : {}),
+              ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+            }))
+          }]
+        }, 'buttons-carousel-fallback');
       }
-      return lastRes;
+
+      // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
+      if (mediaUrl && !hasActionButtons) {
+        const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+        const payload: any = {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          buttonList: {
+            buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+          }
+        };
+        if (mediaType === 'image') payload.buttonList.image = mediaUrl;
+        else payload.buttonList.video = mediaUrl;
+        return sendZapi(endpoint, payload, 'buttons-media-reply');
+      }
+
+      // Case 3: No Media + Any Buttons -> Use /send-button-actions if any action btns present
+      if (!mediaUrl && hasActionButtons) {
+        return sendZapi('/send-button-actions', {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          title,
+          footer,
+          buttonActions: buttons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            url: b.url,
+            phone: b.phone
+          }))
+        }, 'buttons-actions-text');
+      }
+
+      // Case 4: No Media + Only Reply Buttons -> Use /send-button-list
+      if (!mediaUrl && !hasActionButtons) {
+        return sendZapi('/send-button-list', {
+          phone: resolvedPhone,
+          message: message || 'Escolha uma opção:',
+          buttonList: {
+            buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+          }
+        }, 'buttons-reply-text');
+      }
+
+      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'buttons-final-fallback');
     };
 
     // OTP support
