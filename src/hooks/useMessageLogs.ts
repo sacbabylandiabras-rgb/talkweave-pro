@@ -585,11 +585,16 @@ export const useMessageLogs = (
       if (instanceId) body.instanceId = instanceId;
       else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
 
-      const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
+      const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
       if (error) return null;
-      const responsePayload = data?.data ?? data;
+      
+      const responsePayload = rawData?.data ?? rawData;
       const url = extractProfilePictureUrl(responsePayload);
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
+      
+      // Final confirmation: if the response itself is just a string (sometimes Z-API returns a direct URL string)
+      const finalUrl = url || (typeof responsePayload === 'string' ? sanitizePictureUrl(responsePayload) : null);
+
       if (url || resolvedName) {
         const token = await getToken();
         const userId = await getUserId();
@@ -631,6 +636,9 @@ export const useMessageLogs = (
         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
         if (error) continue;
         const url = extractProfilePictureUrl(data?.data ?? data);
+        const url = extractProfilePictureUrl(data?.data ?? data) || 
+                   (typeof (data?.data ?? data) === 'string' ? sanitizePictureUrl(data?.data ?? data) : null);
+                   
         if (url) {
           const existing = safeMapGet(savedContacts, phone);
           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
