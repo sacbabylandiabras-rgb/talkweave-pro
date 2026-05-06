@@ -95,9 +95,13 @@ const getZAPIConfig = async () => {
   };
 };
 
-export const useZapi = () => {
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+ export const useZapi = () => {
+   const [loading, setLoading] = useState(false);
+   const { toast } = useToast();
+ 
+   const setOverride = (instance: ZapiInstance | null) => {
+     setZapiInstanceOverride(instance);
+   };
 
   const ensureZapiSendConfirmed = (data: any, fallbackMessage: string) => {
     const hasAck = Boolean(data?.messageId || data?.zaapId || data?.id || data?.key?.id || data?.status === 'PENDING' || data?.success === true);
@@ -1516,8 +1520,9 @@ export const useZapi = () => {
      }
    };
 
-  return {
-    sendTextStatus,
+   return {
+     setZapiInstanceOverride: setOverride,
+     sendTextStatus,
     sendImageStatus,
     sendVideoStatus,
     replyStatusText,
