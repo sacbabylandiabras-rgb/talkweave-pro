@@ -1367,50 +1367,75 @@ export const useZapi = () => {
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
   // Status Functions
-  const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('send-text-status', '', { message: text, backgroundColor: backgroundColor || "#000000", font: font || 1 });
-      toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao enviar status de texto:', error);
-      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone: 'status',
+         specialType: 'uaz_status',
+         specialPayload: {
+           statusType: 'text',
+           text,
+           backgroundColor: backgroundColor || "#000000",
+           font: font || 1
+         }
+       }, 'Erro ao enviar status de texto');
+       toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao enviar status de texto:', error);
+       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
-  const sendImageStatus = async (image: string, caption?: string) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('send-image-status', '', { image, caption });
-      toast({ title: "Status enviado", description: "O status de imagem foi publicado com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao enviar status de imagem:', error);
-      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const sendImageStatus = async (image: string, caption?: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone: 'status',
+         specialType: 'uaz_status',
+         specialPayload: {
+           statusType: 'image',
+           image,
+           caption: caption || ''
+         }
+       }, 'Erro ao enviar status de imagem');
+       toast({ title: "Status enviado", description: "O status de imagem foi publicado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao enviar status de imagem:', error);
+       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
-  const sendVideoStatus = async (video: string, caption?: string) => {
-    setLoading(true);
-    try {
-      const data = await invokeZapiAction('send-video-status', '', { video, caption });
-      toast({ title: "Status enviado", description: "O status de vídeo foi publicado com sucesso." });
-      return data;
-    } catch (error) {
-      console.error('Erro ao enviar status de vídeo:', error);
-      toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+   const sendVideoStatus = async (video: string, caption?: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({
+         phone: 'status',
+         specialType: 'uaz_status',
+         specialPayload: {
+           statusType: 'video',
+           video,
+           caption: caption || ''
+         }
+       }, 'Erro ao enviar status de vídeo');
+       toast({ title: "Status enviado", description: "O status de vídeo foi publicado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao enviar status de vídeo:', error);
+       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const replyStatusText = async (statusId: string, phone: string, text: string) => {
     setLoading(true);
