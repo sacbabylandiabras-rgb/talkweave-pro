@@ -8,10 +8,6 @@ const getZapiAckId = (payload: any) => {
   return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 };
 
-const getUazapiAckId = (payload: any) => {
-  return getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
-};
-
 const getDocumentExtension = (fileUrl: string, fileName?: string) => {
   const source = String(fileName || fileUrl || '')
     .split('?')[0]
@@ -27,88 +23,6 @@ const hasExplicitZapiError = (payload: any) => {
 const isZapiSendConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   return Boolean(ackId);
-};
-
-const hasUazapiExplicitError = (payload: any) => {
-  // Extrai a mensagem de erro mais legível possível.
-  // Importante: se o provedor retornar apenas `error: true` (booleano), traduzimos
-  // para uma mensagem clara em vez de gravar a string "true" no banco.
-  const candidates = [
-    payload?.error,
-    payload?.erro,
-    payload?.details?.error,
-    payload?.details?.message,
-    payload?.message,
-    payload?.reason,
-    payload?.response,
-    payload?.success === false ? payload?.message : null,
-  ];
-
-  for (const c of candidates) {
-    if (c == null) continue;
-    if (typeof c === 'string' && c.trim()) return c.trim();
-    if (typeof c === 'object') {
-      const nested = (c as any).message || (c as any).error || (c as any).reason;
-      if (typeof nested === 'string' && nested.trim()) return nested.trim();
-    }
-  }
-
-  // Provedor sinalizou falha sem mensagem (ex.: { error: true } ou { success: false })
-  if (payload?.error === true || payload?.success === false) {
-    return 'Número não está no WhatsApp ou recusou a mensagem (@lid/desconhecido).';
-  }
-
-  return null;
-};
-
-const isUazapiSendConfirmed = (payload: any) => {
-  const ackId = getUazapiAckId(payload);
-  const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || '').toLowerCase();
-
-  return Boolean(
-    ackId ||
-    payload?.queued === true ||
-    payload?.enqueued === true ||
-    ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
-  );
-};
-
-// 🔁 Retry agressivo para maximizar entrega:
-// - até 3 tentativas com backoff (500ms, 1500ms)
-// - retenta apenas em falhas de rede ou HTTP 5xx (erro do servidor)
-// - HTTP 4xx (rejeição definitiva) não é retentado
-const fetchUazapiWithRetry = async (
-  url: string,
-  init: RequestInit,
-  phone: string,
-  label: string,
-  maxAttempts = 3,
-): Promise<Response> => {
-  let lastErr: any = null;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(url, init);
-      // 5xx → retenta; 2xx/4xx → devolve para o caller decidir
-      if (res.status >= 500 && attempt < maxAttempts) {
-        console.warn(`🔁 UAZAPI ${label} HTTP ${res.status} para ${phone} — tentativa ${attempt}/${maxAttempts}, retentando...`);
-        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
-        continue;
-      }
-      if (attempt > 1 && res.ok) {
-        console.log(`✅ UAZAPI ${label} sucesso na tentativa ${attempt}/${maxAttempts} para ${phone}`);
-      } else if (attempt === maxAttempts && !res.ok) {
-        console.error(`❌ UAZAPI ${label} falhou após ${attempt}/${maxAttempts} tentativas para ${phone}: HTTP ${res.status}`);
-      }
-      return res;
-    } catch (err) {
-      lastErr = err;
-      console.warn(`🔁 UAZAPI ${label} falha de rede (${err instanceof Error ? err.message : err}) — tentativa ${attempt}/${maxAttempts}`);
-      if (attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
-      }
-    }
-  }
-  throw lastErr || new Error('UAZAPI: falha de rede após múltiplas tentativas');
 };
 
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
@@ -130,62 +44,6 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
         status: response.ok ? 502 : response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    );
-  }
-
-  return data;
-};
-
-const parseUazapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
-  const raw = await response.text();
-  let data: any = {};
-
-  try {
-    data = raw ? JSON.parse(raw) : {};
-  } catch {
-    data = raw ? { message: raw } : {};
-  }
-
-  const explicitError = hasUazapiExplicitError(data);
-  const confirmed = isUazapiSendConfirmed(data);
-
-  console.log(
-    `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
-  );
-
-  // 🎯 BEST-EFFORT DELIVERY:
-  // - Se HTTP 2xx + ack/confirmação → enviado.
-  // - Se HTTP 2xx sem ack mas SEM erro textual → assume enviado (provedor aceitou).
-  // - Se HTTP 4xx/5xx OU body com erro textual real → FALHA (marca como não enviado).
-  // Assim o status no banco reflete a realidade: tentamos ao máximo,
-  // mas se o provedor recusou de verdade, não mentimos dizendo "enviado".
-  const hasTextualError =
-    typeof explicitError === 'string' &&
-    explicitError.trim().length > 0 &&
-    explicitError.trim() !== 'true';
-
-  if (!response.ok || hasTextualError) {
-    const realError = explicitError || `Provedor de envio rejeitou a mensagem (HTTP ${response.status})`;
-    throw new Response(
-      JSON.stringify({
-        error: realError,
-        message: realError,
-        provider: 'uazapi',
-        httpStatus: response.status,
-        confirmed,
-        ack: getUazapiAckId(data) || null,
-        details: data,
-      }),
-      {
-        status: response.ok ? 502 : response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-
-  if (!confirmed) {
-    console.log(
-      `⚠️ UAZAPI HTTP ${response.status} sem ack para ${phone} — provedor aceitou sem confirmação, tratando como enviado.`
     );
   }
 
@@ -237,8 +95,6 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
   return pickPreferredInstance(data);
 };
 
-const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
-
 const findPreferredStandardInstance = async (adminClient: any, userId: string) => {
   const { data, error } = await adminClient
     .from('zapi_instances')
@@ -261,19 +117,19 @@ const findPreferredStandardInstance = async (adminClient: any, userId: string) =
 
 const logProviderSend = async (
   adminClient: any,
-  params: {
-    userId: string;
-    provider: 'uazapi' | 'zapi';
-    instanceId?: string | null;
-    phone?: string | null;
-    endpoint?: string | null;
-    status: 'success' | 'error';
-    httpStatus?: number | null;
-    errorMessage?: string | null;
-    durationMs?: number | null;
-    payloadSummary?: Record<string, unknown>;
-  }
-) => {
+   params: {
+     userId: string;
+     provider: 'zapi';
+     instanceId?: string | null;
+     phone?: string | null;
+     endpoint?: string | null;
+     status: 'success' | 'error';
+     httpStatus?: number | null;
+     errorMessage?: string | null;
+     durationMs?: number | null;
+     payloadSummary?: Record<string, unknown>;
+   }
+ ) => {
   try {
     await adminClient.from('provider_send_logs').insert({
       user_id: params.userId,
@@ -343,256 +199,12 @@ serve(async (req) => {
       )
     }
 
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    let { instanceId, token, clientToken, isUazapi } = credentials;
-    let uazapiOverride: { apiUrl: string; apiToken: string } | null = null;
-
-    // Se a instância resolvida for UAZAPI, configuramos o override para o roteamento abaixo
-    if (isUazapi) {
-      const { data: instData } = await adminClient
-        .from('zapi_instances')
-        .select('evolution_api_url, evolution_api_key')
-        .eq('zapi_instance_id', instanceId)
-        .maybeSingle();
-      
-      if (instData?.evolution_api_url && instData?.evolution_api_key) {
-        uazapiOverride = {
-          apiUrl: instData.evolution_api_url,
-          apiToken: instData.evolution_api_key
-        };
-        console.log(`🚀 UAZAPI routing enabled for instance ${instanceId}`);
-      }
-    }
-
-    // Detect group phones
-    const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
-
-    // 🚀 FORCE Z-API for standard messaging features.
-    // UAZAPI is reserved ONLY for lead extraction and special community functions.
-    // ===== UAZAPI ROUTING (short-circuit) =====
-      if (uazapiOverride && uazapiOverride.apiUrl && uazapiOverride.apiToken) {
-      const { apiUrl, apiToken } = uazapiOverride;
-      const uazHeaders = { 'Content-Type': 'application/json', token: apiToken };
-      const normalizedGroupId = isGroupPhone
-        ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}@g.us`
-        : null;
-      const isLidPhone = String(phone).includes('@lid');
-      // Try to resolve @lid → real phone via message_logs mapping before falling back to LID id
-      let resolvedLidNumber: string | null = null;
-      if (isLidPhone && !isGroupPhone) {
-        try {
-          const adminClientLid = createClient(supabaseUrl, supabaseServiceKey);
-          const { data: lidMap } = await adminClientLid
-            .from('message_logs')
-            .select('phone')
-            .eq('keyword_matched', '__lid_map__')
-            .eq('message_received', String(phone))
-            .eq('user_id', credentials.userId)
-            .limit(1)
-            .maybeSingle();
-          if (lidMap?.phone) {
-            resolvedLidNumber = String(lidMap.phone).replace(/\D/g, '');
-            console.log(`✅ UAZAPI resolved LID ${phone} → ${resolvedLidNumber}`);
-          } else {
-            console.log(`⚠️ UAZAPI no LID mapping for ${phone}, sending as @lid`);
-          }
-        } catch (e) {
-          console.warn('UAZAPI LID lookup failed:', e);
-        }
-      }
-      const cleanPhone = isLidPhone
-        ? (resolvedLidNumber || String(phone)) // keep '<id>@lid' as-is when unresolved
-        : String(phone).replace(/^\+/, '').replace(/[@\-].*$/, '').replace(/\D/g, '');
-      const targetNumber = normalizedGroupId || cleanPhone;
-      const logPhone = isGroupPhone
-        ? `${String(phone).replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '')}-group`
-        : cleanPhone;
-      let endpoint = '/send/text';
-      let body: Record<string, unknown> = { number: targetNumber, text: message || '' };
-
-      // Special template types (PIX / Location / Contact) — UAZAPI dedicated endpoints
-      if (specialType === 'pix' && specialPayload) {
-        endpoint = '/send/text';
-        const pixLines = [
-          `💰 *Cobrança PIX*`,
-          specialPayload.merchantName ? `Recebedor: ${specialPayload.merchantName}` : '',
-          specialPayload.amount ? `Valor: R$ ${specialPayload.amount}` : '',
-          `Chave (${specialPayload.pixKeyType || 'pix'}): ${specialPayload.pixKey || ''}`,
-          specialPayload.description ? `\n${specialPayload.description}` : '',
-        ].filter(Boolean).join('\n');
-        body = { number: targetNumber, text: pixLines };
-      } else if (specialType === 'localizacao' && specialPayload) {
-        endpoint = '/send/location';
-        body = {
-          number: targetNumber,
-          latitude: Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0,
-          longitude: Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0,
-          name: specialPayload.title || '',
-          address: specialPayload.address || '',
-        };
-      } else if (specialType === 'contato' && specialPayload) {
-        endpoint = '/send/contact';
-        body = {
-          number: targetNumber,
-          fullName: specialPayload.contactName || '',
-          phoneNumber: String(specialPayload.contactPhone || '').replace(/\D/g, ''),
-        };
-      }
-      // Interactive buttons (REPLY/URL/CALL) — UAZAPI uses /send/menu with type=button
-      else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
-        const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
-          const t = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-          const label = String(b?.label || b?.text || `Botão ${idx + 1}`).trim();
-          const url = b.url || b.value || b.urlValue;
-          const phoneVal = b.phone || b.phoneNumber || b.value || b.phoneValue;
-          
-          if (t === 'URL' && url) return `${label}|${url}`;
-          if (t === 'CALL' && phoneVal) return `${label}|${phoneVal}`;
-          if (t === 'COPY' && url) return `${label}|https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(url)}`;
-          return label;
-        });
-        endpoint = '/send/menu';
-        body = {
-          number: targetNumber,
-          type: 'button',
-          text: message || 'Selecione uma opção:',
-          ...(footer ? { footerText: footer } : {}),
-          choices,
-        };
-      } else if (buttonList?.buttons && Array.isArray(buttonList.buttons) && buttonList.buttons.length > 0) {
-        const choices = buttonList.buttons.slice(0, 10).map((b: any, idx: number) =>
-          String(b?.label || `Opção ${idx + 1}`).trim()
-        );
-        endpoint = '/send/menu';
-        body = {
-          number: targetNumber,
-          type: 'button',
-          text: message || 'Selecione uma opção:',
-          ...(footer ? { footerText: footer } : {}),
-          choices,
-          ...(buttonList?.image ? { image: buttonList.image } : {}),
-        };
-      } else if (optionList?.options && Array.isArray(optionList.options) && optionList.options.length > 0) {
-        const choices = optionList.options.slice(0, 10).map((opt: any, idx: number) =>
-          String(opt?.title || opt?.label || opt?.description || `Opção ${idx + 1}`).trim()
-        );
-        endpoint = '/send/menu';
-        body = {
-          number: targetNumber,
-          type: 'list',
-          text: message || optionList?.title || 'Selecione uma opção:',
-          ...(footer ? { footerText: footer } : {}),
-          ...(optionList?.buttonLabel ? { buttonText: optionList.buttonLabel } : {}),
-          choices,
-        };
-      } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
-        endpoint = '/send/carousel';
-        const carousel = carouselCards.map((card: any, cardIndex: number) => {
-          const image = String(card?.image || '').trim();
-          const text = [String(card?.title || '').trim(), String(card?.description || '').trim()]
-            .filter(Boolean)
-            .join('\n');
-          const buttons = Array.isArray(card?.buttons)
-            ? card.buttons.slice(0, 3).map((b: any, idx: number) => {
-                const t = String(b?.type || 'REPLY').toUpperCase();
-                const label = String(b?.text || b?.label || `Botão ${idx + 1}`).trim();
-                let id = b?.id || label;
-                if (t === 'URL' && (b?.value || b?.url)) id = b.value || b.url;
-                if (t === 'CALL' && (b?.value || b?.phone)) id = b.value || b.phone;
-                if (t === 'COPY' && (b?.value || b?.copyText)) id = b.value || b.copyText;
-                return { id: String(id).trim(), text: label, type: t };
-              }).filter((button: any) => button.id && button.text)
-            : [];
-
-          if (!image) {
-            throw new Response(
-              JSON.stringify({ error: `Card ${cardIndex + 1}: imagem obrigatória para carrossel` }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          if (!text) {
-            throw new Response(
-              JSON.stringify({ error: `Card ${cardIndex + 1}: título ou descrição obrigatórios para carrossel` }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          if (!buttons.length) {
-            throw new Response(
-              JSON.stringify({ error: `Card ${cardIndex + 1}: adicione ao menos 1 botão no carrossel` }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          return { text, image, buttons };
-        });
-        body = {
-          number: targetNumber,
-          text: message || '',
-          carousel,
-        };
-      } else if (mediaUrl && mediaType) {
-        endpoint = '/send/media';
-        // For audio, use 'ptt' so it plays as a live voice note (gravação ao vivo)
-        // instead of a regular audio attachment.
-        const typeMap: Record<string, string> = { image: 'image', video: isPtv ? 'ptv' : 'video', audio: 'ptt', document: 'document' };
-        body = {
-          number: targetNumber,
-          type: typeMap[mediaType] || 'document',
-          file: mediaUrl,
-          ...(message && !isPtv ? { text: message } : {}),
-          ...(viewOnce ? { viewOnce: true } : {}),
-        };
-      }
-
-      console.log(`📤 UAZAPI send → ${apiUrl}${endpoint} for ${targetNumber}`);
-      const uazStartTs = Date.now();
-      const uazRes = await fetchUazapiWithRetry(
-        `${apiUrl}${endpoint}`,
-        {
-          method: 'POST',
-          headers: uazHeaders,
-          body: JSON.stringify(body),
-        },
-        logPhone,
-        endpoint.replace('/send/', ''),
-      );
-      const uazData = await parseUazapiResponse(uazRes, logPhone, instanceId, endpoint.replace('/send/', ''));
-      const uazDuration = Date.now() - uazStartTs;
-
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const logTag = mediaUrl && mediaType ? `[media:${mediaType}:${mediaUrl}]` : '';
-      const logContent = logTag ? (message ? `${logTag}\n${message}` : logTag) : (message || '');
-      await supabase.from('message_logs').insert({
-        phone: logPhone,
-        message_received: null,
-        response_sent: logContent,
-        keyword_matched: '__manual_send__',
-        timestamp: new Date().toISOString(),
-        user_id: credentials.userId,
-        instance_id: instanceId,
-      });
-
-      await logProviderSend(adminClient, {
-        userId: credentials.userId,
-        provider: 'uazapi',
-        instanceId,
-        phone: logPhone,
-        endpoint,
-        status: 'success',
-        httpStatus: uazRes.status,
-        durationMs: uazDuration,
-        payloadSummary: { mediaType: mediaType || null, hasButtons: Array.isArray(buttonActions) && buttonActions.length > 0 },
-      });
-
-      return new Response(
-        JSON.stringify({ success: true, provider: 'uazapi', data: uazData }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    // ===== END UAZAPI ROUTING =====
+     const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+     let { instanceId, token, clientToken } = credentials;
+ 
+     // Detect group phones
+     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
 
     // SERVER-SIDE GROUP INSTANCE RESOLUTION
     // For group phones, verify the correct instance by checking which instance

@@ -156,9 +156,7 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
-    api_provider?: 'zapi' | 'uazapi';
-    evolution_api_url?: string | null;
-    evolution_api_key?: string | null;
+     api_provider?: 'zapi';
   }) => {
     try {
       // Fetch user's max_instances limit from profile
@@ -193,9 +191,7 @@ export const useAdminZapiInstances = (userId?: string) => {
         zapi_token: data.zapi_token,
         zapi_client_token: data.zapi_client_token,
         is_default: data.is_default || isFirst,
-        api_provider: data.api_provider || 'zapi',
-        evolution_api_url: data.evolution_api_url ?? null,
-        evolution_api_key: data.evolution_api_key ?? null,
+         api_provider: 'zapi',
       });
 
       if (error) throw error;
@@ -208,10 +204,10 @@ export const useAdminZapiInstances = (userId?: string) => {
     }
   };
 
-  const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
-    instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-    api_provider: 'zapi' | 'uazapi'; evolution_api_url: string | null; evolution_api_key: string | null;
-  }>) => {
+   const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
+     instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
+     api_provider: 'zapi';
+   }>) => {
     try {
       if (updates.is_default) { await fromZapiInstances().update({ is_default: false }).eq('user_id', uid); }
       const { error } = await fromZapiInstances().update(updates).eq('id', instanceId);

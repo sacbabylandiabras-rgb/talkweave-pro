@@ -127,12 +127,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Proxy (uazapi apenas)
-  const [showProxyDialog, setShowProxyDialog] = useState(false);
-  const [proxyLoading, setProxyLoading] = useState(false);
-  const [proxyInfo, setProxyInfo] = useState<any>(null);
-  const [proxyUrlInput, setProxyUrlInput] = useState('');
-
   // Set instance override only for operations that still use the shared hook state
   const withInstance = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setZapiInstanceOverride(instance);
@@ -194,75 +188,41 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  // Fetch connected phone number separately
-  const fetchConnectedPhone = async () => {
-    if (connectedPhone) return;
-    let foundPhone: string | null = null;
-
-    if (instance.api_provider === 'uazapi') {
-      // UAZAPI: GET {apiUrl}/instance with token header
-      const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
-      const apiToken = instance.evolution_api_key || '';
-      if (!apiUrl || !apiToken) return;
-      try {
-        const res = await fetch(`${apiUrl}/instance/status`, {
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const inst = d?.instance ?? d ?? {};
-          const num =
-            inst?.owner?.replace?.(/@.*/, '') ||
-            inst?.wid?.replace?.(/@.*/, '') ||
-            inst?.phone ||
-            inst?.phoneNumber ||
-            d?.phone ||
-            null;
-          if (num) foundPhone = String(num).replace(/\D/g, '');
-          const pic =
-            inst?.profilePicUrl ||
-            inst?.profilePictureUrl ||
-            inst?.imgUrl ||
-            inst?.picture ||
-            d?.profilePicUrl ||
-            null;
-          if (pic) setProfilePicUrl(pic);
-          const name = inst?.profileName || inst?.pushName || inst?.name || null;
-          if (name) setInstanceName(String(name));
-        }
-      } catch {}
-    } else {
-      // Z-API
-      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-      const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
-
-      try {
-        const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-        if (res.ok) {
-          const d = await res.json();
-          const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-          if (num) foundPhone = num;
-          const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
-          if (pic) setProfilePicUrl(pic);
-        }
-      } catch {}
-
-      if (!foundPhone) {
-        try {
-          const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
-          if (res.ok) {
-            const d = await res.json();
-            const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
-            if (num) foundPhone = num;
-          }
-        } catch {}
-      }
-    }
-
-    if (foundPhone) {
-      setConnectedPhone(foundPhone);
-    }
-  };
+   // Fetch connected phone number separately
+   const fetchConnectedPhone = async () => {
+     if (connectedPhone) return;
+     let foundPhone: string | null = null;
+ 
+     // Z-API
+     const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+     const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
+ 
+     try {
+       const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
+       if (res.ok) {
+         const d = await res.json();
+         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
+         if (num) foundPhone = num;
+         const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+         if (pic) setProfilePicUrl(pic);
+       }
+     } catch {}
+ 
+     if (!foundPhone) {
+       try {
+         const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+         if (res.ok) {
+           const d = await res.json();
+           const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+           if (num) foundPhone = num;
+         }
+       } catch {}
+     }
+ 
+     if (foundPhone) {
+       setConnectedPhone(foundPhone);
+     }
+   };
 
   const fetchQRCode = async () => {
     try {
@@ -392,36 +352,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
   };
 
-  const handleDisconnect = async () => {
-    try {
-      if (instance.api_provider === 'uazapi') {
-        const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
-          body: {
-            apiUrl: instance.evolution_api_url,
-            apiToken: instance.evolution_api_key,
-          },
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-      } else {
-        await withInstance(() => disconnectDevice());
-      }
-
-      localStorage.removeItem('readConversations');
-      setConnectedPhone(null);
-      setProfilePicUrl(null);
-      setQrCode(null);
-      setQrCodeImage(null);
-      toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
-      setTimeout(fetchDeviceStatus, 1000);
-    } catch (err) {
-      if (instance.api_provider === 'uazapi') {
-        const message = await getInvokeErrorMessage(err, 'Erro ao desconectar');
-        toast({ title: '❌ Erro ao desconectar', description: message, variant: 'destructive' });
-      }
-    }
-  };
+   const handleDisconnect = async () => {
+     try {
+       await withInstance(() => disconnectDevice());
+       localStorage.removeItem('readConversations');
+       setConnectedPhone(null);
+       setProfilePicUrl(null);
+       setQrCode(null);
+       setQrCodeImage(null);
+       toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
+       setTimeout(fetchDeviceStatus, 1000);
+     } catch (err) {
+       // Silent catch
+     }
+   };
 
   useEffect(() => {
     fetchDeviceStatus();
@@ -529,153 +473,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   const isUazapi = instance.api_provider === 'uazapi';
 
-  const callProxyFunction = async (action: 'get' | 'set' | 'delete', proxy_url?: string) => {
-    const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
-    const apiToken = instance.evolution_api_key || '';
-    if (!apiUrl || !apiToken) {
-      throw new Error('Instância UAZAPI sem URL/token configurados.');
-    }
-    const { data, error } = await supabase.functions.invoke('uazapi-proxy', {
-      body: { apiUrl, apiToken, action, proxy_url },
-    });
-    if (error) {
-      const msg = await getInvokeErrorMessage(error, 'Erro ao comunicar com a UAZAPI');
-      throw new Error(msg);
-    }
-    if (data?.error) {
-      throw new Error(data?.error);
-    }
-    return data;
-  };
 
-  const openProxyDialog = async () => {
-    setShowProxyDialog(true);
-    setProxyLoading(true);
-    setProxyInfo(null);
-    try {
-      const data = await callProxyFunction('get');
-      setProxyInfo(data);
-      const current =
-        data?.proxy_url ||
-        data?.proxyUrl ||
-        data?.config?.proxy_url ||
-        data?.data?.proxy_url ||
-        '';
-      setProxyUrlInput(current || '');
-    } catch (err) {
-      toast({
-        title: '❌ Erro ao carregar proxy',
-        description: err instanceof Error ? err.message : 'Falha ao buscar configuração.',
-        variant: 'destructive',
-      });
-    } finally {
-      setProxyLoading(false);
-    }
-  };
 
-  const normalizeProxyUrl = (raw: string): string => {
-    let s = raw.trim();
-    if (!s) return s;
-
-    // Already has a supported scheme
-    const schemeMatch = s.match(/^([a-zA-Z0-9+.-]+):\/\//);
-    if (schemeMatch) {
-      const scheme = schemeMatch[1].toLowerCase();
-      const supported = ['http', 'https', 'socks5', 'socks5h', 'socks4'];
-      if (!supported.includes(scheme)) {
-        throw new Error(`Esquema "${scheme}" não suportado. Use http://, https://, socks5:// ou socks5h://`);
-      }
-      return `${scheme}://${s.slice(schemeMatch[0].length)}`;
-    }
-
-    // No scheme → try IPFoxy-style "host:porta:user:senha"
-    const parts = s.split(':');
-    if (parts.length === 4) {
-      const [host, port, user, pass] = parts;
-      return `http://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}`;
-    }
-
-    // Fallback: assume http
-    return `http://${s}`;
-  };
-
-  const handleSaveProxy = async () => {
-    const rawInput = proxyUrlInput.trim();
-    if (!rawInput) {
-      toast({
-        title: 'URL obrigatória',
-        description: 'Informe a URL do proxy (http://, https://, socks5:// ou socks5h://).',
-        variant: 'destructive',
-      });
-      return;
-    }
-    let trimmed: string;
-    try {
-      trimmed = normalizeProxyUrl(rawInput);
-    } catch (err) {
-      toast({
-        title: 'Formato inválido',
-        description: err instanceof Error ? err.message : 'URL de proxy inválida.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setProxyLoading(true);
-    try {
-      await callProxyFunction('set', trimmed);
-      toast({
-        title: '✅ Proxy configurado',
-        description: `Proxy aplicado: ${trimmed.replace(/:([^:@\/]+)@/, ':***@')}`,
-      });
-      const refreshed = await callProxyFunction('get').catch(() => null);
-      if (refreshed) setProxyInfo(refreshed);
-    } catch (err) {
-      toast({
-        title: '❌ Erro ao salvar proxy',
-        description: err instanceof Error ? err.message : 'Falha ao configurar proxy.',
-        variant: 'destructive',
-      });
-    } finally {
-      setProxyLoading(false);
-    }
-  };
-
-  const handleRemoveProxy = async () => {
-    setProxyLoading(true);
-    try {
-      await callProxyFunction('delete');
-      toast({
-        title: '✅ Proxy removido',
-        description: 'Voltando ao proxy interno padrão.',
-      });
-      setProxyUrlInput('');
-      const refreshed = await callProxyFunction('get').catch(() => null);
-      setProxyInfo(refreshed);
-    } catch (err) {
-      toast({
-        title: '❌ Erro ao remover proxy',
-        description: err instanceof Error ? err.message : 'Falha ao remover proxy.',
-        variant: 'destructive',
-      });
-    } finally {
-      setProxyLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // Try to delete on UAZAPI server first (best-effort)
-      if (instance.api_provider === 'uazapi') {
-        try {
-          await supabase.functions.invoke('uazapi-create-instance', {
-            body: { action: 'delete', instanceToken: instance.evolution_api_key },
-          });
-        } catch (e) {
-          console.warn('Falha ao deletar na UAZAPI (seguindo com remoção local):', e);
-        }
-      }
-
       const { error } = await supabase
         .from('zapi_instances')
         .delete()
@@ -824,12 +627,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate('/enviar-mensagem')}>
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
-
-          {isUazapi && (
-            <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={openProxyDialog}>
-              <Globe className="w-3 h-3 mr-1" /> Proxy
-            </Button>
-          )}
 
            {!isConnected && (
              <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
@@ -1036,74 +833,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               </div>
             </TabsContent>
           </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      {/* Proxy Dialog (UAZAPI only) */}
-      <Dialog open={showProxyDialog} onOpenChange={setShowProxyDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5" /> Configuração de Proxy
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 rounded-md p-3">
-              <p>
-                Por padrão, a instância usa o <strong>proxy interno</strong>. Informe uma URL para usar um proxy próprio.
-              </p>
-              <p className="font-mono text-[11px]">
-                Formatos aceitos:
-              </p>
-              <ul className="font-mono text-[11px] list-disc pl-4 space-y-0.5">
-                <li><code>http://usuario:senha@ip:porta</code></li>
-                <li><code>https://usuario:senha@ip:porta</code></li>
-                <li><code>socks5://usuario:senha@ip:porta</code></li>
-                <li><code>socks5h://usuario:senha@ip:porta</code> (resolve DNS no proxy)</li>
-                <li>IPFoxy: <code>host:porta:usuario:senha</code> (convertido automaticamente para http)</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`proxy-url-${instance.id}`}>URL do Proxy</Label>
-              <Input
-                id={`proxy-url-${instance.id}`}
-                type="text"
-                placeholder="socks5://usuario:senha@ip:porta"
-                value={proxyUrlInput}
-                onChange={(e) => setProxyUrlInput(e.target.value)}
-                disabled={proxyLoading}
-              />
-            </div>
-
-            {proxyInfo && (
-              <details className="text-[11px]">
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  🔧 Estado atual / último teste
-                </summary>
-                <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-40 text-[10px]">
-                  {JSON.stringify(proxyInfo, null, 2)}
-                </pre>
-              </details>
-            )}
-
-            <div className="flex flex-wrap gap-2 justify-end pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRemoveProxy}
-                disabled={proxyLoading}
-              >
-                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                Remover (usar padrão)
-              </Button>
-              <Button size="sm" onClick={handleSaveProxy} disabled={proxyLoading}>
-                {proxyLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
-                Salvar Proxy
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
