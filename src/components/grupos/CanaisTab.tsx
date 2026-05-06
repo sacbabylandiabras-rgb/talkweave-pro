@@ -366,7 +366,10 @@ export default function CanaisTab() {
                         <Button variant="outline" onClick={() => runAction("mute-newsletter", {}, "Silenciado")} disabled={actionLoading === "mute-newsletter"}><VolumeX className="w-4 h-4 mr-2" /> Silenciar</Button>
                         <Button variant="outline" onClick={() => runAction("unmute-newsletter", {}, "Som ativado")} disabled={actionLoading === "unmute-newsletter"}><Volume2 className="w-4 h-4 mr-2" /> Ativar Som</Button>
                       </div>
-                      <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                       <div 
+                         className="border rounded-lg p-4 space-y-4"
+                         style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}
+                       >
                         <Label>Reações</Label>
                         <div className="flex gap-2">
                           <Button variant={reactionMode === "ALL" ? "default" : "outline"} size="sm" onClick={() => { setReactionMode("ALL"); runAction("update-newsletter-config", { reactionMode: "ALL" }, "Reações: Todas"); }}>Todas</Button>
