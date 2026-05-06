@@ -285,9 +285,15 @@ export default function CanaisTab() {
                          style={isSelected ? { borderColor: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.1)' } : {}}
                        >
                          <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                             {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
-                           </div>
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          {n.photo ? (
+                            <img src={n.photo} className="w-full h-full object-cover" onError={(e) => {
+                              (e.target as HTMLImageElement).src = ""; // Fallback se a URL falhar
+                            }} />
+                          ) : (
+                            <Hash className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
                            <div className="min-w-0">
                              <p className="font-medium text-sm truncate">{n.name}</p>
                              <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
