@@ -623,8 +623,6 @@ const ChatView = ({
         else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
         else if (template.type === 'audio') mediaType = 'audio';
         
-        const hasUrlOrCall = templateButtonActions.some(b => b.type === "URL" || b.type === "CALL");
-        
         const sendOptions: any = {
           mediaUrl: template.mediaUrl,
           mediaType,
@@ -634,12 +632,10 @@ const ChatView = ({
           templateId: template.id,
         };
 
-        if (hasUrlOrCall) {
+        if (templateButtonActions.length > 0) {
+          // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
+          // together in the same bubble as the text/media.
           sendOptions.buttonActions = templateButtonActions;
-        } else if (templateButtonActions.length > 0) {
-          sendOptions.buttonList = {
-            buttons: templateButtonActions.map(b => ({ id: b.id, label: b.label }))
-          };
         }
 
         await onSendMessage(conversation.phone, template.content, sendOptions);
@@ -654,24 +650,15 @@ const ChatView = ({
       if (!conversation) return;
       setSending(true);
       try {
-        const hasUrlOrCall = templateButtonActions.some(b => b.type === "URL" || b.type === "CALL");
-        
-        const sendOptions: any = {
+        // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
+        // together in the same bubble as the text.
+        await onSendMessage(conversation.phone, template.content, {
           preferredInstanceId: conversation.preferredInstanceId,
           title: template.header || undefined,
           footer: template.footer || undefined,
+          buttonActions: templateButtonActions,
           templateId: template.id,
-        };
-
-        if (hasUrlOrCall) {
-          sendOptions.buttonActions = templateButtonActions;
-        } else {
-          sendOptions.buttonList = {
-            buttons: templateButtonActions.map(b => ({ id: b.id, label: b.label }))
-          };
-        }
-
-        await onSendMessage(conversation.phone, template.content, sendOptions);
+        });
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
