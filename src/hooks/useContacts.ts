@@ -163,11 +163,10 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const toFetch = contactsList.filter(c => 
-      !c.profilePictureUrl && 
-      !fetchedPhotosRef.current.has(c.phone) &&
-      !c.phone.includes('@')
-    ).slice(0, 5);
+     const toFetch = contactsList.filter(c =>
+       !c.profilePictureUrl &&
+       !fetchedPhotosRef.current.has(c.phone)
+     ).slice(0, 10);
 
     if (toFetch.length === 0) return;
 
