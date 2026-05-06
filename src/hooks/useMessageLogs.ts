@@ -53,6 +53,7 @@ export interface Conversation {
   phone: string;
   contactName: string | null;
   profilePictureUrl: string | null;
+  lastPictureSync?: string | null;
   lastMessage: string;
   lastTimestamp: string;
   unreadCount: number;
@@ -1005,6 +1006,7 @@ export const useMessageLogs = (
           phone,
           contactName: resolvedContactName,
           profilePictureUrl: sanitizePictureUrl(saved?.profile_picture_url) || sanitizePictureUrl(safeMapGet(groupPhotos, phone)) || sanitizePictureUrl(safeMapGet(groupPhotos, normalizedPhone)) || null,
+          lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
           unreadCount: 0,
