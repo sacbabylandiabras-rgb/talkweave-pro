@@ -340,19 +340,6 @@ serve(async (req) => {
       return data;
     };
 
-    // OTP support
-    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
-      zapiData = await sendZapi('/send-button-otp', {
-        phone: resolvedPhone,
-        message: message || "Seu código de verificação é",
-        code: payloadRaw.otpCode,
-        expirationInSeconds: payloadRaw.otpExpiration,
-        footer: footer || ""
-      }, 'otp');
-      logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
-      // Return early or continue? Usually OTP is a single message.
-    } else if (specialType === 'pix' && specialPayload) {
-
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
       let endpoint = '/send-text';
       let payload: any = { phone: resolvedPhone };
@@ -452,7 +439,17 @@ serve(async (req) => {
       return lastRes;
     };
 
-    if (specialType === 'pix' && specialPayload) {
+    // OTP support
+    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
+      zapiData = await sendZapi('/send-button-otp', {
+        phone: resolvedPhone,
+        message: message || "Seu código de verificação é",
+        code: payloadRaw.otpCode,
+        expirationInSeconds: payloadRaw.otpExpiration,
+        footer: footer || ""
+      }, 'otp');
+      logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
+    } else if (specialType === 'pix' && specialPayload) {
       const pixPayload: any = {
         phone: resolvedPhone,
         pixKey: specialPayload.pixKey || '',
