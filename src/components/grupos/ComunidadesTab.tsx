@@ -309,6 +309,7 @@ export default function ComunidadesTab() {
         setCreateName("");
         setCreateDescription("");
         setCreateGroupIds([]);
+        setCreatePhotoUrl("");
         await loadCommunities();
       },
     );
