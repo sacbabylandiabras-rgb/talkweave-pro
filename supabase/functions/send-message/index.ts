@@ -885,19 +885,27 @@ serve(async (req) => {
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
     } else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
       const interactiveMessage = message || 'Selecione uma opção:';
-      const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
-        const bType = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
-        return {
-          id: b.id || String(index + 1),
-          type: bType,
-          label: String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim(),
-          url: b.url || b.value || b.urlValue,
-          phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
-        };
-      });
-
-      const replyButtons = normalizedButtons.filter(b => b.type === 'REPLY');
-      const actionButtons = normalizedButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
+       const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => {
+         let bType = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
+         let bUrl = b.url || b.value || b.urlValue;
+         
+         // Suporte para botão de COPIAR (mapeado para URL especial do WhatsApp)
+         if (bType === 'COPY' && bUrl) {
+           bType = 'URL';
+           bUrl = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(bUrl)}`;
+         }
+ 
+         return {
+           id: b.id || String(index + 1),
+           type: bType,
+           label: String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim(),
+           url: bUrl,
+           phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
+         };
+       });
+ 
+       const replyButtons = normalizedButtons.filter(b => b.type === 'REPLY');
+       const actionButtons = normalizedButtons.filter(b => b.type === 'URL' || b.type === 'CALL');
 
       // Z-API documentation states: "Currently, when sending the three types of buttons simultaneously, WhatsApp Web generates an error... An alternative is to send only the CALL and URL buttons together, and always send the REPLY button separately."
       // If we have a mix of types, we split into two messages to ensure delivery of all buttons.
@@ -923,27 +931,30 @@ serve(async (req) => {
           body: JSON.stringify(payload1),
         });
         
-        // If the first message fails, parseZapiResponse will throw
-        await parseZapiResponse(res1, resolvedPhone, instanceId, 'button-actions-split-1');
-
-        // Second message: URL/CALL buttons with footer or placeholder text
-        const payload2 = {
-          phone: resolvedPhone,
-          message: footer || 'Links:',
-          buttonActions: actionButtons.map(b => ({
-            id: b.id,
-            type: b.type,
-            label: b.label,
-            ...(b.type === 'URL' ? { url: b.url } : {}),
-            ...(b.type === 'CALL' ? { phone: b.phone } : {})
-          }))
-        };
-
-        zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(payload2),
-        });
+         // If the first message fails, parseZapiResponse will throw
+         await parseZapiResponse(res1, resolvedPhone, instanceId, 'button-actions-split-1');
+ 
+         // Aguarda 1 segundo entre as mensagens para evitar problemas de ordem ou bloqueio
+         await new Promise(r => setTimeout(r, 1000));
+ 
+         // Second message: URL/CALL buttons with footer or placeholder text
+         const payload2 = {
+           phone: resolvedPhone,
+           message: footer || 'Opções adicionais:',
+           buttonActions: actionButtons.map(b => ({
+             id: b.id,
+             type: b.type,
+             label: b.label,
+             ...(b.type === 'URL' ? { url: b.url } : {}),
+             ...(b.type === 'CALL' ? { phone: b.phone } : {})
+           }))
+         };
+ 
+         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+           body: JSON.stringify(payload2),
+         });
       } else {
         // Regular case (single type or just URL/CALL)
         const zapiPayload: any = {

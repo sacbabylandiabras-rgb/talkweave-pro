@@ -1,9 +1,9 @@
-import { Image as ImageIcon, Link as LinkIcon, MessageCircle, Phone } from "lucide-react";
+ import { Image as ImageIcon, Link as LinkIcon, MessageCircle, Phone, Copy } from "lucide-react";
 
 type CarouselButton = {
   id: string;
   text: string;
-  type: 'reply' | 'url' | 'call';
+   type: 'reply' | 'url' | 'call' | 'copy';
   value?: string;
 };
 
@@ -24,16 +24,18 @@ interface WhatsAppCarouselPreviewProps {
   className?: string;
 }
 
-const getButtonIcon = (type: CarouselButton['type']) => {
-  switch (type) {
-    case 'url':
-      return LinkIcon;
-    case 'call':
-      return Phone;
-    default:
-      return MessageCircle;
-  }
-};
+ const getButtonIcon = (type: CarouselButton['type']) => {
+   switch (type) {
+     case 'url':
+       return LinkIcon;
+     case 'call':
+       return Phone;
+     case 'copy':
+       return Copy;
+     default:
+       return MessageCircle;
+   }
+ };
 
 export default function WhatsAppCarouselPreview({
   header,
