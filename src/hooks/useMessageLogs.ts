@@ -319,6 +319,7 @@ export const useMessageLogs = (
   const lastLogsRef = useRef<string>('');
   const lastSendsRef = useRef<string>('');
   const fetchedPhotosRef = useRef<Set<string>>(new Set());
+  const inFlightPhotosRef = useRef<Set<string>>(new Set());
   const fetchedGroupNamesRef = useRef<string>('');
   const stableGroupNamesRef = useRef<Map<string, string>>(new Map());
 
@@ -616,43 +617,56 @@ export const useMessageLogs = (
     const userId = await getUserId();
     if (!token || !userId) return;
 
-      const now = new Date();
-      const toFetch = phones.filter(p => {
-        if (fetchedPhotosRef.current.has(p)) return false;
-        if (p.includes('@lid')) return false;
-        if (isLikelyTechnicalIdentifier(p)) return false;
+    const now = new Date();
+    const toFetch = phones.filter(p => {
+      if (fetchedPhotosRef.current.has(p) || inFlightPhotosRef.current.has(p)) return false;
+      if (p.includes('@lid') || isLikelyTechnicalIdentifier(p)) return false;
 
-        const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
-        if (!saved?.profile_picture_url || saved.profile_picture_url.includes('undefined')) return true;
+      const saved = safeMapGet(savedContacts, p) || safeMapGet(savedContacts, normalizeConversationPhone(p));
+      if (!saved?.profile_picture_url || saved.profile_picture_url.includes('undefined')) return true;
 
-        if (saved.updated_at) {
-          const lastUpdate = new Date(saved.updated_at);
-          const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-          return hoursSinceUpdate > 24;
+      if (saved.updated_at) {
+        const lastUpdate = new Date(saved.updated_at);
+        const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        return hoursSinceUpdate > 24;
+      }
+      return false;
+    }).slice(0, 20); // Smaller chunks for responsiveness
+
+    if (toFetch.length === 0) return;
+
+    toFetch.forEach(p => inFlightPhotosRef.current.add(p));
+
+    // Process in small parallel chunks to speed up without overloading
+    const CHUNK_SIZE = 3;
+    for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
+      const chunk = toFetch.slice(i, i + CHUNK_SIZE);
+      await Promise.all(chunk.map(async (phone) => {
+        try {
+          const body: Record<string, unknown> = { phone };
+          if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+          const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
+          if (!error) {
+            const payload = data?.data ?? data;
+            const url = extractProfilePictureUrl(payload);
+            if (url) {
+              const existing = safeMapGet(savedContacts, phone);
+              await savedContactsApi.upsert(token, { 
+                phone, 
+                name: existing?.name || '', 
+                user_id: userId, 
+                profile_picture_url: url 
+              });
+            }
+          }
+          fetchedPhotosRef.current.add(phone);
+        } catch { /* ignore */ } finally {
+          inFlightPhotosRef.current.delete(phone);
         }
-        return false;
-      }).slice(0, 50);
- 
-      for (const phone of toFetch) {
-       fetchedPhotosRef.current.add(phone);
-       try {
-         const body: Record<string, unknown> = { phone };
-         if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
-         const { data, error } = await supabase.functions.invoke('get-profile-picture', { body });
-         if (error) continue;
-         const payload = data?.data ?? data;
-         const url = extractProfilePictureUrl(payload);
-                    
-         if (url) {
-           const existing = safeMapGet(savedContacts, phone);
-           await savedContactsApi.upsert(token, { phone, name: existing?.name || '', user_id: userId, profile_picture_url: url });
-         }
-         await new Promise(r => setTimeout(r, 200));
-       } catch { /* ignore */ }
-     }
-     if (toFetch.length > 0) {
-       await fetchSavedContacts();
-     }
+      }));
+    }
+
+    await fetchSavedContacts();
   }, [savedContacts, fetchSavedContacts, filterInstanceId]);
 
   const autoResolveGroupMetadata = useCallback(async (conversationsToCheck: Conversation[]) => {
