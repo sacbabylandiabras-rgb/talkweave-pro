@@ -125,8 +125,40 @@ Deno.serve(async (req) => {
         return await callZapi("POST", "/create-newsletter", payload);
       }
 
-      case "list-newsletters":
-        return await callZapi("GET", "/newsletter");
+      case "list-newsletters": {
+        const resp = await callZapi("GET", "/newsletter");
+        try {
+          const cloned = resp.clone();
+          const data = await cloned.json();
+          const rawList = Array.isArray(data) ? data : (data?.newsletters || data?.list || []);
+          
+          // Se a lista tiver itens sem foto, tentamos buscar metadados para cada um
+          // para obter as URLs das fotos que faltam. Fazemos isso apenas se a lista for pequena.
+          if (Array.isArray(rawList) && rawList.length > 0 && rawList.length <= 15) {
+            const enrichedList = await Promise.all(rawList.map(async (n: any) => {
+              const photo = n.picture || n.pictureUrl || n.preview || "";
+              if (!photo) {
+                const id = n.newsletterId || n.id || n.jid;
+                if (id) {
+                  try {
+                    const metaRes = await fetch(`${baseUrl}/newsletter/metadata/${id}`, { method: "GET", headers });
+                    if (metaRes.ok) {
+                      const meta = await metaRes.json();
+                      const metaPhoto = meta?.picture || meta?.pictureUrl || meta?.preview || "";
+                      if (metaPhoto) return { ...n, picture: metaPhoto, pictureUrl: metaPhoto };
+                    }
+                  } catch { /* ignore */ }
+                }
+              }
+              return n;
+            }));
+            return new Response(JSON.stringify(enrichedList), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } catch { /* ignore */ }
+        return resp;
+      }
 
       case "update-newsletter-picture": {
         const { newsletterId, id, imageUrl, pictureUrl } = body;
