@@ -35,17 +35,17 @@ export const useContacts = (options?: { enabled?: boolean }) => {
   const fetchedPhotosRef = useRef(new Set<string>());
   const enabled = options?.enabled ?? true;
 
-   const extractProfilePictureUrl = (payload: any): string | null => {
-     if (!payload) return null;
-     if (typeof payload === 'string') {
-       const str = payload.trim();
-       if (!str || str.toLowerCase() === 'null' || !/^https?:\/\//i.test(str)) return null;
-       return str;
-     }
-     if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
-     const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link;
-     return extractProfilePictureUrl(rawUrl);
-   };
+  const extractProfilePictureUrl = (payload: any): string | null => {
+    if (!payload) return null;
+    if (typeof payload === 'string') {
+      const str = payload.trim();
+      if (!str || str.toLowerCase() === 'null' || !/^https?:\/\//i.test(str)) return null;
+      return str;
+    }
+    if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
+    const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link || payload?.profileThumbnail || payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture || payload?.image || payload?.photo || payload?.preview || payload?.pictureUrl;
+    return extractProfilePictureUrl(rawUrl);
+  };
 
   const fetchContacts = async () => {
     try {
