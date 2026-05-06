@@ -16,6 +16,7 @@ interface Newsletter {
   id: string;
   name?: string;
   description?: string;
+  photo?: string;
   raw?: Record<string, unknown>;
 }
 
@@ -92,12 +93,17 @@ export default function CanaisTab() {
       // Normalização: a Z-API pode retornar um array direto ou um objeto com a lista
       const rawList = Array.isArray(data) ? data : (data as any)?.newsletters || (data as any)?.list || [];
       
-      const list: Newsletter[] = rawList.map((n: any) => ({
-        id: String(n.newsletterId || n.id || n.jid || ""),
+      const list: Newsletter[] = rawList.map((n: any) => {
+        const id = String(n.newsletterId || n.id || n.jid || "");
+        // A Z-API pode retornar 'picture' ou 'pictureUrl'
+        const photo = n.picture || n.pictureUrl || n.preview || "";
+        return {
+        id,
         name: n.name || n.subject || n.title || "Canal",
         description: n.description || n.desc || "",
-        raw: n
-      })).filter((n: any) => n.id);
+        photo,
+        raw: { ...n, picture: photo }
+      }}).filter((n: any) => n.id);
 
       setNewsletters(list);
       if (list.length && !selectedId) setSelectedId(list[0].id);
@@ -279,9 +285,15 @@ export default function CanaisTab() {
                          style={isSelected ? { borderColor: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.1)' } : {}}
                        >
                          <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                             {(n.raw as any)?.picture ? <img src={(n.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-5 h-5 text-muted-foreground" />}
-                           </div>
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          {n.photo ? (
+                            <img src={n.photo} className="w-full h-full object-cover" onError={(e) => {
+                              (e.target as HTMLImageElement).src = ""; // Fallback se a URL falhar
+                            }} />
+                          ) : (
+                            <Hash className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
                            <div className="min-w-0">
                              <p className="font-medium text-sm truncate">{n.name}</p>
                              <p className="text-xs text-muted-foreground truncate">{n.description || "Sem descrição"}</p>
@@ -311,7 +323,11 @@ export default function CanaisTab() {
                          className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2"
                          style={{ borderColor: 'hsl(var(--primary) / 0.2)' }}
                        >
-                        {(selectedNewsletter.raw as any)?.picture ? <img src={(selectedNewsletter.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-8 h-8 text-muted-foreground" />}
+                        {selectedNewsletter.photo ? (
+                          <img src={selectedNewsletter.photo} className="w-full h-full object-cover" />
+                        ) : (
+                          <Hash className="w-8 h-8 text-muted-foreground" />
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-lg">{selectedNewsletter.name}</h3>
