@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RefreshCw, Plus, Hash, Image, Upload, Loader2, Trash2, Pencil, Settings, UserPlus, UserMinus, Search, Volume2, VolumeX, Heart, HeartOff, UserCheck } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
