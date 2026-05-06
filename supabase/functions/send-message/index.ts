@@ -401,32 +401,42 @@ serve(async (req) => {
 
       console.log(`📤 Sending ${groups.length} button group(s) for ${resolvedPhone}`);
 
-      // 1. Send button groups
-      let lastRes = null;
-      for (let i = 0; i < groups.length; i++) {
-        const g = groups[i];
-        // If media was already sent, don't repeat the message text if there are multiple groups?
-        // Actually, Z-API requires a message. We'll use the original message.
-        const payload: any = {
-          phone: resolvedPhone,
-          message: message || 'Escolha uma opção:',
-          buttonActions: g.buttons,
-        };
-        if (title) payload.title = title;
-        if (footer) payload.footer = footer;
+       // 1. Send button groups
+       let lastRes = null;
+       for (let i = 0; i < groups.length; i++) {
+         const g = groups[i];
+         let payload: any = {
+           phone: resolvedPhone,
+           message: message || 'Escolha uma opção:',
+         };
+         if (title) payload.title = title;
+         if (footer) payload.footer = footer;
 
-        // Try to attach media to the first button group
-        if (i === 0 && mediaUrl && mediaType) {
-          if (mediaType === 'image') payload.image = mediaUrl;
-          else if (mediaType === 'video') {
-            payload.video = mediaUrl;
-            if (viewOnce) payload.viewOnce = true;
-          }
-        }
+         let endpoint = '';
+         if (g.kind === 'action') {
+           endpoint = '/send-button-actions';
+           payload.buttonActions = g.buttons.map((b: any) => ({
+             id: b.id,
+             type: b.type,
+             label: b.label,
+             url: b.url,
+             phone: b.phone
+           }));
+           // Try to attach media to action buttons if possible
+           if (i === 0 && mediaUrl && mediaType === 'image') payload.image = mediaUrl;
+         } else {
+           endpoint = '/send-button-list';
+           payload.buttonList = {
+             buttons: g.buttons.map((b: any) => ({ id: b.id, label: b.label }))
+           };
+           // Try to attach media to button list if possible
+           if (i === 0 && mediaUrl && mediaType === 'image') payload.buttonList.image = mediaUrl;
+           if (i === 0 && mediaUrl && mediaType === 'video') payload.buttonList.video = mediaUrl;
+         }
 
-        lastRes = await sendZapi('/send-button-actions', payload, `buttons-${g.kind}`);
-        if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
-      }
+         lastRes = await sendZapi(endpoint, payload, `buttons-${g.kind}`);
+         if (i < groups.length - 1) await new Promise(r => setTimeout(r, 1000));
+       }
 
       // Fallback: If no buttons were actually valid but groups were empty, send at least the message/media
       if (groups.length === 0) {
