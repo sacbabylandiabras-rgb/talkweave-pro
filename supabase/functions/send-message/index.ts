@@ -823,27 +823,63 @@ serve(async (req) => {
       });
       logMessage = `📋 ${copyLabel}`;
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'copy-paste');
-    } else if (specialType === 'uaz_status' && specialPayload) {
-      // Status / Stories — Z-API: /send-text-status, /send-image-status, /send-video-status
-      const statusKind = String(specialPayload.statusType || specialPayload.kind || 'text').toLowerCase();
-      let endpoint = '/send-text-status';
-      let payload: Record<string, unknown> = { message: specialPayload.text || message || '' };
-      if (statusKind === 'image' && specialPayload.image) {
-        endpoint = '/send-image-status';
-        payload = { image: specialPayload.image, caption: specialPayload.caption || specialPayload.text || message || '' };
-      } else if (statusKind === 'video' && specialPayload.video) {
-        endpoint = '/send-video-status';
-        payload = { video: specialPayload.video, caption: specialPayload.caption || specialPayload.text || message || '' };
-      }
-      console.log(`📤 Z-API ${endpoint} (status broadcast — ignora phone)`);
-      zapiResponse = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(payload),
-      });
-      logMessage = `📰 Status (${statusKind})`;
-      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, `status-${statusKind}`);
-    } else if (specialType === 'uaz_location_button' && specialPayload) {
+     } else if (specialType === 'uaz_status' && specialPayload) {
+       // Status Actions - Z-API
+       const statusKind = String(specialPayload.statusType || specialPayload.kind || 'text').toLowerCase();
+       let endpoint = '/send-text-status';
+       let payload: Record<string, unknown> = {};
+
+       if (statusKind === 'text') {
+         endpoint = '/send-text-status';
+         payload = {
+           message: specialPayload.text || message || '',
+           backgroundColor: specialPayload.backgroundColor || "#000000",
+           font: specialPayload.font || 1
+         };
+       } else if (statusKind === 'image') {
+         endpoint = '/send-image-status';
+         payload = {
+           image: specialPayload.image,
+           caption: specialPayload.caption || specialPayload.text || message || ''
+         };
+       } else if (statusKind === 'video') {
+         endpoint = '/send-video-status';
+         payload = {
+           video: specialPayload.video,
+           caption: specialPayload.caption || specialPayload.text || message || ''
+         };
+       } else if (statusKind === 'reply-text') {
+         endpoint = '/reply-status-text';
+         payload = {
+           phone: specialPayload.phone || resolvedPhone,
+           msgId: specialPayload.statusId,
+           message: specialPayload.message || message || ''
+         };
+       } else if (statusKind === 'reply-gif') {
+         endpoint = '/reply-status-gif';
+         payload = {
+           phone: specialPayload.phone || resolvedPhone,
+           msgId: specialPayload.statusId,
+           gif: specialPayload.gif || mediaUrl
+         };
+       } else if (statusKind === 'reply-sticker') {
+         endpoint = '/reply-status-sticker';
+         payload = {
+           phone: specialPayload.phone || resolvedPhone,
+           msgId: specialPayload.statusId,
+           sticker: specialPayload.sticker || mediaUrl
+         };
+       }
+
+       console.log(`📤 Z-API ${endpoint} (status action)`);
+       zapiResponse = await fetch(`${baseUrl}${endpoint}`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+         body: JSON.stringify(payload),
+       });
+       logMessage = `📰 Status (${statusKind})`;
+       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, `status-${statusKind}`);
+     } else if (specialType === 'uaz_location_button' && specialPayload) {
       // Botão com localização — Z-API não tem endpoint dedicado.
       // Estratégia: enviar localização + mensagem com botão URL para Google Maps.
       const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
