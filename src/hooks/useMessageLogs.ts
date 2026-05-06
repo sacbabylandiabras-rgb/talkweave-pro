@@ -583,13 +583,15 @@ export const useMessageLogs = (
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
 
-      if (finalUrl) {
-        setLocalManualPhotos(prev => {
-          const next = new Map(prev);
+      setLocalManualPhotos(prev => {
+        const next = new Map(prev);
+        if (finalUrl) {
           next.set(phone, finalUrl);
-          return next;
-        });
-      }
+        } else {
+          next.delete(phone);
+        }
+        return next;
+      });
 
       if (finalUrl || resolvedName) {
         const token = await getToken();
@@ -997,10 +999,13 @@ export const useMessageLogs = (
           rememberGroupDisplayName(stableGroupNamesRef.current, phone, resolvedContactName);
         }
 
+        const groupOnlyPhoto = isGroup
+          ? (safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone))
+          : null;
         return {
           phone,
           contactName: resolvedContactName,
-           profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || safeMapGet(groupPhotos, phone) || safeMapGet(groupPhotos, normalizedPhone) || null,
+          profilePictureUrl: localManualPhotos.get(phone) || saved?.profile_picture_url || groupOnlyPhoto || null,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
