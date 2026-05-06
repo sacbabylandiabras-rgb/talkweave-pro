@@ -868,10 +868,10 @@ const EnviarMensagem = () => {
         // Verificar se o dispositivo está conectado antes de cada envio (a cada 3 contatos)
         if (i % 3 === 0) {
           try {
-            if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+            if (instanceSelectionMode === 'rotate' && rotateInstances.length > 0) {
               // Em modo revezamento: checar TODAS as instâncias
               let allDisconnected = true;
-              for (const inst of instances) {
+              for (const inst of rotateInstances) {
                 const { data: statusData } = await supabase.functions.invoke('get-device-status', { body: { instanceId: inst.id } });
                 const connected = statusData?.data?.connected === true;
                 console.log(`📡 Status instância "${inst.instance_name}": ${connected ? '✅ conectada' : '❌ desconectada'}`);
@@ -973,7 +973,7 @@ const EnviarMensagem = () => {
           const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
           const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
           const currentInstance = instanceSelectionMode === 'rotate'
-            ? instances[i % instances.length]
+            ? rotateInstances[i % rotateInstances.length]
             : selectedInstanceId
               ? instances.find(inst => inst.id === selectedInstanceId) || null
               : activeInstance || null;
@@ -1273,9 +1273,9 @@ const EnviarMensagem = () => {
         
         // Determinar nome da instância usada neste envio
         let instanceNameUsed: string | undefined;
-        if (instanceSelectionMode === 'rotate' && instances.length > 0) {
+        if (instanceSelectionMode === 'rotate' && rotateInstances.length > 0) {
           // No modo revezamento, a instância usada foi a do índice i
-          const usedInst = instances[i % instances.length];
+          const usedInst = rotateInstances[i % rotateInstances.length];
           instanceNameUsed = usedInst?.instance_name;
         } else if (selectedInstanceId) {
           const usedInst = instances.find(inst => inst.id === selectedInstanceId);
