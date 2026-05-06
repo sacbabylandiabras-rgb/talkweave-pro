@@ -109,9 +109,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceToken('');
     setNewClientToken('');
     setNewIsDefault(false);
-    setNewProvider('zapi');
-    setNewUazapiUrl('');
-    setNewUazapiToken('');
+     setNewProvider('zapi');
   };
 
    const handleAddInstance = async () => {
@@ -237,47 +235,22 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <Card className="mb-3 border-primary/40">
                 <CardContent className="pt-4 pb-4 space-y-3">
                   <h4 className="font-medium text-sm">Nova instância</h4>
-                  <div className="space-y-2">
-                    <Label>Provedor</Label>
-                    <Select value={newProvider} onValueChange={(v) => setNewProvider(v as 'zapi' | 'uazapi')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="zapi">Z-API</SelectItem>
-                        <SelectItem value="uazapi">uazapi</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nome da instância</Label>
-                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
-                  </div>
-                  {newProvider === 'zapi' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Instance ID</Label>
-                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Instance Token</Label>
-                        <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Client Token (Account Security)</Label>
-                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>URL da uazapi</Label>
-                        <Input value={newUazapiUrl} onChange={(e) => setNewUazapiUrl(e.target.value)} placeholder="https://seudominio.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token da uazapi</Label>
-                        <Input value={newUazapiToken} onChange={(e) => setNewUazapiToken(e.target.value)} placeholder="Token da instância uazapi" type="password" />
-                      </div>
-                    </>
-                  )}
+                   <div className="space-y-2">
+                     <Label>Nome da instância</Label>
+                     <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Instance ID</Label>
+                     <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Instance Token</Label>
+                     <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Client Token (Account Security)</Label>
+                     <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                   </div>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />
                     Definir como padrão
@@ -300,17 +273,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
-                          <Badge variant="outline" className="text-xs uppercase">
-                            {inst.api_provider === 'uazapi' ? 'UAZAPI' : 'Z-API'}
-                          </Badge>
+                           <Badge variant="outline" className="text-xs uppercase">Z-API</Badge>
                           {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
                           {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          {inst.api_provider === 'uazapi'
-                            ? `URL: ${(inst as any).evolution_api_url || '—'}`
-                            : `ID: ${inst.zapi_instance_id}`}
-                        </p>
+                         <p className="text-xs text-muted-foreground mt-1 truncate">ID: {inst.zapi_instance_id}</p>
                       </div>
                       <div className="flex items-center gap-1">
                         {!inst.is_default && (
@@ -328,45 +295,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   </CardContent>
                 </Card>
               ))}
-            </div>
-          </div>
-
-          {/* Uazapi Section */}
-          <div className="border-t pt-4 mt-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Globe className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold">Extração de Comunidades</h3>
-            </div>
-            <div className="space-y-3">
-              <Card className="border-primary/30">
-                <CardContent className="pt-3 pb-3 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Instância uazapi #1</p>
-                  <div className="space-y-2">
-                    <Label>URL da API</Label>
-                    <Input value={uazapiUrl} onChange={(e) => setUazapiUrl(e.target.value)} placeholder="https://seudominio.com" type="url" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Token da Instância</Label>
-                    <Input value={uazapiToken} onChange={(e) => setUazapiToken(e.target.value)} placeholder="Token da instância" type="password" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-primary/30">
-                <CardContent className="pt-3 pb-3 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Instância uazapi #2 (opcional)</p>
-                  <div className="space-y-2">
-                    <Label>URL da API</Label>
-                    <Input value={uazapiUrl2} onChange={(e) => setUazapiUrl2(e.target.value)} placeholder="https://seudominio2.com" type="url" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Token da Instância</Label>
-                    <Input value={uazapiToken2} onChange={(e) => setUazapiToken2(e.target.value)} placeholder="Token da segunda instância" type="password" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Button size="sm" onClick={handleSaveUazapi} disabled={uazapiSaving}>
-                {uazapiSaving ? "Salvando..." : "Salvar Credenciais"}
-              </Button>
             </div>
           </div>
 
