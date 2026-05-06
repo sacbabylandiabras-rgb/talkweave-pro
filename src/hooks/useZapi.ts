@@ -1090,6 +1090,114 @@ export const useZapi = () => {
      }
    };
  
+   const listChats = async (page: number = 1, pageSize: number = 50) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('list-chats', '', { page, pageSize });
+     } catch (error) {
+       console.error('Erro ao listar conversas:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const getChatMetadata = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('metadata', phone);
+     } catch (error) {
+       console.error('Erro ao buscar metadata da conversa:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const readChat = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('read', phone);
+     } catch (error) {
+       console.error('Erro ao marcar conversa como lida:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const archiveChat = async (phone: string, archive: boolean = true) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction(archive ? 'archive' : 'unarchive', phone);
+     } catch (error) {
+       console.error(`Erro ao ${archive ? 'arquivar' : 'desarquivar'} conversa:`, error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const pinChat = async (phone: string, pin: boolean = true) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction(pin ? 'pin' : 'unpin', phone);
+     } catch (error) {
+       console.error(`Erro ao ${pin ? 'fixar' : 'desafixar'} conversa:`, error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const muteChat = async (phone: string, mute: boolean = true, muteFor: number = 28800) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction(mute ? 'mute' : 'unmute', phone, { muteFor });
+     } catch (error) {
+       console.error(`Erro ao ${mute ? 'silenciar' : 'reativar som'} da conversa:`, error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const clearChat = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('clear', phone);
+     } catch (error) {
+       console.error('Erro ao limpar conversa:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const deleteChat = async (phone: string) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('delete', phone);
+     } catch (error) {
+       console.error('Erro ao deletar conversa:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   const setChatExpiration = async (phone: string, expiration: number = 0) => {
+     setLoading(true);
+     try {
+       return await invokeZapiAction('expiration', phone, { expiration });
+     } catch (error) {
+       console.error('Erro ao definir expiração da conversa:', error);
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
   const sendCarousel = async (
     phone: string,
     carouselCards: Array<{
@@ -1156,6 +1264,15 @@ export const useZapi = () => {
      checkIsWhatsAppBatch,
      blockContact,
      reportContact,
+     listChats,
+     getChatMetadata,
+     readChat,
+     archiveChat,
+     pinChat,
+     muteChat,
+     clearChat,
+     deleteChat,
+     setChatExpiration,
      loading,
    };
  };
