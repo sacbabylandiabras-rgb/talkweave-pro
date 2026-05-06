@@ -6,6 +6,7 @@ export interface UserZAPICredentials {
   clientToken: string;
   userId: string;
   instanceName: string;
+  isUazapi?: boolean;
 }
 
 export async function getUserZAPICredentials(
@@ -47,6 +48,7 @@ export async function getUserZAPICredentials(
       clientToken: instance.zapi_client_token || '',
       userId: user.id,
       instanceName: instance.instance_name || 'Instância Padrão',
+      isUazapi: isUazapi(instance),
     };
   }
 
@@ -66,6 +68,7 @@ export async function getUserZAPICredentials(
       clientToken: anyInstance.zapi_client_token || '',
       userId: user.id,
       instanceName: anyInstance.instance_name || 'Instância Ativa',
+      isUazapi: isUazapi(anyInstance),
     };
   }
 
