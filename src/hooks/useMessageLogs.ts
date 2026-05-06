@@ -337,6 +337,7 @@ export const useMessageLogs = (
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
+  const [localManualPhotos, setLocalManualPhotos] = useState<Map<string, string>>(new Map());
   const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
