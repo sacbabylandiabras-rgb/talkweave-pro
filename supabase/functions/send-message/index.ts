@@ -425,10 +425,10 @@ serve(async (req) => {
       // Interactive buttons (REPLY/URL/CALL) — UAZAPI uses /send/menu with type=button
       else if (Array.isArray(buttonActions) && buttonActions.length > 0) {
         const choices = buttonActions.slice(0, 10).map((b: any, idx: number) => {
-          const t = String(b?.type || 'REPLY').toUpperCase();
+          const t = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
           const label = String(b?.label || `Botão ${idx + 1}`).trim();
-          if (t === 'URL' && b?.url) return `${label}|${b.url}`;
-          if (t === 'CALL' && b?.phone) return `${label}|${b.phone}`;
+          if (t === 'URL' && b?.url || b?.value) return `${label}|${b.url}`;
+          if (t === 'CALL' && b?.phone || b?.phoneNumber || b?.value) return `${label}|${b.phone}`;
           return label;
         });
         endpoint = '/send/menu';
@@ -887,10 +887,10 @@ serve(async (req) => {
       const interactiveMessage = message || 'Selecione uma opção:';
       const normalizedButtons = buttonActions.slice(0, 10).map((b: any, index: number) => ({
         id: b.id || String(index + 1),
-        type: String(b?.type || 'REPLY').toUpperCase(),
+        type: String(b?.type || b?.buttonType || 'REPLY').toUpperCase(),
         label: String(b?.label || `Botão ${index + 1}`).trim(),
-        url: b.url || b.value,
-        phone: b.phone || b.phoneNumber || b.value,
+        url: b.url || b.value || b.urlValue,
+        phone: b.phone || b.phoneNumber || b.value || b.phoneValue,
       }));
 
       const zapiPayload: any = {
@@ -903,14 +903,13 @@ serve(async (req) => {
         ...(mediaUrl && mediaType === 'audio' ? { audio: mediaUrl } : {}),
         ...(mediaUrl && mediaType === 'document' ? { document: mediaUrl } : {}),
         buttonActions: normalizedButtons.map(b => {
-          const action: any = {
+          return {
             id: b.id,
             type: b.type,
-            label: b.label
+            label: b.label,
+            ...(b.type === "URL" ? { url: b.url } : {}),
+            ...(b.type === "CALL" ? { phone: b.phone } : {})
           };
-          if (b.type === 'URL') action.url = b.url;
-          if (b.type === 'CALL') action.phone = b.phone;
-          return action;
         })
       };
 
