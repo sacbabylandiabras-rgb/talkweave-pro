@@ -326,18 +326,6 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
 
-    // OTP support
-    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
-      zapiData = await sendZapi('/send-button-otp', {
-        phone: resolvedPhone,
-        message: message || "Seu código de verificação é",
-        code: payloadRaw.otpCode,
-        expirationInSeconds: payloadRaw.otpExpiration,
-        footer: footer || ""
-      }, 'otp');
-      logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
-      // Return early or continue? Usually OTP is a single message.
-    } else if (specialType === 'pix' && specialPayload) {
     const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
     const sendZapi = async (endpoint: string, body: any, label: string) => {
       console.log(`📤 Z-API [${label}] to ${endpoint}:`, JSON.stringify(body).substring(0, 500));
@@ -351,6 +339,19 @@ serve(async (req) => {
       zapiResponse = response;
       return data;
     };
+
+    // OTP support
+    if (payloadRaw.otpCode && payloadRaw.otpExpiration) {
+      zapiData = await sendZapi('/send-button-otp', {
+        phone: resolvedPhone,
+        message: message || "Seu código de verificação é",
+        code: payloadRaw.otpCode,
+        expirationInSeconds: payloadRaw.otpExpiration,
+        footer: footer || ""
+      }, 'otp');
+      logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
+      // Return early or continue? Usually OTP is a single message.
+    } else if (specialType === 'pix' && specialPayload) {
 
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
       let endpoint = '/send-text';
