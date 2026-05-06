@@ -8,10 +8,6 @@ const getZapiAckId = (payload: any) => {
   return payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
 };
 
-const getUazapiAckId = (payload: any) => {
-  return getZapiAckId(payload) || payload?.data?.messageId || payload?.data?.id || payload?.message?.key?.id || payload?.queueId || null;
-};
-
 const getDocumentExtension = (fileUrl: string, fileName?: string) => {
   const source = String(fileName || fileUrl || '')
     .split('?')[0]
@@ -27,88 +23,6 @@ const hasExplicitZapiError = (payload: any) => {
 const isZapiSendConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   return Boolean(ackId);
-};
-
-const hasUazapiExplicitError = (payload: any) => {
-  // Extrai a mensagem de erro mais legível possível.
-  // Importante: se o provedor retornar apenas `error: true` (booleano), traduzimos
-  // para uma mensagem clara em vez de gravar a string "true" no banco.
-  const candidates = [
-    payload?.error,
-    payload?.erro,
-    payload?.details?.error,
-    payload?.details?.message,
-    payload?.message,
-    payload?.reason,
-    payload?.response,
-    payload?.success === false ? payload?.message : null,
-  ];
-
-  for (const c of candidates) {
-    if (c == null) continue;
-    if (typeof c === 'string' && c.trim()) return c.trim();
-    if (typeof c === 'object') {
-      const nested = (c as any).message || (c as any).error || (c as any).reason;
-      if (typeof nested === 'string' && nested.trim()) return nested.trim();
-    }
-  }
-
-  // Provedor sinalizou falha sem mensagem (ex.: { error: true } ou { success: false })
-  if (payload?.error === true || payload?.success === false) {
-    return 'Número não está no WhatsApp ou recusou a mensagem (@lid/desconhecido).';
-  }
-
-  return null;
-};
-
-const isUazapiSendConfirmed = (payload: any) => {
-  const ackId = getUazapiAckId(payload);
-  const status = String(payload?.status || payload?.messageStatus || payload?.state || payload?.result || '').toLowerCase();
-
-  return Boolean(
-    ackId ||
-    payload?.queued === true ||
-    payload?.enqueued === true ||
-    ['success', 'queued', 'queue', 'pending', 'processing', 'accepted'].includes(status)
-  );
-};
-
-// 🔁 Retry agressivo para maximizar entrega:
-// - até 3 tentativas com backoff (500ms, 1500ms)
-// - retenta apenas em falhas de rede ou HTTP 5xx (erro do servidor)
-// - HTTP 4xx (rejeição definitiva) não é retentado
-const fetchUazapiWithRetry = async (
-  url: string,
-  init: RequestInit,
-  phone: string,
-  label: string,
-  maxAttempts = 3,
-): Promise<Response> => {
-  let lastErr: any = null;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(url, init);
-      // 5xx → retenta; 2xx/4xx → devolve para o caller decidir
-      if (res.status >= 500 && attempt < maxAttempts) {
-        console.warn(`🔁 UAZAPI ${label} HTTP ${res.status} para ${phone} — tentativa ${attempt}/${maxAttempts}, retentando...`);
-        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
-        continue;
-      }
-      if (attempt > 1 && res.ok) {
-        console.log(`✅ UAZAPI ${label} sucesso na tentativa ${attempt}/${maxAttempts} para ${phone}`);
-      } else if (attempt === maxAttempts && !res.ok) {
-        console.error(`❌ UAZAPI ${label} falhou após ${attempt}/${maxAttempts} tentativas para ${phone}: HTTP ${res.status}`);
-      }
-      return res;
-    } catch (err) {
-      lastErr = err;
-      console.warn(`🔁 UAZAPI ${label} falha de rede (${err instanceof Error ? err.message : err}) — tentativa ${attempt}/${maxAttempts}`);
-      if (attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, attempt === 1 ? 500 : 1500));
-      }
-    }
-  }
-  throw lastErr || new Error('UAZAPI: falha de rede após múltiplas tentativas');
 };
 
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
@@ -130,62 +44,6 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
         status: response.ok ? 502 : response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    );
-  }
-
-  return data;
-};
-
-const parseUazapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
-  const raw = await response.text();
-  let data: any = {};
-
-  try {
-    data = raw ? JSON.parse(raw) : {};
-  } catch {
-    data = raw ? { message: raw } : {};
-  }
-
-  const explicitError = hasUazapiExplicitError(data);
-  const confirmed = isUazapiSendConfirmed(data);
-
-  console.log(
-    `📬 UAZAPI response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getUazapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
-  );
-
-  // 🎯 BEST-EFFORT DELIVERY:
-  // - Se HTTP 2xx + ack/confirmação → enviado.
-  // - Se HTTP 2xx sem ack mas SEM erro textual → assume enviado (provedor aceitou).
-  // - Se HTTP 4xx/5xx OU body com erro textual real → FALHA (marca como não enviado).
-  // Assim o status no banco reflete a realidade: tentamos ao máximo,
-  // mas se o provedor recusou de verdade, não mentimos dizendo "enviado".
-  const hasTextualError =
-    typeof explicitError === 'string' &&
-    explicitError.trim().length > 0 &&
-    explicitError.trim() !== 'true';
-
-  if (!response.ok || hasTextualError) {
-    const realError = explicitError || `Provedor de envio rejeitou a mensagem (HTTP ${response.status})`;
-    throw new Response(
-      JSON.stringify({
-        error: realError,
-        message: realError,
-        provider: 'uazapi',
-        httpStatus: response.status,
-        confirmed,
-        ack: getUazapiAckId(data) || null,
-        details: data,
-      }),
-      {
-        status: response.ok ? 502 : response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-
-  if (!confirmed) {
-    console.log(
-      `⚠️ UAZAPI HTTP ${response.status} sem ack para ${phone} — provedor aceitou sem confirmação, tratando como enviado.`
     );
   }
 
@@ -237,8 +95,6 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
   return pickPreferredInstance(data);
 };
 
-const isUazapiProvider = (value: unknown) => String(value || '').trim().toLowerCase() === 'uazapi';
-
 const findPreferredStandardInstance = async (adminClient: any, userId: string) => {
   const { data, error } = await adminClient
     .from('zapi_instances')
@@ -261,19 +117,19 @@ const findPreferredStandardInstance = async (adminClient: any, userId: string) =
 
 const logProviderSend = async (
   adminClient: any,
-  params: {
-    userId: string;
-    provider: 'uazapi' | 'zapi';
-    instanceId?: string | null;
-    phone?: string | null;
-    endpoint?: string | null;
-    status: 'success' | 'error';
-    httpStatus?: number | null;
-    errorMessage?: string | null;
-    durationMs?: number | null;
-    payloadSummary?: Record<string, unknown>;
-  }
-) => {
+   params: {
+     userId: string;
+     provider: 'zapi';
+     instanceId?: string | null;
+     phone?: string | null;
+     endpoint?: string | null;
+     status: 'success' | 'error';
+     httpStatus?: number | null;
+     errorMessage?: string | null;
+     durationMs?: number | null;
+     payloadSummary?: Record<string, unknown>;
+   }
+ ) => {
   try {
     await adminClient.from('provider_send_logs').insert({
       user_id: params.userId,
