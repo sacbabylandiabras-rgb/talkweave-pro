@@ -57,11 +57,17 @@ serve(async (req: Request) => {
     // Resolve UAZAPI instance: explicit id → user default UAZAPI instance
     let inst: any = null;
     if (instanceIdInput) {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isUuid = UUID_RE.test(instanceIdInput);
+      const orFilter = isUuid
+        ? `id.eq.${instanceIdInput},zapi_instance_id.eq.${instanceIdInput}`
+        : `zapi_instance_id.eq.${instanceIdInput}`;
+
       const { data } = await admin
         .from("zapi_instances")
         .select("id, user_id, api_provider, evolution_api_url, evolution_api_key, instance_name")
         .eq("user_id", user.id)
-        .or(`id.eq.${instanceIdInput},zapi_instance_id.eq.${instanceIdInput}`)
+        .or(orFilter)
         .maybeSingle();
       inst = data;
     } else {
