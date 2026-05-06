@@ -711,20 +711,6 @@ export const useMessageLogs = (
     }
   }, [filterInstanceId, savedContacts, fetchSavedContacts]);
 
-  const fetchAll = useCallback(async () => {
-    await fetchLidMap();
-    await Promise.all([fetchMessageLogs(), fetchCampaignSends(), fetchSavedContacts()]);
-    setLoading(false);
-  }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
-
-  const saveContact = useCallback(async (phone: string, name: string) => {
-    const token = await getToken();
-    const userId = await getUserId();
-    if (!token || !userId) return;
-    await savedContactsApi.upsert(token, { phone, name, user_id: userId });
-    await fetchSavedContacts();
-  }, [fetchSavedContacts]);
-
   useEffect(() => {
     setLoading(true);
     fetchAll();
