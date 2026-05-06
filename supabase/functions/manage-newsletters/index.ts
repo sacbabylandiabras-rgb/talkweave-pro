@@ -42,9 +42,8 @@ Deno.serve(async (req) => {
     const instToken = instanceToken || credentials.token;
     const instClientToken = instanceClientToken || credentials.clientToken;
 
-    const isUazapi = credentials.isUazapi || body.apiProvider === 'uazapi';
-
-    if (!instId || (!isUazapi && (!instToken || !instClientToken))) {
+    // Forçamos o uso de Z-API conforme solicitado, ignorando provedores alternativos
+    if (!instId || !instToken || !instClientToken) {
       return new Response(
         JSON.stringify({ error: "Credenciais Z-API não configuradas" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -52,6 +51,7 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+    console.log(`🔗 Calling Z-API for instance ${instId} at path: ${body.action}`);
 
     const headers: Record<string, string> = { 
       "Content-Type": "application/json",

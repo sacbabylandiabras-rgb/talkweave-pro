@@ -31,43 +31,39 @@ export async function getUserZAPICredentials(
 
   console.log(`📋 Fetching Z-API credentials for user: ${user.id}`);
 
-  const { data: instance } = await adminClient
+  // Priorizar instâncias que explicitamente NÃO são uazapi para atender o requisito de usar z-api
+  const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
     .eq('user_id', user.id)
-    .eq('is_default', true)
-    .maybeSingle();
+    .eq('is_active', true)
+    .order('is_default', { ascending: false });
 
-  const isUazapi = (i: any) => (i?.api_provider || '').toLowerCase() === 'uazapi';
-
-  if (instance && instance.zapi_instance_id && (isUazapi(instance) || (instance.zapi_token && instance.zapi_client_token))) {
-    console.log(`✅ Found Z-API credentials from zapi_instances for user ${user.id}`);
+  const zapiOnly = zapiInstances?.find(i => (i.api_provider || '').toLowerCase() !== 'uazapi');
+  
+  if (zapiOnly) {
+    console.log(`✅ Found official Z-API credentials for user ${user.id}`);
     return {
-      instanceId: instance.zapi_instance_id,
-      token: instance.zapi_token || '',
-      clientToken: instance.zapi_client_token || '',
+      instanceId: zapiOnly.zapi_instance_id,
+      token: zapiOnly.zapi_token || '',
+      clientToken: zapiOnly.zapi_client_token || '',
       userId: user.id,
-      instanceName: instance.instance_name || 'Instância Padrão',
-      isUazapi: isUazapi(instance),
+      instanceName: zapiOnly.instance_name || 'Z-API Instance',
+      isUazapi: false,
     };
   }
 
-  const { data: anyInstance } = await adminClient
-    .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
+  // Fallback para qualquer uma se não achou específica Z-API (mas o código de envio já deve filtrar)
+  const anyInstance = zapiInstances?.[0];
+  const isUazapi = (i: any) => (i?.api_provider || '').toLowerCase() === 'uazapi';
 
-  if (anyInstance && anyInstance.zapi_instance_id && (isUazapi(anyInstance) || (anyInstance.zapi_token && anyInstance.zapi_client_token))) {
-    console.log(`✅ Found Z-API credentials from active instance for user ${user.id}`);
+  if (anyInstance) {
     return {
       instanceId: anyInstance.zapi_instance_id,
       token: anyInstance.zapi_token || '',
       clientToken: anyInstance.zapi_client_token || '',
       userId: user.id,
-      instanceName: anyInstance.instance_name || 'Instância Ativa',
+      instanceName: anyInstance.instance_name || 'Instância',
       isUazapi: isUazapi(anyInstance),
     };
   }
