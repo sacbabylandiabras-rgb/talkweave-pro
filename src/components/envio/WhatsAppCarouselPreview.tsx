@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Link as LinkIcon, MessageCircle, Phone } from "lucide-react";
+ import { Image as ImageIcon, Link as LinkIcon, MessageCircle, Phone, Copy } from "lucide-react";
 
 type CarouselButton = {
   id: string;
