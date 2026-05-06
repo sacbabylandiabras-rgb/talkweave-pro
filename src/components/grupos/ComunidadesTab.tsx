@@ -581,11 +581,41 @@ export default function ComunidadesTab() {
                       <div className="space-y-4 py-2">
                         <div className="space-y-2">
                           <Label className="text-xs">URL da Imagem</Label>
-                          <Input
-                            value={editPhotoUrl}
-                            onChange={(e) => setEditPhotoUrl(e.target.value)}
-                            placeholder="https://exemplo.com/foto.jpg"
-                          />
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="relative w-14 h-14 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-muted/40 shrink-0"
+                              onClick={() => editPhotoFileRef.current?.click()}
+                            >
+                              {editPhotoUrl ? (
+                                <img src={editPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <Upload className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            <Input
+                              value={editPhotoUrl}
+                              onChange={(e) => setEditPhotoUrl(e.target.value)}
+                              placeholder="URL ou faça upload"
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0"
+                              onClick={() => editPhotoFileRef.current?.click()}
+                              disabled={uploadingPhoto}
+                            >
+                              {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            </Button>
+                            <input
+                              ref={editPhotoFileRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handlePhotoFileChange(e, setEditPhotoUrl)}
+                            />
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
