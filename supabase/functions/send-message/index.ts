@@ -331,7 +331,10 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
         body: JSON.stringify(body),
       });
-      return parseZapiResponse(response, resolvedPhone, instanceId, label);
+      const data = await parseZapiResponse(response, resolvedPhone, instanceId, label);
+      // Update global zapiResponse for logging
+      zapiResponse = response;
+      return data;
     };
 
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
