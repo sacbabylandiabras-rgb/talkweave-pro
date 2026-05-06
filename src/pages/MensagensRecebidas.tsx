@@ -361,14 +361,12 @@ const ConversationList = ({
               selectedPhone === conv.phone && "bg-muted"
             )}
           >
-            <Avatar className="h-11 w-11 shrink-0 border border-border/50">
+            <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden">
               {conv.profilePictureUrl ? (
                 <AvatarImage 
                   src={conv.profilePictureUrl} 
                   className="object-cover"
-                  onError={(e) => {
-                    (e.target as any).style.display = 'none';
-                  }}
+                  onError={() => onFetchPhoto(conv.phone, true)}
                 />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
