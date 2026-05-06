@@ -304,7 +304,10 @@ export default function CanaisTab() {
                 <div className="space-y-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20">
+                       <div 
+                         className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border-2"
+                         style={{ borderColor: 'hsl(var(--primary) / 0.2)' }}
+                       >
                         {(selectedNewsletter.raw as any)?.picture ? <img src={(selectedNewsletter.raw as any).picture} className="w-full h-full object-cover" /> : <Hash className="w-8 h-8 text-muted-foreground" />}
                       </div>
                       <div>
