@@ -169,7 +169,29 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        <div className="flex gap-2">
+        <div className="space-y-4">
+          {instances.length > 1 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Smartphone className="w-4 h-4" />
+                Instância para validação
+              </label>
+              <Select value={activeInstance?.id} onValueChange={selectInstance}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a instância" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex gap-2">
           <Button onClick={validate} disabled={loading || !text.trim()} className="flex-1">
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Validando...</> : "Validar Números"}
           </Button>
