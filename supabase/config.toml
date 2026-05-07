@@ -1,3 +1,9 @@
+
+[functions.send-period-reports]
+verify_jwt = false
+
+[functions.trigger-report-slot]
+verify_jwt = false
  
  [functions.check-subscriptions]
  verify_jwt = false
