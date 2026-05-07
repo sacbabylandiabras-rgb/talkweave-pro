@@ -9,7 +9,6 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
-import { PWAInstaller } from "./components/pwa/PWAInstaller";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { Capacitor } from "@capacitor/core";
 
@@ -260,7 +259,6 @@ const App = () => (
               </Routes>
             )}
             {!isNative && <WhatsAppFloatingButton />}
-            <PWAInstaller />
           </BrowserRouter>
         </WorkspaceProvider>
       </TooltipProvider>
