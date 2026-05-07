@@ -309,11 +309,11 @@ function Painel() {
       <TopBar showPro />
       <PageHeader title="Painel" sub="Visão geral das suas métricas" />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <StatCard label="CAMPANHAS" value={String(d.campaigns)} sub="Criadas" color={Colors.purple} />
         <StatCard label="MODELOS" value={String(d.templates)} sub="Templates" color={Colors.blue} />
         <StatCard label="CONTATOS" value={String(d.contacts)} sub="Alcançados" color={Colors.green} />
-        <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado)} sub="Total" color={Colors.green} />
+        <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado).replace(" ", "")} sub="Total" color={Colors.green} />
       </div>
 
       <div style={{ ...cardStyle, borderColor: "rgba(96,165,250,0.25)" }}>
