@@ -1280,6 +1280,51 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          checkout_id: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          notify_apple_pay: boolean
+          notify_boleto_paid: boolean
+          notify_credit_card: boolean
+          notify_pix_or_boleto_issued: boolean
+          notify_pix_paid: boolean
+          notify_pix_recurring: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checkout_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          notify_apple_pay?: boolean
+          notify_boleto_paid?: boolean
+          notify_credit_card?: boolean
+          notify_pix_or_boleto_issued?: boolean
+          notify_pix_paid?: boolean
+          notify_pix_recurring?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checkout_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          notify_apple_pay?: boolean
+          notify_boleto_paid?: boolean
+          notify_credit_card?: boolean
+          notify_pix_or_boleto_issued?: boolean
+          notify_pix_paid?: boolean
+          notify_pix_recurring?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
