@@ -700,7 +700,7 @@ async function enableRealPush() {
     }
 
     setStatus('Buscando chave de criptografia...');
-    const keyRes = await fetch(SB_URL + '/functions/v1/web-push-send', {
+    const keyRes = await fetch(SB_URL + '/functions/v1/web-push-send?cache=' + Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: SB_ANON, Authorization: 'Bearer ' + CURRENT_TOKEN },
       body: JSON.stringify({ action: 'public-key' })
@@ -722,7 +722,7 @@ async function enableRealPush() {
     const json = sub.toJSON();
 
     setStatus('Salvando inscrição...');
-    const saveRes = await fetch(SB_URL + '/rest/v1/web_push_subscriptions?on_conflict=endpoint', {
+    const saveRes = await fetch(SB_URL + '/rest/v1/web_push_subscriptions?on_conflict=endpoint&cache=' + Date.now(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
