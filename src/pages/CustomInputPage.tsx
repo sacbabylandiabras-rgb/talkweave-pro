@@ -8,9 +8,9 @@ import {
   Loader2, 
   Send, 
   LayoutDashboard, 
-  PieChart, 
-  Wallet, 
-  Bot, 
+  PieChart,
+  Wallet,
+  Bot,
   Settings,
   Eye,
   EyeOff,
@@ -21,7 +21,8 @@ import {
   ChevronRight,
   CheckCircle2,
   MessageSquare,
-  Clock
+  Clock,
+  DollarSign
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
