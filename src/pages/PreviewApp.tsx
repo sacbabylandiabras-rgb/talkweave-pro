@@ -256,46 +256,35 @@ function Painel() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {/* KPIs row3 */}
-      <div style={{ display: "flex", gap: 6 }}>
-        <KpiCardBar color={C.purple} label="Campanhas" value={String(d.campaigns)} sub="Criadas" />
-        <KpiCardBar color={C.blue} label="Modelos" value={String(d.templates)} sub="Templates" />
-        <KpiCardBar color={C.orange} label="Contatos" value={String(d.contacts)} sub="Alcançados" />
+      {/* 2x2 Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <StatCard label="CAMPANHAS"  value={String(d.campaigns)} sub="Criadas"    color={C.purple} />
+        <StatCard label="MODELOS"    value={String(d.templates)} sub="Templates"  color={C.blue} />
+        <StatCard label="CONTATOS"   value={String(d.contacts)}  sub="Alcançados" color={C.green} />
+        <StatCard label="PIX GERADO" value={`R$ ${fmtBRL(d.pixGerado)}`} sub="Total"      color={C.green} />
       </div>
 
-      {/* Financeiro */}
-      <div style={{ display: "flex", gap: 6 }}>
-        <FinCard label="Pix gerado" value={fmtBRL(d.pixGerado)} valColor={C.green} />
-        <FinCard label="Venda aprovada" value={fmtBRL(d.vendaAprovada)} valColor={C.purple} />
+      {/* Venda aprovada */}
+      <div style={{ background: C.card, border: "0.5px solid rgba(56,189,248,0.25)", borderRadius: 12, padding: 16 }}>
+        <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>VENDA APROVADA</p>
+        <p style={{ color: C.blue, fontSize: 26, fontWeight: 700, fontFamily: MONO, marginTop: 8 }}>R$ {fmtBRL(d.vendaAprovada)}</p>
       </div>
 
       {/* CPA */}
-      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>CPA — Custo por aquisição</p>
-          <div style={{ display: "flex", alignItems: "baseline", marginTop: 6 }}>
-            <span style={{ color: C.blue, fontSize: 20, fontWeight: 700, fontFamily: MONO, letterSpacing: -0.3 }}>{d.cpa.toFixed(4)}</span>
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginLeft: 4 }}>venda / msg</span>
-          </div>
-        </div>
-        <div style={{ width: 44, height: 44, borderRadius: 8, background: "rgba(56,189,248,0.1)", border: "0.5px solid rgba(56,189,248,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ color: C.blue, fontSize: 22 }}>↗</span>
+      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 12, padding: 16 }}>
+        <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>CPA</p>
+        <div style={{ flexDirection: 'row', display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+          <p style={{ color: '#fff', fontSize: 26, fontWeight: 700, fontFamily: MONO }}>{d.cpa.toFixed(2).replace('.', ',')}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: FONT_MAIN }}>venda / msg</p>
         </div>
       </div>
 
-      {/* Mensagens row4 */}
-      <div style={{ display: "flex", gap: 6 }}>
-        {[
-          { v: d.total, l: "Total", c: "#fff", bar: "rgba(255,255,255,0.2)" },
-          { v: d.sent, l: "Enviadas", c: C.blue, bar: C.blue },
-          { v: d.delivered, l: "Entregues", c: C.green, bar: C.green },
-          { v: d.failed, l: "Falhas", c: C.red, bar: C.red },
-        ].map(item => (
-          <div key={item.l} style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, position: "relative", overflow: "hidden", textAlign: "center" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: item.bar }} />
-            <p style={{ color: item.c, fontSize: 19, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{item.v}</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 5 }}>{item.l}</p>
-          </div>
-        ))}
+      {/* Mensagens Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+        <MiniStatSimple label="TOTAL" value={String(d.total)} color="#fff" />
+        <MiniStatSimple label="ENVIADAS" value={String(d.sent)} color={C.purple} />
+        <MiniStatSimple label="ENTREGUES" value={String(d.delivered)} color={C.green} />
+        <MiniStatSimple label="FALHAS" value={String(d.failed)} color={C.red} />
       </div>
 
       {/* Chart */}
