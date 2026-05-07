@@ -814,15 +814,15 @@ function Notificacoes() {
 }
 
 /* ============== HELPERS ============== */
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
-  return (
-    <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16 }}>
-      <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
-      <p style={{ fontSize: value.length > 8 ? 20 : 26, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
-    </div>
-  );
-}
+ function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+   return (
+     <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16, width: "calc(50% - 6px)" }}>
+       <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
+       <p style={{ fontSize: 28, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
+       {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
+     </div>
+   );
+ }
 
 const cardStyle: React.CSSProperties = {
   background: Colors.card,
@@ -839,10 +839,10 @@ const cardLabelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   marginBottom: 8,
 };
-const cardBigVal: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 700,
-};
+ const cardBigVal: React.CSSProperties = {
+   fontSize: 30,
+   fontWeight: 700,
+ };
 const miniStat: React.CSSProperties = {
   flex: 1,
   background: Colors.card,
