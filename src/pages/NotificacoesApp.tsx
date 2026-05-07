@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, TrendingUp, Zap, Loader2 } from "lucide-react";
+import { Bell, TrendingUp, Zap, Loader2, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type Notif = {
   id: string;
@@ -27,6 +29,8 @@ function formatBRL(cents?: number) {
 export default function NotificacoesApp() {
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingTest, setSendingTest] = useState(false);
+  const { toast } = useToast();
 
   const load = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -69,16 +73,52 @@ export default function NotificacoesApp() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const sendTestPush = async () => {
+    setSendingTest(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { error } = await supabase.functions.invoke("send-push-notification", {
+        body: {
+          user_id: user.id,
+          title: "Teste de Notificação",
+          body: "Se você está vendo isso, o push está funcionando nesta origem!",
+          url: window.location.origin + "/notificacoes-realtime",
+          event_type: "test"
+        }
+      });
+      if (error) throw error;
+      toast({ title: "Teste enviado!", description: "Verifique se a notificação chegou no seu celular." });
+    } catch (e: any) {
+      toast({ title: "Erro no teste", description: e.message, variant: "destructive" });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-          <Bell className="w-5 h-5 text-primary" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+            <Bell className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">NOTIFICAÇÕES</h1>
+            <p className="font-nunito text-[12px] text-white/40 mt-1">Vendas e relatórios em tempo real</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">NOTIFICAÇÕES</h1>
-          <p className="font-nunito text-[12px] text-white/40 mt-1">Vendas e relatórios em 08h, 12h, 18h e 00h</p>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="bg-primary/10 border-primary/20 hover:bg-primary/20 text-primary h-8"
+          onClick={sendTestPush}
+          disabled={sendingTest}
+        >
+          {sendingTest ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+          Testar
+        </Button>
       </div>
 
       {loading ? (
