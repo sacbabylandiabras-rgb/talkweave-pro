@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { lazyWithRecovery } from "@/lib/chunk-load-recovery";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet, BellRing } from "lucide-react";
 import { useWebPush } from "@/hooks/useWebPush";
