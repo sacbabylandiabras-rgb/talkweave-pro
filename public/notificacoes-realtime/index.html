@@ -733,19 +733,21 @@ async function sendTestPush() {
   }
 }
 
- async function loadCurrentUser() {
-   try {
-     const { data: { session } } = await supabase.auth.getSession();
-     if (session) {
-       CURRENT_TOKEN = session.access_token;
-       CURRENT_USER = session.user;
-       return true;
-     }
-   } catch (e) {
-     console.error('Session load error:', e);
-   }
-   return false;
- }
+async function loadCurrentUser() {
+  try {
+    if (!supabase) return false;
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (session) {
+      CURRENT_TOKEN = session.access_token;
+      CURRENT_USER = session.user;
+      return true;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar sessão:', e);
+  }
+  return false;
+}
 
  async function testNotif(title, body) {
     // Solicita ao pai (React) que ative as notificações reais e as salve no banco
