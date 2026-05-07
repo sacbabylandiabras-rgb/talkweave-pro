@@ -536,14 +536,30 @@ import { useNavigate } from "react-router-dom";
                    {summaries.map(s => (
                      <div key={s.slot} className="rounded-2xl border border-white/5 bg-[#161820] px-4 py-3 flex items-center gap-3">
                        <Clock className="w-4 h-4 text-purple-400 shrink-0" />
-                       <div className="flex-1 min-w-0">
-                         <p className="text-white text-sm font-semibold">
-                           Resumo das {s.slot === 16.5 ? "16:30" : `${String(Math.floor(s.slot)).padStart(2, "0")}:00`}
-                         </p>
-                         <p className="text-slate-500 text-xs mt-0.5">
-                           Mensagens: {s.messages} • Vendas: {formatBRL(s.total)}
-                         </p>
-                       </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-white text-sm font-semibold">
+                              Relatório das {s.slot === 16.5 ? "16:30" : `${String(Math.floor(s.slot)).padStart(2, "0")}:00`}
+                            </p>
+                            <span className="text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                              Enviado
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1">
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3 text-emerald-400" />
+                              <p className="text-slate-300 text-xs font-medium">
+                                Vendas: <span className="text-white">{formatBRL(s.total)}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-blue-400" />
+                              <p className="text-slate-300 text-xs font-medium">
+                                Enviadas: <span className="text-white">{s.messages.toLocaleString("pt-BR")}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                        <span className="text-slate-600 text-xs shrink-0">{s.date}</span>
                      </div>
                    ))}
