@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { lazyWithRecovery } from "@/lib/chunk-load-recovery";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet, BellRing } from "lucide-react";
 import { useWebPush } from "@/hooks/useWebPush";
@@ -16,7 +17,7 @@ import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCheckoutPresenceChannel } from "@/hooks/useCheckoutPresence";
 
-const InteractiveGlobe = lazy(() => import("@/components/gateway/InteractiveGlobe"));
+const InteractiveGlobe = lazyWithRecovery(() => import("@/components/gateway/InteractiveGlobe"));
 
 type PeriodFilter = "today" | "week" | "30d" | "custom";
 
