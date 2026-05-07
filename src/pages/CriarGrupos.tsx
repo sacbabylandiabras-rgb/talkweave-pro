@@ -1690,17 +1690,58 @@ function LinksRotativosTab() {
       const instance = instances.find((inst) => inst.zapi_instance_id === group.sourceInstanceId);
       let inviteLink: string | null = null;
 
-      const { data, error } = await supabase.functions.invoke("manage-groups", {
-        body: {
-          action: "get-invite-link",
-          groupId: group.id,
-          isCommunity: (group as any).isCommunity,
-          isChannel: (group as any).isChannel,
-          instanceId: instance?.zapi_instance_id || group.sourceInstanceId,
-          instanceToken: instance?.zapi_token,
-          instanceClientToken: instance?.zapi_client_token,
-        },
-      });
+      const isCommunity = (group as any).isCommunity;
+      const isChannel = (group as any).isChannel;
+      const instanceId = instance?.zapi_instance_id || group.sourceInstanceId;
+      const instanceToken = instance?.zapi_token;
+      const instanceClientToken = instance?.zapi_client_token;
+
+      let data: any = null;
+      let error: any = null;
+
+      // Try manage-groups first
+      try {
+        const res = await supabase.functions.invoke("manage-groups", {
+          body: {
+            action: "get-invite-link",
+            groupId: group.id,
+            isCommunity,
+            isChannel,
+            instanceId,
+            instanceToken,
+            instanceClientToken,
+          },
+        });
+        data = res.data;
+        error = res.error;
+      } catch (err: any) {
+        console.error("manage-groups get-invite-link failed:", err);
+      }
+
+      // Fallback: direct Z-API call if manage-groups failed or didn't return a link
+      if (!data?.link && !data?.inviteLink && !data?.invitationLink && instanceId && instanceToken) {
+        console.log("Attempting direct Z-API call for invite link...");
+        try {
+          const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${instanceToken}`;
+          const headers: Record<string, string> = { 
+            "Content-Type": "application/json"
+          };
+          if (instanceClientToken) headers["Client-Token"] = instanceClientToken;
+          
+          let path = `/group-invitation-link/${group.id.includes("-group") ? group.id : group.id.replace("@g.us", "-group")}`;
+          if (isCommunity) {
+            path = `/communities/${encodeURIComponent(group.id)}/invitation-link`;
+          }
+          
+          const res = await fetch(`${baseUrl}${path}`, { headers });
+          if (res.ok) {
+            const directData = await res.json();
+            data = { ...data, ...directData };
+          }
+        } catch (err: any) {
+          console.error("Direct Z-API invite link call failed:", err);
+        }
+      }
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
