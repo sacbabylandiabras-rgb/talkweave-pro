@@ -198,18 +198,22 @@ export default function TelegramVendas() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : filtered.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>{s.bot}</TableCell>
-                      <TableCell>{s.cliente}</TableCell>
-                      <TableCell>{s.pagamento}</TableCell>
-                      <TableCell className="text-xs">{s.data}</TableCell>
-                      <TableCell className="font-medium">{fmt(s.valor)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">Ver</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                   ) : filtered.map((s) => {
+                     const paymentMethod = s.payment_method || "PIX";
+                     const date = new Date(s.created_at).toLocaleString("pt-BR");
+                     return (
+                       <TableRow key={s.id}>
+                         <TableCell>ZapLynx Bot</TableCell>
+                         <TableCell>{s.customer_name || "Cliente"}</TableCell>
+                         <TableCell className="uppercase">{paymentMethod}</TableCell>
+                         <TableCell className="text-xs">{date}</TableCell>
+                         <TableCell className="font-medium">{fmt(s.amount)}</TableCell>
+                         <TableCell className="text-right">
+                           <Button variant="ghost" size="sm">Ver</Button>
+                         </TableCell>
+                       </TableRow>
+                     );
+                   })}
                 </TableBody>
               </Table>
             </div>
