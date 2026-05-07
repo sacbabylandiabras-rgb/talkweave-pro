@@ -84,19 +84,63 @@ const fmtDateTime = (iso: string) => {
         )}
       </PhoneFrame>
 
-      {session && (
-        <button onClick={() => supabase.auth.signOut()} style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>
-          Sair do preview
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        {session && (
+          <button 
+            onClick={() => supabase.auth.signOut()} 
+            style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+          >
+            Sair do preview
+          </button>
+        )}
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+        >
+          Atualizar página
         </button>
-      )}
+      </div>
     </div>
   );
 }
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ width: 390, height: 800, borderRadius: 52, background: "#000", padding: 10, boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}>
-      <div style={{ width: "100%", height: "100%", borderRadius: 44, overflow: "hidden", background: Colors.bg, position: "relative" }}>
+    <div 
+      style={{ 
+        width: 390, 
+        height: 844, 
+        borderRadius: 55, 
+        background: "#000", 
+        padding: "12px", 
+        boxShadow: "0 30px 80px rgba(0,0,0,0.8)",
+        position: "relative",
+        border: "4px solid #1a1a1a",
+      }}
+    >
+      {/* Dynamic Island Area */}
+      <div style={{ 
+        position: "absolute", 
+        top: 22, 
+        left: "50%", 
+        transform: "translateX(-50%)", 
+        width: 110, 
+        height: 32, 
+        background: "#000", 
+        borderRadius: 20, 
+        zIndex: 100 
+      }} />
+      
+      <div 
+        style={{ 
+          width: "100%", 
+          height: "100%", 
+          borderRadius: 44, 
+          overflow: "hidden", 
+          background: Colors.bg, 
+          position: "relative",
+        }}
+      >
         {children}
       </div>
     </div>
@@ -147,8 +191,8 @@ function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
 
 function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void; session: any }) {
   return (
-    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", color: "#fff", background: Colors.bg, position: "relative" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
+    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", color: "#fff", background: Colors.bg, position: "relative", paddingTop: 40 }}>
+      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "saques" && <Saques />}
@@ -166,9 +210,10 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
           gridTemplateColumns: "1fr 1fr 1fr 1fr",
           background: Colors.bg,
           borderTop: `1px solid ${Colors.border}`,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 62,
+          paddingBottom: 24,
+          paddingTop: 12,
+          height: 84,
+          zIndex: 50,
         }}
       >
         {([
@@ -186,14 +231,15 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 4,
+                gap: 6,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
+                opacity: active ? 1 : 0.5,
               }}
             >
-              <span style={{ fontSize: 18, color: active ? Colors.purple : Colors.muted }}>{icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 500, color: active ? Colors.purple : Colors.muted }}>{label}</span>
+              <span style={{ fontSize: 22, color: active ? Colors.purple : Colors.muted }}>{icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: active ? Colors.purple : Colors.muted }}>{label}</span>
             </button>
           );
         })}
@@ -274,11 +320,11 @@ function Painel() {
       <TopBar showPro />
       <PageHeader title="Painel" sub="Visão geral das suas métricas" />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <StatCard label="CAMPANHAS" value={String(d.campaigns)} sub="Criadas" color={Colors.purple} />
         <StatCard label="MODELOS" value={String(d.templates)} sub="Templates" color={Colors.blue} />
         <StatCard label="CONTATOS" value={String(d.contacts)} sub="Alcançados" color={Colors.green} />
-        <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado)} sub="Total" color={Colors.green} />
+        <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado).replace(" ", "")} sub="Total" color={Colors.green} />
       </div>
 
       <div style={{ ...cardStyle, borderColor: "rgba(96,165,250,0.25)" }}>
@@ -363,18 +409,18 @@ function Painel() {
          <p style={{ fontSize: 12, color: Colors.muted }}>{d.bots > 0 ? "1 ativo" : "0 ativo"}</p>
        </div>
  
-       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
-           <p style={cardLabelStyle}>MENSAGENS HOJE</p>
-           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
-           <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
-         </div>
-         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
-           <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
-           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
-           <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
-         </div>
-       </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={cardLabelStyle}>MENSAGENS HOJE</p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
+            <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
+          </div>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
+            <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
+          </div>
+        </div>
  
        <div style={cardStyle}>
          <p style={cardLabelStyle}>STATUS DO POLLING</p>
@@ -500,14 +546,14 @@ function Painel() {
           + Solicitar Saque
         </button>
  
-       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
-         {cards.map((c) => (
-           <div key={c.label} style={{ ...cardStyle, width: "calc(50% - 6px)", marginBottom: 0 }}>
-             <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
-             <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
-           </div>
-         ))}
-       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }}>
+        {cards.map((c) => (
+          <div key={c.label} style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
+            <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value.replace(" ", "")}</p>
+          </div>
+        ))}
+      </div>
 
        {modal && (
          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -814,15 +860,15 @@ function Notificacoes() {
 }
 
 /* ============== HELPERS ============== */
- function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
-   return (
-     <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16, width: "calc(50% - 6px)" }}>
-       <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
-       <p style={{ fontSize: 28, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
-       {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
-     </div>
-   );
- }
+  function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+    return (
+      <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16 }}>
+        <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
+        <p style={{ fontSize: 28, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
+        {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
+      </div>
+    );
+  }
 
 const cardStyle: React.CSSProperties = {
   background: Colors.card,
