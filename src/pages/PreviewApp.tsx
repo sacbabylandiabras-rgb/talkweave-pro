@@ -398,18 +398,18 @@ function Painel() {
          <p style={{ fontSize: 12, color: Colors.muted }}>{d.bots > 0 ? "1 ativo" : "0 ativo"}</p>
        </div>
  
-       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
-           <p style={cardLabelStyle}>MENSAGENS HOJE</p>
-           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
-           <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
-         </div>
-         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
-           <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
-           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
-           <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
-         </div>
-       </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={cardLabelStyle}>MENSAGENS HOJE</p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
+            <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
+          </div>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
+            <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
+            <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
+          </div>
+        </div>
  
        <div style={cardStyle}>
          <p style={cardLabelStyle}>STATUS DO POLLING</p>
