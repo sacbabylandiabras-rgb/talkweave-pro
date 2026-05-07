@@ -23,17 +23,6 @@
           .catch(err => console.error('SW registration failed:', err));
       }
 
-      const root = createRoot(document.getElementById("root")!);
-      root.render(
-         <div style={{ position: "fixed", inset: 0, background: "#0f1117", zIndex: 9999 }}>
-           <iframe
-             src="/aplicativo/index.html"
-             title="ZapLynx"
-            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-          />
-        </div>
-      );
-      return;
     }
  
    // Normal app loading
