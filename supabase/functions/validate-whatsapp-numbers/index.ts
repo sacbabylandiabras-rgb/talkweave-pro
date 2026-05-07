@@ -30,8 +30,10 @@ async function checkZapi(base: string, headers: Record<string, string>, numbers:
   console.log(`[Z-API] status=${res.status} sample=${text.slice(0, 300)}`);
 
   if (!res.ok) {
-    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
-    if (upstreamError.includes("connected") || upstreamError.includes("whatsapp")) {
+    const errorMessage = typeof data?.message === 'string' ? data.message : (typeof data?.error === 'string' ? data.error : text);
+    const upstreamError = String(errorMessage || "").toLowerCase();
+    
+    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp") || upstreamError.includes("session")) {
       throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
     }
     throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
@@ -67,8 +69,10 @@ async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
   console.log(`[UAZAPI] status=${res.status} sample=${text.slice(0, 300)}`);
 
   if (!res.ok) {
-    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
-    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp")) {
+    const errorMessage = typeof data?.message === 'string' ? data.message : (typeof data?.error === 'string' ? data.error : text);
+    const upstreamError = String(errorMessage || "").toLowerCase();
+    
+    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp") || upstreamError.includes("session")) {
       throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
     }
     throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
