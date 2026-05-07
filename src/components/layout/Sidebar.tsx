@@ -121,7 +121,7 @@ const telegramResultadosSubItems = [
 ];
 
 const telegramRemarketingSubItems = [
-  { id: "tg-alertas", label: "Alertas", icon: BellRing, path: "/telegram/alertas" },
+   { id: "notificacoes", label: "Alertas", icon: BellRing, path: "/notificacoes" },
   { id: "tg-downsell", label: "Downsell", icon: TrendingDown, path: "/telegram/downsell" },
 ];
 
