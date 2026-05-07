@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
-import logoImage from "@/assets/logo.png";
+import logoImage from "@/assets/lynx-logo-new.png";
 import screen0 from "@/assets/screen-0.png";
 import screen1 from "@/assets/screen-1.png";
 import screen2 from "@/assets/screen-2.png";
