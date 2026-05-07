@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+ import { useMemo, useState, useEffect } from "react";
+ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,19 +15,9 @@ import {
   CheckCircle2, Clock, XCircle, RotateCcw, Search, Calendar, Inbox, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
-interface Sale {
-  id: string;
-  bot: string;
-  cliente: string;
-  pagamento: string;
-  data: string;
-  valor: number;
-  status: "PAGO" | "PENDENTE" | "FALHOU" | "REEMBOLSADO";
-}
-
-const MOCK: Sale[] = [];
-
 export default function TelegramVendas() {
+   const [sales, setSales] = useState<any[]>([]);
+   const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
   const [clientId, setClientId] = useState("");
   const [txId, setTxId] = useState("");
@@ -34,20 +25,60 @@ export default function TelegramVendas() {
   const [acquirer, setAcquirer] = useState("all");
   const [perPage, setPerPage] = useState("10");
 
-  const filtered = useMemo(() => MOCK.filter((s) => {
-    return (statusFilter === "all" || s.status === statusFilter);
-  }), [statusFilter]);
+   const loadData = async () => {
+     setLoading(true);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const { data } = await supabase
+       .from("gateway_transactions" as any)
+       .select("*")
+       .eq("user_id", user.id)
+       .order("created_at", { ascending: false });
+
+     setSales(data || []);
+     setLoading(false);
+   };
+
+   useEffect(() => {
+     loadData();
+
+     const channel = supabase
+       .channel("telegram-sales-realtime")
+       .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, () => {
+         loadData();
+       })
+       .subscribe();
+
+     return () => { supabase.removeChannel(channel); };
+   }, []);
+
+   const filtered = useMemo(() => sales.filter((s) => {
+     const status = s.status === "approved" || s.status === "paid" ? "PAGO" : 
+                    s.status === "pending" ? "PENDENTE" :
+                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU";
+     return (statusFilter === "all" || status === statusFilter);
+   }), [sales, statusFilter]);
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const stats = useMemo(() => ({
-    pago: { value: MOCK.filter(s => s.status === "PAGO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PAGO").length },
-    pendente: { value: MOCK.filter(s => s.status === "PENDENTE").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PENDENTE").length },
-    falhou: { value: MOCK.filter(s => s.status === "FALHOU").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "FALHOU").length },
-    reembolsado: { value: MOCK.filter(s => s.status === "REEMBOLSADO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "REEMBOLSADO").length },
-  }), []);
+   const stats = useMemo(() => {
+     const mapped = sales.map(s => ({
+       ...s,
+       status_label: s.status === "approved" || s.status === "paid" ? "PAGO" : 
+                    s.status === "pending" ? "PENDENTE" :
+                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU"
+     }));
 
-  const total = MOCK.length;
+     return {
+       pago: { value: mapped.filter(s => s.status_label === "PAGO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PAGO").length },
+       pendente: { value: mapped.filter(s => s.status_label === "PENDENTE").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PENDENTE").length },
+       falhou: { value: mapped.filter(s => s.status_label === "FALHOU").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "FALHOU").length },
+       reembolsado: { value: mapped.filter(s => s.status_label === "REEMBOLSADO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "REEMBOLSADO").length },
+     };
+   }, [sales]);
+
+   const total = sales.length;
 
   return (
     <div className="space-y-6">
@@ -167,18 +198,22 @@ export default function TelegramVendas() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : filtered.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>{s.bot}</TableCell>
-                      <TableCell>{s.cliente}</TableCell>
-                      <TableCell>{s.pagamento}</TableCell>
-                      <TableCell className="text-xs">{s.data}</TableCell>
-                      <TableCell className="font-medium">{fmt(s.valor)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">Ver</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                   ) : filtered.map((s) => {
+                     const paymentMethod = s.payment_method || "PIX";
+                     const date = new Date(s.created_at).toLocaleString("pt-BR");
+                     return (
+                       <TableRow key={s.id}>
+                         <TableCell>ZapLynx Bot</TableCell>
+                         <TableCell>{s.customer_name || "Cliente"}</TableCell>
+                         <TableCell className="uppercase">{paymentMethod}</TableCell>
+                         <TableCell className="text-xs">{date}</TableCell>
+                         <TableCell className="font-medium">{fmt(s.amount)}</TableCell>
+                         <TableCell className="text-right">
+                           <Button variant="ghost" size="sm">Ver</Button>
+                         </TableCell>
+                       </TableRow>
+                     );
+                   })}
                 </TableBody>
               </Table>
             </div>

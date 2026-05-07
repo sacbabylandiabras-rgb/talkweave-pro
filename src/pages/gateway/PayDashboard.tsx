@@ -89,31 +89,51 @@ export default function PayDashboard() {
     return "últimos 30 dias";
   }, [periodFilter, selectedDate]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+   const fetchData = async () => {
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) {
+       setLoading(false);
+       return;
+     }
 
-      setCurrentUserId(user.id);
+     setCurrentUserId(user.id);
 
-      const [profileRes, txRes, wdRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("gateway_transactions" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
-        supabase.from("gateway_withdrawals").select("amount, status").eq("user_id", user.id),
-      ]);
+     const [profileRes, txRes, wdRes] = await Promise.all([
+       supabase.from("profiles").select("*").eq("id", user.id).single(),
+       supabase.from("gateway_transactions" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
+       supabase.from("gateway_withdrawals").select("amount, status").eq("user_id", user.id),
+     ]);
 
-      setProfile(profileRes.data);
-      setTransactions((txRes.data || []) as unknown as Transaction[]);
-      const wdData = (wdRes.data || []) as any[];
-      setTotalWithdrawn(wdData.filter((w: any) => ["approved", "paid", "completed"].includes(w.status)).reduce((a: number, w: any) => a + (w.amount || 0), 0));
-      setLoading(false);
-    };
+     setProfile(profileRes.data);
+     setTransactions((txRes.data || []) as unknown as Transaction[]);
+     const wdData = (wdRes.data || []) as any[];
+     setTotalWithdrawn(wdData.filter((w: any) => ["approved", "paid", "completed"].includes(w.status)).reduce((a: number, w: any) => a + (w.amount || 0), 0));
+     setLoading(false);
+   };
 
-    fetchData();
-  }, []);
+   useEffect(() => {
+     fetchData();
+
+     // Real-time subscription for transactions and withdrawals
+     const txSubscription = supabase
+       .channel('dashboard-tx-updates')
+       .on('postgres_changes', { event: '*', schema: 'public', table: 'gateway_transactions' }, () => {
+         fetchData();
+       })
+       .subscribe();
+
+     const wdSubscription = supabase
+       .channel('dashboard-wd-updates')
+       .on('postgres_changes', { event: '*', schema: 'public', table: 'gateway_withdrawals' }, () => {
+         fetchData();
+       })
+       .subscribe();
+
+     return () => {
+       supabase.removeChannel(txSubscription);
+       supabase.removeChannel(wdSubscription);
+     };
+   }, []);
 
   useEffect(() => {
     if (!currentUserId) return;
