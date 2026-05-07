@@ -645,12 +645,12 @@ function testNotif(title, body) {
   }
   
   if (Notification.permission === "granted") {
-    const iconUrl = window.location.origin + '/images/auth-logo.png';
+    const iconUrl = window.location.origin + '/icon-512.png';
     new Notification(title, { body, icon: iconUrl });
   } else if (Notification.permission !== "denied") {
     Notification.requestPermission().then(permission => {
       if (permission === "granted") {
-        const iconUrl = window.location.origin + '/images/auth-logo.png';
+        const iconUrl = window.location.origin + '/icon-512.png';
         new Notification(title, { body, icon: iconUrl });
       }
     });
