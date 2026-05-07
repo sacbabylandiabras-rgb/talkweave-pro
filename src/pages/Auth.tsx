@@ -34,12 +34,12 @@ const Auth = () => {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) navigate("/gateway-checkout/dashboard");
+       if (session) navigate("/notificacoes-realtime");
     };
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) navigate("/gateway-checkout/dashboard");
+       if (event === 'SIGNED_IN' && session) navigate("/notificacoes-realtime");
       if (event === 'USER_UPDATED') {
         toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
       }
