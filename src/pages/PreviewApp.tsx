@@ -33,7 +33,8 @@ const fmtDateTime = (iso: string) => {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-export default function PreviewApp() {
+ export default function PreviewApp() {
+   console.log("PreviewApp Rendering - Version 2.0");
   const [session, setSession] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
