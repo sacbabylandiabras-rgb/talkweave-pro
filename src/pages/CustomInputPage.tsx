@@ -359,9 +359,12 @@ import { useNavigate } from "react-router-dom";
         <div className="flex items-center justify-between mb-8">
           <img src="/images/auth-logo.png" alt="ZapLynx" className="h-6" />
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#1e2130] flex items-center justify-center">
+            <button
+              onClick={() => setActiveTab("avisos")}
+              className="w-8 h-8 rounded-lg bg-[#1e2130] flex items-center justify-center active:scale-95 transition-transform"
+            >
               <Bell className="w-4 h-4 text-slate-500" />
-            </div>
+            </button>
             <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
               {session.user?.email?.charAt(0).toUpperCase()}
             </div>
@@ -382,34 +385,34 @@ import { useNavigate } from "react-router-dom";
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              <button onClick={() => navigate("/campanhas")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Campanhas</p>
                 <p className="text-3xl font-black text-purple-400">{stats.campaigns}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Criadas</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/modelos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Modelos</p>
                 <p className="text-3xl font-black text-blue-400">{stats.templates}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Templates</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/contatos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Contatos</p>
                 <p className="text-3xl font-black text-emerald-400">{stats.contacts}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Alcançados</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/gateway-checkout/reports")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Pix Gerado</p>
                 <p className="text-lg font-black text-emerald-400 mt-1">R$ {stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Total gerado</p>
-              </div>
+              </button>
             </div>
 
-            <div className="bg-[#161820] border border-blue-500/20 rounded-2xl p-4">
+            <button onClick={() => navigate("/gateway-checkout/dashboard")} className="w-full text-left bg-[#161820] border border-blue-500/20 rounded-2xl p-4 active:scale-[0.99] transition-transform">
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Venda aprovada</p>
               <p className="text-3xl font-black text-blue-400">R$ {stats.approvedSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-            </div>
+            </button>
 
-            <div className="bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+            <button onClick={() => navigate("/relatorio")} className="w-full bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform">
               <div>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">CPA</p>
                 <div className="flex items-baseline gap-2">
@@ -417,7 +420,7 @@ import { useNavigate } from "react-router-dom";
                   <span className="text-[11px] text-slate-600 font-medium">venda / msg</span>
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Push Status / Action */}
             <div className="bg-gradient-to-br from-[#2d1b69] to-[#1a1040] border border-purple-500/20 rounded-2xl p-5 relative overflow-hidden">
