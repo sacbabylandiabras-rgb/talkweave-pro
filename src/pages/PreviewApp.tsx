@@ -773,17 +773,17 @@ function Notificacoes() {
         </button>
       </div>
 
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Configurações</h2>
-      <div style={{ ...cardStyle, padding: 0, overflow: "hidden", marginBottom: 20 }}>
-        {TOGGLES.map((t, i) => (
-          <div key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-            <span style={{ fontSize: 14, color: "#fff" }}>{t.label}</span>
-            <Toggle on={toggles[t.key]} onChange={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} />
-          </div>
-        ))}
-      </div>
-
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Resumos recentes</h2>
+       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Configurações</h2>
+       <div style={{ ...cardStyle, padding: 0, overflow: "hidden", marginBottom: 20 }}>
+         {TOGGLES.map((t, i) => (
+           <div key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+             <span style={{ fontSize: 14, color: "#fff", flex: 1 }}>{t.label}</span>
+             <Toggle on={toggles[t.key]} onChange={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} />
+           </div>
+         ))}
+       </div>
+ 
+       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Resumos recentes</h2>
       {loading && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Carregando…</p>}
       {!loading && items.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem resumos.</p>}
       {!loading &&
