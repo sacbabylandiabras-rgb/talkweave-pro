@@ -9,8 +9,8 @@ import lynxLogo from "@/assets/lynx-logo.png";
 
 const C = {
   bg: "#0a0814",
-  card: "rgba(255,255,255,0.05)",
-  cardBorder: "rgba(255,255,255,0.08)",
+  card: "rgba(255,255,255,0.03)",
+  cardBorder: "rgba(255,255,255,0.06)",
   purple: "#9d7bfa",
   purpleDark: "#6c4af2",
   green: "#34c759",
@@ -22,6 +22,7 @@ const C = {
   textDim: "rgba(255,255,255,0.2)",
 };
 const MONO = "'Courier New', ui-monospace, monospace";
+const FONT_MAIN = "'Inter', system-ui, -apple-system, sans-serif";
 
 type Tab = "painel" | "telegram" | "pagamentos" | "notif";
 
@@ -144,8 +145,8 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         <Logo />
         <div className="flex items-center" style={{ gap: 8 }}>
           {tab === "painel" && (
-            <div style={{ background: "rgba(124,92,252,0.25)", border: "0.5px solid rgba(124,92,252,0.45)", borderRadius: 4, padding: "2px 8px" }}>
-              <span style={{ color: "#b09afa", fontSize: 10, fontWeight: 500, letterSpacing: 0.5 }}>PRO</span>
+            <div style={{ background: "rgba(124,92,252,0.15)", border: "0.5px solid rgba(124,92,252,0.3)", borderRadius: 6, padding: "3px 10px" }}>
+              <span style={{ color: "#9d7bfa", fontSize: 11, fontWeight: '700', fontFamily: FONT_MAIN }}>ZapLynx Pro</span>
             </div>
           )}
           {tab === "telegram" && (
@@ -161,11 +162,11 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
       </div>
       {/* HEADER */}
       <div className="relative z-10" style={{ padding: "0 18px 12px" }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{titles[tab]}</h1>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginTop: 3 }}>{subs[tab]}</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.8, color: '#fff', fontFamily: FONT_MAIN }}>{titles[tab]}</h1>
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, marginTop: 4, fontFamily: FONT_MAIN }}>{subs[tab]}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative z-10" style={{ padding: "0 14px 80px" }}>
+      <div className="flex-1 overflow-y-auto relative z-10" style={{ padding: "0 16px 100px" }}>
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "pagamentos" && <Pagamentos email={session?.user?.email} />}
@@ -173,8 +174,8 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
       </div>
 
       {/* TAB BAR */}
-      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20"
-        style={{ borderTop: "0.5px solid rgba(255,255,255,0.08)", background: "rgba(10,8,20,0.85)", backdropFilter: "blur(12px)" }}>
+      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20 pb-6"
+        style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(10,8,20,0.92)", backdropFilter: "blur(20px)" }}>
         {([
           { k: "painel", label: "Painel", icon: "▦" },
           { k: "telegram", label: "Telegram", icon: "✈" },
@@ -183,9 +184,9 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         ] as const).map(({ k, label, icon }) => {
           const active = tab === k;
           return (
-            <button key={k} onClick={() => setTab(k)} className="py-2.5 flex flex-col items-center" style={{ gap: 2 }}>
-              <span style={{ fontSize: 16, color: active ? C.purple : "rgba(255,255,255,0.35)" }}>{icon}</span>
-              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? C.purple : "rgba(255,255,255,0.35)" }}>{label}</span>
+            <button key={k} onClick={() => setTab(k)} className="pt-4 pb-2 flex flex-col items-center" style={{ gap: 4 }}>
+              <span style={{ fontSize: 20, color: active ? C.purple : "rgba(255,255,255,0.3)" }}>{icon}</span>
+              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? C.purple : "rgba(255,255,255,0.3)", fontFamily: FONT_MAIN }}>{label}</span>
             </button>
           );
         })}
@@ -255,46 +256,35 @@ function Painel() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {/* KPIs row3 */}
-      <div style={{ display: "flex", gap: 6 }}>
-        <KpiCardBar color={C.purple} label="Campanhas" value={String(d.campaigns)} sub="Criadas" />
-        <KpiCardBar color={C.blue} label="Modelos" value={String(d.templates)} sub="Templates" />
-        <KpiCardBar color={C.orange} label="Contatos" value={String(d.contacts)} sub="Alcançados" />
+      {/* 2x2 Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <StatCard label="CAMPANHAS"  value={String(d.campaigns)} sub="Criadas"    color={C.purple} />
+        <StatCard label="MODELOS"    value={String(d.templates)} sub="Templates"  color={C.blue} />
+        <StatCard label="CONTATOS"   value={String(d.contacts)}  sub="Alcançados" color={C.green} />
+        <StatCard label="PIX GERADO" value={`R$ ${fmtBRL(d.pixGerado)}`} sub="Total"      color={C.green} />
       </div>
 
-      {/* Financeiro */}
-      <div style={{ display: "flex", gap: 6 }}>
-        <FinCard label="Pix gerado" value={fmtBRL(d.pixGerado)} valColor={C.green} />
-        <FinCard label="Venda aprovada" value={fmtBRL(d.vendaAprovada)} valColor={C.purple} />
+      {/* Venda aprovada */}
+      <div style={{ background: C.card, border: "0.5px solid rgba(56,189,248,0.25)", borderRadius: 12, padding: 16 }}>
+        <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>VENDA APROVADA</p>
+        <p style={{ color: C.blue, fontSize: 26, fontWeight: 700, fontFamily: MONO, marginTop: 8 }}>R$ {fmtBRL(d.vendaAprovada)}</p>
       </div>
 
       {/* CPA */}
-      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>CPA — Custo por aquisição</p>
-          <div style={{ display: "flex", alignItems: "baseline", marginTop: 6 }}>
-            <span style={{ color: C.blue, fontSize: 20, fontWeight: 700, fontFamily: MONO, letterSpacing: -0.3 }}>{d.cpa.toFixed(4)}</span>
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginLeft: 4 }}>venda / msg</span>
-          </div>
-        </div>
-        <div style={{ width: 44, height: 44, borderRadius: 8, background: "rgba(56,189,248,0.1)", border: "0.5px solid rgba(56,189,248,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ color: C.blue, fontSize: 22 }}>↗</span>
+      <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 12, padding: 16 }}>
+        <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>CPA</p>
+        <div style={{ flexDirection: 'row', display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+          <p style={{ color: '#fff', fontSize: 26, fontWeight: 700, fontFamily: MONO }}>{d.cpa.toFixed(2).replace('.', ',')}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: FONT_MAIN }}>venda / msg</p>
         </div>
       </div>
 
-      {/* Mensagens row4 */}
-      <div style={{ display: "flex", gap: 6 }}>
-        {[
-          { v: d.total, l: "Total", c: "#fff", bar: "rgba(255,255,255,0.2)" },
-          { v: d.sent, l: "Enviadas", c: C.blue, bar: C.blue },
-          { v: d.delivered, l: "Entregues", c: C.green, bar: C.green },
-          { v: d.failed, l: "Falhas", c: C.red, bar: C.red },
-        ].map(item => (
-          <div key={item.l} style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, position: "relative", overflow: "hidden", textAlign: "center" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: item.bar }} />
-            <p style={{ color: item.c, fontSize: 19, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{item.v}</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 5 }}>{item.l}</p>
-          </div>
-        ))}
+      {/* Mensagens Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+        <MiniStatSimple label="TOTAL" value={String(d.total)} color="#fff" />
+        <MiniStatSimple label="ENVIADAS" value={String(d.sent)} color={C.purple} />
+        <MiniStatSimple label="ENTREGUES" value={String(d.delivered)} color={C.green} />
+        <MiniStatSimple label="FALHAS" value={String(d.failed)} color={C.red} />
       </div>
 
       {/* Chart */}
@@ -533,25 +523,22 @@ function Pagamentos({ email }: { email?: string }) {
   );
 }
 
-/* ===================== UI ===================== */
-function KpiCardBar({ color, label, value, sub }: any) {
+/* ===================== UI COMPONENTS ===================== */
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
   return (
-    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color }} />
-      <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>{label}</p>
-      <p style={{ color: "#fff", fontSize: 19, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{value}</p>
-      {sub && <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, marginTop: 3 }}>{sub}</p>}
+    <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 12, padding: 14 }}>
+      <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>{label}</p>
+      <p style={{ color, fontSize: 18, fontWeight: 700, fontFamily: MONO, marginTop: 8 }}>{value}</p>
+      {sub && <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 4, fontFamily: FONT_MAIN }}>{sub}</p>}
     </div>
   );
 }
 
-function FinCard({ label, value, valColor }: { label: string; value: string; valColor: string }) {
-  const [int_, dec] = value.split(",");
+function MiniStatSimple({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 13 }}>
-      <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>● {label}</p>
-      <p style={{ color: valColor, fontSize: 17, fontWeight: 700, fontFamily: MONO, letterSpacing: -0.3 }}>R$ {int_}</p>
-      <p style={{ color: C.textDim, fontSize: 10, marginTop: 3 }}>,{dec || "00"} neste período</p>
+    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: "10px 4px", textAlign: "center" }}>
+      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</p>
+      <p style={{ color, fontSize: 18, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{value}</p>
     </div>
   );
 }
