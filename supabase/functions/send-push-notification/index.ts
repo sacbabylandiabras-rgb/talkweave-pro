@@ -192,7 +192,8 @@ Deno.serve(async (req) => {
 
     const results: any = { web_push: null, telegram: null, fcm: { sent: 0, errors: [] } };
 
-    const webPushPromise = fetch(
+     console.log(`[send-push-notification] Triggering web-push-send for user: ${user_id}`);
+     const webPushPromise = fetch(
       `${Deno.env.get("SUPABASE_URL")}/functions/v1/web-push-send`,
       {
         method: "POST",
@@ -208,7 +209,14 @@ Deno.serve(async (req) => {
           tag: event_type || "zaplynx",
         }),
       }
-    ).then(res => res.json()).catch(e => ({ error: String(e) }));
+     ).then(async res => {
+       const text = await res.text();
+       console.log(`[send-push-notification] web-push-send response status: ${res.status} body: ${text}`);
+       try { return JSON.parse(text); } catch { return { error: "Invalid JSON", text }; }
+     }).catch(e => {
+       console.error(`[send-push-notification] web-push-send fetch error:`, e);
+       return { error: String(e) };
+     });
 
     const telegramPromise = (async () => {
       try {
