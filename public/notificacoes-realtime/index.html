@@ -613,7 +613,18 @@ let charts = {};
 // ═══════════════════════════════════════════════
  const SB_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
-  const supabase = window.supabase.createClient(SB_URL, SB_ANON);
+  let supabase;
+  try {
+    supabase = window.supabase.createClient(SB_URL, SB_ANON, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storageKey: 'zaplynx-rt-auth'
+      }
+    });
+  } catch (e) {
+    console.error('Erro ao iniciar Supabase:', e);
+  }
  let CURRENT_USER = null;
  let CURRENT_TOKEN = null;
 
@@ -660,7 +671,7 @@ async function enableRealPush() {
     if (!keyJson.publicKey) throw new Error('Chave VAPID não disponível');
 
     setStatus('Registrando service worker...');
-    const reg = await navigator.serviceWorker.register('https://zaplynx.com/notificacoes-realtime/sw-push.js', { scope: '/notificacoes-realtime/' });
+    const reg = await navigator.serviceWorker.register('./sw-push.js', { scope: './' });
     await navigator.serviceWorker.ready;
 
     let sub = await reg.pushManager.getSubscription();
@@ -775,7 +786,7 @@ async function loadCurrentUser() {
       let reg = await navigator.serviceWorker.getRegistration();
       
       if (!reg) {
-      reg = await navigator.serviceWorker.register('https://zaplynx.com/notificacoes-realtime/sw-push.js', { scope: '/notificacoes-realtime/' });
+      reg = await navigator.serviceWorker.register('./sw-push.js', { scope: './' });
       }
       
       await navigator.serviceWorker.ready;
@@ -908,56 +919,64 @@ window.addEventListener('DOMContentLoaded', () => {
    }
  }
  
- async function doLogin() {
-   const email = document.getElementById('loginEmail').value.trim();
-   const pass  = document.getElementById('loginPass').value;
-   const err   = document.getElementById('loginError');
-   const btn   = document.querySelector('.login-btn');
-   
-   if (!email || !pass) {
-     err.textContent = 'Preencha e-mail e senha.';
-     err.classList.add('show');
-     return;
-   }
-   
-   btn.textContent = 'Entrando...';
-   btn.style.opacity = '0.7';
-   
-    try {
-      console.log('Tentando login com:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-      
-      if (error) {
-        console.error('Erro de login:', error);
-        throw error;
-      }
-      
-      if (!data.session) {
-        throw new Error('Sessão não iniciada. Verifique seu e-mail.');
-      }
-      
-      CURRENT_TOKEN = data.session.access_token;
-      CURRENT_USER = data.user;
-      
-      console.log('Login bem-sucedido:', CURRENT_USER.email);
-      
-      const screen = document.getElementById('loginScreen');
-      screen.classList.add('gone');
-      setTimeout(() => { 
-          screen.style.display = 'none';
-          setStatus('Logado como ' + (CURRENT_USER.email) + '. Clique em Ativar.');
-      }, 400);
-      
-      if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
-    } catch (e) {
-      console.error('Erro capturado no catch:', e);
-      err.textContent = e.message || 'Erro ao entrar. Verifique seus dados.';
-      err.classList.add('show');
-    } finally {
-      btn.textContent = 'Entrar na conta';
-      btn.style.opacity = '1';
+async function doLogin() {
+  const emailInp = document.getElementById('loginEmail');
+  const passInp = document.getElementById('loginPass');
+  const err = document.getElementById('loginError');
+  const btn = document.querySelector('.login-btn');
+  
+  const email = emailInp.value.trim();
+  const pass = passInp.value;
+  
+  if (!email || !pass) {
+    err.textContent = 'Preencha e-mail e senha.';
+    err.classList.add('show');
+    return;
+  }
+  
+  err.classList.remove('show');
+  btn.textContent = 'Verificando...';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  
+  try {
+    if (!supabase) throw new Error('O sistema de login não carregou corretamente. Recarregue a página.');
+    
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email: email, 
+      password: pass 
+    });
+    
+    if (error) throw error;
+    
+    if (!data.session) {
+      throw new Error('Sessão não iniciada. Verifique se seu e-mail foi confirmado.');
     }
- }
+    
+    CURRENT_TOKEN = data.session.access_token;
+    CURRENT_USER = data.user;
+    
+    const screen = document.getElementById('loginScreen');
+    screen.classList.add('gone');
+    
+    setTimeout(() => { 
+      screen.style.display = 'none';
+      setStatus('Logado como ' + (CURRENT_USER.email) + '. Clique em "Ativar Notificações Reais".');
+    }, 400);
+    
+    if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
+    
+  } catch (e) {
+    console.error('Erro no login:', e);
+    err.textContent = e.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : e.message;
+    err.classList.add('show');
+    if (e.message !== 'Invalid login credentials') alert('Erro: ' + e.message);
+  } finally {
+    btn.textContent = 'Entrar na conta';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+  }
+}
  
  document.addEventListener('DOMContentLoaded', () => {
    const passInput = document.getElementById('loginPass');
