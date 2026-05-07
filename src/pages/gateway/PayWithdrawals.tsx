@@ -96,9 +96,13 @@ export default function PayWithdrawals() {
   const MINIMUM_WITHDRAWAL_CENTS = 5000; // R$ 50,00
   const WITHDRAWAL_FEE_CENTS = 1000; // R$ 10,00
 
-  const handleSubmit = async () => {
-    const amountCents = Math.round(parseFloat(withdrawAmount.replace(",", ".")) * 100);
-    if (!amountCents || amountCents <= 0) {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    const rawAmount = withdrawAmount.replace(",", ".");
+    const amountCents = Math.round(parseFloat(rawAmount) * 100);
+    
+    if (isNaN(amountCents) || amountCents <= 0) {
       toast.error("Informe um valor válido");
       return;
     }
@@ -305,47 +309,52 @@ export default function PayWithdrawals() {
               <p className="text-xs text-muted-foreground">• Valor mínimo: <strong>R$ 50,00</strong></p>
               <p className="text-xs text-muted-foreground">• Taxa por saque: <strong>R$ 10,00</strong> (descontada automaticamente do valor)</p>
             </div>
-            <div className="space-y-2">
-              <Label>Valor do saque (R$)</Label>
-              <Input
-                placeholder="Mínimo R$ 50,00"
-                value={withdrawAmount}
-                onChange={e => setWithdrawAmount(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de chave PIX</Label>
-              <Select value={pixKeyType} onValueChange={setPixKeyType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PIX_KEY_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Chave PIX</Label>
-              <Input
-                placeholder="Informe sua chave PIX"
-                value={pixKey}
-                onChange={e => setPixKey(e.target.value)}
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Valor do saque (R$)</Label>
+                <Input
+                  placeholder="Mínimo R$ 50,00"
+                  value={withdrawAmount}
+                  onChange={e => setWithdrawAmount(e.target.value)}
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de chave PIX</Label>
+                <Select value={pixKeyType} onValueChange={setPixKeyType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PIX_KEY_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Chave PIX</Label>
+                <Input
+                  placeholder="Informe sua chave PIX"
+                  value={pixKey}
+                  onChange={e => setPixKey(e.target.value)}
+                />
+              </div>
+              
+              <DialogFooter className="pt-4">
+                <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-[#a78bfa] hover:bg-[#a78bfa]/90"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Solicitar
+                </Button>
+              </DialogFooter>
+            </form>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="bg-[#a78bfa] hover:bg-[#a78bfa]/90"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Solicitar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

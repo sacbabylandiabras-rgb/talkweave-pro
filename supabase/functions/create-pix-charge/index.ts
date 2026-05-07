@@ -607,8 +607,9 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
         .eq('id', checkout.id)
     } catch {}
 
-    // Send PIX generated email
-    const emailPixEnabled = (checkout.config as any)?.emailPixGenerated !== false
+    // Send PIX generated email & Push notification
+    const checkoutConfig = (checkout.config as any) || {}
+    const emailPixEnabled = checkoutConfig.emailPixGenerated !== false
     if (customerEmail && emailPixEnabled) {
       try {
         const emailUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-gateway-email`
@@ -629,6 +630,25 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
       } catch (emailErr) {
         console.error('Email send error:', emailErr)
       }
+    }
+
+    // Real-time Push Notification for the seller
+    try {
+      const amount = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          user_id: checkout.user_id,
+          title: '⚡ PIX Gerado!',
+          body: `${customerName || 'Cliente'} gerou um PIX de ${amount}.`,
+          data: { type: 'pix_generated', amount: String(amountCents), customer: customerName || '' },
+          event_type: 'pix_or_boleto_issued',
+          checkout_id: checkout.id,
+        }),
+      })
+    } catch (pushErr) {
+      console.error('Push notification error:', pushErr)
     }
 
     return new Response(JSON.stringify({
