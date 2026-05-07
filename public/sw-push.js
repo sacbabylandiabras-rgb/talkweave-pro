@@ -25,9 +25,9 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: '/favicon.png',
       badge: '/favicon.png',
-      tag: (data.tag || 'zaplynx') + '-' + Date.now(),
+      tag: 'pix-' + Date.now(),
       renotify: true,
-      requireInteraction: false,
+      requireInteraction: true,
       data: { url: data.url },
     })
   );
