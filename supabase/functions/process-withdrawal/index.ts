@@ -216,11 +216,11 @@ serve(async (req) => {
       await supabase.from('gateway_withdrawals').update({
         status: 'approved',
         admin_notes: adminNotes?.trim() || `PIX enviado via HubPague. Transfer ID: ${transferId}`,
-          reviewed_by: callerId,
+        reviewed_by: callerId,
         reviewed_at: new Date().toISOString(),
       }).eq('id', withdrawalId)
 
-      return new Response(JSON.stringify({
+      const response = new Response(JSON.stringify({
         success: true,
         status: 'approved',
         correlationID: transferId,
@@ -228,6 +228,7 @@ serve(async (req) => {
       }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+      return await sendSuccessNotification(withdrawal, payoutAmount, response)
 
     } else if (activeAcquirer === 'cartwave') {
       // === CartWave PIX Cash-out by PIX key (self-approve) ===
