@@ -588,7 +588,7 @@ import { useNavigate } from "react-router-dom";
               </div>
               <p className="text-sm font-bold text-white mb-2">Bot não configurado</p>
               <p className="text-xs text-slate-500 mb-4 px-4">Conecte seu bot para receber alertas também no Telegram.</p>
-              <button className="bg-sky-500/20 text-sky-400 text-xs font-bold py-2.5 px-6 rounded-xl active:scale-[0.98] transition-all">
+              <button onClick={() => navigate("/telegram/criar-bot")} className="bg-sky-500/20 text-sky-400 text-xs font-bold py-2.5 px-6 rounded-xl active:scale-[0.98] transition-all">
                 Configurar Bot
               </button>
             </div>
@@ -598,28 +598,13 @@ import { useNavigate } from "react-router-dom";
         {activeTab === "wallet" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-black text-white tracking-tight">Financeiro</h2>
-            <button className="w-full bg-purple-500 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all mb-6">
+            <button onClick={() => navigate("/gateway-checkout/withdrawals")} className="w-full bg-purple-500 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all mb-6">
               <DollarSign className="w-4 h-4" /> Solicitar Saque
             </button>
 
             <h3 className="text-base font-bold text-white mb-2">Últimas Movimentações</h3>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between py-3 border-b border-white/5">
-                <div>
-                  <p className="text-[10px] text-slate-600 mb-1 uppercase font-bold tracking-widest">Hoje, 14:22</p>
-                  <p className="text-sm font-bold text-white">R$ 1.005,90</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Comissão - Venda Aprovada</p>
-                </div>
-                <div className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">Pago</div>
-              </div>
-              <div className="flex items-center justify-between py-3 border-b border-white/5">
-                <div>
-                  <p className="text-[10px] text-slate-600 mb-1 uppercase font-bold tracking-widest">Ontem, 09:15</p>
-                  <p className="text-sm font-bold text-white">R$ 247,00</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Comissão - Venda Aprovada</p>
-                </div>
-                <div className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">Pago</div>
-              </div>
+            <div className="rounded-2xl border border-white/5 bg-[#161820] p-6 text-center text-slate-600 text-sm">
+              Suas movimentações de saque aparecerão aqui.
             </div>
           </div>
         )}
