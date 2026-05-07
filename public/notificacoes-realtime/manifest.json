@@ -2,7 +2,7 @@
   "name": "ZapLynx",
   "short_name": "ZapLynx",
   "description": "Soluções Digitais para seu Negócio",
-  "start_url": "/notificacoes-realtime",
+   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0814",
   "theme_color": "#9d7bfa",

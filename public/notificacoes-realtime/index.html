@@ -12,58 +12,8 @@
  <link rel="apple-touch-icon" href="/icon-512.png" />
  <link rel="apple-touch-icon" sizes="180x180" href="/icon-512.png" />
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-function togglePass() {
-  const inp = document.getElementById('loginPass');
-  const icon = document.getElementById('eyeIcon');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  } else {
-    inp.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  }
-}
-
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  const err   = document.getElementById('loginError');
-  const btn   = document.querySelector('.login-btn');
-  
-  if (!email || !pass) {
-    err.textContent = 'Preencha e-mail e senha.';
-    err.classList.add('show');
-    return;
-  }
-  
-  btn.textContent = 'Entrando...';
-  btn.style.opacity = '0.7';
-  
-  setTimeout(() => {
-    const screen = document.getElementById('loginScreen');
-    screen.classList.add('gone');
-    setTimeout(() => { 
-        screen.style.display = 'none';
-        console.log("Sincronização Realtime Ativada");
-    }, 400);
-    
-    btn.textContent = 'Entrar na conta';
-    btn.style.opacity = '1';
-    err.classList.remove('show');
-    
-    if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
-  }, 900);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const passInput = document.getElementById('loginPass');
-  const emailInput = document.getElementById('loginEmail');
-  if (passInput) passInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-  if (emailInput) emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') passInput.focus(); });
-});
-
-</script>
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:      #0f1117;
@@ -661,10 +611,11 @@ let charts = {};
 // ═══════════════════════════════════════════════
 // PUSH NOTIFICATIONS — Real (Supabase + VAPID)
 // ═══════════════════════════════════════════════
-const SB_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
-let CURRENT_USER = null;
-let CURRENT_TOKEN = null;
+ const SB_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
+ const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
+ const supabase = typeof supabase !== 'undefined' ? supabase : window.supabase.createClient(SB_URL, SB_ANON);
+ let CURRENT_USER = null;
+ let CURRENT_TOKEN = null;
 
 function setStatus(msg, color) {
   const el = document.getElementById('pushStatus');
@@ -782,23 +733,19 @@ async function sendTestPush() {
   }
 }
 
-async function loadCurrentUser() {
-  // Try to recover session from Supabase localStorage
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-    for (const k of keys) {
-      try {
-        const raw = JSON.parse(localStorage.getItem(k));
-        if (raw && raw.access_token && raw.user) {
-          CURRENT_TOKEN = raw.access_token;
-          CURRENT_USER = raw.user;
-          return true;
-        }
-      } catch {}
-    }
-  } catch {}
-  return false;
-}
+ async function loadCurrentUser() {
+   try {
+     const { data: { session } } = await supabase.auth.getSession();
+     if (session) {
+       CURRENT_TOKEN = session.access_token;
+       CURRENT_USER = session.user;
+       return true;
+     }
+   } catch (e) {
+     console.error('Session load error:', e);
+   }
+   return false;
+ }
 
  async function testNotif(title, body) {
     // Solicita ao pai (React) que ative as notificações reais e as salve no banco
@@ -947,99 +894,62 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function togglePass() {
-  const inp = document.getElementById('loginPass');
-  const icon = document.getElementById('eyeIcon');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  } else {
-    inp.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  }
-}
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  const err   = document.getElementById('loginError');
-  const btn   = document.querySelector('.login-btn');
-  if (!email || !pass) {
-    err.textContent = 'Preencha e-mail e senha.';
-    err.classList.add('show');
-    return;
-  }
-  btn.textContent = 'Entrando...';
-  btn.style.opacity = '0.7';
-  setTimeout(() => {
-    // Demo: accept any credential
-    document.getElementById('loginScreen').classList.add('gone');
-    setTimeout(()=>{ document.getElementById('loginScreen').style.display='none'; }, 400);
-    btn.textContent = 'Entrar na conta';
-    btn.style.opacity = '1';
-    err.classList.remove('show');
-    // Init chart after login
-    setTimeout(initChart1, 300);
-  }, 900);
-}
-// Allow Enter key
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginPass').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doLogin();
-  });
-  document.getElementById('loginEmail').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('loginPass').focus();
-  });
-});
-
-
-function togglePass() {
-  const inp = document.getElementById('loginPass');
-  const icon = document.getElementById('eyeIcon');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  } else {
-    inp.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  }
-}
-
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  const err   = document.getElementById('loginError');
-  const btn   = document.querySelector('.login-btn');
-  
-  if (!email || !pass) {
-    err.textContent = 'Preencha e-mail e senha.';
-    err.classList.add('show');
-    return;
-  }
-  
-  btn.textContent = 'Entrando...';
-  btn.style.opacity = '0.7';
-  
-  setTimeout(() => {
-    const screen = document.getElementById('loginScreen');
-    screen.classList.add('gone');
-    setTimeout(() => { 
-        screen.style.display = 'none';
-        console.log("Sincronização Realtime Ativada");
-    }, 400);
-    
-    btn.textContent = 'Entrar na conta';
-    btn.style.opacity = '1';
-    err.classList.remove('show');
-    
-    if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
-  }, 900);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const passInput = document.getElementById('loginPass');
-  const emailInput = document.getElementById('loginEmail');
-  if (passInput) passInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-  if (emailInput) emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') passInput.focus(); });
-});
+ function togglePass() {
+   const inp = document.getElementById('loginPass');
+   const icon = document.getElementById('eyeIcon');
+   if (inp.type === 'password') {
+     inp.type = 'text';
+     icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+   } else {
+     inp.type = 'password';
+     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+   }
+ }
+ 
+ async function doLogin() {
+   const email = document.getElementById('loginEmail').value.trim();
+   const pass  = document.getElementById('loginPass').value;
+   const err   = document.getElementById('loginError');
+   const btn   = document.querySelector('.login-btn');
+   
+   if (!email || !pass) {
+     err.textContent = 'Preencha e-mail e senha.';
+     err.classList.add('show');
+     return;
+   }
+   
+   btn.textContent = 'Entrando...';
+   btn.style.opacity = '0.7';
+   
+   try {
+     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+     if (error) throw error;
+     
+     CURRENT_TOKEN = data.session.access_token;
+     CURRENT_USER = data.user;
+     
+     const screen = document.getElementById('loginScreen');
+     screen.classList.add('gone');
+     setTimeout(() => { 
+         screen.style.display = 'none';
+         setStatus('Logado como ' + (CURRENT_USER.email) + '. Clique em Ativar.');
+     }, 400);
+     
+     if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
+   } catch (e) {
+     err.textContent = e.message;
+     err.classList.add('show');
+   } finally {
+     btn.textContent = 'Entrar na conta';
+     btn.style.opacity = '1';
+   }
+ }
+ 
+ document.addEventListener('DOMContentLoaded', () => {
+   const passInput = document.getElementById('loginPass');
+   const emailInput = document.getElementById('loginEmail');
+   if (passInput) passInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+   if (emailInput) emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') passInput.focus(); });
+ });
 
 </script>
