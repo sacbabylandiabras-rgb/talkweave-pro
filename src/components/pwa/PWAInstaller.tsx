@@ -50,6 +50,10 @@
   if (isNative) return null;
   if (!isVisible) return null;
 
+  // Hide on public checkout / payment / landing pages
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  if (/^\/(pay|checkout|lp|pedido|invite|r)(\/|$)/.test(path)) return null;
+
   // Only show if not installed OR if notifications are not enabled
   const showNotificationsPrompt = permissionStatus === "default" && !pushEnabled;
   const showInstallPrompt = !!installPrompt;
