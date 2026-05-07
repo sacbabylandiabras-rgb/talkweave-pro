@@ -16,7 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCheckoutPresenceChannel } from "@/hooks/useCheckoutPresence";
 
-const InteractiveGlobe = lazy(() => import("@/components/gateway/InteractiveGlobe"));
+const InteractiveGlobe = lazyWithRecovery(() => import("@/components/gateway/InteractiveGlobe"));
 
 type PeriodFilter = "today" | "week" | "30d" | "custom";
 
