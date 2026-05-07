@@ -103,14 +103,14 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
-function LogoText({ size = 22 }: { size?: number }) {
-  return (
-    <div style={{ fontSize: size, fontWeight: 800, letterSpacing: 0.5, fontFamily: FONT }}>
-      <span style={{ color: Colors.white }}>ZAP</span>
-      <span style={{ color: Colors.purple }}>LYNX</span>
-    </div>
-  );
-}
+ function LogoText({ size = 22 }: { size?: number }) {
+   return (
+     <div style={{ fontSize: size, fontWeight: 800, letterSpacing: 0.5, fontFamily: FONT, display: "inline-block" }}>
+       <span style={{ color: Colors.white }}>ZAP</span>
+       <span style={{ color: Colors.purple }}>LYNX</span>
+     </div>
+   );
+ }
 
 function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
   return (
@@ -202,18 +202,18 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
   );
 }
 
-function TopBar({ showPro = false }: { showPro?: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-      <LogoText />
-      {showPro && (
-        <div style={{ paddingLeft: 12, paddingRight: 12, paddingTop: 5, paddingBottom: 5, borderRadius: 8, background: "rgba(192,132,252,0.18)" }}>
-          <span style={{ color: Colors.purple, fontSize: 12, fontWeight: 700 }}>ZapLynx Pro</span>
-        </div>
-      )}
-    </div>
-  );
-}
+ function TopBar({ showPro = false }: { showPro?: boolean }) {
+   return (
+     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+       <LogoText />
+       {showPro && (
+         <div style={{ padding: "5px 12px", borderRadius: 8, background: "rgba(192,132,252,0.18)" }}>
+           <span style={{ color: Colors.purple, fontSize: 12, fontWeight: 700 }}>ZapLynx Pro</span>
+         </div>
+       )}
+     </div>
+   );
+ }
 
 function PageHeader({ title, sub }: { title: string; sub: string }) {
   return (
