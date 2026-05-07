@@ -262,7 +262,7 @@ function Painel() {
 
   if (!d) return <Loading />;
 
-  const stats: Array<[string, string, string]> = [
+  const STATS_ROW: Array<[string, string, string]> = [
     ["TOTAL", String(d.total), Colors.blue],
     ["ENVIADAS", String(d.sent), Colors.purple],
     ["ENTREGUES", String(d.delivered), Colors.green],
@@ -270,25 +270,22 @@ function Painel() {
   ];
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, paddingBottom: 40 }}>
       <TopBar showPro />
       <PageHeader title="Painel" sub="Visão geral das suas métricas" />
 
-      {/* 2x2 Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
         <StatCard label="CAMPANHAS" value={String(d.campaigns)} sub="Criadas" color={Colors.purple} />
         <StatCard label="MODELOS" value={String(d.templates)} sub="Templates" color={Colors.blue} />
         <StatCard label="CONTATOS" value={String(d.contacts)} sub="Alcançados" color={Colors.green} />
         <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado)} sub="Total" color={Colors.green} />
       </div>
 
-      {/* Venda aprovada */}
       <div style={{ ...cardStyle, borderColor: "rgba(96,165,250,0.25)" }}>
         <p style={cardLabelStyle}>VENDA APROVADA</p>
         <p style={{ ...cardBigVal, color: Colors.blue }}>{fmtBRL(d.vendaAprovada)}</p>
       </div>
 
-      {/* CPA */}
       <div style={cardStyle}>
         <p style={cardLabelStyle}>CPA</p>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -297,9 +294,8 @@ function Painel() {
         </div>
       </div>
 
-      {/* 4-stat row */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {stats.map(([l, v, c]) => (
+        {STATS_ROW.map(([l, v, c]) => (
           <div key={l} style={miniStat}>
             <p style={miniLabelStyle}>{l}</p>
             <p style={{ ...miniValStyle, color: c }}>{v}</p>
@@ -307,7 +303,6 @@ function Painel() {
         ))}
       </div>
 
-      {/* Volume placeholder */}
       <div style={cardStyle}>
         <p style={cardLabelStyle}>VOLUME DE MENSAGENS</p>
         <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 10, background: Colors.card2, borderRadius: 10 }}>
