@@ -44,6 +44,12 @@ export function usePushNotifications() {
       });
     };
 
-    register();
-  }, []);
+   const initPush = async () => {
+     const { data: { session } } = await supabase.auth.getSession();
+     if (!session) return;
+     await register();
+   };
+
+   initPush();
+ }, [supabase.auth]);
 }
