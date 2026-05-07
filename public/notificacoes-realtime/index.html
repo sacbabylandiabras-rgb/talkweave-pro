@@ -665,16 +665,29 @@ let charts = {};
        return;
      }
  
-     const reg = await navigator.serviceWorker.getRegistration() || await navigator.serviceWorker.register('/sw-push.js');
-     await navigator.serviceWorker.ready;
-     
-     reg.showNotification(title, {
-       body: body,
-       icon: '/icon-512.png',
-       badge: '/icon-512.png',
-       tag: 'test-notif',
-       vibrate: [100, 50, 100]
-     });
+      // Try to get registration from parent first (if in iframe)
+      let reg = await navigator.serviceWorker.getRegistration();
+      
+      if (!reg) {
+        reg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+      }
+      
+      await navigator.serviceWorker.ready;
+      
+      // Check if registration is active
+      if (reg.active) {
+        reg.showNotification(title, {
+          body: body,
+          icon: '/icon-512.png',
+          badge: '/icon-512.png',
+          tag: 'test-notif-' + Date.now(),
+          vibrate: [100, 50, 100],
+          data: { url: window.location.href }
+        });
+      } else {
+        // Fallback for Safari/iOS if SW is not fully active yet
+        new Notification(title, { body: body });
+      }
    } catch (err) {
      console.error('Erro ao enviar notificação:', err);
      alert('Erro ao processar notificações.');

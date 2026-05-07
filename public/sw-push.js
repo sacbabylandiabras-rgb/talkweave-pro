@@ -1,6 +1,21 @@
 // Web Push Service Worker
-self.addEventListener('install', (e) => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+ self.addEventListener('install', (event) => {
+   event.waitUntil(self.skipWaiting());
+ });
+ 
+ self.addEventListener('activate', (event) => {
+   event.waitUntil(
+     Promise.all([
+       self.clients.claim(),
+       // Clear old caches if any
+       caches.keys().then((cacheNames) => {
+         return Promise.all(
+           cacheNames.map((cacheName) => caches.delete(cacheName))
+         );
+       })
+     ])
+   );
+ });
 
 self.addEventListener('push', (event) => {
   let data = { title: 'ZapLynx', body: 'Nova notificação', url: '/' };
