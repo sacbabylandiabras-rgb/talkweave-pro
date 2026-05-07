@@ -440,20 +440,12 @@ import { useNavigate } from "react-router-dom";
                     Ativar Notificações Realtime
                   </button>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => testNotif('Venda Aprovada', 'R$ 297,00')}
-                      className="bg-purple-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-xs active:scale-[0.95] transition-all"
-                    >
-                      <TrendingUp className="w-3.5 h-3.5" /> Venda
-                    </button>
-                    <button 
-                      onClick={() => testNotif('Nova Mensagem', 'Cliente aguardando link')}
-                      className="bg-sky-500/20 text-sky-400 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-xs active:scale-[0.95] transition-all"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" /> Mensagem
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => testNotif("Relatório Atualizado ✅", `Vendas: ${formatBRL(stats.totalRevenue * 100)} (Vendas hoje)\nEnviadas: ${stats.campaigns.toLocaleString("pt-BR")}`)}
+                    className="w-full bg-purple-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all"
+                  >
+                    <Send className="w-4 h-4" /> Enviar Relatório de Teste
+                  </button>
                 )}
               </div>
             </div>
