@@ -472,13 +472,18 @@ import { useNavigate } from "react-router-dom";
                {pushEnabled ? "Notificações Ativadas" : "Ativar Notificações Reais"}
              </button>
 
-             <button
-               onClick={() => testNotif("Teste", "Funcionando!")}
-               disabled={!session?.user?.id}
-               className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-purple-400 border border-purple-500/30 bg-purple-500/5 active:bg-purple-500/10 transition-colors disabled:opacity-50"
-             >
-               <Send className="w-5 h-5" /> Enviar Notificação de Teste
-             </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => testNotif("Relatório Atualizado ✅", `Vendas: ${formatBRL(stats.totalRevenue * 100)} (Vendas hoje)\nEnviadas: ${stats.campaigns.toLocaleString("pt-BR")}`)}
+                  disabled={!session?.user?.id}
+                  className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-purple-400 border border-purple-500/30 bg-purple-500/5 active:bg-purple-500/10 transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-5 h-5" /> Enviar Notificação de Teste
+                </button>
+                <p className="text-[10px] text-center text-slate-500 font-medium px-4">
+                  Clique acima para testar o novo modelo de relatório
+                </p>
+              </div>
 
              <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
                <div className="flex items-center justify-between px-5 py-4">
