@@ -91,7 +91,29 @@ export default function PayWithdrawals() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+   useEffect(() => {
+     fetchData();
+
+     // Real-time subscription for transactions and withdrawals to keep balance updated
+     const txSubscription = supabase
+       .channel('withdrawals-tx-updates')
+       .on('postgres_changes', { event: '*', schema: 'public', table: 'gateway_transactions' }, () => {
+         fetchData();
+       })
+       .subscribe();
+
+     const wdSubscription = supabase
+       .channel('withdrawals-wd-updates')
+       .on('postgres_changes', { event: '*', schema: 'public', table: 'gateway_withdrawals' }, () => {
+         fetchData();
+       })
+       .subscribe();
+
+     return () => {
+       supabase.removeChannel(txSubscription);
+       supabase.removeChannel(wdSubscription);
+     };
+   }, []);
 
   const MINIMUM_WITHDRAWAL_CENTS = 5000; // R$ 50,00
   const WITHDRAWAL_FEE_CENTS = 1000; // R$ 10,00
