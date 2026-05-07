@@ -58,7 +58,43 @@ serve(async (req) => {
       status: 'received',
     })
 
-    // Also persist as an external gateway event (so dashboard cards reflect it)
+     // Send push notification for significant events
+     try {
+       const amountCents = extractAmountCents(payload)
+       const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+       
+       let title = ''
+       let body = ''
+       let event_type = ''
+       
+       if (eventType === 'payment_approved') {
+         title = '💰 Nova venda aprovada!'
+         body = `Pagamento de ${amountFormatted} recebido${customerName ? ` de ${customerName}` : ''}`
+         event_type = 'pix_paid'
+       } else if (eventType === 'payment_pending') {
+         title = '⚡ PIX Gerado!'
+         body = `${customerName || 'Um cliente'} gerou um PIX de ${amountFormatted}`
+         event_type = 'pix_or_boleto_issued'
+       }
+
+       if (title) {
+         await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+           body: JSON.stringify({
+             user_id: userId,
+             title,
+             body,
+             data: { type: eventType, amount: String(amountCents), customer: customerName || '' },
+             event_type,
+           }),
+         })
+       }
+     } catch (err) {
+       console.error('Push notification error in webhook-gateway:', err)
+     }
+
+     // Also persist as an external gateway event (so dashboard cards reflect it)
     try {
       const amountCents = extractAmountCents(payload)
       const externalStatus = mapEventToStatus(eventType)
