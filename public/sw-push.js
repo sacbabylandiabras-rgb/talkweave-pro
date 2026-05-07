@@ -25,9 +25,10 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: '/favicon.png',
       badge: '/favicon.png',
-      tag: data.tag || 'zaplynx',
+      tag: (data.tag || 'zaplynx') + '-' + Date.now(),
+      renotify: true,
+      requireInteraction: false,
       data: { url: data.url },
-      vibrate: [100, 50, 100],
     })
   );
 });
