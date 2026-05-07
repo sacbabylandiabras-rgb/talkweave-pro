@@ -180,8 +180,8 @@ function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
 
 function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void; session: any }) {
   return (
-    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", color: "#fff", background: Colors.bg, position: "relative" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
+    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", color: "#fff", background: Colors.bg, position: "relative", paddingTop: 40 }}>
+      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "saques" && <Saques />}
@@ -199,9 +199,10 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
           gridTemplateColumns: "1fr 1fr 1fr 1fr",
           background: Colors.bg,
           borderTop: `1px solid ${Colors.border}`,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 62,
+          paddingBottom: 24,
+          paddingTop: 12,
+          height: 84,
+          zIndex: 50,
         }}
       >
         {([
@@ -219,14 +220,15 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 4,
+                gap: 6,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
+                opacity: active ? 1 : 0.5,
               }}
             >
-              <span style={{ fontSize: 18, color: active ? Colors.purple : Colors.muted }}>{icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 500, color: active ? Colors.purple : Colors.muted }}>{label}</span>
+              <span style={{ fontSize: 22, color: active ? Colors.purple : Colors.muted }}>{icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: active ? Colors.purple : Colors.muted }}>{label}</span>
             </button>
           );
         })}
