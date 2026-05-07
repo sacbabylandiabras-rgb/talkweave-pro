@@ -16,7 +16,11 @@ function isChunkLoadError(error: unknown) {
   return (
     message.includes("Failed to fetch dynamically imported module") ||
     message.includes("Importing a module script failed") ||
-    message.includes("error loading dynamically imported module")
+    message.includes("error loading dynamically imported module") ||
+    // Stale published bundle: lazy() resolved a module whose `.default` is undefined
+    message.includes("Cannot read properties of undefined (reading 'default')") ||
+    message.includes("undefined is not an object (evaluating") ||
+    message.includes("'default' of undefined")
   );
 }
 
