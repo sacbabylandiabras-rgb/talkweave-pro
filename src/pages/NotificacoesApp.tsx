@@ -34,7 +34,7 @@ const TOGGLES: { key: keyof Prefs; label: string }[] = [
   { key: "notify_pix_or_boleto_issued", label: "Notificar pix ou boleto emitido" },
 ];
 
-const SLOTS = [0, 8, 12, 18];
+ const SLOTS = [0, 8, 12, 16.5, 18];
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -48,7 +48,7 @@ export default function NotificacoesApp() {
   const [saving, setSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [summaries, setSummaries] = useState<{ slot: number; total: number; count: number; date: string }[]>([]);
+   const [summaries, setSummaries] = useState<{ slot: number; total: number; count: number; messages: number; date: string }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -74,30 +74,59 @@ export default function NotificacoesApp() {
         });
       }
 
-      // Resumos recentes — agregados por slot do dia atual
-      const start = new Date(); start.setHours(0,0,0,0);
-      const { data: tx } = await supabase
-        .from("gateway_transactions")
-        .select("amount, created_at, status")
-        .eq("user_id", session.user.id)
-        .in("status", ["paid", "approved", "completed"])
-        .gte("created_at", start.toISOString());
-      const byHour = new Map<number, { total: number; count: number }>();
-      (tx || []).forEach((t: any) => {
-        const h = new Date(t.created_at).getHours();
-        const slot = [...SLOTS].reverse().find(s => h >= s) ?? 0;
-        const cur = byHour.get(slot) || { total: 0, count: 0 };
-        cur.total += t.amount || 0; cur.count += 1;
-        byHour.set(slot, cur);
-      });
-      const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-      const now = new Date().getHours();
-      const list = SLOTS.filter(s => s <= now).reverse().map(s => ({
-        slot: s,
-        total: byHour.get(s)?.total || 0,
-        count: byHour.get(s)?.count || 0,
-        date: today,
-      }));
+       const start = new Date();
+       start.setHours(0, 0, 0, 0);
+       
+       const [txRes, msgRes] = await Promise.all([
+         supabase
+           .from("gateway_transactions")
+           .select("amount, created_at, status")
+           .eq("user_id", session.user.id)
+           .in("status", ["paid", "approved", "completed"])
+           .gte("created_at", start.toISOString()),
+         supabase
+           .from("campaign_sends")
+           .select("sent_at")
+           .eq("user_id", session.user.id)
+           .gte("sent_at", start.toISOString())
+       ]);
+ 
+       const tx = txRes.data || [];
+       const msgs = msgRes.data || [];
+       const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+       const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
+ 
+       const list = SLOTS.filter(s => s <= currentHour).reverse().map(s => {
+         // Mensagens no período (desde o slot anterior)
+         const sortedSlots = [...SLOTS].sort((a, b) => a - b);
+         const idx = sortedSlots.indexOf(s);
+         const prevS = idx > 0 ? sortedSlots[idx - 1] : -1; // Se for o primeiro do dia, -1 (desde meia noite)
+         
+         const slotMsgs = msgs.filter((m: any) => {
+           const date = new Date(m.sent_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h >= prevS && h < s;
+         }).length;
+ 
+         // Vendas hoje (acumulado até o slot)
+         const slotSales = tx.filter((t: any) => {
+           const date = new Date(t.created_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h < s;
+         });
+ 
+         const total = slotSales.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+ 
+         return {
+           slot: s,
+           total: total,
+           count: slotSales.length,
+           messages: slotMsgs,
+           date: today,
+         };
+       });
+ 
+       setSummaries(list);
       setSummaries(list);
       setLoading(false);
     })();
@@ -214,14 +243,14 @@ export default function NotificacoesApp() {
 
       {/* Como funciona */}
       <div>
-        <h2 className="font-bold text-white text-lg mb-2">Como funciona</h2>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <p className="text-white/60 text-sm leading-relaxed">
-            Você recebe um push automático com o resumo de mensagens enviadas e vendas
-            a cada janela do dia (00h, 08h, 12h, 18h — horário de Brasília).
-          </p>
-        </div>
-      </div>
+       <h2 className="font-bold text-white text-lg mb-2">Como funciona</h2>
+       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+         <p className="text-white/60 text-sm leading-relaxed">
+           Você recebe um relatório automático com o resumo de mensagens enviadas e vendas
+           hoje via push e Telegram nos horários: 08:00, 12:00, 16:30, 18:00 e 00:00.
+         </p>
+       </div>
+     </div>
 
       {/* Resumos recentes */}
       <div>
@@ -233,18 +262,18 @@ export default function NotificacoesApp() {
         ) : (
           <div className="space-y-2">
             {summaries.map(s => (
-              <div key={s.slot} className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-3">
-                <Clock className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold">
-                    Resumo das {String(s.slot).padStart(2, "0")}:00
-                  </p>
-                  <p className="text-white/50 text-xs mt-0.5">
-                    {s.count} {s.count === 1 ? "venda" : "vendas"} · {formatBRL(s.total)}
-                  </p>
-                </div>
-                <span className="text-white/40 text-xs shrink-0">{s.date}</span>
-              </div>
+               <div key={s.slot} className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+                 <Clock className="w-4 h-4 text-primary shrink-0" />
+                 <div className="flex-1 min-w-0">
+                   <p className="text-white text-sm font-semibold">
+                     Relatório das {s.slot === 16.5 ? "16:30" : `${String(Math.floor(s.slot)).padStart(2, "0")}:00`}
+                   </p>
+                   <p className="text-white/50 text-xs mt-0.5">
+                     Mensagens enviadas: {s.messages}, vendas hoje: {formatBRL(s.total)}
+                   </p>
+                 </div>
+                 <span className="text-white/40 text-xs shrink-0">{s.date}</span>
+               </div>
             ))}
           </div>
         )}
