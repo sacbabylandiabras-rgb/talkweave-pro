@@ -535,14 +535,14 @@ function Painel() {
           + Solicitar Saque
         </button>
  
-       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
-         {cards.map((c) => (
-           <div key={c.label} style={{ ...cardStyle, width: "calc(50% - 6px)", marginBottom: 0 }}>
-             <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
-             <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
-           </div>
-         ))}
-       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }}>
+        {cards.map((c) => (
+          <div key={c.label} style={{ ...cardStyle, marginBottom: 0 }}>
+            <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
+            <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value.replace(" ", "")}</p>
+          </div>
+        ))}
+      </div>
 
        {modal && (
          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
