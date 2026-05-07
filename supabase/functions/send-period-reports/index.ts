@@ -186,7 +186,6 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        slot: currentHour,
         slot: slotHour,
         slotKey,
         window: { start: startUtc.toISOString(), end: endUtc.toISOString() },
