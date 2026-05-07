@@ -232,7 +232,18 @@ export default function CustomInputPage() {
             <div className="h-[1px] flex-1 bg-white/5" />
           </div>
 
-          <p className="text-center text-purple-400 text-xs font-semibold cursor-pointer hover:underline">Esqueci minha senha</p>
+           <div className="flex flex-col gap-4 text-center">
+             <p className="text-purple-400 text-xs font-semibold cursor-pointer hover:underline">Esqueci minha senha</p>
+             <p className="text-slate-400 text-xs font-medium">
+               Não tem uma conta?{" "}
+               <span 
+                 onClick={() => navigate("/auth?signup=true")} 
+                 className="text-purple-400 cursor-pointer hover:underline"
+               >
+                 Crie uma conta aqui
+               </span>
+             </p>
+           </div>
         </form>
 
         <p className="mt-12 text-slate-600 text-[11px] text-center leading-relaxed">
