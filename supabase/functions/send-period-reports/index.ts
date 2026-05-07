@@ -92,12 +92,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Buscar todos os user_ids que têm push token registrado
-    const { data: tokenUsers } = await supabase
-      .from("device_push_tokens")
-      .select("user_id");
+    // Buscar todos os user_ids que têm push token ou web-push registrado
+    const [deviceRes, webRes] = await Promise.all([
+      supabase.from("device_push_tokens").select("user_id"),
+      supabase.from("web_push_subscriptions").select("user_id"),
+    ]);
 
-    const userIds = Array.from(new Set((tokenUsers || []).map((t: any) => t.user_id)));
+    const userIds = Array.from(new Set([
+      ...(deviceRes.data || []).map((t: any) => t.user_id),
+      ...(webRes.data || []).map((t: any) => t.user_id)
+    ]));
 
     const results: any[] = [];
 
