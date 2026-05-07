@@ -1,4 +1,4 @@
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/lynx-logo-new.png';
 
 interface LogoImageProps {
   className?: string;

@@ -376,7 +376,7 @@ import { useNavigate } from "react-router-dom";
         <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
         
         <div className="mb-10 text-center">
-          <img src="/images/auth-logo.png" alt="ZapLynx" className="h-10 mx-auto mb-6" />
+          <img src="/images/auth-logo.png" alt="ZapLynx" className="h-10 w-auto object-contain mx-auto mb-6" />
            <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Bem-vindo de volta</h1>
            <p className="text-slate-500 text-sm text-center">Acesse sua conta para gerenciar<br/>campanhas, bots e saques.</p>
         </div>
