@@ -359,9 +359,12 @@ import { useNavigate } from "react-router-dom";
         <div className="flex items-center justify-between mb-8">
           <img src="/images/auth-logo.png" alt="ZapLynx" className="h-6" />
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#1e2130] flex items-center justify-center">
+            <button
+              onClick={() => setActiveTab("avisos")}
+              className="w-8 h-8 rounded-lg bg-[#1e2130] flex items-center justify-center active:scale-95 transition-transform"
+            >
               <Bell className="w-4 h-4 text-slate-500" />
-            </div>
+            </button>
             <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
               {session.user?.email?.charAt(0).toUpperCase()}
             </div>
@@ -382,34 +385,34 @@ import { useNavigate } from "react-router-dom";
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              <button onClick={() => navigate("/campanhas")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Campanhas</p>
                 <p className="text-3xl font-black text-purple-400">{stats.campaigns}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Criadas</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/modelos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Modelos</p>
                 <p className="text-3xl font-black text-blue-400">{stats.templates}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Templates</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/contatos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Contatos</p>
                 <p className="text-3xl font-black text-emerald-400">{stats.contacts}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Alcançados</p>
-              </div>
-              <div className="bg-[#161820] border border-white/5 rounded-2xl p-4">
+              </button>
+              <button onClick={() => navigate("/gateway-checkout/reports")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Pix Gerado</p>
                 <p className="text-lg font-black text-emerald-400 mt-1">R$ {stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Total gerado</p>
-              </div>
+              </button>
             </div>
 
-            <div className="bg-[#161820] border border-blue-500/20 rounded-2xl p-4">
+            <button onClick={() => navigate("/gateway-checkout/dashboard")} className="w-full text-left bg-[#161820] border border-blue-500/20 rounded-2xl p-4 active:scale-[0.99] transition-transform">
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Venda aprovada</p>
               <p className="text-3xl font-black text-blue-400">R$ {stats.approvedSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-            </div>
+            </button>
 
-            <div className="bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+            <button onClick={() => navigate("/relatorio")} className="w-full bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform">
               <div>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">CPA</p>
                 <div className="flex items-baseline gap-2">
@@ -417,7 +420,7 @@ import { useNavigate } from "react-router-dom";
                   <span className="text-[11px] text-slate-600 font-medium">venda / msg</span>
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Push Status / Action */}
             <div className="bg-gradient-to-br from-[#2d1b69] to-[#1a1040] border border-purple-500/20 rounded-2xl p-5 relative overflow-hidden">
@@ -585,7 +588,7 @@ import { useNavigate } from "react-router-dom";
               </div>
               <p className="text-sm font-bold text-white mb-2">Bot não configurado</p>
               <p className="text-xs text-slate-500 mb-4 px-4">Conecte seu bot para receber alertas também no Telegram.</p>
-              <button className="bg-sky-500/20 text-sky-400 text-xs font-bold py-2.5 px-6 rounded-xl active:scale-[0.98] transition-all">
+              <button onClick={() => navigate("/telegram/criar-bot")} className="bg-sky-500/20 text-sky-400 text-xs font-bold py-2.5 px-6 rounded-xl active:scale-[0.98] transition-all">
                 Configurar Bot
               </button>
             </div>
@@ -595,28 +598,13 @@ import { useNavigate } from "react-router-dom";
         {activeTab === "wallet" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-black text-white tracking-tight">Financeiro</h2>
-            <button className="w-full bg-purple-500 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all mb-6">
+            <button onClick={() => navigate("/gateway-checkout/withdrawals")} className="w-full bg-purple-500 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all mb-6">
               <DollarSign className="w-4 h-4" /> Solicitar Saque
             </button>
 
             <h3 className="text-base font-bold text-white mb-2">Últimas Movimentações</h3>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between py-3 border-b border-white/5">
-                <div>
-                  <p className="text-[10px] text-slate-600 mb-1 uppercase font-bold tracking-widest">Hoje, 14:22</p>
-                  <p className="text-sm font-bold text-white">R$ 1.005,90</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Comissão - Venda Aprovada</p>
-                </div>
-                <div className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">Pago</div>
-              </div>
-              <div className="flex items-center justify-between py-3 border-b border-white/5">
-                <div>
-                  <p className="text-[10px] text-slate-600 mb-1 uppercase font-bold tracking-widest">Ontem, 09:15</p>
-                  <p className="text-sm font-bold text-white">R$ 247,00</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Comissão - Venda Aprovada</p>
-                </div>
-                <div className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">Pago</div>
-              </div>
+            <div className="rounded-2xl border border-white/5 bg-[#161820] p-6 text-center text-slate-600 text-sm">
+              Suas movimentações de saque aparecerão aqui.
             </div>
           </div>
         )}
