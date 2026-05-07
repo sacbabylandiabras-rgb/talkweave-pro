@@ -658,6 +658,148 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
 <script>
 let charts = {};
 
+// ═══════════════════════════════════════════════
+// PUSH NOTIFICATIONS — Real (Supabase + VAPID)
+// ═══════════════════════════════════════════════
+const SB_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
+let CURRENT_USER = null;
+let CURRENT_TOKEN = null;
+
+function setStatus(msg, color) {
+  const el = document.getElementById('pushStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--muted)';
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function enableRealPush() {
+  try {
+    if (!CURRENT_USER || !CURRENT_TOKEN) {
+      setStatus('⚠️ Faça login primeiro para ativar notificações.', '#fbbf24');
+      return;
+    }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setStatus('Seu navegador não suporta notificações push.', '#f87171');
+      return;
+    }
+    setStatus('Solicitando permissão...');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      setStatus('Permissão negada. Ative em Ajustes > Safari > Notificações.', '#f87171');
+      return;
+    }
+
+    setStatus('Buscando chave de criptografia...');
+    const keyRes = await fetch(SB_URL + '/functions/v1/web-push-send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SB_ANON, Authorization: 'Bearer ' + CURRENT_TOKEN },
+      body: JSON.stringify({ action: 'public-key' })
+    });
+    const keyJson = await keyRes.json();
+    if (!keyJson.publicKey) throw new Error('Chave VAPID não disponível');
+
+    setStatus('Registrando service worker...');
+    const reg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyJson.publicKey)
+      });
+    }
+    const json = sub.toJSON();
+
+    setStatus('Salvando inscrição...');
+    const saveRes = await fetch(SB_URL + '/rest/v1/web_push_subscriptions?on_conflict=endpoint', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SB_ANON,
+        Authorization: 'Bearer ' + CURRENT_TOKEN,
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: CURRENT_USER.id,
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+        user_agent: navigator.userAgent,
+        last_used_at: new Date().toISOString()
+      })
+    });
+    if (!saveRes.ok) {
+      const err = await saveRes.text();
+      throw new Error('Falha ao salvar: ' + err);
+    }
+
+    setStatus('✓ Notificações ativadas! Você receberá alertas em tempo real.', '#34d399');
+    document.getElementById('btnEnableLabel').textContent = '✓ Notificações Ativas';
+  } catch (e) {
+    console.error(e);
+    setStatus('Erro: ' + e.message, '#f87171');
+  }
+}
+
+async function sendTestPush() {
+  try {
+    if (!CURRENT_USER || !CURRENT_TOKEN) {
+      setStatus('⚠️ Faça login primeiro.', '#fbbf24');
+      return;
+    }
+    setStatus('Enviando teste...');
+    const res = await fetch(SB_URL + '/functions/v1/send-push-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SB_ANON, Authorization: 'Bearer ' + CURRENT_TOKEN },
+      body: JSON.stringify({
+        user_id: CURRENT_USER.id,
+        title: '🔔 Teste de Notificação',
+        body: 'Se você recebeu este alerta, suas notificações estão funcionando!',
+        url: 'https://zaplynx.com/notificacoes-realtime'
+      })
+    });
+    const j = await res.json();
+    if (!res.ok || j.error) throw new Error(j.error || 'falha no envio');
+    const sent = j.web_push?.sent || 0;
+    if (sent === 0) {
+      setStatus('Nenhuma inscrição encontrada. Clique em "Ativar Notificações Reais" primeiro.', '#fbbf24');
+    } else {
+      setStatus('✓ Teste enviado para ' + sent + ' dispositivo(s).', '#34d399');
+    }
+  } catch (e) {
+    setStatus('Erro: ' + e.message, '#f87171');
+  }
+}
+
+async function loadCurrentUser() {
+  // Try to recover session from Supabase localStorage
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    for (const k of keys) {
+      try {
+        const raw = JSON.parse(localStorage.getItem(k));
+        if (raw && raw.access_token && raw.user) {
+          CURRENT_TOKEN = raw.access_token;
+          CURRENT_USER = raw.user;
+          return true;
+        }
+      } catch {}
+    }
+  } catch {}
+  return false;
+}
+
  async function testNotif(title, body) {
     // Solicita ao pai (React) que ative as notificações reais e as salve no banco
     if (window.parent) {
@@ -793,6 +935,16 @@ function initChart2() {
 // Init chart 1 on load
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(initChart1, 100);
+  loadCurrentUser().then(ok => {
+    if (ok) {
+      // Auto-skip login if already authenticated in main app
+      const screen = document.getElementById('loginScreen');
+      if (screen) { screen.style.display = 'none'; }
+      setStatus('Logado como ' + (CURRENT_USER.email || 'usuário') + '. Clique em Ativar para iniciar.');
+    } else {
+      setStatus('Faça login no app principal (zaplynx.com) e volte para esta página.');
+    }
+  });
 });
 
 function togglePass() {
