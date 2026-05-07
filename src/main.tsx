@@ -9,13 +9,21 @@
    const path = window.location.pathname;
    
    // Fast path for realtime notifications to avoid loading the entire app
-   if (path === '/notificacoes-realtime' || path === '/notificacoes-realtime/') {
-     const root = createRoot(document.getElementById("root")!);
-      // Register SW for notifications even in the standalone realtime view
+    if (path === '/notificacoes-realtime' || path === '/notificacoes-realtime/') {
+      // Register SW at root scope to ensure it can be used by the iframe
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw-push.js').catch(err => console.error('SW registration failed:', err));
+        navigator.serviceWorker.register('/sw-push.js', { scope: '/' })
+          .then(reg => {
+            console.log('SW registered at root:', reg.scope);
+            // Auto-request permission on first load if not granted
+            if (Notification.permission === 'default') {
+              Notification.requestPermission();
+            }
+          })
+          .catch(err => console.error('SW registration failed:', err));
       }
 
+      const root = createRoot(document.getElementById("root")!);
       root.render(
         <div style={{ position: "fixed", inset: 0, background: "#0f1117", zIndex: 9999 }}>
           <iframe
@@ -25,8 +33,8 @@
           />
         </div>
       );
-     return;
-   }
+      return;
+    }
  
    // Normal app loading
    const { default: App } = await import("./App.tsx");
