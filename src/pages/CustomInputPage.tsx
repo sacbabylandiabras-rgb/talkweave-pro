@@ -462,33 +462,101 @@ import { useNavigate } from "react-router-dom";
 
          {activeTab === "avisos" && (
            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-             <h2 className="text-2xl font-black text-white tracking-tight">Avisos</h2>
-             <p className="text-xs text-slate-500 mt-0.5">Notificações e alertas do sistema</p>
-             
-             <div className="bg-gradient-to-br from-[#2d1b69] to-[#1a1040] border border-purple-500/20 rounded-2xl p-5 mb-4">
-               <p className="text-xs text-white/70 leading-relaxed mb-4">
-                 {pushEnabled ? "Sistema de notificações ativo no seu dispositivo!" : "Ative as notificações para receber alertas de vendas em tempo real."}
-               </p>
-               {!pushEnabled && (
-                 <button 
-                   onClick={handleEnablePush}
-                   disabled={pushBusy}
-                   className="w-full bg-purple-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all"
+             <button
+               onClick={handleEnablePush}
+               disabled={pushBusy || pushEnabled}
+               className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-white shadow-lg transition-opacity disabled:opacity-70"
+               style={{ background: "linear-gradient(135deg, hsl(270 95% 65%), hsl(270 95% 45%))" }}
+             >
+               {pushBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bell className="w-5 h-5" />}
+               {pushEnabled ? "Notificações Ativadas" : "Ativar Notificações Reais"}
+             </button>
+
+             <button
+               onClick={() => testNotif("Teste", "Funcionando!")}
+               disabled={!session?.user?.id}
+               className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-purple-400 border border-purple-500/30 bg-purple-500/5 active:bg-purple-500/10 transition-colors disabled:opacity-50"
+             >
+               <Send className="w-5 h-5" /> Enviar Notificação de Teste
+             </button>
+
+             <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
+               <div className="flex items-center justify-between px-5 py-4">
+                 <span className="font-bold text-white text-base">Notificações</span>
+                 <div
+                   onClick={() => togglePref("enabled", !prefs.enabled)}
+                   className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${prefs.enabled ? 'bg-purple-500' : 'bg-slate-700'} ${savingPrefs ? 'opacity-50 pointer-events-none' : ''}`}
                  >
-                   {pushBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-                   Ativar Notificações Realtime
-                 </button>
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${prefs.enabled ? 'left-6' : 'left-1'}`} />
+                 </div>
+               </div>
+
+               <div className="px-5 py-3 flex items-center gap-1 text-slate-500 text-sm border-t border-white/5">
+                 Todos os checkouts (padrão) <ChevronDown className="w-3 h-3" />
+               </div>
+
+               {[
+                 { key: "notify_credit_card", label: "Notificar cartão de crédito" },
+                 { key: "notify_boleto_paid", label: "Notificar boleto pago" },
+                 { key: "notify_pix_paid", label: "Notificar pix pago" },
+                 { key: "notify_pix_recurring", label: "Notificar pix recorrente" },
+                 { key: "notify_apple_pay", label: "Notificar Apple Pay" },
+                 { key: "notify_pix_or_boleto_issued", label: "Notificar pix ou boleto emitido" },
+               ].map((item) => (
+                 <div key={item.key} className="flex items-center justify-between px-5 py-4 border-t border-white/5">
+                   <span className={`text-sm ${!prefs.enabled ? "text-slate-600" : "text-white/90"}`}>{item.label}</span>
+                   <div
+                     onClick={() => prefs.enabled && togglePref(item.key as any, !prefs[item.key as keyof typeof prefs])}
+                     className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${prefs[item.key as keyof typeof prefs] && prefs.enabled ? 'bg-purple-500' : 'bg-slate-700'} ${!prefs.enabled || savingPrefs ? 'opacity-40 cursor-not-allowed' : ''}`}
+                   >
+                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${prefs[item.key as keyof typeof prefs] && prefs.enabled ? 'left-6' : 'left-1'}`} />
+                   </div>
+                 </div>
+               ))}
+             </div>
+
+             <div>
+               <h3 className="font-bold text-white text-lg mb-2">Como funciona</h3>
+               <div className="rounded-2xl border border-white/5 bg-[#161820] p-4">
+                 <p className="text-slate-400 text-sm leading-relaxed">
+                   Você recebe um relatório automático com o resumo de mensagens enviadas e vendas
+                   hoje via push e Telegram nos horários: 08:00, 12:00, 16:30, 18:00 e 00:00.
+                 </p>
+               </div>
+             </div>
+
+             <div>
+               <h3 className="font-bold text-white text-lg mb-2">Resumos recentes</h3>
+               {summaries.length === 0 ? (
+                 <div className="rounded-2xl border border-white/5 bg-[#161820] p-6 text-center text-slate-600 text-sm">
+                   Os resumos aparecerão aqui ao longo do dia.
+                 </div>
+               ) : (
+                 <div className="space-y-2">
+                   {summaries.map(s => (
+                     <div key={s.slot} className="rounded-2xl border border-white/5 bg-[#161820] px-4 py-3 flex items-center gap-3">
+                       <Clock className="w-4 h-4 text-purple-400 shrink-0" />
+                       <div className="flex-1 min-w-0">
+                         <p className="text-white text-sm font-semibold">
+                           Resumo das {s.slot === 16.5 ? "16:30" : `${String(Math.floor(s.slot)).padStart(2, "0")}:00`}
+                         </p>
+                         <p className="text-slate-500 text-xs mt-0.5">
+                           Mensagens: {s.messages} • Vendas: {formatBRL(s.total)}
+                         </p>
+                       </div>
+                       <span className="text-slate-600 text-xs shrink-0">{s.date}</span>
+                     </div>
+                   ))}
+                 </div>
                )}
              </div>
- 
-             <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
-               <div 
-                 onClick={() => supabase.auth.signOut()}
-                 className="p-4 flex items-center justify-between active:bg-white/5 transition-colors cursor-pointer"
-               >
-                 <p className="text-sm font-bold text-red-400">Sair da Conta</p>
-                 <ChevronRight className="w-4 h-4 text-slate-700" />
-               </div>
+
+             <div
+               onClick={() => supabase.auth.signOut()}
+               className="bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between active:bg-white/5 transition-colors cursor-pointer mt-4"
+             >
+               <p className="text-sm font-bold text-red-400">Sair da Conta</p>
+               <ChevronRight className="w-4 h-4 text-slate-700" />
              </div>
            </div>
          )}
