@@ -1,95 +1,151 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, TrendingUp, Zap, Loader2, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, Send, Loader2, AlertTriangle, Clock, ChevronDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { useWebPush } from "@/hooks/useWebPush";
 
-type Notif = {
-  id: string;
-  kind: "sale" | "pix";
-  title: string;
-  subtitle: string;
-  amount?: number;
-  created_at: string;
+type Prefs = {
+  enabled: boolean;
+  notify_credit_card: boolean;
+  notify_boleto_paid: boolean;
+  notify_pix_paid: boolean;
+  notify_pix_recurring: boolean;
+  notify_apple_pay: boolean;
+  notify_pix_or_boleto_issued: boolean;
 };
 
-function timeAgo(iso: string) {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
+const DEFAULT_PREFS: Prefs = {
+  enabled: true,
+  notify_credit_card: true,
+  notify_boleto_paid: true,
+  notify_pix_paid: true,
+  notify_pix_recurring: true,
+  notify_apple_pay: true,
+  notify_pix_or_boleto_issued: true,
+};
 
-function formatBRL(cents?: number) {
-  if (!cents && cents !== 0) return "";
+const TOGGLES: { key: keyof Prefs; label: string }[] = [
+  { key: "notify_credit_card", label: "Notificar cartão de crédito" },
+  { key: "notify_boleto_paid", label: "Notificar boleto pago" },
+  { key: "notify_pix_paid", label: "Notificar pix pago" },
+  { key: "notify_pix_recurring", label: "Notificar pix recorrente" },
+  { key: "notify_apple_pay", label: "Notificar Apple Pay" },
+  { key: "notify_pix_or_boleto_issued", label: "Notificar pix ou boleto emitido" },
+];
+
+const SLOTS = [0, 8, 12, 18];
+
+function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export default function NotificacoesApp() {
-  const [items, setItems] = useState<Notif[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sendingTest, setSendingTest] = useState(false);
   const { toast } = useToast();
-
-  const load = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLoading(false); return; }
-    const userId = session.user.id;
-
-    const tx = await supabase
-      .from("gateway_transactions")
-      .select("id, customer_name, amount, payment_method, status, created_at")
-      .eq("user_id", userId)
-      .in("status", ["paid", "approved", "completed"])
-      .order("created_at", { ascending: false })
-      .limit(60);
-
-    const merged: Notif[] = [];
-
-    (tx.data || []).forEach((t: any) => {
-      const isPix = (t.payment_method || "").toLowerCase().includes("pix");
-      merged.push({
-        id: `t-${t.id}`,
-        kind: isPix ? "pix" : "sale",
-        title: isPix ? "Pix recebido" : "Nova venda aprovada",
-        subtitle: t.customer_name || "Cliente",
-        amount: t.amount,
-        created_at: t.created_at,
-      });
-    });
-
-    merged.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-    setItems(merged.slice(0, 60));
-    setLoading(false);
-  };
+  const { pushEnabled, pushBusy, enablePush } = useWebPush();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [summaries, setSummaries] = useState<{ slot: number; total: number; count: number; date: string }[]>([]);
 
   useEffect(() => {
-    load();
-    const channel = supabase
-      .channel("notif-app")
-      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setLoading(false); return; }
+      setUserId(session.user.id);
+
+      const { data } = await (supabase as any)
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .is("checkout_id", null)
+        .maybeSingle();
+      if (data) {
+        setPrefs({
+          enabled: data.enabled,
+          notify_credit_card: data.notify_credit_card,
+          notify_boleto_paid: data.notify_boleto_paid,
+          notify_pix_paid: data.notify_pix_paid,
+          notify_pix_recurring: data.notify_pix_recurring,
+          notify_apple_pay: data.notify_apple_pay,
+          notify_pix_or_boleto_issued: data.notify_pix_or_boleto_issued,
+        });
+      }
+
+      // Resumos recentes — agregados por slot do dia atual
+      const start = new Date(); start.setHours(0,0,0,0);
+      const { data: tx } = await supabase
+        .from("gateway_transactions")
+        .select("amount, created_at, status")
+        .eq("user_id", session.user.id)
+        .in("status", ["paid", "approved", "completed"])
+        .gte("created_at", start.toISOString());
+      const byHour = new Map<number, { total: number; count: number }>();
+      (tx || []).forEach((t: any) => {
+        const h = new Date(t.created_at).getHours();
+        const slot = [...SLOTS].reverse().find(s => h >= s) ?? 0;
+        const cur = byHour.get(slot) || { total: 0, count: 0 };
+        cur.total += t.amount || 0; cur.count += 1;
+        byHour.set(slot, cur);
+      });
+      const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      const now = new Date().getHours();
+      const list = SLOTS.filter(s => s <= now).reverse().map(s => ({
+        slot: s,
+        total: byHour.get(s)?.total || 0,
+        count: byHour.get(s)?.count || 0,
+        date: today,
+      }));
+      setSummaries(list);
+      setLoading(false);
+    })();
   }, []);
 
-  const sendTestPush = async () => {
+  const savePrefs = async (next: Prefs) => {
+    if (!userId) return;
+    setSaving(true);
+    setPrefs(next);
+    const { error } = await (supabase as any)
+      .from("notification_preferences")
+      .upsert(
+        { user_id: userId, checkout_id: null, ...next },
+        { onConflict: "user_id" }
+      );
+    setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const togglePref = (key: keyof Prefs, value: boolean) => {
+    savePrefs({ ...prefs, [key]: value });
+  };
+
+  const handleEnablePush = async () => {
+    try {
+      await enablePush();
+      toast({ title: "Notificações ativadas!", description: "Você receberá alertas em tempo real." });
+    } catch (e: any) {
+      toast({ title: "Erro ao ativar", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const sendTest = async () => {
+    if (!userId) { toast({ title: "Faça login primeiro", variant: "destructive" }); return; }
     setSendingTest(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
       const { error } = await supabase.functions.invoke("send-push-notification", {
         body: {
-          user_id: user.id,
+          user_id: userId,
           title: "Teste de Notificação",
-          body: "Se você está vendo isso, o push está funcionando nesta origem!",
+          body: "Se você está vendo isso, o push está funcionando!",
           url: window.location.origin + "/notificacoes-realtime",
-          event_type: "test"
-        }
+        },
       });
       if (error) throw error;
-      toast({ title: "Teste enviado!", description: "Verifique se a notificação chegou no seu celular." });
+      toast({ title: "Teste enviado!", description: "Verifique se a notificação chegou." });
     } catch (e: any) {
       toast({ title: "Erro no teste", description: e.message, variant: "destructive" });
     } finally {
@@ -97,69 +153,102 @@ export default function NotificacoesApp() {
     }
   };
 
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-white/40" /></div>;
+  }
+
+  const allDisabled = !prefs.enabled;
+
   return (
-    <div className="space-y-4 w-full">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-            <Bell className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">NOTIFICAÇÕES</h1>
-            <p className="font-nunito text-[12px] text-white/40 mt-1">Vendas e relatórios em tempo real</p>
-          </div>
+    <div className="space-y-4 w-full max-w-xl mx-auto">
+      {/* Botão ativar */}
+      <button
+        onClick={handleEnablePush}
+        disabled={pushBusy || pushEnabled}
+        className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-white shadow-lg transition-opacity disabled:opacity-70"
+        style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" }}
+      >
+        {pushBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bell className="w-5 h-5" />}
+        {pushEnabled ? "Notificações Ativadas" : "Ativar Notificações Reais"}
+      </button>
+
+      {/* Botão testar */}
+      <button
+        onClick={sendTest}
+        disabled={sendingTest || !userId}
+        className="w-full rounded-2xl py-4 px-5 flex items-center justify-center gap-3 font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50"
+      >
+        {sendingTest ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+        Enviar Notificação de Teste
+      </button>
+
+      {!userId && (
+        <p className="flex items-center justify-center gap-2 text-amber-400 text-sm">
+          <AlertTriangle className="w-4 h-4" />
+          Faça login primeiro para ativar notificações.
+        </p>
+      )}
+
+      {/* Master toggle */}
+      <div className="rounded-2xl border border-white/10 divide-y divide-white/5 overflow-hidden bg-white/[0.02]">
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="font-bold text-white text-base">Notificações</span>
+          <Switch checked={prefs.enabled} onCheckedChange={(v) => togglePref("enabled", v)} disabled={saving} />
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="bg-primary/10 border-primary/20 hover:bg-primary/20 text-primary h-8"
-          onClick={sendTestPush}
-          disabled={sendingTest}
-        >
-          {sendingTest ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
-          Testar
-        </Button>
+
+        <div className="px-5 py-3 flex items-center gap-1 text-white/40 text-sm">
+          Todos os checkouts (padrão) <ChevronDown className="w-3 h-3" />
+        </div>
+
+        {TOGGLES.map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between px-5 py-4">
+            <span className={`text-sm ${allDisabled ? "text-white/30" : "text-white/90"}`}>{label}</span>
+            <Switch
+              checked={prefs[key] as boolean}
+              onCheckedChange={(v) => togglePref(key, v)}
+              disabled={saving || allDisabled}
+            />
+          </div>
+        ))}
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+      {/* Como funciona */}
+      <div>
+        <h2 className="font-bold text-white text-lg mb-2">Como funciona</h2>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <p className="text-white/60 text-sm leading-relaxed">
+            Você recebe um push automático com o resumo de mensagens enviadas e vendas
+            a cada janela do dia (00h, 08h, 12h, 18h — horário de Brasília).
+          </p>
         </div>
-      ) : items.length === 0 ? (
-        <div className="glass-card p-10 text-center">
-          <Bell className="w-10 h-10 text-white/20 mx-auto mb-3" />
-          <p className="text-white/50 text-sm">Nenhuma notificação ainda</p>
-          <p className="text-white/30 text-xs mt-1">Suas vendas e mensagens aparecerão aqui</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {items.map((n) => {
-            const Icon = n.kind === "pix" ? Zap : TrendingUp;
-            const iconColor =
-              n.kind === "pix" ? "text-purple-400 bg-purple-500/15"
-              : "text-emerald-400 bg-emerald-500/15";
-            return (
-              <div key={n.id} className="glass-card p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}>
-                  <Icon className="w-[18px] h-[18px]" strokeWidth={2.5} />
-                </div>
+      </div>
+
+      {/* Resumos recentes */}
+      <div>
+        <h2 className="font-bold text-white text-lg mb-2">Resumos recentes</h2>
+        {summaries.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center text-white/40 text-sm">
+            Os resumos aparecerão aqui ao longo do dia.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {summaries.map(s => (
+              <div key={s.slot} className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+                <Clock className="w-4 h-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-white text-sm font-semibold truncate">{n.title}</p>
-                    <span className="text-white/40 text-[11px] shrink-0">{timeAgo(n.created_at)}</span>
-                  </div>
-                  <p className="text-white/50 text-xs truncate mt-0.5">{n.subtitle}</p>
+                  <p className="text-white text-sm font-semibold">
+                    Resumo das {String(s.slot).padStart(2, "0")}:00
+                  </p>
+                  <p className="text-white/50 text-xs mt-0.5">
+                    {s.count} {s.count === 1 ? "venda" : "vendas"} · {formatBRL(s.total)}
+                  </p>
                 </div>
-                {n.amount !== undefined && (
-                  <div className="text-right shrink-0">
-                    <p className="text-emerald-400 text-sm font-bold">+ {formatBRL(n.amount)}</p>
-                  </div>
-                )}
+                <span className="text-white/40 text-xs shrink-0">{s.date}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
