@@ -16,8 +16,8 @@ const screens = [screen0, screen1, screen2];
 
 const Landing = () => {
   const navigate = useNavigate();
-  const goSignup = () => navigate("/auth?signup=true");
-   const goLogin = () => navigate("/notificacoes-realtime");
+   const goSignup = () => navigate("/auth?signup=true");
+   const goLogin = () => navigate("/auth");
 
   return (
     <div className="lp-root">
