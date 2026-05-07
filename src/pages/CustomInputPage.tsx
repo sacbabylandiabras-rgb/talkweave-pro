@@ -347,6 +347,48 @@ export default function CustomInputPage() {
           </div>
         )}
 
+        {activeTab === "settings" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="text-2xl font-black text-white tracking-tight">Ajustes</h2>
+            <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Notificações Push</p>
+                  <p className="text-[11px] text-slate-500">{pushEnabled ? "Ativadas" : "Desativadas"}</p>
+                </div>
+                <div className={`w-10 h-5 rounded-full relative transition-colors ${pushEnabled ? 'bg-purple-500' : 'bg-slate-700'}`}>
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${pushEnabled ? 'left-6' : 'left-1'}`} />
+                </div>
+              </div>
+              <div 
+                onClick={() => supabase.auth.signOut()}
+                className="p-4 flex items-center justify-between active:bg-white/5 transition-colors cursor-pointer"
+              >
+                <p className="text-sm font-bold text-red-400">Sair da Conta</p>
+                <ChevronRight className="w-4 h-4 text-slate-700" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "bot" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="text-2xl font-black text-white tracking-tight">Telegram</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Conecte seu bot de notificações</p>
+            
+            <div className="bg-[#161820] border border-white/5 rounded-2xl p-5 text-center">
+              <div className="w-12 h-12 bg-sky-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Bot className="w-6 h-6 text-sky-400" />
+              </div>
+              <p className="text-sm font-bold text-white mb-2">Bot não configurado</p>
+              <p className="text-xs text-slate-500 mb-4 px-4">Conecte seu bot para receber alertas também no Telegram.</p>
+              <button className="bg-sky-500/20 text-sky-400 text-xs font-bold py-2.5 px-6 rounded-xl active:scale-[0.98] transition-all">
+                Configurar Bot
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === "wallet" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-black text-white tracking-tight">Financeiro</h2>
