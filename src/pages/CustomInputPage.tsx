@@ -30,7 +30,7 @@ import { useNavigate } from "react-router-dom";
 export default function CustomInputPage() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("painel");
+   const [activeTab, setActiveTab] = useState("painel");
   const { enablePush, pushEnabled, permissionStatus, pushBusy } = useWebPush();
   const navigate = useNavigate();
 
@@ -373,44 +373,38 @@ export default function CustomInputPage() {
           </div>
         )}
 
-        {activeTab === "reports" && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-black text-white tracking-tight">Relatórios</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Histórico detalhado de atividade</p>
-            
-            <div className="bg-[#161820] border border-white/5 rounded-2xl p-5 text-center space-y-3">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                <PieChart className="w-6 h-6 text-slate-700" />
-              </div>
-              <p className="text-sm font-bold text-white">Nenhum dado recente</p>
-              <p className="text-xs text-slate-500 px-4">Relatórios automáticos de vendas e conversões aparecerão aqui conforme o uso.</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "settings" && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-black text-white tracking-tight">Ajustes</h2>
-            <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white">Notificações Push</p>
-                  <p className="text-[11px] text-slate-500">{pushEnabled ? "Ativadas" : "Desativadas"}</p>
-                </div>
-                <div className={`w-10 h-5 rounded-full relative transition-colors ${pushEnabled ? 'bg-purple-500' : 'bg-slate-700'}`}>
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${pushEnabled ? 'left-6' : 'left-1'}`} />
-                </div>
-              </div>
-              <div 
-                onClick={() => supabase.auth.signOut()}
-                className="p-4 flex items-center justify-between active:bg-white/5 transition-colors cursor-pointer"
-              >
-                <p className="text-sm font-bold text-red-400">Sair da Conta</p>
-                <ChevronRight className="w-4 h-4 text-slate-700" />
-              </div>
-            </div>
-          </div>
-        )}
+         {activeTab === "avisos" && (
+           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+             <h2 className="text-2xl font-black text-white tracking-tight">Avisos</h2>
+             <p className="text-xs text-slate-500 mt-0.5">Notificações e alertas do sistema</p>
+             
+             <div className="bg-gradient-to-br from-[#2d1b69] to-[#1a1040] border border-purple-500/20 rounded-2xl p-5 mb-4">
+               <p className="text-xs text-white/70 leading-relaxed mb-4">
+                 {pushEnabled ? "Sistema de notificações ativo no seu dispositivo!" : "Ative as notificações para receber alertas de vendas em tempo real."}
+               </p>
+               {!pushEnabled && (
+                 <button 
+                   onClick={handleEnablePush}
+                   disabled={pushBusy}
+                   className="w-full bg-purple-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all"
+                 >
+                   {pushBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                   Ativar Notificações Realtime
+                 </button>
+               )}
+             </div>
+ 
+             <div className="bg-[#161820] border border-white/5 rounded-2xl overflow-hidden">
+               <div 
+                 onClick={() => supabase.auth.signOut()}
+                 className="p-4 flex items-center justify-between active:bg-white/5 transition-colors cursor-pointer"
+               >
+                 <p className="text-sm font-bold text-red-400">Sair da Conta</p>
+                 <ChevronRight className="w-4 h-4 text-slate-700" />
+               </div>
+             </div>
+           </div>
+         )}
 
         {activeTab === "bot" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -461,15 +455,14 @@ export default function CustomInputPage() {
 
       </div>
 
-      {/* Navigation */}
-      <div className="h-20 bg-[#0f1117] border-t border-white/5 flex items-center justify-around px-2 relative z-50">
-        {[
-          { id: "painel", icon: LayoutDashboard, label: "Painel" },
-          { id: "reports", icon: PieChart, label: "Relatórios" },
-          { id: "wallet", icon: Wallet, label: "Saques" },
-          { id: "bot", icon: Bot, label: "Telegram" },
-          { id: "settings", icon: Settings, label: "Ajustes" },
-        ].map((item) => (
+       {/* Navigation */}
+       <div className="h-20 bg-[#0f1117] border-t border-white/5 flex items-center justify-around px-2 relative z-50">
+         {[
+           { id: "painel", icon: LayoutDashboard, label: "Painel" },
+           { id: "bot", icon: Send, label: "Telegram" },
+           { id: "wallet", icon: Wallet, label: "Saques" },
+           { id: "avisos", icon: Bell, label: "Avisos" },
+         ].map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
