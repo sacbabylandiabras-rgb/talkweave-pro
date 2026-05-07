@@ -94,22 +94,43 @@ export default function CustomInputPage() {
     return () => subscription.unsubscribe();
   }, [fetchStats]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) {
-        toast.error(error.message.includes("Invalid login credentials") ? "E-mail ou senha incorretos" : error.message);
-        return;
-      }
-      toast.success("Bem-vindo de volta!");
-    } catch (err: any) {
-      toast.error("Erro ao fazer login");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+   const handleLogin = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!email.trim() || !password) {
+       toast.error("Preencha todos os campos");
+       return;
+     }
+     
+     setAuthLoading(true);
+     try {
+       const { data, error } = await supabase.auth.signInWithPassword({ 
+         email: email.trim(), 
+         password 
+       });
+
+       if (error) {
+         console.error("Login error:", error);
+         toast.error(error.message.includes("Invalid login credentials") ? "E-mail ou senha incorretos" : error.message);
+         return;
+       }
+
+       if (data.user) {
+         const { data: profile } = await supabase.from("profiles").select("is_active").eq("id", data.user.id).single();
+         if (profile && !profile.is_active) {
+           await supabase.auth.signOut();
+           toast.error("Sua conta está desativada. Entre em contato com o suporte.");
+           return;
+         }
+       }
+
+       toast.success("Bem-vindo de volta!");
+     } catch (err: any) {
+       console.error("Auth exception:", err);
+       toast.error("Erro ao fazer login: " + (err.message || "tente novamente"));
+     } finally {
+       setAuthLoading(false);
+     }
+   };
 
   const handleEnablePush = async () => {
     try {
