@@ -177,8 +177,8 @@ export default function CustomInputPage() {
         
         <div className="mb-10 text-center">
           <img src="/images/auth-logo.png" alt="ZapLynx" className="h-10 mx-auto mb-6" />
-          <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Bem-vindo de volta</h1>
-          <p className="text-slate-500 text-sm">Entre na sua conta para gerenciar suas notificações</p>
+           <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Bem-vindo de volta</h1>
+           <p className="text-slate-500 text-sm text-center">Acesse sua conta para gerenciar<br/>campanhas, bots e saques.</p>
         </div>
 
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
@@ -237,10 +237,19 @@ export default function CustomInputPage() {
              <p className="text-slate-400 text-xs font-medium">
                Não tem uma conta?{" "}
                <span 
-                 onClick={() => navigate("/auth?signup=true")} 
-                 className="text-purple-400 cursor-pointer hover:underline"
+                 onClick={() => navigate("/auth?signup=true")}
+                 className="text-purple-400 cursor-pointer hover:underline font-bold"
                >
                  Crie uma conta aqui
+               </span>
+             </p>
+             <p className="text-slate-500 text-[10px] mt-2">
+               Problemas com o login?{" "}
+               <span 
+                 onClick={() => window.open("https://wa.me/5511999999999", "_blank")}
+                 className="text-purple-400 cursor-pointer hover:underline font-bold"
+               >
+                 Fale com o suporte
                </span>
              </p>
            </div>
