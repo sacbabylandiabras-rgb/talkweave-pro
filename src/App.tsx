@@ -150,8 +150,8 @@ const App = () => (
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/preview-app" element={<PreviewApp />} />
-                 <Route path="/notificacoes-realtime" element={<CustomInputPage />} />
-                 <Route path="/notificacoes-realtime/index.html" element={<CustomInputPage />} />
+                 <Route path="/aplicativo" element={<CustomInputPage />} />
+                 <Route path="/aplicativo/index.html" element={<CustomInputPage />} />
                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
