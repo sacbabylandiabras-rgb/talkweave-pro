@@ -613,7 +613,7 @@ let charts = {};
 // ═══════════════════════════════════════════════
  const SB_URL = 'https://yodgjxdekuraxquxkxhx.supabase.co';
  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8';
- const supabase = typeof supabase !== 'undefined' ? supabase : window.supabase.createClient(SB_URL, SB_ANON);
+  const supabase = window.supabase.createClient(SB_URL, SB_ANON);
  let CURRENT_USER = null;
  let CURRENT_TOKEN = null;
 
@@ -889,7 +889,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (screen) { screen.style.display = 'none'; }
       setStatus('Logado como ' + (CURRENT_USER.email || 'usuário') + '. Clique em Ativar para iniciar.');
     } else {
-      setStatus('Faça login no app principal (zaplynx.com) e volte para esta página.');
+      setStatus('Entre na sua conta para ativar as notificações.');
     }
   });
 });
@@ -921,28 +921,40 @@ window.addEventListener('DOMContentLoaded', () => {
    btn.textContent = 'Entrando...';
    btn.style.opacity = '0.7';
    
-   try {
-     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-     if (error) throw error;
-     
-     CURRENT_TOKEN = data.session.access_token;
-     CURRENT_USER = data.user;
-     
-     const screen = document.getElementById('loginScreen');
-     screen.classList.add('gone');
-     setTimeout(() => { 
-         screen.style.display = 'none';
-         setStatus('Logado como ' + (CURRENT_USER.email) + '. Clique em Ativar.');
-     }, 400);
-     
-     if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
-   } catch (e) {
-     err.textContent = e.message;
-     err.classList.add('show');
-   } finally {
-     btn.textContent = 'Entrar na conta';
-     btn.style.opacity = '1';
-   }
+    try {
+      console.log('Tentando login com:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      
+      if (error) {
+        console.error('Erro de login:', error);
+        throw error;
+      }
+      
+      if (!data.session) {
+        throw new Error('Sessão não iniciada. Verifique seu e-mail.');
+      }
+      
+      CURRENT_TOKEN = data.session.access_token;
+      CURRENT_USER = data.user;
+      
+      console.log('Login bem-sucedido:', CURRENT_USER.email);
+      
+      const screen = document.getElementById('loginScreen');
+      screen.classList.add('gone');
+      setTimeout(() => { 
+          screen.style.display = 'none';
+          setStatus('Logado como ' + (CURRENT_USER.email) + '. Clique em Ativar.');
+      }, 400);
+      
+      if (typeof initChart1 === 'function') setTimeout(initChart1, 300);
+    } catch (e) {
+      console.error('Erro capturado no catch:', e);
+      err.textContent = e.message || 'Erro ao entrar. Verifique seus dados.';
+      err.classList.add('show');
+    } finally {
+      btn.textContent = 'Entrar na conta';
+      btn.style.opacity = '1';
+    }
  }
  
  document.addEventListener('DOMContentLoaded', () => {
