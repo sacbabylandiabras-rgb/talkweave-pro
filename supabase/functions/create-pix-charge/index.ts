@@ -673,7 +673,8 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
     // Real-time Push Notification for the seller
     try {
       const amount = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+      console.log('[CartWave] Sending push notification for user:', checkout.user_id, 'amount:', amount)
+      const pushRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
         body: JSON.stringify({
@@ -685,6 +686,8 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
           checkout_id: checkout.id,
         }),
       })
+      const pushTxt = await pushRes.text()
+      console.log('[CartWave] Push response status:', pushRes.status, 'body:', pushTxt.slice(0, 300))
     } catch (pushErr) {
       console.error('Push notification error:', pushErr)
     }
