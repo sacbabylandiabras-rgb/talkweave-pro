@@ -143,22 +143,46 @@ import { useNavigate } from "react-router-dom";
        console.error("Error fetching stats:", error);
      }
    }, []);
-   const togglePref = async (key: keyof typeof prefs, value: boolean) => {
-     if (!session?.user?.id) return;
-     const next = { ...prefs, [key]: value };
-     setPrefs(next);
-     setSavingPrefs(true);
-    const { error } = await (supabase as any)
-      .from("notification_preferences")
-       .upsert(
-         { user_id: session.user.id, checkout_id: null, ...next },
-         { onConflict: "user_id" }
-       );
-     setSavingPrefs(false);
-     if (error) {
-       toast.error("Erro ao salvar: " + error.message);
-     }
-   };
+  const togglePref = async (key: keyof typeof prefs, value: boolean) => {
+    if (!session?.user?.id) return;
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    setSavingPrefs(true);
+    
+    try {
+      // First try to find if it exists
+      const { data: existing } = await supabase
+        .from("notification_preferences")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .is("checkout_id", null)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from("notification_preferences")
+          .update({ ...next, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("notification_preferences")
+          .insert({ user_id: session.user.id, checkout_id: null, ...next });
+        error = insertError;
+      }
+
+      if (error) throw error;
+      toast.success("Preferências salvas!");
+    } catch (error: any) {
+      console.error("Error saving prefs:", error);
+      toast.error("Erro ao salvar: " + error.message);
+      // Revert local state on error
+      setPrefs(prefs);
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
  
 
   useEffect(() => {
