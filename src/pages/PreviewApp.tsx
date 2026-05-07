@@ -523,25 +523,22 @@ function Pagamentos({ email }: { email?: string }) {
   );
 }
 
-/* ===================== UI ===================== */
-function KpiCardBar({ color, label, value, sub }: any) {
+/* ===================== UI COMPONENTS ===================== */
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
   return (
-    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 10, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color }} />
-      <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>{label}</p>
-      <p style={{ color: "#fff", fontSize: 19, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{value}</p>
-      {sub && <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, marginTop: 3 }}>{sub}</p>}
+    <div style={{ background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 12, padding: 14 }}>
+      <p style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_MAIN }}>{label}</p>
+      <p style={{ color, fontSize: 18, fontWeight: 700, fontFamily: MONO, marginTop: 8 }}>{value}</p>
+      {sub && <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 4, fontFamily: FONT_MAIN }}>{sub}</p>}
     </div>
   );
 }
 
-function FinCard({ label, value, valColor }: { label: string; value: string; valColor: string }) {
-  const [int_, dec] = value.split(",");
+function MiniStatSimple({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: 13 }}>
-      <p style={{ color: C.textMuted, fontSize: 9, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>● {label}</p>
-      <p style={{ color: valColor, fontSize: 17, fontWeight: 700, fontFamily: MONO, letterSpacing: -0.3 }}>R$ {int_}</p>
-      <p style={{ color: C.textDim, fontSize: 10, marginTop: 3 }}>,{dec || "00"} neste período</p>
+    <div style={{ flex: 1, background: C.card, border: "0.5px solid " + C.cardBorder, borderRadius: 8, padding: "10px 4px", textAlign: "center" }}>
+      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</p>
+      <p style={{ color, fontSize: 18, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>{value}</p>
     </div>
   );
 }
