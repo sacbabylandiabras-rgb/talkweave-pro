@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet } from "lucide-react";
+import { TrendingUp, CreditCard, DollarSign, Loader2, Activity, Trophy, CalendarIcon, Wallet, BellRing } from "lucide-react";
+import { useWebPush } from "@/hooks/useWebPush";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -55,6 +57,8 @@ export default function PayDashboard() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [activeVisitors, setActiveVisitors] = useState<ActiveVisitor[]>([]);
+  const { pushEnabled, permissionStatus, enablePush } = useWebPush();
+  const { toast } = useToast();
 
   const periodStart = useMemo(() => {
     const now = new Date();
@@ -368,6 +372,33 @@ export default function PayDashboard() {
           </Button>
         </CardContent>
       </Card>
+
+      {permissionStatus === "default" && (
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <BellRing className="w-5 h-5 text-primary animate-pulse" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Ative as notificações em tempo real!</p>
+              <p className="text-xs text-white/60">Receba alertas instantâneos de cada venda e PIX gerado diretamente no seu celular.</p>
+            </div>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-primary hover:bg-primary/90 text-xs px-6 h-9 rounded-full shrink-0"
+            onClick={() => {
+              enablePush().then(() => {
+                toast({ title: "Notificações ativadas!", description: "Você agora receberá alertas em tempo real." });
+              }).catch(e => {
+                toast({ title: "Atenção", description: "Para ativar no iOS, adicione o app à tela de início primeiro.", variant: "destructive" });
+              });
+            }}
+          >
+            Ativar Agora
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m) => (
