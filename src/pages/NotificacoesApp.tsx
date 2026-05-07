@@ -170,7 +170,7 @@ export default function NotificacoesApp() {
           user_id: userId,
           title: "Teste de Notificação",
           body: "Se você está vendo isso, o push está funcionando!",
-          url: window.location.origin + "/notificacoes-realtime",
+          url: window.location.origin + "/aplicativo",
         },
       });
       if (error) throw error;
