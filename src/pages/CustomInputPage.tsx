@@ -38,6 +38,7 @@ import { useNavigate } from "react-router-dom";
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState("painel");
+   const [period, setPeriod] = useState<"hoje" | "semana" | "mes">("hoje");
   const { enablePush, pushEnabled, permissionStatus, pushBusy } = useWebPush();
   const navigate = useNavigate();
 
@@ -67,10 +68,15 @@ import { useNavigate } from "react-router-dom";
    });
    const [savingPrefs, setSavingPrefs] = useState(false);
 
-   const fetchStats = useCallback(async (userId: string) => {
+   const fetchStats = useCallback(async (userId: string, periodArg: "hoje" | "semana" | "mes" = "hoje") => {
      try {
        const start = new Date();
        start.setHours(0, 0, 0, 0);
+       if (periodArg === "semana") {
+         start.setDate(start.getDate() - 7);
+       } else if (periodArg === "mes") {
+         start.setDate(start.getDate() - 30);
+       }
  
         const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
           supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -142,7 +148,11 @@ import { useNavigate } from "react-router-dom";
      } catch (error) {
        console.error("Error fetching stats:", error);
      }
-   }, []);
+    }, []);
+
+   useEffect(() => {
+     if (session?.user?.id) fetchStats(session.user.id, period);
+   }, [period, session?.user?.id, fetchStats]);
   const togglePref = async (key: keyof typeof prefs, value: boolean) => {
     if (!session?.user?.id) return;
     const next = { ...prefs, [key]: value };
@@ -398,9 +408,24 @@ import { useNavigate } from "react-router-dom";
         {activeTab === "painel" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="flex gap-1.5 mb-4">
-              <div className="text-[11px] px-3 py-1 bg-purple-500/15 text-purple-400 rounded-lg font-bold">ZapLynx Pro</div>
-              <div className="text-[11px] px-3 py-1 bg-[#1e2130] text-slate-500 rounded-lg font-bold">Semana</div>
-              <div className="text-[11px] px-3 py-1 bg-[#1e2130] text-slate-500 rounded-lg font-bold">Mês</div>
+              <button
+                onClick={() => setPeriod("hoje")}
+                className={`text-[11px] px-3 py-1 rounded-lg font-bold transition-colors ${period === "hoje" ? "bg-purple-500/15 text-purple-400" : "bg-[#1e2130] text-slate-500"}`}
+              >
+                Hoje
+              </button>
+              <button
+                onClick={() => setPeriod("semana")}
+                className={`text-[11px] px-3 py-1 rounded-lg font-bold transition-colors ${period === "semana" ? "bg-purple-500/15 text-purple-400" : "bg-[#1e2130] text-slate-500"}`}
+              >
+                Semana
+              </button>
+              <button
+                onClick={() => setPeriod("mes")}
+                className={`text-[11px] px-3 py-1 rounded-lg font-bold transition-colors ${period === "mes" ? "bg-purple-500/15 text-purple-400" : "bg-[#1e2130] text-slate-500"}`}
+              >
+                Mês
+              </button>
             </div>
 
             <div>
@@ -409,34 +434,34 @@ import { useNavigate } from "react-router-dom";
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => navigate("/campanhas")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
+              <div className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Campanhas</p>
                 <p className="text-3xl font-black text-purple-400">{stats.campaigns}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Criadas</p>
-              </button>
-              <button onClick={() => navigate("/modelos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
+              </div>
+              <div className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Modelos</p>
                 <p className="text-3xl font-black text-blue-400">{stats.templates}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Templates</p>
-              </button>
-              <button onClick={() => navigate("/contatos")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
+              </div>
+              <div className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Contatos</p>
                 <p className="text-3xl font-black text-emerald-400">{stats.contacts}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Alcançados</p>
-              </button>
-              <button onClick={() => navigate("/gateway-checkout/reports")} className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4 active:scale-[0.98] transition-transform">
+              </div>
+              <div className="text-left bg-[#161820] border border-white/5 rounded-2xl p-4">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Pix Gerado</p>
                 <p className="text-lg font-black text-emerald-400 mt-1">R$ {stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 <p className="text-[10px] text-slate-600 mt-1">Total gerado</p>
-              </button>
+              </div>
             </div>
 
-            <button onClick={() => navigate("/gateway-checkout/dashboard")} className="w-full text-left bg-[#161820] border border-blue-500/20 rounded-2xl p-4 active:scale-[0.99] transition-transform">
+            <div className="w-full text-left bg-[#161820] border border-blue-500/20 rounded-2xl p-4">
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Venda aprovada</p>
               <p className="text-3xl font-black text-blue-400">R$ {stats.approvedSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-            </button>
+            </div>
 
-            <button onClick={() => navigate("/relatorio")} className="w-full bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform">
+            <div className="w-full bg-[#161820] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">CPA</p>
                 <div className="flex items-baseline gap-2">
@@ -444,7 +469,7 @@ import { useNavigate } from "react-router-dom";
                   <span className="text-[11px] text-slate-600 font-medium">venda / msg</span>
                 </div>
               </div>
-            </button>
+            </div>
 
             {/* Push Status / Action */}
             <div className="bg-gradient-to-br from-[#2d1b69] to-[#1a1040] border border-purple-500/20 rounded-2xl p-5 relative overflow-hidden">
