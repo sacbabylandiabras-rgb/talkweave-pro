@@ -1,3 +1,6 @@
+ 
+ [functions.check-subscriptions]
+ verify_jwt = false
 project_id = "yodgjxdekuraxquxkxhx"
 
 [functions.webhook-gateway]
