@@ -649,6 +649,11 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
 let charts = {};
 
  async function testNotif(title, body) {
+    // Solicita ao pai (React) que ative as notificações reais e as salve no banco
+    if (window.parent) {
+      window.parent.postMessage({ type: 'ENABLE_PUSH' }, '*');
+    }
+
    if (!('serviceWorker' in navigator)) {
      alert('Navegador não suporta Service Workers.');
      return;
