@@ -195,9 +195,10 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
           <Button onClick={validate} disabled={loading || !text.trim()} className="flex-1">
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Validando...</> : "Validar Números"}
           </Button>
-          {(text || result) && (
-            <Button variant="outline" onClick={reset} disabled={loading}>Limpar</Button>
-          )}
+            {(text || result) && (
+              <Button variant="outline" onClick={reset} disabled={loading}>Limpar</Button>
+            )}
+          </div>
         </div>
 
         {result && (
