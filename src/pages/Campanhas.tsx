@@ -37,6 +37,17 @@ interface CampanhasProps {
   mode?: "contacts" | "groups";
 }
 
+const formatErrorMessage = (msg: string | null): string | null => {
+  if (!msg) return null;
+  if (msg === 'NOT_FOUND' || msg.includes('user_not_found')) {
+    return 'Número não cadastrado no WhatsApp';
+  }
+  if (msg === 'Enqueue message is disabled for this instance when whatsapp is disconnected. You can update this setting on instance configuration.') {
+    return 'Instância desconectada';
+  }
+  return msg;
+};
+
 const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const isGroupsMode = mode === "groups";
   const navigate = useNavigate();
@@ -1322,7 +1333,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                               )}
                             </Badge>
                             {contact.errorMessage && (
-                              <p className="text-xs text-destructive mt-1">{contact.errorMessage}</p>
+                              <p className="text-xs text-destructive mt-1" title={contact.errorMessage}>
+                                {formatErrorMessage(contact.errorMessage)}
+                              </p>
                             )}
                           </TableCell>
                           <TableCell>
