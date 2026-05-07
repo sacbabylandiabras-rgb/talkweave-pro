@@ -656,12 +656,14 @@ function testNotif(title, body) {
   
   if (Notification.permission === "granted") {
     const iconUrl = window.location.origin + '/icon-512.png';
-    new Notification(title, { body, icon: iconUrl });
+    const n = new Notification(title, { body, icon: iconUrl });
+    n.onclick = () => { window.focus(); };
   } else if (Notification.permission !== "denied") {
     Notification.requestPermission().then(permission => {
       if (permission === "granted") {
         const iconUrl = window.location.origin + '/icon-512.png';
-        new Notification(title, { body, icon: iconUrl });
+        const n = new Notification(title, { body, icon: iconUrl });
+        n.onclick = () => { window.focus(); };
       }
     });
   } else {
