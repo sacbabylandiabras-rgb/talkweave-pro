@@ -77,27 +77,94 @@ import { useNavigate } from "react-router-dom";
        } else if (periodArg === "mes") {
          start.setDate(start.getDate() - 30);
        }
- 
-        const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
-          supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
-          supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
-          (supabase as any).from("saved_contacts").select("id", { count: "exact", head: true }).eq("user_id", userId),
-          supabase.from("gateway_transactions").select("amount, created_at, status").eq("user_id", userId).in("status", ["paid", "approved", "completed"]).gte("created_at", start.toISOString()),
-          supabase.from("campaign_sends").select("sent_at").eq("user_id", userId).gte("sent_at", start.toISOString()),
-          (supabase as any).from("notification_preferences").select("*").eq("user_id", userId).is("checkout_id", null).maybeSingle()
-        ]);
- 
-       const totalRevenue = (transRes.data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
-       const lastSale = transRes.data && transRes.data.length > 0 ? (transRes.data[0].amount || 0) / 100 : 0;
- 
-       setStats({
-         campaigns: campRes.count || 0,
-         templates: tempRes.count || 0,
-         contacts: contactRes.count || 0,
-         totalRevenue,
-         approvedSale: lastSale,
-         cpa: 0
-       });
+      const startIso = start.toISOString();
+
+      // Campanhas, Modelos (ativos), Preferências
+      const [campRes, tempRes, prefsRes] = await Promise.all([
+        supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", startIso),
+        supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("active", true),
+        (supabase as any).from("notification_preferences").select("*").eq("user_id", userId).is("checkout_id", null).maybeSingle(),
+      ]);
+
+      // Contatos: telefones únicos de campaign_sends (paginado)
+      let allPhones: string[] = [];
+      let cFrom = 0;
+      const cPage = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("campaign_sends")
+          .select("phone")
+          .eq("user_id", userId)
+          .gte("created_at", startIso)
+          .range(cFrom, cFrom + cPage - 1);
+        if (error || !data || data.length === 0) break;
+        allPhones = allPhones.concat(data.map((s: any) => s.phone).filter(Boolean));
+        if (data.length < cPage) break;
+        cFrom += cPage;
+      }
+      const contactsCount = new Set(allPhones).size;
+
+      // Receita: gateway_transactions + external_gateway_events (paginado)
+      let pixGenerated = 0;
+      let approved = 0;
+      let approvedCount = 0;
+      let gFrom = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("gateway_transactions")
+          .select("amount, status, created_at")
+          .eq("user_id", userId)
+          .gte("created_at", startIso)
+          .range(gFrom, gFrom + cPage - 1);
+        if (error || !data || data.length === 0) break;
+        for (const t of data as any[]) {
+          pixGenerated += t.amount || 0;
+          if (["approved", "paid", "completed"].includes(t.status)) {
+            approved += t.amount || 0;
+            approvedCount += 1;
+          }
+        }
+        if (data.length < cPage) break;
+        gFrom += cPage;
+      }
+      let eFrom = 0;
+      while (true) {
+        const { data, error } = await (supabase as any)
+          .from("external_gateway_events")
+          .select("amount, status, created_at")
+          .eq("user_id", userId)
+          .gte("created_at", startIso)
+          .range(eFrom, eFrom + cPage - 1);
+        if (error || !data || data.length === 0) break;
+        for (const t of data as any[]) {
+          pixGenerated += t.amount || 0;
+          if (["approved", "paid", "completed"].includes(t.status)) {
+            approved += t.amount || 0;
+            approvedCount += 1;
+          }
+        }
+        if (data.length < cPage) break;
+        eFrom += cPage;
+      }
+
+      // Mensagens enviadas para CPA
+      const { count: msgCount } = await supabase
+        .from("campaign_sends")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .in("status", ["sent", "delivered", "read"])
+        .gte("created_at", startIso);
+
+      const cpaRatio = msgCount && msgCount > 0 ? approvedCount / msgCount : 0;
+
+      setStats({
+        campaigns: campRes.count || 0,
+        templates: tempRes.count || 0,
+        contacts: contactsCount,
+        totalRevenue: pixGenerated / 100,
+        approvedSale: approved / 100,
+        cpa: cpaRatio,
+      });
  
       const data: any = prefsRes.data;
       if (data) {
@@ -111,9 +178,21 @@ import { useNavigate } from "react-router-dom";
           notify_pix_or_boleto_issued: !!data.notify_pix_or_boleto_issued,
         });
       }
- 
-       const tx = transRes.data || [];
-       const msgs = msgRes.data || [];
+
+      // Carrega resumos por slot baseados em transações + mensagens do período
+      const { data: txData } = await supabase
+        .from("gateway_transactions")
+        .select("amount, created_at, status")
+        .eq("user_id", userId)
+        .in("status", ["paid", "approved", "completed"])
+        .gte("created_at", startIso);
+      const { data: msgData } = await supabase
+        .from("campaign_sends")
+        .select("sent_at")
+        .eq("user_id", userId)
+        .gte("sent_at", startIso);
+      const tx = txData || [];
+      const msgs = msgData || [];
        const todayStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
        const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
  
