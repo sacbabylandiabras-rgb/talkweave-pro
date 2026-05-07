@@ -40,28 +40,59 @@ export default function CustomInputPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Stats data
   const [stats, setStats] = useState({
-    campaigns: 3,
-    templates: 8,
-    contacts: 1,
-    totalRevenue: 9927.71,
-    approvedSale: 1005.90,
-    cpa: 4.67
+    campaigns: 0,
+    templates: 0,
+    contacts: 0,
+    totalRevenue: 0,
+    approvedSale: 0,
+    cpa: 0
   });
 
+  const fetchStats = useCallback(async (userId: string) => {
+    try {
+      const [campRes, tempRes, contactRes, transRes] = await Promise.all([
+        supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("saved_contacts" as any).select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("gateway_transactions").select("amount").eq("user_id", userId).in("status", ["paid", "approved", "completed"])
+      ]);
+
+      const totalRevenue = (transRes.data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
+      const lastSale = transRes.data && transRes.data.length > 0 ? (transRes.data[0].amount || 0) / 100 : 0;
+
+      setStats({
+        campaigns: campRes.count || 0,
+        templates: tempRes.count || 0,
+        contacts: contactRes.count || 0,
+        totalRevenue,
+        approvedSale: lastSale,
+        cpa: 0 // Placeholder for logic
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }, []);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      if (session?.user?.id) {
+        await fetchStats(session.user.id);
+      }
       setLoading(false);
-    });
+    };
+
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user?.id) fetchStats(session.user.id);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchStats]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
