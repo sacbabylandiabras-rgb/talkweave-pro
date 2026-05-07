@@ -1,3 +1,5 @@
+     const nextBillingDate = payload.date_next_billing || payload.subscription_date_next_billing;
+     
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
@@ -95,14 +97,25 @@ Deno.serve(async (req) => {
       if (existingUser) {
         console.log(`User already exists: ${existingUser.id}, activating subscription`);
         
-        await ensureProfile(existingUser.id, {
+        const updateData: any = {
           is_active: true,
           subscription_status: "active",
-          subscription_expires_at: null,
           full_name: customerName || undefined,
           whatsapp: customerPhone || undefined,
           email: customerEmail,
-        });
+        };
+
+        // Se houver uma data de próxima cobrança no payload, usa ela. 
+        // Caso contrário, define para 30 dias a partir de hoje como padrão.
+        if (nextBillingDate) {
+          updateData.subscription_expires_at = new Date(nextBillingDate).toISOString();
+        } else {
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 30);
+          updateData.subscription_expires_at = expiry.toISOString();
+        }
+
+        await ensureProfile(existingUser.id, updateData);
 
         return new Response(JSON.stringify({ 
           success: true, 
@@ -140,9 +153,17 @@ Deno.serve(async (req) => {
       // Wait a moment for the trigger to create the profile, then ensure it
       await new Promise((r) => setTimeout(r, 1000));
       
+      const expiry = new Date();
+      if (nextBillingDate) {
+        expiry.setTime(new Date(nextBillingDate).getTime());
+      } else {
+        expiry.setDate(expiry.getDate() + 30);
+      }
+
       await ensureProfile(newUser.user.id, {
         is_active: true,
         subscription_status: "active",
+        subscription_expires_at: expiry.toISOString(),
         full_name: customerName,
         whatsapp: customerPhone,
         email: customerEmail,
