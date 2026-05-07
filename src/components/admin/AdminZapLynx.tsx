@@ -60,7 +60,23 @@ const getKycStatusBadge = (status: string) => {
 const AdminZapLynx = () => {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
-  const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, refetch } = useAdminUsers();
+   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, refetch } = useAdminUsers();
+   const [checkingSubscriptions, setCheckingSubscriptions] = useState(false);
+   const handleCheckSubscriptions = async () => {
+     setCheckingSubscriptions(true);
+     try {
+       const { data, error } = await supabase.functions.invoke("check-subscriptions");
+       if (error) throw error;
+       toast.success(`${data.expired_count} assinaturas marcadas como expiradas.`);
+       refetch();
+     } catch (err: any) {
+       console.error("Error checking subscriptions:", err);
+       toast.error("Erro ao verificar assinaturas: " + err.message);
+     } finally {
+       setCheckingSubscriptions(false);
+     }
+   };
+
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
@@ -207,10 +223,20 @@ const AdminZapLynx = () => {
           <h1 className="text-3xl font-bold">Painel de Administração</h1>
           <p className="text-muted-foreground mt-1">Gerencie usuários, assinaturas e instâncias</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate("/dashboard")} variant="outline" size="sm">Voltar ao Dashboard</Button>
-          <Button onClick={refetch} variant="outline" size="sm"><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
-        </div>
+         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+           <Button 
+             onClick={handleCheckSubscriptions} 
+             variant="outline" 
+             size="sm" 
+             disabled={checkingSubscriptions}
+             className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
+           >
+             {checkingSubscriptions ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Clock className="w-4 h-4 mr-2" />}
+             Validar Expirações
+           </Button>
+           <Button onClick={() => navigate("/dashboard")} variant="outline" size="sm">Voltar ao Dashboard</Button>
+           <Button onClick={refetch} variant="outline" size="sm"><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
