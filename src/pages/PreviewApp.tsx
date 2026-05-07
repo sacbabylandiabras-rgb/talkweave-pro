@@ -9,8 +9,8 @@ import lynxLogo from "@/assets/lynx-logo.png";
 
 const C = {
   bg: "#0a0814",
-  card: "rgba(255,255,255,0.05)",
-  cardBorder: "rgba(255,255,255,0.08)",
+  card: "rgba(255,255,255,0.03)",
+  cardBorder: "rgba(255,255,255,0.06)",
   purple: "#9d7bfa",
   purpleDark: "#6c4af2",
   green: "#34c759",
@@ -22,6 +22,7 @@ const C = {
   textDim: "rgba(255,255,255,0.2)",
 };
 const MONO = "'Courier New', ui-monospace, monospace";
+const FONT_MAIN = "'Inter', system-ui, -apple-system, sans-serif";
 
 type Tab = "painel" | "telegram" | "pagamentos" | "notif";
 
@@ -144,8 +145,8 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         <Logo />
         <div className="flex items-center" style={{ gap: 8 }}>
           {tab === "painel" && (
-            <div style={{ background: "rgba(124,92,252,0.25)", border: "0.5px solid rgba(124,92,252,0.45)", borderRadius: 4, padding: "2px 8px" }}>
-              <span style={{ color: "#b09afa", fontSize: 10, fontWeight: 500, letterSpacing: 0.5 }}>PRO</span>
+            <div style={{ background: "rgba(124,92,252,0.15)", border: "0.5px solid rgba(124,92,252,0.3)", borderRadius: 6, padding: "3px 10px" }}>
+              <span style={{ color: "#9d7bfa", fontSize: 11, fontWeight: '700', fontFamily: FONT_MAIN }}>ZapLynx Pro</span>
             </div>
           )}
           {tab === "telegram" && (
@@ -161,11 +162,11 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
       </div>
       {/* HEADER */}
       <div className="relative z-10" style={{ padding: "0 18px 12px" }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{titles[tab]}</h1>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginTop: 3 }}>{subs[tab]}</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.8, color: '#fff', fontFamily: FONT_MAIN }}>{titles[tab]}</h1>
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, marginTop: 4, fontFamily: FONT_MAIN }}>{subs[tab]}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative z-10" style={{ padding: "0 14px 80px" }}>
+      <div className="flex-1 overflow-y-auto relative z-10" style={{ padding: "0 16px 100px" }}>
         {tab === "painel" && <Painel />}
         {tab === "telegram" && <Telegram />}
         {tab === "pagamentos" && <Pagamentos email={session?.user?.email} />}
@@ -173,8 +174,8 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
       </div>
 
       {/* TAB BAR */}
-      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20"
-        style={{ borderTop: "0.5px solid rgba(255,255,255,0.08)", background: "rgba(10,8,20,0.85)", backdropFilter: "blur(12px)" }}>
+      <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 z-20 pb-6"
+        style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(10,8,20,0.92)", backdropFilter: "blur(20px)" }}>
         {([
           { k: "painel", label: "Painel", icon: "▦" },
           { k: "telegram", label: "Telegram", icon: "✈" },
@@ -183,9 +184,9 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
         ] as const).map(({ k, label, icon }) => {
           const active = tab === k;
           return (
-            <button key={k} onClick={() => setTab(k)} className="py-2.5 flex flex-col items-center" style={{ gap: 2 }}>
-              <span style={{ fontSize: 16, color: active ? C.purple : "rgba(255,255,255,0.35)" }}>{icon}</span>
-              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? C.purple : "rgba(255,255,255,0.35)" }}>{label}</span>
+            <button key={k} onClick={() => setTab(k)} className="pt-4 pb-2 flex flex-col items-center" style={{ gap: 4 }}>
+              <span style={{ fontSize: 20, color: active ? C.purple : "rgba(255,255,255,0.3)" }}>{icon}</span>
+              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? C.purple : "rgba(255,255,255,0.3)", fontFamily: FONT_MAIN }}>{label}</span>
             </button>
           );
         })}
