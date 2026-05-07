@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+ import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,19 +14,9 @@ import {
   CheckCircle2, Clock, XCircle, RotateCcw, Search, Calendar, Inbox, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
-interface Sale {
-  id: string;
-  bot: string;
-  cliente: string;
-  pagamento: string;
-  data: string;
-  valor: number;
-  status: "PAGO" | "PENDENTE" | "FALHOU" | "REEMBOLSADO";
-}
-
-const MOCK: Sale[] = [];
-
 export default function TelegramVendas() {
+   const [sales, setSales] = useState<any[]>([]);
+   const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
   const [clientId, setClientId] = useState("");
   const [txId, setTxId] = useState("");
@@ -34,9 +24,40 @@ export default function TelegramVendas() {
   const [acquirer, setAcquirer] = useState("all");
   const [perPage, setPerPage] = useState("10");
 
-  const filtered = useMemo(() => MOCK.filter((s) => {
-    return (statusFilter === "all" || s.status === statusFilter);
-  }), [statusFilter]);
+   const loadData = async () => {
+     setLoading(true);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const { data } = await supabase
+       .from("gateway_transactions" as any)
+       .select("*")
+       .eq("user_id", user.id)
+       .order("created_at", { ascending: false });
+
+     setSales(data || []);
+     setLoading(false);
+   };
+
+   useEffect(() => {
+     loadData();
+
+     const channel = supabase
+       .channel("telegram-sales-realtime")
+       .on("postgres_changes", { event: "*", schema: "public", table: "gateway_transactions" }, () => {
+         loadData();
+       })
+       .subscribe();
+
+     return () => { supabase.removeChannel(channel); };
+   }, []);
+
+   const filtered = useMemo(() => sales.filter((s) => {
+     const status = s.status === "approved" || s.status === "paid" ? "PAGO" : 
+                    s.status === "pending" ? "PENDENTE" :
+                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU";
+     return (statusFilter === "all" || status === statusFilter);
+   }), [sales, statusFilter]);
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
