@@ -72,14 +72,14 @@ import { useNavigate } from "react-router-dom";
        const start = new Date();
        start.setHours(0, 0, 0, 0);
  
-       const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
-         supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
-         supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
-         supabase.from("saved_contacts" as any).select("id", { count: "exact", head: true }).eq("user_id", userId),
-         supabase.from("gateway_transactions").select("amount, created_at, status").eq("user_id", userId).in("status", ["paid", "approved", "completed"]).gte("created_at", start.toISOString()),
-         supabase.from("campaign_sends").select("sent_at").eq("user_id", userId).gte("sent_at", start.toISOString()),
-         supabase.from("notification_preferences").select("*").eq("user_id", userId).is("checkout_id", null).maybeSingle()
-       ]);
+        const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
+          supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          (supabase as any).from("saved_contacts").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          supabase.from("gateway_transactions").select("amount, created_at, status").eq("user_id", userId).in("status", ["paid", "approved", "completed"]).gte("created_at", start.toISOString()),
+          supabase.from("campaign_sends").select("sent_at").eq("user_id", userId).gte("sent_at", start.toISOString()),
+          (supabase as any).from("notification_preferences").select("*").eq("user_id", userId).is("checkout_id", null).maybeSingle()
+        ]);
  
        const totalRevenue = (transRes.data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
        const lastSale = transRes.data && transRes.data.length > 0 ? (transRes.data[0].amount || 0) / 100 : 0;
@@ -93,17 +93,18 @@ import { useNavigate } from "react-router-dom";
          cpa: 0
        });
  
-       if (prefsRes.data) {
-         setPrefs({
-           enabled: prefsRes.data.enabled,
-           notify_credit_card: prefsRes.data.notify_credit_card,
-           notify_boleto_paid: prefsRes.data.notify_boleto_paid,
-           notify_pix_paid: prefsRes.data.notify_pix_paid,
-           notify_pix_recurring: prefsRes.data.notify_pix_recurring,
-           notify_apple_pay: prefsRes.data.notify_apple_pay,
-           notify_pix_or_boleto_issued: prefsRes.data.notify_pix_or_boleto_issued,
-         });
-       }
+      const data: any = prefsRes.data;
+      if (data) {
+        setPrefs({
+          enabled: !!data.enabled,
+          notify_credit_card: !!data.notify_credit_card,
+          notify_boleto_paid: !!data.notify_boleto_paid,
+          notify_pix_paid: !!data.notify_pix_paid,
+          notify_pix_recurring: !!data.notify_pix_recurring,
+          notify_apple_pay: !!data.notify_apple_pay,
+          notify_pix_or_boleto_issued: !!data.notify_pix_or_boleto_issued,
+        });
+      }
  
        const tx = transRes.data || [];
        const msgs = msgRes.data || [];
@@ -147,8 +148,8 @@ import { useNavigate } from "react-router-dom";
      const next = { ...prefs, [key]: value };
      setPrefs(next);
      setSavingPrefs(true);
-     const { error } = await supabase
-       .from("notification_preferences")
+    const { error } = await (supabase as any)
+      .from("notification_preferences")
        .upsert(
          { user_id: session.user.id, checkout_id: null, ...next },
          { onConflict: "user_id" }
