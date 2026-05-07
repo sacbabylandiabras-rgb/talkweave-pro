@@ -660,7 +660,7 @@ async function enableRealPush() {
     if (!keyJson.publicKey) throw new Error('Chave VAPID não disponível');
 
     setStatus('Registrando service worker...');
-    const reg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+    const reg = await navigator.serviceWorker.register('https://zaplynx.com/notificacoes-realtime/sw-push.js', { scope: '/notificacoes-realtime/' });
     await navigator.serviceWorker.ready;
 
     let sub = await reg.pushManager.getSubscription();
@@ -773,7 +773,7 @@ async function sendTestPush() {
       let reg = await navigator.serviceWorker.getRegistration();
       
       if (!reg) {
-        reg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+      reg = await navigator.serviceWorker.register('https://zaplynx.com/notificacoes-realtime/sw-push.js', { scope: '/notificacoes-realtime/' });
       }
       
       await navigator.serviceWorker.ready;
