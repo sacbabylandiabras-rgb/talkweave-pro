@@ -326,6 +326,25 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
         </div>
       </div>
 
+      <div class="hero-card">
+        <div class="hero-eyebrow">Ações Rápidas</div>
+        <div class="hero-text">Teste o sistema de notificações enviando alertas de demonstração para o seu dispositivo.</div>
+        <div class="hero-btns">
+          <div class="btn-push" onclick="testNotif('Venda Aprovada', 'R$ 297,00')">
+            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Venda
+          </div>
+          <div class="btn-tg" onclick="testNotif('Nova Mensagem', 'Cliente aguardando link')">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Mensagem
+          </div>
+        </div>
+        <div class="btn-send" style="margin-top:8px" onclick="testNotif('Pix Recebido', 'R$ 89,90')">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Simular Pix
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-label">Volume de Mensagens</div>
         <div class="chart-legend">
@@ -618,6 +637,25 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
 
 <script>
 let charts = {};
+
+function testNotif(title, body) {
+  if (!("Notification" in window)) {
+    alert("Este navegador não suporta notificações.");
+    return;
+  }
+  
+  if (Notification.permission === "granted") {
+    new Notification(title, { body, icon: '/images/auth-logo.png' });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        new Notification(title, { body, icon: '/images/auth-logo.png' });
+      }
+    });
+  } else {
+    alert("Permissão de notificação negada. Ative nas configurações do navegador.");
+  }
+}
 
 function showPage(n, el) {
   // pages
