@@ -447,26 +447,26 @@ function Telegram() {
     { label: "Total de Saques", value: String(d.totalSaques), color: Colors.purple },
   ];
 
-  return (
-    <div style={{ padding: 20 }}>
-      <TopBar />
-      <PageHeader title="Saques" sub="Solicite a transferência do seu saldo via PIX" />
-
-       <button 
-         onClick={() => setModal(true)}
-         style={{ width: "100%", background: Colors.purple, color: "#fff", padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 16, cursor: "pointer" }}
-       >
-         + Solicitar Saque
-       </button>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        {cards.map((c) => (
-          <div key={c.label} style={{ ...cardStyle, marginBottom: 0 }}>
-            <p style={{ ...cardLabelStyle, color: Colors.subtext }}>{c.label}</p>
-            <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
-          </div>
-        ))}
-      </div>
+   return (
+     <div style={{ padding: 20, paddingBottom: 40 }}>
+       <TopBar />
+       <PageHeader title="Saques" sub="Solicite a transferência do seu saldo via PIX" />
+ 
+        <button 
+          onClick={() => setModal(true)}
+          style={{ background: Colors.purple, color: "#fff", padding: "13px 22px", borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 20, cursor: "pointer", alignSelf: "flex-start", display: "inline-block" }}
+        >
+          + Solicitar Saque
+        </button>
+ 
+       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
+         {cards.map((c) => (
+           <div key={c.label} style={{ ...cardStyle, width: "calc(50% - 6px)", marginBottom: 0 }}>
+             <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
+             <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
+           </div>
+         ))}
+       </div>
 
        {modal && (
          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -534,26 +534,27 @@ function Telegram() {
          </div>
        )}
  
-       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Histórico de Saques</h2>
-      <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
-        {d.hist.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem saques ainda.</p>}
-        {d.hist.map((h: any, i: number) => {
-          const ok = ["approved", "paid", "completed"].includes(h.status);
-          return (
-            <div key={h.id} style={{ display: "flex", alignItems: "center", padding: 14, borderTop: i > 0 ? `1px solid rgba(255,255,255,0.04)` : "none" }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, color: Colors.muted }}>{fmtDateTime(h.created_at)}</p>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 2 }}>{fmtBRL(h.amount)}</p>
-              </div>
-               <div style={{ background: h.status === 'approved' || h.status === 'paid' ? "rgba(52,211,153,0.15)" : h.status === 'rejected' ? "rgba(248,113,113,0.15)" : "rgba(251,191,36,0.15)", borderRadius: 6, padding: "4px 10px" }}>
-                 <span style={{ color: h.status === 'approved' || h.status === 'paid' ? Colors.green : h.status === 'rejected' ? Colors.red : Colors.amber, fontSize: 11, fontWeight: 600 }}>
-                   {h.status === 'approved' || h.status === 'paid' ? "Aprovado" : h.status === 'rejected' ? "Recusado" : "Pendente"}
-                 </span>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: Colors.white, marginBottom: 12 }}>Histórico de Saques</h2>
+       <div style={{ ...cardStyle, padding: "0 16px", overflow: "hidden" }}>
+         {d.hist.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem saques ainda.</p>}
+         {d.hist.map((h: any, i: number) => {
+           const approved = ["approved", "paid", "completed"].includes(h.status);
+           return (
+             <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < d.hist.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+               <div style={{ flex: 1 }}>
+                 <p style={{ fontSize: 11, color: Colors.muted, marginBottom: 2 }}>{fmtDateTime(h.created_at)}</p>
+                 <p style={{ fontSize: 15, fontWeight: "600", color: "#fff" }}>{fmtBRL(h.amount)}</p>
+                 <p style={{ fontSize: 10, color: Colors.muted, marginTop: 1, textTransform: "uppercase" }}>{h.pix_key_type || "PIX"}</p>
                </div>
-            </div>
-          );
-        })}
-      </div>
+                <div style={{ background: approved ? "rgba(52,211,153,0.12)" : h.status === 'rejected' ? "rgba(248,113,113,0.1)" : "rgba(251,191,36,0.1)", borderRadius: 8, padding: "5px 10px" }}>
+                  <span style={{ color: approved ? Colors.green : h.status === 'rejected' ? Colors.red : Colors.amber, fontSize: 11, fontWeight: "700" }}>
+                    {approved ? "Aprovado" : h.status === 'rejected' ? "Rejeitado" : "Pendente"}
+                  </span>
+                </div>
+             </div>
+           );
+         })}
+       </div>
     </div>
   );
 }
