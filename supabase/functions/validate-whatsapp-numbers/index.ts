@@ -118,6 +118,7 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const phonesIn: string[] = Array.isArray(body?.phones) ? body.phones : [];
+    const requestedInstanceId = body?.instanceId;
     if (!phonesIn.length) {
       return new Response(JSON.stringify({ error: "phones required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -139,14 +140,19 @@ serve(async (req) => {
     }
 
     // Pick instance
-    const { data: inst } = await admin
+    let query = admin
       .from("zapi_instances")
       .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default")
       .eq("user_id", user.id)
-      .eq("is_active", true)
-      .order("is_default", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("is_active", true);
+
+    if (requestedInstanceId) {
+      query = query.eq("id", requestedInstanceId);
+    } else {
+      query = query.order("is_default", { ascending: false });
+    }
+
+    const { data: inst } = await query.limit(1).maybeSingle();
 
     if (!inst) {
       return new Response(JSON.stringify({ error: "Nenhuma conexão WhatsApp ativa encontrada" }), {
