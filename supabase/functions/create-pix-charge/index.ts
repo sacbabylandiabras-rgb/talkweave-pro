@@ -291,21 +291,40 @@ async function processOpenPix(supabase: any, checkout: any, amountCents: number,
   const brCode = charge.brCode || charge.pixKey || openpixData.brCode
   const expiresAt = charge.expiresDate || charge.expiresAt
 
-  await supabase.from('gateway_transactions').insert({
-    user_id: checkout.user_id,
-    checkout_id: checkout.id,
-    product_id: checkout.product_id,
-    amount: amountCents,
-    fee: feeCents,
-    net: netCents,
-    payment_method: 'pix',
-    status: 'pending',
-    external_id: correlationID,
-    customer_name: customerName || null,
-    customer_email: customerEmail || null,
-    customer_phone: customerPhone || null,
-    metadata: { provider: 'openpix', openpix_charge_id: charge.id || correlationID, brCode: brCode || null, document: customerCpf || null },
-  })
+   const { data: txRecord } = await supabase.from('gateway_transactions').insert({
+     user_id: checkout.user_id,
+     checkout_id: checkout.id,
+     product_id: checkout.product_id,
+     amount: amountCents,
+     fee: feeCents,
+     net: netCents,
+     payment_method: 'pix',
+     status: 'pending',
+     external_id: correlationID,
+     customer_name: customerName || null,
+     customer_email: customerEmail || null,
+     customer_phone: customerPhone || null,
+     metadata: { provider: 'openpix', openpix_charge_id: charge.id || correlationID, brCode: brCode || null, document: customerCpf || null },
+   }).select('id').single()
+
+   // Send push notification for generated PIX
+   try {
+     const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+       body: JSON.stringify({
+         user_id: checkout.user_id,
+         title: '⚡ PIX Gerado!',
+         body: `${customerName || 'Um cliente'} gerou um PIX de ${amountFormatted}`,
+         data: { transaction_id: txRecord?.id, type: 'pix_generated' },
+         event_type: 'pix_or_boleto_issued',
+         checkout_id: checkout.id,
+       }),
+     })
+   } catch (err) {
+     console.error('Push notification error:', err)
+   }
 
   try {
     await supabase
