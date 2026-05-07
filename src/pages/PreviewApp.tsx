@@ -95,8 +95,41 @@ const fmtDateTime = (iso: string) => {
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ width: 390, height: 800, borderRadius: 52, background: "#000", padding: 10, boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}>
-      <div style={{ width: "100%", height: "100%", borderRadius: 44, overflow: "hidden", background: Colors.bg, position: "relative" }}>
+    <div 
+      style={{ 
+        width: 390, 
+        height: 844, 
+        borderRadius: 55, 
+        background: "#000", 
+        padding: "12px", 
+        boxShadow: "0 30px 80px rgba(0,0,0,0.8)",
+        position: "relative",
+        border: "4px solid #1a1a1a",
+      }}
+    >
+      {/* Dynamic Island Area */}
+      <div style={{ 
+        position: "absolute", 
+        top: 22, 
+        left: "50%", 
+        transform: "translateX(-50%)", 
+        width: 110, 
+        height: 32, 
+        background: "#000", 
+        borderRadius: 20, 
+        zIndex: 100 
+      }} />
+      
+      <div 
+        style={{ 
+          width: "100%", 
+          height: "100%", 
+          borderRadius: 44, 
+          overflow: "hidden", 
+          background: Colors.bg, 
+          position: "relative",
+        }}
+      >
         {children}
       </div>
     </div>
