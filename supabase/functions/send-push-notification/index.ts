@@ -196,9 +196,41 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching tokens: ${tokensError.message}`);
     }
 
+    // Dispara também via Web Push (PWA / browser) em paralelo
+    let webPushResult: any = null;
+    try {
+      const webPushRes = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/web-push-send`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            user_id,
+            title,
+            body,
+            url: data?.url || "/",
+            tag: event_type || "zaplynx",
+          }),
+        }
+      );
+      webPushResult = await webPushRes.json().catch(() => null);
+      console.log("[web-push] result:", webPushResult);
+    } catch (e) {
+      console.error("[web-push] error:", e);
+    }
+
     if (!tokens || tokens.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, sent: 0, message: "Nenhum dispositivo registrado" }),
+        JSON.stringify({
+          success: true,
+          sent: webPushResult?.sent || 0,
+          fcm_sent: 0,
+          web_push: webPushResult,
+          message: "Nenhum dispositivo FCM registrado, web push tentado",
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -278,7 +310,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, sent, total: tokens.length, errors }),
+      JSON.stringify({ success: true, sent, total: tokens.length, errors, web_push: webPushResult }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
