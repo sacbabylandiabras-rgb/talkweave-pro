@@ -1,5 +1,3 @@
-     const nextBillingDate = payload.date_next_billing || payload.subscription_date_next_billing;
-     
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
@@ -15,6 +13,8 @@ Deno.serve(async (req) => {
   try {
     const payload = await req.json();
     console.log("PerfectPay webhook received:", JSON.stringify(payload));
+
+    const nextBillingDate = payload.date_next_billing || payload.subscription_date_next_billing;
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
