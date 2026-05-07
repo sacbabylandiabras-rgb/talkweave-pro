@@ -38,6 +38,7 @@ import { useNavigate } from "react-router-dom";
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState("painel");
+   const [period, setPeriod] = useState<"hoje" | "semana" | "mes">("hoje");
   const { enablePush, pushEnabled, permissionStatus, pushBusy } = useWebPush();
   const navigate = useNavigate();
 
@@ -67,10 +68,15 @@ import { useNavigate } from "react-router-dom";
    });
    const [savingPrefs, setSavingPrefs] = useState(false);
 
-   const fetchStats = useCallback(async (userId: string) => {
+   const fetchStats = useCallback(async (userId: string, periodArg: "hoje" | "semana" | "mes" = "hoje") => {
      try {
        const start = new Date();
        start.setHours(0, 0, 0, 0);
+       if (periodArg === "semana") {
+         start.setDate(start.getDate() - 7);
+       } else if (periodArg === "mes") {
+         start.setDate(start.getDate() - 30);
+       }
  
         const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
           supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -142,7 +148,11 @@ import { useNavigate } from "react-router-dom";
      } catch (error) {
        console.error("Error fetching stats:", error);
      }
-   }, []);
+    }, []);
+
+   useEffect(() => {
+     if (session?.user?.id) fetchStats(session.user.id, period);
+   }, [period, session?.user?.id, fetchStats]);
   const togglePref = async (key: keyof typeof prefs, value: boolean) => {
     if (!session?.user?.id) return;
     const next = { ...prefs, [key]: value };
