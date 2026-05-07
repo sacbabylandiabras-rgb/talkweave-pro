@@ -3,7 +3,6 @@ import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
-import { PWAInstaller } from "@/components/pwa/PWAInstaller";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
@@ -362,7 +361,6 @@ export function DashboardLayout() {
         <main className="flex-1 overflow-auto p-6 bg-transparent dashboard-content">
           <Outlet />
         </main>
-        <PWAInstaller />
       </div>
     </div>
   );
