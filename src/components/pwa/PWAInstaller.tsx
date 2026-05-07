@@ -1,4 +1,5 @@
  import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
  import { useWebPush } from "@/hooks/useWebPush";
  import { Button } from "@/components/ui/button";
  import { Bell, Download, X } from "lucide-react";
@@ -10,6 +11,7 @@
    const [installPrompt, setInstallPrompt] = useState<any>(null);
    const [isVisible, setIsVisible] = useState(false);
    const isNative = Capacitor.isNativePlatform();
+  const location = useLocation();
  
    useEffect(() => {
      const handler = (e: any) => {
@@ -51,8 +53,7 @@
   if (!isVisible) return null;
 
   // Hide on public checkout / payment / landing pages
-  const path = typeof window !== "undefined" ? window.location.pathname : "";
-  if (/^\/(pay|checkout|lp|pedido|invite|r)(\/|$)/.test(path)) return null;
+  if (/^\/(pay|checkout|lp|pedido|invite|r)(\/|$)/.test(location.pathname)) return null;
 
   // Only show if not installed OR if notifications are not enabled
   const showNotificationsPrompt = permissionStatus === "default" && !pushEnabled;
