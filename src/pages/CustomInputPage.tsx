@@ -1,33 +1,40 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWebPush } from "@/hooks/useWebPush";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Bell, 
-  TrendingUp, 
-  Zap, 
-  Loader2, 
-  Send, 
-  LayoutDashboard, 
-  PieChart,
-  Wallet,
-  Bot,
-  Settings,
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  Smartphone,
-  ChevronRight,
-  CheckCircle2,
-  MessageSquare,
-  Clock,
-  DollarSign
-} from "lucide-react";
+ import { 
+   Bell, 
+   TrendingUp, 
+   Zap, 
+   Loader2, 
+   Send, 
+   LayoutDashboard, 
+   PieChart,
+   Wallet,
+   Bot,
+   Settings,
+   Eye,
+   EyeOff,
+   Mail,
+   Lock,
+   User,
+   Smartphone,
+   ChevronRight,
+   CheckCircle2,
+   MessageSquare,
+   Clock,
+   DollarSign,
+   ChevronDown
+ } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-export default function CustomInputPage() {
+ export default function CustomInputPage() {
+   const SLOTS = [0, 8, 12, 16.5, 18];
+ 
+   function formatBRL(cents: number) {
+     return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+   }
+ 
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState("painel");
@@ -40,39 +47,119 @@ export default function CustomInputPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [stats, setStats] = useState({
-    campaigns: 0,
-    templates: 0,
-    contacts: 0,
-    totalRevenue: 0,
-    approvedSale: 0,
-    cpa: 0
-  });
+   const [stats, setStats] = useState({
+     campaigns: 0,
+     templates: 0,
+     contacts: 0,
+     totalRevenue: 0,
+     approvedSale: 0,
+     cpa: 0
+   });
+   const [summaries, setSummaries] = useState<{ slot: number; total: number; count: number; messages: number; date: string }[]>([]);
+   const [prefs, setPrefs] = useState({
+     enabled: true,
+     notify_credit_card: true,
+     notify_boleto_paid: true,
+     notify_pix_paid: true,
+     notify_pix_recurring: true,
+     notify_apple_pay: true,
+     notify_pix_or_boleto_issued: true,
+   });
+   const [savingPrefs, setSavingPrefs] = useState(false);
 
-  const fetchStats = useCallback(async (userId: string) => {
-    try {
-      const [campRes, tempRes, contactRes, transRes] = await Promise.all([
-        supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
-        supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
-        supabase.from("saved_contacts" as any).select("id", { count: "exact", head: true }).eq("user_id", userId),
-        supabase.from("gateway_transactions").select("amount").eq("user_id", userId).in("status", ["paid", "approved", "completed"])
-      ]);
-
-      const totalRevenue = (transRes.data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
-      const lastSale = transRes.data && transRes.data.length > 0 ? (transRes.data[0].amount || 0) / 100 : 0;
-
-      setStats({
-        campaigns: campRes.count || 0,
-        templates: tempRes.count || 0,
-        contacts: contactRes.count || 0,
-        totalRevenue,
-        approvedSale: lastSale,
-        cpa: 0 // Placeholder for logic
-      });
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  }, []);
+   const fetchStats = useCallback(async (userId: string) => {
+     try {
+       const start = new Date();
+       start.setHours(0, 0, 0, 0);
+ 
+        const [campRes, tempRes, contactRes, transRes, msgRes, prefsRes] = await Promise.all([
+          supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          supabase.from("message_templates").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          (supabase as any).from("saved_contacts").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          supabase.from("gateway_transactions").select("amount, created_at, status").eq("user_id", userId).in("status", ["paid", "approved", "completed"]).gte("created_at", start.toISOString()),
+          supabase.from("campaign_sends").select("sent_at").eq("user_id", userId).gte("sent_at", start.toISOString()),
+          (supabase as any).from("notification_preferences").select("*").eq("user_id", userId).is("checkout_id", null).maybeSingle()
+        ]);
+ 
+       const totalRevenue = (transRes.data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
+       const lastSale = transRes.data && transRes.data.length > 0 ? (transRes.data[0].amount || 0) / 100 : 0;
+ 
+       setStats({
+         campaigns: campRes.count || 0,
+         templates: tempRes.count || 0,
+         contacts: contactRes.count || 0,
+         totalRevenue,
+         approvedSale: lastSale,
+         cpa: 0
+       });
+ 
+      const data: any = prefsRes.data;
+      if (data) {
+        setPrefs({
+          enabled: !!data.enabled,
+          notify_credit_card: !!data.notify_credit_card,
+          notify_boleto_paid: !!data.notify_boleto_paid,
+          notify_pix_paid: !!data.notify_pix_paid,
+          notify_pix_recurring: !!data.notify_pix_recurring,
+          notify_apple_pay: !!data.notify_apple_pay,
+          notify_pix_or_boleto_issued: !!data.notify_pix_or_boleto_issued,
+        });
+      }
+ 
+       const tx = transRes.data || [];
+       const msgs = msgRes.data || [];
+       const todayStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+       const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
+ 
+       const list = SLOTS.filter(s => s <= currentHour).reverse().map(s => {
+         const sortedSlots = [...SLOTS].sort((a, b) => a - b);
+         const idx = sortedSlots.indexOf(s);
+         const prevS = idx > 0 ? sortedSlots[idx - 1] : -1;
+         
+         const slotMsgs = msgs.filter((m: any) => {
+           const date = new Date(m.sent_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h >= prevS && h < s;
+         }).length;
+ 
+         const slotSales = tx.filter((t: any) => {
+           const date = new Date(t.created_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h < s;
+         });
+ 
+         const total = slotSales.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+ 
+         return {
+           slot: s,
+           total: total,
+           count: slotSales.length,
+           messages: slotMsgs,
+           date: todayStr,
+         };
+       });
+       setSummaries(list);
+     } catch (error) {
+       console.error("Error fetching stats:", error);
+     }
+   }, []);
+   const togglePref = async (key: keyof typeof prefs, value: boolean) => {
+     if (!session?.user?.id) return;
+     const next = { ...prefs, [key]: value };
+     setPrefs(next);
+     setSavingPrefs(true);
+    const { error } = await (supabase as any)
+      .from("notification_preferences")
+       .upsert(
+         { user_id: session.user.id, checkout_id: null, ...next },
+         { onConflict: "user_id" }
+       );
+     setSavingPrefs(false);
+     if (error) {
+       toast.error("Erro ao salvar: " + error.message);
+     }
+   };
+ 
 
   useEffect(() => {
     const init = async () => {
