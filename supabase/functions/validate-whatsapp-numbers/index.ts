@@ -30,8 +30,10 @@ async function checkZapi(base: string, headers: Record<string, string>, numbers:
   console.log(`[Z-API] status=${res.status} sample=${text.slice(0, 300)}`);
 
   if (!res.ok) {
-    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
-    if (upstreamError.includes("connected") || upstreamError.includes("whatsapp")) {
+    const errorMessage = typeof data?.message === 'string' ? data.message : (typeof data?.error === 'string' ? data.error : text);
+    const upstreamError = String(errorMessage || "").toLowerCase();
+    
+    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp") || upstreamError.includes("session")) {
       throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
     }
     throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
@@ -67,8 +69,10 @@ async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
   console.log(`[UAZAPI] status=${res.status} sample=${text.slice(0, 300)}`);
 
   if (!res.ok) {
-    const upstreamError = String(data?.error || data?.message || text || "").toLowerCase();
-    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp")) {
+    const errorMessage = typeof data?.message === 'string' ? data.message : (typeof data?.error === 'string' ? data.error : text);
+    const upstreamError = String(errorMessage || "").toLowerCase();
+    
+    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp") || upstreamError.includes("session")) {
       throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
     }
     throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
@@ -114,6 +118,7 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const phonesIn: string[] = Array.isArray(body?.phones) ? body.phones : [];
+    const requestedInstanceId = body?.instanceId;
     if (!phonesIn.length) {
       return new Response(JSON.stringify({ error: "phones required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -135,14 +140,19 @@ serve(async (req) => {
     }
 
     // Pick instance
-    const { data: inst } = await admin
+    let query = admin
       .from("zapi_instances")
       .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default")
       .eq("user_id", user.id)
-      .eq("is_active", true)
-      .order("is_default", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("is_active", true);
+
+    if (requestedInstanceId) {
+      query = query.eq("id", requestedInstanceId);
+    } else {
+      query = query.order("is_default", { ascending: false });
+    }
+
+    const { data: inst } = await query.limit(1).maybeSingle();
 
     if (!inst) {
       return new Response(JSON.stringify({ error: "Nenhuma conexão WhatsApp ativa encontrada" }), {
