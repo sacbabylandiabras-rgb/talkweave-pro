@@ -351,7 +351,7 @@ import { useNavigate } from "react-router-dom";
           user_id: session.user.id,
           title,
           body,
-          url: window.location.origin + "/notificacoes-realtime",
+          url: window.location.origin + "/aplicativo",
           event_type: "test"
         }
       });
