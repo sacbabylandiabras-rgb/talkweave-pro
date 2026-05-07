@@ -5,17 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Slots em horário de Brasília (UTC-3): 08, 12, 18, 00
-const SLOTS = [0, 8, 12, 18];
+// Slots em horário de Brasília (UTC-3): 00h, 08h, 12h, 16h30, 18h
+// NOTA: 16h30 será tratado como 16:30, precisamos de um tratamento especial
+// Para simplificar, usaremos [0, 8, 12, 16.5, 18] ou separamos logicamente
+// Vamos manter [0, 8, 12, 18] e adicionar um cron separado para 16:30
+const SLOTS = [0, 8, 12, 16.5, 18];
 
 // Janelas: relatório das X horas cobre o período desde o slot anterior
-function previousSlot(hourBRT: number): number {
-  const idx = SLOTS.indexOf(hourBRT);
-  if (idx <= 0) return SLOTS[SLOTS.length - 1]; // 0 -> 18 (do dia anterior)
-  return SLOTS[idx - 1];
+function previousSlot(hourBRT: number, minutesBRT: number = 0): number {
+  const currentSlot = hourBRT + minutesBRT / 60;
+  // Encontra o slot anterior mais próximo
+  const sortedSlots = [...SLOTS].sort((a, b) => a - b);
+  for (let i = sortedSlots.length - 1; i >= 0; i--) {
+    if (sortedSlots[i] < currentSlot) {
+      return sortedSlots[i];
+    }
+  }
+  return sortedSlots[sortedSlots.length - 1]; // volta ao último do dia anterior
 }
 
-function brtNow(): { y: number; m: number; d: number; h: number } {
+function brtNow(): { y: number; m: number; d: number; h: number; min: number } {
   const utc = new Date();
   const brt = new Date(utc.getTime() - 3 * 60 * 60 * 1000);
   return {
@@ -23,12 +32,15 @@ function brtNow(): { y: number; m: number; d: number; h: number } {
     m: brt.getUTCMonth() + 1,
     d: brt.getUTCDate(),
     h: brt.getUTCHours(),
+    min: brt.getUTCMinutes(),
   };
 }
 
-function brtSlotToUtcDate(y: number, m: number, d: number, hBRT: number): Date {
+function brtSlotToUtcDate(y: number, m: number, d: number, slotBRT: number): Date {
   // BRT = UTC-3, então hora UTC = hora BRT + 3
-  return new Date(Date.UTC(y, m - 1, d, hBRT + 3, 0, 0));
+  const hBRT = Math.floor(slotBRT);
+  const minBRT = Math.round((slotBRT % 1) * 60);
+  return new Date(Date.UTC(y, m - 1, d, hBRT + 3, minBRT, 0));
 }
 
 function formatBRL(cents: number): string {
@@ -44,32 +56,34 @@ Deno.serve(async (req) => {
     const dryRun = url.searchParams.get("dry") === "1";
 
     const now = brtNow();
-    const currentHour = force !== null ? parseInt(force) : now.h;
+    let currentSlot = force !== null ? parseFloat(force) : now.h + now.min / 60;
 
-    if (!SLOTS.includes(currentHour)) {
+    // Encontra o slot ativo (com tolerância de 5min antes/depois)
+    const tolerance = 5 / 60; // 5 minutos em horas
+    const matchingSlot = SLOTS.find(s => Math.abs(s - currentSlot) < tolerance);
+    if (!matchingSlot) {
       return new Response(
-        JSON.stringify({ skipped: true, reason: `Hora BRT ${currentHour} não é slot`, slots: SLOTS }),
+        JSON.stringify({ skipped: true, reason: `Hora BRT ${now.h}:${String(now.min).padStart(2, "0")} não corresponde a nenhum slot`, slots: SLOTS }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    currentSlot = matchingSlot;
 
     // Janela: do slot anterior até agora (em UTC)
-    const prevHour = previousSlot(currentHour);
-    let endUtc = brtSlotToUtcDate(now.y, now.m, now.d, currentHour);
+    const prevSlot = previousSlot(now.h, now.min);
+    let endUtc = brtSlotToUtcDate(now.y, now.m, now.d, currentSlot);
     let startUtc: Date;
-    if (currentHour === 0) {
-      // 00h cobre 18h até 00h do mesmo dia em BRT (mas em UTC, 18BRT = 21UTC anterior)
-      startUtc = brtSlotToUtcDate(now.y, now.m, now.d, prevHour);
-      // Como prevHour=18 e currentHour=0, prevHour foi do dia anterior em BRT.
-      // Ajuste: se prev > current, prev é do dia anterior
-      if (prevHour > currentHour) {
-        startUtc = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000);
-      }
+    if (prevSlot > currentSlot) {
+      // Slot anterior é do dia anterior em BRT
+      startUtc = brtSlotToUtcDate(now.y, now.m, now.d, prevSlot);
+      startUtc = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000);
     } else {
-      startUtc = brtSlotToUtcDate(now.y, now.m, now.d, prevHour);
+      startUtc = brtSlotToUtcDate(now.y, now.m, now.d, prevSlot);
     }
 
-    const slotKey = `${now.y}-${String(now.m).padStart(2, "0")}-${String(now.d).padStart(2, "0")}-${String(currentHour).padStart(2, "0")}`;
+    const slotHour = Math.floor(currentSlot);
+    const slotMin = Math.round((currentSlot % 1) * 60);
+    const slotKey = `${now.y}-${String(now.m).padStart(2, "0")}-${String(now.d).padStart(2, "0")}-${String(slotHour).padStart(2, "0")}${String(slotMin).padStart(2, "0")}`;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -99,7 +113,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Contar mensagens enviadas (campaign_sends com status 'sent' ou 'delivered')
+      // Contar mensagens enviadas (campaign_sends)
       const { count: msgCount } = await supabase
         .from("campaign_sends")
         .select("id", { count: "exact", head: true })
@@ -107,29 +121,31 @@ Deno.serve(async (req) => {
         .gte("sent_at", startUtc.toISOString())
         .lt("sent_at", endUtc.toISOString());
 
-      // Contar vendas pagas no período
+      // Contar vendas de HOJE (não apenas do período do slot)
       const { data: sales } = await supabase
         .from("gateway_transactions")
         .select("amount, status, created_at")
         .eq("user_id", userId)
         .in("status", ["paid", "approved", "completed"])
-        .gte("created_at", startUtc.toISOString())
-        .lt("created_at", endUtc.toISOString());
+        .gte("created_at", new Date(now.y, now.m - 1, now.d).toISOString())
+        .lt("created_at", new Date(now.y, now.m - 1, now.d + 1).toISOString());
 
       const salesCount = sales?.length || 0;
       const salesAmount = (sales || []).reduce((s: number, x: any) => s + (x.amount || 0), 0);
 
       const messagesSent = msgCount || 0;
 
-      // Se nada aconteceu, ainda assim mandamos um resumo curto
-      const horaLabel = `${String(currentHour).padStart(2, "0")}:00`;
-      const title = `💰 Resumo das ${horaLabel}`;
-      const parts: string[] = [];
-      parts.push(`${messagesSent.toLocaleString("pt-BR")} mensagens enviadas`);
+      // Formato do relatório
+      const horaLabel = `${String(slotHour).padStart(2, "0")}:${String(slotMin).padStart(2, "0")}`;
+      const title = `📊 Relatório das ${horaLabel}`;
+      const body = `Mensagens enviadas: ${messagesSent.toLocaleString("pt-BR")}\nVendas hoje: ${formatBRL(salesAmount)}`;
+
+      // Log do que será enviado
       if (salesCount > 0) {
-        parts.push(`${salesCount} venda${salesCount > 1 ? "s" : ""} • ${formatBRL(salesAmount)}`);
+        console.log(`[send-period-reports] User ${userId}: ${messagesSent} msgs, ${salesCount} vendas, R$ ${formatBRL(salesAmount)}`);
+      } else {
+        console.log(`[send-period-reports] User ${userId}: ${messagesSent} msgs, 0 vendas`);
       }
-      const body = parts.join(" • ");
 
       if (!dryRun) {
         // Chamar send-push-notification
@@ -146,6 +162,7 @@ Deno.serve(async (req) => {
               title,
               body,
               data: { type: "period_report", slot: String(currentHour) },
+              event_type: "report",
             }),
           }
         );
@@ -169,7 +186,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        slot: currentHour,
+        slot: slotHour,
         slotKey,
         window: { start: startUtc.toISOString(), end: endUtc.toISOString() },
         usersProcessed: results.length,
