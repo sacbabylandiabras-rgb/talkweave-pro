@@ -84,11 +84,22 @@ const fmtDateTime = (iso: string) => {
         )}
       </PhoneFrame>
 
-      {session && (
-        <button onClick={() => supabase.auth.signOut()} style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>
-          Sair do preview
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        {session && (
+          <button 
+            onClick={() => supabase.auth.signOut()} 
+            style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+          >
+            Sair do preview
+          </button>
+        )}
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+        >
+          Atualizar página
         </button>
-      )}
+      </div>
     </div>
   );
 }
