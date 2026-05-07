@@ -182,7 +182,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, title, body, url, tag } = payload;
+     console.log(`[web-push-send] Starting send for user: ${payload.user_id || 'unknown'}`);
+     const { user_id, title, body, url, tag } = payload;
     const targetUser = user_id || userId;
     if (!targetUser || !title || !body) {
       return new Response(JSON.stringify({ error: "user_id, title, body required" }), {
@@ -201,19 +202,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const messagePayload = JSON.stringify({ title, body, url: url || "/", tag: tag || "zaplynx" });
-    const results: any[] = [];
-    for (const s of subs) {
-      try {
-        const r = await sendOne(s, messagePayload, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT);
-        results.push({ id: s.id, status: r.status, error: r.text || undefined });
-        if (r.status === 404 || r.status === 410) {
-          await supabase.from("web_push_subscriptions").delete().eq("id", s.id);
-        }
-      } catch (e) {
-        results.push({ id: s.id, error: String(e) });
-      }
-    }
+     const messagePayload = JSON.stringify({ title, body, url: url || "/", tag: tag || "zaplynx" });
+     console.log(`[web-push-send] Payload to encrypt: ${messagePayload}`);
+     const results: any[] = [];
+     for (const s of subs) {
+       try {
+         console.log(`[web-push-send] Sending to endpoint: ${s.endpoint.slice(0, 50)}...`);
+         const r = await sendOne(s, messagePayload, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT);
+         console.log(`[web-push-send] Provider response for ${s.id}: status ${r.status} ${r.text || ''}`);
+         results.push({ id: s.id, status: r.status, error: r.text || undefined });
+         if (r.status === 404 || r.status === 410) {
+           console.log(`[web-push-send] Deleting expired subscription: ${s.id}`);
+           await supabase.from("web_push_subscriptions").delete().eq("id", s.id);
+         }
+       } catch (e) {
+         console.error(`[web-push-send] Error sending to ${s.id}:`, e);
+         results.push({ id: s.id, error: String(e) });
+       }
+     }
 
     return new Response(JSON.stringify({ ok: true, sent: results.filter(r => r.status && r.status < 300).length, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
