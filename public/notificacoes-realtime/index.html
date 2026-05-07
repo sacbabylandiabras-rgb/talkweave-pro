@@ -645,11 +645,13 @@ function testNotif(title, body) {
   }
   
   if (Notification.permission === "granted") {
-    new Notification(title, { body, icon: '/images/auth-logo.png' });
+    const iconUrl = window.location.origin + '/images/auth-logo.png';
+    new Notification(title, { body, icon: iconUrl });
   } else if (Notification.permission !== "denied") {
     Notification.requestPermission().then(permission => {
       if (permission === "granted") {
-        new Notification(title, { body, icon: '/images/auth-logo.png' });
+        const iconUrl = window.location.origin + '/images/auth-logo.png';
+        new Notification(title, { body, icon: iconUrl });
       }
     });
   } else {
