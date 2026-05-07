@@ -1,5 +1,6 @@
-import Canais from "./pages/Canais";
-import Extensao from "./pages/Extensao";
+import { lazy, Suspense } from "react";
+const Canais = lazy(() => import("./pages/Canais"));
+const Extensao = lazy(() => import("./pages/Extensao"));
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,105 +13,105 @@ import { usePushNotifications } from "./hooks/usePushNotifications";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { Capacitor } from "@capacitor/core";
 
-import Landing from "./pages/Landing";
-import LandingWhatsApp from "./pages/LandingWhatsApp";
-import Auth from "./pages/Auth";
+const Landing = lazy(() => import("./pages/Landing"));
+const LandingWhatsApp = lazy(() => import("./pages/LandingWhatsApp"));
+const Auth = lazy(() => import("./pages/Auth"));
 import NativeAppLayout from "./components/layout/NativeAppLayout";
-import Dashboard from "./pages/Dashboard";
-import DashboardMeta from "./pages/DashboardMeta";
-import Admin from "./pages/Admin";
-import Dispositivos from "./pages/Dispositivos";
-import Perfil from "./pages/Perfil";
-import Campanhas from "./pages/Campanhas";
-import CampanhaGrupoFluxo from "./pages/CampanhaGrupoFluxo";
-import Contatos from "./pages/Contatos";
-import Modelos from "./pages/Modelos";
-import EnviarMensagem from "./pages/EnviarMensagem";
-import Relatorio from "./pages/Relatorio";
-import FluxoVisual from "./pages/FluxoVisual";
-import FluxoGrupos from "./pages/FluxoGrupos";
-import GatewayIntegracoes from "./pages/GatewayIntegracoes";
-import MensagensRecebidas from "./pages/MensagensRecebidas";
-import ApanhadorGrupos from "./pages/ApanhadorGrupos";
-import CriarGrupos from "./pages/CriarGrupos";
-import AgenteIA from "./pages/AgenteIA";
-import AquecimentoNumero from "./pages/AquecimentoNumero";
-import NotificacoesApp from "./pages/NotificacoesApp";
-import AdminAquecimento from "./pages/AdminAquecimento";
-import InvitePage from "./pages/InvitePage";
-import NotFound from "./pages/NotFound";
-import TemplatesAprovados from "./pages/TemplatesAprovados";
-import EnvioCloudAPI from "./pages/EnvioCloudAPI";
-import ConfiguracaoMeta from "./pages/ConfiguracaoMeta";
-import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
-import PreviewApp from "./pages/PreviewApp";
-import CustomInputPage from "./pages/CustomInputPage";
-import TermosServico from "./pages/TermosServico";
-import MetaOAuthCallback from "./pages/MetaOAuthCallback";
-import ShopifyOAuthCallback from "./pages/ShopifyOAuthCallback";
-import ShopifyEmbedded from "./pages/ShopifyEmbedded";
-import PayDashboard from "./pages/gateway/PayDashboard";
-import PayProducts from "./pages/gateway/PayProducts";
-import PayCheckouts from "./pages/gateway/PayCheckouts";
-import PayLandingPages from "./pages/gateway/PayLandingPages";
-import PayReports from "./pages/gateway/PayReports";
-import PayCartRecovery from "./pages/gateway/PayCartRecovery";
-import PayPixels from "./pages/gateway/PayPixels";
-import PayIntegrations from "./pages/gateway/PayIntegrations";
-import PaySettings from "./pages/gateway/PaySettings";
-import PayWithdrawals from "./pages/gateway/PayWithdrawals";
-import PayDocs from "./pages/gateway/PayDocs";
-import AdminPayDashboard from "./pages/gateway/AdminDashboard";
-import AdminCompanies from "./pages/gateway/AdminCompanies";
-import AdminAcquirers from "./pages/gateway/AdminAcquirers";
-import AdminFees from "./pages/gateway/AdminFees";
-import AdminPayUsers from "./pages/gateway/AdminUsers";
-import AdminKYC from "./pages/gateway/AdminKYC";
-import AdminPayReports from "./pages/gateway/AdminReports";
-import AdminTransactions from "./pages/gateway/AdminTransactions";
-import AdminManagers from "./pages/gateway/AdminManagers";
-import AdminWithdrawals from "./pages/gateway/AdminWithdrawals";
-import ManagerDashboard from "./pages/gateway/ManagerDashboard";
-import ManagerClients from "./pages/gateway/ManagerClients";
-import ManagerCommissions from "./pages/gateway/ManagerCommissions";
-import ManagerReferral from "./pages/gateway/ManagerReferral";
-import CheckoutBuilder from "./pages/gateway/CheckoutBuilder";
-import PublicCheckout from "./pages/PublicCheckout";
-import PublicLandingPreview from "./pages/PublicLandingPreview";
-import PublicRedirectTracker from "./pages/PublicRedirectTracker";
-import ThankYou from "./pages/ThankYou";
-import PublicOrder from "./pages/PublicOrder";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardMeta = lazy(() => import("./pages/DashboardMeta"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Dispositivos = lazy(() => import("./pages/Dispositivos"));
+const Perfil = lazy(() => import("./pages/Perfil"));
+const Campanhas = lazy(() => import("./pages/Campanhas"));
+const CampanhaGrupoFluxo = lazy(() => import("./pages/CampanhaGrupoFluxo"));
+const Contatos = lazy(() => import("./pages/Contatos"));
+const Modelos = lazy(() => import("./pages/Modelos"));
+const EnviarMensagem = lazy(() => import("./pages/EnviarMensagem"));
+const Relatorio = lazy(() => import("./pages/Relatorio"));
+const FluxoVisual = lazy(() => import("./pages/FluxoVisual"));
+const FluxoGrupos = lazy(() => import("./pages/FluxoGrupos"));
+const GatewayIntegracoes = lazy(() => import("./pages/GatewayIntegracoes"));
+const MensagensRecebidas = lazy(() => import("./pages/MensagensRecebidas"));
+const ApanhadorGrupos = lazy(() => import("./pages/ApanhadorGrupos"));
+const CriarGrupos = lazy(() => import("./pages/CriarGrupos"));
+const AgenteIA = lazy(() => import("./pages/AgenteIA"));
+const AquecimentoNumero = lazy(() => import("./pages/AquecimentoNumero"));
+const NotificacoesApp = lazy(() => import("./pages/NotificacoesApp"));
+const AdminAquecimento = lazy(() => import("./pages/AdminAquecimento"));
+const InvitePage = lazy(() => import("./pages/InvitePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TemplatesAprovados = lazy(() => import("./pages/TemplatesAprovados"));
+const EnvioCloudAPI = lazy(() => import("./pages/EnvioCloudAPI"));
+const ConfiguracaoMeta = lazy(() => import("./pages/ConfiguracaoMeta"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+const PreviewApp = lazy(() => import("./pages/PreviewApp"));
+const CustomInputPage = lazy(() => import("./pages/CustomInputPage"));
+const TermosServico = lazy(() => import("./pages/TermosServico"));
+const MetaOAuthCallback = lazy(() => import("./pages/MetaOAuthCallback"));
+const ShopifyOAuthCallback = lazy(() => import("./pages/ShopifyOAuthCallback"));
+const ShopifyEmbedded = lazy(() => import("./pages/ShopifyEmbedded"));
+const PayDashboard = lazy(() => import("./pages/gateway/PayDashboard"));
+const PayProducts = lazy(() => import("./pages/gateway/PayProducts"));
+const PayCheckouts = lazy(() => import("./pages/gateway/PayCheckouts"));
+const PayLandingPages = lazy(() => import("./pages/gateway/PayLandingPages"));
+const PayReports = lazy(() => import("./pages/gateway/PayReports"));
+const PayCartRecovery = lazy(() => import("./pages/gateway/PayCartRecovery"));
+const PayPixels = lazy(() => import("./pages/gateway/PayPixels"));
+const PayIntegrations = lazy(() => import("./pages/gateway/PayIntegrations"));
+const PaySettings = lazy(() => import("./pages/gateway/PaySettings"));
+const PayWithdrawals = lazy(() => import("./pages/gateway/PayWithdrawals"));
+const PayDocs = lazy(() => import("./pages/gateway/PayDocs"));
+const AdminPayDashboard = lazy(() => import("./pages/gateway/AdminDashboard"));
+const AdminCompanies = lazy(() => import("./pages/gateway/AdminCompanies"));
+const AdminAcquirers = lazy(() => import("./pages/gateway/AdminAcquirers"));
+const AdminFees = lazy(() => import("./pages/gateway/AdminFees"));
+const AdminPayUsers = lazy(() => import("./pages/gateway/AdminUsers"));
+const AdminKYC = lazy(() => import("./pages/gateway/AdminKYC"));
+const AdminPayReports = lazy(() => import("./pages/gateway/AdminReports"));
+const AdminTransactions = lazy(() => import("./pages/gateway/AdminTransactions"));
+const AdminManagers = lazy(() => import("./pages/gateway/AdminManagers"));
+const AdminWithdrawals = lazy(() => import("./pages/gateway/AdminWithdrawals"));
+const ManagerDashboard = lazy(() => import("./pages/gateway/ManagerDashboard"));
+const ManagerClients = lazy(() => import("./pages/gateway/ManagerClients"));
+const ManagerCommissions = lazy(() => import("./pages/gateway/ManagerCommissions"));
+const ManagerReferral = lazy(() => import("./pages/gateway/ManagerReferral"));
+const CheckoutBuilder = lazy(() => import("./pages/gateway/CheckoutBuilder"));
+const PublicCheckout = lazy(() => import("./pages/PublicCheckout"));
+const PublicLandingPreview = lazy(() => import("./pages/PublicLandingPreview"));
+const PublicRedirectTracker = lazy(() => import("./pages/PublicRedirectTracker"));
+const ThankYou = lazy(() => import("./pages/ThankYou"));
+const PublicOrder = lazy(() => import("./pages/PublicOrder"));
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
 import AdminRouteGuard from "./components/admin/AdminRouteGuard";
 import { PaidRouteGuard } from "./components/auth/PaidRouteGuard";
-import AutomacaoComentarios from "./pages/instagram/AutomacaoComentarios";
-import CampanhasInstagram from "./pages/instagram/CampanhasInstagram";
-import ContatosInstagram from "./pages/instagram/ContatosInstagram";
-import ConfiguracaoInstagram from "./pages/instagram/ConfiguracaoInstagram";
-import TelegramPlaceholder from "./pages/telegram/TelegramPlaceholder";
-import TelegramPlanos from "./pages/telegram/TelegramPlanos";
-import TelegramRedirecionamento from "./pages/telegram/TelegramRedirecionamento";
-import TelegramAdministradores from "./pages/telegram/TelegramAdministradores";
-import TelegramGruposCanais from "./pages/telegram/TelegramGruposCanais";
-import TelegramCanalFree from "./pages/telegram/TelegramCanalFree";
-import TelegramReferencia from "./pages/telegram/TelegramReferencia";
-import TelegramContatos from "./pages/telegram/TelegramContatos";
-import TelegramVendas from "./pages/telegram/TelegramVendas";
-import TelegramChat from "./pages/telegram/TelegramChat";
-import TelegramCriarBot from "./pages/telegram/TelegramCriarBot";
-import TelegramAtualizarBot from "./pages/telegram/TelegramAtualizarBot";
-import TelegramDashboard from "./pages/telegram/TelegramDashboard";
-import TelegramAlertas from "./pages/telegram/TelegramAlertas";
-import TelegramDownsell from "./pages/telegram/TelegramDownsell";
-import TelegramIntegracoes from "./pages/telegram/TelegramIntegracoes";
-import TelegramLinksTraqueamento from "./pages/telegram/TelegramLinksTraqueamento";
-import TelegramLinksUtm from "./pages/telegram/TelegramLinksUtm";
-import DashboardInstagram from "./pages/instagram/DashboardInstagram";
-import ExtrairComunidade from "./pages/ExtrairComunidade";
-import DisparoOculto from "./pages/DisparoOculto";
-import AdminDisparoOculto from "./pages/AdminDisparoOculto";
-import Comunidades from "./pages/Comunidades";
-import Status from "./pages/Status";
+const AutomacaoComentarios = lazy(() => import("./pages/instagram/AutomacaoComentarios"));
+const CampanhasInstagram = lazy(() => import("./pages/instagram/CampanhasInstagram"));
+const ContatosInstagram = lazy(() => import("./pages/instagram/ContatosInstagram"));
+const ConfiguracaoInstagram = lazy(() => import("./pages/instagram/ConfiguracaoInstagram"));
+const TelegramPlaceholder = lazy(() => import("./pages/telegram/TelegramPlaceholder"));
+const TelegramPlanos = lazy(() => import("./pages/telegram/TelegramPlanos"));
+const TelegramRedirecionamento = lazy(() => import("./pages/telegram/TelegramRedirecionamento"));
+const TelegramAdministradores = lazy(() => import("./pages/telegram/TelegramAdministradores"));
+const TelegramGruposCanais = lazy(() => import("./pages/telegram/TelegramGruposCanais"));
+const TelegramCanalFree = lazy(() => import("./pages/telegram/TelegramCanalFree"));
+const TelegramReferencia = lazy(() => import("./pages/telegram/TelegramReferencia"));
+const TelegramContatos = lazy(() => import("./pages/telegram/TelegramContatos"));
+const TelegramVendas = lazy(() => import("./pages/telegram/TelegramVendas"));
+const TelegramChat = lazy(() => import("./pages/telegram/TelegramChat"));
+const TelegramCriarBot = lazy(() => import("./pages/telegram/TelegramCriarBot"));
+const TelegramAtualizarBot = lazy(() => import("./pages/telegram/TelegramAtualizarBot"));
+const TelegramDashboard = lazy(() => import("./pages/telegram/TelegramDashboard"));
+const TelegramAlertas = lazy(() => import("./pages/telegram/TelegramAlertas"));
+const TelegramDownsell = lazy(() => import("./pages/telegram/TelegramDownsell"));
+const TelegramIntegracoes = lazy(() => import("./pages/telegram/TelegramIntegracoes"));
+const TelegramLinksTraqueamento = lazy(() => import("./pages/telegram/TelegramLinksTraqueamento"));
+const TelegramLinksUtm = lazy(() => import("./pages/telegram/TelegramLinksUtm"));
+const DashboardInstagram = lazy(() => import("./pages/instagram/DashboardInstagram"));
+const ExtrairComunidade = lazy(() => import("./pages/ExtrairComunidade"));
+const DisparoOculto = lazy(() => import("./pages/DisparoOculto"));
+const AdminDisparoOculto = lazy(() => import("./pages/AdminDisparoOculto"));
+const Comunidades = lazy(() => import("./pages/Comunidades"));
+const Status = lazy(() => import("./pages/Status"));
 
 const queryClient = new QueryClient();
 
@@ -133,16 +134,17 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AppContent />
-          <BrowserRouter>
-            {isNative ? (
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-                <Route path="/termos-servico" element={<TermosServico />} />
-                <Route path="*" element={<NativeAppLayout />} />
-              </Routes>
-            ) : (
-              <Routes>
+           <BrowserRouter>
+             <Suspense fallback={<div className="min-h-screen bg-[#0f1117] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div></div>}>
+               {isNative ? (
+                 <Routes>
+                   <Route path="/auth" element={<Auth />} />
+                   <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                   <Route path="/termos-servico" element={<TermosServico />} />
+                   <Route path="*" element={<NativeAppLayout />} />
+                 </Routes>
+               ) : (
+                 <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
@@ -256,8 +258,9 @@ const App = () => (
                 <Route path="/termos-servico" element={<TermosServico />} />
                 <Route path="/r" element={<PublicRedirectTracker />} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            )}
+                 </Routes>
+               )}
+             </Suspense>
             {!isNative && <WhatsAppFloatingButton />}
           </BrowserRouter>
         </WorkspaceProvider>
