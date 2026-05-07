@@ -6,9 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, XCircle, Upload, Loader2, Download, Copy, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, XCircle, Upload, Loader2, Download, Copy, FileSpreadsheet, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
@@ -23,6 +25,7 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ valid: string[]; invalid: string[]; total: number; checked: number } | null>(null);
+  const { instances, activeInstance, selectInstance } = useZapiInstances();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -78,7 +81,10 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("validate-whatsapp-numbers", {
-        body: { phones },
+        body: { 
+          phones,
+          instanceId: activeInstance?.id 
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
