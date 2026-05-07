@@ -85,47 +85,43 @@ export default function NotificacoesApp() {
            .in("status", ["paid", "approved", "completed"])
            .gte("created_at", start.toISOString()),
          supabase
-           .from("message_logs")
-           .select("created_at")
+           .from("campaign_sends")
+           .select("sent_at")
            .eq("user_id", session.user.id)
-           .gte("created_at", start.toISOString())
+           .gte("sent_at", start.toISOString())
        ]);
  
        const tx = txRes.data || [];
        const msgs = msgRes.data || [];
-       
-       const bySlot = new Map<number, { total: number; count: number; messages: number }>();
-       
-       // Initialize all slots
-       SLOTS.forEach(s => bySlot.set(s, { total: 0, count: 0, messages: 0 }));
- 
-       tx.forEach((t: any) => {
-         const date = new Date(t.created_at);
-         const h = date.getHours() + date.getMinutes() / 60;
-         const slot = [...SLOTS].reverse().find(s => h >= s) ?? 0;
-         const cur = bySlot.get(slot)!;
-         cur.total += t.amount || 0;
-         cur.count += 1;
-       });
- 
-       msgs.forEach((m: any) => {
-         const date = new Date(m.created_at);
-         const h = date.getHours() + date.getMinutes() / 60;
-         const slot = [...SLOTS].reverse().find(s => h >= s) ?? 0;
-         const cur = bySlot.get(slot)!;
-         cur.messages += 1;
-       });
- 
        const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
        const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
-       
+ 
        const list = SLOTS.filter(s => s <= currentHour).reverse().map(s => {
-         const data = bySlot.get(s)!;
+         // Mensagens no período (desde o slot anterior)
+         const sortedSlots = [...SLOTS].sort((a, b) => a - b);
+         const idx = sortedSlots.indexOf(s);
+         const prevS = idx > 0 ? sortedSlots[idx - 1] : -1; // Se for o primeiro do dia, -1 (desde meia noite)
+         
+         const slotMsgs = msgs.filter((m: any) => {
+           const date = new Date(m.sent_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h >= prevS && h < s;
+         }).length;
+ 
+         // Vendas hoje (acumulado até o slot)
+         const slotSales = tx.filter((t: any) => {
+           const date = new Date(t.created_at);
+           const h = date.getHours() + date.getMinutes() / 60;
+           return h < s;
+         });
+ 
+         const total = slotSales.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+ 
          return {
            slot: s,
-           total: data.total,
-           count: data.count,
-           messages: data.messages,
+           total: total,
+           count: slotSales.length,
+           messages: slotMsgs,
            date: today,
          };
        });
