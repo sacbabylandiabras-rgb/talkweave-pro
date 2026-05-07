@@ -137,8 +137,8 @@ Deno.serve(async (req) => {
 
       // Formato do relatório
       const horaLabel = `${String(slotHour).padStart(2, "0")}:${String(slotMin).padStart(2, "0")}`;
-      const title = `📊 Relatório das ${horaLabel}`;
-      const body = `Mensagens enviadas: ${messagesSent.toLocaleString("pt-BR")}\nVendas hoje: ${formatBRL(salesAmount)}`;
+      const title = `Relatório Atualizado ✅`;
+      const body = `Vendas: ${formatBRL(salesAmount)} (${salesCount} vendas)\nEnviadas: ${messagesSent.toLocaleString("pt-BR")}`;
 
       // Log do que será enviado
       if (salesCount > 0) {
