@@ -313,67 +313,108 @@ function Painel() {
   );
 }
 
-/* ============== TELEGRAM ============== */
-function Telegram() {
-  const [d, setD] = useState<any>(null);
-  useEffect(() => {
-    (async () => {
-      const startToday = new Date();
-      startToday.setHours(0, 0, 0, 0);
-      let bots = 0,
-        msgsHoje = 0,
-        conversas = 0;
-      try {
-        const r = await (supabase as any).from("telegram_bots").select("id", { count: "exact", head: true });
-        bots = r.count || 0;
-      } catch {}
-      try {
-        const r = await (supabase as any).from("telegram_messages").select("chat_id", { count: "exact" }).gte("created_at", startToday.toISOString());
-        msgsHoje = r.count || 0;
-        conversas = new Set((r.data || []).map((x: any) => x.chat_id)).size;
-      } catch {}
-      let bot: any = null;
-      try {
-        const r = await (supabase as any).from("telegram_bots").select("name,username,is_active").limit(1).maybeSingle();
-        bot = r.data;
-      } catch {}
-      setD({ bots, msgsHoje, conversas, bot });
-    })();
-  }, []);
-  if (!d) return <Loading />;
-
-  return (
-    <div style={{ padding: 20 }}>
-      <TopBar />
-      <PageHeader title="Telegram" sub="Bots e mensagens recebidas" />
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <StatCard label="BOTS" value={String(d.bots)} sub="Conectados" color={Colors.purple} />
-        <StatCard label="MSGS HOJE" value={String(d.msgsHoje)} sub="Recebidas" color={Colors.blue} />
-        <StatCard label="CONVERSAS" value={String(d.conversas)} sub="Únicas" color={Colors.teal} />
-        <StatCard label="STATUS" value={d.bot?.is_active ? "ATIVO" : "—"} sub="Polling" color={Colors.green} />
-      </div>
-
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginTop: 8, marginBottom: 10 }}>Seus bots</h2>
-      {d.bot ? (
-        <div style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 8, background: Colors.purple, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>{(d.bot.name || "B")[0].toUpperCase()}</span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{d.bot.name || "bot"}</p>
-            <p style={{ color: Colors.muted, fontSize: 12, marginTop: 2 }}>@{d.bot.username || "—"}</p>
-          </div>
-          <div style={{ background: "rgba(52,211,153,0.15)", borderRadius: 6, padding: "3px 10px" }}>
-            <span style={{ color: Colors.green, fontSize: 11, fontWeight: 600 }}>{d.bot.is_active === false ? "inativo" : "ativo"}</span>
-          </div>
-        </div>
-      ) : (
-        <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: "20px 0" }}>Nenhum bot configurado.</p>
-      )}
-    </div>
-  );
-}
+ /* ============== TELEGRAM ============== */
+ function Telegram() {
+   const [d, setD] = useState<any>(null);
+   useEffect(() => {
+     (async () => {
+       const startToday = new Date();
+       startToday.setHours(0, 0, 0, 0);
+       let bots = 0, msgsHoje = 0, conversas = 0;
+       try {
+         const r = await (supabase as any).from("telegram_bots").select("id", { count: "exact", head: true });
+         bots = r.count || 0;
+       } catch {}
+       try {
+         const r = await (supabase as any).from("telegram_messages").select("chat_id", { count: "exact" }).gte("created_at", startToday.toISOString());
+         msgsHoje = r.count || 0;
+         conversas = new Set((r.data || []).map((x: any) => x.chat_id)).size;
+       } catch {}
+       let bot: any = null;
+       try {
+         const r = await (supabase as any).from("telegram_bots").select("name,username,is_active").limit(1).maybeSingle();
+         bot = r.data;
+       } catch {}
+       setD({ bots, msgsHoje, conversas, bot });
+     })();
+   }, []);
+   if (!d) return <Loading />;
+ 
+   return (
+     <div style={{ padding: 20, paddingBottom: 40 }}>
+       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+         <LogoText />
+         <div style={{ display: "flex", gap: 8 }}>
+           <div style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(56,189,248,0.15)" }}>
+             <span style={{ color: Colors.teal, fontSize: 11, fontWeight: 700 }}>Telegram Bots</span>
+           </div>
+           <div style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(192,132,252,0.15)" }}>
+             <span style={{ color: Colors.purple, fontSize: 11, fontWeight: 700 }}>+ Novo Bot</span>
+           </div>
+         </div>
+       </div>
+ 
+       <h1 style={{ fontSize: 24, fontWeight: 700, color: Colors.white, marginBottom: 4 }}>Painel Telegram</h1>
+       <p style={{ fontSize: 13, color: Colors.muted, marginBottom: 16 }}>Visão geral dos seus bots e mensagens</p>
+ 
+       <div style={cardStyle}>
+         <p style={cardLabelStyle}>BOTS CONECTADOS</p>
+         <p style={{ fontSize: 36, fontWeight: 700, color: Colors.teal, marginBottom: 4 }}>{d.bots}</p>
+         <p style={{ fontSize: 12, color: Colors.muted }}>{d.bots > 0 ? "1 ativo" : "0 ativo"}</p>
+       </div>
+ 
+       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
+           <p style={cardLabelStyle}>MENSAGENS HOJE</p>
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
+           <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
+         </div>
+         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
+           <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
+           <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
+         </div>
+       </div>
+ 
+       <div style={cardStyle}>
+         <p style={cardLabelStyle}>STATUS DO POLLING</p>
+         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+           <div style={{ width: 10, height: 10, borderRadius: "50%", background: Colors.green }} />
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 0 }}>ON</p>
+         </div>
+         <p style={{ fontSize: 12, color: Colors.muted }}>polling a cada 1 min</p>
+       </div>
+ 
+       <div style={cardStyle}>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+           <h3 style={{ fontSize: 15, fontWeight: 700, color: Colors.white, margin: 0 }}>Seus bots</h3>
+           <span style={{ color: Colors.purple, fontSize: 12 }}>Gerenciar →</span>
+         </div>
+         {d.bot ? (
+           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+             <div style={{ width: 40, height: 40, borderRadius: 10, background: Colors.card2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+               <span style={{ color: Colors.teal, fontSize: 18 }}>🤖</span>
+             </div>
+             <div style={{ flex: 1 }}>
+               <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: 0 }}>@{d.bot.username || "bot"}</p>
+               <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
+                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: Colors.green }} />
+                 <p style={{ fontSize: 12, color: Colors.muted, margin: 0 }}>ativo</p>
+               </div>
+             </div>
+             <div style={{ display: "flex", gap: 6 }}>
+               <div style={{ background: "rgba(192,132,252,0.15)", borderRadius: 8, padding: "5px 10px" }}>
+                 <span style={{ color: Colors.purple, fontSize: 11, fontWeight: 700 }}>Editar</span>
+               </div>
+             </div>
+           </div>
+         ) : (
+           <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>Nenhum bot configurado.</p>
+         )}
+       </div>
+     </div>
+   );
+ }
 
 /* ============== SAQUES ============== */
  function Saques() {
