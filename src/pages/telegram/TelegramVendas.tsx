@@ -1,4 +1,5 @@
  import { useMemo, useState, useEffect } from "react";
+ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -61,14 +62,23 @@ export default function TelegramVendas() {
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const stats = useMemo(() => ({
-    pago: { value: MOCK.filter(s => s.status === "PAGO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PAGO").length },
-    pendente: { value: MOCK.filter(s => s.status === "PENDENTE").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "PENDENTE").length },
-    falhou: { value: MOCK.filter(s => s.status === "FALHOU").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "FALHOU").length },
-    reembolsado: { value: MOCK.filter(s => s.status === "REEMBOLSADO").reduce((a, s) => a + s.valor, 0), count: MOCK.filter(s => s.status === "REEMBOLSADO").length },
-  }), []);
+   const stats = useMemo(() => {
+     const mapped = sales.map(s => ({
+       ...s,
+       status_label: s.status === "approved" || s.status === "paid" ? "PAGO" : 
+                    s.status === "pending" ? "PENDENTE" :
+                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU"
+     }));
 
-  const total = MOCK.length;
+     return {
+       pago: { value: mapped.filter(s => s.status_label === "PAGO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PAGO").length },
+       pendente: { value: mapped.filter(s => s.status_label === "PENDENTE").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PENDENTE").length },
+       falhou: { value: mapped.filter(s => s.status_label === "FALHOU").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "FALHOU").length },
+       reembolsado: { value: mapped.filter(s => s.status_label === "REEMBOLSADO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "REEMBOLSADO").length },
+     };
+   }, [sales]);
+
+   const total = sales.length;
 
   return (
     <div className="space-y-6">
