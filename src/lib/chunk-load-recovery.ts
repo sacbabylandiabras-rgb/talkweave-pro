@@ -1,3 +1,5 @@
+import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+
 const CHUNK_RELOAD_KEY = "lovable:chunk-reload-attempted";
 
 function getErrorMessage(error: unknown) {
@@ -56,4 +58,33 @@ export function installChunkLoadRecovery() {
 
 export function clearChunkRecoveryState() {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+}
+
+/**
+ * Wraps React.lazy() so that if the resolved module is missing `default`
+ * (a stale published bundle pointing at a removed/renamed chunk), we force
+ * a one-time reload instead of letting React throw
+ * `Cannot read properties of undefined (reading 'default')`.
+ */
+export function lazyWithRecovery<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T } | any>,
+): LazyExoticComponent<T> {
+  return lazy(async () => {
+    try {
+      const mod = await factory();
+      if (mod && typeof mod === "object" && mod.default) {
+        return mod as { default: T };
+      }
+      // Module loaded but has no default export — stale chunk.
+      reloadOnce();
+      // Return a placeholder so React doesn't crash before reload kicks in.
+      return { default: (() => null) as unknown as T };
+    } catch (err) {
+      if (isChunkLoadError(err)) {
+        reloadOnce();
+        return { default: (() => null) as unknown as T };
+      }
+      throw err;
+    }
+  });
 }
