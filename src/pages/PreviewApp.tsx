@@ -103,14 +103,14 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
-function LogoText({ size = 22 }: { size?: number }) {
-  return (
-    <div style={{ fontSize: size, fontWeight: 800, letterSpacing: 0.5, fontFamily: FONT }}>
-      <span style={{ color: Colors.white }}>ZAP</span>
-      <span style={{ color: Colors.purple }}>LYNX</span>
-    </div>
-  );
-}
+ function LogoText({ size = 22 }: { size?: number }) {
+   return (
+     <div style={{ fontSize: size, fontWeight: 800, letterSpacing: 0.5, fontFamily: FONT, display: "inline-block" }}>
+       <span style={{ color: Colors.white }}>ZAP</span>
+       <span style={{ color: Colors.purple }}>LYNX</span>
+     </div>
+   );
+ }
 
 function Login({ email, pw, setEmail, setPw, login, err, loading }: any) {
   return (
@@ -202,18 +202,18 @@ function AppShell({ tab, setTab, session }: { tab: Tab; setTab: (t: Tab) => void
   );
 }
 
-function TopBar({ showPro = false }: { showPro?: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-      <LogoText />
-      {showPro && (
-        <div style={{ paddingLeft: 12, paddingRight: 12, paddingTop: 5, paddingBottom: 5, borderRadius: 8, background: "rgba(192,132,252,0.18)" }}>
-          <span style={{ color: Colors.purple, fontSize: 12, fontWeight: 700 }}>ZapLynx Pro</span>
-        </div>
-      )}
-    </div>
-  );
-}
+ function TopBar({ showPro = false }: { showPro?: boolean }) {
+   return (
+     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+       <LogoText />
+       {showPro && (
+         <div style={{ padding: "5px 12px", borderRadius: 8, background: "rgba(192,132,252,0.18)" }}>
+           <span style={{ color: Colors.purple, fontSize: 12, fontWeight: 700 }}>ZapLynx Pro</span>
+         </div>
+       )}
+     </div>
+   );
+ }
 
 function PageHeader({ title, sub }: { title: string; sub: string }) {
   return (
@@ -262,7 +262,7 @@ function Painel() {
 
   if (!d) return <Loading />;
 
-  const stats: Array<[string, string, string]> = [
+  const STATS_ROW: Array<[string, string, string]> = [
     ["TOTAL", String(d.total), Colors.blue],
     ["ENVIADAS", String(d.sent), Colors.purple],
     ["ENTREGUES", String(d.delivered), Colors.green],
@@ -270,25 +270,22 @@ function Painel() {
   ];
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, paddingBottom: 40 }}>
       <TopBar showPro />
       <PageHeader title="Painel" sub="Visão geral das suas métricas" />
 
-      {/* 2x2 Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
         <StatCard label="CAMPANHAS" value={String(d.campaigns)} sub="Criadas" color={Colors.purple} />
         <StatCard label="MODELOS" value={String(d.templates)} sub="Templates" color={Colors.blue} />
         <StatCard label="CONTATOS" value={String(d.contacts)} sub="Alcançados" color={Colors.green} />
         <StatCard label="PIX GERADO" value={fmtBRL(d.pixGerado)} sub="Total" color={Colors.green} />
       </div>
 
-      {/* Venda aprovada */}
       <div style={{ ...cardStyle, borderColor: "rgba(96,165,250,0.25)" }}>
         <p style={cardLabelStyle}>VENDA APROVADA</p>
         <p style={{ ...cardBigVal, color: Colors.blue }}>{fmtBRL(d.vendaAprovada)}</p>
       </div>
 
-      {/* CPA */}
       <div style={cardStyle}>
         <p style={cardLabelStyle}>CPA</p>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -297,9 +294,8 @@ function Painel() {
         </div>
       </div>
 
-      {/* 4-stat row */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {stats.map(([l, v, c]) => (
+        {STATS_ROW.map(([l, v, c]) => (
           <div key={l} style={miniStat}>
             <p style={miniLabelStyle}>{l}</p>
             <p style={{ ...miniValStyle, color: c }}>{v}</p>
@@ -307,7 +303,6 @@ function Painel() {
         ))}
       </div>
 
-      {/* Volume placeholder */}
       <div style={cardStyle}>
         <p style={cardLabelStyle}>VOLUME DE MENSAGENS</p>
         <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 10, background: Colors.card2, borderRadius: 10 }}>
@@ -318,67 +313,108 @@ function Painel() {
   );
 }
 
-/* ============== TELEGRAM ============== */
-function Telegram() {
-  const [d, setD] = useState<any>(null);
-  useEffect(() => {
-    (async () => {
-      const startToday = new Date();
-      startToday.setHours(0, 0, 0, 0);
-      let bots = 0,
-        msgsHoje = 0,
-        conversas = 0;
-      try {
-        const r = await (supabase as any).from("telegram_bots").select("id", { count: "exact", head: true });
-        bots = r.count || 0;
-      } catch {}
-      try {
-        const r = await (supabase as any).from("telegram_messages").select("chat_id", { count: "exact" }).gte("created_at", startToday.toISOString());
-        msgsHoje = r.count || 0;
-        conversas = new Set((r.data || []).map((x: any) => x.chat_id)).size;
-      } catch {}
-      let bot: any = null;
-      try {
-        const r = await (supabase as any).from("telegram_bots").select("name,username,is_active").limit(1).maybeSingle();
-        bot = r.data;
-      } catch {}
-      setD({ bots, msgsHoje, conversas, bot });
-    })();
-  }, []);
-  if (!d) return <Loading />;
-
-  return (
-    <div style={{ padding: 20 }}>
-      <TopBar />
-      <PageHeader title="Telegram" sub="Bots e mensagens recebidas" />
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <StatCard label="BOTS" value={String(d.bots)} sub="Conectados" color={Colors.purple} />
-        <StatCard label="MSGS HOJE" value={String(d.msgsHoje)} sub="Recebidas" color={Colors.blue} />
-        <StatCard label="CONVERSAS" value={String(d.conversas)} sub="Únicas" color={Colors.teal} />
-        <StatCard label="STATUS" value={d.bot?.is_active ? "ATIVO" : "—"} sub="Polling" color={Colors.green} />
-      </div>
-
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginTop: 8, marginBottom: 10 }}>Seus bots</h2>
-      {d.bot ? (
-        <div style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 8, background: Colors.purple, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>{(d.bot.name || "B")[0].toUpperCase()}</span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{d.bot.name || "bot"}</p>
-            <p style={{ color: Colors.muted, fontSize: 12, marginTop: 2 }}>@{d.bot.username || "—"}</p>
-          </div>
-          <div style={{ background: "rgba(52,211,153,0.15)", borderRadius: 6, padding: "3px 10px" }}>
-            <span style={{ color: Colors.green, fontSize: 11, fontWeight: 600 }}>{d.bot.is_active === false ? "inativo" : "ativo"}</span>
-          </div>
-        </div>
-      ) : (
-        <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: "20px 0" }}>Nenhum bot configurado.</p>
-      )}
-    </div>
-  );
-}
+ /* ============== TELEGRAM ============== */
+ function Telegram() {
+   const [d, setD] = useState<any>(null);
+   useEffect(() => {
+     (async () => {
+       const startToday = new Date();
+       startToday.setHours(0, 0, 0, 0);
+       let bots = 0, msgsHoje = 0, conversas = 0;
+       try {
+         const r = await (supabase as any).from("telegram_bots").select("id", { count: "exact", head: true });
+         bots = r.count || 0;
+       } catch {}
+       try {
+         const r = await (supabase as any).from("telegram_messages").select("chat_id", { count: "exact" }).gte("created_at", startToday.toISOString());
+         msgsHoje = r.count || 0;
+         conversas = new Set((r.data || []).map((x: any) => x.chat_id)).size;
+       } catch {}
+       let bot: any = null;
+       try {
+         const r = await (supabase as any).from("telegram_bots").select("name,username,is_active").limit(1).maybeSingle();
+         bot = r.data;
+       } catch {}
+       setD({ bots, msgsHoje, conversas, bot });
+     })();
+   }, []);
+   if (!d) return <Loading />;
+ 
+   return (
+     <div style={{ padding: 20, paddingBottom: 40 }}>
+       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+         <LogoText />
+         <div style={{ display: "flex", gap: 8 }}>
+           <div style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(56,189,248,0.15)" }}>
+             <span style={{ color: Colors.teal, fontSize: 11, fontWeight: 700 }}>Telegram Bots</span>
+           </div>
+           <div style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(192,132,252,0.15)" }}>
+             <span style={{ color: Colors.purple, fontSize: 11, fontWeight: 700 }}>+ Novo Bot</span>
+           </div>
+         </div>
+       </div>
+ 
+       <h1 style={{ fontSize: 24, fontWeight: 700, color: Colors.white, marginBottom: 4 }}>Painel Telegram</h1>
+       <p style={{ fontSize: 13, color: Colors.muted, marginBottom: 16 }}>Visão geral dos seus bots e mensagens</p>
+ 
+       <div style={cardStyle}>
+         <p style={cardLabelStyle}>BOTS CONECTADOS</p>
+         <p style={{ fontSize: 36, fontWeight: 700, color: Colors.teal, marginBottom: 4 }}>{d.bots}</p>
+         <p style={{ fontSize: 12, color: Colors.muted }}>{d.bots > 0 ? "1 ativo" : "0 ativo"}</p>
+       </div>
+ 
+       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
+           <p style={cardLabelStyle}>MENSAGENS HOJE</p>
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.purple, marginBottom: 4 }}>{d.msgsHoje}</p>
+           <p style={{ fontSize: 12, color: Colors.muted }}>{d.msgsHoje} no histórico</p>
+         </div>
+         <div style={{ ...cardStyle, flex: 1, marginBottom: 0 }}>
+           <p style={cardLabelStyle}>CONVERSAS ÚNICAS</p>
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 4 }}>{d.conversas}</p>
+           <p style={{ fontSize: 12, color: Colors.muted }}>chats distintos</p>
+         </div>
+       </div>
+ 
+       <div style={cardStyle}>
+         <p style={cardLabelStyle}>STATUS DO POLLING</p>
+         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+           <div style={{ width: 10, height: 10, borderRadius: "50%", background: Colors.green }} />
+           <p style={{ fontSize: 36, fontWeight: 700, color: Colors.green, marginBottom: 0 }}>ON</p>
+         </div>
+         <p style={{ fontSize: 12, color: Colors.muted }}>polling a cada 1 min</p>
+       </div>
+ 
+       <div style={cardStyle}>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+           <h3 style={{ fontSize: 15, fontWeight: 700, color: Colors.white, margin: 0 }}>Seus bots</h3>
+           <span style={{ color: Colors.purple, fontSize: 12 }}>Gerenciar →</span>
+         </div>
+         {d.bot ? (
+           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+             <div style={{ width: 40, height: 40, borderRadius: 10, background: Colors.card2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+               <span style={{ color: Colors.teal, fontSize: 18 }}>🤖</span>
+             </div>
+             <div style={{ flex: 1 }}>
+               <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", margin: 0 }}>@{d.bot.username || "bot"}</p>
+               <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
+                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: Colors.green }} />
+                 <p style={{ fontSize: 12, color: Colors.muted, margin: 0 }}>ativo</p>
+               </div>
+             </div>
+             <div style={{ display: "flex", gap: 6 }}>
+               <div style={{ background: "rgba(192,132,252,0.15)", borderRadius: 8, padding: "5px 10px" }}>
+                 <span style={{ color: Colors.purple, fontSize: 11, fontWeight: 700 }}>Editar</span>
+               </div>
+             </div>
+           </div>
+         ) : (
+           <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>Nenhum bot configurado.</p>
+         )}
+       </div>
+     </div>
+   );
+ }
 
 /* ============== SAQUES ============== */
  function Saques() {
@@ -452,26 +488,26 @@ function Telegram() {
     { label: "Total de Saques", value: String(d.totalSaques), color: Colors.purple },
   ];
 
-  return (
-    <div style={{ padding: 20 }}>
-      <TopBar />
-      <PageHeader title="Saques" sub="Solicite a transferência do seu saldo via PIX" />
-
-       <button 
-         onClick={() => setModal(true)}
-         style={{ width: "100%", background: Colors.purple, color: "#fff", padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 16, cursor: "pointer" }}
-       >
-         + Solicitar Saque
-       </button>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        {cards.map((c) => (
-          <div key={c.label} style={{ ...cardStyle, marginBottom: 0 }}>
-            <p style={{ ...cardLabelStyle, color: Colors.subtext }}>{c.label}</p>
-            <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
-          </div>
-        ))}
-      </div>
+   return (
+     <div style={{ padding: 20, paddingBottom: 40 }}>
+       <TopBar />
+       <PageHeader title="Saques" sub="Solicite a transferência do seu saldo via PIX" />
+ 
+        <button 
+          onClick={() => setModal(true)}
+          style={{ background: Colors.purple, color: "#fff", padding: "13px 22px", borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 20, cursor: "pointer", alignSelf: "flex-start", display: "inline-block" }}
+        >
+          + Solicitar Saque
+        </button>
+ 
+       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
+         {cards.map((c) => (
+           <div key={c.label} style={{ ...cardStyle, width: "calc(50% - 6px)", marginBottom: 0 }}>
+             <p style={{ ...cardLabelStyle, color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{c.label}</p>
+             <p style={{ ...cardBigVal, color: c.color, fontSize: 22 }}>{c.value}</p>
+           </div>
+         ))}
+       </div>
 
        {modal && (
          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -539,26 +575,27 @@ function Telegram() {
          </div>
        )}
  
-       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Histórico de Saques</h2>
-      <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
-        {d.hist.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem saques ainda.</p>}
-        {d.hist.map((h: any, i: number) => {
-          const ok = ["approved", "paid", "completed"].includes(h.status);
-          return (
-            <div key={h.id} style={{ display: "flex", alignItems: "center", padding: 14, borderTop: i > 0 ? `1px solid rgba(255,255,255,0.04)` : "none" }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, color: Colors.muted }}>{fmtDateTime(h.created_at)}</p>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 2 }}>{fmtBRL(h.amount)}</p>
-              </div>
-               <div style={{ background: h.status === 'approved' || h.status === 'paid' ? "rgba(52,211,153,0.15)" : h.status === 'rejected' ? "rgba(248,113,113,0.15)" : "rgba(251,191,36,0.15)", borderRadius: 6, padding: "4px 10px" }}>
-                 <span style={{ color: h.status === 'approved' || h.status === 'paid' ? Colors.green : h.status === 'rejected' ? Colors.red : Colors.amber, fontSize: 11, fontWeight: 600 }}>
-                   {h.status === 'approved' || h.status === 'paid' ? "Aprovado" : h.status === 'rejected' ? "Recusado" : "Pendente"}
-                 </span>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: Colors.white, marginBottom: 12 }}>Histórico de Saques</h2>
+       <div style={{ ...cardStyle, padding: "0 16px", overflow: "hidden" }}>
+         {d.hist.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem saques ainda.</p>}
+         {d.hist.map((h: any, i: number) => {
+           const approved = ["approved", "paid", "completed"].includes(h.status);
+           return (
+             <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < d.hist.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+               <div style={{ flex: 1 }}>
+                 <p style={{ fontSize: 11, color: Colors.muted, marginBottom: 2 }}>{fmtDateTime(h.created_at)}</p>
+                 <p style={{ fontSize: 15, fontWeight: "600", color: "#fff" }}>{fmtBRL(h.amount)}</p>
+                 <p style={{ fontSize: 10, color: Colors.muted, marginTop: 1, textTransform: "uppercase" }}>{h.pix_key_type || "PIX"}</p>
                </div>
-            </div>
-          );
-        })}
-      </div>
+                <div style={{ background: approved ? "rgba(52,211,153,0.12)" : h.status === 'rejected' ? "rgba(248,113,113,0.1)" : "rgba(251,191,36,0.1)", borderRadius: 8, padding: "5px 10px" }}>
+                  <span style={{ color: approved ? Colors.green : h.status === 'rejected' ? Colors.red : Colors.amber, fontSize: 11, fontWeight: "700" }}>
+                    {approved ? "Aprovado" : h.status === 'rejected' ? "Rejeitado" : "Pendente"}
+                  </span>
+                </div>
+             </div>
+           );
+         })}
+       </div>
     </div>
   );
 }
@@ -736,17 +773,17 @@ function Notificacoes() {
         </button>
       </div>
 
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Configurações</h2>
-      <div style={{ ...cardStyle, padding: 0, overflow: "hidden", marginBottom: 20 }}>
-        {TOGGLES.map((t, i) => (
-          <div key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-            <span style={{ fontSize: 14, color: "#fff" }}>{t.label}</span>
-            <Toggle on={toggles[t.key]} onChange={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} />
-          </div>
-        ))}
-      </div>
-
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Resumos recentes</h2>
+       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Configurações</h2>
+       <div style={{ ...cardStyle, padding: 0, overflow: "hidden", marginBottom: 20 }}>
+         {TOGGLES.map((t, i) => (
+           <div key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+             <span style={{ fontSize: 14, color: "#fff", flex: 1 }}>{t.label}</span>
+             <Toggle on={toggles[t.key]} onChange={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} />
+           </div>
+         ))}
+       </div>
+ 
+       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Resumos recentes</h2>
       {loading && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Carregando…</p>}
       {!loading && items.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem resumos.</p>}
       {!loading &&
@@ -777,15 +814,15 @@ function Notificacoes() {
 }
 
 /* ============== HELPERS ============== */
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
-  return (
-    <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16 }}>
-      <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
-      <p style={{ fontSize: value.length > 8 ? 20 : 26, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
-    </div>
-  );
-}
+ function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+   return (
+     <div style={{ background: Colors.card, borderRadius: 16, border: `1px solid ${Colors.border}`, padding: 16, width: "calc(50% - 6px)" }}>
+       <p style={{ fontSize: 9, fontWeight: 700, color: Colors.muted, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
+       <p style={{ fontSize: 28, fontWeight: 700, color, marginBottom: 2 }}>{value}</p>
+       {sub && <p style={{ fontSize: 11, color: Colors.muted }}>{sub}</p>}
+     </div>
+   );
+ }
 
 const cardStyle: React.CSSProperties = {
   background: Colors.card,
@@ -802,10 +839,10 @@ const cardLabelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   marginBottom: 8,
 };
-const cardBigVal: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 700,
-};
+ const cardBigVal: React.CSSProperties = {
+   fontSize: 30,
+   fontWeight: 700,
+ };
 const miniStat: React.CSSProperties = {
   flex: 1,
   background: Colors.card,
