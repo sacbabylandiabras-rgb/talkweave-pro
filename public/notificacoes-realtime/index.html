@@ -648,28 +648,38 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
 <script>
 let charts = {};
 
-function testNotif(title, body) {
-  if (!("Notification" in window)) {
-    alert("Este navegador não suporta notificações.");
-    return;
-  }
-  
-  if (Notification.permission === "granted") {
-    const iconUrl = window.location.origin + '/icon-512.png';
-    const n = new Notification(title, { body, icon: iconUrl });
-    n.onclick = () => { window.focus(); };
-  } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then(permission => {
-      if (permission === "granted") {
-        const iconUrl = window.location.origin + '/icon-512.png';
-        const n = new Notification(title, { body, icon: iconUrl });
-        n.onclick = () => { window.focus(); };
-      }
-    });
-  } else {
-    alert("Permissão de notificação negada. Ative nas configurações do navegador.");
-  }
-}
+ async function testNotif(title, body) {
+   if (!('serviceWorker' in navigator)) {
+     alert('Navegador não suporta Service Workers.');
+     return;
+   }
+   
+   try {
+     let permission = Notification.permission;
+     if (permission === 'default') {
+       permission = await Notification.requestPermission();
+     }
+     
+     if (permission !== 'granted') {
+       alert('Permissão de notificação negada. Ative nas configurações do navegador.');
+       return;
+     }
+ 
+     const reg = await navigator.serviceWorker.getRegistration() || await navigator.serviceWorker.register('/sw-push.js');
+     await navigator.serviceWorker.ready;
+     
+     reg.showNotification(title, {
+       body: body,
+       icon: '/icon-512.png',
+       badge: '/icon-512.png',
+       tag: 'test-notif',
+       vibrate: [100, 50, 100]
+     });
+   } catch (err) {
+     console.error('Erro ao enviar notificação:', err);
+     alert('Erro ao processar notificações.');
+   }
+ }
 
 function showPage(n, el) {
   // pages
