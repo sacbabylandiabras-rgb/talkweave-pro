@@ -251,9 +251,10 @@ serve(async (req) => {
         console.error('CAPI error:', capiErr)
       }
 
-      // Push notification
+      // Push notification (Approved)
       try {
-        const amount = (tx.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        const amountCents = tx.amount || 0
+        const amount = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
         await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
@@ -261,7 +262,9 @@ serve(async (req) => {
             user_id: tx.user_id,
             title: '💰 Nova venda aprovada!',
             body: `Pagamento de ${amount} recebido${tx.customer_name ? ` de ${tx.customer_name}` : ''}`,
-            data: { transaction_id: tx.id, type: 'transaction_approved' },
+            data: { transaction_id: tx.id, type: 'transaction_approved', amount: String(amountCents) },
+            event_type: 'pix_paid',
+            checkout_id: tx.checkout_id || null,
           }),
         })
       } catch (pushErr) {
