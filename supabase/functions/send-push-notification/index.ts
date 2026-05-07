@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const projectId = serviceAccount.project_id;
 
     const payload: PushPayload = await req.json();
-    const { user_id, title, body, data, event_type, checkout_id } = payload;
+    const { user_id, title, body, data, event_type, checkout_id, url } = payload;
 
     if (!user_id || !title || !body) {
       return new Response(
@@ -190,46 +190,74 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching tokens: ${tokensError.message}`);
     }
 
-    // Dispara também via Web Push (PWA / browser) em paralelo
-    let webPushResult: any = null;
-    try {
-      const webPushRes = await fetch(
-        `${Deno.env.get("SUPABASE_URL")}/functions/v1/web-push-send`,
-        {
+    const results: any = { web_push: null, telegram: null, fcm: { sent: 0, errors: [] } };
+
+    const webPushPromise = fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/web-push-send`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          user_id,
+          title,
+          body,
+          url: url || data?.url || "/",
+          tag: event_type || "zaplynx",
+        }),
+      }
+    ).then(res => res.json()).catch(e => ({ error: String(e) }));
+
+    const telegramPromise = (async () => {
+      try {
+        const { data: bot } = await supabase
+          .from("telegram_bots")
+          .select("bot_token")
+          .eq("user_id", user_id)
+          .eq("active", true)
+          .limit(1)
+          .maybeSingle();
+
+        if (!bot?.bot_token) return { skipped: true, reason: "no active bot" };
+
+        const { data: lastMsg } = await supabase
+          .from("telegram_messages")
+          .select("chat_id")
+          .eq("user_id", user_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!lastMsg?.chat_id) return { skipped: true, reason: "no chat_id found" };
+
+        const tgMsg = `<b>${title}</b>\n\n${body}`;
+        const tgRes = await fetch(`https://api.telegram.org/bot${bot.bot_token}/sendMessage`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id,
-            title,
-            body,
-            url: data?.url || "/",
-            tag: event_type || "zaplynx",
+            chat_id: lastMsg.chat_id,
+            text: tgMsg,
+            parse_mode: "HTML",
           }),
-        }
-      );
-      webPushResult = await webPushRes.json().catch(() => null);
-      console.log("[web-push] result:", webPushResult);
-    } catch (e) {
-      console.error("[web-push] error:", e);
-    }
+        });
+        return await tgRes.json();
+      } catch (e) {
+        return { error: String(e) };
+      }
+    })();
+
+    const [wpRes, tgRes] = await Promise.all([webPushPromise, telegramPromise]);
+    results.web_push = wpRes;
+    results.telegram = tgRes;
 
     if (!tokens || tokens.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          sent: webPushResult?.sent || 0,
-          fcm_sent: 0,
-          web_push: webPushResult,
-          message: "Nenhum dispositivo FCM registrado, web push tentado",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true, ...results, message: "No FCM tokens, other channels attempted" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Get FCM access token
     const accessToken = await getAccessToken(serviceAccount);
 
     let sent = 0;
