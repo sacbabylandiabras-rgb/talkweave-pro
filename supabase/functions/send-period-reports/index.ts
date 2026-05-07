@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
     }
     currentSlot = matchingSlot;
 
-    // Janela: do slot anterior até agora (em UTC)
-    const prevSlot = previousSlot(now.h, now.min);
+    // Janela: do slot anterior (em relação ao slot atual) até agora (em UTC)
+    const prevSlot = previousSlot(currentSlot);
     let endUtc = brtSlotToUtcDate(now.y, now.m, now.d, currentSlot);
     let startUtc: Date;
     if (prevSlot > currentSlot) {
