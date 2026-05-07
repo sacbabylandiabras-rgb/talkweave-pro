@@ -522,7 +522,7 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
         </div>
         <div class="toggle-row">
           <span class="toggle-label">Notificar pix ou boleto emitido</span>
-          <div class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"></div>
         </div>
       </div>
 
@@ -649,6 +649,11 @@ html,body{height:100%;background:var(--bg);color:var(--white);font-family:'Outfi
 let charts = {};
 
  async function testNotif(title, body) {
+    // Solicita ao pai (React) que ative as notificações reais e as salve no banco
+    if (window.parent) {
+      window.parent.postMessage({ type: 'ENABLE_PUSH' }, '*');
+    }
+
    if (!('serviceWorker' in navigator)) {
      alert('Navegador não suporta Service Workers.');
      return;
