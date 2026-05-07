@@ -402,14 +402,34 @@ serve(async (req) => {
         reviewed_at: new Date().toISOString(),
       }).eq('id', withdrawalId)
 
-      return new Response(JSON.stringify({
-        success: true,
-        status: 'approved',
-        correlationID: cwTransferId,
-        message: 'Transferência PIX processada com sucesso via CartWave',
-      }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+       const response = new Response(JSON.stringify({
+         success: true,
+         status: 'approved',
+         correlationID: cwTransferId,
+         message: 'Transferência PIX processada com sucesso via CartWave',
+       }), {
+         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       })
+
+       // Send push notification for successful withdrawal
+       try {
+         const amountFormatted = (withdrawal.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+         await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+           body: JSON.stringify({
+             user_id: withdrawal.user_id,
+             title: '💸 Saque processado!',
+             body: `Seu saque de ${amountFormatted} foi enviado para sua conta via PIX.`,
+             data: { withdrawal_id: withdrawalId, type: 'withdrawal_paid' },
+             event_type: 'withdrawal_paid',
+           }),
+         })
+       } catch (err) {
+         console.error('Push notification error in withdrawal:', err)
+       }
+
+       return response
 
     } else {
       // === OpenPix (Woovi) Transfer ===
