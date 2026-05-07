@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           prefRow = r;
         }
-        // Se existir preferência, respeita; se não existir, usa default (todos ON exceto issued)
+        // Se existir preferência, respeita; se não existir, default ON para todos os eventos
         if (prefRow) {
           if (prefRow.enabled === false || prefRow[prefKey] === false) {
             return new Response(
@@ -177,12 +177,6 @@ Deno.serve(async (req) => {
               { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-        } else if (event_type === "pix_or_boleto_issued") {
-          // Default OFF para emissão
-          return new Response(
-            JSON.stringify({ success: true, sent: 0, skipped: true, reason: "default off" }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
         }
       }
     }
