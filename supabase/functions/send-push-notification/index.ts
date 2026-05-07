@@ -260,9 +260,6 @@ Deno.serve(async (req) => {
 
     const accessToken = await getAccessToken(serviceAccount);
 
-    let sent = 0;
-    const errors: string[] = [];
-
     for (const deviceToken of tokens) {
       try {
         const message: any = {
@@ -312,29 +309,23 @@ Deno.serve(async (req) => {
         );
 
         if (res.ok) {
-          sent++;
+          results.fcm.sent++;
         } else {
           const errBody = await res.text();
           console.error(`FCM error for token ${deviceToken.token}:`, errBody);
-
-          // Remove invalid tokens
           if (errBody.includes("UNREGISTERED") || errBody.includes("INVALID_ARGUMENT")) {
-            await supabase
-              .from("device_push_tokens")
-              .delete()
-              .eq("token", deviceToken.token);
+            await supabase.from("device_push_tokens").delete().eq("token", deviceToken.token);
           }
-          errors.push(errBody);
+          results.fcm.errors.push(errBody);
         }
-      } catch (e) {
-        errors.push(e.message);
+      } catch (e: any) {
+        results.fcm.errors.push(e.message);
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, sent, total: tokens.length, errors, web_push: webPushResult }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, ...results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Push notification error:", error);
     return new Response(
