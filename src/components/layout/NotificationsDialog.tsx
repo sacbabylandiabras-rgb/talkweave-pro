@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { Bell, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bell, Check, X, Shield, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { useWebPush } from "@/hooks/useWebPush";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Notification {
   id: string;
@@ -49,6 +51,16 @@ interface NotificationsDialogProps {
 
 export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogProps) {
   const [notifications, setNotifications] = useState(mockNotifications);
+  const { pushEnabled, pushBusy, permissionStatus, enablePush } = useWebPush();
+  const { toast } = useToast();
+  const [isIOS, setIsIOS] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+    const ua = window.navigator.userAgent;
+    setIsIOS(/iPad|iPhone|iPod/.test(ua));
+    setIsPWA(window.matchMedia("(display-mode: standalone)").matches);
+  }, []);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -88,6 +100,34 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
           </DialogDescription>
         </DialogHeader>
         
+        {permissionStatus !== "granted" && (
+          <Alert className="mb-4 bg-primary/10 border-primary/20">
+            <Shield className="w-4 h-4 text-primary" />
+            <AlertTitle className="text-sm font-semibold">Notificações Desativadas</AlertTitle>
+            <AlertDescription className="text-xs">
+              Ative as notificações para receber alertas de vendas e PIX em tempo real.
+              {isIOS && !isPWA && (
+                <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-medium">
+                  <Smartphone className="w-3 h-3 inline mr-1" /> No iOS, você precisa clicar em "Compartilhar" e "Adicionar à Tela de Início" primeiro.
+                </div>
+              )}
+            </AlertDescription>
+            <Button
+              className="w-full mt-3 h-8 text-xs bg-primary hover:bg-primary/90"
+              disabled={pushBusy || (isIOS && !isPWA)}
+              onClick={() => {
+                enablePush().then(() => {
+                  toast({ title: "Notificações ativadas!", description: "Você receberá alertas em tempo real agora." });
+                }).catch(e => {
+                  toast({ title: "Erro ao ativar", description: e.message, variant: "destructive" });
+                });
+              }}
+            >
+              {pushBusy ? "Ativando..." : "Ativar Notificações"}
+            </Button>
+          </Alert>
+        )}
+
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-3">
             {notifications.length === 0 ? (

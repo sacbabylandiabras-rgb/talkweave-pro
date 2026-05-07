@@ -7,8 +7,13 @@
    const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>("default");
  
    const getVapidPublicKey = async () => {
-     const { data, error } = await supabase.functions.invoke("web-push-public-key");
-     if (error || !(data as any)?.publicKey) throw error || new Error("Chave pública de push não configurada.");
+     const { data, error } = await supabase.functions.invoke("web-push-send", {
+       body: { action: "public-key" },
+     });
+     if (error || !(data as any)?.publicKey) {
+       console.error("Erro ao buscar chave pública VAPID:", error);
+       throw error || new Error("Chave pública de push não configurada.");
+     }
      return (data as any).publicKey as string;
    };
  
