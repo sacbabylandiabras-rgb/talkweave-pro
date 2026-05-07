@@ -380,25 +380,69 @@ function Telegram() {
 }
 
 /* ============== SAQUES ============== */
-function Saques() {
-  const [d, setD] = useState<any>(null);
-  useEffect(() => {
-    (async () => {
-      const [txRes, wdRes] = await Promise.all([
-        supabase.from("gateway_transactions").select("id,amount,fee,net,status,created_at").limit(500),
-        supabase.from("gateway_withdrawals").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(50),
-      ]);
-      const txs = txRes.data || [];
-      const wds = wdRes.data || [];
-      const isApp = (s: string) => ["approved", "paid", "completed"].includes(s);
-      const liquido = txs.filter((t: any) => isApp(t.status)).reduce((s: number, t: any) => s + (t.net || (t.amount - (t.fee || 0))), 0);
-      const sacado = wds.filter((w: any) => isApp(w.status)).reduce((s: number, w: any) => s + (w.amount || 0), 0);
-      const pend = wds.filter((w: any) => w.status === "pending").reduce((s: number, w: any) => s + (w.amount || 0), 0);
-      const saldo = Math.max(0, liquido - sacado - pend);
-      setD({ saldo, sacado, pend, totalSaques: wds.length, hist: wds });
-    })();
-  }, []);
-  if (!d) return <Loading />;
+ function Saques() {
+   const [d, setD] = useState<any>(null);
+   const [modal, setModal] = useState(false);
+   const [amount, setAmount] = useState("");
+   const [pixKey, setPixKey] = useState("");
+   const [pixType, setPixType] = useState("cpf");
+   const [busy, setBusy] = useState(false);
+   const [msg, setMsg] = useState<{ t: "s" | "e"; text: string } | null>(null);
+ 
+   const fetchData = async () => {
+     const [txRes, wdRes] = await Promise.all([
+       supabase.from("gateway_transactions").select("id,amount,fee,net,status,created_at").limit(500),
+       supabase.from("gateway_withdrawals").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(50),
+     ]);
+     const txs = txRes.data || [];
+     const wds = wdRes.data || [];
+     const isApp = (s: string) => ["approved", "paid", "completed"].includes(s);
+     const liquido = txs.filter((t: any) => isApp(t.status)).reduce((s: number, t: any) => s + (t.net || (t.amount - (t.fee || 0))), 0);
+     const sacado = wds.filter((w: any) => isApp(w.status)).reduce((s: number, w: any) => s + (w.amount || 0), 0);
+     const pend = wds.filter((w: any) => w.status === "pending").reduce((s: number, w: any) => s + (w.amount || 0), 0);
+     const saldo = Math.max(0, liquido - sacado - pend);
+     setD({ saldo, sacado, pend, totalSaques: wds.length, hist: wds });
+   };
+ 
+   useEffect(() => {
+     fetchData();
+   }, []);
+ 
+   const handleRequest = async () => {
+     setMsg(null);
+     const valCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
+     if (isNaN(valCents) || valCents <= 0) return setMsg({ t: "e", text: "Valor inválido" });
+     if (valCents > d.saldo) return setMsg({ t: "e", text: "Saldo insuficiente" });
+     if (!pixKey) return setMsg({ t: "e", text: "Informe a chave PIX" });
+ 
+     setBusy(true);
+     try {
+       const { data: u } = await supabase.auth.getUser();
+       if (!u?.user) throw new Error("Usuário não logado");
+ 
+       const { error } = await supabase.from("gateway_withdrawals").insert({
+         user_id: u.user.id,
+         amount: valCents,
+         pix_key_type: pixType,
+         pix_key: pixKey,
+         status: "pending",
+       });
+ 
+       if (error) throw error;
+ 
+       setMsg({ t: "s", text: "Saque solicitado com sucesso!" });
+       setAmount("");
+       setPixKey("");
+       await fetchData();
+       setTimeout(() => setModal(false), 1500);
+     } catch (e: any) {
+       setMsg({ t: "e", text: e.message || "Erro ao solicitar saque" });
+     } finally {
+       setBusy(false);
+     }
+   };
+ 
+   if (!d) return <Loading />;
 
   const cards = [
     { label: "Saldo Disponível", value: fmtBRL(d.saldo), color: Colors.green },
@@ -412,9 +456,12 @@ function Saques() {
       <TopBar />
       <PageHeader title="Saques" sub="Solicite a transferência do seu saldo via PIX" />
 
-      <button style={{ width: "100%", background: Colors.purple, color: "#fff", padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 16, cursor: "pointer" }}>
-        + Solicitar Saque
-      </button>
+       <button 
+         onClick={() => setModal(true)}
+         style={{ width: "100%", background: Colors.purple, color: "#fff", padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 700, border: "none", marginBottom: 16, cursor: "pointer" }}
+       >
+         + Solicitar Saque
+       </button>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         {cards.map((c) => (
@@ -425,7 +472,73 @@ function Saques() {
         ))}
       </div>
 
-      <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Histórico de Saques</h2>
+       {modal && (
+         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+           <div style={{ background: Colors.card, width: "100%", borderRadius: 24, padding: 24, border: `1px solid ${Colors.border}`, position: "relative" }}>
+             <button 
+               onClick={() => { setModal(false); setMsg(null); }}
+               style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", color: Colors.muted, fontSize: 20, cursor: "pointer" }}
+             >✕</button>
+             
+             <h3 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Solicitar Saque</h3>
+             <p style={{ fontSize: 12, color: Colors.muted, marginBottom: 20 }}>O valor será enviado para sua chave PIX.</p>
+ 
+             <div style={{ marginBottom: 16 }}>
+               <p style={cardLabelStyle}>VALOR (R$)</p>
+               <input 
+                 type="text" 
+                 placeholder="0,00"
+                 value={amount}
+                 onChange={e => setAmount(e.target.value)}
+                 style={{ width: "100%", background: Colors.card2, border: `1px solid ${Colors.border}`, borderRadius: 12, padding: 14, color: "#fff", fontSize: 18, fontWeight: 700, outline: "none" }}
+               />
+               <p style={{ fontSize: 11, color: Colors.muted, marginTop: 6 }}>Disponível: <span style={{ color: Colors.green }}>{fmtBRL(d.saldo)}</span></p>
+             </div>
+ 
+             <div style={{ marginBottom: 16 }}>
+               <p style={cardLabelStyle}>TIPO DE CHAVE</p>
+               <select 
+                 value={pixType}
+                 onChange={e => setPixType(e.target.value)}
+                 style={{ width: "100%", background: Colors.card2, border: `1px solid ${Colors.border}`, borderRadius: 12, padding: 14, color: "#fff", fontSize: 14, outline: "none", appearance: "none" }}
+               >
+                 <option value="cpf">CPF</option>
+                 <option value="cnpj">CNPJ</option>
+                 <option value="email">Email</option>
+                 <option value="phone">Telefone</option>
+                 <option value="random">Chave Aleatória</option>
+               </select>
+             </div>
+ 
+             <div style={{ marginBottom: 20 }}>
+               <p style={cardLabelStyle}>CHAVE PIX</p>
+               <input 
+                 type="text" 
+                 placeholder="Sua chave aqui"
+                 value={pixKey}
+                 onChange={e => setPixKey(e.target.value)}
+                 style={{ width: "100%", background: Colors.card2, border: `1px solid ${Colors.border}`, borderRadius: 12, padding: 14, color: "#fff", fontSize: 14, outline: "none" }}
+               />
+             </div>
+ 
+             {msg && (
+               <div style={{ padding: 12, borderRadius: 10, background: msg.t === 's' ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', marginBottom: 16 }}>
+                 <p style={{ fontSize: 12, color: msg.t === 's' ? Colors.green : Colors.red, textAlign: "center" }}>{msg.text}</p>
+               </div>
+             )}
+ 
+             <button 
+               onClick={handleRequest}
+               disabled={busy}
+               style={{ width: "100%", background: Colors.purple, color: "#fff", padding: 16, borderRadius: 14, fontSize: 16, fontWeight: 700, border: "none", cursor: "pointer", opacity: busy ? 0.6 : 1 }}
+             >
+               {busy ? "Solicitando..." : "Confirmar Saque"}
+             </button>
+           </div>
+         </div>
+       )}
+ 
+       <h2 style={{ fontSize: 17, fontWeight: 700, color: Colors.white, marginBottom: 10 }}>Histórico de Saques</h2>
       <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
         {d.hist.length === 0 && <p style={{ color: Colors.muted, fontSize: 12, textAlign: "center", padding: 20 }}>Sem saques ainda.</p>}
         {d.hist.map((h: any, i: number) => {
@@ -436,9 +549,11 @@ function Saques() {
                 <p style={{ fontSize: 11, color: Colors.muted }}>{fmtDateTime(h.created_at)}</p>
                 <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 2 }}>{fmtBRL(h.amount)}</p>
               </div>
-              <div style={{ background: ok ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", borderRadius: 6, padding: "4px 10px" }}>
-                <span style={{ color: ok ? Colors.green : Colors.red, fontSize: 11, fontWeight: 600 }}>{ok ? "Aprovado" : "Pendente"}</span>
-              </div>
+               <div style={{ background: h.status === 'approved' || h.status === 'paid' ? "rgba(52,211,153,0.15)" : h.status === 'rejected' ? "rgba(248,113,113,0.15)" : "rgba(251,191,36,0.15)", borderRadius: 6, padding: "4px 10px" }}>
+                 <span style={{ color: h.status === 'approved' || h.status === 'paid' ? Colors.green : h.status === 'rejected' ? Colors.red : Colors.amber, fontSize: 11, fontWeight: 600 }}>
+                   {h.status === 'approved' || h.status === 'paid' ? "Aprovado" : h.status === 'rejected' ? "Recusado" : "Pendente"}
+                 </span>
+               </div>
             </div>
           );
         })}
