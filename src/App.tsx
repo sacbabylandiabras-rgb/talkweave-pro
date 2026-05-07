@@ -134,16 +134,17 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AppContent />
-          <BrowserRouter>
-            {isNative ? (
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-                <Route path="/termos-servico" element={<TermosServico />} />
-                <Route path="*" element={<NativeAppLayout />} />
-              </Routes>
-            ) : (
-              <Routes>
+           <BrowserRouter>
+             <Suspense fallback={<div className="min-h-screen bg-[#0f1117] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div></div>}>
+               {isNative ? (
+                 <Routes>
+                   <Route path="/auth" element={<Auth />} />
+                   <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                   <Route path="/termos-servico" element={<TermosServico />} />
+                   <Route path="*" element={<NativeAppLayout />} />
+                 </Routes>
+               ) : (
+                 <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
@@ -257,8 +258,9 @@ const App = () => (
                 <Route path="/termos-servico" element={<TermosServico />} />
                 <Route path="/r" element={<PublicRedirectTracker />} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            )}
+                 </Routes>
+               )}
+             </Suspense>
             {!isNative && <WhatsAppFloatingButton />}
           </BrowserRouter>
         </WorkspaceProvider>
