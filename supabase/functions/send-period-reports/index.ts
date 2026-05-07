@@ -52,11 +52,13 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const force = url.searchParams.get("force"); // ex: "08" para teste manual
+    const forceParam = url.searchParams.get("force"); // ex: "08" para teste manual
     const dryRun = url.searchParams.get("dry") === "1";
 
     const now = brtNow();
-    let currentSlot = force !== null ? parseFloat(force) : now.h + now.min / 60;
+    let currentSlot = (forceParam !== null && forceParam !== "auto") 
+      ? parseFloat(forceParam) 
+      : now.h + now.min / 60;
 
     // Encontra o slot ativo (com tolerância de 5min antes/depois)
     const tolerance = 5 / 60; // 5 minutos em horas
@@ -108,7 +110,7 @@ Deno.serve(async (req) => {
         .eq("slot_key", slotKey)
         .maybeSingle();
 
-      if (existing && !force) {
+      if (existing && !forceParam) {
         results.push({ userId, skipped: "already_sent" });
         continue;
       }
@@ -161,7 +163,7 @@ Deno.serve(async (req) => {
               user_id: userId,
               title,
               body,
-              data: { type: "period_report", slot: String(currentHour) },
+              data: { type: "period_report", slot: String(slotHour) },
               event_type: "report",
             }),
           }
