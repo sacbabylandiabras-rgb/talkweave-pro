@@ -33,13 +33,24 @@ const InvitePage = () => {
     (async () => {
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        
-        // Try to get config from local storage as fallback/initial
-        const stored = localStorage.getItem("link-page-config");
-        if (stored) {
-          const allConfigs = JSON.parse(stored);
-          // We don't have the link ID here easily, but we might find it by slug after fetch
+
+        // 1) Try to read config from URL hash (carried by shared link)
+        try {
+          const rawHash = window.location.hash?.startsWith("#")
+            ? window.location.hash.substring(1)
+            : window.location.hash;
+          if (rawHash) {
+            const decoded = decodeURIComponent(rawHash);
+            const parsed = JSON.parse(decoded);
+            if (parsed && typeof parsed === "object") {
+              setConfig(parsed);
+            }
+          }
+        } catch {
+          // ignore malformed hash
         }
+
+        const stored = localStorage.getItem("link-page-config");
 
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`);
         const json = await res.json();
@@ -48,16 +59,24 @@ const InvitePage = () => {
           setError(json.error || "Link não encontrado");
         } else {
           setData(json);
-          // Check if response contains page_config
-          if (json.page_config) {
-            setConfig(json.page_config);
-          } else if (stored && json.id) {
-            // Fallback to local storage using link ID
-            const allConfigs = JSON.parse(stored);
-            if (allConfigs[json.id]) {
-              setConfig(allConfigs[json.id]);
+          // Merge: hash (already set) < page_config from server < localStorage by id
+          setConfig((prev) => {
+            let merged = { ...prev };
+            if (json.page_config && typeof json.page_config === "object") {
+              merged = { ...merged, ...json.page_config };
             }
-          }
+            if (stored && json.id) {
+              try {
+                const allConfigs = JSON.parse(stored);
+                if (allConfigs[json.id]) {
+                  merged = { ...merged, ...allConfigs[json.id] };
+                }
+              } catch {
+                // ignore
+              }
+            }
+            return merged;
+          });
         }
       } catch {
         setError("Erro ao carregar link");
