@@ -194,16 +194,35 @@ Deno.serve(async (req) => {
            const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
            const chats = await res.json().catch(() => []);
            const cleanId = sGroupId.replace("@newsletter", "");
-           const chat = Array.isArray(chats) ? chats.find((c: any) => c.id === sGroupId || c.phone === sGroupId || c.id === cleanId || c.phone === cleanId) : null;
-           
-           let link = chat?.invitationLink || chat?.link || chat?.url;
-           
-           if (!link) {
-             const metaRes = await fetch(`${baseUrl}/newsletter-metadata/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
-             const metaData = await metaRes.json().catch(() => ({}));
-             link = metaData?.invitationLink || metaData?.link || metaData?.metadata?.inviteCode;
-             if (link && !link.startsWith('http')) link = `https://whatsapp.com/channel/${link}`;
-           }
+            const chat = Array.isArray(chats) ? chats.find((c: any) => 
+              c.id === sGroupId || 
+              c.phone === sGroupId || 
+              c.id === cleanId || 
+              c.phone === cleanId ||
+              String(c.id).includes(cleanId)
+            ) : null;
+            
+            let link = chat?.invitationLink || chat?.link || chat?.url || chat?.metadata?.inviteCode;
+            
+            if (!link) {
+              // Try newsletter-metadata endpoint
+              const metaRes = await fetch(`${baseUrl}/newsletter-metadata/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
+              const metaData = await metaRes.json().catch(() => ({}));
+              console.log("📋 Newsletter metadata result:", JSON.stringify(metaData));
+              link = metaData?.invitationLink || metaData?.link || metaData?.inviteCode || metaData?.metadata?.inviteCode;
+            }
+            
+            if (!link) {
+              // Try channel-metadata endpoint (some Z-API versions use this)
+              const channelMetaRes = await fetch(`${baseUrl}/channel-metadata/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
+              const channelMetaData = await channelMetaRes.json().catch(() => ({}));
+              console.log("📋 Channel metadata result:", JSON.stringify(channelMetaData));
+              link = channelMetaData?.invitationLink || channelMetaData?.link || channelMetaData?.inviteCode || channelMetaData?.metadata?.inviteCode;
+            }
+
+            if (link && !String(link).startsWith('http')) {
+              link = `https://whatsapp.com/channel/${link}`;
+            }
  
            if (link) {
              return new Response(JSON.stringify({ link, invitationLink: link, success: true }), {
