@@ -1351,16 +1351,38 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
       }
 
-      // Bloco de ação: aplica delay antes de continuar o fluxo
-      if (targetNode.type === "blocoAcao") {
-        const actionType = targetNode.data.actionType;
-        if (actionType === "delay") {
-          const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
-          if (seconds > 0) {
-            await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-          }
-        }
-      }
+       // Bloco de ação ou agendamento: aplica delay/agendamento antes de continuar o fluxo
+       if (targetNode.type === "blocoAcao" || targetNode.type === "blocoAgendamento") {
+         const actionType = targetNode.data.actionType;
+         const scheduleType = targetNode.data.scheduleType || "once";
+         const scheduledAt = targetNode.data.scheduledAt;
+ 
+         if (targetNode.type === "blocoAcao" && actionType === "delay") {
+           const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+           if (seconds > 0) {
+             await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+           }
+         } else if (
+           (targetNode.type === "blocoAcao" && actionType === "schedule") ||
+           targetNode.type === "blocoAgendamento"
+         ) {
+           if (scheduledAt) {
+             const targetDate = new Date(scheduledAt);
+             const now = new Date();
+             const diffMs = targetDate.getTime() - now.getTime();
+             
+             if (diffMs > 0) {
+               // Only wait if it's within a reasonable limit (e.g., 2 hours) for client-side
+               // For longer ones, it might fail if tab is closed, but at least it follows the logic.
+               const maxWait = 2 * 60 * 60 * 1000; 
+               const waitTime = Math.min(diffMs, maxWait);
+               
+               console.log(`[FluxoVisual] Waiting until ${targetDate.toLocaleString()} (${waitTime}ms)`);
+               await new Promise((resolve) => setTimeout(resolve, waitTime));
+             }
+           }
+         }
+       }
 
       await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId, flowIdForPending);
     }
