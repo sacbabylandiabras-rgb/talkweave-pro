@@ -1,8 +1,8 @@
-import { corsHeaders } from "../_shared/cors.ts";
-import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
-
-/**
- * Manage Z-API Newsletters (Channels)
+ import { corsHeaders } from "../_shared/cors.ts";
+ import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
+ 
+ /**
+  * Manage Z-API Newsletters (Channels)
  * Docs: https://developer.z-api.io/newsletter/introduction
  *
  * Supported actions:
@@ -276,13 +276,21 @@ Deno.serve(async (req) => {
         return await callZapi("POST", `/newsletter/accept-admin-invite/${targetId}`);
       }
 
-      case "newsletter-remove-admin": {
-        const { newsletterId, id, phone } = body;
-        const targetId = normalizeNewsletterId(id || newsletterId);
-        if (!targetId) throw new Error("newsletter id is required");
-        if (!phone) throw new Error("phone is required");
-        return await callZapi("POST", `/newsletter/remove-admin/${targetId}`, { phone });
-      }
+       case "newsletter-add-admin": {
+         const { newsletterId, id, phone } = body;
+         const targetId = normalizeNewsletterId(id || newsletterId);
+         if (!targetId) throw new Error("newsletter id is required");
+         if (!phone) throw new Error("phone is required");
+         return await callZapi("POST", `/newsletter/add-admin/${targetId}`, { phone });
+       }
+ 
+       case "newsletter-remove-admin": {
+         const { newsletterId, id, phone } = body;
+         const targetId = normalizeNewsletterId(id || newsletterId);
+         if (!targetId) throw new Error("newsletter id is required");
+         if (!phone) throw new Error("phone is required");
+         return await callZapi("POST", `/newsletter/remove-admin/${targetId}`, { phone });
+       }
 
       case "newsletter-revoke-admin-invite": {
         const { newsletterId, id, phone } = body;
