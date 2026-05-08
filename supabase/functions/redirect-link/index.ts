@@ -564,10 +564,10 @@ Deno.serve(async (req) => {
 
     if (String(targetGroup.group_id || "").includes("@newsletter")) {
       const newCount = (targetGroup.current_members || 0) + 1;
-      client.from("redirect_link_groups").update({
+      await client.from("redirect_link_groups").update({
         current_members: newCount,
         is_full: newCount >= maxMembers,
-      }).eq("id", targetGroup.id).then(() => {});
+      }).eq("id", targetGroup.id);
     }
 
     return new Response(JSON.stringify({
