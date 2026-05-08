@@ -312,6 +312,51 @@ const fetchJson = async (url: string, headers: Record<string, string>) => {
   return await response.json();
 };
 
+const numericCount = (...values: unknown[]): number => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const parsed = typeof value === "number" ? value : Number(String(value).replace(/\D/g, ""));
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return 0;
+};
+
+const fetchNewsletterCount = async (instanceId: string, token: string, clientToken: string, groupId: string) => {
+  const headers = { "Content-Type": "application/json", "Client-Token": clientToken };
+  const cleanId = String(groupId).replace("@newsletter", "");
+  const newsletterId = `${cleanId}@newsletter`;
+  const paths = [
+    `/newsletter/metadata/${newsletterId}`,
+    `/newsletter/metadata/${cleanId}`,
+    `/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`,
+  ];
+
+  for (const path of paths) {
+    try {
+      const data = await fetchJson(`https://api.z-api.io/instances/${instanceId}/token/${token}${path}`, headers);
+      const count = numericCount(
+        data?.subscribersCount,
+        data?.subscriberCount,
+        data?.subscribers,
+        data?.followersCount,
+        data?.membersCount,
+        data?.memberCount,
+        data?.metadata?.subscribersCount,
+        data?.metadata?.subscriberCount,
+        data?.metadata?.followersCount,
+      );
+      const name = data?.name || data?.subject || data?.title || data?.metadata?.name || "";
+      const picture = data?.picture || data?.preview || data?.image || data?.profilePicture || data?.metadata?.picture || null;
+      console.log(`📺 Newsletter count for ${groupId}: ${count} via ${path}`);
+      return { count, name, picture };
+    } catch (error) {
+      console.log(`⚠️ Newsletter count unavailable via ${path}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return { count: 0, name: "", picture: null };
+};
+
 const resolveCredentials = async (
   req: Request,
   supabaseUrl: string,
