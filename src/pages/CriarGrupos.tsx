@@ -2284,8 +2284,9 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 }
 
 /* ============= TAB: Participantes ============= */
-function ParticipantesTab() {
-  const { groups, loading, refetch } = useWhatsAppGroups();
+ function ParticipantesTab() {
+   const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
+   const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
   const { instances } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -2295,8 +2296,7 @@ function ParticipantesTab() {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-  const adminGroups = useMemo(() => groups.filter((g) => g.isAdmin), [groups]);
-  const selectedGroup = adminGroups.find((g) => g.id === selectedGroupId);
+   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const fetchParticipants = async (group: any) => {
     setLoadingParticipants(true);
@@ -2380,29 +2380,29 @@ function ParticipantesTab() {
             <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
           </Button>
         </div>
-        {adminGroups.length === 0 ? (
+         {groups.length === 0 ? (
           <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
             Nenhum grupo onde você é administrador
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {adminGroups.map((g) => (
-              <Button
-                key={g.id}
-                variant={selectedGroupId === g.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setSelectedGroupId(g.id);
-                  fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
-                  fetchParticipants(g);
-                }}
-                className="h-8"
-              >
-                {g.nome}
-              </Button>
-            ))}
-          </div>
-        )}
+         ) : (
+           <div className="flex flex-wrap gap-2">
+             {groups.map((g) => (
+               <Button
+                 key={g.id}
+                 variant={selectedGroupId === g.id ? "default" : "outline"}
+                 size="sm"
+                 onClick={() => {
+                   setSelectedGroupId(g.id);
+                   fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
+                   fetchParticipants(g);
+                 }}
+                 className="h-8"
+               >
+                 {g.nome}
+               </Button>
+             ))}
+           </div>
+         )}
       </div>
       <Card>
         <CardHeader>
