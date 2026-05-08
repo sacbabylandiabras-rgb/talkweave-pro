@@ -1819,7 +1819,9 @@ function LinksRotativosTab() {
      const link = links.find(l => l.slug === slug);
      const config = link ? pageConfig[link.id] : null;
      const hash = config && Object.keys(config).length > 0 ? `#${encodeURIComponent(JSON.stringify(config))}` : "";
-     const urlToCopy = `${baseRedirectUrl}${slug}${hash}`;
+      // Garante que o slug não tenha barras extras e o hash seja concatenado corretamente
+      const cleanSlug = slug.startsWith('/') ? slug.substring(1) : slug;
+      const urlToCopy = `${baseRedirectUrl}${cleanSlug}${hash}`;
      
      try {
        if (navigator.clipboard && window.isSecureContext) {
