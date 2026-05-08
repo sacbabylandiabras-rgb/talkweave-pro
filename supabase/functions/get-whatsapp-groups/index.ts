@@ -766,26 +766,27 @@ Deno.serve(async (req) => {
                            hasTruthyValue(group.is_admin) || 
                            (isChannel); // Default channels to true as they are usually only returned if managed
 
-          if (!groupsById.has(groupId)) {
-            groupsById.set(groupId, {
-              id: groupId,
-              nome: group.name || group.contact || group.subject || group.title || group.groupName || "Grupo sem nome",
-              descricao: group.description || group.desc || "",
-              membros: participants.length || group.memberCount || group.size || 0,
-              foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
-              ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
-              isAdmin: hasTruthyValue(group.isAdmin) || hasTruthyValue(group.isSuperAdmin) || hasTruthyValue(group.is_admin) || false,
-              participantes: participants,
-              archived: group.archived || false,
-              pinned: group.pinned || false,
-              sourceInstanceName: group.__sourceInstanceName || null,
-              sourceInstanceId: group.__sourceInstanceId || null,
-              isCommunity: isCommunity && !isChannel,
-              isChannel,
-              isGroup,
-              typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
-            });
-          }
+           if (!groupsById.has(groupId) && (isGroup || isCommunity || isChannel)) {
+             groupsById.set(groupId, {
+               id: groupId,
+               nome: group.name || group.contact || group.subject || group.title || group.groupName || "Sem nome",
+               descricao: group.description || group.desc || "",
+               membros: participants.length || group.memberCount || group.size || 0,
+               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
+               ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
+               isAdmin: isAdmin,
+               participantes: participants,
+               archived: group.archived || false,
+               pinned: group.pinned || false,
+               sourceInstanceName: group.__sourceInstanceName || null,
+               sourceInstanceId: group.__sourceInstanceId || null,
+               isCommunity: isCommunity,
+               isChannel,
+               isGroup,
+               typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
+             });
+             console.log(`✅ Group added to result: ${groupId} (${group.name || group.subject}), type=${isChannel ? 'channel' : isCommunity ? 'community' : 'group'}, isAdmin=${isAdmin}`);
+           }
         }
       } catch (instanceError) {
         console.error(`❌ Failed for instance ${instance.instance_name}:`, instanceError);
