@@ -204,27 +204,20 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerL
   for (const p of participants) {
     const id = String(p?.id || p?.phone || p?.jid || p?.JID || p?.participant || '');
     // Match por LID quando o participante vier como @lid
-    if (ownerLid && id.includes(ownerLid)) {
-      const adminFlagLid =
-        p?.isAdmin === true || p?.IsAdmin === true ||
-        p?.isSuperAdmin === true || p?.IsSuperAdmin === true ||
-        p?.admin === 'admin' || p?.admin === 'superadmin' ||
-        p?.role === 'admin' || p?.role === 'superadmin';
-      if (adminFlagLid) return true;
-    }
+    const isAdminParticipant = 
+      hasTruthyValue(p?.isAdmin) || 
+      hasTruthyValue(p?.IsAdmin) || 
+      hasTruthyValue(p?.isSuperAdmin) || 
+      hasTruthyValue(p?.is_admin) ||
+      p?.admin === 'admin' || p?.admin === 'superadmin' ||
+      p?.role === 'admin' || p?.role === 'superadmin' ||
+      p?.type === 'admin' || p?.type === 'superadmin';
+
+    if (ownerLid && id.includes(ownerLid) && isAdminParticipant) return true;
+    
     const phone = normalizePhoneFromJid(id);
-    if (!phone || !ownerPhone) continue;
-    if (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) {
-      const adminFlag =
-        p?.isAdmin === true ||
-        p?.IsAdmin === true ||
-        p?.isSuperAdmin === true ||
-        p?.IsSuperAdmin === true ||
-        p?.admin === 'admin' ||
-        p?.admin === 'superadmin' ||
-        p?.role === 'admin' ||
-        p?.role === 'superadmin';
-      if (adminFlag) return true;
+    if (phone && ownerPhone && (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) && isAdminParticipant) {
+      return true;
     }
   }
   // Fallback: owner field of the group
@@ -473,6 +466,9 @@ const normalizeZapiGroupId = (value: unknown): string => {
  const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
    if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
  
+    const ownerInfo = await fetchOwnerPhoneViaZapi(instance);
+    console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerInfo.phone}, lid=${ownerInfo.lid}`);
+
    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
    const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
 
@@ -535,10 +531,31 @@ const normalizeZapiGroupId = (value: unknown): string => {
      // Only include groups, communities, and channels
      if (!isChannel && !isGroup && !isCommunity) return null;
  
-     // Admin check: for groups, Z-API usually provides isAdmin flag.
-     // For channels/communities where the user "sees" the chat, they are usually admin enough to send
-     // as requested by the user.
-      const isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || isChannel || isCommunity || false;
+      // Admin check: for groups, Z-API usually provides isAdmin flag in the list.
+      // If not present, we check if the group owner matches our owner phone/lid.
+      // Admin check: for groups, Z-API usually provides isAdmin flag in the list.
+      let isAdmin = hasTruthyValue(chat.isAdmin) || hasTruthyValue(chat.isSuperAdmin) || hasTruthyValue(chat.is_admin) || false;
+      
+      if (!isAdmin) {
+        const groupOwner = String(chat.owner || chat.Owner || chat.groupOwner || chat.creator || '');
+        if (groupOwner) {
+          if (ownerInfo.lid && groupOwner.includes(ownerInfo.lid)) isAdmin = true;
+          const groupOwnerPhone = normalizePhoneFromJid(groupOwner);
+          if (ownerInfo.phone && groupOwnerPhone && (groupOwnerPhone === ownerInfo.phone || groupOwnerPhone.endsWith(ownerInfo.phone) || ownerInfo.phone.endsWith(groupOwnerPhone))) {
+            isAdmin = true;
+          }
+        }
+      }
+
+      // For channels and communities, we also consider the user an admin if the API says so 
+      // or if it's a channel (usually you only see channels you own/administer in these APIs)
+      // but let's be more precise if possible.
+      if (!isAdmin && (isChannel || isCommunity)) {
+        // Fallback for Z-API: if we see it in the list and it's a community/channel, 
+        // it's likely we have some management rights, but let's default to true 
+        // for now as it was before, unless we find a reason not to.
+        isAdmin = true;
+      }
 
       let typeLabel = "Grupo";
      if (isChannel) typeLabel = "Canal";
@@ -724,7 +741,7 @@ Deno.serve(async (req) => {
               membros: participants.length || group.memberCount || group.size || 0,
               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
               ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
-               isAdmin: group.isAdmin || group.isSuperAdmin || false,
+              isAdmin: hasTruthyValue(group.isAdmin) || hasTruthyValue(group.isSuperAdmin) || hasTruthyValue(group.is_admin) || false,
               participantes: participants,
               archived: group.archived || false,
               pinned: group.pinned || false,
