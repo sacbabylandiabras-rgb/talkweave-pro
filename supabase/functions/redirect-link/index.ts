@@ -102,6 +102,15 @@ function numericCount(...values: unknown[]): number {
   return 0;
 }
 
+function runInBackground(task: Promise<unknown>) {
+  const edgeRuntime = (globalThis as any).EdgeRuntime;
+  if (edgeRuntime?.waitUntil) {
+    edgeRuntime.waitUntil(task);
+  } else {
+    task.catch((error) => console.error("Background task failed:", error));
+  }
+}
+
 async function autoCreateGroup(
   client: any,
   link: any,
