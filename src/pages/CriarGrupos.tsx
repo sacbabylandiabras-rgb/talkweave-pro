@@ -135,7 +135,7 @@ const CriarGrupos = () => {
   const [creating, setCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-   const selectedGroup = allGroups.find((g) => g.id === selectedGroupId);
+   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const getInstanceCredentials = (group: any) => {
     // Priority: manual override > group's sourceInstanceId > fallback
