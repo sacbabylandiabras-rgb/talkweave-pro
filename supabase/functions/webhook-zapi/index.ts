@@ -5034,7 +5034,31 @@ async function sendNodeContent(
       return true;
     }
 
-    if (hasButtons) {
+     if (hasButtons || contentType === "media-carousel") {
+       if (contentType === "media-carousel") {
+         let cards = [];
+         try {
+           cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
+         } catch (e) {
+           console.error("Erro ao parsear carrossel no webhook:", e);
+         }
+         if (cards.length > 0) {
+           if (isUazapiProvider) {
+             // Fallback for UAZAPI as it might not support carousel natively in some versions
+             await sendProviderText(content || "🎠 Carrossel", `Bloco ${targetNode.id} (carousel-uaz-fallback)`);
+           } else {
+             await sendZapi("/send-carousel", { 
+               phone, 
+               carousel: cards, 
+               message: content || "",
+               ...(targetNode.data?.mentionAll ? { mentionAll: true } : {})
+             }, `Bloco ${targetNode.id} (carousel)`);
+           }
+           await new Promise((resolve) => setTimeout(resolve, 1500));
+         }
+         return false;
+       }
+ 
       if ((contentType === "image" || contentType === "video" || contentType === "audio" || contentType === "document") && mediaUrl) {
         let mediaEndpoint: string;
         const mediaBody: any = { phone };
