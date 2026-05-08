@@ -161,9 +161,10 @@ Deno.serve(async (req) => {
         let path = "";
         let method: "GET" | "POST" = "GET";
 
-        if (isCommunity || String(groupId).includes("@lid")) {
-          path = `/communities/${encodeURIComponent(groupId)}/invitation-link`;
-        } else if (isChannel || String(groupId).includes("@newsletter")) {
+         if (isCommunity || String(groupId).includes("@lid")) {
+           const cleanId = String(groupId).replace("-group", "");
+           path = `/communities/${encodeURIComponent(cleanId)}/invitation-link`;
+         } else if (isChannel || String(groupId).includes("@newsletter")) {
           // Para canais, tentamos buscar nos chats ou metadados
           const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
           const chats = await res.json().catch(() => []);

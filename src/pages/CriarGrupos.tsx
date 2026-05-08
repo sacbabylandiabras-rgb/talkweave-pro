@@ -1738,10 +1738,12 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
           };
           if (instanceClientToken) headers["Client-Token"] = instanceClientToken;
           
-          let path = `/group-invitation-link/${group.id.includes("-group") ? group.id : group.id.replace("@g.us", "-group")}`;
-          if (isCommunity) {
-            path = `/communities/${encodeURIComponent(group.id)}/invitation-link`;
-          }
+           let path = "";
+           if (isCommunity || String(group.id).includes("@lid")) {
+             path = `/communities/${encodeURIComponent(group.id.replace("-group", ""))}/invitation-link`;
+           } else {
+             path = `/group-invitation-link/${group.id.includes("-group") ? group.id : group.id.replace("@g.us", "-group")}`;
+           }
           
           const res = await fetch(`${baseUrl}${path}`, { headers });
           if (res.ok) {
