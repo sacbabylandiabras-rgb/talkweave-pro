@@ -85,11 +85,49 @@ const InvitePage = () => {
   }, [slug]);
 
   const handleCopy = () => {
-    if (!data?.invite_link) return;
-    navigator.clipboard.writeText(data.invite_link);
-    toast({
-      description: "Link copiado com sucesso!",
-    });
+    const link = data?.invite_link;
+    if (!link) return;
+
+    const fallbackCopy = (text: string): boolean => {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const ok = document.execCommand("copy");
+        textArea.remove();
+        return ok;
+      } catch {
+        return false;
+      }
+    };
+
+    (async () => {
+      let success = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(link);
+          success = true;
+        }
+      } catch {
+        success = false;
+      }
+
+      if (!success) success = fallbackCopy(link);
+
+      if (success) {
+        toast({
+          description: "Link copiado com sucesso!",
+        });
+      } else {
+        window.prompt("Copie o link manualmente:", link);
+      }
+    })();
   };
 
   if (error) {
