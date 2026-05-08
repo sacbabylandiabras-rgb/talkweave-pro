@@ -205,32 +205,50 @@ Deno.serve(async (req) => {
             let link = chat?.invitationLink || chat?.link || chat?.url || chat?.metadata?.inviteCode;
             
             if (!link) {
-             // Try newsletter metadata endpoints with correct path format
+             // Try multiple strategies to find the newsletter invite link
              const newsletterId = cleanId.includes("@newsletter") ? cleanId : `${cleanId}@newsletter`;
              
-             // 1. Standard Z-API v2: /newsletter/metadata?newsletterId=...
-             const v2Url = `${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`;
-             const v2Res = await fetch(v2Url, { method: "GET", headers });
-             const v2Data = await v2Res.json().catch(() => ({}));
-             console.log("📋 Z-API v2 metadata result:", JSON.stringify(v2Data));
-             link = v2Data?.inviteLink || v2Data?.invitationLink || v2Data?.link;
+             // Strategy 1: Search in all chats (this usually contains the link if the user has access)
+             console.log("📋 Searching for channel invite link in all chats...");
+             const chatsRes = await fetch(`${baseUrl}/chats?pageSize=100`, { method: "GET", headers });
+             const chatsData = await chatsRes.json().catch(() => []);
+             const chatList = Array.isArray(chatsData) ? chatsData : (chatsData?.chats || []);
              
-             if (!link) {
-               // 2. Standard Z-API v1 style: /newsletter-metadata/...
-               const v1Url = `${baseUrl}/newsletter-metadata/${encodeURIComponent(newsletterId)}`;
-               const v1Res = await fetch(v1Url, { method: "GET", headers });
-               const v1Data = await v1Res.json().catch(() => ({}));
-               console.log("📋 Z-API v1 metadata result:", JSON.stringify(v1Data));
-               link = v1Data?.inviteLink || v1Data?.invitationLink || v1Data?.link;
+             const foundChat = chatList.find((c: any) => 
+               String(c.id) === newsletterId || 
+               String(c.phone) === newsletterId || 
+               String(c.id).includes(cleanId)
+             );
+             
+             if (foundChat) {
+               console.log("✅ Channel found in chats list");
+               link = foundChat.inviteLink || foundChat.invitationLink || foundChat.link || foundChat.url;
              }
              
              if (!link) {
-               // 3. Alternative: /newsletter-metadata?newsletterId=...
-               const altUrl = `${baseUrl}/newsletter-metadata?newsletterId=${encodeURIComponent(newsletterId)}`;
-               const altRes = await fetch(altUrl, { method: "GET", headers });
-               const altData = await altRes.json().catch(() => ({}));
-               console.log("📋 Z-API alt metadata result:", JSON.stringify(altData));
-               link = altData?.inviteLink || altData?.invitationLink || altData?.link;
+               // Strategy 2: Specific newsletter endpoints
+               const endpoints = [
+                 `${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`,
+                 `${baseUrl}/newsletter/${encodeURIComponent(newsletterId)}`,
+                 `${baseUrl}/newsletter-metadata/${encodeURIComponent(newsletterId)}`,
+                 `${baseUrl}/newsletter-metadata/${encodeURIComponent(cleanId)}`,
+                 `${baseUrl}/channel/${encodeURIComponent(cleanId)}`,
+                 `${baseUrl}/channel-metadata/${encodeURIComponent(cleanId)}`
+               ];
+               
+               for (const endpoint of endpoints) {
+                 try {
+                   console.log(`📋 Checking endpoint: ${endpoint}`);
+                   const res = await fetch(endpoint, { method: "GET", headers });
+                   if (!res.ok) continue;
+                   const data = await res.json().catch(() => ({}));
+                   console.log(`📋 Result from ${endpoint}:`, JSON.stringify(data));
+                   link = data?.inviteLink || data?.invitationLink || data?.link || data?.url || data?.metadata?.inviteLink;
+                   if (link) break;
+                 } catch (e) {
+                   console.error(`Error checking endpoint ${endpoint}:`, e);
+                 }
+               }
              }
             }
 
