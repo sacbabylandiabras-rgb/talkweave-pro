@@ -524,7 +524,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
     console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
  
    // Filter and map to unified format
-    const results = await Promise.all(chats.map(async (chat: any) => {
+    const resultsArray = await Promise.all(chats.map(async (chat: any) => {
       const id = normalizeZapiGroupId(chat.id || chat.phone || chat.groupId || chat.groupJid || chat.groupjid || chat.jid || chat.chatId);
      if (!id) return null;
  
@@ -566,7 +566,9 @@ const normalizeZapiGroupId = (value: unknown): string => {
        __sourceInstanceName: instance.instance_name,
        __sourceInstanceId: instance.zapi_instance_id,
      };
-   }).filter(Boolean);
+    }));
+    
+    const results = resultsArray.filter(Boolean);
  
     console.log(`✅ Z-API found ${results.length} valid groups/channels for ${instance.instance_name}`);
    return results;
