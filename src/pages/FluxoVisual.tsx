@@ -2797,6 +2797,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                   </div>
                 </div>
+                </div>
 
                 <Separator />
 
