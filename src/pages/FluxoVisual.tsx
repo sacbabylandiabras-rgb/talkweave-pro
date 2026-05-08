@@ -1112,7 +1112,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             email: targetNode.data.content || targetNode.data.emailPrompt || "Qual seu melhor email?",
           };
 
-          await sendWithInstance({ phone: contact, message: promptMap[captureField] });
+           await sendWithInstance({ phone: contact, message: promptMap[captureField] }, targetNode.data);
 
           // Persist pending capture state so webhook-zapi can resume the flow when the user replies
           const pendingFlowId = flowIdForPending || currentFluxoId;
@@ -1156,62 +1156,62 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             return { id: String(idx + 1), type: "REPLY" as const, label };
           });
-          if (contentType === "image" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else if (contentType === "video" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else if (contentType === "audio" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else if (contentType === "document" && mediaUrl) {
-            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else if (contentType === "contact") {
-            await sendWithInstance({
-              phone: contact,
-              specialType: 'contato',
-              specialPayload: {
-                contactName: targetNode.data.contactName || '',
-                contactPhone: targetNode.data.contactPhone || '',
-                contactOrg: targetNode.data.contactOrg || '',
-              },
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else if (contentType === "location" || contentType === "request-location") {
-            await sendWithInstance({
-              phone: contact,
-              specialType: 'localizacao',
-              specialPayload: {
-                latitude: targetNode.data.locationLat || 0,
-                longitude: targetNode.data.locationLng || 0,
-                title: targetNode.data.locationName || '',
-                address: targetNode.data.locationAddress || '',
-              },
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+           if (contentType === "image" && mediaUrl) {
+             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           } else if (contentType === "video" && mediaUrl) {
+             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           } else if (contentType === "audio" && mediaUrl) {
+             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           } else if (contentType === "document" && mediaUrl) {
+             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           } else if (contentType === "contact") {
+             await sendWithInstance({
+               phone: contact,
+               specialType: 'contato',
+               specialPayload: {
+                 contactName: targetNode.data.contactName || '',
+                 contactPhone: targetNode.data.contactPhone || '',
+                 contactOrg: targetNode.data.contactOrg || '',
+               },
+             }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           } else if (contentType === "location" || contentType === "request-location") {
+             await sendWithInstance({
+               phone: contact,
+               specialType: 'localizacao',
+               specialPayload: {
+                 latitude: targetNode.data.locationLat || 0,
+                 longitude: targetNode.data.locationLng || 0,
+                 title: targetNode.data.locationName || '',
+                 address: targetNode.data.locationAddress || '',
+               },
+             }, targetNode.data);
+             await new Promise(resolve => setTimeout(resolve, 1000));
+           }
 
           const hasUrlButtons = mappedButtons.some(b => b.type === "URL");
           const hasCallButtons = mappedButtons.some(b => b.type === "CALL");
           
           if (hasUrlButtons || hasCallButtons) {
             // Use send-button-actions for templates with URL or CALL buttons
-            await sendWithInstance({
-              phone: contact,
-              message: content || "Escolha uma opção:",
-              buttonActions: mappedButtons.slice(0, 3),
-            });
+             await sendWithInstance({
+               phone: contact,
+               message: content || "Escolha uma opção:",
+               buttonActions: mappedButtons.slice(0, 3),
+             }, targetNode.data);
           } else {
             // Use standard button-list for REPLY only buttons (better compatibility)
-            await sendWithInstance({
-              phone: contact,
-              message: content || "Escolha uma opção:",
-              buttonList: {
-                buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label }))
-              },
-            });
+             await sendWithInstance({
+               phone: contact,
+               message: content || "Escolha uma opção:",
+               buttonList: {
+                 buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label }))
+               },
+             }, targetNode.data);
           }
 
           const hasButtonEdgesForPending = buttons.some((btn: any, idx: number) => {
@@ -1266,86 +1266,86 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             });
           }
         } else {
-          switch (contentType) {
-            case "text":
-              if (!content) continue;
-              await sendWithInstance({ phone: contact, message: content });
-              break;
-            case "image":
-              if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' });
-              break;
-            case "video":
-              if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) });
-              break;
-            case "audio":
-              if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' });
-              break;
-            case "document":
-              if (!mediaUrl) continue;
-              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' });
-              break;
-            case "pix": {
-              const body: Record<string, any> = {
-                phone: contact,
-                specialType: 'pix',
-                specialPayload: {
-                  pixKey: targetNode.data.pixKey || '',
-                  pixKeyType: targetNode.data.pixKeyType || 'cpf',
-                  merchantName: targetNode.data.pixReceiver || '',
-                  amount: targetNode.data.pixAmount || '',
-                  description: targetNode.data.pixDescription || content || '',
-                },
-              };
-              await sendWithInstance(body);
-              break;
-            }
-            case "request-payment": {
-              const body: Record<string, any> = {
-                phone: contact,
-                specialType: 'pix',
-                specialPayload: {
-                  pixKey: targetNode.data.paymentReceiver || '',
-                  pixKeyType: 'random',
-                  merchantName: targetNode.data.paymentReceiver || '',
-                  amount: targetNode.data.paymentAmount || '',
-                  description: targetNode.data.paymentDescription || content || '',
-                },
-              };
-              await sendWithInstance(body);
-              break;
-            }
-            case "location":
-            case "request-location": {
-              const body: Record<string, any> = {
-                phone: contact,
-                specialType: 'localizacao',
-                specialPayload: {
-                  latitude: targetNode.data.locationLat || 0,
-                  longitude: targetNode.data.locationLng || 0,
-                  title: targetNode.data.locationName || '',
-                  address: targetNode.data.locationAddress || '',
-                },
-              };
-              await sendWithInstance(body);
-              break;
-            }
-            case "contact": {
-              const body: Record<string, any> = {
-                phone: contact,
-                specialType: 'contato',
-                specialPayload: {
-                  contactName: targetNode.data.contactName || '',
-                  contactPhone: targetNode.data.contactPhone || '',
-                  contactOrg: targetNode.data.contactOrg || '',
-                },
-              };
-              await sendWithInstance(body);
-              break;
-            }
-          }
+           switch (contentType) {
+             case "text":
+               if (!content) continue;
+               await sendWithInstance({ phone: contact, message: content }, targetNode.data);
+               break;
+             case "image":
+               if (!mediaUrl) continue;
+               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' }, targetNode.data);
+               break;
+             case "video":
+               if (!mediaUrl) continue;
+               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) }, targetNode.data);
+               break;
+             case "audio":
+               if (!mediaUrl) continue;
+               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' }, targetNode.data);
+               break;
+             case "document":
+               if (!mediaUrl) continue;
+               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' }, targetNode.data);
+               break;
+             case "pix": {
+               const body: Record<string, any> = {
+                 phone: contact,
+                 specialType: 'pix',
+                 specialPayload: {
+                   pixKey: targetNode.data.pixKey || '',
+                   pixKeyType: targetNode.data.pixKeyType || 'cpf',
+                   merchantName: targetNode.data.pixReceiver || '',
+                   amount: targetNode.data.pixAmount || '',
+                   description: targetNode.data.pixDescription || content || '',
+                 },
+               };
+               await sendWithInstance(body, targetNode.data);
+               break;
+             }
+             case "request-payment": {
+               const body: Record<string, any> = {
+                 phone: contact,
+                 specialType: 'pix',
+                 specialPayload: {
+                   pixKey: targetNode.data.paymentReceiver || '',
+                   pixKeyType: 'random',
+                   merchantName: targetNode.data.paymentReceiver || '',
+                   amount: targetNode.data.paymentAmount || '',
+                   description: targetNode.data.paymentDescription || content || '',
+                 },
+               };
+               await sendWithInstance(body, targetNode.data);
+               break;
+             }
+             case "location":
+             case "request-location": {
+               const body: Record<string, any> = {
+                 phone: contact,
+                 specialType: 'localizacao',
+                 specialPayload: {
+                   latitude: targetNode.data.locationLat || 0,
+                   longitude: targetNode.data.locationLng || 0,
+                   title: targetNode.data.locationName || '',
+                   address: targetNode.data.locationAddress || '',
+                 },
+               };
+               await sendWithInstance(body, targetNode.data);
+               break;
+             }
+             case "contact": {
+               const body: Record<string, any> = {
+                 phone: contact,
+                 specialType: 'contato',
+                 specialPayload: {
+                   contactName: targetNode.data.contactName || '',
+                   contactPhone: targetNode.data.contactPhone || '',
+                   contactOrg: targetNode.data.contactOrg || '',
+                 },
+               };
+               await sendWithInstance(body, targetNode.data);
+               break;
+             }
+           }
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
 
