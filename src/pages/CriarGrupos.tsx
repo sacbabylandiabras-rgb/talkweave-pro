@@ -49,7 +49,7 @@ const CriarGrupos = () => {
       <div className="px-6 py-4 border-b border-white/10 shrink-0">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Link2 className="w-6 h-6 text-primary" />
-          Meus Grupos
+          Links de redirecionamento
         </h1>
         <p className="text-muted-foreground text-sm mt-1">Gerencie seus grupos, comunidades e canais da instância conectada</p>
       </div>
