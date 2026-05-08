@@ -438,14 +438,14 @@ const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: 
   return { phone: '', lid: '' };
 };
 
-const normalizeZapiGroupId = (value: unknown): string => {
+const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (raw.includes('@newsletter') || raw.includes('-community')) return raw;
   if (raw.includes('-group')) return raw;
   if (raw.includes('@g.us')) return raw.replace(/@g\.us$/i, '-group');
   const digits = raw.replace(/\D/g, '');
-  return digits.length >= 12 ? `${digits}-group` : raw;
+  return allowBareGroupId && digits.length >= 12 ? `${digits}-group` : raw;
 };
 
  const getNewsletterName = async (instance: ZapiInstance, newsletterId: string): Promise<string | null> => {
@@ -507,6 +507,30 @@ const normalizeZapiGroupId = (value: unknown): string => {
       return items;
     };
 
+    const metadataCache = new Map<string, Promise<any | null>>();
+    const fetchZapiGroupMetadata = (groupId: string): Promise<any | null> => {
+      if (!metadataCache.has(groupId)) {
+        metadataCache.set(groupId, (async () => {
+          const candidates = [groupId, groupId.replace(/-group$/i, '@g.us')];
+          for (const candidate of Array.from(new Set(candidates))) {
+            const paths = [`/group-metadata/${candidate}`, `/metadata-group/${candidate}`, `/light-group-metadata/${candidate}`];
+            try {
+              for (const path of paths) {
+                const res = await fetch(`${baseUrl}${path}`, { method: 'GET', headers });
+                if (!res.ok) continue;
+                const payload = await res.json().catch(() => null);
+                if (payload) return payload;
+              }
+            } catch (_) {
+              continue;
+            }
+          }
+          return null;
+        })());
+      }
+      return metadataCache.get(groupId)!;
+    };
+
     const rawItems = [
       ...await fetchPaginated('chats'),
       ...await fetchPaginated('groups'),
@@ -514,14 +538,15 @@ const normalizeZapiGroupId = (value: unknown): string => {
 
     const chats = Array.from(new Map(rawItems.map((item: any) => {
       const rawId = item.id || item.phone || item.groupId || item.groupJid || item.groupjid || item.jid || item.chatId;
-      const normalizedId = normalizeZapiGroupId(rawId);
-      return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId }];
+      const isGroupListItem = item.__zapiListSource === 'groups';
+      const normalizedId = normalizeZapiGroupId(rawId, isGroupListItem);
+      return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
     }).filter(([id]) => Boolean(id))).values());
     console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
  
    // Filter and map to unified format
     const resultsArray = await Promise.all(chats.map(async (chat: any) => {
-      const id = normalizeZapiGroupId(chat.id || chat.phone || chat.groupId || chat.groupJid || chat.groupjid || chat.jid || chat.chatId);
+      const id = normalizeZapiGroupId(chat.id || chat.phone || chat.groupId || chat.groupJid || chat.groupjid || chat.jid || chat.chatId, chat.__isGroupListItem === true);
      if (!id) return null;
  
      const isChannel = id.includes('@newsletter');
@@ -547,6 +572,12 @@ const normalizeZapiGroupId = (value: unknown): string => {
         }
       }
 
+      let metadata: any = null;
+      if (isGroup && (!isAdmin || !chat.name || !chat.subject)) {
+        metadata = await fetchZapiGroupMetadata(id);
+        if (!isAdmin) isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
+      }
+
       // For channels and communities, we also consider the user an admin if the API says so 
       // or if it's a channel (usually you only see channels you own/administer in these APIs)
       // but let's be more precise if possible.
@@ -561,7 +592,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
-     const resolvedName = chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
+      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
 
      // Skip zombie/forbidden groups: chats listed as group but without a name
      // and no message history. These are typically groups the user was removed from.
@@ -733,6 +764,11 @@ Deno.serve(async (req) => {
           }
           const isCommunity = explicitCommunity || lidOnlyCommunity;
           const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
+          const isGroup = !isChannel && !isCommunity && (
+            group.isGroup === true ||
+            String(groupId).includes("-group") ||
+            String(groupId).includes("@g.us")
+          );
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
@@ -749,6 +785,8 @@ Deno.serve(async (req) => {
               sourceInstanceId: group.__sourceInstanceId || null,
               isCommunity: isCommunity && !isChannel,
               isChannel,
+              isGroup,
+              typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
             });
           }
         }

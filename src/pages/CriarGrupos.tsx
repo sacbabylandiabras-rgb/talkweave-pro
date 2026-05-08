@@ -75,7 +75,18 @@ const CriarGrupos = () => {
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
     const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
-    const groups = allGroups.filter(g => (g.isGroup || g.isCommunity || g.isChannel) && g.isAdmin);
+    const groups = allGroups.filter((g) => {
+      const id = String(g.id || "");
+      const isManageableType =
+        g.isGroup ||
+        g.isCommunity ||
+        g.isChannel ||
+        id.includes("-group") ||
+        id.includes("@g.us") ||
+        id.includes("@newsletter");
+
+      return isManageableType && g.isAdmin;
+    });
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -305,7 +316,7 @@ const CriarGrupos = () => {
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
+          <label className="text-xs font-medium text-muted-foreground">Selecione grupo, comunidade ou canal</label>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
@@ -321,22 +332,25 @@ const CriarGrupos = () => {
                  : "Nenhum grupo encontrado na instância de dispositivo."}
             </div>
           ) : (
-           <div className="flex flex-wrap gap-2">
-             {groups.map((g) => (
-               <Button
-                 key={g.id}
-                 variant={selectedGroupId === g.id ? "default" : "outline"}
-                 size="sm"
-                 onClick={() => {
-                   setSelectedGroupId(g.id);
-                   fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
-                 }}
-                 className="h-8"
-               >
-                 {g.nome}
-               </Button>
-             ))}
-           </div>
+            <Select
+              value={selectedGroupId}
+              onValueChange={(value) => {
+                const group = groups.find((g) => g.id === value);
+                setSelectedGroupId(value);
+                if (group) fetchMemberCount(group.id, group.sourceInstanceId, group.participantes);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Escolha um item para gerenciar" />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.typeLabel || (g.isChannel ? "Canal" : g.isCommunity ? "Comunidade" : "Grupo")} · {g.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         )}
       </div>
       <Card>
@@ -345,7 +359,7 @@ const CriarGrupos = () => {
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Settings className="w-5 h-5 text-primary" />
-                Gerenciar Grupo
+                Gerenciar itens
               </CardTitle>
               <CardDescription>Altere nome, descrição, foto e configurações do grupo</CardDescription>
             </div>
