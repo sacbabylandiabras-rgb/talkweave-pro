@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2105,13 +2105,14 @@ function LinksRotativosTab() {
 
       {/* Edit Page Dialog */}
       <Dialog open={!!editPageLinkId} onOpenChange={(open) => !open && setEditPageLinkId(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>Personalizar Página do Link</DialogTitle>
             <DialogDescription>Configure a aparência da página de convite</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 pt-0">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Título da Página</label>
                 <Input value={editingConfig.title || ""} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })} placeholder={editingLink?.name || "Nome do grupo"} />
@@ -2234,24 +2235,27 @@ function LinksRotativosTab() {
               <h3 className="text-lg font-bold text-center" style={{ color: editingConfig.textColor || "#1f2937" }}>
                 {editingConfig.title || editingLink?.name || "Nome do Grupo"}
               </h3>
-              {editingConfig.description && (
-                <p className="text-sm text-center max-w-[200px] whitespace-pre-wrap" style={{ color: editingConfig.textColor || "#1f2937", opacity: 0.7 }}>
-                  {editingConfig.description}
-                </p>
-              )}
+                {editingConfig.description && (
+                  <div 
+                    className="text-sm text-center max-w-[200px] whitespace-pre-wrap break-words w-full" 
+                    style={{ color: editingConfig.textColor || "#1f2937", opacity: 0.7 }}
+                  >
+                    {editingConfig.description}
+                  </div>
+                )}
               <div className="w-full max-w-[200px] py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2" style={{ backgroundColor: editingConfig.buttonColor || "#25D366" }}>
                 <ExternalLink className="w-4 h-4" />
                 Entrar no grupo
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <DialogFooter className="p-6 pt-2 border-t border-border bg-background sm:justify-end">
             <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
             <Button onClick={handleSavePageConfig} disabled={isSavingPage}>
               {isSavingPage ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Salvar Configurações
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
