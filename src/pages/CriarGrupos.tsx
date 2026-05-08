@@ -44,16 +44,29 @@ const formatCommunityLid = (value: string) => {
 
 const CriarGrupos = () => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Gerenciar Grupos</h1>
-        <p className="text-muted-foreground text-sm mt-1">Crie grupos, gerencie participantes e links rotativos</p>
+    <div className="flex flex-col h-full bg-transparent overflow-hidden">
+      {/* Header Fixo */}
+      <div className="px-6 py-4 border-b border-white/10 shrink-0">
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Link2 className="w-6 h-6 text-primary" />
+          Meus Grupos
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">Gerencie seus grupos, comunidades e canais da instância conectada</p>
       </div>
 
-      <div className="space-y-6">
-        <GerenciarGrupoTab />
-        <LinksRotativosTab />
-        <ParticipantesTab />
+      {/* Conteúdo com Scroll Independente */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
+        <section>
+          <GerenciarGrupoTab />
+        </section>
+        
+        <section>
+          <LinksRotativosTab />
+        </section>
+        
+        <section>
+          <ParticipantesTab />
+        </section>
       </div>
     </div>
   );
