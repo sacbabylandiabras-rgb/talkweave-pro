@@ -197,6 +197,15 @@ const normalizePhoneFromJid = (jid: string | null | undefined): string => {
   return String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
 };
 
+const numericCount = (...values: unknown[]): number => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(/\D/g, ''));
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return 0;
+};
+
 const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerLid?: string): boolean => {
   if (!ownerPhone && !ownerLid) return false;
   const participants = extractParticipantsFromGroup({ ...group, ...detail });
@@ -464,7 +473,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
   return allowBareGroupId && digits.length >= 12 ? `${digits}-group` : raw;
 };
 
- const getNewsletterName = async (instance: ZapiInstance, newsletterId: string): Promise<string | null> => {
+ const getNewsletterMetadata = async (instance: ZapiInstance, newsletterId: string): Promise<{ name: string | null; memberCount: number; picture: string | null }> => {
    try {
      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
     const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token || '' };
@@ -485,18 +494,30 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
         if (!res.ok) continue;
         const data = await res.json().catch(() => null);
         const name = data?.name || data?.subject || data?.newsletterName || data?.newsletterTitle || data?.title || data?.channelName || data?.metadata?.name || data?.metadata?.subject;
-        if (name) {
-          console.log(`📺 Newsletter name resolved via ${path}: ${name}`);
-          return name;
+         const memberCount = numericCount(
+           data?.subscribersCount,
+           data?.subscriberCount,
+           data?.subscribers,
+           data?.followersCount,
+           data?.membersCount,
+           data?.memberCount,
+           data?.metadata?.subscribersCount,
+           data?.metadata?.subscriberCount,
+           data?.metadata?.followersCount,
+         );
+         const picture = data?.picture || data?.preview || data?.image || data?.profilePicture || data?.metadata?.picture || null;
+        if (name || memberCount > 0 || picture) {
+          console.log(`📺 Newsletter metadata resolved via ${path}: name=${name || '(none)'} count=${memberCount}`);
+          return { name: name || null, memberCount, picture };
         }
       } catch (_) {
         continue;
       }
     }
-    return null;
+     return { name: null, memberCount: 0, picture: null };
    } catch (e) {
-     console.error(`⚠️ Failed to fetch newsletter name for ${newsletterId}:`, e);
-     return null;
+      console.error(`⚠️ Failed to fetch newsletter metadata for ${newsletterId}:`, e);
+      return { name: null, memberCount: 0, picture: null };
    }
  };
 
@@ -628,7 +649,8 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
-      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
+      const newsletterMetadata = isChannel ? await getNewsletterMetadata(instance, id) : { name: null, memberCount: 0, picture: null };
+      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || newsletterMetadata.name || '';
 
      // Skip zombie/forbidden groups: chats listed as group but without a name
      // and no message history. These are typically groups the user was removed from.
@@ -640,14 +662,16 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
        ...chat,
        id,
        phone: id,
-        name: (isChannel && !resolvedName) ? (await getNewsletterName(instance, id) || 'Canal sem nome') : (resolvedName || 'Sem nome'),
+         name: resolvedName || 'Canal sem nome',
         isAdmin,
        isChannel,
         isCommunity,
         isGroup,
         typeLabel,
-        memberCount: chat.memberCount || chat.size || chat.participantsCount || chat.membersCount || 0,
-       profilePicture: chat.profilePicture || chat.image || null,
+         memberCount: isChannel
+           ? (newsletterMetadata.memberCount || numericCount(chat.subscribersCount, chat.subscriberCount, chat.followersCount, chat.memberCount, chat.size))
+           : numericCount(chat.memberCount, chat.size, chat.participantsCount, chat.membersCount),
+        profilePicture: newsletterMetadata.picture || chat.profilePicture || chat.image || null,
        __sourceInstanceName: instance.instance_name,
        __sourceInstanceId: instance.zapi_instance_id,
      };

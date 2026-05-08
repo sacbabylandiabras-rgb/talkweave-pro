@@ -312,6 +312,51 @@ const fetchJson = async (url: string, headers: Record<string, string>) => {
   return await response.json();
 };
 
+const numericCount = (...values: unknown[]): number => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const parsed = typeof value === "number" ? value : Number(String(value).replace(/\D/g, ""));
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return 0;
+};
+
+const fetchNewsletterCount = async (instanceId: string, token: string, clientToken: string, groupId: string) => {
+  const headers = { "Content-Type": "application/json", "Client-Token": clientToken };
+  const cleanId = String(groupId).replace("@newsletter", "");
+  const newsletterId = `${cleanId}@newsletter`;
+  const paths = [
+    `/newsletter/metadata/${newsletterId}`,
+    `/newsletter/metadata/${cleanId}`,
+    `/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`,
+  ];
+
+  for (const path of paths) {
+    try {
+      const data = await fetchJson(`https://api.z-api.io/instances/${instanceId}/token/${token}${path}`, headers);
+      const count = numericCount(
+        data?.subscribersCount,
+        data?.subscriberCount,
+        data?.subscribers,
+        data?.followersCount,
+        data?.membersCount,
+        data?.memberCount,
+        data?.metadata?.subscribersCount,
+        data?.metadata?.subscriberCount,
+        data?.metadata?.followersCount,
+      );
+      const name = data?.name || data?.subject || data?.title || data?.metadata?.name || "";
+      const picture = data?.picture || data?.preview || data?.image || data?.profilePicture || data?.metadata?.picture || null;
+      console.log(`📺 Newsletter count for ${groupId}: ${count} via ${path}`);
+      return { count, name, picture };
+    } catch (error) {
+      console.log(`⚠️ Newsletter count unavailable via ${path}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return { count: 0, name: "", picture: null };
+};
+
 const resolveCredentials = async (
   req: Request,
   supabaseUrl: string,
@@ -493,16 +538,25 @@ Deno.serve(async (req) => {
     const { groupId, fallbackParticipants = [], sourceInstanceId = null, isCommunity = false } = await req.json();
     if (!groupId) throw new Error("groupId is required");
 
-    // Newsletters/channels don't have queryable participants
-    if (String(groupId).toLowerCase().includes("@newsletter")) {
+    // Try UAZAPI first when the source instance (or any active instance) uses uazapi
+    const uazapi = await resolveUazapiInstance(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
+    const isChannel = String(groupId).toLowerCase().includes("@newsletter");
+    if (isChannel) {
+      const credentials = await resolveCredentials(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
+      const metadata = await fetchNewsletterCount(credentials.instanceId, credentials.token, credentials.clientToken, groupId);
       return new Response(
-        JSON.stringify({ participants: [], isChannel: true }),
+        JSON.stringify({
+          participants: [],
+          isChannel: true,
+          memberCount: metadata.count,
+          subscriberCount: metadata.count,
+          groupName: metadata.name,
+          profilePicture: metadata.picture,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Try UAZAPI first when the source instance (or any active instance) uses uazapi
-    const uazapi = await resolveUazapiInstance(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
     if (uazapi) {
       console.log(`📱 UAZAPI participants for ${groupId}`);
       try {

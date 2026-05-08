@@ -1239,7 +1239,6 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
  function LinksRotativosTab() {
    const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
     const { groups } = useWhatsAppGroups({ provider: 'zapi' });
-  const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -1808,13 +1807,16 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         throw new Error("Não foi possível obter o link de convite do grupo");
       }
 
-      // Fetch real member count
-      let realMemberCount = group.membros;
+      // Fetch real member count. Channels return subscriber count in metadata,
+      // not a participant list, so prefer memberCount/subscriberCount there.
+      let realMemberCount = group.membros || 0;
       try {
         const { data: participantsData } = await supabase.functions.invoke("get-group-participants", {
           body: { groupId: group.id, sourceInstanceId: group.sourceInstanceId || null },
         });
-        realMemberCount = participantsData?.participants?.length || group.membros;
+        realMemberCount = (group as any).isChannel
+          ? Number(participantsData?.memberCount ?? participantsData?.subscriberCount ?? group.membros ?? 0)
+          : (participantsData?.participants?.length || group.membros || 0);
       } catch {
         // fallback to existing count
       }
@@ -1840,9 +1842,15 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         const { data } = await supabase.functions.invoke("get-group-participants", {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
-        const count = data?.participants?.length || 0;
         const whatsGroup = groups.find((wg) => wg.id === g.group_id);
-        const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
+        const isChannel = String(g.group_id).includes("@newsletter") || Boolean((whatsGroup as any)?.isChannel);
+        const count = isChannel
+          ? Number(data?.memberCount ?? data?.subscriberCount ?? whatsGroup?.membros ?? g.current_members ?? 0)
+          : (data?.participants?.length || 0);
+        const updates: any = {
+          current_members: isChannel ? Math.max(count, g.current_members || 0) : count,
+          is_full: isChannel ? false : count >= link.max_members_per_group,
+        };
         
         // Update photo from WhatsApp groups list
         if (whatsGroup?.foto) {
@@ -2042,13 +2050,18 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 
               {link.groups && link.groups.length > 0 ? (
                 <div className="space-y-2">
-                  {link.groups.map((g, i) => (
+                  {link.groups.map((g, i) => {
+                    const whatsGroup = groups.find((wg) => wg.id === g.group_id);
+                    const isChannel = String(g.group_id).includes("@newsletter") || Boolean((whatsGroup as any)?.isChannel);
+                    const displayMembers = isChannel ? (g.current_members || whatsGroup?.membros || 0) : g.current_members;
+                    const displayFull = isChannel ? false : g.is_full;
+                    return (
                     <div key={g.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-muted-foreground w-6">#{i + 1}</span>
                         <span className="text-sm font-medium">{g.group_name || g.group_id}</span>
-                        <Badge variant={g.is_full ? "destructive" : "secondary"} className="text-[10px]">
-                          {g.current_members} membros {g.is_full && "• CHEIO"}
+                        <Badge variant={displayFull ? "destructive" : "secondary"} className="text-[10px]">
+                          {displayMembers} {isChannel ? "seguidores" : "membros"} {displayFull && "• CHEIO"}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1">
@@ -2064,7 +2077,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               ) : null}
 

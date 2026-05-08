@@ -93,6 +93,15 @@ function zapiHeaders(inst: ZAPIInstance) {
   return { "Content-Type": "application/json", "Client-Token": inst.zapi_client_token };
 }
 
+function numericCount(...values: unknown[]): number {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const parsed = typeof value === "number" ? value : Number(String(value).replace(/\D/g, ""));
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return 0;
+}
+
 async function autoCreateGroup(
   client: any,
   link: any,
@@ -410,6 +419,21 @@ Deno.serve(async (req) => {
     // Helper: get real member count via Z-API
     async function getRealMemberCount(group: any, instance: ZAPIInstance): Promise<number> {
       try {
+        if (String(group.group_id || "").includes("@newsletter")) {
+          const cleanId = String(group.group_id).replace("@newsletter", "");
+          const newsletterId = `${cleanId}@newsletter`;
+          const metaRes = await fetch(`${zapiBase(instance)}/newsletter/metadata/${newsletterId}`, {
+            method: "GET",
+            headers: zapiHeaders(instance),
+          });
+          if (metaRes.ok) {
+            const meta = await metaRes.json();
+            const metadataCount = numericCount(meta?.subscribersCount, meta?.subscriberCount, meta?.followersCount, meta?.memberCount);
+            return Math.max(metadataCount, group.current_members || 0);
+          }
+          return group.current_members || 0;
+        }
+
         const gid = group.group_id.includes("-group")
           ? group.group_id
           : group.group_id.replace("@g.us", "-group");
@@ -451,7 +475,8 @@ Deno.serve(async (req) => {
         console.log(`📊 Group "${group.group_name}": ${realCount}/${maxMembers} members`);
 
         // Update DB with real count
-        const isFull = realCount >= maxMembers;
+        const isChannel = String(group.group_id || "").includes("@newsletter");
+        const isFull = isChannel ? false : realCount >= maxMembers;
         client.from("redirect_link_groups").update({
           current_members: realCount,
           is_full: isFull,
@@ -530,6 +555,13 @@ Deno.serve(async (req) => {
       ip_address: ip,
       user_agent: userAgent,
     }).then(() => {});
+
+    if (String(targetGroup.group_id || "").includes("@newsletter")) {
+      client.from("redirect_link_groups").update({
+        current_members: (targetGroup.current_members || 0) + 1,
+        is_full: false,
+      }).eq("id", targetGroup.id).then(() => {});
+    }
 
     return new Response(JSON.stringify({
       name: link.name,
