@@ -216,18 +216,33 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerL
     if (ownerLid && id.includes(ownerLid) && isAdminParticipant) return true;
     
     const phone = normalizePhoneFromJid(id);
-    if (phone && ownerPhone && (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) && isAdminParticipant) {
-      return true;
-    }
+     if (phone && ownerPhone && isAdminParticipant) {
+       const p1 = phone.replace(/\D/g, '');
+       const p2 = ownerPhone.replace(/\D/g, '');
+       if (p1 === p2 || p1.endsWith(p2) || p2.endsWith(p1)) {
+         return true;
+       }
+       // Case for Brazilian numbers with/without 9th digit
+       if (p1.length >= 8 && p2.length >= 8 && p1.slice(-8) === p2.slice(-8)) {
+         return true;
+       }
+     }
   }
   // Fallback: owner field of the group
   const ownerField = String(detail?.Owner || detail?.owner || group?.Owner || group?.owner || '');
   if (ownerField) {
     if (ownerLid && ownerField.includes(ownerLid)) return true;
     const ownerFieldPhone = normalizePhoneFromJid(ownerField);
-    if (ownerPhone && ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
-      return true;
-    }
+     if (ownerPhone && ownerFieldPhone) {
+       const p1 = ownerFieldPhone.replace(/\D/g, '');
+       const p2 = ownerPhone.replace(/\D/g, '');
+       if (p1 === p2 || p1.endsWith(p2) || p2.endsWith(p1)) {
+         return true;
+       }
+       if (p1.length >= 8 && p2.length >= 8 && p1.slice(-8) === p2.slice(-8)) {
+         return true;
+       }
+     }
   }
   return false;
 };
