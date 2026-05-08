@@ -31,18 +31,18 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-   const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi', source: 'profile' });
+  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
-   // Apenas instâncias Z-API devem aparecer nesta página
-   const zapiInstances = instances.filter((inst: any) => (inst.api_provider === 'zapi' || !inst.api_provider) && inst.is_active !== false);
+  // Apenas instâncias uazapi devem aparecer nesta página
+  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
   // Apenas instâncias que aparecem como fonte de algum grupo do apanhador
   const groupSourceInstanceIds = new Set(
     (groups || [])
       .map((g: any) => g.sourceInstanceId)
       .filter((id: any) => typeof id === 'string' && id.length > 0)
   );
-   const apanhadorInstances = zapiInstances.filter((inst: any) =>
+  const apanhadorInstances = uazapiInstances.filter((inst: any) =>
     groupSourceInstanceIds.size === 0 ? true : groupSourceInstanceIds.has(inst.id)
   );
   const [extracting, setExtracting] = useState<string | null>(null);
@@ -78,7 +78,7 @@ const ApanhadorGrupos = () => {
 
   const instanceLabelById = (id: string | null | undefined) => {
     if (!id) return 'desconhecida';
-     const inst = zapiInstances.find((i: any) => i.id === id || i.zapi_instance_id === id);
+    const inst = uazapiInstances.find((i: any) => i.id === id || i.zapi_instance_id === id);
     return inst?.instance_name || `instância ${String(id).slice(0, 8)}`;
   };
 
