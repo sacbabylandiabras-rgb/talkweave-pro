@@ -1815,15 +1815,35 @@ function LinksRotativosTab() {
     }
   };
 
-  const copyLink = (slug: string) => {
-    const link = links.find(l => l.slug === slug);
-    const config = link ? pageConfig[link.id] : null;
-    const hash = config && Object.keys(config).length > 0 ? `#${encodeURIComponent(JSON.stringify(config))}` : "";
-    navigator.clipboard.writeText(`${baseRedirectUrl}${slug}${hash}`);
-    setCopied(slug);
-    toast.success("Link copiado!");
-    setTimeout(() => setCopied(null), 2000);
-  };
+   const copyLink = async (slug: string) => {
+     const link = links.find(l => l.slug === slug);
+     const config = link ? pageConfig[link.id] : null;
+     const hash = config && Object.keys(config).length > 0 ? `#${encodeURIComponent(JSON.stringify(config))}` : "";
+     const urlToCopy = `${baseRedirectUrl}${slug}${hash}`;
+     
+     try {
+       if (navigator.clipboard && window.isSecureContext) {
+         await navigator.clipboard.writeText(urlToCopy);
+       } else {
+         const textArea = document.createElement("textarea");
+         textArea.value = urlToCopy;
+         textArea.style.position = "fixed";
+         textArea.style.left = "-999999px";
+         textArea.style.top = "-999999px";
+         document.body.appendChild(textArea);
+         textArea.focus();
+         textArea.select();
+         document.execCommand("copy");
+         textArea.remove();
+       }
+       setCopied(slug);
+       toast.success("Link copiado!");
+       setTimeout(() => setCopied(null), 2000);
+     } catch (err) {
+       console.error("Falha ao copiar link:", err);
+       toast.error("Erro ao copiar link");
+     }
+   };
 
   return (
     <div className="space-y-4">
