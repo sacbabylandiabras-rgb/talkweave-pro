@@ -231,7 +231,8 @@ Deno.serve(async (req) => {
              if (!link) {
                // Strategy 2: Specific newsletter endpoints
                const endpoints = [
-                 `${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`,
+                  `${baseUrl}/newsletter/metadata/${encodeURIComponent(newsletterId)}`,
+                  `${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`,
                  `${baseUrl}/newsletter/${encodeURIComponent(newsletterId)}`,
                  `${baseUrl}/newsletter-metadata/${encodeURIComponent(newsletterId)}`,
                  `${baseUrl}/newsletter-metadata/${encodeURIComponent(cleanId)}`,
