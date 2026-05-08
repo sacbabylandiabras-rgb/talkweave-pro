@@ -573,9 +573,9 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       }
 
       let metadata: any = null;
-      if (!isAdmin && isGroup) {
+      if (isGroup && (!isAdmin || !chat.name || !chat.subject)) {
         metadata = await fetchZapiGroupMetadata(id);
-        isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
+        if (!isAdmin) isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
       }
 
       // For channels and communities, we also consider the user an admin if the API says so 
