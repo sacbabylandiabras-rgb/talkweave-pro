@@ -1205,8 +1205,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 /* ============= TAB: Links Rotativos ============= */
  function LinksRotativosTab() {
    const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
-   const { groups: allGroups } = useWhatsAppGroups();
-   const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
+    const { groups } = useWhatsAppGroups({ provider: 'zapi' });
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
@@ -2298,9 +2297,8 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 }
 
 /* ============= TAB: Participantes ============= */
- function ParticipantesTab() {
-   const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
-   const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
+  function ParticipantesTab() {
+    const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
   const { instances } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
