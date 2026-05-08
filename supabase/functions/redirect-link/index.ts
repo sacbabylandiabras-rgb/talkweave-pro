@@ -471,36 +471,34 @@ Deno.serve(async (req) => {
       return data || null;
     }
 
-    // Find a non-full group, checking real member count
+    runInBackground((async () => {
+      for (const group of groupsList) {
+        const instance = await getInstanceForGroup(group);
+        if (!instance) continue;
+        const realCount = await getRealMemberCount(group, instance);
+        const isFull = realCount >= maxMembers;
+        await client.from("redirect_link_groups").update({
+          current_members: realCount,
+          is_full: isFull,
+        }).eq("id", group.id);
+      }
+    })());
+
+    // Find a non-full group using cached DB counts first so public invite pages load fast
     let targetGroup: any = null;
 
     for (const group of groupsList) {
-      if (group.is_full) continue;
-
-      // Check real member count via Z-API
-      const instance = await getInstanceForGroup(group);
-      if (instance) {
-        const realCount = await getRealMemberCount(group, instance);
-        console.log(`📊 Group "${group.group_name}": ${realCount}/${maxMembers} members`);
-
-        // Update DB with real count
-        const isFull = realCount >= maxMembers;
-        client.from("redirect_link_groups").update({
-          current_members: realCount,
-          is_full: isFull,
-        }).eq("id", group.id).then(() => {});
-
-        if (!isFull) {
-          targetGroup = group;
-          break;
-        }
-      } else {
-        // No instance, use DB value
+      const cachedCount = Number(group.current_members || 0);
+      const isCachedFull = Boolean(group.is_full) || cachedCount >= maxMembers;
+      if (isCachedFull) {
         if (!group.is_full) {
-          targetGroup = group;
-          break;
+          runInBackground(client.from("redirect_link_groups").update({ is_full: true }).eq("id", group.id));
         }
+        continue;
       }
+
+      targetGroup = group;
+      break;
     }
 
     // If all groups are full, auto-create a new one
