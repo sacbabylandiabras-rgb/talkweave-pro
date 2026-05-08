@@ -2105,7 +2105,7 @@ function LinksRotativosTab() {
 
       {/* Edit Page Dialog */}
       <Dialog open={!!editPageLinkId} onOpenChange={(open) => !open && setEditPageLinkId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Personalizar Página do Link</DialogTitle>
             <DialogDescription>Configure a aparência da página de convite</DialogDescription>
@@ -2235,7 +2235,7 @@ function LinksRotativosTab() {
                 {editingConfig.title || editingLink?.name || "Nome do Grupo"}
               </h3>
               {editingConfig.description && (
-                <p className="text-sm text-center max-w-[200px]" style={{ color: editingConfig.textColor || "#1f2937", opacity: 0.7 }}>
+                <p className="text-sm text-center max-w-[200px] whitespace-pre-wrap" style={{ color: editingConfig.textColor || "#1f2937", opacity: 0.7 }}>
                   {editingConfig.description}
                 </p>
               )}
