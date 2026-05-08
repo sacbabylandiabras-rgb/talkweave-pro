@@ -669,7 +669,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
         isGroup,
         typeLabel,
          memberCount: isChannel
-           ? numericCount(newsletterMetadata.memberCount, chat.subscribersCount, chat.subscriberCount, chat.followersCount, chat.memberCount, chat.size)
+           ? (newsletterMetadata.memberCount || numericCount(chat.subscribersCount, chat.subscriberCount, chat.followersCount, chat.memberCount, chat.size))
            : numericCount(chat.memberCount, chat.size, chat.participantsCount, chat.membersCount),
         profilePicture: newsletterMetadata.picture || chat.profilePicture || chat.image || null,
        __sourceInstanceName: instance.instance_name,
