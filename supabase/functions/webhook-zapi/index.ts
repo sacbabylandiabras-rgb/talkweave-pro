@@ -1559,7 +1559,20 @@ serve(async (req) => {
                           .replace(/\{\{telefone\}\}/gi, joinedPhone)
                           .replace(/\{\{grupo\}\}/gi, groupName);
 
-                        if (tpl.media_url) {
+                        const normalizedGmType = String(tpl.type || "").toLowerCase();
+                        const hasGmCarouselCards = Array.isArray(tpl.carousel_cards) && tpl.carousel_cards.length > 0;
+
+                        if ((normalizedGmType === "carousel" || normalizedGmType === "carrossel") && hasGmCarouselCards) {
+                          await fetch(`${gmBaseUrl}/send-carousel`, {
+                            method: "POST",
+                            headers: gmHeaders,
+                            body: JSON.stringify({
+                              phone: groupChatId,
+                              message: tplContent,
+                              carousel: tpl.carousel_cards,
+                            }),
+                          });
+                        } else if (tpl.media_url) {
                           const fileType = tpl.file_type || "image";
                           const endpoint = fileType === "video"
                             ? "send-video"
