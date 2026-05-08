@@ -5179,6 +5179,44 @@ async function sendNodeContent(
           body.fileName = targetNode.data?.fileName || `documento.${getDocumentExtension(mediaUrl, targetNode.data?.fileName)}`;
           body.caption = content;
           break;
+        case "media-carousel": {
+          endpoint = "/send-carousel";
+          let cards = [];
+          try {
+            cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
+          } catch (e) {
+            console.error("Erro ao parsear carrossel no webhook:", e);
+          }
+          body.carousel = cards;
+          body.message = content || "";
+          break;
+        }
+        case "location":
+        case "request-location":
+          return await sendLocationWithFallback(
+            Number(targetNode.data.locationLat || 0),
+            Number(targetNode.data.locationLng || 0),
+            targetNode.data.locationName || "",
+            targetNode.data.locationAddress || "",
+            `Bloco ${targetNode.id} (location)`,
+          ).then(() => false);
+        case "pix":
+        case "request-payment": {
+          endpoint = "/send-payment-pix";
+          body.pixKey = targetNode.data.pixKey || targetNode.data.paymentReceiver || "";
+          body.type = String(targetNode.data.pixKeyType || "cpf").toUpperCase();
+          body.merchantName = targetNode.data.pixReceiver || targetNode.data.paymentReceiver || "";
+          body.value = Number(targetNode.data.pixAmount || targetNode.data.paymentAmount || 0);
+          body.description = targetNode.data.pixDescription || targetNode.data.paymentDescription || content || "";
+          break;
+        }
+        case "contact": {
+          endpoint = "/send-contact";
+          body.contactName = targetNode.data.contactName || "";
+          body.contactPhone = String(targetNode.data.contactPhone || "").replace(/\D/g, "");
+          body.contactBusinessDescription = targetNode.data.contactOrg || "";
+          break;
+        }
         default:
           endpoint = "/send-text";
           body.message = content;
