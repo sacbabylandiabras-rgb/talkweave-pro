@@ -4108,6 +4108,14 @@ async function sendNodeContent(
     return payload;
   };
 
+   // Handle delay before sending content
+   const delaySeconds = Number(targetNode.data.delaySeconds || 0);
+   if (delaySeconds > 0) {
+     const safeDelay = Math.min(delaySeconds, 50); // Limit to 50s for backend
+     console.log(`[webhook-zapi] Bloco de conteúdo com delay de ${safeDelay}s`);
+     await new Promise(resolve => setTimeout(resolve, safeDelay * 1000));
+   }
+ 
   const contentType = targetNode.data.contentType || "text";
   const isMediaContentType = ["image", "video", "audio", "document", "sticker", "gif"].includes(
     contentType,
