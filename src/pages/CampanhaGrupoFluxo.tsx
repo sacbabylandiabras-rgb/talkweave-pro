@@ -50,7 +50,7 @@ const STEPS = [
 export default function CampanhaGrupoFluxo() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { createCampaign } = useCampaigns();
+  const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
   const { groups, loading: loadingGroups } = useWhatsAppGroups();
 
@@ -163,7 +163,7 @@ export default function CampanhaGrupoFluxo() {
         };
       });
 
-      await createCampaign({
+      const campaign = await createCampaign({
         name: formData.name,
         description: formData.description || `Campanha em ${selectedGroups.length} grupo(s)`,
         template_id: formData.template_id,
@@ -176,6 +176,11 @@ export default function CampanhaGrupoFluxo() {
         schedule_type: formData.schedule_type,
         scheduled_at: formData.schedule_type === "scheduled" ? formData.scheduled_at : undefined,
       });
+
+      if (formData.schedule_type === 'immediate') {
+        console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
+        await sendCampaign(campaign.id, groupContacts);
+      }
 
       toast({
         title: "Campanha criada",
