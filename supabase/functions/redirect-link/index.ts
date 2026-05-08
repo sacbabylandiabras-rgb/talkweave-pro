@@ -428,7 +428,8 @@ Deno.serve(async (req) => {
           });
           if (metaRes.ok) {
             const meta = await metaRes.json();
-            return numericCount(meta?.subscribersCount, meta?.subscriberCount, meta?.followersCount, meta?.memberCount, group.current_members);
+            const metadataCount = numericCount(meta?.subscribersCount, meta?.subscriberCount, meta?.followersCount, meta?.memberCount);
+            return Math.max(metadataCount, group.current_members || 0);
           }
           return group.current_members || 0;
         }
@@ -554,6 +555,13 @@ Deno.serve(async (req) => {
       ip_address: ip,
       user_agent: userAgent,
     }).then(() => {});
+
+    if (String(targetGroup.group_id || "").includes("@newsletter")) {
+      client.from("redirect_link_groups").update({
+        current_members: (targetGroup.current_members || 0) + 1,
+        is_full: false,
+      }).eq("id", targetGroup.id).then(() => {});
+    }
 
     return new Response(JSON.stringify({
       name: link.name,
