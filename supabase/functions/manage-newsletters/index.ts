@@ -1,3 +1,12 @@
+       case "newsletter-add-admin": {
+         const { newsletterId, id, phone } = body;
+         const targetId = normalizeNewsletterId(id || newsletterId);
+         if (!targetId) throw new Error("newsletter id is required");
+         if (!phone) throw new Error("phone is required");
+         // Z-API endpoint para adicionar administrador
+         return await callZapi("POST", `/newsletter/add-admin/${targetId}`, { phone });
+       }
+ 
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
