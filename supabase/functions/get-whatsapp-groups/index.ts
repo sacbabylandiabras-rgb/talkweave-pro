@@ -470,6 +470,8 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
     const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token || '' };
     const cleanId = String(newsletterId).replace('@newsletter', '');
     const candidates = [
+      `/newsletter/metadata/${newsletterId}`,
+      `/newsletter/metadata/${cleanId}`,
       `/newsletter/${encodeURIComponent(newsletterId)}`,
       `/newsletter/${encodeURIComponent(cleanId)}`,
       `/newsletter-metadata/${encodeURIComponent(newsletterId)}`,
