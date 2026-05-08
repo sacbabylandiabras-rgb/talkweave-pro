@@ -125,7 +125,12 @@ const InvitePage = () => {
           <>
             <h1 className="text-xl font-bold text-center" style={{ color: textColor }}>{title}</h1>
             {description && (
-              <p className="text-sm text-center" style={{ color: textColor, opacity: 0.75 }}>{description}</p>
+              <p 
+                className="text-sm text-center whitespace-pre-wrap" 
+                style={{ color: textColor, opacity: 0.75 }}
+              >
+                {description}
+              </p>
             )}
             <a
               href={data.invite_link}
