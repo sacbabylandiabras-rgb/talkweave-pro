@@ -540,10 +540,11 @@ const normalizeZapiGroupId = (value: unknown): string => {
  
       // Admin check: for groups, Z-API usually provides isAdmin flag in the list.
       // If not present, we check if the group owner matches our owner phone/lid.
-      let isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || false;
+      // Admin check: for groups, Z-API usually provides isAdmin flag in the list.
+      let isAdmin = hasTruthyValue(chat.isAdmin) || hasTruthyValue(chat.isSuperAdmin) || hasTruthyValue(chat.is_admin) || false;
       
       if (!isAdmin) {
-        const groupOwner = String(chat.owner || chat.Owner || chat.groupOwner || '');
+        const groupOwner = String(chat.owner || chat.Owner || chat.groupOwner || chat.creator || '');
         if (groupOwner) {
           if (ownerInfo.lid && groupOwner.includes(ownerInfo.lid)) isAdmin = true;
           const groupOwnerPhone = normalizePhoneFromJid(groupOwner);
