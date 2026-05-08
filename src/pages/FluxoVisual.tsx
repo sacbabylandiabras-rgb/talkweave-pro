@@ -907,15 +907,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       // Round-robin counter for instance rotation
       let sendCounter = 0;
 
-      for (const contact of selectedContacts) {
-        if (cancelSendRef.current) break;
-        const visitedNodes = new Set<string>();
-        const currentInstanceId = instanceIds && instanceIds.length > 0
-          ? instanceIds[sendCounter % instanceIds.length]
-          : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
-        sendCounter++;
-      }
+       const sendPromises = selectedContacts.map(async (contact, index) => {
+         if (cancelSendRef.current) return;
+         
+         // Staggered start delay (500ms between each contact)
+         if (index > 0) {
+           await new Promise(resolve => setTimeout(resolve, index * 500));
+         }
+         
+         if (cancelSendRef.current) return;
+ 
+         const visitedNodes = new Set<string>();
+         const currentInstanceId = instanceIds && instanceIds.length > 0
+           ? instanceIds[index % instanceIds.length]
+           : undefined;
+ 
+         try {
+           await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
+           sendCounter++;
+         } catch (err) {
+           console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
+         }
+       });
+ 
+       await Promise.all(sendPromises);
 
       if (cancelSendRef.current) {
         toast.info("Envio cancelado", {
