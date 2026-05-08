@@ -206,7 +206,9 @@ serve(async (req) => {
      let { instanceId, token, clientToken } = credentials;
  
      // Detect group phones
-     const isGroupPhone = phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''));
+     const isGroupPhone = (phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''))) && !phone.includes('@newsletter') && !phone.includes('-community');
+     const isCommunityPhone = phone.includes('-community');
+     const isChannelPhone = phone.includes('@newsletter');
 
     // SERVER-SIDE GROUP INSTANCE RESOLUTION
     // For group phones, verify the correct instance by checking which instance
@@ -278,7 +280,7 @@ serve(async (req) => {
       let resolvedPhone = phone;
     // Z-API expects group IDs with "-group" suffix (e.g. 120363019502650977-group)
     // See: https://developer.z-api.io/group/introduction
-    if (isGroupPhone && !phone.includes('@lid')) {
+    if (isGroupPhone && !phone.includes('@lid') && !isCommunityPhone && !isChannelPhone) {
       const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
       resolvedPhone = numericId ? `${numericId}-group` : phone;
       if (resolvedPhone !== phone) {

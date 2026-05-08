@@ -341,7 +341,9 @@ const isZapiConfirmed = (payload: any) => {
   const successStatuses = ['SENT', 'SUCCESS', 'OK', 'DELIVERED', 'RECEIVED'];
   return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result);
 };
-const isGroupDestination = (phone: string) => phone.includes('@g.us') || phone.includes('-group');
+ const isGroupDestination = (phone: string) => (phone.includes('@g.us') || phone.includes('-group')) && !phone.includes('@newsletter') && !phone.includes('-community');
+ const isCommunityDestination = (phone: string) => phone.includes('-community');
+ const isChannelDestination = (phone: string) => phone.includes('@newsletter');
 const isLidIdentifier = (phone?: string | null) => Boolean(phone && phone.includes('@lid') && !isGroupDestination(phone));
 
 const SPECIAL_TEMPLATE_PREFIX = '__SPECIAL_TEMPLATE__:';
@@ -351,6 +353,8 @@ const getUazapiTargetNumber = (phone: string) => {
     const numericGroup = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
     return numericGroup ? `${numericGroup}@g.us` : phone;
   }
+
+  if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
 
   if (phone.includes('@lid')) return phone;
 
@@ -363,6 +367,7 @@ const getUazapiTargetNumber = (phone: string) => {
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
   if (isGroupDestination(phone)) return phone;
+  if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
   if (phone.includes('@lid')) return phone;
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };

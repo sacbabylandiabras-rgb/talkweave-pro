@@ -454,98 +454,69 @@ const normalizeZapiGroupId = (value: unknown): string => {
   return digits.length >= 12 ? `${digits}-group` : raw;
 };
 
-const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
-  if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
-
-  const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-  const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
-  const owner = await fetchOwnerPhoneViaZapi(instance);
-  const ownerPhone = owner.phone;
-  const ownerLid = owner.lid;
-  console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerPhone || '(unknown)'} lid=${ownerLid || '(unknown)'}`);
-
-  const [groupsRes, communitiesRes, chatsRes] = await Promise.all([
-    fetch(`${baseUrl}/groups`, { method: 'GET', headers }),
-    fetch(`${baseUrl}/communities`, { method: 'GET', headers }).catch(() => null),
-    fetch(`${baseUrl}/chats`, { method: 'GET', headers }).catch(() => null),
-  ]);
-
-  const payload = await groupsRes.json().catch(() => []);
-  if (!groupsRes.ok) {
-    console.error(`❌ Z-API groups error for ${instance.instance_name}: ${groupsRes.status} - ${JSON.stringify(payload)}`);
-  }
-
-  const communitiesPayload = communitiesRes ? await communitiesRes.json().catch(() => []) : [];
-  const chatsPayload = chatsRes ? await chatsRes.json().catch(() => []) : [];
-
-  const getList = (data: any) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.groups)) return data.groups;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.value)) return data.value;
-    return [];
-  };
-
-  const rawGroups = getList(payload);
-  const rawCommunities = getList(communitiesPayload);
-  const rawChannels = getList(chatsPayload).filter((c: any) => {
-    const id = String(c.id || c.phone || c.jid || "");
-    return id.includes("@newsletter") || id.includes("@newsletter");
-  });
-
-  // Combine them, marking communities and channels
-  const allRaw = [
-    ...rawGroups,
-    ...rawCommunities.map((c: any) => ({ ...c, __isCommunity: true })),
-    ...rawChannels.map((c: any) => ({ ...c, __isChannel: true })),
-  ];
-
-  const detailedGroups = await Promise.all(allRaw.map(async (group: any) => {
-    const isComm = group.__isCommunity === true;
-    const isChan = group.__isChannel === true;
-    
-    let groupId = String(group?.phone || group?.id || group?.jid || group?.groupId || group?.remoteJid || '');
-    if (!isComm && !isChan) {
-      groupId = normalizeZapiGroupId(groupId);
-      if (!groupId.includes('-group')) return null;
-    }
-
-    let detail: any = null;
-    if (!isChan) {
-      try {
-        const metaRes = await fetch(`${baseUrl}/group-metadata/${groupId}`, { method: 'GET', headers });
-        detail = await metaRes.json().catch(() => null);
-        if (!metaRes.ok) {
-          console.error(`⚠️ Z-API group-metadata HTTP ${metaRes.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
-        }
-      } catch (error) {
-        console.error(`❌ Z-API group-metadata failed for ${groupId}:`, error);
-      }
-    }
-
-    const participants = extractParticipantsFromGroup({ ...group, ...detail });
-    const explicitAdmin = Boolean(group?.isAdmin || group?.isSuperAdmin || detail?.isAdmin || detail?.isSuperAdmin);
-    const resolvedName =
-      detail?.subject || detail?.name || detail?.Name || group?.subject || group?.name || group?.Name || group?.groupName || group?.title || 'Grupo sem nome';
-
-    return {
-      ...group,
-      ...detail,
-      id: groupId,
-      phone: groupId,
-      name: resolvedName,
-      isAdmin: isComm || isChan || explicitAdmin || isOwnerAdminInGroup(detail, group, ownerPhone, ownerLid) || participants.length === 0,
-      memberCount: participants.length || detail?.participantCount || detail?.ParticipantCount || group?.participantCount || group?.ParticipantCount || group?.memberCount || group?.size || 0,
-      isCommunity: isComm,
-      isChannel: isChan,
-      profilePicture: detail?.profileThumbnail || detail?.groupPhoto || detail?.imgUrl || detail?.imageUrl || group?.imgUrl || group?.profilePicture || group?.image || group?.photo || null,
-      __sourceInstanceName: instance.instance_name || null,
-      __sourceInstanceId: instance.zapi_instance_id,
-    };
-  }));
-
-  return detailedGroups.filter(Boolean);
-};
+ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
+   if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
+ 
+   const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+   const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
+   
+   console.log(`👤 Fetching all chats via Z-API /chats for ${instance.instance_name}`);
+ 
+   const response = await fetch(`${baseUrl}/chats`, { method: 'GET', headers });
+   if (!response.ok) {
+     console.error(`❌ Z-API /chats failed for ${instance.instance_name}: ${response.status}`);
+     return [];
+   }
+ 
+   const chats = await response.json().catch(() => []);
+   if (!Array.isArray(chats)) {
+     console.log(`⚠️ Z-API /chats returned non-array:`, chats);
+     return [];
+   }
+ 
+   // Filter and map to unified format
+   const results = chats.map((chat: any) => {
+     const id = chat.id || chat.phone;
+     if (!id) return null;
+ 
+     const isChannel = id.includes('@newsletter');
+     const isGroup = id.includes('-group') || id.includes('@g.us');
+     const isCommunity = id.includes('-community');
+ 
+     // Only include groups, communities, and channels
+     if (!isChannel && !isGroup && !isCommunity) return null;
+ 
+     // Admin check: for groups, Z-API usually provides isAdmin flag.
+     // For channels/communities where the user "sees" the chat, they are usually admin enough to send
+     // as requested by the user.
+     const isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || isChannel || isCommunity || false;
+     
+     // Skip groups where not admin
+     if (!isAdmin) return null;
+ 
+     let typeLabel = "Grupo";
+     if (isChannel) typeLabel = "Canal";
+     if (isCommunity) typeLabel = "Comunidade";
+ 
+     return {
+       ...chat,
+       id,
+       phone: id,
+       name: chat.name || chat.subject || 'Sem nome',
+       isAdmin: true,
+       isChannel,
+       isCommunity,
+       typeLabel,
+       memberCount: chat.memberCount || 0,
+       profilePicture: chat.profilePicture || chat.image || null,
+       __sourceInstanceName: instance.instance_name,
+       __sourceInstanceId: instance.zapi_instance_id,
+     };
+   }).filter(Boolean);
+ 
+   console.log(`✅ Z-API found ${results.length} valid admin chats for ${instance.instance_name}`);
+   return results;
+ };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
