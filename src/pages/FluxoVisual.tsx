@@ -1009,7 +1009,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
 
-        const sendWithInstance = async (payload: Record<string, any>) => {
+         const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
+           const finalPayload = { ...payload };
+           
+           // Adiciona opção de marcar todos se estiver em modo grupo
+           if (isGroupsMode && nodeData?.mentionAll) {
+             finalPayload.mentionAll = true;
+           }
+ 
           if (provider === "meta") {
             const overrideHeader = metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {};
             const invokeMeta = async (body: Record<string, any>) => {
@@ -1029,43 +1036,43 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 .map((b: any) => ({ id: b.id, title: b.label.slice(0, 20) }));
 
               if (replyButtons.length > 0) {
-                await invokeMeta({
-                  action: "send_interactive",
-                  phone: payload.phone,
-                  message: payload.message || "Escolha uma opção:",
-                  buttons: replyButtons,
-                  ...overrideHeader,
-                });
+               await invokeMeta({
+                 action: "send_interactive",
+                 phone: finalPayload.phone,
+                 message: finalPayload.message || "Escolha uma opção:",
+                 buttons: replyButtons,
+                 ...overrideHeader,
+               });
                 return;
               }
             }
 
             // Media via Meta API
             if (payload.mediaUrl && payload.mediaType) {
-              await invokeMeta({
-                action: "send_media",
-                phone: payload.phone,
-                media_url: payload.mediaUrl,
-                media_type: payload.mediaType,
-                ...(payload.mediaType === 'audio' ? { voice: true } : {}),
-                caption: payload.message || undefined,
-                ...overrideHeader,
-              });
+               await invokeMeta({
+                 action: "send_media",
+                 phone: finalPayload.phone,
+                 media_url: finalPayload.mediaUrl,
+                 media_type: finalPayload.mediaType,
+                 ...(finalPayload.mediaType === 'audio' ? { voice: true } : {}),
+                 caption: finalPayload.message || undefined,
+                 ...overrideHeader,
+               });
               return;
             }
 
             // Text via Meta API
-            await invokeMeta({
-              action: "send_text",
-              phone: payload.phone,
-              message: payload.message || "",
-              ...overrideHeader,
-            });
+             await invokeMeta({
+               action: "send_text",
+               phone: finalPayload.phone,
+               message: finalPayload.message || "",
+               ...overrideHeader,
+             });
           } else {
-            const body = instanceId
-              ? { ...payload, instanceId, preferStandardConnection: true }
-              : { ...payload, preferStandardConnection: true };
-            const { data, error } = await supabase.functions.invoke('send-message', { body });
+             const body = instanceId
+               ? { ...finalPayload, instanceId, preferStandardConnection: true }
+               : { ...finalPayload, preferStandardConnection: true };
+             const { data, error } = await supabase.functions.invoke('send-message', { body });
             console.log("[FluxoVisual] send-message result", { body, data, error });
             const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
             if (failureMessage) {
