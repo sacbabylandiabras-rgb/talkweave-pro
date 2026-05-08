@@ -2943,7 +2943,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="tag">Adicionar Tag</SelectItem>
                       <SelectItem value="variable">Salvar Variável</SelectItem>
                       <SelectItem value="webhook">Chamar Webhook</SelectItem>
-                      <SelectItem value="delay">Adicionar Delay</SelectItem>
+                      <SelectItem value="delay">Adicionar Delay (Segundos)</SelectItem>
+                      <SelectItem value="schedule">Agendar Horário (Fixo)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
