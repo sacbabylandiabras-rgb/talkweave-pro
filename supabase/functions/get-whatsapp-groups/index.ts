@@ -752,28 +752,19 @@ Deno.serve(async (req) => {
           if (!groupId) continue;
           const participants = extractParticipantsFromGroup(group);
           // Uazapi pode devolver as flags de comunidade em qualquer nível do payload.
-          const explicitCommunity = hasCommunityMetadata(group);
-          let lidOnlyCommunity = false;
-          if (!explicitCommunity && Array.isArray(participants) && participants.length >= 3) {
-            const lidCount = participants.filter((p: any) => {
-              const id = String(p?.id || p?.phone || p?.jid || p || "");
-              return id.includes("@lid");
-            }).length;
-            // Se 80%+ dos participantes vêm como @lid, tratamos como comunidade
-            lidOnlyCommunity = lidCount / participants.length >= 0.8;
-          }
-          const isCommunity = explicitCommunity || lidOnlyCommunity;
-          const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
-           const isGroup = !isChannel && !isCommunity && (
-             group.isGroup === true ||
+           // Prefer provider-calculated flags if available
+           const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
+           const isCommunity = group.isCommunity === true || hasCommunityMetadata(group);
+           const isGroup = group.isGroup === true || (!isChannel && !isCommunity && (
              String(groupId).includes("-group") ||
              String(groupId).includes("@g.us") ||
              (String(groupId).includes("@c.us") && !isCommunity)
-           );
-           
-           if (isGroup || isCommunity || isChannel) {
-             console.log(`🔎 Item processed: id=${groupId}, name=${group.name || group.subject}, isGroup=${isGroup}, isCommunity=${isCommunity}, isChannel=${isChannel}, isAdmin=${hasTruthyValue(group.isAdmin) || hasTruthyValue(group.isSuperAdmin) || hasTruthyValue(group.is_admin)}`);
-           }
+           ));
+
+           const isAdmin = hasTruthyValue(group.isAdmin) || 
+                           hasTruthyValue(group.isSuperAdmin) || 
+                           hasTruthyValue(group.is_admin) || 
+                           (isChannel); // Default channels to true as they are usually only returned if managed
 
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
