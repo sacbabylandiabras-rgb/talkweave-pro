@@ -128,6 +128,9 @@ export default function CampanhaGrupoFluxo() {
   const normalizeGroupTargetPhone = (groupId: string) => {
     const trimmed = groupId.trim();
     if (!trimmed) return trimmed;
+    if (trimmed.includes('@')) return trimmed;
+    if (trimmed.includes('-group') || trimmed.includes('-community')) return trimmed;
+
     if (trimmed.includes("-group@g.us")) return trimmed.replace("-group@g.us", "@g.us");
     if (trimmed.endsWith("-group")) return trimmed.replace(/-group$/i, "@g.us");
     if (trimmed.includes("@g.us")) return trimmed;
@@ -436,7 +439,14 @@ export default function CampanhaGrupoFluxo() {
                                   <Users className="w-4 h-4 text-muted-foreground" />
                                 </div>
                               )}
-                              <p className="text-sm font-medium truncate">{group.nome}</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{group.nome}</p>
+                                {group.typeLabel && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-primary/5">
+                                    {group.typeLabel}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </label>
                         ))}
