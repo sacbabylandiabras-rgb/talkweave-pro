@@ -1203,9 +1203,10 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 }
 
 /* ============= TAB: Links Rotativos ============= */
-function LinksRotativosTab() {
-  const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
-  const { groups } = useWhatsAppGroups();
+ function LinksRotativosTab() {
+   const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
+   const { groups: allGroups } = useWhatsAppGroups();
+   const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
   const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
