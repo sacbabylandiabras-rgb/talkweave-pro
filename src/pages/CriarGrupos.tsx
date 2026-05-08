@@ -1823,27 +1823,42 @@ function LinksRotativosTab() {
       const cleanSlug = slug.startsWith('/') ? slug.substring(1) : slug;
       const urlToCopy = `${baseRedirectUrl}${cleanSlug}${hash}`;
      
-     try {
-       if (navigator.clipboard && window.isSecureContext) {
-         await navigator.clipboard.writeText(urlToCopy);
-       } else {
+     const fallbackCopy = (text: string): boolean => {
+       try {
          const textArea = document.createElement("textarea");
-         textArea.value = urlToCopy;
+         textArea.value = text;
+         textArea.setAttribute("readonly", "");
          textArea.style.position = "fixed";
          textArea.style.left = "-999999px";
          textArea.style.top = "-999999px";
          document.body.appendChild(textArea);
          textArea.focus();
          textArea.select();
-         document.execCommand("copy");
+         const ok = document.execCommand("copy");
          textArea.remove();
+         return ok;
+       } catch {
+         return false;
        }
+     };
+
+     let success = false;
+     try {
+       if (navigator.clipboard && window.isSecureContext) {
+         await navigator.clipboard.writeText(urlToCopy);
+         success = true;
+       }
+     } catch {
+       success = false;
+     }
+     if (!success) success = fallbackCopy(urlToCopy);
+
+     if (success) {
        setCopied(slug);
        toast.success("Link copiado!");
        setTimeout(() => setCopied(null), 2000);
-     } catch (err) {
-       console.error("Falha ao copiar link:", err);
-       toast.error("Erro ao copiar link");
+     } else {
+       window.prompt("Copie o link manualmente:", urlToCopy);
      }
    };
 
