@@ -568,6 +568,12 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
         }
       }
 
+      let metadata: any = null;
+      if (!isAdmin && isGroup) {
+        metadata = await fetchZapiGroupMetadata(id);
+        isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
+      }
+
       // For channels and communities, we also consider the user an admin if the API says so 
       // or if it's a channel (usually you only see channels you own/administer in these APIs)
       // but let's be more precise if possible.
@@ -582,7 +588,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
-     const resolvedName = chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
+      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
 
      // Skip zombie/forbidden groups: chats listed as group but without a name
      // and no message history. These are typically groups the user was removed from.
