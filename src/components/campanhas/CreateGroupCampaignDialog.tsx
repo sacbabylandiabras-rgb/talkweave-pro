@@ -23,7 +23,7 @@ interface CreateGroupCampaignDialogProps {
 
 export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCampaignDialogProps) {
   const { toast } = useToast();
-  const { createCampaign } = useCampaigns();
+  const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
   const { groups, loading: loadingGroups } = useWhatsAppGroups();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
@@ -144,7 +144,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         };
       });
 
-      await createCampaign({
+      const campaign = await createCampaign({
         name: formData.name,
         description: formData.description || `Campanha em ${selectedGroups.length} grupo(s)`,
         template_id: formData.template_id,
@@ -157,6 +157,11 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         schedule_type: formData.schedule_type,
         scheduled_at: formData.schedule_type === 'scheduled' ? formData.scheduled_at : undefined,
       });
+
+      if (formData.schedule_type === 'immediate') {
+        console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
+        await sendCampaign(campaign.id, groupContacts);
+      }
 
       toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 
         ? `Campanha "${formData.name}" agendada para ${new Date(formData.scheduled_at).toLocaleString('pt-BR')}`
