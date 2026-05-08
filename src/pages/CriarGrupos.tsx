@@ -75,7 +75,7 @@ const CriarGrupos = () => {
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
     const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
-   const groups = allGroups;
+   const groups = allGroups.filter(g => g.isGroup || g.isCommunity || g.isChannel);
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -135,7 +135,7 @@ const CriarGrupos = () => {
   const [creating, setCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+   const selectedGroup = allGroups.find((g) => g.id === selectedGroupId);
 
   const getInstanceCredentials = (group: any) => {
     // Priority: manual override > group's sourceInstanceId > fallback
@@ -2321,7 +2321,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+   const selectedGroup = allGroups.find((g) => g.id === selectedGroupId);
 
   const fetchParticipants = async (group: any) => {
     setLoadingParticipants(true);
