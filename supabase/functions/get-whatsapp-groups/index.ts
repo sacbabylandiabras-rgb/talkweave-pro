@@ -204,27 +204,20 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerL
   for (const p of participants) {
     const id = String(p?.id || p?.phone || p?.jid || p?.JID || p?.participant || '');
     // Match por LID quando o participante vier como @lid
-    if (ownerLid && id.includes(ownerLid)) {
-      const adminFlagLid =
-        p?.isAdmin === true || p?.IsAdmin === true ||
-        p?.isSuperAdmin === true || p?.IsSuperAdmin === true ||
-        p?.admin === 'admin' || p?.admin === 'superadmin' ||
-        p?.role === 'admin' || p?.role === 'superadmin';
-      if (adminFlagLid) return true;
-    }
+    const isAdminParticipant = 
+      hasTruthyValue(p?.isAdmin) || 
+      hasTruthyValue(p?.IsAdmin) || 
+      hasTruthyValue(p?.isSuperAdmin) || 
+      hasTruthyValue(p?.is_admin) ||
+      p?.admin === 'admin' || p?.admin === 'superadmin' ||
+      p?.role === 'admin' || p?.role === 'superadmin' ||
+      p?.type === 'admin' || p?.type === 'superadmin';
+
+    if (ownerLid && id.includes(ownerLid) && isAdminParticipant) return true;
+    
     const phone = normalizePhoneFromJid(id);
-    if (!phone || !ownerPhone) continue;
-    if (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) {
-      const adminFlag =
-        p?.isAdmin === true ||
-        p?.IsAdmin === true ||
-        p?.isSuperAdmin === true ||
-        p?.IsSuperAdmin === true ||
-        p?.admin === 'admin' ||
-        p?.admin === 'superadmin' ||
-        p?.role === 'admin' ||
-        p?.role === 'superadmin';
-      if (adminFlag) return true;
+    if (phone && ownerPhone && (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) && isAdminParticipant) {
+      return true;
     }
   }
   // Fallback: owner field of the group
