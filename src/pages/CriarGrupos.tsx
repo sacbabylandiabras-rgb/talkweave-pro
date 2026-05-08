@@ -1089,6 +1089,8 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
             groupEntries[g] = (groupEntries[g] || 0) + 1;
           });
 
+          const totalEntries = Object.values(groupEntries).reduce((a, b) => a + b, 0);
+
           return (
             <div className="space-y-6">
               {/* Summary cards */}
@@ -1098,7 +1100,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
                   <p className="text-[10px] text-muted-foreground mt-1">Cliques</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
-                  <p className="text-xl font-bold text-green-600">{joins.length}</p>
+                  <p className="text-xl font-bold text-green-600">{totalEntries}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">Entraram</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
