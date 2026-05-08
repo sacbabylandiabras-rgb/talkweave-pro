@@ -573,7 +573,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       }
 
       let metadata: any = null;
-      if (isGroup && (!isAdmin || !chat.name || !chat.subject)) {
+       if ((isGroup || isCommunity) && (!isAdmin || !chat.name || !chat.subject)) {
         metadata = await fetchZapiGroupMetadata(id);
         if (!isAdmin) isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
       }
