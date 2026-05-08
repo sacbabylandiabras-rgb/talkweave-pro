@@ -448,6 +448,7 @@ const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: 
 const normalizeZapiGroupId = (value: unknown): string => {
   const raw = String(value || '').trim();
   if (!raw) return '';
+  if (raw.includes('@newsletter') || raw.includes('-community')) return raw;
   if (raw.includes('-group')) return raw;
   if (raw.includes('@g.us')) return raw.replace(/@g\.us$/i, '-group');
   const digits = raw.replace(/\D/g, '');
@@ -459,29 +460,57 @@ const normalizeZapiGroupId = (value: unknown): string => {
  
    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
    const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
-   
-   console.log(`👤 Fetching all chats via Z-API /chats for ${instance.instance_name}`);
- 
-   // Z-API /chats is paginated (default pageSize ~50). Loop until exhausted.
-   const chats: any[] = [];
+
+    const extractList = (payload: any, key: 'chats' | 'groups') => {
+      if (Array.isArray(payload)) return payload;
+      const candidates = [
+        payload?.[key],
+        payload?.data,
+        payload?.result,
+        payload?.response,
+        payload?.items,
+        payload?.result?.[key],
+        payload?.data?.[key],
+      ];
+      return candidates.find((candidate) => Array.isArray(candidate)) || [];
+    };
+
+    const fetchPaginated = async (endpoint: 'chats' | 'groups') => {
+      console.log(`👤 Fetching all ${endpoint} via Z-API /${endpoint} for ${instance.instance_name}`);
+      const items: any[] = [];
    const pageSize = 100;
-   const maxPages = 50; // safety cap (5000 chats)
+      const maxPages = 80; // safety cap (8000 records)
    for (let page = 1; page <= maxPages; page++) {
-     const response = await fetch(`${baseUrl}/chats?page=${page}&pageSize=${pageSize}`, { method: 'GET', headers });
+        const response = await fetch(`${baseUrl}/${endpoint}?page=${page}&pageSize=${pageSize}`, { method: 'GET', headers });
      if (!response.ok) {
-       console.error(`❌ Z-API /chats page ${page} failed for ${instance.instance_name}: ${response.status}`);
+          console.error(`❌ Z-API /${endpoint} page ${page} failed for ${instance.instance_name}: ${response.status}`);
        break;
      }
-     const pageData = await response.json().catch(() => []);
+        const payload = await response.json().catch(() => []);
+        const pageData = extractList(payload, endpoint);
      if (!Array.isArray(pageData) || pageData.length === 0) break;
-     chats.push(...pageData);
+        items.push(...pageData.map((item: any) => ({ ...item, __zapiListSource: endpoint })));
      if (pageData.length < pageSize) break;
    }
-   console.log(`📥 Z-API total chats fetched for ${instance.instance_name}: ${chats.length}`);
+      console.log(`📥 Z-API total ${endpoint} fetched for ${instance.instance_name}: ${items.length}`);
+      return items;
+    };
+
+    const rawItems = [
+      ...await fetchPaginated('chats'),
+      ...await fetchPaginated('groups'),
+    ];
+
+    const chats = Array.from(new Map(rawItems.map((item: any) => {
+      const rawId = item.id || item.phone || item.groupId || item.groupJid || item.groupjid || item.jid || item.chatId;
+      const normalizedId = normalizeZapiGroupId(rawId);
+      return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId }];
+    }).filter(([id]) => Boolean(id))).values());
+    console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
  
    // Filter and map to unified format
    const results = chats.map((chat: any) => {
-     const id = chat.id || chat.phone;
+      const id = normalizeZapiGroupId(chat.id || chat.phone || chat.groupId || chat.groupJid || chat.groupjid || chat.jid || chat.chatId);
      if (!id) return null;
  
      const isChannel = id.includes('@newsletter');
@@ -504,19 +533,19 @@ const normalizeZapiGroupId = (value: unknown): string => {
        ...chat,
        id,
        phone: id,
-       name: chat.name || chat.subject || 'Sem nome',
+        name: chat.name || chat.subject || chat.groupName || chat.title || 'Sem nome',
         isAdmin,
        isChannel,
        isCommunity,
        typeLabel,
-       memberCount: chat.memberCount || 0,
+        memberCount: chat.memberCount || chat.size || chat.participantsCount || chat.membersCount || 0,
        profilePicture: chat.profilePicture || chat.image || null,
        __sourceInstanceName: instance.instance_name,
        __sourceInstanceId: instance.zapi_instance_id,
      };
    }).filter(Boolean);
  
-   console.log(`✅ Z-API found ${results.length} valid admin chats for ${instance.instance_name}`);
+    console.log(`✅ Z-API found ${results.length} valid groups/channels for ${instance.instance_name}`);
    return results;
  };
 
