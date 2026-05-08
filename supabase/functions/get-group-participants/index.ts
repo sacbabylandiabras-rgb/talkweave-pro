@@ -538,16 +538,25 @@ Deno.serve(async (req) => {
     const { groupId, fallbackParticipants = [], sourceInstanceId = null, isCommunity = false } = await req.json();
     if (!groupId) throw new Error("groupId is required");
 
-    // Newsletters/channels don't have queryable participants
-    if (String(groupId).toLowerCase().includes("@newsletter")) {
+    // Try UAZAPI first when the source instance (or any active instance) uses uazapi
+    const uazapi = await resolveUazapiInstance(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
+    const isChannel = String(groupId).toLowerCase().includes("@newsletter");
+    if (isChannel) {
+      const credentials = await resolveCredentials(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
+      const metadata = await fetchNewsletterCount(credentials.instanceId, credentials.token, credentials.clientToken, groupId);
       return new Response(
-        JSON.stringify({ participants: [], isChannel: true }),
+        JSON.stringify({
+          participants: [],
+          isChannel: true,
+          memberCount: metadata.count,
+          subscriberCount: metadata.count,
+          groupName: metadata.name,
+          profilePicture: metadata.picture,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Try UAZAPI first when the source instance (or any active instance) uses uazapi
-    const uazapi = await resolveUazapiInstance(req, supabaseUrl, supabaseServiceKey, sourceInstanceId);
     if (uazapi) {
       console.log(`📱 UAZAPI participants for ${groupId}`);
       try {
