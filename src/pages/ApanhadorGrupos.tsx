@@ -127,6 +127,113 @@ const ApanhadorGrupos = () => {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [logsOpen]);
 
+  // Conectar instância uazapi via QR Code
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
+  const [activeAccountIdx, setActiveAccountIdx] = useState(0);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [connStatus, setConnStatus] = useState<string>('disconnected');
+  const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
+  const [pairingPhone, setPairingPhone] = useState('');
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const disconnectActive = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    if (!confirm(`Desconectar Instância #${activeAccountIdx + 1}?`)) return;
+    setDisconnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success('Instância desconectada');
+      setConnStatus('disconnected');
+      setQrCode(null);
+      setPairingCode(null);
+      await fetchQrFor(account);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao desconectar');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  const loadUazapiAccounts = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data } = await (supabase as any)
+      .from('profiles')
+      .select('uazapi_url, uazapi_token')
+      .eq('id', user.id)
+      .maybeSingle();
+    const urls = (data?.uazapi_url || '').split('|').filter(Boolean);
+    const tokens = (data?.uazapi_token || '').split('|').filter(Boolean);
+    const accounts = urls.map((url: string, i: number) => ({
+      label: `Instância #${i + 1}`,
+      url: url.trim(),
+      token: (tokens[i] || '').trim(),
+    })).filter((a: any) => a.url && a.token);
+    setUazapiAccounts(accounts);
+    return accounts;
+  };
+
+  const fetchQrFor = async (account: { url: string; token: string }, phone?: string) => {
+    setQrLoading(true);
+    setQrCode(null);
+    setPairingCode(null);
+    try {
+      const { data: statusData } = await supabase.functions.invoke('uazapi-status', {
+        body: { apiUrl: account.url, apiToken: account.token },
+      });
+      if (statusData?.connected) {
+        setConnStatus('connected');
+        setQrLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('uazapi-connect', {
+        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined },
+      });
+      if (error) throw error;
+      setConnStatus(data?.connectionStatus || 'connecting');
+      setQrCode(data?.qrCode || null);
+      setPairingCode(data?.pairingCode || null);
+      if (data?.connected) setConnStatus('connected');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao conectar instância');
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const requestPairingCode = async () => {
+    const account = uazapiAccounts[activeAccountIdx];
+    if (!account) return;
+    const phone = pairingPhone.replace(/\D/g, '');
+    if (phone.length < 10) {
+      toast.error('Informe o número completo com DDI e DDD (ex: 5511999999999)');
+      return;
+    }
+    await fetchQrFor(account, phone);
+  };
+
+  const openConnectDialog = async () => {
+    setConnectOpen(true);
+    setActiveAccountIdx(0);
+    setQrCode(null);
+    setPairingCode(null);
+    setConnStatus('disconnected');
+    setConnectMode('qr');
+    setPairingPhone('');
+    const accounts = await loadUazapiAccounts();
+    if (accounts.length > 0) {
+      await fetchQrFor(accounts[0]);
+    }
+  };
 
   // Polling: refresh status while dialog is open and not connected
   useEffect(() => {
