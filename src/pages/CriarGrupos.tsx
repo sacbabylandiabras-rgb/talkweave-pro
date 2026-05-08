@@ -75,7 +75,18 @@ const CriarGrupos = () => {
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
     const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
-    const groups = allGroups.filter(g => (g.isGroup || g.isCommunity || g.isChannel) && g.isAdmin);
+    const groups = allGroups.filter((g) => {
+      const id = String(g.id || "");
+      const isManageableType =
+        g.isGroup ||
+        g.isCommunity ||
+        g.isChannel ||
+        id.includes("-group") ||
+        id.includes("@g.us") ||
+        id.includes("@newsletter");
+
+      return isManageableType && g.isAdmin;
+    });
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -321,7 +332,7 @@ const CriarGrupos = () => {
                  : "Nenhum grupo encontrado na instância de dispositivo."}
             </div>
           ) : (
-           <div className="flex flex-wrap gap-2">
+           <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
              {groups.map((g) => (
                <Button
                  key={g.id}
@@ -331,9 +342,9 @@ const CriarGrupos = () => {
                    setSelectedGroupId(g.id);
                    fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
                  }}
-                 className="h-8"
+                  className="h-8 max-w-[260px]"
                >
-                 {g.nome}
+                  <span className="truncate">{g.nome}</span>
                </Button>
              ))}
            </div>
