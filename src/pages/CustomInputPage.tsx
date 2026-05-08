@@ -155,7 +155,7 @@ import { useNavigate } from "react-router-dom";
         .in("status", ["sent", "delivered", "read"])
         .gte("created_at", startIso);
 
-      const cpaRatio = msgCount && msgCount > 0 ? approvedCount / msgCount : 0;
+      const cpaRatio = approvedCount && approvedCount > 0 ? msgCount / approvedCount : 0;
 
       setStats({
         campaigns: campRes.count || 0,
