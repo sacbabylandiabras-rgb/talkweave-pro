@@ -473,6 +473,9 @@ const normalizeZapiGroupId = (value: unknown): string => {
  const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
    if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
  
+    const ownerInfo = await fetchOwnerPhoneViaZapi(instance);
+    console.log(`👤 Z-API owner for ${instance.instance_name}: phone=${ownerInfo.phone}, lid=${ownerInfo.lid}`);
+
    const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
    const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token };
 
@@ -535,10 +538,30 @@ const normalizeZapiGroupId = (value: unknown): string => {
      // Only include groups, communities, and channels
      if (!isChannel && !isGroup && !isCommunity) return null;
  
-     // Admin check: for groups, Z-API usually provides isAdmin flag.
-     // For channels/communities where the user "sees" the chat, they are usually admin enough to send
-     // as requested by the user.
-      const isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || isChannel || isCommunity || false;
+      // Admin check: for groups, Z-API usually provides isAdmin flag in the list.
+      // If not present, we check if the group owner matches our owner phone/lid.
+      let isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || false;
+      
+      if (!isAdmin) {
+        const groupOwner = String(chat.owner || chat.Owner || chat.groupOwner || '');
+        if (groupOwner) {
+          if (ownerInfo.lid && groupOwner.includes(ownerInfo.lid)) isAdmin = true;
+          const groupOwnerPhone = normalizePhoneFromJid(groupOwner);
+          if (ownerInfo.phone && groupOwnerPhone && (groupOwnerPhone === ownerInfo.phone || groupOwnerPhone.endsWith(ownerInfo.phone) || ownerInfo.phone.endsWith(groupOwnerPhone))) {
+            isAdmin = true;
+          }
+        }
+      }
+
+      // For channels and communities, we also consider the user an admin if the API says so 
+      // or if it's a channel (usually you only see channels you own/administer in these APIs)
+      // but let's be more precise if possible.
+      if (!isAdmin && (isChannel || isCommunity)) {
+        // Fallback for Z-API: if we see it in the list and it's a community/channel, 
+        // it's likely we have some management rights, but let's default to true 
+        // for now as it was before, unless we find a reason not to.
+        isAdmin = true;
+      }
 
       let typeLabel = "Grupo";
      if (isChannel) typeLabel = "Canal";
