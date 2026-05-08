@@ -733,6 +733,11 @@ Deno.serve(async (req) => {
           }
           const isCommunity = explicitCommunity || lidOnlyCommunity;
           const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
+          const isGroup = !isChannel && !isCommunity && (
+            group.isGroup === true ||
+            String(groupId).includes("-group") ||
+            String(groupId).includes("@g.us")
+          );
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
@@ -749,6 +754,8 @@ Deno.serve(async (req) => {
               sourceInstanceId: group.__sourceInstanceId || null,
               isCommunity: isCommunity && !isChannel,
               isChannel,
+              isGroup,
+              typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
             });
           }
         }
