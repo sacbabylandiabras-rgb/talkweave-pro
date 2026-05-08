@@ -462,17 +462,22 @@ const normalizeZapiGroupId = (value: unknown): string => {
    
    console.log(`👤 Fetching all chats via Z-API /chats for ${instance.instance_name}`);
  
-   const response = await fetch(`${baseUrl}/chats`, { method: 'GET', headers });
-   if (!response.ok) {
-     console.error(`❌ Z-API /chats failed for ${instance.instance_name}: ${response.status}`);
-     return [];
+   // Z-API /chats is paginated (default pageSize ~50). Loop until exhausted.
+   const chats: any[] = [];
+   const pageSize = 100;
+   const maxPages = 50; // safety cap (5000 chats)
+   for (let page = 1; page <= maxPages; page++) {
+     const response = await fetch(`${baseUrl}/chats?page=${page}&pageSize=${pageSize}`, { method: 'GET', headers });
+     if (!response.ok) {
+       console.error(`❌ Z-API /chats page ${page} failed for ${instance.instance_name}: ${response.status}`);
+       break;
+     }
+     const pageData = await response.json().catch(() => []);
+     if (!Array.isArray(pageData) || pageData.length === 0) break;
+     chats.push(...pageData);
+     if (pageData.length < pageSize) break;
    }
- 
-   const chats = await response.json().catch(() => []);
-   if (!Array.isArray(chats)) {
-     console.log(`⚠️ Z-API /chats returned non-array:`, chats);
-     return [];
-   }
+   console.log(`📥 Z-API total chats fetched for ${instance.instance_name}: ${chats.length}`);
  
    // Filter and map to unified format
    const results = chats.map((chat: any) => {
@@ -489,12 +494,9 @@ const normalizeZapiGroupId = (value: unknown): string => {
      // Admin check: for groups, Z-API usually provides isAdmin flag.
      // For channels/communities where the user "sees" the chat, they are usually admin enough to send
      // as requested by the user.
-     const isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || isChannel || isCommunity || false;
-     
-     // Skip groups where not admin
-     if (!isAdmin) return null;
- 
-     let typeLabel = "Grupo";
+      const isAdmin = chat.isAdmin === true || chat.isSuperAdmin === true || isChannel || isCommunity || false;
+
+      let typeLabel = "Grupo";
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
@@ -503,7 +505,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
        id,
        phone: id,
        name: chat.name || chat.subject || 'Sem nome',
-       isAdmin: true,
+        isAdmin,
        isChannel,
        isCommunity,
        typeLabel,
