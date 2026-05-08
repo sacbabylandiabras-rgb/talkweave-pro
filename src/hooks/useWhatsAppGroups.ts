@@ -15,6 +15,7 @@ export interface WhatsAppGroup {
   sourceInstanceName?: string | null;
   isCommunity?: boolean;
   isChannel?: boolean;
+  isGroup?: boolean;
   typeLabel?: string;
 }
 
