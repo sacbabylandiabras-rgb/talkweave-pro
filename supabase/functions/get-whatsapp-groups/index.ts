@@ -724,7 +724,7 @@ Deno.serve(async (req) => {
               membros: participants.length || group.memberCount || group.size || 0,
               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
               ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
-              isAdmin: isCommunity || isChannel || group.isAdmin || group.isSuperAdmin || false,
+               isAdmin: group.isAdmin || group.isSuperAdmin || false,
               participantes: participants,
               archived: group.archived || false,
               pinned: group.pinned || false,

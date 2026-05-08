@@ -75,7 +75,7 @@ const CriarGrupos = () => {
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
     const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
-   const groups = allGroups.filter(g => g.isGroup || g.isCommunity || g.isChannel);
+    const groups = allGroups.filter(g => (g.isGroup || g.isCommunity || g.isChannel) && g.isAdmin);
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
