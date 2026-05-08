@@ -2249,6 +2249,7 @@ function LinksRotativosTab() {
               </div>
             </div>
           </div>
+        </div>
           <DialogFooter className="p-6 pt-2 border-t border-border bg-background sm:justify-end">
             <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
             <Button onClick={handleSavePageConfig} disabled={isSavingPage}>
