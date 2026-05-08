@@ -9,7 +9,7 @@ const corsHeaders = {
 // NOTA: 16h30 será tratado como 16:30, precisamos de um tratamento especial
 // Para simplificar, usaremos [0, 8, 12, 16.5, 18] ou separamos logicamente
 // Vamos manter [0, 8, 12, 18] e adicionar um cron separado para 16:30
-const SLOTS = [0, 8, 11.5, 12, 16.5, 18, 18.1666, 18.3333];
+const SLOTS = [0, 8, 11.5, 11.5833, 12, 16.5, 18, 18.1666, 18.3333];
 
 // Janelas: relatório das X horas cobre o período desde o slot anterior
 function previousSlot(hourBRT: number, minutesBRT: number = 0): number {
