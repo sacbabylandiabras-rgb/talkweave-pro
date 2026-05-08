@@ -2948,19 +2948,44 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </Select>
                 </div>
 
-                <div>
-                  <Label>Configuração da Ação</Label>
-                  <Input
-                    value={selectedNode.data.actionConfig || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, actionConfig: e.target.value },
-                      })
-                    }
-                    placeholder="Configure a ação..."
-                  />
-                </div>
+                {selectedNode.data.actionType === "delay" ? (
+                  <div>
+                    <Label>Tempo do Delay (segundos)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={selectedNode.data.delaySeconds || selectedNode.data.actionConfig || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { 
+                            ...selectedNode.data, 
+                            delaySeconds: e.target.value,
+                            actionConfig: e.target.value 
+                          },
+                        })
+                      }
+                      placeholder="Ex: 5"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      O fluxo aguardará este tempo antes de prosseguir para o próximo bloco.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Label>Configuração da Ação</Label>
+                    <Input
+                      value={selectedNode.data.actionConfig || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, actionConfig: e.target.value },
+                        })
+                      }
+                      placeholder="Configure a ação..."
+                    />
+                  </div>
+                )}
               </>
             )}
 
