@@ -214,15 +214,18 @@ Deno.serve(async (req) => {
              const chatsData = await chatsRes.json().catch(() => []);
              const chatList = Array.isArray(chatsData) ? chatsData : (chatsData?.chats || []);
              
-             const foundChat = chatList.find((c: any) => 
-               String(c.id) === newsletterId || 
-               String(c.phone) === newsletterId || 
-               String(c.id).includes(cleanId)
-             );
-             
-             if (foundChat) {
-               console.log("✅ Channel found in chats list");
-               link = foundChat.inviteLink || foundChat.invitationLink || foundChat.link || foundChat.url;
+             // Priority search in chats list
+             if (Array.isArray(chatList)) {
+               const foundChat = chatList.find((c: any) => 
+                 String(c.id) === newsletterId || 
+                 String(c.phone) === newsletterId || 
+                 (cleanId && String(c.id).includes(cleanId))
+               );
+               
+               if (foundChat) {
+                 console.log("✅ Channel found in chats list");
+                 link = foundChat.inviteLink || foundChat.invitationLink || foundChat.link || foundChat.url;
+               }
              }
              
              if (!link) {
