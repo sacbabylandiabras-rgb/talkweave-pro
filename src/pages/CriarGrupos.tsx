@@ -1276,14 +1276,7 @@ function LinksRotativosTab() {
     localStorage.setItem("link-page-config", JSON.stringify(updated));
   };
 
-    const getBaseUrl = () => {
-      const hostname = window.location.hostname;
-      if (hostname.includes('lovable.app') || hostname.includes('localhost')) {
-        return `${window.location.origin}/r?url=${window.location.origin}/invite/`;
-      }
-      return `https://go.zaplynxpro.online/r?url=https://go.zaplynxpro.online/invite/`;
-    };
-    const baseRedirectUrl = getBaseUrl();
+    const baseRedirectUrl = `https://go.zaplynxpro.online/r?url=https://go.zaplynxpro.online/invite/`;
   const editingLink = links.find(l => l.id === editPageLinkId);
   const editingConfig = editPageLinkId ? (pageConfig[editPageLinkId] || {}) : {};
 
@@ -1934,7 +1927,7 @@ function LinksRotativosTab() {
                   <Button variant="ghost" size="icon" onClick={() => setEditPageLinkId(link.id)} title="Editar página">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => copyLink(link.slug)}>
+                  <Button variant="ghost" size="icon" onPointerDown={() => copyLink(link.slug)} onClick={(e) => e.preventDefault()}>
                     {copied === link.slug ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteLink(link.id)}>
