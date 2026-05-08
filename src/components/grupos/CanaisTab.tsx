@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { RefreshCw, Plus, Hash, Image, Upload, Loader2, Trash2, Pencil, Settings, UserPlus, UserMinus, Search, Volume2, VolumeX, Heart, HeartOff, UserCheck } from "lucide-react";
+ import { RefreshCw, Plus, Hash, Image, Upload, Loader2, Trash2, Pencil, Settings, UserPlus, UserMinus, Search, Volume2, VolumeX, Heart, HeartOff, UserCheck, Copy } from "lucide-react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,8 +38,9 @@ export default function CanaisTab() {
   const editPhotoFileRef = useRef<HTMLInputElement>(null);
 
   const [reactionMode, setReactionMode] = useState<"ALL" | "BASIC" | "NONE">("ALL");
-  const [transferPhone, setTransferPhone] = useState("");
-  const [adminPhone, setAdminPhone] = useState("");
+   const [transferPhone, setTransferPhone] = useState("");
+   const [adminPhone, setAdminPhone] = useState("");
+   const [addAdminPhone, setAddAdminPhone] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -190,19 +191,40 @@ export default function CanaisTab() {
     }
   };
 
-  const runAction = async (action: string, payload: Record<string, any>, successMsg: string, after?: () => void) => {
-    setActionLoading(action);
-    try {
-      await invokeNewsletter(action, { newsletterId: selectedNewsletter?.id, ...payload });
-      toast.success(successMsg);
-      if (after) after();
-      await loadNewsletters();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setActionLoading(null);
-    }
-  };
+   const runAction = async (action: string, payload: Record<string, any>, successMsg: string, after?: () => void) => {
+     setActionLoading(action);
+     try {
+       const data = await invokeNewsletter(action, { newsletterId: selectedNewsletter?.id, ...payload });
+       toast.success(successMsg);
+       if (after) after();
+       await loadNewsletters();
+       return data;
+     } catch (err: any) {
+       toast.error(err.message);
+       return null;
+     } finally {
+       setActionLoading(null);
+     }
+   };
+ 
+   const copyInviteLink = async () => {
+     if (!selectedNewsletter) return;
+     setActionLoading("copy-link");
+     try {
+       const data = await invokeNewsletter("newsletter-metadata", { newsletterId: selectedNewsletter.id });
+       const link = data?.inviteLink || data?.invitationLink || data?.link;
+       if (link) {
+         navigator.clipboard.writeText(link);
+         toast.success("Link copiado!");
+       } else {
+         toast.error("Link de convite não encontrado para este canal.");
+       }
+     } catch (err: any) {
+       toast.error(err.message);
+     } finally {
+       setActionLoading(null);
+     }
+   };
 
   return (
     <div className="space-y-6">
@@ -337,12 +359,16 @@ export default function CanaisTab() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
-                        {actionLoading === "metadata" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5 mr-1" />}
-                        Metadados
-                      </Button>
-                    </div>
+                     <div className="flex gap-2">
+                       <Button variant="outline" size="sm" onClick={copyInviteLink} disabled={actionLoading === "copy-link"}>
+                         {actionLoading === "copy-link" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+                         Copiar Link
+                       </Button>
+                       <Button variant="outline" size="sm" onClick={handleGetMetadata} disabled={actionLoading === "metadata"}>
+                         {actionLoading === "metadata" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5 mr-1" />}
+                         Metadados
+                       </Button>
+                     </div>
                   </div>
 
                   <Tabs defaultValue="settings">
@@ -422,14 +448,26 @@ export default function CanaisTab() {
                             <Button size="sm" variant="destructive" onClick={() => runAction("transfer-newsletter-ownership", { phone: transferPhone }, "Propriedade transferida")} disabled={actionLoading === "transfer-newsletter-ownership"}><UserPlus className="w-4 h-4 mr-2" /> Transferir</Button>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Administração</Label>
-                          <div className="flex gap-2">
-                            <Input placeholder="Telefone do Admin" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
-                            <Button size="sm" variant="outline" onClick={() => runAction("newsletter-remove-admin", { phone: adminPhone }, "Admin removido")} disabled={actionLoading === "newsletter-remove-admin"}><UserMinus className="w-4 h-4 mr-2" /> Remover Admin</Button>
-                          </div>
-                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => runAction("accept-newsletter-admin-invite", {}, "Convite aceito")} disabled={actionLoading === "accept-newsletter-admin-invite"}><UserCheck className="w-4 h-4 mr-2" /> Aceitar Convite de Admin</Button>
-                        </div>
+                         <div className="space-y-2">
+                           <Label>Administração</Label>
+                           <div className="space-y-4">
+                             <div className="flex gap-2">
+                               <Input placeholder="Telefone para Adicionar" value={addAdminPhone} onChange={(e) => setAddAdminPhone(e.target.value)} />
+                               <Button size="sm" variant="default" onClick={() => runAction("newsletter-add-admin", { phone: addAdminPhone }, "Administrador convidado", () => setAddAdminPhone(""))} disabled={actionLoading === "newsletter-add-admin"}>
+                                 <UserPlus className="w-4 h-4 mr-2" /> Adicionar
+                               </Button>
+                             </div>
+                             <div className="flex gap-2">
+                               <Input placeholder="Telefone para Remover" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
+                               <Button size="sm" variant="outline" onClick={() => runAction("newsletter-remove-admin", { phone: adminPhone }, "Admin removido", () => setAdminPhone(""))} disabled={actionLoading === "newsletter-remove-admin"}>
+                                 <UserMinus className="w-4 h-4 mr-2" /> Remover
+                               </Button>
+                             </div>
+                             <Button size="sm" variant="outline" className="w-full" onClick={() => runAction("accept-newsletter-admin-invite", {}, "Convite aceito")} disabled={actionLoading === "accept-newsletter-admin-invite"}>
+                               <UserCheck className="w-4 h-4 mr-2" /> Aceitar Convite de Admin
+                             </Button>
+                           </div>
+                         </div>
                       </div>
                     </TabsContent>
                   </Tabs>
