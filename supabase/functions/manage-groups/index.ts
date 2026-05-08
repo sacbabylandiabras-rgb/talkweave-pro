@@ -162,8 +162,22 @@ Deno.serve(async (req) => {
         let method: "GET" | "POST" = "GET";
 
          if (isCommunity || String(groupId).includes("@lid")) {
-           const cleanId = String(groupId).replace("-group", "");
-           path = `/communities/${encodeURIComponent(cleanId)}/invitation-link`;
+           // Z-API só expõe POST /redefine-invitation-link/{communityId} para comunidades
+           const cleanId = String(groupId).replace("-group", "").replace("@lid", "").replace("@g.us", "");
+           const resp = await fetch(`${baseUrl}/redefine-invitation-link/${encodeURIComponent(cleanId)}`, {
+             method: "POST",
+             headers,
+           });
+           const respData = await resp.json().catch(() => ({}));
+           console.log("✅ Community invite link result:", JSON.stringify(respData));
+           const link = respData?.invitationLink || respData?.invitation_link || respData?.link;
+           return new Response(
+             JSON.stringify(link ? { link, invitationLink: link } : respData),
+             {
+               status: resp.ok ? 200 : resp.status,
+               headers: { ...corsHeaders, "Content-Type": "application/json" },
+             }
+           );
          } else if (isChannel || String(groupId).includes("@newsletter")) {
           // Para canais, tentamos buscar nos chats ou metadados
           const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
