@@ -507,6 +507,26 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       return items;
     };
 
+    const metadataCache = new Map<string, Promise<any | null>>();
+    const fetchZapiGroupMetadata = (groupId: string): Promise<any | null> => {
+      if (!metadataCache.has(groupId)) {
+        metadataCache.set(groupId, (async () => {
+          const candidates = [groupId, groupId.replace(/-group$/i, '@g.us')];
+          for (const candidate of Array.from(new Set(candidates))) {
+            try {
+              const res = await fetch(`${baseUrl}/group-metadata/${candidate}`, { method: 'GET', headers });
+              if (!res.ok) continue;
+              return await res.json().catch(() => null);
+            } catch (_) {
+              continue;
+            }
+          }
+          return null;
+        })());
+      }
+      return metadataCache.get(groupId)!;
+    };
+
     const rawItems = [
       ...await fetchPaginated('chats'),
       ...await fetchPaginated('groups'),
