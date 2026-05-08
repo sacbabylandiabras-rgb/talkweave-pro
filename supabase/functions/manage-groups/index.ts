@@ -77,7 +77,10 @@ Deno.serve(async (req) => {
       case "update-group-name": {
         const { groupId, groupName } = body;
         if (!groupId || !groupName) throw new Error("groupId and groupName are required");
-        const cleanId = groupId.replace("-group", "@g.us");
+        let cleanId = groupId;
+        if (!groupId.includes('@newsletter') && !groupId.includes('-community')) {
+          cleanId = groupId.replace("-group", "@g.us");
+        }
         const response = await fetch(`${baseUrl}/update-group-name`, {
           method: "POST",
           headers,
@@ -110,7 +113,10 @@ Deno.serve(async (req) => {
       case "update-group-photo": {
         const { groupId, imageUrl } = body;
         if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
-        const cleanId = groupId.replace("-group", "@g.us");
+        let cleanId = groupId;
+        if (!groupId.includes('@newsletter') && !groupId.includes('-community')) {
+          cleanId = groupId.replace("-group", "@g.us");
+        }
         console.log("📷 update-group-photo groupId:", groupId, "-> cleanId:", cleanId, "imageUrl:", imageUrl);
         const response = await fetch(`${baseUrl}/update-group-photo`, {
           method: "POST",
