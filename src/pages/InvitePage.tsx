@@ -95,9 +95,9 @@ const InvitePage = () => {
   const bgColor = config.bgColor || "#f5f5f5";
   const buttonColor = config.buttonColor || "#25D366";
   const textColor = config.textColor || "#1f2937";
-  const title = config.title || data.name || data.group_name;
+  const title = config.title || data?.name || data?.group_name || "";
   const description = config.description || "";
-  const photo = config.photo || data.group_photo;
+  const photo = config.photo || data?.group_photo || null;
 
   return (
     <div
