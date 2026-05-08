@@ -1740,15 +1740,27 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
           
            let path = "";
            if (isCommunity || String(group.id).includes("@lid")) {
-             path = `/communities/${encodeURIComponent(group.id.replace("-group", ""))}/invitation-link`;
+             const cid = group.id.replace("-group", "").replace("@lid", "").replace("@g.us", "");
+             // Z-API expõe somente POST /redefine-invitation-link/{communityId}
+             const r = await fetch(`${baseUrl}/redefine-invitation-link/${encodeURIComponent(cid)}`, {
+               method: "POST",
+               headers,
+             });
+             if (r.ok) {
+               const dd = await r.json().catch(() => ({}));
+               data = { ...data, ...dd };
+             }
+             path = "";
            } else {
              path = `/group-invitation-link/${group.id.includes("-group") ? group.id : group.id.replace("@g.us", "-group")}`;
            }
-          
-          const res = await fetch(`${baseUrl}${path}`, { headers });
-          if (res.ok) {
-            const directData = await res.json();
-            data = { ...data, ...directData };
+
+          if (path) {
+            const res = await fetch(`${baseUrl}${path}`, { headers });
+            if (res.ok) {
+              const directData = await res.json();
+              data = { ...data, ...directData };
+            }
           }
         } catch (err: any) {
           console.error("Direct Z-API invite link call failed:", err);
