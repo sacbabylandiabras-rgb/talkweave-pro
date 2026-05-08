@@ -1351,7 +1351,7 @@ serve(async (req) => {
                       const { data: tpl } = await supabase
                         .from("message_templates")
                         .select(
-                          "content, media_url, type, buttons, header, footer, name",
+                          "content, media_url, type, buttons, header, footer, name, carousel_cards",
                         )
                         .eq("id", redirectLink.welcome_template_id)
                         .maybeSingle();
@@ -1365,7 +1365,20 @@ serve(async (req) => {
                           .replace(/\{\{telefone\}\}/gi, joinedPhone)
                           .replace(/\{\{grupo\}\}/gi, groupName);
 
-                        if (
+                        const normalizedTplType = String(tpl.type || "").toLowerCase();
+                        const hasCarouselCards = Array.isArray(tpl.carousel_cards) && tpl.carousel_cards.length > 0;
+
+                        if ((normalizedTplType === "carousel" || normalizedTplType === "carrossel") && hasCarouselCards) {
+                          await fetch(`${rlBaseUrl}/send-carousel`, {
+                            method: "POST",
+                            headers: rlHeaders,
+                            body: JSON.stringify({
+                              phone: joinedPhone,
+                              message: tplMsg,
+                              carousel: tpl.carousel_cards,
+                            }),
+                          });
+                        } else if (
                           tpl.media_url &&
                           (tpl.type === "imagem" || tpl.type === "image")
                         ) {
