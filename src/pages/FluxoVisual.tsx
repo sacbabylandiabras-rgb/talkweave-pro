@@ -907,15 +907,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       // Round-robin counter for instance rotation
       let sendCounter = 0;
 
-      for (const contact of selectedContacts) {
-        if (cancelSendRef.current) break;
-        const visitedNodes = new Set<string>();
-        const currentInstanceId = instanceIds && instanceIds.length > 0
-          ? instanceIds[sendCounter % instanceIds.length]
-          : undefined;
-        await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
-        sendCounter++;
-      }
+       const sendPromises = selectedContacts.map(async (contact, index) => {
+         if (cancelSendRef.current) return;
+         
+         // Staggered start delay (500ms between each contact)
+         if (index > 0) {
+           await new Promise(resolve => setTimeout(resolve, index * 500));
+         }
+         
+         if (cancelSendRef.current) return;
+ 
+         const visitedNodes = new Set<string>();
+         const currentInstanceId = instanceIds && instanceIds.length > 0
+           ? instanceIds[index % instanceIds.length]
+           : undefined;
+ 
+         try {
+           await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
+           sendCounter++;
+         } catch (err) {
+           console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
+         }
+       });
+ 
+       await Promise.all(sendPromises);
 
       if (cancelSendRef.current) {
         toast.info("Envio cancelado", {
@@ -1336,16 +1351,38 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         }
       }
 
-      // Bloco de ação: aplica delay antes de continuar o fluxo
-      if (targetNode.type === "blocoAcao") {
-        const actionType = targetNode.data.actionType;
-        if (actionType === "delay") {
-          const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
-          if (seconds > 0) {
-            await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-          }
-        }
-      }
+       // Bloco de ação ou agendamento: aplica delay/agendamento antes de continuar o fluxo
+       if (targetNode.type === "blocoAcao" || targetNode.type === "blocoAgendamento") {
+         const actionType = targetNode.data.actionType;
+         const scheduleType = targetNode.data.scheduleType || "once";
+         const scheduledAt = targetNode.data.scheduledAt;
+ 
+         if (targetNode.type === "blocoAcao" && actionType === "delay") {
+           const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+           if (seconds > 0) {
+             await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+           }
+         } else if (
+           (targetNode.type === "blocoAcao" && actionType === "schedule") ||
+           targetNode.type === "blocoAgendamento"
+         ) {
+           if (scheduledAt) {
+             const targetDate = new Date(scheduledAt);
+             const now = new Date();
+             const diffMs = targetDate.getTime() - now.getTime();
+             
+             if (diffMs > 0) {
+               // Only wait if it's within a reasonable limit (e.g., 2 hours) for client-side
+               // For longer ones, it might fail if tab is closed, but at least it follows the logic.
+               const maxWait = 2 * 60 * 60 * 1000; 
+               const waitTime = Math.min(diffMs, maxWait);
+               
+               console.log(`[FluxoVisual] Waiting until ${targetDate.toLocaleString()} (${waitTime}ms)`);
+               await new Promise((resolve) => setTimeout(resolve, waitTime));
+             }
+           }
+         }
+       }
 
       await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId, flowIdForPending);
     }
@@ -2949,30 +2986,55 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </Select>
                 </div>
 
-                {selectedNode.data.actionType === "delay" ? (
-                  <div>
-                    <Label>Tempo do Delay (segundos)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={selectedNode.data.delaySeconds ?? selectedNode.data.actionConfig ?? ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { 
-                            ...selectedNode.data, 
-                            delaySeconds: e.target.value,
-                            actionConfig: e.target.value 
-                          },
-                        })
-                      }
-                      placeholder="Ex: 5"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      O fluxo aguardará este tempo antes de prosseguir para o próximo bloco.
-                    </p>
-                  </div>
-                ) : (
+                 {selectedNode.data.actionType === "delay" && (
+                   <div>
+                     <Label>Tempo do Delay (segundos)</Label>
+                     <Input
+                       type="number"
+                       min="1"
+                       value={selectedNode.data.delaySeconds ?? selectedNode.data.actionConfig ?? ""}
+                       onChange={(e) =>
+                         setSelectedNode({
+                           ...selectedNode,
+                           data: { 
+                             ...selectedNode.data, 
+                             delaySeconds: e.target.value,
+                             actionConfig: e.target.value 
+                           },
+                         })
+                       }
+                       placeholder="Ex: 5"
+                     />
+                     <p className="text-[11px] text-muted-foreground mt-1">
+                       O fluxo aguardará este tempo antes de prosseguir para o próximo bloco.
+                     </p>
+                   </div>
+                 )}
+ 
+                 {selectedNode.data.actionType === "schedule" && (
+                   <div>
+                     <Label>Data e Hora do Agendamento</Label>
+                     <Input
+                       type="datetime-local"
+                       value={selectedNode.data.scheduledAt || selectedNode.data.actionConfig || ""}
+                       onChange={(e) =>
+                         setSelectedNode({
+                           ...selectedNode,
+                           data: { 
+                             ...selectedNode.data, 
+                             scheduledAt: e.target.value,
+                             actionConfig: e.target.value 
+                           },
+                         })
+                       }
+                     />
+                     <p className="text-[11px] text-muted-foreground mt-1">
+                       O fluxo aguardará até esta data/hora antes de prosseguir.
+                     </p>
+                   </div>
+                 )}
+ 
+                 {["tag", "variable", "webhook"].includes(selectedNode.data.actionType || "tag") && (
                   <div>
                     <Label>Configuração da Ação</Label>
                     <Input

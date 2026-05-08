@@ -4108,6 +4108,14 @@ async function sendNodeContent(
     return payload;
   };
 
+   // Handle delay before sending content
+   const delaySeconds = Number(targetNode.data.delaySeconds || 0);
+   if (delaySeconds > 0) {
+     const safeDelay = Math.min(delaySeconds, 50); // Limit to 50s for backend
+     console.log(`[webhook-zapi] Bloco de conteúdo com delay de ${safeDelay}s`);
+     await new Promise(resolve => setTimeout(resolve, safeDelay * 1000));
+   }
+ 
   const contentType = targetNode.data.contentType || "text";
   const isMediaContentType = ["image", "video", "audio", "document", "sticker", "gif"].includes(
     contentType,
@@ -5511,18 +5519,32 @@ async function processFlowNode(
       if (shouldStop) continue;
     }
 
-    await processFlowNode(
-      targetNode.id,
-      nodes,
-      edges,
-      phone,
-      zapiConfig,
-      supabase,
-      visited,
-      userId,
-      flowName,
-      options,
-    );
+     // Bloco de ação: aplica delay antes de continuar o fluxo no backend
+     if (targetNode.type === "blocoAcao") {
+       const actionType = targetNode.data.actionType;
+       if (actionType === "delay") {
+         const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+         if (seconds > 0) {
+           // No backend, limitamos o delay para evitar timeouts (máx 50s)
+           const safeSeconds = Math.min(seconds, 50);
+           console.log(`[webhook-zapi] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`);
+           await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000));
+         }
+       }
+     }
+ 
+     await processFlowNode(
+       targetNode.id,
+       nodes,
+       edges,
+       phone,
+       zapiConfig,
+       supabase,
+       visited,
+       userId,
+       flowName,
+       options,
+     );
   }
 }
 
