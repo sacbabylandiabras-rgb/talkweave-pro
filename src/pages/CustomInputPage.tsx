@@ -557,7 +557,7 @@ import { useNavigate } from "react-router-dom";
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">CPA</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-white">{stats.cpa.toFixed(2).replace('.', ',')}</span>
-                  <span className="text-[11px] text-slate-600 font-medium">venda / msg</span>
+                  <span className="text-[11px] text-slate-600 font-medium">msg / venda</span>
                 </div>
               </div>
             </div>
