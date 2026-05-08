@@ -1594,9 +1594,9 @@ serve(async (req) => {
                         const flowPayload = {
                           instanceId: gmInstData.zapi_instance_id || "",
                           phone: groupChatId,
-                          message: {
-                            text: { message: "__manual_flow_trigger__" },
-                          },
+                           message: { text: "__manual_flow_trigger__" },
+                           flowId: redirectLink.group_message_flow_id,
+                           __manual_flow_trigger__: true,
                           senderName: joinedName || "",
                           momment: "received",
                           isGroup: true,
