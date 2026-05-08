@@ -503,6 +503,34 @@ Deno.serve(async (req) => {
 
     // If all groups are full, auto-create a new one
     if (!targetGroup && groupsList.length > 0) {
+      // 🔒 Anti-duplicação: evita criar vários grupos quando muitas pessoas
+      // clicam no link rotativo ao mesmo tempo.
+      const recentCutoff = new Date(Date.now() - 90_000).toISOString();
+      const { data: recentGroup } = await client
+        .from("redirect_link_groups")
+        .select("id, invite_link, group_name, group_photo")
+        .eq("redirect_link_id", link.id)
+        .gte("created_at", recentCutoff)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentGroup?.invite_link) {
+        console.log(
+          `⏭️ Reusing recently created group "${recentGroup.group_name}" instead of creating a new one.`,
+        );
+        return new Response(JSON.stringify({
+          name: link.name,
+          slug: link.slug,
+          group_name: recentGroup.group_name,
+          group_photo: recentGroup.group_photo,
+          invite_link: recentGroup.invite_link,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const templateGroup = groupsList[groupsList.length - 1];
       const instance = await getInstanceForGroup(templateGroup);
 
