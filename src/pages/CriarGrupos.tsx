@@ -1849,7 +1849,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
           : (data?.participants?.length || 0);
         const updates: any = {
           current_members: isChannel ? Math.max(count, g.current_members || 0) : count,
-          is_full: isChannel ? false : count >= link.max_members_per_group,
+          is_full: count >= link.max_members_per_group,
         };
         
         // Update photo from WhatsApp groups list
@@ -2054,7 +2054,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
                     const whatsGroup = groups.find((wg) => wg.id === g.group_id);
                     const isChannel = String(g.group_id).includes("@newsletter") || Boolean((whatsGroup as any)?.isChannel);
                     const displayMembers = isChannel ? (g.current_members || whatsGroup?.membros || 0) : g.current_members;
-                    const displayFull = isChannel ? false : g.is_full;
+                    const displayFull = g.is_full;
                     return (
                     <div key={g.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border">
                       <div className="flex items-center gap-2">
