@@ -455,6 +455,21 @@ const normalizeZapiGroupId = (value: unknown): string => {
   return digits.length >= 12 ? `${digits}-group` : raw;
 };
 
+ const getNewsletterName = async (instance: ZapiInstance, newsletterId: string): Promise<string | null> => {
+   try {
+     const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+     const res = await fetch(`${baseUrl}/newsletter/${newsletterId}`, {
+       method: 'GET',
+       headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token || '' },
+     });
+     const data = await res.json().catch(() => null);
+     return data?.name || data?.subject || data?.newsletterName || data?.newsletterTitle || null;
+   } catch (e) {
+     console.error(`⚠️ Failed to fetch newsletter name for ${newsletterId}:`, e);
+     return null;
+   }
+ };
+
  const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
    if (!instance.zapi_instance_id || !instance.zapi_token || !instance.zapi_client_token) return [];
  
@@ -509,7 +524,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
     console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
  
    // Filter and map to unified format
-   const results = chats.map((chat: any) => {
+    const resultsArray = await Promise.all(chats.map(async (chat: any) => {
       const id = normalizeZapiGroupId(chat.id || chat.phone || chat.groupId || chat.groupJid || chat.groupjid || chat.jid || chat.chatId);
      if (!id) return null;
  
@@ -541,7 +556,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
        ...chat,
        id,
        phone: id,
-        name: resolvedName || 'Sem nome',
+        name: (isChannel && !resolvedName) ? (await getNewsletterName(instance, id) || 'Canal sem nome') : (resolvedName || 'Sem nome'),
         isAdmin,
        isChannel,
        isCommunity,
@@ -551,7 +566,9 @@ const normalizeZapiGroupId = (value: unknown): string => {
        __sourceInstanceName: instance.instance_name,
        __sourceInstanceId: instance.zapi_instance_id,
      };
-   }).filter(Boolean);
+    }));
+    
+    const results = resultsArray.filter(Boolean);
  
     console.log(`✅ Z-API found ${results.length} valid groups/channels for ${instance.instance_name}`);
    return results;
