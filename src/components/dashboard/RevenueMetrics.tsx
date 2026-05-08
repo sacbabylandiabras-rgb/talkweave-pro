@@ -120,11 +120,11 @@ export function RevenueMetrics({ dateFrom, dateTo }: RevenueMetricsProps = {}) {
     );
   }
 
-  const ratio = msgPerSale.messages > 0
-    ? (msgPerSale.sales / msgPerSale.messages)
+  const ratio = msgPerSale.sales > 0
+    ? (msgPerSale.messages / msgPerSale.sales)
     : null;
   const ratioLabel = ratio !== null
-    ? `${ratio.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} venda/msg`
+    ? `${ratio.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} msg/venda`
     : "—";
 
   return (
