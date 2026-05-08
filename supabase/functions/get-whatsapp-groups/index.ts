@@ -513,10 +513,14 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
         metadataCache.set(groupId, (async () => {
           const candidates = [groupId, groupId.replace(/-group$/i, '@g.us')];
           for (const candidate of Array.from(new Set(candidates))) {
+            const paths = [`/group-metadata/${candidate}`, `/metadata-group/${candidate}`, `/light-group-metadata/${candidate}`];
             try {
-              const res = await fetch(`${baseUrl}/group-metadata/${candidate}`, { method: 'GET', headers });
-              if (!res.ok) continue;
-              return await res.json().catch(() => null);
+              for (const path of paths) {
+                const res = await fetch(`${baseUrl}${path}`, { method: 'GET', headers });
+                if (!res.ok) continue;
+                const payload = await res.json().catch(() => null);
+                if (payload) return payload;
+              }
             } catch (_) {
               continue;
             }
