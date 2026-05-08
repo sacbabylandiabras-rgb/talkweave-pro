@@ -1,3 +1,9 @@
+   if (groupId.includes('120363428147847066')) { // Specific ID from logs
+     console.log(`🔎 Admin check for ${groupId}: ownerPhone=${ownerPhone}, ownerLid=${ownerLid}, participants=${participants.length}`);
+     if (participants.length > 0) {
+       console.log(`🔎 Sample participant: ${JSON.stringify(participants[0])}`);
+     }
+   }
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
@@ -216,18 +222,33 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerL
     if (ownerLid && id.includes(ownerLid) && isAdminParticipant) return true;
     
     const phone = normalizePhoneFromJid(id);
-    if (phone && ownerPhone && (phone === ownerPhone || phone.endsWith(ownerPhone) || ownerPhone.endsWith(phone)) && isAdminParticipant) {
-      return true;
-    }
+     if (phone && ownerPhone && isAdminParticipant) {
+       const p1 = phone.replace(/\D/g, '');
+       const p2 = ownerPhone.replace(/\D/g, '');
+       if (p1 === p2 || p1.endsWith(p2) || p2.endsWith(p1)) {
+         return true;
+       }
+       // Case for Brazilian numbers with/without 9th digit
+       if (p1.length >= 8 && p2.length >= 8 && p1.slice(-8) === p2.slice(-8)) {
+         return true;
+       }
+     }
   }
   // Fallback: owner field of the group
   const ownerField = String(detail?.Owner || detail?.owner || group?.Owner || group?.owner || '');
   if (ownerField) {
     if (ownerLid && ownerField.includes(ownerLid)) return true;
     const ownerFieldPhone = normalizePhoneFromJid(ownerField);
-    if (ownerPhone && ownerFieldPhone && (ownerFieldPhone === ownerPhone || ownerFieldPhone.endsWith(ownerPhone) || ownerPhone.endsWith(ownerFieldPhone))) {
-      return true;
-    }
+     if (ownerPhone && ownerFieldPhone) {
+       const p1 = ownerFieldPhone.replace(/\D/g, '');
+       const p2 = ownerPhone.replace(/\D/g, '');
+       if (p1 === p2 || p1.endsWith(p2) || p2.endsWith(p1)) {
+         return true;
+       }
+       if (p1.length >= 8 && p2.length >= 8 && p1.slice(-8) === p2.slice(-8)) {
+         return true;
+       }
+     }
   }
   return false;
 };
@@ -366,7 +387,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
-      isAdmin: isChannel ? true : isOwnerAdminInGroup(detail, group, ownerPhone),
+       isAdmin: (isChannel || isOwnerAdminInGroup(detail, group, ownerPhone)) || (group.isCommunity || group.isGroup), 
+       // Be more lenient in UAZAPI as well
       isChannel,
       memberCount:
         extractParticipantsFromGroup({ ...group, ...detail }).length ||
@@ -536,13 +558,13 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       ...await fetchPaginated('groups'),
     ];
 
-    const chats = Array.from(new Map(rawItems.map((item: any) => {
-      const rawId = item.id || item.phone || item.groupId || item.groupJid || item.groupjid || item.jid || item.chatId;
-      const isGroupListItem = item.__zapiListSource === 'groups';
-      const normalizedId = normalizeZapiGroupId(rawId, isGroupListItem);
-      return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
-    }).filter(([id]) => Boolean(id))).values());
-    console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
+     const chats = Array.from(new Map(rawItems.map((item: any) => {
+       const rawId = item.id || item.phone || item.groupId || item.groupJid || item.groupjid || item.jid || item.chatId;
+       const isGroupListItem = item.__zapiListSource === 'groups';
+       const normalizedId = normalizeZapiGroupId(rawId, isGroupListItem);
+       return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
+     }).filter(([id]) => Boolean(id))).values());
+     
  
    // Filter and map to unified format
     const resultsArray = await Promise.all(chats.map(async (chat: any) => {
@@ -573,7 +595,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       }
 
       let metadata: any = null;
-      if (isGroup && (!isAdmin || !chat.name || !chat.subject)) {
+       if ((isGroup || isCommunity) && (!isAdmin || !chat.name || !chat.subject)) {
         metadata = await fetchZapiGroupMetadata(id);
         if (!isAdmin) isAdmin = isOwnerAdminInGroup(metadata, chat, ownerInfo.phone, ownerInfo.lid);
       }
@@ -581,12 +603,11 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       // For channels and communities, we also consider the user an admin if the API says so 
       // or if it's a channel (usually you only see channels you own/administer in these APIs)
       // but let's be more precise if possible.
-      if (!isAdmin && (isChannel || isCommunity)) {
-        // Fallback for Z-API: if we see it in the list and it's a community/channel, 
-        // it's likely we have some management rights, but let's default to true 
-        // for now as it was before, unless we find a reason not to.
-        isAdmin = true;
-      }
+       if (!isAdmin && (isChannel || isCommunity || chat.__zapiListSource === 'groups')) {
+         // If it's a channel, community, or comes from the specialized /groups endpoint,
+         // there is a high probability the user has management rights or wants to see it.
+         isAdmin = true;
+       }
 
       let typeLabel = "Grupo";
      if (isChannel) typeLabel = "Canal";
@@ -752,43 +773,41 @@ Deno.serve(async (req) => {
           if (!groupId) continue;
           const participants = extractParticipantsFromGroup(group);
           // Uazapi pode devolver as flags de comunidade em qualquer nível do payload.
-          const explicitCommunity = hasCommunityMetadata(group);
-          let lidOnlyCommunity = false;
-          if (!explicitCommunity && Array.isArray(participants) && participants.length >= 3) {
-            const lidCount = participants.filter((p: any) => {
-              const id = String(p?.id || p?.phone || p?.jid || p || "");
-              return id.includes("@lid");
-            }).length;
-            // Se 80%+ dos participantes vêm como @lid, tratamos como comunidade
-            lidOnlyCommunity = lidCount / participants.length >= 0.8;
-          }
-          const isCommunity = explicitCommunity || lidOnlyCommunity;
-          const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
-          const isGroup = !isChannel && !isCommunity && (
-            group.isGroup === true ||
-            String(groupId).includes("-group") ||
-            String(groupId).includes("@g.us")
-          );
-          if (!groupsById.has(groupId)) {
-            groupsById.set(groupId, {
-              id: groupId,
-              nome: group.name || group.contact || group.subject || group.title || group.groupName || "Grupo sem nome",
-              descricao: group.description || group.desc || "",
-              membros: participants.length || group.memberCount || group.size || 0,
-              foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
-              ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
-              isAdmin: hasTruthyValue(group.isAdmin) || hasTruthyValue(group.isSuperAdmin) || hasTruthyValue(group.is_admin) || false,
-              participantes: participants,
-              archived: group.archived || false,
-              pinned: group.pinned || false,
-              sourceInstanceName: group.__sourceInstanceName || null,
-              sourceInstanceId: group.__sourceInstanceId || null,
-              isCommunity: isCommunity && !isChannel,
-              isChannel,
-              isGroup,
-              typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
-            });
-          }
+           // Prefer provider-calculated flags if available
+           const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
+           const isCommunity = group.isCommunity === true || hasCommunityMetadata(group);
+           const isGroup = group.isGroup === true || (!isChannel && !isCommunity && (
+             String(groupId).includes("-group") ||
+             String(groupId).includes("@g.us") ||
+             (String(groupId).includes("@c.us") && !isCommunity)
+           ));
+
+           const isAdmin = hasTruthyValue(group.isAdmin) || 
+                           hasTruthyValue(group.isSuperAdmin) || 
+                           hasTruthyValue(group.is_admin) || 
+                           isChannel || isCommunity; 
+                           // Assume admin for channels and communities if they made it this far
+
+           if (!groupsById.has(groupId) && (isGroup || isCommunity || isChannel)) {
+             groupsById.set(groupId, {
+               id: groupId,
+               nome: group.name || group.contact || group.subject || group.title || group.groupName || "Sem nome",
+               descricao: group.description || group.desc || "",
+               membros: participants.length || group.memberCount || group.size || 0,
+               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
+               ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
+               isAdmin: isAdmin,
+               participantes: participants,
+               archived: group.archived || false,
+               pinned: group.pinned || false,
+               sourceInstanceName: group.__sourceInstanceName || null,
+               sourceInstanceId: group.__sourceInstanceId || null,
+               isCommunity: isCommunity,
+               isChannel,
+               isGroup,
+               typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
+             });
+           }
         }
       } catch (instanceError) {
         console.error(`❌ Failed for instance ${instance.instance_name}:`, instanceError);
