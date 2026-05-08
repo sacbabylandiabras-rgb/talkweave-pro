@@ -73,8 +73,8 @@ const CriarGrupos = () => {
 };
 
 /* ============= TAB: Gerenciar Grupo ============= */
- function GerenciarGrupoTab() {
-
+  function GerenciarGrupoTab() {
+    const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
     const groups = allGroups.filter((g) => {
       const id = String(g.id || "");
       const isManageableType =
