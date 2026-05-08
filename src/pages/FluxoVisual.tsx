@@ -2986,30 +2986,55 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </Select>
                 </div>
 
-                {selectedNode.data.actionType === "delay" ? (
-                  <div>
-                    <Label>Tempo do Delay (segundos)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={selectedNode.data.delaySeconds ?? selectedNode.data.actionConfig ?? ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { 
-                            ...selectedNode.data, 
-                            delaySeconds: e.target.value,
-                            actionConfig: e.target.value 
-                          },
-                        })
-                      }
-                      placeholder="Ex: 5"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      O fluxo aguardará este tempo antes de prosseguir para o próximo bloco.
-                    </p>
-                  </div>
-                ) : (
+                 {selectedNode.data.actionType === "delay" && (
+                   <div>
+                     <Label>Tempo do Delay (segundos)</Label>
+                     <Input
+                       type="number"
+                       min="1"
+                       value={selectedNode.data.delaySeconds ?? selectedNode.data.actionConfig ?? ""}
+                       onChange={(e) =>
+                         setSelectedNode({
+                           ...selectedNode,
+                           data: { 
+                             ...selectedNode.data, 
+                             delaySeconds: e.target.value,
+                             actionConfig: e.target.value 
+                           },
+                         })
+                       }
+                       placeholder="Ex: 5"
+                     />
+                     <p className="text-[11px] text-muted-foreground mt-1">
+                       O fluxo aguardará este tempo antes de prosseguir para o próximo bloco.
+                     </p>
+                   </div>
+                 )}
+ 
+                 {selectedNode.data.actionType === "schedule" && (
+                   <div>
+                     <Label>Data e Hora do Agendamento</Label>
+                     <Input
+                       type="datetime-local"
+                       value={selectedNode.data.scheduledAt || selectedNode.data.actionConfig || ""}
+                       onChange={(e) =>
+                         setSelectedNode({
+                           ...selectedNode,
+                           data: { 
+                             ...selectedNode.data, 
+                             scheduledAt: e.target.value,
+                             actionConfig: e.target.value 
+                           },
+                         })
+                       }
+                     />
+                     <p className="text-[11px] text-muted-foreground mt-1">
+                       O fluxo aguardará até esta data/hora antes de prosseguir.
+                     </p>
+                   </div>
+                 )}
+ 
+                 {["tag", "variable", "webhook"].includes(selectedNode.data.actionType || "tag") && (
                   <div>
                     <Label>Configuração da Ação</Label>
                     <Input
