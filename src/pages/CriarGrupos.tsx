@@ -2048,13 +2048,13 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
                             <div className="flex items-center gap-2">
-                              {(g as any).isCommunity && <Building2 className="w-4 h-4 text-blue-500" />}
-                              {(g as any).isChannel && <Smartphone className="w-4 h-4 text-purple-500" />}
-                              {!((g as any).isCommunity || (g as any).isChannel) && <Users className="w-4 h-4 text-green-500" />}
+                              {g.isCommunity && <Building2 className="w-4 h-4 text-blue-500" />}
+                              {g.isChannel && <Smartphone className="w-4 h-4 text-purple-500" />}
+                              {!(g.isCommunity || g.isChannel) && <Users className="w-4 h-4 text-green-500" />}
                               <div className="flex flex-col">
                                 <span className="text-sm font-medium">{g.nome}</span>
                                 <span className="text-[10px] text-muted-foreground">
-                                  {(g as any).isCommunity ? "Comunidade" : (g as any).isChannel ? "Canal" : "Grupo"}
+                                  {g.isCommunity ? "Comunidade" : g.isChannel ? "Canal" : "Grupo"}
                                 </span>
                               </div>
                             </div>

@@ -464,7 +464,7 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
   const rawCommunities = getList(communitiesPayload);
   const rawChannels = getList(chatsPayload).filter((c: any) => {
     const id = String(c.id || c.phone || c.jid || "");
-    return id.includes("@newsletter");
+    return id.includes("@newsletter") || id.includes("@newsletter");
   });
 
   // Combine them, marking communities and channels
@@ -474,7 +474,7 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
     ...rawChannels.map((c: any) => ({ ...c, __isChannel: true })),
   ];
 
-  const detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+  const detailedGroups = await Promise.all(allRaw.map(async (group: any) => {
     const isComm = group.__isCommunity === true;
     const isChan = group.__isChannel === true;
     
