@@ -2653,9 +2653,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <Separator />
 
                 {/* Capturar Dados do Lead */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Capturar dados do lead</Label>
-                 <div className="rounded-lg border border-border/60 divide-y divide-border/60">
+                 <div className="space-y-4">
+                   {isGroupsMode && (
+                     <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                           <Users className="w-4 h-4 text-primary" />
+                           <Label className="text-sm font-semibold text-primary">Marcar Membros do Grupo</Label>
+                         </div>
+                         <Switch
+                           checked={selectedNode.data.mentionAll || false}
+                           onCheckedChange={(checked) =>
+                             setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, mentionAll: checked } })
+                           }
+                         />
+                       </div>
+                       <p className="text-[10px] text-muted-foreground leading-relaxed">
+                         Ative para mencionar automaticamente todos os participantes do grupo nesta mensagem. Ideal para avisos importantes.
+                       </p>
+                     </div>
+                   )}
+ 
+                   <div className="space-y-3">
+                     <Label className="text-sm font-semibold">Capturar dados do lead</Label>
+                    <div className="rounded-lg border border-border/60 divide-y divide-border/60">
 
                   {/* Nome */}
                   <div className="p-3 space-y-2">
