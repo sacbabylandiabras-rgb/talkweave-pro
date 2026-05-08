@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, X, Users, ExternalLink } from "lucide-react";
+import { X, Users, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InviteData {
   name: string;
@@ -76,17 +77,6 @@ const InvitePage = () => {
     );
   }
 
-  if (!data) {
-    return (
-      <div
-        style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
-        className="flex items-center justify-center px-4"
-      >
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#9ca3af" }} />
-      </div>
-    );
-  }
-
   const bgColor = config.bgColor || "#f5f5f5";
   const buttonColor = config.buttonColor || "#25D366";
   const textColor = config.textColor || "#1f2937";
@@ -100,7 +90,9 @@ const InvitePage = () => {
       className="flex items-center justify-center px-4"
     >
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full flex flex-col items-center gap-4">
-        {photo ? (
+        {!data ? (
+          <Skeleton className="w-24 h-24 rounded-full shadow-lg" />
+        ) : photo ? (
           <img src={photo} alt={title} className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg" />
         ) : (
           <div
@@ -110,19 +102,31 @@ const InvitePage = () => {
             <Users className="w-12 h-12 text-white" />
           </div>
         )}
-        <h1 className="text-xl font-bold text-center" style={{ color: textColor }}>{title}</h1>
-        {description && (
-          <p className="text-sm text-center" style={{ color: textColor, opacity: 0.75 }}>{description}</p>
+        
+        {!data ? (
+          <>
+            <Skeleton className="h-7 w-48 mb-1" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="w-full h-12 mt-2 rounded-xl" />
+          </>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold text-center" style={{ color: textColor }}>{title}</h1>
+            {description && (
+              <p className="text-sm text-center" style={{ color: textColor, opacity: 0.75 }}>{description}</p>
+            )}
+            <a
+              href={data.invite_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-white shadow-md transition-transform hover:scale-[1.02]"
+              style={{ backgroundColor: buttonColor }}
+            >
+              <ExternalLink className="w-4 h-4" /> Entrar no grupo
+            </a>
+          </>
         )}
-        <a
-          href={data.invite_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-white shadow-md transition-transform hover:scale-[1.02]"
-          style={{ backgroundColor: buttonColor }}
-        >
-          <ExternalLink className="w-4 h-4" /> Entrar no grupo
-        </a>
       </div>
     </div>
   );
