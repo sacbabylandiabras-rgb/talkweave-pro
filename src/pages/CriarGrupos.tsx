@@ -1842,8 +1842,11 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         const { data } = await supabase.functions.invoke("get-group-participants", {
           body: { groupId: g.group_id, sourceInstanceId: g.instance_id || null },
         });
-        const count = data?.participants?.length || 0;
         const whatsGroup = groups.find((wg) => wg.id === g.group_id);
+        const isChannel = String(g.group_id).includes("@newsletter") || Boolean((whatsGroup as any)?.isChannel);
+        const count = isChannel
+          ? Number(data?.memberCount ?? data?.subscriberCount ?? whatsGroup?.membros ?? g.current_members ?? 0)
+          : (data?.participants?.length || 0);
         const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
         
         // Update photo from WhatsApp groups list
