@@ -974,7 +974,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const targetNode = runtimeNodes.find(n => n.id === edge.target);
       if (!targetNode) continue;
 
-      if (targetNode.type === "blocoConteudo") {
+      if (targetNode.type === "blocoConteudo" || targetNode.type === "blocoInicial") {
         const delayMs = (targetNode.data.delaySeconds || 0) * 1000;
         if (delayMs > 0) {
           await new Promise(resolve => setTimeout(resolve, delayMs));
