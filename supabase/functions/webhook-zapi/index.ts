@@ -4258,11 +4258,16 @@ async function sendNodeContent(
       return parseProviderResponse(res, context);
     }
 
-    const res = await fetch(`${baseUrl}/send-text`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ phone, message }),
-    });
+     const payload: any = { phone, message };
+     if (targetNode.data?.mentionAll) {
+       payload.mentionAll = true;
+     }
+ 
+     const res = await fetch(`${baseUrl}/send-text`, {
+       method: "POST",
+       headers,
+       body: JSON.stringify(payload),
+     });
     return parseProviderResponse(res, context);
   };
 
