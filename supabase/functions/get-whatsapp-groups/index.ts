@@ -807,7 +807,6 @@ Deno.serve(async (req) => {
                isGroup,
                typeLabel: isChannel ? "Canal" : isCommunity ? "Comunidade" : "Grupo",
              });
-             console.log(`✅ Group added to result: ${groupId} (${group.name || group.subject}), type=${isChannel ? 'channel' : isCommunity ? 'community' : 'group'}, isAdmin=${isAdmin}`);
            }
         }
       } catch (instanceError) {
