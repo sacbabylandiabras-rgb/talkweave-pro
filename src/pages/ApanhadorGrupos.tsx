@@ -31,18 +31,18 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
+   const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
-  // Apenas instâncias uazapi devem aparecer nesta página
-  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
+   // Apenas instâncias Z-API devem aparecer nesta página
+   const zapiInstances = instances.filter((inst: any) => (inst.api_provider === 'zapi' || !inst.api_provider) && inst.is_active !== false);
   // Apenas instâncias que aparecem como fonte de algum grupo do apanhador
   const groupSourceInstanceIds = new Set(
     (groups || [])
       .map((g: any) => g.sourceInstanceId)
       .filter((id: any) => typeof id === 'string' && id.length > 0)
   );
-  const apanhadorInstances = uazapiInstances.filter((inst: any) =>
+   const apanhadorInstances = zapiInstances.filter((inst: any) =>
     groupSourceInstanceIds.size === 0 ? true : groupSourceInstanceIds.has(inst.id)
   );
   const [extracting, setExtracting] = useState<string | null>(null);
@@ -78,7 +78,7 @@ const ApanhadorGrupos = () => {
 
   const instanceLabelById = (id: string | null | undefined) => {
     if (!id) return 'desconhecida';
-    const inst = uazapiInstances.find((i: any) => i.id === id || i.zapi_instance_id === id);
+     const inst = zapiInstances.find((i: any) => i.id === id || i.zapi_instance_id === id);
     return inst?.instance_name || `instância ${String(id).slice(0, 8)}`;
   };
 
@@ -127,115 +127,6 @@ const ApanhadorGrupos = () => {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [logsOpen]);
 
-  // Conectar instância uazapi via QR Code
-  const [connectOpen, setConnectOpen] = useState(false);
-  const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
-  const [activeAccountIdx, setActiveAccountIdx] = useState(0);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [connStatus, setConnStatus] = useState<string>('disconnected');
-  const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
-  const [pairingPhone, setPairingPhone] = useState('');
-  const [disconnecting, setDisconnecting] = useState(false);
-
-  const disconnectActive = async () => {
-    const account = uazapiAccounts[activeAccountIdx];
-    if (!account) return;
-    if (!confirm(`Desconectar ${`Instância #${activeAccountIdx + 1}`}?`)) return;
-    setDisconnecting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('uazapi-disconnect', {
-        body: { apiUrl: account.url, apiToken: account.token },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success('Instância desconectada');
-      setConnStatus('disconnected');
-      setQrCode(null);
-      setPairingCode(null);
-      // tenta puxar um novo QR para reconectar
-      await fetchQrFor(account);
-      refetch();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao desconectar');
-    } finally {
-      setDisconnecting(false);
-    }
-  };
-
-  const loadUazapiAccounts = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-    const { data } = await supabase
-      .from('profiles')
-      .select('uazapi_url, uazapi_token')
-      .eq('id', user.id)
-      .maybeSingle();
-    const urls = (data?.uazapi_url || '').split('|').filter(Boolean);
-    const tokens = (data?.uazapi_token || '').split('|').filter(Boolean);
-    const accounts = urls.map((url, i) => ({
-      label: `Instância #${i + 1}`,
-      url: url.trim(),
-      token: (tokens[i] || '').trim(),
-    })).filter(a => a.url && a.token);
-    setUazapiAccounts(accounts);
-    return accounts;
-  };
-
-  const fetchQrFor = async (account: { url: string; token: string }, phone?: string) => {
-    setQrLoading(true);
-    setQrCode(null);
-    setPairingCode(null);
-    try {
-      // Verifica status primeiro
-      const { data: statusData } = await supabase.functions.invoke('uazapi-status', {
-        body: { apiUrl: account.url, apiToken: account.token },
-      });
-      if (statusData?.connected) {
-        setConnStatus('connected');
-        setQrLoading(false);
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke('uazapi-connect', {
-        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined },
-      });
-      if (error) throw error;
-      setConnStatus(data?.connectionStatus || 'connecting');
-      setQrCode(data?.qrCode || null);
-      setPairingCode(data?.pairingCode || null);
-      if (data?.connected) setConnStatus('connected');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao conectar instância');
-    } finally {
-      setQrLoading(false);
-    }
-  };
-
-  const requestPairingCode = async () => {
-    const account = uazapiAccounts[activeAccountIdx];
-    if (!account) return;
-    const phone = pairingPhone.replace(/\D/g, '');
-    if (phone.length < 10) {
-      toast.error('Informe o número completo com DDI e DDD (ex: 5511999999999)');
-      return;
-    }
-    await fetchQrFor(account, phone);
-  };
-
-  const openConnectDialog = async () => {
-    setConnectOpen(true);
-    setActiveAccountIdx(0);
-    setQrCode(null);
-    setPairingCode(null);
-    setConnStatus('disconnected');
-    setConnectMode('qr');
-    setPairingPhone('');
-    const accounts = await loadUazapiAccounts();
-    if (accounts.length > 0) {
-      await fetchQrFor(accounts[0]);
-    }
-  };
 
   // Polling: refresh status while dialog is open and not connected
   useEffect(() => {
