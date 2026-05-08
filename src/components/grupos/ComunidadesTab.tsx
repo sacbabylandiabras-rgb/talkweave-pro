@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Building2, Plus, RefreshCw, Link2, Unlink, UserPlus, UserMinus, Shield,
   ShieldOff, Settings, Trash2, Pencil, Loader2, Users, Copy, Workflow, Image, Upload
 } from "lucide-react";
@@ -533,21 +540,25 @@ export default function ComunidadesTab() {
               Nenhuma comunidade encontrada nesta instância
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {communities.map((c) => (
-                <Button
-                  key={c.id}
-                  variant={selectedId === c.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setSelectedId(c.id);
-                    setEditDesc(c.description || "");
-                  }}
-                >
-                  {c.name}
-                </Button>
-              ))}
-            </div>
+            <Select
+              value={selectedId ?? undefined}
+              onValueChange={(value) => {
+                setSelectedId(value);
+                const c = communities.find((x) => x.id === value);
+                setEditDesc(c?.description || "");
+              }}
+            >
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Selecione uma comunidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {communities.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
 
