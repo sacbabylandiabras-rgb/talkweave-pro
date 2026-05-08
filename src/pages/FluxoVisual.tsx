@@ -1347,19 +1347,35 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                await sendWithInstance(body, targetNode.data);
                break;
              }
-             case "contact": {
-               const body: Record<string, any> = {
-                 phone: contact,
-                 specialType: 'contato',
-                 specialPayload: {
-                   contactName: targetNode.data.contactName || '',
-                   contactPhone: targetNode.data.contactPhone || '',
-                   contactOrg: targetNode.data.contactOrg || '',
-                 },
-               };
-               await sendWithInstance(body, targetNode.data);
-               break;
-             }
+              case "contact": {
+                const body: Record<string, any> = {
+                  phone: contact,
+                  specialType: 'contato',
+                  specialPayload: {
+                    contactName: targetNode.data.contactName || '',
+                    contactPhone: targetNode.data.contactPhone || '',
+                    contactOrg: targetNode.data.contactOrg || '',
+                  },
+                };
+                await sendWithInstance(body, targetNode.data);
+                break;
+              }
+              case "media-carousel": {
+                let cards = [];
+                try {
+                  cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
+                } catch (e) {
+                  console.error("Erro ao parsear carrossel:", e);
+                }
+                if (cards.length > 0) {
+                  await sendWithInstance({
+                    phone: contact,
+                    message: content || '',
+                    carouselCards: cards
+                  }, targetNode.data);
+                }
+                break;
+              }
            }
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
