@@ -1929,7 +1929,15 @@ function LinksRotativosTab() {
                   <Button variant="ghost" size="icon" onClick={() => setEditPageLinkId(link.id)} title="Editar página">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onPointerDown={() => copyLink(link.slug)} onClick={(e) => e.preventDefault()}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      copyLink(link.slug);
+                    }}
+                  >
                     {copied === link.slug ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteLink(link.id)}>
