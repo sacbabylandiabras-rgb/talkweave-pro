@@ -649,7 +649,8 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
-      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
+      const newsletterMetadata = isChannel ? await getNewsletterMetadata(instance, id) : { name: null, memberCount: 0, picture: null };
+      const resolvedName = metadata?.subject || metadata?.name || metadata?.group?.subject || metadata?.data?.subject || chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || newsletterMetadata.name || '';
 
      // Skip zombie/forbidden groups: chats listed as group but without a name
      // and no message history. These are typically groups the user was removed from.
@@ -661,14 +662,16 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
        ...chat,
        id,
        phone: id,
-        name: (isChannel && !resolvedName) ? (await getNewsletterName(instance, id) || 'Canal sem nome') : (resolvedName || 'Sem nome'),
+         name: resolvedName || 'Canal sem nome',
         isAdmin,
        isChannel,
         isCommunity,
         isGroup,
         typeLabel,
-        memberCount: chat.memberCount || chat.size || chat.participantsCount || chat.membersCount || 0,
-       profilePicture: chat.profilePicture || chat.image || null,
+         memberCount: isChannel
+           ? numericCount(newsletterMetadata.memberCount, chat.subscribersCount, chat.subscriberCount, chat.followersCount, chat.memberCount, chat.size)
+           : numericCount(chat.memberCount, chat.size, chat.participantsCount, chat.membersCount),
+        profilePicture: newsletterMetadata.picture || chat.profilePicture || chat.image || null,
        __sourceInstanceName: instance.instance_name,
        __sourceInstanceId: instance.zapi_instance_id,
      };
