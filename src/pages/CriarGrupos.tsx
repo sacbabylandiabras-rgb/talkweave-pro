@@ -74,13 +74,6 @@ const CriarGrupos = () => {
 
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
-     const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
-     
-     useEffect(() => {
-       if (allGroups.length > 0) {
-         console.log("DEBUG: allGroups received:", allGroups.map(g => ({ id: g.id, name: g.nome, isGroup: g.isGroup, isAdmin: g.isAdmin, type: g.typeLabel })));
-       }
-     }, [allGroups]);
 
     const groups = allGroups.filter((g) => {
       const id = String(g.id || "");
