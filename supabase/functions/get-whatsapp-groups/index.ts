@@ -764,11 +764,17 @@ Deno.serve(async (req) => {
           }
           const isCommunity = explicitCommunity || lidOnlyCommunity;
           const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
-          const isGroup = !isChannel && !isCommunity && (
-            group.isGroup === true ||
-            String(groupId).includes("-group") ||
-            String(groupId).includes("@g.us")
-          );
+           const isGroup = !isChannel && !isCommunity && (
+             group.isGroup === true ||
+             String(groupId).includes("-group") ||
+             String(groupId).includes("@g.us") ||
+             (String(groupId).includes("@c.us") && !isCommunity)
+           );
+           
+           if (isGroup || isCommunity || isChannel) {
+             console.log(`🔎 Item processed: id=${groupId}, name=${group.name || group.subject}, isGroup=${isGroup}, isCommunity=${isCommunity}, isChannel=${isChannel}, isAdmin=${hasTruthyValue(group.isAdmin) || hasTruthyValue(group.isSuperAdmin) || hasTruthyValue(group.is_admin)}`);
+           }
+
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
