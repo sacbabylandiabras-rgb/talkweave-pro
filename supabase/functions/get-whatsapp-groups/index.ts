@@ -274,11 +274,36 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
         ? payload.data
         : [];
 
+  // Also try to fetch newsletters/channels (UAZAPI exposes them via /newsletter/list)
+  let rawChannels: any[] = [];
+  try {
+    const chRes = await fetch(`${apiUrl}/newsletter/list`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', token: apiToken },
+    });
+    if (chRes.ok) {
+      const chPayload = await chRes.json().catch(() => ({}));
+      const list = Array.isArray(chPayload)
+        ? chPayload
+        : Array.isArray(chPayload?.newsletters)
+          ? chPayload.newsletters
+          : Array.isArray(chPayload?.data)
+            ? chPayload.data
+            : [];
+      rawChannels = list.map((c: any) => ({ ...c, __isChannel: true, isChannel: true }));
+    }
+  } catch (chErr) {
+    console.warn(`⚠️ UAZAPI newsletter/list failed for ${instance.instance_name}:`, chErr);
+  }
+
+  const combinedRaw = [...rawGroups, ...rawChannels];
+
   let detailedGroups: any[] = [];
   try {
-    detailedGroups = await Promise.all(rawGroups.map(async (group: any) => {
+    detailedGroups = await Promise.all(combinedRaw.map(async (group: any) => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
-    if (!String(groupId).includes('@g.us')) return null;
+    const isChannel = group?.__isChannel === true || String(groupId).includes('@newsletter');
+    if (!isChannel && !String(groupId).includes('@g.us')) return null;
 
     const fallbackName =
       group?.subject ||
@@ -294,7 +319,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       '';
 
     let detail: any = null;
-    try {
+    if (!isChannel) try {
       const infoResponse = await fetch(`${apiUrl}/group/info`, {
         method: 'POST',
         headers: {
