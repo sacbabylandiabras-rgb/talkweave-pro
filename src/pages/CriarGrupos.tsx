@@ -1239,7 +1239,6 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
  function LinksRotativosTab() {
    const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
     const { groups } = useWhatsAppGroups({ provider: 'zapi' });
-  const { getMemberCount } = useGroupMemberCount();
   const { instances } = useZapiInstances();
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -1808,13 +1807,16 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         throw new Error("Não foi possível obter o link de convite do grupo");
       }
 
-      // Fetch real member count
-      let realMemberCount = group.membros;
+      // Fetch real member count. Channels return subscriber count in metadata,
+      // not a participant list, so prefer memberCount/subscriberCount there.
+      let realMemberCount = group.membros || 0;
       try {
         const { data: participantsData } = await supabase.functions.invoke("get-group-participants", {
           body: { groupId: group.id, sourceInstanceId: group.sourceInstanceId || null },
         });
-        realMemberCount = participantsData?.participants?.length || group.membros;
+        realMemberCount = (group as any).isChannel
+          ? Number(participantsData?.memberCount ?? participantsData?.subscriberCount ?? group.membros ?? 0)
+          : (participantsData?.participants?.length || group.membros || 0);
       } catch {
         // fallback to existing count
       }
