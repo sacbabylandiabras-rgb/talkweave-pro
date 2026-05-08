@@ -33,17 +33,42 @@ Deno.serve(async (req) => {
         const { groupName, phones } = body;
         if (!groupName) throw new Error("groupName is required");
 
+        // Filter out empty or invalid phones
+        const validPhones = Array.isArray(phones) 
+          ? phones.map(p => String(p).trim()).filter(p => p.length >= 8)
+          : [];
+
         const response = await fetch(`${baseUrl}/create-group`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             groupName,
-            phones: phones || [],
+            phones: validPhones,
           }),
         });
 
         const data = await response.json();
-        console.log("✅ Group created:", JSON.stringify(data));
+        console.log("✅ Group created response:", JSON.stringify(data));
+        
+        // Z-API returns { success: false, message: "participants not found" } if phones are provided but not found
+        // If phones were provided and it failed with that message, retry without phones
+        if (data?.success === false && data?.message === "participants not found" && validPhones.length > 0) {
+          console.log("⚠️ Failed with 'participants not found', retrying without phones...");
+          const retryResponse = await fetch(`${baseUrl}/create-group`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              groupName,
+              phones: [],
+            }),
+          });
+          const retryData = await retryResponse.json();
+          console.log("✅ Group created (retry):", JSON.stringify(retryData));
+          return new Response(JSON.stringify(retryData), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
