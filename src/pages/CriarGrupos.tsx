@@ -310,11 +310,17 @@ const CriarGrupos = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
-          {groups.length === 0 ? (
-          <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
-             Nenhum grupo encontrado na instância de dispositivo
-          </div>
-        ) : (
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
+               {allGroups.length > 0 
+                 ? "Nenhum grupo, comunidade ou canal onde você é administrador foi encontrado."
+                 : "Nenhum grupo encontrado na instância de dispositivo."}
+            </div>
+          ) : (
            <div className="flex flex-wrap gap-2">
              {groups.map((g) => (
                <Button
