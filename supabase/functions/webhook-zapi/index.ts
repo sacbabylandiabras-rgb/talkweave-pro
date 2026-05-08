@@ -1725,6 +1725,24 @@ serve(async (req) => {
                   );
 
                   if (allFull) {
+                    // 🔒 Anti-duplicação: evita criar vários grupos ao mesmo tempo
+                    // quando vários membros entram simultaneamente (race condition).
+                    const recentCutoff = new Date(Date.now() - 90_000).toISOString();
+                    const { data: recentGroup } = await supabase
+                      .from("redirect_link_groups")
+                      .select("id, created_at")
+                      .eq("redirect_link_id", redirectLink.id)
+                      .gte("created_at", recentCutoff)
+                      .limit(1)
+                      .maybeSingle();
+
+                    if (recentGroup) {
+                      console.log(
+                        `⏭️ Skipping auto-create for link "${redirectLink.name}": another group was created in the last 90s (${recentGroup.id}).`,
+                      );
+                      continue;
+                    }
+
                     try {
                       const base =
                         `https://api.z-api.io/instances/${instData.zapi_instance_id}/token/${instData.zapi_token}`;
