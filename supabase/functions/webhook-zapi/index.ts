@@ -5146,6 +5146,9 @@ async function sendNodeContent(
     } else {
       let endpoint = "";
       let body: any = { phone };
+      if (targetNode.data?.mentionAll) {
+        body.mentionAll = true;
+      }
 
       switch (contentType) {
         case "text":
