@@ -788,7 +788,8 @@ Deno.serve(async (req) => {
            const isAdmin = hasTruthyValue(group.isAdmin) || 
                            hasTruthyValue(group.isSuperAdmin) || 
                            hasTruthyValue(group.is_admin) || 
-                           (isChannel); // Default channels to true as they are usually only returned if managed
+                           isChannel || isCommunity; 
+                           // Assume admin for channels and communities if they made it this far
 
            if (!groupsById.has(groupId) && (isGroup || isCommunity || isChannel)) {
              groupsById.set(groupId, {
