@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { X, Users, ExternalLink } from "lucide-react";
+import { X, Users, ExternalLink, Copy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 interface InviteData {
   name: string;
@@ -25,6 +26,7 @@ const InvitePage = () => {
   const [data, setData] = useState<InviteData | null>(null);
   const [error, setError] = useState("");
   const [config, setConfig] = useState<PageConfig>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     try {
@@ -57,6 +59,14 @@ const InvitePage = () => {
       }
     })();
   }, [slug]);
+
+  const handleCopy = () => {
+    if (!data?.invite_link) return;
+    navigator.clipboard.writeText(data.invite_link);
+    toast({
+      description: "Link copiado com sucesso!",
+    });
+  };
 
   if (error) {
     return (
@@ -109,6 +119,7 @@ const InvitePage = () => {
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="w-full h-12 mt-2 rounded-xl" />
+            <Skeleton className="w-full h-12 rounded-xl" />
           </>
         ) : (
           <>
@@ -125,6 +136,14 @@ const InvitePage = () => {
             >
               <ExternalLink className="w-4 h-4" /> Entrar no grupo
             </a>
+
+            <button
+              onClick={handleCopy}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all hover:bg-black/5 active:scale-95"
+              style={{ color: textColor, border: `2px solid ${buttonColor}` }}
+            >
+              <Copy className="w-4 h-4" /> Copiar link
+            </button>
           </>
         )}
       </div>
