@@ -160,16 +160,18 @@ Deno.serve(async (req) => {
         });
       }
 
-      case "get-invite-link": {
-        const { groupId, isCommunity, isChannel } = body;
-        if (!groupId) throw new Error("groupId is required");
-
-        let path = "";
-        let method: "GET" | "POST" = "GET";
-
-         if (isCommunity || String(groupId).includes("@lid")) {
-           // Z-API só expõe POST /redefine-invitation-link/{communityId} para comunidades
-           const cleanId = String(groupId).replace("-group", "").replace("@lid", "").replace("@g.us", "");
+       case "get-invite-link": {
+         const { groupId, isCommunity, isChannel } = body;
+         if (!groupId) throw new Error("groupId is required");
+ 
+         const sGroupId = String(groupId);
+         const isActuallyChannel = isChannel || sGroupId.includes("@newsletter");
+         const isActuallyCommunity = isCommunity || sGroupId.includes("@lid");
+ 
+         console.log(`📋 get-invite-link: id=${groupId}, channel=${isActuallyChannel}, community=${isActuallyCommunity}`);
+ 
+         if (isActuallyCommunity) {
+           const cleanId = sGroupId.replace("-group", "").replace("@lid", "").replace("@g.us", "");
            const resp = await fetch(`${baseUrl}/redefine-invitation-link/${encodeURIComponent(cleanId)}`, {
              method: "POST",
              headers,
@@ -178,48 +180,53 @@ Deno.serve(async (req) => {
            console.log("✅ Community invite link result:", JSON.stringify(respData));
            const link = respData?.invitationLink || respData?.invitation_link || respData?.link;
            return new Response(
-             JSON.stringify(link ? { link, invitationLink: link } : respData),
+             JSON.stringify(link ? { link, invitationLink: link, success: true } : { ...respData, success: false }),
              {
-               status: resp.ok ? 200 : resp.status,
+               status: 200,
                headers: { ...corsHeaders, "Content-Type": "application/json" },
              }
            );
-         } else if (isChannel || String(groupId).includes("@newsletter")) {
-          // Para canais, tentamos buscar nos chats ou metadados
-          const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
-          const chats = await res.json().catch(() => []);
-          const chat = Array.isArray(chats) ? chats.find((c: any) => c.id === groupId || c.phone === groupId) : null;
-          const link = chat?.invitationLink || chat?.link || chat?.url;
-          if (link) {
-            return new Response(JSON.stringify({ link }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-          // Se não achar, tenta o endpoint padrão de convite (algumas versões do Z-API podem suportar)
-          path = `/group-invitation-link/${groupId.replace("@newsletter", "")}`;
-        } else {
-          const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-          path = `/group-invitation-link/${cleanId}`;
-        }
-
-        const response = await fetch(`${baseUrl}${path}`, { method, headers });
-        const data = await response.json().catch(() => ({}));
-        
-        // Se falhar e for comunidade, tenta redefinir/gerar (fallback comum na Z-API)
-        if (!response.ok && (isCommunity || String(groupId).includes("@lid"))) {
-          const renewRes = await fetch(`${baseUrl}/redefine-invitation-link/${encodeURIComponent(groupId)}`, { method: "POST", headers });
-          const renewData = await renewRes.json().catch(() => ({}));
-          return new Response(JSON.stringify(renewData), {
-            status: renewRes.ok ? 200 : renewRes.status,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        console.log("✅ Invite link result:", JSON.stringify(data));
-        return new Response(JSON.stringify(data), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+         }
+ 
+         if (isActuallyChannel) {
+           // For Channels, Z-API usually doesn't have a direct invitation link endpoint.
+           // We try to find it in the chats list or specific metadata.
+           const res = await fetch(`${baseUrl}/chats`, { method: "GET", headers });
+           const chats = await res.json().catch(() => []);
+           const cleanId = sGroupId.replace("@newsletter", "");
+           const chat = Array.isArray(chats) ? chats.find((c: any) => c.id === sGroupId || c.phone === sGroupId || c.id === cleanId || c.phone === cleanId) : null;
+           
+           let link = chat?.invitationLink || chat?.link || chat?.url;
+           
+           if (!link) {
+             const metaRes = await fetch(`${baseUrl}/newsletter-metadata/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
+             const metaData = await metaRes.json().catch(() => ({}));
+             link = metaData?.invitationLink || metaData?.link || metaData?.metadata?.inviteCode;
+             if (link && !link.startsWith('http')) link = `https://whatsapp.com/channel/${link}`;
+           }
+ 
+           if (link) {
+             return new Response(JSON.stringify({ link, invitationLink: link, success: true }), {
+               headers: { ...corsHeaders, "Content-Type": "application/json" },
+             });
+           }
+ 
+           return new Response(JSON.stringify({ error: "Could not find channel invite link", success: false }), {
+             status: 200,
+             headers: { ...corsHeaders, "Content-Type": "application/json" },
+           });
+         }
+ 
+         // Regular Group
+         const cleanId = sGroupId.includes("-group") ? sGroupId : sGroupId.replace("@g.us", "-group");
+         const response = await fetch(`${baseUrl}/group-invitation-link/${cleanId}`, { method: "GET", headers });
+         const data = await response.json().catch(() => ({}));
+         console.log("✅ Group invite link result:", JSON.stringify(data));
+         
+         return new Response(JSON.stringify(data), {
+           headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
 
       case "add-participant": {
         const { groupId, phone } = body;
