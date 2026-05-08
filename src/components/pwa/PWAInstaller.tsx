@@ -52,6 +52,8 @@ import { useLocation } from "react-router-dom";
   if (isNative) return null;
   if (!isVisible) return null;
 
+  if (location.pathname !== "/aplicativo" && location.pathname !== "/aplicativo/") return null;
+
   // Hide on public checkout / payment / landing pages
   if (/^\/(pay|checkout|lp|pedido|invite|r)(\/|$)/.test(location.pathname)) return null;
 

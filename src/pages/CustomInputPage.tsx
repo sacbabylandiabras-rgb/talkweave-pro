@@ -278,9 +278,6 @@ import { useNavigate } from "react-router-dom";
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      if (session?.user?.id) {
-        await fetchStats(session.user.id);
-      }
       setLoading(false);
     };
 
@@ -293,6 +290,21 @@ import { useNavigate } from "react-router-dom";
 
     return () => subscription.unsubscribe();
   }, [fetchStats]);
+
+  useEffect(() => {
+    const manifestId = "zaplynx-app-manifest";
+    document.querySelector(`link#${manifestId}`)?.remove();
+
+    if (!session?.user?.id) return;
+
+    const manifest = document.createElement("link");
+    manifest.id = manifestId;
+    manifest.rel = "manifest";
+    manifest.href = "/manifest.json";
+    document.head.appendChild(manifest);
+
+    return () => manifest.remove();
+  }, [session?.user?.id]);
 
    const handleLogin = async (e: React.FormEvent) => {
      e.preventDefault();
