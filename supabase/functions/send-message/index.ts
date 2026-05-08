@@ -181,7 +181,14 @@ serve(async (req) => {
       carouselCards,
       templateId,
       preferStandardConnection,
+      mentionAll,
     } = payloadRaw;
+
+    // Helper: only mention-all in real groups/communities
+    const isGroupPhone = (p: string) =>
+      typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'));
+    const mentionFlag = (p: string) =>
+      mentionAll && isGroupPhone(p) ? { mentionAll: true } : {};
 
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
@@ -411,6 +418,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
+          ...mentionFlag(resolvedPhone),
           buttonActions: buttons.map(b => ({
             id: b.id,
             type: b.type,
@@ -435,6 +443,7 @@ serve(async (req) => {
         const payload: any = {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
+          ...mentionFlag(resolvedPhone),
           buttonList: {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
@@ -451,6 +460,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           title,
           footer,
+          ...mentionFlag(resolvedPhone),
           buttonActions: buttons.map(b => ({
             id: b.id,
             type: b.type,
@@ -466,13 +476,14 @@ serve(async (req) => {
         return sendZapi('/send-button-list', {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
+          ...mentionFlag(resolvedPhone),
           buttonList: {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
         }, 'buttons-reply-text');
       }
 
-      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'buttons-final-fallback');
+      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '', ...mentionFlag(resolvedPhone) }, 'buttons-final-fallback');
     };
 
     // OTP support
@@ -654,7 +665,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-audio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true }),
+          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true, ...mentionFlag(resolvedPhone) }),
         });
         logMessage = logMessage || '🎤 Áudio';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'audio');
@@ -662,7 +673,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '' }),
+          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '', ...mentionFlag(resolvedPhone) }),
         });
         logMessage = logMessage || '📷 Imagem';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'image');
@@ -670,7 +681,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-ptv`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, ptv: mediaUrl }),
+          body: JSON.stringify({ phone: resolvedPhone, ptv: mediaUrl, ...mentionFlag(resolvedPhone) }),
         });
         logMessage = logMessage || '🎬 Vídeo Instantâneo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
@@ -678,7 +689,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '', ...(viewOnce ? { viewOnce: true } : {}) }),
+          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '', ...(viewOnce ? { viewOnce: true } : {}), ...mentionFlag(resolvedPhone) }),
         });
         logMessage = logMessage || '🎥 Vídeo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
@@ -687,7 +698,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-document/${extension}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || `arquivo.${extension}`, caption: '' }),
+          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || `arquivo.${extension}`, caption: '', ...mentionFlag(resolvedPhone) }),
         });
         logMessage = logMessage || '📎 Arquivo';
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'document');
@@ -696,7 +707,7 @@ serve(async (req) => {
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message }),
+        body: JSON.stringify({ phone: resolvedPhone, message, ...mentionFlag(resolvedPhone) }),
       });
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'text');
     }
