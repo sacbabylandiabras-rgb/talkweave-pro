@@ -565,9 +565,6 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
        return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
      }).filter(([id]) => Boolean(id))).values());
      
-     if (chats.length > 0) {
-       console.log(`📥 Z-API sample group object: ${JSON.stringify(chats.find(c => c.__isGroupListItem) || chats[0]).slice(0, 500)}`);
-     }
  
    // Filter and map to unified format
     const resultsArray = await Promise.all(chats.map(async (chat: any) => {
