@@ -2321,7 +2321,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-   const selectedGroup = allGroups.find((g) => g.id === selectedGroupId);
+   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const fetchParticipants = async (group: any) => {
     setLoadingParticipants(true);
