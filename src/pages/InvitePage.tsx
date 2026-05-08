@@ -29,30 +29,35 @@ const InvitePage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    try {
-      const hash = window.location.hash;
-      if (hash && hash.length > 1) {
-        const parsed = JSON.parse(decodeURIComponent(hash.substring(1)));
-        setConfig(parsed || {});
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
     if (!slug) return;
     (async () => {
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`
-        );
+        
+        // Try to get config from local storage as fallback/initial
+        const stored = localStorage.getItem("link-page-config");
+        if (stored) {
+          const allConfigs = JSON.parse(stored);
+          // We don't have the link ID here easily, but we might find it by slug after fetch
+        }
+
+        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/redirect-link?slug=${encodeURIComponent(slug)}`);
         const json = await res.json();
+        
         if (!res.ok) {
           setError(json.error || "Link não encontrado");
         } else {
           setData(json);
+          // Check if response contains page_config
+          if (json.page_config) {
+            setConfig(json.page_config);
+          } else if (stored && json.id) {
+            // Fallback to local storage using link ID
+            const allConfigs = JSON.parse(stored);
+            if (allConfigs[json.id]) {
+              setConfig(allConfigs[json.id]);
+            }
+          }
         }
       } catch {
         setError("Erro ao carregar link");
