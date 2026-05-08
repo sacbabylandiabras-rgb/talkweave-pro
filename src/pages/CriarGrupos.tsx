@@ -1270,10 +1270,35 @@ function LinksRotativosTab() {
     } catch { return {}; }
   });
 
-  const savePageConfig = (linkId: string, config: typeof pageConfig[string]) => {
+  const [isSavingPage, setIsSavingPage] = useState(false);
+
+  const handleSavePageConfig = async () => {
+    if (!editPageLinkId) return;
+    setIsSavingPage(true);
+    try {
+      const config = pageConfig[editPageLinkId];
+      // Persist in redirect_links table as JSONB field
+      const { error } = await supabase
+        .from('redirect_links')
+        .update({ page_config: config })
+        .eq('id', editPageLinkId);
+      
+      if (error) throw error;
+      
+      // Also sync to local storage for quick access
+      localStorage.setItem("link-page-config", JSON.stringify(pageConfig));
+      toast.success("Configurações de página salvas!");
+      setEditPageLinkId(null);
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || ""));
+    } finally {
+      setIsSavingPage(false);
+    }
+  };
+
+  const updateLocalPageConfig = (linkId: string, config: typeof pageConfig[string]) => {
     const updated = { ...pageConfig, [linkId]: config };
     setPageConfig(updated);
-    localStorage.setItem("link-page-config", JSON.stringify(updated));
   };
 
     const baseRedirectUrl = `https://zaplynx.com/invite/`;
@@ -2105,11 +2130,11 @@ function LinksRotativosTab() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Título da Página</label>
-                <Input value={editingConfig.title || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })} placeholder={editingLink?.name || "Nome do grupo"} />
+                <Input value={editingConfig.title || ""} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, title: e.target.value })} placeholder={editingLink?.name || "Nome do grupo"} />
               </div>
               <div>
                 <label className="text-sm font-medium">Descrição</label>
-                <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
+                <Textarea value={editingConfig.description || ""} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, description: e.target.value })} placeholder="Descrição da página de convite" rows={3} />
               </div>
               <div>
                 <label className="text-sm font-medium flex items-center gap-1.5">
@@ -2129,7 +2154,7 @@ function LinksRotativosTab() {
                   </div>
                   <Input
                     value={editingConfig.photo || ""}
-                    onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })}
+                    onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, photo: e.target.value })}
                     placeholder="Cole a URL da imagem ou faça upload"
                     className="flex-1 h-8 text-xs"
                   />
@@ -2151,7 +2176,7 @@ function LinksRotativosTab() {
                       if (!file || !editPageLinkId) return;
                       try {
                         const url = await uploadFileToStorage(file);
-                        savePageConfig(editPageLinkId, { ...editingConfig, photo: url });
+                        updateLocalPageConfig(editPageLinkId, { ...editingConfig, photo: url });
                         toast.success("Foto enviada!");
                       } catch (err: any) {
                         toast.error(err.message || "Erro no upload");
@@ -2164,7 +2189,7 @@ function LinksRotativosTab() {
                     variant="ghost"
                     size="sm"
                     className="mt-1 h-7 text-xs text-destructive"
-                    onClick={() => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, photo: "" })}
+                    onClick={() => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, photo: "" })}
                   >
                     <Trash2 className="w-3 h-3 mr-1" /> Remover foto
                   </Button>
@@ -2195,22 +2220,22 @@ function LinksRotativosTab() {
               <div>
                 <label className="text-sm font-medium">Cor do Botão</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
-                  <Input value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="flex-1" />
+                  <input type="color" value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.buttonColor || "#25D366"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, buttonColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Cor de Fundo</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
-                  <Input value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="flex-1" />
+                  <input type="color" value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.bgColor || "#f5f5f5"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, bgColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Cor do Texto</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
-                  <Input value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && savePageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="flex-1" />
+                  <input type="color" value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-border" />
+                  <Input value={editingConfig.textColor || "#1f2937"} onChange={(e) => editPageLinkId && updateLocalPageConfig(editPageLinkId, { ...editingConfig, textColor: e.target.value })} className="flex-1" />
                 </div>
               </div>
             </div>
@@ -2238,6 +2263,10 @@ function LinksRotativosTab() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setEditPageLinkId(null)}>Fechar</Button>
+            <Button onClick={handleSavePageConfig} disabled={isSavingPage}>
+              {isSavingPage ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Configurações
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
