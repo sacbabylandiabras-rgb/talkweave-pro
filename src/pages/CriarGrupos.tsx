@@ -61,7 +61,7 @@ const CriarGrupos = () => {
 
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
-   const { groups: allGroups, loading, refetch } = useWhatsAppGroups();
+    const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
    const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
