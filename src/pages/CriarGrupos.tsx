@@ -62,7 +62,7 @@ const CriarGrupos = () => {
 /* ============= TAB: Gerenciar Grupo ============= */
  function GerenciarGrupoTab() {
     const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
-   const groups = useMemo(() => allGroups.filter((g) => g.isAdmin), [allGroups]);
+   const groups = allGroups;
   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -297,9 +297,9 @@ const CriarGrupos = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
-         {groups.length === 0 ? (
+          {groups.length === 0 ? (
           <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
-            Nenhum grupo onde você é administrador
+             Nenhum grupo encontrado na instância de dispositivo
           </div>
         ) : (
            <div className="flex flex-wrap gap-2">
