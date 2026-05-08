@@ -2954,7 +2954,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <Input
                       type="number"
                       min="1"
-                      value={selectedNode.data.delaySeconds || selectedNode.data.actionConfig || ""}
+                      value={selectedNode.data.delaySeconds ?? selectedNode.data.actionConfig ?? ""}
                       onChange={(e) =>
                         setSelectedNode({
                           ...selectedNode,
