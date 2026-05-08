@@ -605,12 +605,11 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       // For channels and communities, we also consider the user an admin if the API says so 
       // or if it's a channel (usually you only see channels you own/administer in these APIs)
       // but let's be more precise if possible.
-      if (!isAdmin && (isChannel || isCommunity)) {
-        // Fallback for Z-API: if we see it in the list and it's a community/channel, 
-        // it's likely we have some management rights, but let's default to true 
-        // for now as it was before, unless we find a reason not to.
-        isAdmin = true;
-      }
+       if (!isAdmin && (isChannel || isCommunity || chat.__zapiListSource === 'groups')) {
+         // If it's a channel, community, or comes from the specialized /groups endpoint,
+         // there is a high probability the user has management rights or wants to see it.
+         isAdmin = true;
+       }
 
       let typeLabel = "Grupo";
      if (isChannel) typeLabel = "Canal";
