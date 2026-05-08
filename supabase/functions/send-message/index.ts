@@ -181,7 +181,14 @@ serve(async (req) => {
       carouselCards,
       templateId,
       preferStandardConnection,
+      mentionAll,
     } = payloadRaw;
+
+    // Helper: only mention-all in real groups/communities
+    const isGroupPhone = (p: string) =>
+      typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'));
+    const mentionFlag = (p: string) =>
+      mentionAll && isGroupPhone(p) ? { mentionAll: true } : {};
 
 
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
