@@ -485,14 +485,16 @@ const fetchGroupsViaZapi = async (instance: ZapiInstance): Promise<any[]> => {
     }
 
     let detail: any = null;
-    try {
-      const metaRes = await fetch(`${baseUrl}/group-metadata/${groupId}`, { method: 'GET', headers });
-      detail = await metaRes.json().catch(() => null);
-      if (!metaRes.ok) {
-        console.error(`⚠️ Z-API group-metadata HTTP ${metaRes.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
+    if (!isChan) {
+      try {
+        const metaRes = await fetch(`${baseUrl}/group-metadata/${groupId}`, { method: 'GET', headers });
+        detail = await metaRes.json().catch(() => null);
+        if (!metaRes.ok) {
+          console.error(`⚠️ Z-API group-metadata HTTP ${metaRes.status} for ${groupId}: ${JSON.stringify(detail)?.slice(0, 300)}`);
+        }
+      } catch (error) {
+        console.error(`❌ Z-API group-metadata failed for ${groupId}:`, error);
       }
-    } catch (error) {
-      console.error(`❌ Z-API group-metadata failed for ${groupId}:`, error);
     }
 
     const participants = extractParticipantsFromGroup({ ...group, ...detail });
