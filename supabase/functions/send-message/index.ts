@@ -418,6 +418,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
+          ...mentionFlag(resolvedPhone),
           buttonActions: buttons.map(b => ({
             id: b.id,
             type: b.type,
@@ -442,6 +443,7 @@ serve(async (req) => {
         const payload: any = {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
+          ...mentionFlag(resolvedPhone),
           buttonList: {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
@@ -458,6 +460,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           title,
           footer,
+          ...mentionFlag(resolvedPhone),
           buttonActions: buttons.map(b => ({
             id: b.id,
             type: b.type,
@@ -473,13 +476,14 @@ serve(async (req) => {
         return sendZapi('/send-button-list', {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
+          ...mentionFlag(resolvedPhone),
           buttonList: {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
         }, 'buttons-reply-text');
       }
 
-      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '' }, 'buttons-final-fallback');
+      return sendZapi('/send-text', { phone: resolvedPhone, message: message || '', ...mentionFlag(resolvedPhone) }, 'buttons-final-fallback');
     };
 
     // OTP support
