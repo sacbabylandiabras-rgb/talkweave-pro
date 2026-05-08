@@ -1272,28 +1272,12 @@ function LinksRotativosTab() {
 
   const [isSavingPage, setIsSavingPage] = useState(false);
 
-  const handleSavePageConfig = async () => {
+  const handleSavePageConfig = () => {
     if (!editPageLinkId) return;
-    setIsSavingPage(true);
-    try {
-      const config = pageConfig[editPageLinkId];
-      // Persist in redirect_links table as JSONB field
-      const { error } = await supabase
-        .from('redirect_links')
-        .update({ page_config: config })
-        .eq('id', editPageLinkId);
-      
-      if (error) throw error;
-      
-      // Also sync to local storage for quick access
-      localStorage.setItem("link-page-config", JSON.stringify(pageConfig));
-      toast.success("Configurações de página salvas!");
-      setEditPageLinkId(null);
-    } catch (err: any) {
-      toast.error("Erro ao salvar: " + (err.message || ""));
-    } finally {
-      setIsSavingPage(false);
-    }
+    // Temporarily saving to localStorage until DB migration is confirmed
+    localStorage.setItem("link-page-config", JSON.stringify(pageConfig));
+    toast.success("Configurações salvas localmente!");
+    setEditPageLinkId(null);
   };
 
   const updateLocalPageConfig = (linkId: string, config: typeof pageConfig[string]) => {
