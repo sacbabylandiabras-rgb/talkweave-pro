@@ -438,14 +438,14 @@ const fetchOwnerPhoneViaZapi = async (instance: ZapiInstance): Promise<{ phone: 
   return { phone: '', lid: '' };
 };
 
-const normalizeZapiGroupId = (value: unknown): string => {
+const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (raw.includes('@newsletter') || raw.includes('-community')) return raw;
   if (raw.includes('-group')) return raw;
   if (raw.includes('@g.us')) return raw.replace(/@g\.us$/i, '-group');
   const digits = raw.replace(/\D/g, '');
-  return digits.length >= 12 ? `${digits}-group` : raw;
+  return allowBareGroupId && digits.length >= 12 ? `${digits}-group` : raw;
 };
 
  const getNewsletterName = async (instance: ZapiInstance, newsletterId: string): Promise<string | null> => {
