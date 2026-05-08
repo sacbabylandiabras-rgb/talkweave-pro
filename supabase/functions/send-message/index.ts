@@ -184,13 +184,9 @@ serve(async (req) => {
       mentionAll,
     } = payloadRaw;
 
-    // Helper: only mention-all in real groups/communities
-    const isGroupPhone = (p: string) =>
-      typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'));
     const mentionFlag = (p: string) =>
-      mentionAll && isGroupPhone(p) ? { mentionAll: true } : {};
-
-
+      mentionAll && (typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'))) ? { mentionAll: true } : {};
+      
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
 
     const hasInteractivePayload =
@@ -643,7 +639,12 @@ serve(async (req) => {
         }
         return c;
       });
-      zapiData = await sendZapi('/send-carousel', { phone: resolvedPhone, message: message || '', carousel: cards }, 'carousel');
+      zapiData = await sendZapi('/send-carousel', { 
+        phone: resolvedPhone, 
+        message: message || '', 
+        carousel: cards,
+        ...mentionFlag(resolvedPhone)
+      }, 'carousel');
       logMessage = logMessage || '🎠 Carrossel';
     } else if ((Array.isArray(buttonActions) && buttonActions.length > 0) || (buttonList?.buttons && buttonList.buttons.length > 0)) {
       zapiData = await smartSendButtons();

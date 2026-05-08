@@ -1351,7 +1351,7 @@ serve(async (req) => {
                       const { data: tpl } = await supabase
                         .from("message_templates")
                         .select(
-                          "content, media_url, type, buttons, header, footer, name",
+                          "content, media_url, type, buttons, header, footer, name, carousel_cards",
                         )
                         .eq("id", redirectLink.welcome_template_id)
                         .maybeSingle();
@@ -1365,7 +1365,20 @@ serve(async (req) => {
                           .replace(/\{\{telefone\}\}/gi, joinedPhone)
                           .replace(/\{\{grupo\}\}/gi, groupName);
 
-                        if (
+                        const normalizedTplType = String(tpl.type || "").toLowerCase();
+                        const hasCarouselCards = Array.isArray(tpl.carousel_cards) && tpl.carousel_cards.length > 0;
+
+                        if ((normalizedTplType === "carousel" || normalizedTplType === "carrossel") && hasCarouselCards) {
+                          await fetch(`${rlBaseUrl}/send-carousel`, {
+                            method: "POST",
+                            headers: rlHeaders,
+                            body: JSON.stringify({
+                              phone: joinedPhone,
+                              message: tplMsg,
+                              carousel: tpl.carousel_cards,
+                            }),
+                          });
+                        } else if (
                           tpl.media_url &&
                           (tpl.type === "imagem" || tpl.type === "image")
                         ) {
@@ -1546,7 +1559,20 @@ serve(async (req) => {
                           .replace(/\{\{telefone\}\}/gi, joinedPhone)
                           .replace(/\{\{grupo\}\}/gi, groupName);
 
-                        if (tpl.media_url) {
+                        const normalizedGmType = String(tpl.type || "").toLowerCase();
+                        const hasGmCarouselCards = Array.isArray(tpl.carousel_cards) && tpl.carousel_cards.length > 0;
+
+                        if ((normalizedGmType === "carousel" || normalizedGmType === "carrossel") && hasGmCarouselCards) {
+                          await fetch(`${gmBaseUrl}/send-carousel`, {
+                            method: "POST",
+                            headers: gmHeaders,
+                            body: JSON.stringify({
+                              phone: groupChatId,
+                              message: tplContent,
+                              carousel: tpl.carousel_cards,
+                            }),
+                          });
+                        } else if (tpl.media_url) {
                           const fileType = tpl.file_type || "image";
                           const endpoint = fileType === "video"
                             ? "send-video"
@@ -5146,6 +5172,9 @@ async function sendNodeContent(
     } else {
       let endpoint = "";
       let body: any = { phone };
+      if (targetNode.data?.mentionAll) {
+        body.mentionAll = true;
+      }
 
       switch (contentType) {
         case "text":
@@ -5179,6 +5208,44 @@ async function sendNodeContent(
           body.fileName = targetNode.data?.fileName || `documento.${getDocumentExtension(mediaUrl, targetNode.data?.fileName)}`;
           body.caption = content;
           break;
+        case "media-carousel": {
+          endpoint = "/send-carousel";
+          let cards = [];
+          try {
+            cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
+          } catch (e) {
+            console.error("Erro ao parsear carrossel no webhook:", e);
+          }
+          body.carousel = cards;
+          body.message = content || "";
+          break;
+        }
+        case "location":
+        case "request-location":
+          return await sendLocationWithFallback(
+            Number(targetNode.data.locationLat || 0),
+            Number(targetNode.data.locationLng || 0),
+            targetNode.data.locationName || "",
+            targetNode.data.locationAddress || "",
+            `Bloco ${targetNode.id} (location)`,
+          ).then(() => false);
+        case "pix":
+        case "request-payment": {
+          endpoint = "/send-payment-pix";
+          body.pixKey = targetNode.data.pixKey || targetNode.data.paymentReceiver || "";
+          body.type = String(targetNode.data.pixKeyType || "cpf").toUpperCase();
+          body.merchantName = targetNode.data.pixReceiver || targetNode.data.paymentReceiver || "";
+          body.value = Number(targetNode.data.pixAmount || targetNode.data.paymentAmount || 0);
+          body.description = targetNode.data.pixDescription || targetNode.data.paymentDescription || content || "";
+          break;
+        }
+        case "contact": {
+          endpoint = "/send-contact";
+          body.contactName = targetNode.data.contactName || "";
+          body.contactPhone = String(targetNode.data.contactPhone || "").replace(/\D/g, "");
+          body.contactBusinessDescription = targetNode.data.contactOrg || "";
+          break;
+        }
         default:
           endpoint = "/send-text";
           body.message = content;
