@@ -1,9 +1,3 @@
-   if (groupId.includes('120363428147847066')) { // Specific ID from logs
-     console.log(`🔎 Admin check for ${groupId}: ownerPhone=${ownerPhone}, ownerLid=${ownerLid}, participants=${participants.length}`);
-     if (participants.length > 0) {
-       console.log(`🔎 Sample participant: ${JSON.stringify(participants[0])}`);
-     }
-   }
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
