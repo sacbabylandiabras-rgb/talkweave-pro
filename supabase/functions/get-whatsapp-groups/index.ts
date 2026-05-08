@@ -467,12 +467,31 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
  const getNewsletterName = async (instance: ZapiInstance, newsletterId: string): Promise<string | null> => {
    try {
      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
-     const res = await fetch(`${baseUrl}/newsletter/${newsletterId}`, {
-       method: 'GET',
-       headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token || '' },
-     });
-     const data = await res.json().catch(() => null);
-     return data?.name || data?.subject || data?.newsletterName || data?.newsletterTitle || null;
+    const headers = { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token || '' };
+    const cleanId = String(newsletterId).replace('@newsletter', '');
+    const candidates = [
+      `/newsletter/${encodeURIComponent(newsletterId)}`,
+      `/newsletter/${encodeURIComponent(cleanId)}`,
+      `/newsletter-metadata/${encodeURIComponent(newsletterId)}`,
+      `/newsletter-metadata/${encodeURIComponent(cleanId)}`,
+      `/channel/${encodeURIComponent(cleanId)}`,
+      `/channel-metadata/${encodeURIComponent(cleanId)}`,
+    ];
+    for (const path of candidates) {
+      try {
+        const res = await fetch(`${baseUrl}${path}`, { method: 'GET', headers });
+        if (!res.ok) continue;
+        const data = await res.json().catch(() => null);
+        const name = data?.name || data?.subject || data?.newsletterName || data?.newsletterTitle || data?.title || data?.channelName || data?.metadata?.name || data?.metadata?.subject;
+        if (name) {
+          console.log(`📺 Newsletter name resolved via ${path}: ${name}`);
+          return name;
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    return null;
    } catch (e) {
      console.error(`⚠️ Failed to fetch newsletter name for ${newsletterId}:`, e);
      return null;
