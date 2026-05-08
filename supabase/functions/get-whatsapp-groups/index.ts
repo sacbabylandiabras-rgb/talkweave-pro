@@ -387,7 +387,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       id: groupId,
       phone: groupId,
       name: resolvedName,
-      isAdmin: isChannel ? true : isOwnerAdminInGroup(detail, group, ownerPhone),
+       isAdmin: (isChannel || isOwnerAdminInGroup(detail, group, ownerPhone)) || (group.isCommunity || group.isGroup), 
+       // Be more lenient in UAZAPI as well
       isChannel,
       memberCount:
         extractParticipantsFromGroup({ ...group, ...detail }).length ||
