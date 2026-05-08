@@ -529,11 +529,19 @@ const normalizeZapiGroupId = (value: unknown): string => {
      if (isChannel) typeLabel = "Canal";
      if (isCommunity) typeLabel = "Comunidade";
  
+     const resolvedName = chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || '';
+
+     // Skip zombie/forbidden groups: chats listed as group but without a name
+     // and no message history. These are typically groups the user was removed from.
+     if (!resolvedName && isGroup && (!chat.lastMessageTime || String(chat.lastMessageTime) === '0')) {
+       return null;
+     }
+
      return {
        ...chat,
        id,
        phone: id,
-        name: chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || 'Sem nome',
+        name: resolvedName || 'Sem nome',
         isAdmin,
        isChannel,
        isCommunity,
