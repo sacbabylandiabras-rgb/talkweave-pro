@@ -1276,14 +1276,7 @@ function LinksRotativosTab() {
     localStorage.setItem("link-page-config", JSON.stringify(updated));
   };
 
-    const getBaseUrl = () => {
-      const hostname = window.location.hostname;
-      if (hostname.includes('lovable.app') || hostname.includes('localhost')) {
-        return `${window.location.origin}/r?url=${window.location.origin}/invite/`;
-      }
-      return `https://go.zaplynxpro.online/r?url=https://go.zaplynxpro.online/invite/`;
-    };
-    const baseRedirectUrl = getBaseUrl();
+    const baseRedirectUrl = `https://go.zaplynxpro.online/r?url=https://go.zaplynxpro.online/invite/`;
   const editingLink = links.find(l => l.id === editPageLinkId);
   const editingConfig = editPageLinkId ? (pageConfig[editPageLinkId] || {}) : {};
 
