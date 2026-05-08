@@ -533,7 +533,7 @@ const normalizeZapiGroupId = (value: unknown): string => {
        ...chat,
        id,
        phone: id,
-        name: chat.name || chat.subject || chat.groupName || chat.title || 'Sem nome',
+        name: chat.name || chat.subject || chat.groupName || chat.title || chat.chatName || chat.pushName || chat.fullName || chat.newsletterName || chat.newsletterTitle || 'Sem nome',
         isAdmin,
        isChannel,
        isCommunity,
