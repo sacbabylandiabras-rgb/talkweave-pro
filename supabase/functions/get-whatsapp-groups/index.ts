@@ -557,7 +557,7 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       const normalizedId = normalizeZapiGroupId(rawId, isGroupListItem);
       return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
     }).filter(([id]) => Boolean(id))).values());
-    console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}`);
+     console.log(`📥 Z-API total unique group/chat records for ${instance.instance_name}: ${chats.length}. Sample: ${JSON.stringify(chats[0]).slice(0, 200)}`);
  
    // Filter and map to unified format
     const resultsArray = await Promise.all(chats.map(async (chat: any) => {
