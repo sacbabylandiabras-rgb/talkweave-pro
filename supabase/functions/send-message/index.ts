@@ -280,7 +280,7 @@ serve(async (req) => {
     // as some Z-API instances report "disconnected" while still capable of sending
     console.log(`ℹ️ Bypassing physical device connectivity check for instance ${instanceId}`);
 
-      let resolvedPhone = phone;
+    let resolvedPhone = phone;
     // Z-API expects group IDs with "-group" suffix (e.g. 120363019502650977-group)
     // See: https://developer.z-api.io/group/introduction
     if (isGroupPhone && !phone.includes('@lid') && !isCommunityPhone && !isChannelPhone) {
@@ -291,7 +291,7 @@ serve(async (req) => {
       }
     }
 
-      if (phone.includes('@lid')) {
+    if (phone.includes('@lid')) {
       console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       
@@ -343,7 +343,7 @@ serve(async (req) => {
 
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
       let endpoint = '/send-text';
-      let payload: any = { phone: resolvedPhone };
+      const payload: any = { phone: resolvedPhone, ...mentionFlag(resolvedPhone) };
 
       if (type === 'image') {
         endpoint = '/send-image';
