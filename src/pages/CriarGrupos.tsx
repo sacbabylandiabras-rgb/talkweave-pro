@@ -2433,33 +2433,42 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-muted-foreground">Selecione um grupo</label>
+          <label className="text-xs font-medium text-muted-foreground">Selecione grupo, comunidade ou canal</label>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => selectedGroup && fetchParticipants(selectedGroup)} disabled={loadingParticipants || !selectedGroup}>
             <RefreshCw className={`w-4 h-4 ${loadingParticipants ? "animate-spin" : ""}`} />
           </Button>
         </div>
-         {groups.length === 0 ? (
+         {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          </div>
+         ) : groups.length === 0 ? (
           <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
             Nenhum grupo encontrado na instância de dispositivo
           </div>
          ) : (
-           <div className="flex flex-wrap gap-2">
-             {groups.map((g) => (
-               <Button
-                 key={g.id}
-                 variant={selectedGroupId === g.id ? "default" : "outline"}
-                 size="sm"
-                 onClick={() => {
-                   setSelectedGroupId(g.id);
-                   fetchMemberCount(g.id, g.sourceInstanceId, g.participantes);
-                   fetchParticipants(g);
-                 }}
-                 className="h-8"
-               >
-                 {g.nome}
-               </Button>
-             ))}
-           </div>
+           <Select
+             value={selectedGroupId}
+             onValueChange={(value) => {
+               const group = groups.find((g) => g.id === value);
+               setSelectedGroupId(value);
+               if (group) {
+                 fetchMemberCount(group.id, group.sourceInstanceId, group.participantes);
+                 fetchParticipants(group);
+               }
+             }}
+           >
+             <SelectTrigger>
+               <SelectValue placeholder="Escolha um item para gerenciar" />
+             </SelectTrigger>
+             <SelectContent className="max-h-80">
+               {groups.map((g) => (
+                 <SelectItem key={g.id} value={g.id}>
+                   {g.typeLabel || (g.isChannel ? "Canal" : g.isCommunity ? "Comunidade" : "Grupo")} · {g.nome}
+                 </SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
          )}
       </div>
       <Card>
