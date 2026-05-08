@@ -1847,7 +1847,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         const count = isChannel
           ? Number(data?.memberCount ?? data?.subscriberCount ?? whatsGroup?.membros ?? g.current_members ?? 0)
           : (data?.participants?.length || 0);
-        const updates: any = { current_members: count, is_full: count >= link.max_members_per_group };
+        const updates: any = { current_members: count, is_full: isChannel ? false : count >= link.max_members_per_group };
         
         // Update photo from WhatsApp groups list
         if (whatsGroup?.foto) {
