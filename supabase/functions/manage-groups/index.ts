@@ -205,27 +205,32 @@ Deno.serve(async (req) => {
             let link = chat?.invitationLink || chat?.link || chat?.url || chat?.metadata?.inviteCode;
             
             if (!link) {
-             // Try newsletter/metadata endpoint (standard Z-API V2)
+             // Try newsletter metadata endpoints with correct path format
              const newsletterId = cleanId.includes("@newsletter") ? cleanId : `${cleanId}@newsletter`;
-             const metaRes = await fetch(`${baseUrl}/newsletter-metadata/${encodeURIComponent(newsletterId)}`, { method: "GET", headers });
-             const metaData = await metaRes.json().catch(() => ({}));
-             console.log("📋 Newsletter metadata result (v1-style):", JSON.stringify(metaData));
-             link = metaData?.invitationLink || metaData?.inviteLink || metaData?.link || metaData?.inviteCode;
+             
+             // 1. Standard Z-API v2: /newsletter/metadata?newsletterId=...
+             const v2Url = `${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`;
+             const v2Res = await fetch(v2Url, { method: "GET", headers });
+             const v2Data = await v2Res.json().catch(() => ({}));
+             console.log("📋 Z-API v2 metadata result:", JSON.stringify(v2Data));
+             link = v2Data?.inviteLink || v2Data?.invitationLink || v2Data?.link;
              
              if (!link) {
-               // Try alternative path structure /newsletter/metadata
-               const altMetaRes = await fetch(`${baseUrl}/newsletter/metadata?newsletterId=${encodeURIComponent(newsletterId)}`, { method: "GET", headers });
-               const altMetaData = await altMetaRes.json().catch(() => ({}));
-               console.log("📋 Newsletter metadata result (v2-style):", JSON.stringify(altMetaData));
-               link = altMetaData?.inviteLink || altMetaData?.invitationLink || altMetaData?.link;
+               // 2. Standard Z-API v1 style: /newsletter-metadata/...
+               const v1Url = `${baseUrl}/newsletter-metadata/${encodeURIComponent(newsletterId)}`;
+               const v1Res = await fetch(v1Url, { method: "GET", headers });
+               const v1Data = await v1Res.json().catch(() => ({}));
+               console.log("📋 Z-API v1 metadata result:", JSON.stringify(v1Data));
+               link = v1Data?.inviteLink || v1Data?.invitationLink || v1Data?.link;
              }
              
              if (!link) {
-               // Try channel-metadata endpoint (legacy or variant)
-               const channelMetaRes = await fetch(`${baseUrl}/channel-metadata/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
-               const channelMetaData = await channelMetaRes.json().catch(() => ({}));
-               console.log("📋 Channel metadata result:", JSON.stringify(channelMetaData));
-               link = channelMetaData?.invitationLink || channelMetaData?.inviteLink || channelMetaData?.link;
+               // 3. Alternative: /newsletter-metadata?newsletterId=...
+               const altUrl = `${baseUrl}/newsletter-metadata?newsletterId=${encodeURIComponent(newsletterId)}`;
+               const altRes = await fetch(altUrl, { method: "GET", headers });
+               const altData = await altRes.json().catch(() => ({}));
+               console.log("📋 Z-API alt metadata result:", JSON.stringify(altData));
+               link = altData?.inviteLink || altData?.invitationLink || altData?.link;
              }
             }
 
