@@ -1179,19 +1179,34 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                },
              }, targetNode.data);
              await new Promise(resolve => setTimeout(resolve, 1000));
-           } else if (contentType === "location" || contentType === "request-location") {
-             await sendWithInstance({
-               phone: contact,
-               specialType: 'localizacao',
-               specialPayload: {
-                 latitude: targetNode.data.locationLat || 0,
-                 longitude: targetNode.data.locationLng || 0,
-                 title: targetNode.data.locationName || '',
-                 address: targetNode.data.locationAddress || '',
-               },
-             }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-           }
+            } else if (contentType === "location" || contentType === "request-location") {
+              await sendWithInstance({
+                phone: contact,
+                specialType: 'localizacao',
+                specialPayload: {
+                  latitude: targetNode.data.locationLat || 0,
+                  longitude: targetNode.data.locationLng || 0,
+                  title: targetNode.data.locationName || '',
+                  address: targetNode.data.locationAddress || '',
+                },
+              }, targetNode.data);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (contentType === "media-carousel") {
+              let cards = [];
+              try {
+                cards = JSON.parse(targetNode.data.carouselCardsJson || '[]');
+              } catch (e) {
+                console.error("Erro ao parsear cards do carrossel:", e);
+              }
+              if (cards.length > 0) {
+                await sendWithInstance({
+                  phone: contact,
+                  message: content || '',
+                  carouselCards: cards
+                }, targetNode.data);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
 
           const hasUrlButtons = mappedButtons.some(b => b.type === "URL");
           const hasCallButtons = mappedButtons.some(b => b.type === "CALL");
