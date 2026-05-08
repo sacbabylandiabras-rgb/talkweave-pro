@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, X } from "lucide-react";
-
-const APP_INVITE_BASE_URL = "https://go.zaplynxpro.online/invite/";
+import { Loader2, X, Users, ExternalLink } from "lucide-react";
 
 interface InviteData {
   name: string;
@@ -24,15 +22,20 @@ interface PageConfig {
 const InvitePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<InviteData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [config, setConfig] = useState<PageConfig>({});
 
   useEffect(() => {
-    const hostname = window.location.hostname;
-    if (slug && hostname === "pay.zaplynxpro.online") {
-      window.location.replace(`${APP_INVITE_BASE_URL}${encodeURIComponent(slug)}${window.location.hash}`);
+    try {
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        const parsed = JSON.parse(decodeURIComponent(hash.substring(1)));
+        setConfig(parsed || {});
+      }
+    } catch {
+      /* ignore */
     }
-  }, [slug]);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -47,15 +50,9 @@ const InvitePage = () => {
           setError(json.error || "Link não encontrado");
         } else {
           setData(json);
-          if (json?.invite_link) {
-            window.location.replace(json.invite_link);
-            return;
-          }
         }
       } catch {
         setError("Erro ao carregar link");
-      } finally {
-        setLoading(false);
       }
     })();
   }, [slug]);
@@ -79,12 +76,54 @@ const InvitePage = () => {
     );
   }
 
+  if (!data) {
+    return (
+      <div
+        style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
+        className="flex items-center justify-center px-4"
+      >
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#9ca3af" }} />
+      </div>
+    );
+  }
+
+  const bgColor = config.bgColor || "#f5f5f5";
+  const buttonColor = config.buttonColor || "#25D366";
+  const textColor = config.textColor || "#1f2937";
+  const title = config.title || data.name || data.group_name;
+  const description = config.description || "";
+  const photo = config.photo || data.group_photo;
+
   return (
     <div
-      style={{ background: "#ffffff", position: "fixed", inset: 0, zIndex: 9999 }}
+      style={{ background: bgColor, position: "fixed", inset: 0, zIndex: 9999 }}
       className="flex items-center justify-center px-4"
     >
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#9ca3af" }} />
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full flex flex-col items-center gap-4">
+        {photo ? (
+          <img src={photo} alt={title} className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg" />
+        ) : (
+          <div
+            className="w-24 h-24 rounded-full flex items-center justify-center ring-4 ring-white shadow-lg"
+            style={{ backgroundColor: buttonColor }}
+          >
+            <Users className="w-12 h-12 text-white" />
+          </div>
+        )}
+        <h1 className="text-xl font-bold text-center" style={{ color: textColor }}>{title}</h1>
+        {description && (
+          <p className="text-sm text-center" style={{ color: textColor, opacity: 0.75 }}>{description}</p>
+        )}
+        <a
+          href={data.invite_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-white shadow-md transition-transform hover:scale-[1.02]"
+          style={{ backgroundColor: buttonColor }}
+        >
+          <ExternalLink className="w-4 h-4" /> Entrar no grupo
+        </a>
+      </div>
     </div>
   );
 };
