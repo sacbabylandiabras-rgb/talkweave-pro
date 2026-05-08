@@ -2043,7 +2043,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
                     </SelectTrigger>
                     <SelectContent>
                       {groups
-                        .filter((g) => g.isAdmin && !link.groups?.some((lg) => lg.group_id === g.id))
+                        .filter((g) => !link.groups?.some((lg) => lg.group_id === g.id))
                         .map((g) => (
                           <SelectItem key={g.id} value={g.id}>
                             <div className="flex items-center gap-2">
@@ -2394,7 +2394,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
         </div>
          {groups.length === 0 ? (
           <div className="px-2 py-3 text-xs text-muted-foreground text-center border border-dashed rounded-md">
-            Nenhum grupo onde você é administrador
+            Nenhum grupo encontrado na instância de dispositivo
           </div>
          ) : (
            <div className="flex flex-wrap gap-2">
