@@ -661,6 +661,7 @@ Deno.serve(async (req) => {
             lidOnlyCommunity = lidCount / participants.length >= 0.8;
           }
           const isCommunity = explicitCommunity || lidOnlyCommunity;
+          const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
           if (!groupsById.has(groupId)) {
             groupsById.set(groupId, {
               id: groupId,
@@ -675,7 +676,8 @@ Deno.serve(async (req) => {
               pinned: group.pinned || false,
               sourceInstanceName: group.__sourceInstanceName || null,
               sourceInstanceId: group.__sourceInstanceId || null,
-              isCommunity,
+              isCommunity: isCommunity && !isChannel,
+              isChannel,
             });
           }
         }
