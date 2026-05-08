@@ -475,8 +475,7 @@ Deno.serve(async (req) => {
         console.log(`📊 Group "${group.group_name}": ${realCount}/${maxMembers} members`);
 
         // Update DB with real count
-        const isChannel = String(group.group_id || "").includes("@newsletter");
-        const isFull = isChannel ? false : realCount >= maxMembers;
+        const isFull = realCount >= maxMembers;
         client.from("redirect_link_groups").update({
           current_members: realCount,
           is_full: isFull,
@@ -557,9 +556,10 @@ Deno.serve(async (req) => {
     }).then(() => {});
 
     if (String(targetGroup.group_id || "").includes("@newsletter")) {
+      const newCount = (targetGroup.current_members || 0) + 1;
       client.from("redirect_link_groups").update({
-        current_members: (targetGroup.current_members || 0) + 1,
-        is_full: false,
+        current_members: newCount,
+        is_full: newCount >= maxMembers,
       }).eq("id", targetGroup.id).then(() => {});
     }
 
