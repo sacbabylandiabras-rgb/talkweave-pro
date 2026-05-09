@@ -1353,9 +1353,9 @@ const MensagensRecebidas = () => {
     try {
       await deleteConversation(phone);
       if (selectedPhone === phone) setSelectedPhone(null);
-      toast({ title: "Conversa apagada", description: "A conversa foi removida com sucesso." });
-    } catch (err) {
-      toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+      toast({ title: "Conversa apagada", description: "Conversa removida com sucesso." });
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível apagar a conversa.", variant: "destructive" });
     }
   };
 
