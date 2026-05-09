@@ -749,13 +749,19 @@ const ChatView = ({
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
               <div className="flex justify-center my-3">
-                <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm">
+                <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
                   {formatDateSeparator(msgs[0].timestamp)}
                 </span>
               </div>
               {msgs.map((msg) => (
                 <div key={msg.id} className="mb-2">
-                  {msg.type === 'received' ? (
+                  {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
+                    <div className="flex justify-center my-2">
+                      <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
+                        {String(msg.content || '').trim()}
+                      </span>
+                    </div>
+                  ) : msg.type === 'received' ? (
                     <div className="flex justify-start">
                       <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
                         {isGroupPhone(conversation.phone) && msg.sender_name && (
