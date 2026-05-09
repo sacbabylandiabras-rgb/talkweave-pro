@@ -1,3 +1,80 @@
+async function acquireMessageProcessingLock(
+  supabase: any,
+  lockId: string,
+  phone: string,
+  userId: string,
+  instanceId: string,
+  rawMessage: string,
+  senderName: string,
+  senderPhone: string,
+) {
+  const prevLockId = lockId + "_prev";
+  const { data: prevLock } = await supabase
+    .from("message_logs")
+    .select("id")
+    .eq("id", prevLockId)
+    .maybeSingle();
+
+  if (prevLock) {
+    console.log("Lock do bucket anterior encontrado, mensagem duplicada");
+    return { acquired: false, lockId };
+  }
+
+  const { error } = await supabase
+    .from("message_logs")
+    .insert({
+      id: lockId,
+      phone,
+      message_received: rawMessage,
+      keyword_matched: "__processing__",
+      response_sent: "__processing__",
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      instance_id: instanceId || null,
+      sender_name: senderName || null,
+      sender_phone: senderPhone || null,
+    });
+
+  if (!error) return { acquired: true, lockId };
+  const isDuplicate = error?.code === "23505" ||
+    (typeof error?.message === "string" &&
+      error.message.toLowerCase().includes("duplicate key"));
+  if (isDuplicate) return { acquired: false, lockId };
+  throw new Error(`Erro ao adquirir lock de dedupe: ${error.message}`);
+}
+
+async function finalizeMessageLog(
+  supabase: any,
+  lockId: string,
+  params: { keywordMatched: string; responseSent: string },
+) {
+  const { keywordMatched, responseSent } = params;
+  await supabase
+    .from("message_logs")
+    .update({
+      keyword_matched: keywordMatched,
+      response_sent: responseSent,
+      timestamp: new Date().toISOString(),
+    })
+    .eq("id", lockId);
+}
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase
+    .from("message_logs")
+    .update({
+      timestamp: new Date().toISOString(),
+    })
+    .eq("id", lockId)
+    .eq("keyword_matched", "__processing__");
+    
+  await supabase
+    .from("message_logs")
+    .delete()
+    .eq("id", lockId)
+    .eq("keyword_matched", "__processing__");
+}
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
