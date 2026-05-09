@@ -98,19 +98,18 @@ async function acquireMessageProcessingLock(
   const prevLockId = await stableUuidFromText(prevKey);
   const { data: prevLock } = await supabase.from("message_logs").select("id").eq("id", prevLockId).maybeSingle();
   if (prevLock) return { acquired: false, lockId };
-  const { error } = await supabase.from("message_logs").insert({
-    id: lockId,
-    phone,
-    message_received: messageWithSender,
+   const logEntry: any = {
+     id: lockId,
+     phone,
+     message_received: messageWithSender,
      keyword_matched: "__processing__",
      response_sent: "__processing__",
-     sender_name: senderName || null,
-     sender_phone: senderPhone || null,
-     sender_photo: senderPhoto || null,
-    timestamp: new Date().toISOString().replace('T', ' ').split('.')[0],
-    user_id: userId,
-    instance_id: instanceId || null,
-  });
+     timestamp: new Date().toISOString().replace('T', ' ').split('.')[0],
+     user_id: userId,
+     instance_id: instanceId || null,
+   };
+
+    const { error } = await supabase.from("message_logs").insert(logEntry);
   if (!error) return { acquired: true, lockId };
   const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
   if (isDuplicate) return { acquired: false, lockId };
@@ -197,7 +196,8 @@ async function transcribeAudio(audioUrl: string): Promise<string> {
 
 function extractMessageText(webhook: any): string {
   const candidates = [
-    webhook?.message?.text,
+     webhook?.text,
+     webhook?.message?.text,
     webhook?.message?.conversation,
     webhook?.message?.extendedTextMessage?.text,
     webhook?.message?.imageMessage?.caption,
@@ -3106,8 +3106,7 @@ serve(async (req) => {
       const matchesId = normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
       const matchesExternalId = normalizeInstanceIdentifier(item?.zapi_instance_id) ===
         normalizedInstanceId;
-      const matchesName = !isIncomingUazapiWebhook &&
-        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
+      const matchesName = normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
 
       return matchesId || matchesExternalId || matchesName;
     });
@@ -3163,6 +3162,17 @@ serve(async (req) => {
       webhook?.instanceId || webhook?.instance_id || webhook?.instanceName ||
         webhook?.instance_name,
     );
+
+    // Fallback: if no instance matched but it's an UAZAPI webhook with instanceId,
+    // try to resolve by checking all instances for a matching zapi_instance_id (case-insensitive)
+    if (!instanceData && normalizedInstanceId) {
+      instanceData = (instancesData || []).find((item: any) =>
+        normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
+      );
+      if (instanceData) {
+        console.log(`✅ Recovered instance ${normalizedInstanceId} via case-insensitive ID match`);
+      }
+    }
 
     if (instanceData) {
       userId = instanceData.user_id;
