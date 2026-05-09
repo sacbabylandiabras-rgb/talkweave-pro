@@ -348,8 +348,34 @@ export const useMessageLogs = (
   knownInstanceIds?: string[],
   knownInstanceNames?: string[],
 ) => {
-  const [messageLogs, setMessageLogs] = useState<MessageLog[]>([]);
-  const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>([]);
+  const [messageLogs, setMessageLogs] = useState<MessageLog[]>(() => {
+    const cached = localStorage.getItem('talkweave_cached_message_logs');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>(() => {
+    const cached = localStorage.getItem('talkweave_cached_campaign_sends');
+    return cached ? JSON.parse(cached) : [];
+  });
+  
+  // State to track locally deleted conversations to prevent them from reappearing
+  const [deletedConversations, setDeletedConversations] = useState<Set<string>>(() => {
+    const cached = localStorage.getItem('talkweave_deleted_conversations');
+    return cached ? new Set(JSON.parse(cached)) : new Set();
+  });
+
+  // Persistence effects
+  useEffect(() => {
+    localStorage.setItem('talkweave_cached_message_logs', JSON.stringify(messageLogs));
+  }, [messageLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('talkweave_cached_campaign_sends', JSON.stringify(campaignSends));
+  }, [campaignSends]);
+
+  useEffect(() => {
+    localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedConversations)));
+  }, [deletedConversations]);
+
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
@@ -400,6 +426,13 @@ export const useMessageLogs = (
   const fetchMessageLogs = useCallback(async (currentUserId: string | null) => {
     if (!currentUserId) return;
     
+    // Get local deletions first
+    const localDeleted = new Set<string>();
+    const cachedDeleted = localStorage.getItem('talkweave_deleted_conversations');
+    if (cachedDeleted) {
+      JSON.parse(cachedDeleted).forEach((p: string) => localDeleted.add(p));
+    }
+    
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
@@ -426,8 +459,12 @@ export const useMessageLogs = (
       return a.id.localeCompare(b.id);
     });
 
-    // Filter out internal system entries that carry no visible content
+    // Filter out internal system entries that carry no visible content, 
+    // and filter out locally deleted conversations.
     allData = allData.filter(m => {
+      const normalized = normalizeConversationPhone(m.phone);
+      if (localDeleted.has(normalized)) return false;
+
       const isInternal = isInternalFlowStateKeyword(m.keyword_matched);
       const hasContent = Boolean(m.message_received || (m.response_sent && m.response_sent !== '__processing__'));
       // Keep it if it has content, even if it has an internal keyword (e.g. during a flow capture)
@@ -526,6 +563,13 @@ export const useMessageLogs = (
   const fetchCampaignSends = useCallback(async (currentUserId: string | null) => {
     if (!currentUserId) return;
     
+    // Get local deletions first
+    const localDeleted = new Set<string>();
+    const cachedDeleted = localStorage.getItem('talkweave_deleted_conversations');
+    if (cachedDeleted) {
+      JSON.parse(cachedDeleted).forEach((p: string) => localDeleted.add(p));
+    }
+
     const since = new Date();
     since.setDate(since.getDate() - 30);
     const sinceISO = since.toISOString();
@@ -549,6 +593,13 @@ export const useMessageLogs = (
       hasMore = data.length === batchSize;
       from += batchSize;
     }
+
+    // Filter out locally deleted conversations
+    allData = allData.filter(s => {
+      const normalized = normalizeConversationPhone(s.phone);
+      return !localDeleted.has(normalized);
+    });
+
     // Resolve @lid phones to real numbers
     allData = allData.map(send => {
       if (send.phone.includes('@lid')) {
@@ -786,6 +837,13 @@ export const useMessageLogs = (
               const record = payload.new as MessageLog;
               if (!record) return;
               
+              // Skip if part of a deleted conversation
+              const normalized = normalizeConversationPhone(record.phone);
+              if (deletedConversations.has(normalized)) {
+                console.log('[Realtime] Ignoring record for deleted conversation:', normalized);
+                return;
+              }
+
               const isInternal = isInternalFlowStateKeyword(record.keyword_matched);
               const hasContent = Boolean(record.message_received || (record.response_sent && record.response_sent !== '__processing__'));
               
@@ -832,6 +890,16 @@ export const useMessageLogs = (
            console.log('[Realtime] campaign_sends event:', payload.eventType);
            const record = payload.new as CampaignSendMessage;
            const isVisible = record?.status === 'delivered';
+
+           // Skip if part of a deleted conversation
+           if (record?.phone) {
+             const normalized = normalizeConversationPhone(record.phone);
+             if (deletedConversations.has(normalized)) {
+               console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
+               return;
+             }
+           }
+
            if (payload.eventType === 'INSERT') {
              if (!isVisible) return;
              setCampaignSends(prev => {
@@ -1350,7 +1418,7 @@ export const useMessageLogs = (
      sendMessage, 
      forceUpdateAllPhotos,
      syncMetadata,
-   syncHistory: fetchAll,
+    syncHistory: fetchAll,
     deleteConversation: async (phone: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -1373,10 +1441,24 @@ export const useMessageLogs = (
 
       const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
 
-      // Clear from local state immediately to avoid lag/flicker
-      setMessageLogs(prev => prev.filter(log => !uniqueFormats.includes(log.phone)));
-      setCampaignSends(prev => prev.filter(send => !uniqueFormats.includes(send.phone)));
+      // Update persistence layers immediately
+      setDeletedConversations(prev => {
+        const next = new Set(prev);
+        next.add(normalizedPhone);
+        return next;
+      });
 
+      // Clear from local state immediately to avoid lag/flicker
+      setMessageLogs(prev => prev.filter(log => {
+        const logNormalized = normalizeConversationPhone(log.phone);
+        return !uniqueFormats.includes(log.phone) && logNormalized !== normalizedPhone;
+      }));
+      setCampaignSends(prev => prev.filter(send => {
+        const sendNormalized = normalizeConversationPhone(send.phone);
+        return !uniqueFormats.includes(send.phone) && sendNormalized !== normalizedPhone;
+      }));
+
+      // Execute database deletion
       const { error } = await supabase
         .from('message_logs')
         .delete()
@@ -1398,6 +1480,7 @@ export const useMessageLogs = (
         console.warn('Could not delete campaign sends (might not exist):', campaignError);
       }
 
+      // Final sync (will be filtered by local deletedConversations state)
       await fetchAll();
     }
    };
