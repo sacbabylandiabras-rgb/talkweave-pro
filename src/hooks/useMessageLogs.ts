@@ -1138,7 +1138,7 @@ export const useMessageLogs = (
 
   useEffect(() => {
     if (loading || !groupsMissingPhotoKey) return;
-    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 20);
+    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 60);
     if (entries.length === 0) return;
 
     let cancelled = false;
@@ -1152,7 +1152,7 @@ export const useMessageLogs = (
          try {
            await fetchProfilePicture(phone, false, instanceId || null);
          } catch { /* ignore */ }
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 80));
       }
     })();
     return () => { cancelled = true; };
