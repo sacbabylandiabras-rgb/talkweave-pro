@@ -8,6 +8,11 @@ const pickPreferredInteractiveText = (candidates: unknown[]) => {
   return values.find(v => !isUazapiTechnicalReplyReference(v)) || values[0] || "";
 };
 
+const sanitizeTechnicalMessageReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return isUazapiTechnicalReplyReference(raw) ? "" : raw;
+};
+
 function extractButtonReplyCandidates(webhook: any): string[] {
   const values = new Set<string>();
   const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
@@ -521,26 +526,6 @@ const buildLidCandidateFromTechnicalId = (value: unknown) => {
   return /^\d{12,16}$/.test(digits) && !digits.startsWith("55")
     ? `${digits}@lid`
     : "";
-};
-
-const isUazapiTechnicalReplyReference = (value: unknown) => {
-  const raw = String(value || "").trim();
-  return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
-};
-
-const sanitizeTechnicalMessageReference = (value: unknown) => {
-  const raw = String(value || "").trim();
-  return isUazapiTechnicalReplyReference(raw) ? "" : raw;
-};
-
-const pickPreferredInteractiveText = (candidates: unknown[]) => {
-  const values = candidates
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return values.find((value) => !isUazapiTechnicalReplyReference(value)) ||
-    values[0] || "";
 };
 
 const resolveWebhookPhone = (webhook: any) => {

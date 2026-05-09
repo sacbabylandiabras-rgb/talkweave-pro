@@ -35,53 +35,71 @@
        })
      }
  
-     const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`
-     const headers = {
-       'Content-Type': 'application/json',
-       'Client-Token': instance.zapi_client_token || ''
-     }
- 
-     // Fetch chats
-     const chatsRes = await fetch(`${baseUrl}/chats`, { headers })
-     if (!chatsRes.ok) {
-       throw new Error(`Z-API returned ${chatsRes.status}`)
-     }
-     const chats = await chatsRes.json()
- 
-     if (!Array.isArray(chats)) {
-       throw new Error('Invalid response from Z-API')
-     }
- 
+      const isZapi = provider === 'zapi';
+      const isUazapi = provider === 'uazapi';
+      
+      let chats = [];
+      
+      if (isZapi) {
+        const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
+        const headers = {
+          'Content-Type': 'application/json',
+          'Client-Token': instance.zapi_client_token || ''
+        };
+
+        // Fetch all chats which include metadata and photos
+        const chatsRes = await fetch(`${baseUrl}/chats`, { headers });
+        if (chatsRes.ok) {
+          chats = await chatsRes.json();
+        }
+      } else if (isUazapi) {
+        const url = (instance.evolution_api_url || '').replace(/\/+$/, '');
+        const headers = { 'Content-Type': 'application/json', token: instance.evolution_api_key || '' };
+        
+        const res = await fetch(`${url}/chat/list`, { headers });
+        if (res.ok) {
+          chats = await res.json();
+        }
+      }
+
+      if (!Array.isArray(chats)) {
+        chats = [];
+      }
+
       const upserts = chats.map(chat => {
-        const phone = chat.id || chat.phone || chat.jid;
+        const phone = chat.id || chat.phone || chat.jid || chat.number;
         if (!phone) return null;
         
-        let photoUrl = chat.profilePictureUrl || chat.imgUrl || chat.image || chat.profileThumbnail || null;
+        let photoUrl = chat.profilePictureUrl || chat.imgUrl || chat.image || chat.profileThumbnail || chat.photo || null;
         if (photoUrl === 'null' || photoUrl === 'undefined' || (typeof photoUrl === 'string' && !photoUrl.startsWith('http'))) {
           photoUrl = null;
         }
 
+        const name = chat.name || chat.contactName || chat.pushname || chat.verifiedName || '';
+
         return {
           phone,
-          name: chat.name || chat.contactName || '',
+          name: name.trim(),
           profile_picture_url: photoUrl,
           user_id: credentials.userId,
           updated_at: new Date().toISOString()
         };
       }).filter(Boolean);
- 
-     if (upserts.length > 0) {
-       // Batch upsert to saved_contacts
-       const { error: upsertError } = await adminClient
-         .from('saved_contacts')
-         .upsert(upserts, { onConflict: 'phone,user_id' })
-       
-       if (upsertError) throw upsertError
-     }
- 
-     return new Response(JSON.stringify({ success: true, count: upserts.length }), {
-       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-     })
+
+      if (upserts.length > 0) {
+        // Process in chunks to avoid too large payloads
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < upserts.length; i += CHUNK_SIZE) {
+          const chunk = upserts.slice(i, i + CHUNK_SIZE);
+          await adminClient
+            .from('saved_contacts')
+            .upsert(chunk, { onConflict: 'phone,user_id' });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, count: upserts.length }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
  
    } catch (error) {
      console.error('Error syncing metadata:', error)

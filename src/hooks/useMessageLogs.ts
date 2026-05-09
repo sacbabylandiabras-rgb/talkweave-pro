@@ -393,7 +393,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
+         .select('*')
         .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
@@ -409,7 +409,7 @@ export const useMessageLogs = (
     while (hasMore && importedHistoryData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
+         .select('*')
         .eq('keyword_matched', '__history_import__')
         .lt('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
