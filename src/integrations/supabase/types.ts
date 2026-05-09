@@ -1600,8 +1600,10 @@ export type Database = {
       }
       saved_contacts: {
         Row: {
+          community_id: string | null
           created_at: string | null
           id: string
+          is_community: boolean | null
           name: string
           phone: string
           profile_picture_url: string | null
@@ -1609,8 +1611,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          community_id?: string | null
           created_at?: string | null
           id?: string
+          is_community?: boolean | null
           name?: string
           phone: string
           profile_picture_url?: string | null
@@ -1618,8 +1622,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          community_id?: string | null
           created_at?: string | null
           id?: string
+          is_community?: boolean | null
           name?: string
           phone?: string
           profile_picture_url?: string | null
