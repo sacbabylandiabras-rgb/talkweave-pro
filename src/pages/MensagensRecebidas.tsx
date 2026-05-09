@@ -474,11 +474,7 @@ const ConversationList = ({
                   <span className="font-medium text-sm text-foreground truncate">
                     {getConversationDisplayName(conv.contactName, conv.phone, conv.isCommunity)}
                   </span>
-                  {conv.isCommunity ? (
-                    <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">COMUNIDADE</Badge>
-                  ) : isGroupPhone(conv.phone) && (
-                    <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
-                  )}
+                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
