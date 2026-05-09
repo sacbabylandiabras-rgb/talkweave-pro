@@ -425,12 +425,15 @@ export const useMessageLogs = (
       return a.id.localeCompare(b.id);
     });
 
-    // Filter out processing locks and LID mapping entries
-    allData = allData.filter(m => 
-      m.keyword_matched !== '__processing__' && 
-      m.keyword_matched !== '__lid_map__' &&
-      !isInternalFlowStateKeyword(m.keyword_matched)
-    );
+    // Filter out internal system entries that carry no visible content
+    allData = allData.filter(m => {
+      const isInternal = isInternalFlowStateKeyword(m.keyword_matched);
+      const hasContent = Boolean(m.message_received || (m.response_sent && m.response_sent !== '__processing__'));
+      // Keep it if it has content, even if it has an internal keyword (e.g. during a flow capture)
+      if (hasContent) return true;
+      // Otherwise filter it out
+      return !isInternal;
+    });
     const lidEvidence = new Set<string>();
     allData.forEach((row) => {
       if (row.phone.includes('@lid')) lidEvidence.add(row.phone);
@@ -935,7 +938,12 @@ export const useMessageLogs = (
       }
 
       const inboundContent = resolveVisibleInboundContent(log);
-      if (inboundContent) {
+      const isInternal = isInternalFlowStateKeyword(log.keyword_matched);
+      
+      if (inboundContent || (isInternal && log.message_received)) {
+        const displayContent = inboundContent || parseSenderFromContent(String(log.message_received || '')).rest.trim();
+        if (!displayContent) return;
+
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
         let senderName = log.sender_name || parsed.name || null;
@@ -949,7 +957,7 @@ export const useMessageLogs = (
           id: `log-recv-${log.id}`,
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
-          content: inboundContent,
+          content: displayContent,
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
@@ -958,7 +966,7 @@ export const useMessageLogs = (
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
-        if (isInternalFlowStateKeyword(log.keyword_matched)) return;
+        // Allow internal keywords for sent messages too if they have content
         if (isTechnicalMessageReference(log.response_sent)) return;
         if (isRedundantManualFlowEcho(log, messageLogs)) return;
         // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
