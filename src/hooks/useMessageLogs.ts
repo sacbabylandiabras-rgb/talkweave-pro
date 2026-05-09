@@ -1251,33 +1251,43 @@ export const useMessageLogs = (
 
      setLoading(true);
      try {
-       const uniquePhones = [...new Set(conversations.map(c => c.phone))];
-       let updatedCount = 0;
+       // Step 1: Sync bulk metadata using /chats (faster)
+       await syncMetadata();
+       
+       // Step 2: Fetch individual photos for remaining ones that still have no photo
+       const remainingPhones = conversations
+         .filter(c => !c.profilePictureUrl || c.profilePictureUrl.includes('undefined'))
+         .map(c => c.phone)
+         .slice(0, 50); // Limit to avoid massive storming
 
-       for (const phone of uniquePhones) {
-         try {
-           const body: Record<string, unknown> = { phone };
-           if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
-           
-           const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
-           if (error) continue;
+       if (remainingPhones.length > 0) {
+         const CHUNK_SIZE = 5;
+         for (let i = 0; i < remainingPhones.length; i += CHUNK_SIZE) {
+           const chunk = remainingPhones.slice(i, i + CHUNK_SIZE);
+           await Promise.all(chunk.map(async (phone) => {
+             try {
+               const body: Record<string, unknown> = { phone };
+               if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+               
+               const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
+               if (error) return;
 
-           const responsePayload = rawData?.data ?? rawData;
-           const finalUrl = extractProfilePictureUrl(responsePayload);
+               const responsePayload = rawData?.data ?? rawData;
+               const finalUrl = extractProfilePictureUrl(responsePayload);
 
-           if (finalUrl) {
-             updatedCount++;
-             const userId = session.user.id;
-             const existing = safeMapGet(savedContacts, phone);
-             await savedContactsApi.upsert(session.access_token, {
-               phone,
-               name: existing?.name || '',
-               user_id: userId,
-               profile_picture_url: finalUrl,
-             });
-           }
-           await new Promise(r => setTimeout(r, 100));
-         } catch { /* ignore individual errors */ }
+               if (finalUrl) {
+                 await savedContactsApi.upsert(session.access_token, {
+                   phone,
+                   name: conversations.find(c => c.phone === phone)?.contactName || '',
+                   user_id: session.user.id,
+                   profile_picture_url: finalUrl,
+                 });
+               }
+             } catch { /* ignore */ }
+           }));
+           // Small delay between chunks
+           await new Promise(r => setTimeout(r, 200));
+         }
        }
        
        await fetchAll();
