@@ -16,10 +16,12 @@ import {
   Pin,
   BellOff,
   Archive,
-  CheckCheck,
-  Eraser,
-  Trash2,
-  Timer,
+   CheckCheck,
+   Pin,
+   Archive,
+   Eraser,
+   Trash2,
+   Timer,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -70,9 +72,17 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Ações da Conversa</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => run("read", undefined, "Marcado como lido")}>
-          <CheckCheck className="w-4 h-4 mr-2" /> Marcar como lido
-        </DropdownMenuItem>
+         <DropdownMenuItem onClick={() => run("read", undefined, "Marcado como lido")}>
+           <CheckCheck className="w-4 h-4 mr-2" /> Marcar como lido
+         </DropdownMenuItem>
+ 
+         <DropdownMenuItem onClick={() => run("archive", undefined, "Conversa arquivada")}>
+           <Archive className="w-4 h-4 mr-2" /> Arquivar
+         </DropdownMenuItem>
+ 
+         <DropdownMenuItem onClick={() => run("pin", undefined, "Conversa fixada")}>
+           <Pin className="w-4 h-4 mr-2" /> Fixar
+         </DropdownMenuItem>
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
@@ -92,9 +102,32 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
             <DropdownMenuItem onClick={() => run("unmute", undefined, "Som ativado")}>
               Reativar som
             </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
+           </DropdownMenuSubContent>
+         </DropdownMenuSub>
+ 
+         <DropdownMenuSeparator />
+         <DropdownMenuItem
+           onClick={() => {
+             if (confirm("Tem certeza que deseja limpar todas as mensagens desta conversa?")) {
+               run("clear", undefined, "Mensagens limpas");
+             }
+           }}
+           className="text-destructive focus:text-destructive"
+         >
+           <Eraser className="w-4 h-4 mr-2" /> Limpar mensagens
+         </DropdownMenuItem>
+ 
+         <DropdownMenuItem
+           onClick={() => {
+             if (confirm("Tem certeza que deseja excluir esta conversa?")) {
+               run("delete", undefined, "Conversa excluída");
+             }
+           }}
+           className="text-destructive focus:text-destructive"
+         >
+           <Trash2 className="w-4 h-4 mr-2" /> Excluir conversa
+         </DropdownMenuItem>
+ 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Timer className="w-4 h-4 mr-2" /> Mensagens temporárias
