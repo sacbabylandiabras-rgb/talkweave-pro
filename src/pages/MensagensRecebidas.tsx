@@ -765,7 +765,7 @@ const ChatView = ({
 
   const handleClearChat = async () => {
     if (!conversation) return;
-    if (!confirm(`Apagar toda a conversa com ${getConversationDisplayName(conversation.contactName, conversation.phone)}?`)) return;
+    if (!confirm(`Apagar toda a conversa com ${getConversationDisplayName(conversation.contactName, conversation.phone, conversation.isCommunity)}?`)) return;
     
     try {
       await onDeleteConversation(conversation.phone);
