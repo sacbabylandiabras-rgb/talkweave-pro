@@ -499,7 +499,7 @@ const ConversationList = ({
                   <span className="font-medium text-sm text-foreground truncate">
                     {getConversationDisplayName(conv.contactName, conv.phone)}
                   </span>
-                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} />
+                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
