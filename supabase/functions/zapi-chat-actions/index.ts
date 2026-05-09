@@ -103,13 +103,15 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
      case 'get-profile-picture':
        return { method: 'GET', path: "/profile-picture?phone=" + phone };
      case 'get-iswhatsapp':
-       return { method: 'GET', path: "/is-whatsapp/" + phone };
+       return { method: 'GET', path: "/phone-exists/" + phone };
      case 'get-iswhatsapp-batch':
-       return { method: 'POST', path: "/is-whatsapp-batch", body: { phones: payload?.phones || [] } };
+       return { method: 'POST', path: "/phone-exists-batch", body: { phones: payload?.phones || [] } };
      case 'block-contact':
-       return { method: 'POST', path: "/block-contact", body: { phone } };
+       return { method: 'POST', path: "/contacts/modify-blocked", body: { phone, action: payload?.action || 'block' } };
+     case 'unblock-contact':
+       return { method: 'POST', path: "/contacts/modify-blocked", body: { phone, action: 'unblock' } };
      case 'report-contact':
-       return { method: 'POST', path: "/report-contact", body: { phone } };
+       return { method: 'POST', path: "/contacts/" + phone + "/report", body: null };
  
      case 'get-disallowed-contacts':
       return { method: 'GET', path: '/privacy/disallowed-contacts' };
