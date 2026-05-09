@@ -589,7 +589,6 @@ export const useMessageLogs = (
       if (!force && fetchedPhotosRef.current.has(phone)) {
         return localManualPhotos.get(phone) || null;
       }
-      fetchedPhotosRef.current.add(phone);
 
       const body: Record<string, unknown> = { phone };
       if (instanceId) body.instanceId = instanceId;
@@ -601,6 +600,14 @@ export const useMessageLogs = (
       const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
+
+      // Only blacklist this phone when we actually obtained a URL, or when it's a
+      // 1:1 contact (which is stable). For groups without photo, allow future retries
+      // via the missing-photos sync effect so the avatar can appear when it becomes
+      // available upstream.
+      if (finalUrl || !isGroupPhone(phone)) {
+        fetchedPhotosRef.current.add(phone);
+      }
 
       setLocalManualPhotos(prev => {
         const next = new Map(prev);
@@ -1131,7 +1138,7 @@ export const useMessageLogs = (
 
   useEffect(() => {
     if (loading || !groupsMissingPhotoKey) return;
-    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 20);
+    const entries = groupsMissingPhotoKey.split('|').filter(Boolean).slice(0, 60);
     if (entries.length === 0) return;
 
     let cancelled = false;
@@ -1143,9 +1150,13 @@ export const useMessageLogs = (
          if (fetchedPhotosRef.current.has(cacheKey)) continue;
          fetchedPhotosRef.current.add(cacheKey);
          try {
-           await fetchProfilePicture(phone, false, instanceId || null);
-         } catch { /* ignore */ }
-        await new Promise((r) => setTimeout(r, 200));
+           const url = await fetchProfilePicture(phone, false, instanceId || null);
+           // Allow future retry if photo wasn't found (e.g. instance was offline)
+           if (!url) fetchedPhotosRef.current.delete(cacheKey);
+         } catch {
+           fetchedPhotosRef.current.delete(cacheKey);
+         }
+        await new Promise((r) => setTimeout(r, 80));
       }
     })();
     return () => { cancelled = true; };
