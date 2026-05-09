@@ -499,7 +499,7 @@ const ApanhadorGrupos = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Apanhador de Grupos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Extrair Membros</h1>
           <p className="text-muted-foreground">Visualize seus grupos do WhatsApp e extraia números dos participantes</p>
         </div>
         <Button
