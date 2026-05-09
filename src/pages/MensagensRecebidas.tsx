@@ -894,7 +894,7 @@ const ChatView = ({
                                   <button
                                     key={emoji}
                                     className="hover:scale-125 transition-transform p-1"
-                                    onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                    onClick={() => handleReactionClick(msg, emoji)}
                                   >
                                     {emoji}
                                   </button>
@@ -915,6 +915,11 @@ const ChatView = ({
                             {formatMessageTime(msg.timestamp)}
                           </span>
                         </div>
+                        {localReactions[msg.id] && (
+                          <span className="absolute -bottom-3 left-2 rounded-full bg-card border border-border px-1 text-xs shadow-sm text-foreground">
+                            {localReactions[msg.id]}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
