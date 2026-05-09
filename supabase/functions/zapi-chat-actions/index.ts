@@ -19,7 +19,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   if (error || !user) throw new Error('Unauthorized');
 
   let q = admin.from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id);
   if (instanceDbId) {
     q = q.eq('id', instanceDbId);
@@ -29,7 +29,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   let { data: inst } = await q.maybeSingle();
   if (!inst) {
     const r = await admin.from('zapi_instances')
-      .select('id, zapi_instance_id, zapi_token, zapi_client_token')
+      .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
       .eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
     inst = r.data as any;
   }
@@ -40,40 +40,66 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     instanceId: inst.zapi_instance_id,
     token: inst.zapi_token,
     clientToken: inst.zapi_client_token,
+    apiProvider: inst.api_provider || 'zapi',
+    evolutionUrl: inst.evolution_api_url,
+    evolutionKey: inst.evolution_api_key,
   };
 }
 
-function buildBase(c: { instanceId: string; token: string }) {
+function buildBase(c: { instanceId: string; token: string; apiProvider: string; evolutionUrl?: string | null }) {
+  if (c.apiProvider === 'uazapi' && c.evolutionUrl) {
+    return c.evolutionUrl.replace(/\/+$/, '');
+  }
   return "https://api.z-api.io/instances/" + c.instanceId + "/token/" + c.token;
 }
 
-function endpointFor(action: string, phone: string, payload: any) {
+function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
+  const isUazapi = apiProvider === 'uazapi';
+  
+  // Normalize phone for Evolution API if needed
+  const cleanPhone = phone.replace('@g.us', '').replace(/-group$/, '');
+  const uazapiSuffix = phone.includes('-group') || phone.includes('@g.us') ? '@g.us' : '@s.whatsapp.net';
+  const uazapiPhone = cleanPhone + uazapiSuffix;
+
   switch (action) {
     case 'list-chats':
+      if (isUazapi) return { method: 'GET', path: "/chat/find-all" };
       return { method: 'GET', path: "/chats?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
     case 'metadata':
+      if (isUazapi) return { method: 'GET', path: "/chat/find-messages?remoteJid=" + uazapiPhone + "&count=1" };
       return { method: 'GET', path: "/chats/" + phone };
     case 'read':
+      if (isUazapi) return { method: 'POST', path: "/chat/read", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/chats/" + phone + "/read" };
     case 'unread':
+      if (isUazapi) return { method: 'POST', path: "/chat/unread", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/chats/" + phone + "/unread" };
     case 'archive':
+      if (isUazapi) return { method: 'POST', path: "/chat/archive", body: { remoteJid: uazapiPhone, archive: true } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'archive' } };
     case 'unarchive':
+      if (isUazapi) return { method: 'POST', path: "/chat/archive", body: { remoteJid: uazapiPhone, archive: false } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unarchive' } };
     case 'pin':
+      if (isUazapi) return { method: 'POST', path: "/chat/pin", body: { remoteJid: uazapiPhone, pin: true } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'pin' } };
     case 'unpin':
+      if (isUazapi) return { method: 'POST', path: "/chat/pin", body: { remoteJid: uazapiPhone, pin: false } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unpin' } };
     case 'mute':
+      if (isUazapi) return { method: 'POST', path: "/chat/mute", body: { remoteJid: uazapiPhone, muteFor: payload?.muteFor ?? 28800 } };
       return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: payload?.muteFor ?? 28800 } };
     case 'unmute':
+      if (isUazapi) return { method: 'POST', path: "/chat/mute", body: { remoteJid: uazapiPhone, muteFor: 0 } };
       return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: 0 } };
     case 'clear':
+      if (isUazapi) return { method: 'DELETE', path: "/chat/clear", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/clear-chat", body: { phone } };
     case 'delete':
+      if (isUazapi) return { method: 'DELETE', path: "/chat/delete", body: { remoteJid: uazapiPhone } };
       return { method: 'DELETE', path: "/chats/" + phone };
      case 'expiration':
+      if (isUazapi) return { method: 'POST', path: "/chat/expiration", body: { remoteJid: uazapiPhone, expiration: payload?.expiration ?? 0 } };
        return { method: 'POST', path: "/send-chat-expiration", body: { phone, expiration: payload?.expiration ?? 0 } };
  
      // Contact Actions
@@ -196,16 +222,22 @@ Deno.serve(async (req) => {
     const { action, phone = '', instanceDbId, payload } = body;
     if (!action) throw new Error('Missing action');
 
-    const creds = await resolveCreds(req, instanceDbId);
+    const creds = await resolveCreds(req, instanceDbId || undefined);
     const base = buildBase(creds);
-    const ep = endpointFor(action, phone, payload);
+    const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
-    const url = base + ep.path;
+    let url = base + ep.path;
+    if (creds.apiProvider === 'uazapi' && !ep.path.includes('?')) {
+      url += `/${creds.instanceId}`;
+    } else if (creds.apiProvider === 'uazapi' && ep.path.includes('?')) {
+      url = url.replace('?', `/${creds.instanceId}?`);
+    }
+
     const init: RequestInit = {
       method: ep.method,
       headers: {
         'Content-Type': 'application/json',
-        'Client-Token': creds.clientToken,
+        [creds.apiProvider === 'uazapi' ? 'apikey' : 'Client-Token']: creds.apiProvider === 'uazapi' ? (creds.evolutionKey || '') : creds.clientToken,
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);

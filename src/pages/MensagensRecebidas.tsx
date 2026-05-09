@@ -739,7 +739,7 @@ const ChatView = ({
           <Button variant="ghost" size="icon" className="h-8 w-8" title={conversation.contactName ? "Editar contato" : "Salvar contato"} onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}>
             {conversation.contactName ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
           </Button>
-          <ZapiChatActionsMenu phone={conversation.phone} />
+          <ZapiChatActionsMenu phone={conversation.phone} instanceDbId={conversation.preferredInstanceId || undefined} />
         </div>
       </div>
 
@@ -1345,7 +1345,7 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={() => setProfileOpen(true)} campaignTemplates={campaignTemplates} onSendMessage={async (phone, message, options) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} onSendMessage={async (phone, message, options) => {
             await sendMessage(phone, message, options);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
