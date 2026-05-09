@@ -926,7 +926,7 @@ const ChatView = ({
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="font-medium text-foreground truncate">
-              {getConversationDisplayName(conversation.contactName, conversation.phone)}
+              {getConversationDisplayName(conversation.contactName, conversation.phone, conversation.isCommunity)}
             </h3>
             <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} isCommunity={conversation.isCommunity} />
           </div>
