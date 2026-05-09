@@ -2005,7 +2005,7 @@ Formatos aceitos:
 • Nome;Telefone
 • Telefone;Nome
 • Nome    Telefone (separado por tab)`}
-                      className="mt-1 min-h-[120px] font-mono text-sm"
+                      className="mt-1 min-h-[120px] font-mono text-sm text-black"
                       value={contatos}
                       onChange={(e) => setContatos(e.target.value)}
                     />
@@ -2020,7 +2020,7 @@ Formatos aceitos:
                       <Textarea
                         id="mensagem-massa"
                         placeholder="Digite a mensagem ou selecione um modelo acima"
-                        className="mt-1 min-h-[120px]"
+                        className="mt-1 min-h-[120px] text-black"
                         value={mensagem}
                         onChange={(e) => setMensagem(e.target.value)}
                       />
