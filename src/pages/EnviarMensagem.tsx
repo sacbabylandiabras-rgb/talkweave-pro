@@ -1495,7 +1495,7 @@ const EnviarMensagem = () => {
                       id="numero" 
                       type="tel"
                       placeholder="5511999999999"
-                      className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
+                      className={`mt-1 text-black ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
                       onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
@@ -1511,7 +1511,7 @@ const EnviarMensagem = () => {
                     <Textarea 
                       id="mensagem-individual"
                       placeholder="Digite sua mensagem aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
+                      className={`mt-1 min-h-[120px] text-black ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
                       onChange={(e) => setMensagem(e.target.value)}
                     />
@@ -1577,7 +1577,7 @@ const EnviarMensagem = () => {
                       id="numero-botoes" 
                       type="tel"
                       placeholder="5511999999999"
-                      className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
+                      className={`mt-1 text-black ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
                       onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
@@ -1591,6 +1591,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="titulo-botoes" 
                       placeholder="Título da mensagem"
+                      className="text-black"
                       value={titulo}
                       onChange={(e) => setTitulo(e.target.value)}
                     />
@@ -1601,7 +1602,7 @@ const EnviarMensagem = () => {
                     <Textarea 
                       id="mensagem-botoes"
                       placeholder="Digite sua mensagem aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
+                      className={`mt-1 min-h-[120px] text-black ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
                       onChange={(e) => setMensagem(e.target.value)}
                     />
@@ -1615,6 +1616,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="rodape-botoes" 
                       placeholder="Texto do rodapé"
+                      className="text-black"
                       value={rodape}
                       onChange={(e) => setRodape(e.target.value)}
                     />
@@ -1779,7 +1781,7 @@ const EnviarMensagem = () => {
                       id="numero-lista" 
                       type="tel"
                       placeholder="5511999999999"
-                      className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
+                      className={`mt-1 text-black ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
                       onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
@@ -1793,7 +1795,7 @@ const EnviarMensagem = () => {
                     <Textarea 
                       id="mensagem-lista"
                       placeholder="Digite sua mensagem aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
+                      className={`mt-1 min-h-[120px] text-black ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
                       onChange={(e) => setMensagem(e.target.value)}
                     />
@@ -1807,6 +1809,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="titulo-lista" 
                       placeholder="Opções disponíveis"
+                      className="text-black"
                       value={tituloLista}
                       onChange={(e) => setTituloLista(e.target.value)}
                     />
@@ -1817,6 +1820,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="label-botao" 
                       placeholder="Ver opções"
+                      className="text-black"
                       value={labelBotaoLista}
                       onChange={(e) => setLabelBotaoLista(e.target.value)}
                     />
@@ -1830,6 +1834,7 @@ const EnviarMensagem = () => {
                           <div className="flex gap-2 items-center">
                             <Input
                               placeholder="Título da opção"
+                              className="text-black"
                               value={opcao.title}
                               onChange={(e) => updateOption(index, 'title', e.target.value)}
                             />
@@ -1846,6 +1851,7 @@ const EnviarMensagem = () => {
                           </div>
                           <Input
                             placeholder="Descrição da opção"
+                            className="text-black"
                             value={opcao.description}
                             onChange={(e) => updateOption(index, 'description', e.target.value)}
                           />
@@ -1999,7 +2005,7 @@ Formatos aceitos:
 • Nome;Telefone
 • Telefone;Nome
 • Nome    Telefone (separado por tab)`}
-                      className="mt-1 min-h-[120px] font-mono text-sm"
+                      className="mt-1 min-h-[120px] font-mono text-sm text-black"
                       value={contatos}
                       onChange={(e) => setContatos(e.target.value)}
                     />
@@ -2014,7 +2020,7 @@ Formatos aceitos:
                       <Textarea
                         id="mensagem-massa"
                         placeholder="Digite a mensagem ou selecione um modelo acima"
-                        className="mt-1 min-h-[120px]"
+                        className="mt-1 min-h-[120px] text-black"
                         value={mensagem}
                         onChange={(e) => setMensagem(e.target.value)}
                       />
@@ -2036,7 +2042,7 @@ Formatos aceitos:
                       max="60"
                       value={delay}
                       onChange={(e) => setDelay(parseInt(e.target.value) || 2)}
-                      className="mt-1"
+                      className="mt-1 text-black"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Recomendado: 2-5 segundos para evitar bloqueios

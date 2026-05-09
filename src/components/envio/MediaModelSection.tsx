@@ -181,7 +181,7 @@ const MediaModelSection = ({
               placeholder="Legenda para mídia (opcional)"
               value={legenda}
               onChange={(e) => setLegenda(e.target.value)}
-              className="text-sm"
+              className="text-sm text-black"
             />
           </div>
         </Card>
