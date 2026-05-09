@@ -353,7 +353,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
             {contact.profilePictureUrl ? (
               <AvatarImage
                 src={contact.profilePictureUrl}
-                onError={() => getContactProfilePicture(contact.phone)}
+               onError={() => (getContactProfilePicture as any)(contact.phone, preferredInstanceId)}
               />
             ) : null}
             <AvatarFallback className="bg-[#DFE5E7]">

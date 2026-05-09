@@ -1035,10 +1035,10 @@ const getZAPIConfig = async () => {
      }
    };
  
-   const getContactProfilePicture = async (phone: string) => {
+   const getContactProfilePicture = async (phone: string, instanceDbId?: string) => {
      setLoading(true);
      try {
-       return await invokeZapiAction('get-profile-picture', phone);
+       return await invokeZapiAction('get-profile-picture', phone, {}, instanceDbId);
      } catch (error) {
        console.error('Erro ao buscar foto do contato:', error);
        throw error;
@@ -1549,7 +1549,7 @@ const getZAPIConfig = async () => {
      addContacts,
      removeContacts,
      getContactMetadata,
-     getContactProfilePicture,
+      getContactProfilePicture: (phone: string) => getContactProfilePicture(phone),
      checkIsWhatsApp,
      checkIsWhatsAppBatch,
      blockContact,
