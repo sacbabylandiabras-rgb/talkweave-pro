@@ -198,13 +198,14 @@ const isRedundantManualFlowEcho = (
    return { name, phone, photo, rest: raw.replace(SENDER_PREFIX_REGEX, '') };
  };
 
-const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
-  const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
-  if (buttonText) return buttonText;
-  const rawContent = parseSenderFromContent(String(log.message_received || '')).rest.trim();
-  if (isTechnicalMessageReference(rawContent)) return '';
-  return rawContent;
-};
+ const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
+   const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
+   if (buttonText) return buttonText;
+   const { rest } = parseSenderFromContent(String(log.message_received || ''));
+   const rawContent = rest.trim();
+   if (isTechnicalMessageReference(rawContent)) return '';
+   return rawContent;
+ };
 
 const isGroupMembershipLog = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
   return (log.keyword_matched === '__group_join__' || log.keyword_matched === '__group_leave__') && isGroupPhone(String(log.message_received || ''));
