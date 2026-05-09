@@ -148,15 +148,7 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
   return content.replace(/\[modelo:([a-f0-9-]+)\]/gi, (_match, id) => {
     const tpl = templates.find(t => t.id === id);
     if (tpl) {
-      let resolved = '';
-      
-      // Add media tag if present and not already in content
-      if (tpl.mediaUrl && !content.includes('[media:')) {
-        const type = tpl.type?.split('_')[0] || 'image';
-        resolved += `[media:${type}:${tpl.mediaUrl}]\n`;
-      }
-
-      resolved += tpl.content || '';
+      let resolved = tpl.content || '';
       if (tpl.header) resolved = `*${tpl.header}*\n${resolved}`;
       if (tpl.footer) resolved += `\n_${tpl.footer}_`;
       const buttonLabels = (tpl.buttons || [])
