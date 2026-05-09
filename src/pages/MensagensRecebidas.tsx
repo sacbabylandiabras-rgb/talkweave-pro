@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isGroupPhone, isCommunityPhone } from "@/lib/group-name-resolution";
+import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
@@ -61,11 +61,18 @@ const looksLikePhoneOrId = (value: string) => {
 };
 
 const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
-  const isGroup = phone ? isGroupPhone(phone) : false;
+  if (!phone) return name || '';
+  
+  const isGroup = isGroupPhone(phone);
+  const isCommunity = isCommunityPhone(phone);
+
   // For groups, ignore "names" that look like phone numbers / IDs (often the
   // last sender's number or the group jid leaked through).
   if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
+  
+  if (isCommunity) return 'Comunidade';
   if (isGroup) return 'Grupo';
+  
   return formatPhone(phone);
 };
 
@@ -348,18 +355,18 @@ const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) 
     );
   }
 
-  if (isCommunityPhone(phone) || (lowerName.includes('comunidade') && !lowerName.includes('grupo'))) {
+  if (isCommunityPhone(phone)) {
     return (
-      <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+      <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
         <Megaphone className="w-2.5 h-2.5" />
         Comunidade
       </Badge>
     );
   }
 
-  if (isGroupPhone(phone)) {
+  if (isRegularGroupPhone(phone)) {
     return (
-      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+      <Badge variant="outline" className="text-blue-700 border-blue-200 px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
         <Users className="w-2.5 h-2.5" />
         Grupo
       </Badge>
