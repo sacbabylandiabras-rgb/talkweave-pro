@@ -508,7 +508,7 @@ const ConversationList = ({
                   <span className="font-medium text-sm text-foreground truncate">
                     {getConversationDisplayName(conv.contactName, conv.phone)}
                   </span>
-                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} customName={conv.contactName} />
+                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} />
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
@@ -937,7 +937,7 @@ const ChatView = ({
             <h3 className="font-medium text-foreground truncate">
               {getConversationDisplayName(conversation.contactName, conversation.phone)}
             </h3>
-            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} customName={conversation.contactName} />
+            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} />
           </div>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
