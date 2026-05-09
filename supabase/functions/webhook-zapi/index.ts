@@ -5446,7 +5446,19 @@ async function routeMatchedButtonFlow(
     resumeCaptured,
   };
 
-  if (targetNode.type === "blocoConteudo") {
+      if (targetNode.type === "blocoConteudo" || targetNode.type === "blocoAcao") {
+        const isActionDelay = targetNode.type === "blocoAcao" && targetNode.data.actionType === "delay";
+        
+        if (isActionDelay) {
+          const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+          if (seconds > 0) {
+            const safeSeconds = Math.min(seconds, 50);
+            console.log(`[webhook-zapi] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`);
+            await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000));
+          }
+        }
+
+        if (targetNode.type === "blocoConteudo") {
     const shouldStop = await sendNodeContent(
       targetNode,
       flowNodes,
@@ -5617,48 +5629,47 @@ async function processFlowNode(
     const targetNode = nodes.find((n) => n.id === edge.target);
     if (!targetNode) continue;
 
-    if (targetNode.type === "blocoConteudo") {
-      const shouldStop = await sendNodeContent(
-        targetNode,
-        nodes,
-        edges,
-        phone,
-        zapiConfig,
-        visited,
-        supabase,
-        userId,
-        flowName,
-        options,
-      );
-      if (shouldStop) continue;
+    if (targetNode.type === "blocoConteudo" || targetNode.type === "blocoAcao") {
+      const isActionDelay = targetNode.type === "blocoAcao" && targetNode.data.actionType === "delay";
+      
+      if (isActionDelay) {
+        const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+        if (seconds > 0) {
+          const safeSeconds = Math.min(seconds, 50);
+          console.log(`[webhook-zapi] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`);
+          await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000));
+        }
+      }
+
+      if (targetNode.type === "blocoConteudo") {
+        const shouldStop = await sendNodeContent(
+          targetNode,
+          nodes,
+          edges,
+          phone,
+          zapiConfig,
+          visited,
+          supabase,
+          userId,
+          flowName,
+          options,
+        );
+        if (shouldStop) continue;
+      }
     }
 
-     // Bloco de ação: aplica delay antes de continuar o fluxo no backend
-     if (targetNode.type === "blocoAcao") {
-       const actionType = targetNode.data.actionType;
-       if (actionType === "delay") {
-         const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
-         if (seconds > 0) {
-           // No backend, limitamos o delay para evitar timeouts (máx 50s)
-           const safeSeconds = Math.min(seconds, 50);
-           console.log(`[webhook-zapi] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`);
-           await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000));
-         }
-       }
-     }
- 
-     await processFlowNode(
-       targetNode.id,
-       nodes,
-       edges,
-       phone,
-       zapiConfig,
-       supabase,
-       visited,
-       userId,
-       flowName,
-       options,
-     );
+    await processFlowNode(
+      targetNode.id,
+      nodes,
+      edges,
+      phone,
+      zapiConfig,
+      supabase,
+      visited,
+      userId,
+      flowName,
+      options,
+    );
   }
 }
 
@@ -6751,4 +6762,5 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   if (words.length === 0) return false;
   const hits = words.filter((w) => message.includes(w)).length;
   return hits / words.length >= 0.7;
+}
 }
