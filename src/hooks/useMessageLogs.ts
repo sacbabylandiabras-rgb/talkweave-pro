@@ -667,13 +667,18 @@ export const useMessageLogs = (
     await fetchSavedContacts();
   }, [fetchSavedContacts]);
 
-   const fetchProfilePicture = useCallback(async (phone: string, force = false, instanceId?: string | null): Promise<string | null> => {
-    try {
-      if (!force && fetchedPhotosRef.current.has(phone)) {
-        return localManualPhotos.get(phone) || null;
-      }
+    const fetchProfilePicture = useCallback(async (rawPhone: string, force = false, instanceId?: string | null): Promise<string | null> => {
+     try {
+       // Ensure correct format for Z-API/Edge Function (needs @g.us for groups)
+       const phone = rawPhone.endsWith('-group') 
+         ? `${rawPhone.replace(/-group$/, '')}@g.us` 
+         : rawPhone;
 
-      const body: Record<string, unknown> = { phone };
+       if (!force && fetchedPhotosRef.current.has(phone)) {
+         return localManualPhotos.get(phone) || null;
+       }
+ 
+       const body: Record<string, unknown> = { phone };
       if (instanceId) body.instanceId = instanceId;
       else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
 

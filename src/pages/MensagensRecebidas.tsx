@@ -447,14 +447,14 @@ const ConversationList = ({
                )}
                <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
                {conv.profilePictureUrl ? (
-                 <AvatarImage
-                   src={conv.profilePictureUrl}
-                   className="h-full w-full object-cover"
-                   onError={(e) => {
-                     console.warn(`[Avatar] Failed to load image for ${conv.phone}`, e);
-                     onFetchPhoto(conv.phone, true);
-                   }}
-                 />
+                  <AvatarImage 
+                    src={conv.profilePictureUrl} 
+                    className="h-full w-full object-cover" 
+                    onError={(e) => {
+                      // Prevent infinite loop by setting onerror to null
+                      (e.target as HTMLImageElement).onerror = null;
+                    }} 
+                  />
                ) : null}
               <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
                  <WhatsAppDefaultAvatar />
@@ -850,10 +850,12 @@ const ChatView = ({
           </Button>
         )}
          <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-          <AvatarImage
-            src={conversation.profilePictureUrl || undefined}
-            className="h-full w-full object-cover"
-            onError={() => onFetchPhoto(conversation.phone, true)}
+          <AvatarImage 
+            src={conversation.profilePictureUrl || undefined} 
+            className="h-full w-full object-cover" 
+            onError={(e) => {
+              (e.target as HTMLImageElement).onerror = null;
+            }} 
           />
           <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
              <WhatsAppDefaultAvatar />
@@ -1631,14 +1633,21 @@ const MensagensRecebidas = () => {
   const handleFetchPhoto = async (phone: string, force = false) => {
     if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
+
+    // Reconstruct correct format for Z-API (needs @g.us for groups)
+    const zapiPhone = phone.endsWith('-group')
+      ? `${phone.replace(/-group$/, '')}@g.us`
+      : phone;
+
     const url = await fetchProfilePicture(
-      phone,
+      zapiPhone,
       force,
       selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null
     );
+
     if (url) setManualProfilePic(url);
     if (!force) setLoadingPhoto(false);
-    
+
     if (url && !force) {
       toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
     } else if (!url && !force) {

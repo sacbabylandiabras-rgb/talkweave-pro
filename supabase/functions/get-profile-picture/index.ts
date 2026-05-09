@@ -207,8 +207,24 @@ const extractGroupName = (payload: any): string | null => {
                const linkC = extractUrl(match)
                if (contactsRes.ok && linkC) return { success: true, data: { link: linkC, raw: match } }
              }
-           } else {
-             const formats = isGroup ? [`${numericId}@g.us`, `${numericId}-group`, numericId] : [numericId, `${numericId}@c.us`]
+            } else if (isGroup) {
+              // Specific handling for groups
+              const groupId = `${numericId}@g.us`
+              
+              // Try /profile-picture first
+              const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const data = await res.json().catch(() => null)
+              let link = extractUrl(data)
+              if (res.ok && link) return { success: true, data: { link, raw: data } }
+
+              // Try /group-picture (often used in Z-API for groups)
+              const resGp = await fetch(`${base}/group-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const dataGp = await resGp.json().catch(() => null)
+              link = extractUrl(dataGp)
+              if (resGp.ok && link) return { success: true, data: { link, raw: dataGp } }
+
+            } else {
+              const formats = [numericId, `${numericId}@c.us`]
               for (const f of formats) {
                 console.log(`📷 Checking profile-picture for ${f} on ${provider}`);
                 const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(f)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
