@@ -109,12 +109,6 @@ async function acquireMessageProcessingLock(
      instance_id: instanceId || null,
    };
 
-   // Only include these columns if they exist in the schema to avoid errors
-   // if the schema cache is stale or if there are issues with the columns.
-   if (senderName !== undefined) logEntry.sender_name = senderName || null;
-   if (senderPhone !== undefined) logEntry.sender_phone = senderPhone || null;
-   if (senderPhoto !== undefined) logEntry.sender_photo = senderPhoto || null;
-
    const { error } = await supabase.from("message_logs").insert(logEntry);
   if (!error) return { acquired: true, lockId };
   const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
