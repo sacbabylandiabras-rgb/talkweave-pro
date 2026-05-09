@@ -1061,7 +1061,7 @@ const MensagensRecebidas = () => {
   const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
   const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
   const filterInstanceName = selectedInstance?.instance_name;
-  // Auto-sync the chat list from the connected provider (Z-API or UAZAPI) so
+  // Auto-sync the chat list from the connected provider (Z-API) so
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
@@ -1139,19 +1139,6 @@ const MensagensRecebidas = () => {
     };
   }, [instances]);
 
-  // Auto-configure UAZAPI webhook on the provider once per session so that
-  // incoming user replies (needed for flow captures) actually arrive at our
-  // webhook-zapi function. Without this, only delivery acks are sent.
-  useEffect(() => {
-    if (instances.length === 0) return;
-    try {
-      const flagKey = 'uazapi_webhook_synced_v1';
-      if (sessionStorage.getItem(flagKey)) return;
-      sessionStorage.setItem(flagKey, '1');
-      supabase.functions.invoke('uazapi-set-webhook', { body: {} }).catch(() => { /* silent */ });
-    } catch { /* ignore */ }
-  }, [instances]);
-
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
     try {
@@ -1190,16 +1177,15 @@ const MensagensRecebidas = () => {
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Auto history sync only for Z-API. For UAZAPI, keep the initial live list stable
-  // and allow manual sync via the refresh button instead of importing old chats automatically.
+  // Auto history sync for Z-API to keep the latest live conversations.
   useEffect(() => {
     if (!shouldAutoSyncHistory) return;
     if ((knownInstanceIds?.length || 0) === 0) return;
     syncHistory();
   }, [shouldAutoSyncHistory, knownInstanceIds?.join('|')]);
 
-  // Background sync every 5 minutes to keep the chat list fresh while the
-  // page is open (UAZAPI/Z-API). Refreshes only the chat list — message
+  // Background sync every 5 minutes to keep the chat list fresh.
+  // Refreshes only the chat list — message
   // history per chat is fetched on-demand on conversation open.
   useEffect(() => {
     if (!shouldAutoSyncHistory) return;
@@ -1211,8 +1197,7 @@ const MensagensRecebidas = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldAutoSyncHistory, knownInstanceIds?.join('|')]);
 
-  // On-demand: when the user opens a conversation, fetch its message history
-  // from the live provider (UAZAPI /chat/messages or Z-API equivalent) and
+  // On-demand: when the user opens a conversation, fetch its message history from Z-API
   // persist into message_logs. Only triggers once per phone per session.
   const fetchedHistoryRef = useRef<Set<string>>(new Set());
   useEffect(() => {
