@@ -19,19 +19,23 @@ export interface SavedContactLike {
   profile_picture_url?: string | null;
 }
 
-export const isCommunityPhone = (phone: string): boolean => {
-  const clean = String(phone || '').replace(/\D/g, '');
-  return clean.startsWith('120363') && clean.length > 15;
+export const isRegularGroupPhone = (phone: string): boolean => {
+  return isGroupPhone(phone) && !isCommunityPhone(phone);
 };
 
 export const isGroupPhone = (phone: string): boolean => {
-  if (!phone) return false;
-  const clean = String(phone).replace(/\D/g, '');
-  return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(clean);
+  const clean = String(phone || '').replace(/\D/g, '');
+  if (phone.includes('@g.us')) return true;
+  if (phone.includes('-group')) {
+    return clean.length <= 20;
+  }
+  return /^12036\d{10,13}$/.test(clean);
 };
 
-export const isRegularGroupPhone = (phone: string): boolean => {
-  return isGroupPhone(phone) && !isCommunityPhone(phone);
+export const isCommunityPhone = (phone: string): boolean => {
+  const clean = String(phone || '').replace(/\D/g, '');
+  return /^12036\d{14,}$/.test(clean) || 
+    (phone.includes('-group') && /^12036/.test(clean) && clean.length > 16);
 };
 
 export const isNewsletterPhone = (phone: string): boolean => {
