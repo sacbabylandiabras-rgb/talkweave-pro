@@ -19,11 +19,14 @@ serve(async (req) => {
     const authHeader = req.headers.get('authorization')
     if (!authHeader) throw new Error('No authorization header')
     
+    const { page = 0 } = await req.json().catch(() => ({}));
+
     const token = authHeader.replace(/^Bearer\s+/i, '')
     const { data: { user }, error: userError } = await adminClient.auth.getUser(token)
     if (userError || !user) throw new Error('Unauthorized')
-
-    console.log(`📋 Starting profile photo sync for user: ${user.id}`)
+    
+    const limit = 100;
+    console.log(`📋 Starting profile photo sync for user: ${user.id} (Page: ${page}, Limit: ${limit})`)
 
     // Pega instância padrão do usuário
     const { data: instance } = await adminClient
@@ -44,18 +47,17 @@ serve(async (req) => {
 
     // Busca APENAS grupos sem metadata (is_community null)
     // Prio 1: Começa com 120363, ou contém @g.us ou contém -group
-    // Limitado a 10 por chamada para ser rápido
     const { data: contacts, error: contactsError } = await adminClient
       .from('saved_contacts')
       .select('phone, name, profile_picture_url, is_community')
       .eq('user_id', user.id)
       .is('is_community', null)
       .or('phone.like.120363%,phone.like.%@g.us,phone.like.%-group')
-      .limit(10)
+      .limit(limit)
 
     if (contactsError) throw contactsError
     if (!contacts?.length) {
-      return new Response(JSON.stringify({ message: 'All photos up to date', updated: 0 }), {
+      return new Response(JSON.stringify({ message: 'All photos up to date', updated: 0, hasMore: false }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -136,7 +138,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ updatedPhotos: updated, updatedMeta, total: contacts.length }), {
+    const hasMore = contacts.length === limit;
+
+    return new Response(JSON.stringify({ 
+      updatedPhotos: updated, 
+      updatedMeta, 
+      total: contacts.length,
+      hasMore
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {

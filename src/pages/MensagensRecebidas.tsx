@@ -1724,14 +1724,20 @@ const MensagensRecebidas = () => {
   const handleRefreshAll = async () => {
     setSyncing(true);
     try {
-      clearFetchedPhotosCache();
-      
-      // Chama 5x = processa até 250 contatos por clique
+      // Chama até 5 páginas de 100 contatos cada
       for (let i = 0; i < 5; i++) {
-        await supabase.functions.invoke('sync-profile-photos');
+        const { data } = await supabase.functions.invoke('sync-profile-photos', {
+          body: { page: i }
+        });
+        
+        if (data && data.hasMore === false) {
+          break;
+        }
       }
       
       await refetch();
+      clearFetchedPhotosCache();
+
       toast({ 
         title: "Fotos sincronizadas", 
         description: "Fotos de perfil atualizadas." 
