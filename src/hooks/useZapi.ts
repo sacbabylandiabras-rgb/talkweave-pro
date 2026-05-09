@@ -1038,6 +1038,14 @@ const getZAPIConfig = async () => {
    const getContactProfilePicture = async (phone: string, instanceDbId?: string) => {
      setLoading(true);
      try {
+       try {
+         const { data, error } = await supabase.functions.invoke('get-profile-picture', {
+           body: { phone, instanceId: instanceDbId }
+         });
+         if (!error && data) return data;
+       } catch (e) {
+         console.warn('[useZapi] get-profile-picture function failed, falling back to actions', e);
+       }
        return await invokeZapiAction('get-profile-picture', phone, {}, instanceDbId);
      } catch (error) {
        console.error('Erro ao buscar foto do contato:', error);
