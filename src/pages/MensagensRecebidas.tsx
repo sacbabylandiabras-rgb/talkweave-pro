@@ -349,10 +349,7 @@ const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) 
   
   if (phone.includes('@newsletter') || (lowerName.includes('canal') && !lowerName.includes('grupo'))) {
     return (
-      <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-        <Megaphone className="w-2.5 h-2.5" />
-        Canal
-      </Badge>
+      <Badge variant="secondary" className="text-[10px] shrink-0">CANAL</Badge>
     );
   }
 
