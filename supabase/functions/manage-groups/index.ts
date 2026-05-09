@@ -490,15 +490,16 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      case "metadata-group":
-      case "group-metadata": {
-        const { groupId } = body;
-        if (!groupId) throw new Error("groupId is required");
-        const cleanId = groupId.includes("-group") ? groupId : groupId.replace("@g.us", "-group");
-        const response = await fetch(`${baseUrl}/group-metadata/${cleanId}`, { method: "GET", headers });
-        const data = await response.json().catch(() => ({}));
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
+       case "metadata-group":
+       case "group-metadata": {
+         const { groupId, phone } = body;
+         const targetId = groupId || phone;
+         if (!targetId) throw new Error("groupId or phone is required");
+         const cleanId = targetId.includes("-group") ? targetId : targetId.replace("@g.us", "-group");
+         const response = await fetch(`${baseUrl}/group-metadata/${cleanId}`, { method: "GET", headers });
+         const data = await response.json().catch(() => ({}));
+         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+       }
 
       case "light-group-metadata": {
         const { groupId } = body;
