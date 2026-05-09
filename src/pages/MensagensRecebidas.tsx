@@ -670,11 +670,13 @@ const ChatView = ({
     }
   };
 
-  const filteredTemplates = templates.filter(t => 
-    t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
-    t.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
-    t.content.toLowerCase().includes(templateSearch.toLowerCase())
-  );
+   const filteredTemplates = useMemo(() => {
+     return templates.filter(t => 
+       t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+       (t.category && t.category.toLowerCase().includes(templateSearch.toLowerCase())) ||
+       (t.content && t.content.toLowerCase().includes(templateSearch.toLowerCase()))
+     );
+   }, [templates, templateSearch]);
 
   if (!conversation) {
     return (
@@ -932,7 +934,7 @@ const ChatView = ({
                       className="h-8 text-sm"
                     />
                   </div>
-                  <ScrollArea className="max-h-[300px]">
+                   <ScrollArea className="max-h-[500px]">
                     {templatesLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
