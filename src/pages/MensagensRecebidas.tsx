@@ -337,6 +337,15 @@ const SaveContactDialog = ({
 };
 
 const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
+  if (phone.includes('@newsletter')) {
+    return (
+      <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Canal
+      </Badge>
+    );
+  }
+
   if (isCommunityPhone(phone)) {
     return (
       <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
