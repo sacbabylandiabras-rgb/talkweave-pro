@@ -1207,7 +1207,7 @@ const Modelos = () => {
   }, []);
 
 
-  if (loading) {
+  if (templatesLoading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
   }
 
