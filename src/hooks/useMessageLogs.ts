@@ -332,6 +332,13 @@ const extractResolvedGroupName = (payload: any): string | null => {
    return Number.isFinite(ms) ? ms : 0;
  };
  
+const toZapiPhone = (phone: string): string => {
+  if (phone.endsWith('-group')) {
+    return `${phone.replace(/-group$/, '')}@g.us`;
+  }
+  return phone;
+};
+
 const isLikelyTechnicalIdentifier = (phone: string): boolean => {
   const clean = phone.replace(/\D/g, '');
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
