@@ -1478,7 +1478,7 @@ const MensagensRecebidas = () => {
      refetch();
    }, []); // roda só uma vez ao montar
 
-   const { forwardMessage, sendReaction, sendSticker } = useZapi();
+   const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
   const syncHistory = async () => {
     setSyncing(true);
     try {
@@ -1899,9 +1899,12 @@ const MensagensRecebidas = () => {
              onSendReaction={async (phone, messageId, emoji) => {
                await sendReaction(phone, messageId, emoji);
              }}
-             onSendSticker={async (phone, stickerUrl) => {
-               await sendSticker(phone, stickerUrl);
-             }}
+              onSendSticker={async (phone, stickerUrl) => {
+                await sendSticker(phone, stickerUrl);
+              }}
+              onSendGif={async (phone, gifUrl, caption) => {
+                await sendGif(phone, gifUrl, caption);
+              }}
              onDeleteConversation={async (phone) => {
                await deleteConversation(phone);
              }}
