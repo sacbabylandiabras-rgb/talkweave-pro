@@ -69,9 +69,11 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
+    senderName?: string;
+    senderPhone?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId } = params;
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
   const now = Date.now();
   const bucketSize = 15000;
@@ -93,6 +95,8 @@ async function acquireMessageProcessingLock(
     timestamp: new Date().toISOString(),
     user_id: userId,
     instance_id: instanceId || null,
+    sender_name: senderName || null,
+    sender_phone: senderPhone || null,
   });
   if (!error) return { acquired: true, lockId };
   const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
