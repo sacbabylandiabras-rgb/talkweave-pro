@@ -3175,6 +3175,17 @@ serve(async (req) => {
         webhook?.instance_name,
     );
 
+    // Fallback: if no instance matched but it's an UAZAPI webhook with instanceId,
+    // try to resolve by checking all instances for a matching zapi_instance_id (case-insensitive)
+    if (!instanceData && normalizedInstanceId) {
+      instanceData = (instancesData || []).find((item: any) =>
+        normalizeInstanceIdentifier(item?.zapi_instance_id) === normalizedInstanceId
+      );
+      if (instanceData) {
+        console.log(`✅ Recovered instance ${normalizedInstanceId} via case-insensitive ID match`);
+      }
+    }
+
     if (instanceData) {
       userId = instanceData.user_id;
       instanceId = instanceData.zapi_instance_id;
