@@ -61,7 +61,8 @@ serve(async (req) => {
       })
     }
 
-    let updated = 0
+    let updated = 0;
+    let updatedMeta = 0;
     const zapiBase = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`
 
     for (const contact of contacts) {
@@ -84,6 +85,7 @@ serve(async (req) => {
             if (meta) {
               isCommunity = meta.isGroupAnnouncement === true || !!meta.communityId;
               communityId = meta.communityId || null;
+              updatedMeta++;
               console.log(`👥 Metadata for ${phone}: isCommunity=${isCommunity}, communityId=${communityId}`);
             }
           } catch (metaErr) {
@@ -135,7 +137,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ updated, total: contacts.length }), {
+    return new Response(JSON.stringify({ updatedPhotos: updated, updatedMeta, total: contacts.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
