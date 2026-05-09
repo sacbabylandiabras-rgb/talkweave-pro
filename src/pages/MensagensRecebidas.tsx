@@ -432,7 +432,7 @@ const ConversationList = ({
             key={conv.phone}
             onClick={() => isSelectionMode ? onToggleSelect(conv.phone) : onSelect(conv.phone)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 group",
+              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 group relative",
               selectedPhone === conv.phone && !isSelectionMode && "bg-muted",
               isSelectionMode && selectedPhones.has(conv.phone) && "bg-primary/5 ring-1 ring-inset ring-primary/20"
             )}
@@ -475,27 +475,25 @@ const ConversationList = ({
                 {(conv.lastMessage || '').length > 60 ? (conv.lastMessage || '').slice(0, 60) + '...' : (conv.lastMessage || '')}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {!isSelectionMode && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('Deseja realmente apagar esta conversa da lista?')) {
-                      onDeleteConversation(conv.phone);
-                    }
-                  }}
-                  title="Apagar conversa"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              )}
-              {!readPhones.has(conv.phone) && (
-                <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
-              )}
-            </div>
+            {!isSelectionMode && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Apagar esta conversa permanentemente?')) {
+                    onDeleteConversation(conv.phone);
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                title="Apagar conversa"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {!readPhones.has(conv.phone) && (
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-3 h-3 rounded-full bg-primary" />
+              </div>
+            )}
           </button>
         ))
       )}
@@ -1353,9 +1351,9 @@ const MensagensRecebidas = () => {
     try {
       await deleteConversation(phone);
       if (selectedPhone === phone) setSelectedPhone(null);
-      toast({ title: "Conversa apagada", description: "A conversa foi removida com sucesso." });
-    } catch (err) {
-      toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+      toast({ title: "Conversa apagada", description: "Conversa removida com sucesso." });
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível apagar a conversa.", variant: "destructive" });
     }
   };
 

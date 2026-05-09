@@ -365,9 +365,11 @@ export const useMessageLogs = (
   });
   
   // State to track locally deleted conversations to prevent them from reappearing
-  const [deletedConversations, setDeletedConversations] = useState<Set<string>>(() => {
-    const cached = localStorage.getItem('talkweave_deleted_conversations');
-    return cached ? new Set(JSON.parse(cached)) : new Set();
+  const [deletedPhones, setDeletedPhones] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('deletedConversations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
   });
 
   // Persistence effects
@@ -380,8 +382,8 @@ export const useMessageLogs = (
   }, [campaignSends]);
 
   useEffect(() => {
-    localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedConversations)));
-  }, [deletedConversations]);
+    localStorage.setItem('deletedConversations', JSON.stringify(Array.from(deletedPhones)));
+  }, [deletedPhones]);
 
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
@@ -849,7 +851,7 @@ export const useMessageLogs = (
               
               // Skip if part of a deleted conversation
               const normalized = normalizeConversationPhone(record.phone);
-              if (deletedConversations.has(normalized)) {
+              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
                 console.log('[Realtime] Ignoring record for deleted conversation:', normalized);
                 return;
               }
@@ -901,14 +903,14 @@ export const useMessageLogs = (
            const record = payload.new as CampaignSendMessage;
            const isVisible = record?.status === 'delivered';
 
-           // Skip if part of a deleted conversation
-           if (record?.phone) {
-             const normalized = normalizeConversationPhone(record.phone);
-             if (deletedConversations.has(normalized)) {
-               console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
-               return;
-             }
-           }
+            // Skip if part of a deleted conversation
+            if (record?.phone) {
+              const normalized = normalizeConversationPhone(record.phone);
+              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
+                console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
+                return;
+              }
+            }
 
            if (payload.eventType === 'INSERT') {
              if (!isVisible) return;
@@ -1183,7 +1185,7 @@ export const useMessageLogs = (
     });
 
     return Array.from(grouped.entries())
-      .filter(([phone]) => !deletedConversations.has(phone))
+      .filter(([phone]) => !deletedPhones.has(phone))
       .map(([phone, msgs]) => {
         const sorted = msgs.sort((a, b) => {
           const timeDiff = toMillis(a.timestamp) - toMillis(b.timestamp);
@@ -1434,69 +1436,45 @@ export const useMessageLogs = (
      forceUpdateAllPhotos,
      syncMetadata,
     syncHistory: fetchAll,
-    deleteConversation: async (phone: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+    deleteConversation: useCallback(async (phone: string) => {
+      try {
+        // Deleta message_logs
+        const zapiPhone = phone.endsWith('-group')
+          ? `${phone.replace(/-group$/, '')}@g.us`
+          : phone;
 
-      const normalizedPhone = normalizeConversationPhone(phone);
-      // Extract just the numeric/ID part to match inconsistent formats in DB
-       // Numeric ID for regular phones, or stripped ID for groups
-       const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
-       const isGroup = isGroupPhone(phone);
- 
-       // Delete using multiple possible phone formats to ensure cleanup
-       const formats = [
-         phone,
-         normalizedPhone,
-         rawId,
-         rawId + (isGroup ? '@g.us' : '@c.us'),
-         rawId + (isGroup ? '-group' : '@s.whatsapp.net'),
-         rawId + '@lid'
-       ];
+        await supabase
+          .from('message_logs')
+          .delete()
+          .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
 
-      const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
+        // Deleta campaign_sends
+        await supabase
+          .from('campaign_sends')
+          .delete()
+          .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
 
-      // Update persistence layers immediately
-      setDeletedConversations(prev => {
-        const next = new Set(prev);
-        next.add(normalizedPhone);
-        return next;
-      });
+        // Remove do estado local imediatamente (sem esperar o polling)
+        setMessageLogs(prev => 
+          prev.filter(m => m.phone !== phone && m.phone !== zapiPhone)
+        );
+        setCampaignSends(prev => 
+          prev.filter(s => s.phone !== phone && s.phone !== zapiPhone)
+        );
 
-      // Clear from local state immediately to avoid lag/flicker
-      setMessageLogs(prev => prev.filter(log => {
-        const logNormalized = normalizeConversationPhone(log.phone);
-        return !uniqueFormats.includes(log.phone) && logNormalized !== normalizedPhone;
-      }));
-      setCampaignSends(prev => prev.filter(send => {
-        const sendNormalized = normalizeConversationPhone(send.phone);
-        return !uniqueFormats.includes(send.phone) && sendNormalized !== normalizedPhone;
-      }));
+        // Salva no localStorage como backup contra o realtime restaurar
+        setDeletedPhones(prev => {
+          const next = new Set(prev);
+          next.add(phone);
+          next.add(zapiPhone);
+          localStorage.setItem('deletedConversations', JSON.stringify([...next]));
+          return next;
+        });
 
-      // Execute database deletion
-      const { error } = await supabase
-        .from('message_logs')
-        .delete()
-        .eq('user_id', user.id)
-        .in('phone', uniqueFormats);
-
-      if (error) {
-        console.error('Error deleting conversation logs:', error);
+      } catch (error) {
+        console.error('Erro ao deletar conversa:', error);
         throw error;
       }
-
-      // Also cleanup campaign sends which contribute to the conversation list
-      const { error: campaignError } = await supabase
-        .from('campaign_sends')
-        .delete()
-        .in('phone', uniqueFormats);
-
-      if (campaignError) {
-        console.warn('Could not delete campaign sends (might not exist):', campaignError);
-      }
-
-      // Final sync (will be filtered by local deletedConversations state)
-      await fetchAll();
-    }
+    }, []),
    };
 };
