@@ -67,6 +67,9 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null)
   const isCommunity = isCommunityPhone(phone);
   const isChannel = phone.includes('@newsletter');
 
+  // For groups, communities and channels, prioritize the real name if available
+  if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
+  
   if (isChannel) return 'Canal';
   if (isCommunity) return 'Comunidade';
   if (isGroup) return 'Grupo';
