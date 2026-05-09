@@ -173,10 +173,22 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 
 // Render message content with visual buttons and media
 const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+  // If it's a campaign message and the content is plain text, 
+  // wrap it with a template tag to force interactive rendering
+  const augmentedContent = useMemo(() => {
+    if (campaignId && campaignTemplates && !content.includes('[modelo:') && !content.includes('[media:') && !content.includes('[Botões:')) {
+      const tplId = campaignTemplates.get(campaignId);
+      if (tplId) {
+        return `[modelo:${tplId}] ${content}`;
+      }
+    }
+    return content;
+  }, [content, campaignId, campaignTemplates]);
+
   // If this message comes from a campaign whose template is a carousel, render its cards.
   const carouselTemplate: MessageTemplate | null = (() => {
     if (!templates) return null;
-    const directTemplateId = content.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1];
+    const directTemplateId = augmentedContent.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1];
     const tplId = directTemplateId || (campaignId && campaignTemplates ? campaignTemplates.get(campaignId) : null);
     if (!tplId) return null;
     const tpl = templates.find(t => t.id === tplId);
@@ -190,7 +202,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   if (carouselTemplate) {
     const rawCards = (carouselTemplate as any).carouselCards ?? (carouselTemplate as any).carousel_cards;
     const cards: any[] = Array.isArray(rawCards) ? rawCards : [];
-    const displayContent = content.match(/\[modelo:[a-f0-9-]+\]/i) ? carouselTemplate.content : content;
+    const displayContent = augmentedContent.match(/\[modelo:[a-f0-9-]+\]/i) ? carouselTemplate.content : augmentedContent;
     return (
       <div className="w-[260px] max-w-full">
         {displayContent && <p className="text-sm whitespace-pre-wrap mb-2">{displayContent}</p>}
@@ -226,7 +238,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
     );
   }
 
-  const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
+  const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
