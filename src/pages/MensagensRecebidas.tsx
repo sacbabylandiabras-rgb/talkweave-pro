@@ -336,6 +336,28 @@ const SaveContactDialog = ({
   );
 };
 
+const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
+  if (isCommunityPhone(phone)) {
+    return (
+      <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Comunidade
+      </Badge>
+    );
+  }
+
+  if (isGroupPhone(phone)) {
+    return (
+      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Users className="w-2.5 h-2.5" />
+        Grupo
+      </Badge>
+    );
+  }
+
+  return null;
+};
+
 // Conversation list
 const ConversationList = ({
    conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
