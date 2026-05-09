@@ -1126,7 +1126,7 @@ export const useMessageLogs = (
        let savedPhoto = saved?.profile_picture_url || null;
        if (savedPhoto === 'null' || savedPhoto === 'undefined') savedPhoto = null;
        
-       const profilePictureUrl = localManualPhotos.get(phone) || savedPhoto || groupOnlyPhoto || null;
+        const profilePictureUrl = localManualPhotos.get(phone) || savedPhoto || groupOnlyPhoto || localManualPhotos.get(normalizedPhone) || null;
 
         return {
           phone,

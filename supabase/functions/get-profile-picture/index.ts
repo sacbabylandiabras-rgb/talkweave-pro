@@ -209,12 +209,14 @@ const extractGroupName = (payload: any): string | null => {
              }
            } else {
              const formats = isGroup ? [`${numericId}@g.us`, `${numericId}-group`, numericId] : [numericId, `${numericId}@c.us`]
-             for (const f of formats) {
-               const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(f)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const data = await res.json().catch(() => null)
-               const link = extractUrl(data)
-               if (res.ok && link) return { success: true, data: { link, raw: data } }
-             }
+              for (const f of formats) {
+                console.log(`📷 Checking profile-picture for ${f} on ${provider}`);
+                const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(f)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const data = await res.json().catch(() => null)
+                console.log(`📷 Result for ${f}: ${res.status}`, JSON.stringify(data).substring(0, 100));
+                const link = extractUrl(data)
+                if (res.ok && link) return { success: true, data: { link, raw: data } }
+              }
                // Try get-contact profile picture endpoint
                if (!isGroup) {
                  const contactRes = await fetch(`${base}/contacts/${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
