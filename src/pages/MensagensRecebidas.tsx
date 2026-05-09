@@ -972,7 +972,7 @@ const ChatView = ({
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="min-h-[40px] max-h-[120px] resize-none text-sm bg-white border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg shadow-sm"
+                className="min-h-[40px] max-h-[120px] resize-none text-sm bg-white text-black placeholder:text-black/60 border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg shadow-sm"
                 rows={1}
               />
               {newMessage.trim() || attachedFile ? (
