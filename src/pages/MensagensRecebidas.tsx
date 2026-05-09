@@ -61,11 +61,18 @@ const looksLikePhoneOrId = (value: string) => {
 };
 
 const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
-  const isGroup = phone ? isGroupPhone(phone) : false;
+  if (!phone) return name || '';
+  
+  const isGroup = isGroupPhone(phone);
+  const isCommunity = isCommunityPhone(phone);
+
   // For groups, ignore "names" that look like phone numbers / IDs (often the
   // last sender's number or the group jid leaked through).
   if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
+  
+  if (isCommunity) return 'Comunidade';
   if (isGroup) return 'Grupo';
+  
   return formatPhone(phone);
 };
 
