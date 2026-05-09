@@ -151,6 +151,24 @@ export const useCampaigns = () => {
 
       if (error) throw error;
 
+      // Increment usage count of the template
+      if (campaignData.template_id) {
+        await supabase.rpc('increment_template_usage_by_id', { template_id_param: campaignData.template_id });
+        // Fallback if RPC doesn't exist yet
+        const { data: template } = await supabase
+          .from('message_templates')
+          .select('usage_count')
+          .eq('id', campaignData.template_id)
+          .single();
+        
+        if (template) {
+          await supabase
+            .from('message_templates')
+            .update({ usage_count: (template.usage_count || 0) + 1 })
+            .eq('id', campaignData.template_id);
+        }
+      }
+
       setCampaigns(prev => [{
         id: data.id,
         name: data.name,
