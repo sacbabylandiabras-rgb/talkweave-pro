@@ -15,6 +15,7 @@ import {
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapi } from "@/hooks/useZapi";
 import { format, isToday, isYesterday, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
