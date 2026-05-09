@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useEffect, useRef } from "react";
+import { useState, useCallback, memo, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -531,7 +531,59 @@ const getPreviewFileLabel = (template: any) => {
 };
 
 const Modelos = () => {
-  const { templates, loading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
+  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
+  const [realUsage, setRealUsage] = useState<Record<string, number>>({});
+  const [loadingUsage, setLoadingUsage] = useState(false);
+  // Efeito para carregar a contagem real de uso (envios) por modelo
+  useEffect(() => {
+    const fetchRealUsage = async () => {
+      if (templates.length === 0) return;
+      
+      try {
+        setLoadingUsage(true);
+        // Busca a contagem de envios agrupada por template_id através das campanhas
+        // Como o JS client não faz joins complexos com agregação facilmente, usamos um query RPC ou similar
+        // Mas aqui buscaremos as campanhas e seus contadores
+        const { data: campaignStats, error } = await supabase
+          .from('campaigns')
+          .select('id, template_id');
+        
+        if (error || !campaignStats) return;
+
+        // Mapear template -> campanhas
+        const templateMap: Record<string, string[]> = {};
+        campaignStats.forEach(c => {
+          if (c.template_id) {
+            if (!templateMap[c.template_id]) templateMap[c.template_id] = [];
+            templateMap[c.template_id].push(c.id);
+          }
+        });
+
+        const usageMap: Record<string, number> = {};
+        
+        // Para cada template que tem campanhas, buscar o total de envios
+        // Fazemos isso em paralelo com Promise.all para ser mais rápido
+        await Promise.all(Object.keys(templateMap).map(async (templateId) => {
+          const campaignIds = templateMap[templateId];
+          const { count } = await supabase
+            .from('campaign_sends')
+            .select('*', { count: 'exact', head: true })
+            .in('campaign_id', campaignIds);
+          
+          usageMap[templateId] = count || 0;
+        }));
+
+        setRealUsage(usageMap);
+      } catch (err) {
+        console.error("Erro ao carregar uso real:", err);
+      } finally {
+        setLoadingUsage(false);
+      }
+    };
+
+    fetchRealUsage();
+  }, [templates]);
+
   const { toast } = useToast();
   
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -1780,7 +1832,9 @@ const Modelos = () => {
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">🎠 {template.carouselCards.length} cards</Badge>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">Usado {template.usage_count}x</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Usado {loadingUsage ? "..." : (realUsage[template.id] ?? template.usage_count ?? 0)}x
+                </p>
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border">
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setPreviewTemplate(template)}>
