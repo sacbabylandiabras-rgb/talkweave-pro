@@ -117,10 +117,26 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
   await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
 }
 
-async function releaseMessageProcessingLock(supabase: any, lockId: string) {
-  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
-}
-
+ async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+   await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
+ }
+ 
+ async function upsertSavedContact(supabase: any, params: { userId: string; phone: string; name: string; photo?: string }) {
+   const { userId, phone, name, photo } = params;
+   if (!phone || (!name && !photo)) return;
+   
+   const updateData: any = { 
+     user_id: userId, 
+     phone, 
+     updated_at: new Date().toISOString() 
+   };
+   
+   if (name) updateData.name = name;
+   if (photo && photo !== "undefined" && photo !== "null") updateData.profile_picture_url = photo;
+ 
+   await supabase.from("saved_contacts").upsert(updateData, { onConflict: "phone,user_id" });
+ }
+ 
 function extractAudioUrl(webhook: any): string {
   const candidates = [
     webhook?.audio?.audioUrl, webhook?.audio?.url, webhook?.audioMessage?.url, webhook?.message?.audioMessage?.url,
