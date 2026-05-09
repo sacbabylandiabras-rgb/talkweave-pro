@@ -477,22 +477,21 @@ export const useMessageLogs = (
       if (row.phone.includes('@lid')) lidEvidence.add(row.phone);
       if (row.message_received?.includes('@lid')) lidEvidence.add(row.message_received);
     });
-    // Resolve @lid phones to real numbers using LID map
-    allData = allData.map(m => {
-      let normalizedPhone = m.phone;
-      if (isLikelyTechnicalIdentifier(normalizedPhone)) {
-        const suspectLid = `${normalizedPhone.replace(/\D/g, '')}@lid`;
-        if (lidEvidence.has(suspectLid)) {
-          normalizedPhone = suspectLid;
-        }
-      }
-      if (normalizedPhone.includes('@lid')) {
-        const resolved = lidMapRef.current.get(normalizedPhone);
-        if (resolved) return { ...m, phone: resolved };
-        if (normalizedPhone !== m.phone) return { ...m, phone: normalizedPhone };
-      }
-      return m;
-    });
+     // Normalize all phones and resolve @lid phones using LID map
+     allData = allData.map(m => {
+       let workingPhone = m.phone;
+       if (isLikelyTechnicalIdentifier(workingPhone)) {
+         const suspectLid = `${workingPhone.replace(/\D/g, '')}@lid`;
+         if (lidEvidence.has(suspectLid)) {
+           workingPhone = suspectLid;
+         }
+       }
+       if (workingPhone.includes('@lid')) {
+         const resolved = lidMapRef.current.get(workingPhone);
+         if (resolved) workingPhone = resolved;
+       }
+       return { ...m, phone: normalizeConversationPhone(workingPhone) };
+     });
     // Keep messages with unresolved @lid - show them with the LID identifier
     const dataKey = JSON.stringify(
       allData.map((d) => [
