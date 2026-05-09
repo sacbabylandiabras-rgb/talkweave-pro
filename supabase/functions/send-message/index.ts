@@ -691,11 +691,18 @@ serve(async (req) => {
     if (templateId) {
       logContent = `[modelo:${templateId}]`;
     }
-    if (mediaUrl && mediaType) {
+    if (mediaUrl && mediaType && !logContent?.includes('[media:')) {
       const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
       logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
     }
-    
+
+    if (Array.isArray(buttonActions) && buttonActions.length > 0 && !logContent?.includes('[Botões:')) {
+      const buttonLabels = buttonActions.map((b: any) => String(b.label || b.text || '').trim()).filter(Boolean);
+      if (buttonLabels.length > 0) {
+        logContent = logContent ? `${logContent}\n\n[Botões: ${buttonLabels.join(' | ')}]` : `[Botões: ${buttonLabels.join(' | ')}]`;
+      }
+    }
+
     await supabase.from('message_logs').insert({
       phone: resolvedPhone,
       message_received: null,
