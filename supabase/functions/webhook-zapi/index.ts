@@ -814,6 +814,19 @@ serve(async (req) => {
       });
     }
 
+    // === REVOKED MESSAGE DETECTION ===
+    if (webhook?.type === "OnMessageRevoked") {
+      const revokedMessageId = webhook?.data?.messageId || webhook?.messageId;
+      if (revokedMessageId) {
+        console.log(`🗑️ Mensagem revogada detectada: ${revokedMessageId}`);
+        await supabase
+          .from("message_logs")
+          .delete()
+          .or(`keyword_matched.eq.__msg_import__:${revokedMessageId},message_received.ilike.%[msgid:${revokedMessageId}]%,response_sent.ilike.%[msgid:${revokedMessageId}]%`);
+      }
+      return new Response("revoked_handled", { status: 200, headers: corsHeaders });
+    }
+
 
     // === GROUP PARTICIPANT JOIN DETECTION ===
     // Z-API sends group join events in multiple formats:
