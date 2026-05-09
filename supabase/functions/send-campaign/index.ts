@@ -1469,20 +1469,33 @@ serve(async (req) => {
           });
         }
 
-        campaignSend = {
-          campaign_id: campaignId,
-          phone: contact.phone,
-          contact_name: contact.name,
-          message_content: messageContent,
-          status: 'pending',
-          user_id: credentials.userId,
-          instance_name: currentInstance.instanceName,
-        };
-
         let fullMessage = '';
         if (campaign.template.header) fullMessage += normalizePublicRedirectUrlsInText(campaign.template.header) + '\n\n';
         fullMessage += messageContent;
         if (campaign.template.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaign.template.footer);
+
+        // Construct a "visual" version for the message logs
+        let visualContent = fullMessage;
+        if (campaign.template.media_url) {
+          const type = campaign.template.type?.split('_')[0] || 'image';
+          visualContent = `[media:${type}:${campaign.template.media_url}]\n${visualContent}`;
+        }
+        if (campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0) {
+          const buttonLabels = campaign.template.buttons.map((b: any) => String(b.text || b.label || '').trim()).filter(Boolean);
+          if (buttonLabels.length > 0) {
+            visualContent += `\n\n[Botões: ${buttonLabels.join(' | ')}]`;
+          }
+        }
+
+        campaignSend = {
+          campaign_id: campaignId,
+          phone: contact.phone,
+          contact_name: contact.name,
+          message_content: visualContent,
+          status: 'pending',
+          user_id: credentials.userId,
+          instance_name: currentInstance.instanceName,
+        };
 
         const templateType = campaign.template.type || 'texto';
         const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;

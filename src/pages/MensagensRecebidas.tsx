@@ -165,10 +165,34 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 
 // Render message content with visual buttons and media
 const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+  const augmentedContent = useMemo(() => {
+    // If it's a campaign message and missing interactive markers, enrich it using the template.
+    // This handles messages sent before the logger was updated to include markers.
+    if (campaignId && campaignTemplates && !content.includes('[media:') && !content.includes('[Botões:')) {
+      const tplId = content.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1] || campaignTemplates.get(campaignId);
+      const tpl = templates?.find(t => t.id === tplId);
+      if (tpl) {
+        let result = content.replace(/\[modelo:[a-f0-9-]+\]\s*/gi, '');
+        if (tpl.header && !result.includes(tpl.header)) result = `*${tpl.header}*\n${result}`;
+        if (tpl.footer && !result.includes(tpl.footer)) result = `${result}\n\n_${tpl.footer}_`;
+        const buttonLabels = (tpl.buttons || []).map(b => b.text || (b as any).label).filter(Boolean);
+        if (buttonLabels.length > 0 && !result.includes('[Botões:')) {
+          result = `${result}\n\n[Botões: ${buttonLabels.join(' | ')}]`;
+        }
+        if (tpl.mediaUrl && !result.includes('[media:')) {
+          const type = tpl.type?.split('_')[0] || 'image';
+          result = `[media:${type}:${tpl.mediaUrl}]\n${result}`;
+        }
+        return result;
+      }
+    }
+    return content;
+  }, [content, campaignId, campaignTemplates, templates]);
+
   // If this message comes from a campaign whose template is a carousel, render its cards.
   const carouselTemplate: MessageTemplate | null = (() => {
     if (!templates) return null;
-    const directTemplateId = content.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1];
+    const directTemplateId = augmentedContent.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1];
     const tplId = directTemplateId || (campaignId && campaignTemplates ? campaignTemplates.get(campaignId) : null);
     if (!tplId) return null;
     const tpl = templates.find(t => t.id === tplId);
@@ -182,7 +206,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   if (carouselTemplate) {
     const rawCards = (carouselTemplate as any).carouselCards ?? (carouselTemplate as any).carousel_cards;
     const cards: any[] = Array.isArray(rawCards) ? rawCards : [];
-    const displayContent = content.match(/\[modelo:[a-f0-9-]+\]/i) ? carouselTemplate.content : content;
+    const displayContent = augmentedContent.match(/\[modelo:[a-f0-9-]+\]/i) ? carouselTemplate.content : augmentedContent;
     return (
       <div className="w-[260px] max-w-full">
         {displayContent && <p className="text-sm whitespace-pre-wrap mb-2">{displayContent}</p>}
@@ -218,7 +242,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
     );
   }
 
-  const resolvedContent = templates ? resolveTemplateRef(content, templates) : content;
+  const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
