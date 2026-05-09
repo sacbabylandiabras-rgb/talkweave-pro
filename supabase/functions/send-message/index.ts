@@ -184,8 +184,10 @@ serve(async (req) => {
       mentionAll,
     } = payloadRaw;
 
-    const mentionFlag = (p: string) =>
-      mentionAll && (typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'))) ? { mentionAll: true } : {};
+    const mentionFlag = (p: string) => {
+      const isGroup = typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'));
+      return (mentionAll && isGroup) ? { mentionAll: true } : {};
+    };
       
     console.log(`📨 Envio solicitado — phone: ${phone}, requestedInstanceId: ${requestedInstanceId || 'nenhum'}, mediaType: ${mediaType || 'none'}, isPtv: ${isPtv}, viewOnce: ${viewOnce}`);
 
