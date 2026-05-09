@@ -37,6 +37,7 @@ export interface CampaignSendMessage {
 
 export interface UnifiedMessage {
   id: string;
+  externalMessageId?: string | null;
   phone: string;
   type: 'received' | 'sent';
   content: string;
@@ -947,6 +948,9 @@ export const useMessageLogs = (
 
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
+        const externalMessageId = parseExternalMessageIdFromContent(parsed.rest).externalMessageId
+          || String(log.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1]
+          || null;
          let senderName = log.sender_name || parsed.name || null;
          let senderPhone = log.sender_phone || parsed.phone || null;
          let senderPhoto = log.sender_photo || parsed.photo || null;
@@ -957,6 +961,7 @@ export const useMessageLogs = (
 
         allMessages.push({
           id: `log-recv-${log.id}`,
+          externalMessageId,
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
           content: displayContent,
@@ -1003,8 +1008,13 @@ export const useMessageLogs = (
           displayKeyword = null;
         }
 
+        const externalMessageId = parseExternalMessageIdFromContent(log.response_sent).externalMessageId
+          || String(log.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1]
+          || null;
+
         allMessages.push({
           id: `log-sent-${log.id}`,
+          externalMessageId,
           phone: normalizeConversationPhone(log.phone),
           type: 'sent',
           content: log.response_sent,
