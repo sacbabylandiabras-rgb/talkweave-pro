@@ -439,6 +439,21 @@ const ChatView = ({
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
+  const [localReactions, setLocalReactions] = useState<Record<string, string>>({});
+
+  const handleReactionClick = async (msg: UnifiedMessage, emoji: string) => {
+    if (!conversation) return;
+    setLocalReactions((prev) => ({ ...prev, [msg.id]: emoji }));
+    try {
+      await onSendReaction(conversation.phone, msg.externalMessageId || msg.id, emoji);
+    } catch {
+      setLocalReactions((prev) => {
+        const next = { ...prev };
+        delete next[msg.id];
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
