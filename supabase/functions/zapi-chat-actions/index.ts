@@ -53,9 +53,6 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 }
 
 function buildBase(c: { instanceId: string; token: string; apiProvider: string; evolutionUrl?: string | null }) {
-  if (c.apiProvider === 'uazapi' && c.evolutionUrl) {
-    return c.evolutionUrl.replace(/\/+$/, '');
-  }
   return "https://api.z-api.io/instances/" + c.instanceId + "/token/" + c.token;
 }
 
@@ -221,20 +218,13 @@ Deno.serve(async (req) => {
     const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
    let url: string;
-   if (creds.apiProvider === 'uazapi') {
-     const pathWithInstance = ep.path.includes('?') 
-       ? ep.path.replace('?', `/${creds.instanceId}?`)
-       : `${ep.path}/${creds.instanceId}`;
-     url = base + pathWithInstance;
-   } else {
-     url = base + ep.path;
-   }
+    url = base + ep.path;
 
     const init: RequestInit = {
       method: ep.method,
       headers: {
         'Content-Type': 'application/json',
-        [creds.apiProvider === 'uazapi' ? 'apikey' : 'Client-Token']: creds.apiProvider === 'uazapi' ? (creds.evolutionKey || '') : creds.clientToken,
+        'Client-Token': creds.clientToken,
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
