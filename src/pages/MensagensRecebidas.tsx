@@ -928,7 +928,7 @@ const ChatView = ({
             <h3 className="font-medium text-foreground truncate">
               {getConversationDisplayName(conversation.contactName, conversation.phone)}
             </h3>
-            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} />
+            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} isCommunity={conversation.isCommunity} />
           </div>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
