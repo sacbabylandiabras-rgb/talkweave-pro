@@ -60,11 +60,11 @@ const looksLikePhoneOrId = (value: string) => {
   return /^[+\d()\-\s]+$/.test(trimmed) && /\d/.test(trimmed);
 };
 
-const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
+const getConversationDisplayName = (name?: string | null, phone?: string | null, isCommunityProp?: boolean) => {
   if (!phone) return name || '';
   
   const isGroup = isGroupPhone(phone);
-  const isCommunity = isCommunityPhone(phone);
+  const isCommunity = isCommunityProp || isCommunityPhone(phone);
   const isChannel = phone.includes('@newsletter');
 
   // For groups, communities and channels, prioritize the real name if available
