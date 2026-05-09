@@ -46,9 +46,12 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
      return rawId ? `${rawId}-group` : phone;
    }
  
-   // Handle regular phones - strip all common suffixes and non-digits
-   // We want to keep just the numeric part for comparison if it's a 1:1 chat
-   return phone.replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
+   // Handle regular phones - strip common suffixes and standardize to digits@c.us
+   const digits = phone.replace(/\D/g, '');
+   if (!digits) return phone;
+   
+   // Normalizing to digits@c.us ensures consistent keys while staying compatible with expectations
+   return `${digits}@c.us`;
  };
 
 export const rememberGroupDisplayName = (
