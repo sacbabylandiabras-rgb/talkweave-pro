@@ -791,10 +791,52 @@ const ChatView = ({
                             )}
                           </div>
                         )}
-                        <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <p className="text-[10px] text-right mt-1 opacity-70">
-                          {formatMessageTime(msg.timestamp)}
-                        </p>
+                        <div className="relative group/msg">
+                          <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                          <p className="text-[10px] text-right mt-1 opacity-70">
+                            {formatMessageTime(msg.timestamp)}
+                          </p>
+                          <div className="absolute top-0 -right-8 flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-muted"
+                              title="Responder"
+                              onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                            >
+                              <Reply className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-muted"
+                              title="Encaminhar"
+                              onClick={() => onForwardMessage(conversation.phone, msg.id)}
+                            >
+                              <Send className="w-3 h-3" />
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" title="Reagir">
+                                  <Smile className="w-3 h-3" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-1" side="top">
+                                <div className="flex gap-1">
+                                  {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                                    <button
+                                      key={emoji}
+                                      className="hover:scale-125 transition-transform p-1"
+                                      onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
