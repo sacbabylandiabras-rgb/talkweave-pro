@@ -1,3 +1,121 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+async function stableUuidFromText(value: string): Promise<string> {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  const hash = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
+
+function normalizeForMatch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function acquireMessageProcessingLock(
+  supabase: any,
+  params: {
+    userId: string;
+    phone: string;
+    normalizedMessage: string;
+    rawMessage: string;
+    instanceId?: string;
+    messageId?: string;
+    senderName?: string;
+    senderPhone?: string;
+  },
+): Promise<{ acquired: boolean; lockId: string }> {
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
+  const norm = normalizedMessage || normalizeForMatch(rawMessage);
+  const now = Date.now();
+  const bucketSize = 15000;
+  const currentBucket = Math.floor(now / bucketSize);
+  const prevBucket = currentBucket - 1;
+  const dedupeSubject = String(messageId || "").trim() ? `mid:${String(messageId || "").trim()}` : `txt:${norm}`;
+  const currentKey = `${userId}|${phone}|${dedupeSubject}|${currentBucket}`;
+  const prevKey = `${userId}|${phone}|${dedupeSubject}|${prevBucket}`;
+  const lockId = await stableUuidFromText(currentKey);
+  const prevLockId = await stableUuidFromText(prevKey);
+  const { data: prevLock } = await supabase.from("message_logs").select("id").eq("id", prevLockId).maybeSingle();
+  if (prevLock) return { acquired: false, lockId };
+  const { error } = await supabase.from("message_logs").insert({
+    id: lockId,
+    phone,
+    message_received: rawMessage,
+    keyword_matched: "__processing__",
+    response_sent: "__processing__",
+    timestamp: new Date().toISOString(),
+    user_id: userId,
+    instance_id: instanceId || null,
+    sender_name: senderName || null,
+    sender_phone: senderPhone || null,
+  });
+  if (!error) return { acquired: true, lockId };
+  const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
+  if (isDuplicate) return { acquired: false, lockId };
+  throw new Error(`Erro ao adquirir lock de dedupe: ${error.message}`);
+}
+
+async function finalizeMessageLog(supabase: any, lockId: string, params: { keywordMatched: string; responseSent: string }) {
+  const { keywordMatched, responseSent } = params;
+  await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
+}
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
+}
+
+function extractAudioUrl(webhook: any): string {
+  const candidates = [
+    webhook?.audio?.audioUrl, webhook?.audio?.url, webhook?.audioMessage?.url, webhook?.message?.audioMessage?.url,
+    webhook?.data?.audio?.audioUrl, webhook?.data?.audio?.url, webhook?.data?.audioMessage?.url, webhook?.data?.message?.audioMessage?.url,
+    webhook?.waitingMessage?.audio?.audioUrl, webhook?.waitingMessage?.audioMessage?.url
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim().startsWith("http")) return value.trim();
+  }
+  return "";
+}
+
+async function transcribeAudio(audioUrl: string): Promise<string> {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key) return "";
+  try {
+    const res = await fetch(audioUrl);
+    if (!res.ok) return "";
+    const buffer = await res.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
+    const base64Audio = btoa(binary);
+    let mimeType = "audio/ogg";
+    if (audioUrl.includes(".mp3")) mimeType = "audio/mpeg";
+    else if (audioUrl.includes(".wav")) mimeType = "audio/wav";
+    else if (audioUrl.includes(".m4a")) mimeType = "audio/mp4";
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "system", content: "Transcreva fielmente." }, { role: "user", content: [{ type: "input_audio", input_audio: { data: base64Audio, format: mimeType === "audio/wav" ? "wav" : "mp3" } }, { type: "text", text: "Transcreva este áudio." }] }], stream: false })
+    });
+    if (!response.ok) return "";
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "";
+  } catch (error) { return ""; }
+}
+
 function extractMessageText(webhook: any): string {
   const candidates = [
     webhook?.message?.text,
