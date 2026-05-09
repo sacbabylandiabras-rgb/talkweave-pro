@@ -446,21 +446,20 @@ const ConversationList = ({
                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
                  </div>
                )}
-               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-               {conv.profilePictureUrl ? (
+              <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
+                {conv.profilePictureUrl ? (
                   <AvatarImage 
                     src={conv.profilePictureUrl} 
                     className="h-full w-full object-cover" 
                     onError={(e) => {
-                      // Prevent infinite loop by setting onerror to null
                       (e.target as HTMLImageElement).onerror = null;
                     }} 
                   />
-               ) : null}
-              <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
-                 <WhatsAppDefaultAvatar />
-              </AvatarFallback>
-            </Avatar>
+                ) : null}
+                <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
+                  <WhatsAppDefaultAvatar />
+                </AvatarFallback>
+              </Avatar>
              </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
@@ -877,7 +876,7 @@ const ChatView = ({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
+        <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           <AvatarImage 
             src={conversation.profilePictureUrl || undefined} 
             className="h-full w-full object-cover" 
@@ -886,7 +885,7 @@ const ChatView = ({
             }} 
           />
           <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
-             <WhatsAppDefaultAvatar />
+            <WhatsAppDefaultAvatar />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
