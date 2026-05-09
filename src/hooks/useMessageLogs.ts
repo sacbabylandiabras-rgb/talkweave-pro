@@ -1008,7 +1008,8 @@ export const useMessageLogs = (
           displayKeyword = null;
         }
 
-        const externalMessageId = parseExternalMessageIdFromContent(log.response_sent).externalMessageId
+        const sentMessage = parseExternalMessageIdFromContent(log.response_sent);
+        const externalMessageId = sentMessage.externalMessageId
           || String(log.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1]
           || null;
 
@@ -1017,7 +1018,7 @@ export const useMessageLogs = (
           externalMessageId,
           phone: normalizeConversationPhone(log.phone),
           type: 'sent',
-          content: log.response_sent,
+          content: sentMessage.rest,
           timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,
