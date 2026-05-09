@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "npm:@supabase/supabase-js@2.58.0"
 
 const corsHeaders = {
@@ -136,15 +135,22 @@ const extractGroupName = (payload: any): string | null => {
  // In-memory cache to prevent storming external APIs
  const cache = new Map<string, { data: any, timestamp: number }>()
  const CACHE_TTL = 30000 // 30 seconds
- 
- serve(async (req) => {
+
+ Deno.serve(async (req) => {
    if (req.method === 'OPTIONS') {
      return new Response(null, { headers: corsHeaders })
    }
  
    try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('Missing Supabase env vars', { hasUrl: !!supabaseUrl, hasKey: !!supabaseServiceKey })
+        return new Response(
+          JSON.stringify({ success: false, error: 'Server configuration error' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
       const adminClient = createClient(supabaseUrl, supabaseServiceKey)
      const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
  
