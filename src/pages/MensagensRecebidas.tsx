@@ -898,26 +898,6 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
-            title="Apagar conversa" 
-            onClick={() => {
-              if (window.confirm("Tem certeza que deseja apagar o histórico desta conversa localmente? Esta ação não apaga as mensagens no WhatsApp do contato.")) {
-                onDeleteConversation(conversation.phone)
-                  .then(() => {
-                    toast({ title: "Conversa apagada", description: "O histórico local foi removido." });
-                    onBack();
-                  })
-                  .catch(() => {
-                    toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
-                  });
-              }
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
             <Bot className="w-4 h-4" />
           </Button>
