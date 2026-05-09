@@ -41,11 +41,10 @@ export const ProviderStatusPanel = () => {
 
   const stats = useMemo(() => {
     const acc = {
-      uazapi: { ok: 0, err: 0 },
       zapi: { ok: 0, err: 0 },
     };
     logs.forEach((l) => {
-      const key = l.provider === "uazapi" ? "uazapi" : "zapi";
+      const key = "zapi";
       if (l.status === "success") acc[key].ok++;
       else acc[key].err++;
     });
@@ -57,7 +56,7 @@ export const ProviderStatusPanel = () => {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div>
           <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="w-4 h-4" /> Status de envios por provider
+            <Activity className="w-4 h-4" /> Status de envios Z-API
           </CardTitle>
           <CardDescription>Últimos 50 envios — atualiza a cada 15s</CardDescription>
         </div>
@@ -66,8 +65,8 @@ export const ProviderStatusPanel = () => {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          {(["uazapi", "zapi"] as const).map((p) => (
+        <div className="grid grid-cols-1 gap-3">
+          {(["zapi"] as const).map((p) => (
             <div key={p} className="rounded-lg border p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold uppercase">{p}</span>
