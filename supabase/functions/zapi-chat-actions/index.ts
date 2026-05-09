@@ -197,9 +197,9 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
     // Message Actions
     case 'forward-message':
-      return { method: 'POST', path: "/forward-message", body: payload };
+      return { method: 'POST', path: "/forward-message", body: { ...payload, phone: zapiPhone } };
     case 'send-message-reaction':
-      return { method: 'POST', path: "/send-message-reaction", body: payload };
+      return { method: 'POST', path: "/send-reaction", body: { ...payload, phone: zapiPhone } };
     case 'send-remove-reaction':
       return { method: 'POST', path: "/send-remove-reaction", body: payload };
 
