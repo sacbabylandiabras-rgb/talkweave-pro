@@ -110,11 +110,18 @@ const isConversationBoundInstanceLog = (log: Pick<MessageLog, 'instance_id' | 'm
 };
 
 const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 'timestamp' | 'created_at'>) => {
+  // Prefer timestamp if available as it is set by the webhook/client.
+  // Fallback to created_at if timestamp is missing.
+  const ts = log.timestamp || log.created_at;
+  
+  // For history imports, we always want the original timestamp
   if (log.keyword_matched === '__history_import__') {
-    return log.timestamp || log.created_at;
+    return ts;
   }
 
-  return log.created_at || log.timestamp;
+  // For real-time messages, created_at might be more accurate for sorting 
+  // once it exists, but timestamp is available immediately.
+  return ts;
 };
 
 const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered';
