@@ -3199,6 +3199,8 @@ serve(async (req) => {
       rawMessage: storedMessage,
       instanceId,
       messageId: String(webhook?.messageId || "").trim() || undefined,
+      senderName: senderName || undefined,
+      senderPhone: senderPhone || participantPhone || undefined,
     });
 
     if (!lockResult.acquired) {
@@ -5682,6 +5684,8 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
+    senderName?: string;
+    senderPhone?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
   const {
@@ -5691,6 +5695,8 @@ async function acquireMessageProcessingLock(
     rawMessage,
     instanceId,
     messageId,
+    senderName,
+    senderPhone,
   } = params;
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
   const now = Date.now();
@@ -5731,6 +5737,8 @@ async function acquireMessageProcessingLock(
       timestamp: new Date().toISOString(),
       user_id: userId,
       instance_id: instanceId || null,
+      sender_name: senderName || null,
+      sender_phone: senderPhone || null,
     });
 
   if (!error) return { acquired: true, lockId };

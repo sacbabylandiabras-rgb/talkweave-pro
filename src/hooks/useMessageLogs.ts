@@ -18,6 +18,8 @@ export interface MessageLog {
   created_at: string;
   user_id: string | null;
   instance_id: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
 }
 
 export interface CampaignSendMessage {
@@ -356,7 +358,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-        .select('*')
+        .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone')
         .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
@@ -372,7 +374,7 @@ export const useMessageLogs = (
     while (hasMore && importedHistoryData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-        .select('*')
+        .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone')
         .eq('keyword_matched', '__history_import__')
         .lt('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
@@ -881,8 +883,8 @@ export const useMessageLogs = (
       const inboundContent = resolveVisibleInboundContent(log);
       if (inboundContent) {
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
-        let senderName = null;
-        let senderPhone = null;
+        let senderName = log.sender_name || null;
+        let senderPhone = log.sender_phone || null;
 
         if (isManualTrigger) {
           senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;
