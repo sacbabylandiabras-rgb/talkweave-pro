@@ -1396,6 +1396,15 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
    const isMobile = useIsMobile();
    const { toast } = useToast();
+
+   useEffect(() => {
+     // Limpa o localStorage de conversas deletadas antigas
+     localStorage.removeItem('deletedConversations');
+     localStorage.removeItem('readConversations');
+     // Força refetch completo
+     refetch();
+   }, []); // roda só uma vez ao montar
+
    const { forwardMessage, sendReaction, sendSticker } = useZapi();
   const syncHistory = async () => {
     setSyncing(true);
