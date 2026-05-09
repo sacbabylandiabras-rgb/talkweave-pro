@@ -137,7 +137,22 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
    };
    
    if (name) updateData.name = name;
-   if (photo && photo !== "undefined" && photo !== "null") updateData.profile_picture_url = photo;
+    if (photo && photo !== "undefined" && photo !== "null") {
+      updateData.profile_picture_url = photo;
+    } else {
+      // If photo is missing, try to fetch it dynamically from Z-API
+      try {
+        const { data: profilePicData, error: profilePicError } = await supabase.functions.invoke('get-profile-picture', {
+          body: { phone, instanceId: params.instanceId }
+        });
+        if (!profilePicError && profilePicData?.success && profilePicData?.data?.link) {
+          updateData.profile_picture_url = profilePicData.data.link;
+          console.log(`📸 Foto de perfil recuperada dinamicamente para ${phone}`);
+        }
+      } catch (e) {
+        console.error(`⚠️ Erro ao buscar foto de perfil dinâmica para ${phone}:`, e);
+      }
+    }
  
    await supabase.from("saved_contacts").upsert(updateData, { onConflict: "phone,user_id" });
  }
@@ -3510,6 +3525,7 @@ serve(async (req) => {
          phone,
          name: senderName || chatName || "",
          photo: senderPhoto || undefined,
+         instanceId: instanceId || undefined,
        }).catch(e => console.error("❌ Erro ao atualizar saved_contacts:", e));
      }
  
