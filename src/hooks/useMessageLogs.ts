@@ -37,6 +37,7 @@ export interface CampaignSendMessage {
 
 export interface UnifiedMessage {
   id: string;
+  externalMessageId?: string | null;
   phone: string;
   type: 'received' | 'sent';
   content: string;
@@ -188,6 +189,14 @@ const isRedundantManualFlowEcho = (
 };
 
  const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^|\]]*)(?:\|([^\]]*))?\]\s*/;
+ const MESSAGE_ID_PREFIX_REGEX = /^\[msgid:([^\]]+)\]\s*/;
+
+ const parseExternalMessageIdFromContent = (raw?: string | null): { externalMessageId: string | null; rest: string } => {
+   const value = String(raw || '');
+   const match = value.match(MESSAGE_ID_PREFIX_REGEX);
+   if (!match) return { externalMessageId: null, rest: value };
+   return { externalMessageId: match[1].trim() || null, rest: value.replace(MESSAGE_ID_PREFIX_REGEX, '') };
+ };
  
  const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; photo: string | null; rest: string } => {
    const match = raw.match(SENDER_PREFIX_REGEX);
@@ -202,7 +211,8 @@ const isRedundantManualFlowEcho = (
    const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
    if (buttonText) return buttonText;
    const { rest } = parseSenderFromContent(String(log.message_received || ''));
-   const rawContent = rest.trim();
+   const { rest: contentWithoutId } = parseExternalMessageIdFromContent(rest);
+   const rawContent = contentWithoutId.trim();
    if (isTechnicalMessageReference(rawContent)) return '';
    return rawContent;
  };
@@ -938,6 +948,9 @@ export const useMessageLogs = (
 
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
+        const externalMessageId = parseExternalMessageIdFromContent(parsed.rest).externalMessageId
+          || String(log.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1]
+          || null;
          let senderName = log.sender_name || parsed.name || null;
          let senderPhone = log.sender_phone || parsed.phone || null;
          let senderPhoto = log.sender_photo || parsed.photo || null;
@@ -948,6 +961,7 @@ export const useMessageLogs = (
 
         allMessages.push({
           id: `log-recv-${log.id}`,
+          externalMessageId,
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
           content: displayContent,
@@ -994,11 +1008,17 @@ export const useMessageLogs = (
           displayKeyword = null;
         }
 
+        const sentMessage = parseExternalMessageIdFromContent(log.response_sent);
+        const externalMessageId = sentMessage.externalMessageId
+          || String(log.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1]
+          || null;
+
         allMessages.push({
           id: `log-sent-${log.id}`,
+          externalMessageId,
           phone: normalizeConversationPhone(log.phone),
           type: 'sent',
-          content: log.response_sent,
+          content: sentMessage.rest,
           timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,

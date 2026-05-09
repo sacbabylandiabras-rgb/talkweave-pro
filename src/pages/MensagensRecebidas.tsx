@@ -439,6 +439,21 @@ const ChatView = ({
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
+  const [localReactions, setLocalReactions] = useState<Record<string, string>>({});
+
+  const handleReactionClick = async (msg: UnifiedMessage, emoji: string) => {
+    if (!conversation) return;
+    setLocalReactions((prev) => ({ ...prev, [msg.id]: emoji }));
+    try {
+      await onSendReaction(conversation.phone, msg.externalMessageId || msg.id, emoji);
+    } catch {
+      setLocalReactions((prev) => {
+        const next = { ...prev };
+        delete next[msg.id];
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -797,6 +812,11 @@ const ChatView = ({
                           <p className="text-[10px] text-right mt-1 opacity-70">
                             {formatMessageTime(msg.timestamp)}
                           </p>
+                          {localReactions[msg.id] && (
+                            <span className="absolute -bottom-3 right-2 rounded-full bg-card border border-border px-1 text-xs shadow-sm">
+                              {localReactions[msg.id]}
+                            </span>
+                          )}
                           <div className="absolute top-0 -right-8 flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
@@ -828,7 +848,7 @@ const ChatView = ({
                                     <button
                                       key={emoji}
                                       className="hover:scale-125 transition-transform p-1"
-                                      onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                      onClick={() => handleReactionClick(msg, emoji)}
                                     >
                                       {emoji}
                                     </button>
@@ -874,7 +894,7 @@ const ChatView = ({
                                   <button
                                     key={emoji}
                                     className="hover:scale-125 transition-transform p-1"
-                                    onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                    onClick={() => handleReactionClick(msg, emoji)}
                                   >
                                     {emoji}
                                   </button>
@@ -895,6 +915,11 @@ const ChatView = ({
                             {formatMessageTime(msg.timestamp)}
                           </span>
                         </div>
+                        {localReactions[msg.id] && (
+                          <span className="absolute -bottom-3 left-2 rounded-full bg-card border border-border px-1 text-xs shadow-sm text-foreground">
+                            {localReactions[msg.id]}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}

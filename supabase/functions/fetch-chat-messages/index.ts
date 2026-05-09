@@ -22,6 +22,10 @@ const cleanPhone = (raw: string): { phone: string; isGroup: boolean; chatid: str
   return { phone: cleanId, isGroup: false, chatid: `${cleanId}@s.whatsapp.net` };
 };
 
+const extractExternalId = (msg: any): string => String(
+  msg?.id || msg?.messageId || msg?.messageid || msg?.zaapId || msg?.key?.id || ""
+).trim();
+
 const extractMessageContent = (msg: any): { text: string; mediaType: string | null; mediaUrl: string | null } => {
   const text = String(
     msg?.content?.conversation
@@ -160,7 +164,7 @@ Deno.serve(async (req) => {
 
     // Pull existing imported message ids for this phone to avoid duplicates
     const externalIds = messages
-      .map((m: any) => String(m?.id || m?.messageid || m?.key?.id || ""))
+      .map((m: any) => extractExternalId(m))
       .filter(Boolean);
 
     const { data: existing } = await adminClient
@@ -176,7 +180,7 @@ Deno.serve(async (req) => {
 
     const rows: any[] = [];
     for (const m of messages) {
-      const externalId = String(m?.id || m?.messageid || m?.key?.id || "");
+      const externalId = extractExternalId(m);
       if (!externalId || existingIds.has(externalId)) continue;
 
       const fromMe = m?.fromMe === true || m?.fromme === true || m?.key?.fromMe === true;
@@ -193,14 +197,20 @@ Deno.serve(async (req) => {
       }
       if (!content) content = "[mensagem]";
 
-      const keyword = senderName ? `__manual_flow_trigger__:${senderName}` : `__msg_import__:${externalId}`;
+      const keyword = `__msg_import__:${externalId}`;
+      const safeSenderName = String(senderName || "").replace(/[|\]]/g, " ").trim();
+      const safeSenderPhone = String(senderPhone || "").replace(/[|\]]/g, " ").trim();
+      const senderPrefix = !fromMe && (safeSenderName || safeSenderPhone)
+        ? `[sender:${safeSenderName}|${safeSenderPhone}|] `
+        : "";
+      const contentWithId = `${senderPrefix}[msgid:${externalId}] ${content}`;
 
       rows.push({
         phone,
         user_id: user.id,
         timestamp: ts,
-        message_received: fromMe ? null : content,
-        response_sent: fromMe ? content : null,
+        message_received: fromMe ? null : contentWithId,
+        response_sent: fromMe ? contentWithId : null,
         keyword_matched: keyword,
         instance_id: instance.zapi_instance_id,
       });
