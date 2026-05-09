@@ -488,6 +488,21 @@ const getZAPIConfig = async () => {
      }
    };
 
+   const sendGif = async (phone: string, gifUrl: string, caption?: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({ phone, mediaUrl: gifUrl, mediaType: 'gif', message: caption || '' }, 'Erro ao enviar GIF');
+       toast({ title: "GIF enviado!", description: "O GIF foi enviado com sucesso." });
+       return data;
+     } catch (error) {
+       console.error('Erro ao enviar GIF:', error);
+       toast({ title: "Erro ao enviar GIF", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+
   const getDeviceStatus = async () => {
     setLoading(true);
     
@@ -1406,9 +1421,10 @@ const getZAPIConfig = async () => {
       getInvitationLink,
       acceptGroupInvite,
       forwardMessage,
-       sendReaction,
-       sendSticker,
-      removeReaction,
+        sendReaction,
+        sendSticker,
+        sendGif,
+       removeReaction,
       loading,
     };
   };
