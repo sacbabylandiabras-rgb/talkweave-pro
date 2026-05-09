@@ -1286,6 +1286,41 @@ const getZAPIConfig = async () => {
   const getInvitationLink = (phone: string) => invokeGroupAction('get-invitation-link', null, phone);
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
+  const forwardMessage = async (phone: string, messageId: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('forward-message', phone, { messageId });
+      toast({ title: "Mensagem encaminhada", description: "A mensagem foi encaminhada com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao encaminhar mensagem:', error);
+      toast({ title: "Erro ao encaminhar", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendReaction = async (phone: string, messageId: string, emoji: string) => {
+    try {
+      return await invokeZapiAction('send-message-reaction', phone, { messageId, reaction: emoji });
+    } catch (error) {
+      console.error('Erro ao enviar reação:', error);
+      toast({ title: "Erro ao reagir", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    }
+  };
+
+  const removeReaction = async (phone: string, messageId: string) => {
+    try {
+      return await invokeZapiAction('send-remove-reaction', phone, { messageId });
+    } catch (error) {
+      console.error('Erro ao remover reação:', error);
+      toast({ title: "Erro ao remover reação", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    }
+  };
+
   // Status Functions
     return {
       setZapiInstanceOverride: setOverride,
@@ -1350,6 +1385,9 @@ const getZAPIConfig = async () => {
       redefineInvitationLink,
       getInvitationLink,
       acceptGroupInvite,
+      forwardMessage,
+      sendReaction,
+      removeReaction,
       loading,
     };
   };

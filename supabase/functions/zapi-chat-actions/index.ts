@@ -195,6 +195,14 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'accept-group-invite':
       return { method: 'POST', path: "/accept-group-invite", body: payload };
 
+    // Message Actions
+    case 'forward-message':
+      return { method: 'POST', path: "/forward-message", body: payload };
+    case 'send-message-reaction':
+      return { method: 'POST', path: "/send-message-reaction", body: payload };
+    case 'send-remove-reaction':
+      return { method: 'POST', path: "/send-remove-reaction", body: payload };
+
     default:
       throw new Error("Unknown action: " + action);
   }
