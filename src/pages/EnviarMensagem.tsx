@@ -1591,6 +1591,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="titulo-botoes" 
                       placeholder="Título da mensagem"
+                      className="text-black"
                       value={titulo}
                       onChange={(e) => setTitulo(e.target.value)}
                     />
@@ -1601,7 +1602,7 @@ const EnviarMensagem = () => {
                     <Textarea 
                       id="mensagem-botoes"
                       placeholder="Digite sua mensagem aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
+                      className={`mt-1 min-h-[120px] text-black ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
                       onChange={(e) => setMensagem(e.target.value)}
                     />
@@ -1615,6 +1616,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="rodape-botoes" 
                       placeholder="Texto do rodapé"
+                      className="text-black"
                       value={rodape}
                       onChange={(e) => setRodape(e.target.value)}
                     />
