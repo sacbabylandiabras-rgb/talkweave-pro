@@ -751,7 +751,7 @@ export const useMessageLogs = (
        const ch1 = supabase
          .channel(`msg-logs-rt-${Date.now()}`)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
-           console.log('[Realtime] message_logs event:', payload.eventType, payload.new?.id);
+           console.log('[Realtime] message_logs event:', payload.eventType, (payload.new as any)?.id);
            if (payload.eventType === 'INSERT') {
              const newMsg = payload.new as MessageLog;
              if (newMsg.keyword_matched === '__processing__' || newMsg.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(newMsg.keyword_matched)) return;
