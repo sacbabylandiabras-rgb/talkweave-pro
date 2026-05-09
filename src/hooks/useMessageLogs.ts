@@ -851,7 +851,7 @@ export const useMessageLogs = (
               
               // Skip if part of a deleted conversation
               const normalized = normalizeConversationPhone(record.phone);
-              if (deletedConversations.has(normalized)) {
+              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
                 console.log('[Realtime] Ignoring record for deleted conversation:', normalized);
                 return;
               }
@@ -903,14 +903,14 @@ export const useMessageLogs = (
            const record = payload.new as CampaignSendMessage;
            const isVisible = record?.status === 'delivered';
 
-           // Skip if part of a deleted conversation
-           if (record?.phone) {
-             const normalized = normalizeConversationPhone(record.phone);
-             if (deletedConversations.has(normalized)) {
-               console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
-               return;
-             }
-           }
+            // Skip if part of a deleted conversation
+            if (record?.phone) {
+              const normalized = normalizeConversationPhone(record.phone);
+              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
+                console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
+                return;
+              }
+            }
 
            if (payload.eventType === 'INSERT') {
              if (!isVisible) return;
