@@ -1150,8 +1150,12 @@ export const useMessageLogs = (
          if (fetchedPhotosRef.current.has(cacheKey)) continue;
          fetchedPhotosRef.current.add(cacheKey);
          try {
-           await fetchProfilePicture(phone, false, instanceId || null);
-         } catch { /* ignore */ }
+           const url = await fetchProfilePicture(phone, false, instanceId || null);
+           // Allow future retry if photo wasn't found (e.g. instance was offline)
+           if (!url) fetchedPhotosRef.current.delete(cacheKey);
+         } catch {
+           fetchedPhotosRef.current.delete(cacheKey);
+         }
         await new Promise((r) => setTimeout(r, 80));
       }
     })();
