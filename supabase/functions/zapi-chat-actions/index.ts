@@ -222,16 +222,22 @@ Deno.serve(async (req) => {
     const { action, phone = '', instanceDbId, payload } = body;
     if (!action) throw new Error('Missing action');
 
-    const creds = await resolveCreds(req, instanceDbId);
+    const creds = await resolveCreds(req, instanceDbId || undefined);
     const base = buildBase(creds);
-    const ep = endpointFor(action, phone, payload);
+    const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
-    const url = base + ep.path;
+    let url = base + ep.path;
+    if (creds.apiProvider === 'uazapi' && !ep.path.includes('?')) {
+      url += `/${creds.instanceId}`;
+    } else if (creds.apiProvider === 'uazapi' && ep.path.includes('?')) {
+      url = url.replace('?', `/${creds.instanceId}?`);
+    }
+
     const init: RequestInit = {
       method: ep.method,
       headers: {
         'Content-Type': 'application/json',
-        'Client-Token': creds.clientToken,
+        [creds.apiProvider === 'uazapi' ? 'apikey' : 'Client-Token']: creds.apiProvider === 'uazapi' ? (creds.evolutionKey || '') : creds.clientToken,
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
