@@ -115,26 +115,6 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => {
-            if (confirm("Limpar todas as mensagens desta conversa?")) {
-              run("clear", undefined, "Conversa limpa");
-            }
-          }}
-        >
-          <Eraser className="w-4 h-4 mr-2" /> Limpar mensagens
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => {
-            if (confirm("Excluir esta conversa do WhatsApp?")) {
-              run("delete", undefined, "Conversa excluída");
-            }
-          }}
-        >
-          <Trash2 className="w-4 h-4 mr-2" /> Excluir conversa
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
