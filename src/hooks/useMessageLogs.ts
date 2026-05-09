@@ -1183,6 +1183,7 @@ export const useMessageLogs = (
     });
 
     return Array.from(grouped.entries())
+      .filter(([phone]) => !deletedConversations.has(phone))
       .map(([phone, msgs]) => {
         const sorted = msgs.sort((a, b) => {
           const timeDiff = toMillis(a.timestamp) - toMillis(b.timestamp);

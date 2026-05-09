@@ -338,10 +338,11 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected,
+   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
  }: {
    conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
     instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void; selectedPhones: Set<string>; onToggleSelect: (phone: string) => void; isSelectionMode: boolean; onToggleSelectionMode: () => void; onDeleteSelected: () => void;
+   onDeleteConversation: (phone: string) => void;
    onFetchPhoto: (phone: string, force?: boolean) => void;
    onRefreshPhotos: () => void;
 }) => (
@@ -431,7 +432,7 @@ const ConversationList = ({
             key={conv.phone}
             onClick={() => isSelectionMode ? onToggleSelect(conv.phone) : onSelect(conv.phone)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50",
+              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 group",
               selectedPhone === conv.phone && !isSelectionMode && "bg-muted",
               isSelectionMode && selectedPhones.has(conv.phone) && "bg-primary/5 ring-1 ring-inset ring-primary/20"
             )}
@@ -474,9 +475,27 @@ const ConversationList = ({
                 {(conv.lastMessage || '').length > 60 ? (conv.lastMessage || '').slice(0, 60) + '...' : (conv.lastMessage || '')}
               </p>
             </div>
-            {!readPhones.has(conv.phone) && (
-              <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
-            )}
+            <div className="flex items-center gap-2">
+              {!isSelectionMode && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Deseja realmente apagar esta conversa da lista?')) {
+                      onDeleteConversation(conv.phone);
+                    }
+                  }}
+                  title="Apagar conversa"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              )}
+              {!readPhones.has(conv.phone) && (
+                <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
+              )}
+            </div>
           </button>
         ))
       )}
@@ -1330,6 +1349,16 @@ const MensagensRecebidas = () => {
     if (connectedInstanceNames.length > 0) return connectedInstanceNames;
     return allInstanceNames.length > 0 ? allInstanceNames : undefined;
   }, [connectedInstanceNames, allInstanceNames]);
+  const handleDeleteConversation = async (phone: string) => {
+    try {
+      await deleteConversation(phone);
+      if (selectedPhone === phone) setSelectedPhone(null);
+      toast({ title: "Conversa apagada", description: "A conversa foi removida com sucesso." });
+    } catch (err) {
+      toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+    }
+  };
+
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Only show connected instances in the picker. While we're still checking
   // connection status, fall back to all registered instances to avoid an empty UI.
@@ -1693,6 +1722,7 @@ const MensagensRecebidas = () => {
                   setSelectedPhones(new Set());
                 }}
                 onDeleteSelected={handleDeleteSelected}
+                onDeleteConversation={handleDeleteConversation}
               />
           </div>
         )}
