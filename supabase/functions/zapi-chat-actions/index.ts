@@ -18,19 +18,25 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) throw new Error('Unauthorized');
 
+  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key';
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
   let q = admin.from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-    .eq('user_id', user.id);
+    .select(instanceSelect)
+    .eq('user_id', user.id)
+    .eq('api_provider', 'zapi');
   if (instanceDbId) {
-    q = q.eq('id', instanceDbId);
+    q = uuidLike.test(instanceDbId)
+      ? q.eq('id', instanceDbId)
+      : q.eq('zapi_instance_id', instanceDbId);
   } else {
     q = q.eq('is_default', true);
   }
   let { data: inst } = await q.maybeSingle();
   if (!inst) {
     const r = await admin.from('zapi_instances')
-      .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-      .eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
+      .select(instanceSelect)
+      .eq('user_id', user.id).eq('api_provider', 'zapi').eq('is_active', true).limit(1).maybeSingle();
     inst = r.data as any;
   }
   if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
@@ -47,60 +53,45 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 }
 
 function buildBase(c: { instanceId: string; token: string; apiProvider: string; evolutionUrl?: string | null }) {
-  if (c.apiProvider === 'uazapi' && c.evolutionUrl) {
-    return c.evolutionUrl.replace(/\/+$/, '');
-  }
   return "https://api.z-api.io/instances/" + c.instanceId + "/token/" + c.token;
 }
 
 function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
-  const isUazapi = apiProvider === 'uazapi';
-  
-  // Normalize phone for Evolution API if needed
-  const cleanPhone = phone.replace('@g.us', '').replace(/-group$/, '');
-  const uazapiSuffix = phone.includes('-group') || phone.includes('@g.us') ? '@g.us' : '@s.whatsapp.net';
-  const uazapiPhone = cleanPhone + uazapiSuffix;
+  const zapiPhone = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
+  const expirationMap: Record<string, string> = {
+    '0': 'OFF',
+    '86400': '24_HOURS',
+    '604800': '7_DAYS',
+    '7776000': '90_DAYS',
+  };
 
   switch (action) {
     case 'list-chats':
-      if (isUazapi) return { method: 'GET', path: "/chat/find-all" };
       return { method: 'GET', path: "/chats?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
     case 'metadata':
-      if (isUazapi) return { method: 'GET', path: "/chat/find-messages?remoteJid=" + uazapiPhone + "&count=1" };
-      return { method: 'GET', path: "/chats/" + phone };
+      return { method: 'GET', path: "/chats/" + zapiPhone };
     case 'read':
-      if (isUazapi) return { method: 'POST', path: "/chat/markRead", body: { remoteJid: uazapiPhone } };
-      return { method: 'POST', path: "/chats/" + phone + "/read" };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'read' } };
     case 'unread':
-      if (isUazapi) return { method: 'POST', path: "/chat/markUnread", body: { remoteJid: uazapiPhone } };
-      return { method: 'POST', path: "/chats/" + phone + "/unread" };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unread' } };
     case 'archive':
-      if (isUazapi) return { method: 'POST', path: "/chat/archiveChat", body: { remoteJid: uazapiPhone, archive: true } };
-      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'archive' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'archive' } };
     case 'unarchive':
-      if (isUazapi) return { method: 'POST', path: "/chat/archiveChat", body: { remoteJid: uazapiPhone, archive: false } };
-      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unarchive' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unarchive' } };
     case 'pin':
-      if (isUazapi) return { method: 'POST', path: "/chat/pinChat", body: { remoteJid: uazapiPhone, pin: true } };
-      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'pin' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'pin' } };
     case 'unpin':
-      if (isUazapi) return { method: 'POST', path: "/chat/pinChat", body: { remoteJid: uazapiPhone, pin: false } };
-      return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unpin' } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unpin' } };
     case 'mute':
-      if (isUazapi) return { method: 'POST', path: "/chat/muteChat", body: { remoteJid: uazapiPhone, muteFor: payload?.muteFor ?? 28800 } };
-      return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: payload?.muteFor ?? 28800 } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'mute' } };
     case 'unmute':
-      if (isUazapi) return { method: 'POST', path: "/chat/muteChat", body: { remoteJid: uazapiPhone, muteFor: 0 } };
-      return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: 0 } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unmute' } };
     case 'clear':
-      if (isUazapi) return { method: 'DELETE', path: "/chat/clearChat", body: { remoteJid: uazapiPhone } };
-      return { method: 'POST', path: "/clear-chat", body: { phone } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'clear' } };
     case 'delete':
-      if (isUazapi) return { method: 'DELETE', path: "/chat/deleteChat", body: { remoteJid: uazapiPhone } };
-      return { method: 'DELETE', path: "/chats/" + phone };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'delete' } };
      case 'expiration':
-      if (isUazapi) return { method: 'POST', path: "/chat/expiration", body: { remoteJid: uazapiPhone, expiration: payload?.expiration ?? 0 } };
-       return { method: 'POST', path: "/send-chat-expiration", body: { phone, expiration: payload?.expiration ?? 0 } };
+        return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
      // Contact Actions
      case 'get-contacts':
@@ -227,20 +218,13 @@ Deno.serve(async (req) => {
     const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
    let url: string;
-   if (creds.apiProvider === 'uazapi') {
-     const pathWithInstance = ep.path.includes('?') 
-       ? ep.path.replace('?', `/${creds.instanceId}?`)
-       : `${ep.path}/${creds.instanceId}`;
-     url = base + pathWithInstance;
-   } else {
-     url = base + ep.path;
-   }
+    url = base + ep.path;
 
     const init: RequestInit = {
       method: ep.method,
       headers: {
         'Content-Type': 'application/json',
-        [creds.apiProvider === 'uazapi' ? 'apikey' : 'Client-Token']: creds.apiProvider === 'uazapi' ? (creds.evolutionKey || '') : creds.clientToken,
+        'Client-Token': creds.clientToken,
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
