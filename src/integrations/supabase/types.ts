@@ -2199,7 +2199,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      delete_conversation: { Args: { p_phone: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

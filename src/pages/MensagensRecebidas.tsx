@@ -514,9 +514,9 @@ interface ChatViewProps {
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
-   onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
-    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
-    onDeleteConversation: (phone: string) => Promise<void>;
+  onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
+  onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+  onDeleteConversation: (phone: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
 
@@ -729,6 +729,17 @@ const ChatView = ({
     return `${m}:${s}`;
   };
 
+  const handleClearChat = async () => {
+    if (!conversation) return;
+    if (!confirm(`Apagar toda a conversa com ${getConversationDisplayName(conversation.contactName, conversation.phone)}?`)) return;
+    
+    try {
+      await onDeleteConversation(conversation.phone);
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível apagar a conversa.", variant: "destructive" });
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -887,26 +898,6 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
-            title="Apagar conversa" 
-            onClick={() => {
-              if (window.confirm("Tem certeza que deseja apagar o histórico desta conversa localmente? Esta ação não apaga as mensagens no WhatsApp do contato.")) {
-                onDeleteConversation(conversation.phone)
-                  .then(() => {
-                    toast({ title: "Conversa apagada", description: "O histórico local foi removido." });
-                    onBack();
-                  })
-                  .catch(() => {
-                    toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
-                  });
-              }
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
             <Bot className="w-4 h-4" />
           </Button>
@@ -918,6 +909,15 @@ const ChatView = ({
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title={conversation.contactName ? "Editar contato" : "Salvar contato"} onClick={() => onSaveContact(conversation.phone, conversation.contactName || '')}>
             {conversation.contactName ? <Pencil className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:text-destructive" 
+            title="Limpar conversa"
+            onClick={handleClearChat}
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
