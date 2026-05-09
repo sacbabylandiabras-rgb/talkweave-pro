@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-  import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid } from "lucide-react";
+   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -1249,16 +1249,33 @@ const ChatView = ({
                  accept="image/webp,image/png,image/jpeg"
                  onChange={handleStickerUpload}
                />
-               <Button
-                 variant="ghost"
-                 size="icon"
-                 className="shrink-0 h-10 w-10"
-                 onClick={() => stickerInputRef.current?.click()}
-                 disabled={sending}
-                 title="Enviar figurinha"
-               >
-                 <StickyNote className="w-4 h-4" />
-               </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={() => stickerInputRef.current?.click()}
+                  disabled={sending}
+                  title="Enviar figurinha"
+                >
+                  <StickyNote className="w-4 h-4" />
+                </Button>
+                <input
+                  type="file"
+                  ref={gifInputRef}
+                  className="hidden"
+                  accept="image/gif"
+                  onChange={handleGifUpload}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={() => gifInputRef.current?.click()}
+                  disabled={sending}
+                  title="Enviar GIF"
+                >
+                  <FileImage className="w-4 h-4 text-purple-500" />
+                </Button>
                <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
