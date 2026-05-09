@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-  import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2 } from "lucide-react";
+  import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isGroupPhone } from "@/lib/group-name-resolution";
+import { isGroupPhone, isCommunityPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
@@ -336,6 +336,37 @@ const SaveContactDialog = ({
   );
 };
 
+const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
+  if (phone.includes('@newsletter')) {
+    return (
+      <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Canal
+      </Badge>
+    );
+  }
+
+  if (isCommunityPhone(phone)) {
+    return (
+      <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Comunidade
+      </Badge>
+    );
+  }
+
+  if (isGroupPhone(phone)) {
+    return (
+      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Users className="w-2.5 h-2.5" />
+        Grupo
+      </Badge>
+    );
+  }
+
+  return null;
+};
+
 // Conversation list
 const ConversationList = ({
    conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
@@ -461,11 +492,14 @@ const ConversationList = ({
                 </AvatarFallback>
               </Avatar>
              </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <span className="font-medium text-sm text-foreground truncate">
                     {getConversationDisplayName(conv.contactName, conv.phone)}
                   </span>
+                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} />
+                </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
                 </span>
@@ -888,10 +922,13 @@ const ChatView = ({
             <WhatsAppDefaultAvatar />
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-foreground truncate">
-            {getConversationDisplayName(conversation.contactName, conversation.phone)}
-          </h3>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="font-medium text-foreground truncate">
+              {getConversationDisplayName(conversation.contactName, conversation.phone)}
+            </h3>
+            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} />
+          </div>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
           </p>
