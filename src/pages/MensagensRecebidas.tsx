@@ -344,7 +344,7 @@ const SaveContactDialog = ({
   );
 };
 
-const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
+const ChatTypeBadge = ({ phone, name, isCommunity }: { phone: string; name: string | null; isCommunity?: boolean }) => {
   const lowerName = (name || "").toLowerCase();
   
   if (phone.includes('@newsletter') || (lowerName.includes('canal') && !lowerName.includes('grupo'))) {
@@ -353,13 +353,13 @@ const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) 
     );
   }
 
-  if (isCommunityPhone(phone)) {
+  if (isCommunity || isCommunityPhone(phone)) {
     return (
       <Badge variant="secondary" className="text-[10px] shrink-0">COMUNIDADE</Badge>
     );
   }
 
-  if (isRegularGroupPhone(phone)) {
+  if (isRegularGroupPhone(phone) || isGroupPhone(phone)) {
     return (
       <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
     );
