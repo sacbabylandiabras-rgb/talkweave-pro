@@ -55,6 +55,8 @@ export interface SavedContact {
   name: string;
   profile_picture_url?: string | null;
   updated_at?: string | null;
+  is_community?: boolean;
+  community_id?: string | null;
 }
 
 export interface Conversation {
@@ -67,6 +69,8 @@ export interface Conversation {
   unreadCount: number;
   messages: UnifiedMessage[];
   preferredInstanceId?: string | null;
+  isCommunity?: boolean;
+  communityId?: string | null;
 }
 
 type OutboundButtonAction = {
