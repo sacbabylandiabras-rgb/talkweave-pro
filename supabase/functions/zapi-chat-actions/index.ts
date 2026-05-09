@@ -40,6 +40,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     throw new Error('Z-API credentials not configured');
   }
   return {
+    userId: user.id,
     instanceId: inst.zapi_instance_id,
     token: inst.zapi_token,
     clientToken: inst.zapi_client_token,
@@ -47,6 +48,84 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     evolutionUrl: inst.evolution_api_url,
     evolutionKey: inst.evolution_api_key,
   };
+}
+
+const normalizeMessageText = (value: unknown) => String(value || '')
+  .replace(/^\[sender:[^\]]*\]\s*/i, '')
+  .replace(/^\[msgid:[^\]]*\]\s*/i, '')
+  .replace(/^\[media:[^\]]+\]\s*/i, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
+
+const extractProviderMessageId = (msg: any) => String(
+  msg?.id || msg?.messageId || msg?.messageid || msg?.zaapId || msg?.key?.id || ''
+).trim();
+
+const extractProviderMessageText = (msg: any) => String(
+  msg?.content?.conversation
+    || msg?.content?.extendedTextMessage?.text
+    || msg?.content
+    || msg?.text
+    || msg?.body
+    || msg?.message
+    || msg?.caption
+    || ''
+).trim();
+
+const toMillis = (value: unknown) => {
+  const raw = Number(value);
+  if (Number.isFinite(raw) && raw > 0) return raw < 4102444800 ? raw * 1000 : raw;
+  const parsed = new Date(String(value || '')).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+async function resolveStoredMessageId(admin: any, creds: any, phone: string, payload: any) {
+  const rawMessageId = String(payload?.messageId || '').trim();
+  const logMatch = rawMessageId.match(/^log-(?:recv|sent)-(.+)$/);
+  if (!logMatch) return rawMessageId;
+
+  const { data: log } = await admin
+    .from('message_logs')
+    .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at')
+    .eq('user_id', creds.userId)
+    .eq('id', logMatch[1])
+    .maybeSingle();
+
+  const keywordId = String(log?.keyword_matched || '').match(/^__msg_import__:(.+)$/)?.[1];
+  if (keywordId) return keywordId;
+
+  const contentWithPrefix = String(log?.message_received || log?.response_sent || '');
+  const prefixedId = contentWithPrefix.match(/^\[msgid:([^\]]+)\]/i)?.[1];
+  if (prefixedId) return prefixedId;
+
+  const chatPhone = String(log?.phone || phone || '').replace(/-group$/i, '').replace(/\D/g, '');
+  const expectedText = normalizeMessageText(contentWithPrefix);
+  if (!chatPhone || !expectedText) return rawMessageId;
+
+  const base = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
+  const resp = await fetch(`${base}/chat-messages/${chatPhone}?amount=80`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': creds.clientToken },
+  });
+  if (!resp.ok) return rawMessageId;
+
+  const data = await resp.json().catch(() => null);
+  const messages = Array.isArray(data) ? data : (Array.isArray(data?.messages) ? data.messages : []);
+  const logTime = toMillis(log?.timestamp || log?.created_at);
+
+  let best: { id: string; score: number } | null = null;
+  for (const item of messages) {
+    const id = extractProviderMessageId(item);
+    if (!id) continue;
+    const itemText = normalizeMessageText(extractProviderMessageText(item));
+    if (!itemText || itemText !== expectedText) continue;
+    const itemTime = toMillis(item?.messageTimestamp || item?.timestamp || item?.t || item?.sent_at);
+    const score = logTime && itemTime ? Math.abs(logTime - itemTime) : 0;
+    if (!best || score < best.score) best = { id, score };
+  }
+
+  return best?.id || rawMessageId;
 }
 
 function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
