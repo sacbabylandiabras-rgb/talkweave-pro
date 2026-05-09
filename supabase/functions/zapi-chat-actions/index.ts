@@ -18,19 +18,25 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) throw new Error('Unauthorized');
 
+  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key';
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
   let q = admin.from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-    .eq('user_id', user.id);
+    .select(instanceSelect)
+    .eq('user_id', user.id)
+    .eq('api_provider', 'zapi');
   if (instanceDbId) {
-    q = q.eq('id', instanceDbId);
+    q = uuidLike.test(instanceDbId)
+      ? q.eq('id', instanceDbId)
+      : q.eq('zapi_instance_id', instanceDbId);
   } else {
     q = q.eq('is_default', true);
   }
   let { data: inst } = await q.maybeSingle();
   if (!inst) {
     const r = await admin.from('zapi_instances')
-      .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
-      .eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
+      .select(instanceSelect)
+      .eq('user_id', user.id).eq('api_provider', 'zapi').eq('is_active', true).limit(1).maybeSingle();
     inst = r.data as any;
   }
   if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
