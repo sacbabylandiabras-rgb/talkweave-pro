@@ -373,8 +373,10 @@ serve(async (req) => {
      } else if (type === 'sticker') {
        endpoint = '/send-sticker';
        payload.sticker = url;
-      return sendZapi(endpoint, payload, `media-${type}`);
-    };
+     }
+
+     return sendZapi(endpoint, payload, `media-${type}`);
+   };
 
     // Define common button logic to be used if needed
     const smartSendButtons = async () => {
