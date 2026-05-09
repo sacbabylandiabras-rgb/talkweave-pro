@@ -1694,37 +1694,32 @@ const MensagensRecebidas = () => {
     }
   }, [selectedPhone, normalizedSelectedPhone, conversations]);
 
-   const handleRefreshAll = async () => {
-     setSyncing(true);
-     try {
-       clearFetchedPhotosCache();
-       
-       // Roda a sync em background várias vezes para cobrir muitos contatos
-       // (cada chamada processa 50)
-       const rounds = 5; // processa até 250 contatos por clique
-       for (let i = 0; i < rounds; i++) {
-         await supabase.functions.invoke('sync-profile-photos');
-       }
-       
-       await syncMetadata();
-       await forceUpdateAllPhotos();
-       refetch(); // Atualiza o estado local
-
-       toast({ 
-         title: "Sincronização concluída", 
-         description: "Fotos e nomes de contatos atualizados." 
-       });
-     } catch (error) {
-       console.error('Erro na sincronização:', error);
-       toast({ 
-         title: "Erro na sincronização", 
-         description: "Algumas informações não puderam ser atualizadas.", 
-         variant: "destructive" 
-       });
-     } finally {
-       setSyncing(false);
-     }
-   };
+  const handleRefreshAll = async () => {
+    setSyncing(true);
+    try {
+      clearFetchedPhotosCache();
+      
+      // Roda a sync de fotos em background (processa 50 por vez)
+      // Chama 3x para cobrir 150 contatos por clique
+      for (let i = 0; i < 3; i++) {
+        await supabase.functions.invoke('sync-profile-photos');
+      }
+      
+      await refetch(); // atualiza a lista
+      toast({ 
+        title: "Fotos sincronizadas", 
+        description: "Fotos de perfil atualizadas com sucesso." 
+      });
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      toast({ 
+        title: "Erro na sincronização", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
  
   const handleSaveContact = (phone: string, currentName: string) => {
     setSaveDialogPhone(phone);
