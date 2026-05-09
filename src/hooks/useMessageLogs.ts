@@ -589,7 +589,6 @@ export const useMessageLogs = (
       if (!force && fetchedPhotosRef.current.has(phone)) {
         return localManualPhotos.get(phone) || null;
       }
-      fetchedPhotosRef.current.add(phone);
 
       const body: Record<string, unknown> = { phone };
       if (instanceId) body.instanceId = instanceId;
@@ -601,6 +600,14 @@ export const useMessageLogs = (
       const responsePayload = rawData?.data ?? rawData;
       const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
       const finalUrl = extractProfilePictureUrl(responsePayload);
+
+      // Only blacklist this phone when we actually obtained a URL, or when it's a
+      // 1:1 contact (which is stable). For groups without photo, allow future retries
+      // via the missing-photos sync effect so the avatar can appear when it becomes
+      // available upstream.
+      if (finalUrl || !isGroupPhone(phone)) {
+        fetchedPhotosRef.current.add(phone);
+      }
 
       setLocalManualPhotos(prev => {
         const next = new Map(prev);
