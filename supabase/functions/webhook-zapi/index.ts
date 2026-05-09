@@ -8,6 +8,11 @@ const pickPreferredInteractiveText = (candidates: unknown[]) => {
   return values.find(v => !isUazapiTechnicalReplyReference(v)) || values[0] || "";
 };
 
+const sanitizeTechnicalMessageReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return isUazapiTechnicalReplyReference(raw) ? "" : raw;
+};
+
 function extractButtonReplyCandidates(webhook: any): string[] {
   const values = new Set<string>();
   const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
