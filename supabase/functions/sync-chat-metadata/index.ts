@@ -28,16 +28,16 @@
        throw new Error('Instance not found')
      }
  
-     const provider = (instance.api_provider || 'zapi').toLowerCase()
-     if (provider !== 'zapi') {
-       return new Response(JSON.stringify({ success: false, message: 'Only Z-API is supported for full metadata sync' }), {
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-       })
-     }
- 
+      const provider = (instance.api_provider || 'zapi').toLowerCase()
       const isZapi = provider === 'zapi';
       const isUazapi = provider === 'uazapi';
       
+      if (!isZapi && !isUazapi) {
+        return new Response(JSON.stringify({ success: false, message: 'Only Z-API and UAZAPI are supported for full metadata sync' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       let chats = [];
       
       if (isZapi) {
@@ -52,6 +52,19 @@
         if (chatsRes.ok) {
           chats = await chatsRes.json();
         }
+
+         // Also fetch groups specifically to ensure all groups are captured
+         try {
+           const groupsRes = await fetch(`${baseUrl}/groups`, { headers });
+           if (groupsRes.ok) {
+             const groups = await groupsRes.json();
+             if (Array.isArray(groups)) {
+               chats = [...chats, ...groups];
+             }
+           }
+         } catch (err) {
+           console.error('Error fetching Z-API groups:', err);
+         }
       } else if (isUazapi) {
         const url = (instance.evolution_api_url || '').replace(/\/+$/, '');
         const headers = { 'Content-Type': 'application/json', token: instance.evolution_api_key || '' };
