@@ -110,25 +110,44 @@ Deno.serve(async (req) => {
         });
       }
 
-      case "update-group-photo": {
-        const { groupId, imageUrl } = body;
-        if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
-        let cleanId = groupId;
-        if (!groupId.includes('@newsletter') && !groupId.includes('-community')) {
-          cleanId = groupId.replace("-group", "@g.us");
-        }
-        console.log("📷 update-group-photo groupId:", groupId, "-> cleanId:", cleanId, "imageUrl:", imageUrl);
-        const response = await fetch(`${baseUrl}/update-group-photo`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ groupId: cleanId, groupPhoto: imageUrl }),
-        });
-        const data = await response.json();
-        console.log("📷 update-group-photo response:", JSON.stringify(data));
-        return new Response(JSON.stringify(data), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+       case "update-group-photo": {
+         const { groupId, imageUrl } = body;
+         if (!groupId || !imageUrl) throw new Error("groupId and imageUrl are required");
+         
+         let cleanId = groupId;
+         // Z-API expects @g.us for groups in /update-group-photo
+         if (!groupId.includes('@newsletter') && !groupId.includes('-community')) {
+           cleanId = groupId.replace("-group", "@g.us");
+         }
+         
+         console.log("📷 update-group-photo groupId:", groupId, "-> cleanId:", cleanId, "imageUrl:", imageUrl);
+         
+         // Attempt 1: Regular Z-API endpoint
+         const response = await fetch(`${baseUrl}/update-group-photo`, {
+           method: "POST",
+           headers,
+           body: JSON.stringify({ groupId: cleanId, groupPhoto: imageUrl }),
+         });
+         
+         let data = await response.json().catch(() => ({}));
+         console.log("📷 update-group-photo response (attempt 1):", JSON.stringify(data));
+         
+         // If failed with specific error or not found, try alternative endpoint or payload
+         if (!response.ok || data?.error) {
+           console.log("⚠️ Attempt 1 failed, trying alternative payload (phone instead of groupId)...");
+           const retryResponse = await fetch(`${baseUrl}/update-group-photo`, {
+             method: "POST",
+             headers,
+             body: JSON.stringify({ phone: cleanId, groupPhoto: imageUrl }),
+           });
+           data = await retryResponse.json().catch(() => ({}));
+           console.log("📷 update-group-photo response (attempt 2):", JSON.stringify(data));
+         }
+         
+         return new Response(JSON.stringify(data), {
+           headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
 
       case "admin-only-messages": {
         const {
