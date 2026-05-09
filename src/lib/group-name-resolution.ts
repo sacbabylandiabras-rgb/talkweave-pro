@@ -27,15 +27,17 @@ export const isGroupPhone = (phone: string): boolean => {
   const clean = String(phone || '').replace(/\D/g, '');
   if (phone.includes('@g.us')) return true;
   if (phone.includes('-group')) {
-    return clean.length <= 20;
+    return clean.length <= 20; 
   }
-  return /^12036\d{10,13}$/.test(clean);
+  // Grupos reais começam com 120363 e têm exatamente 16 dígitos
+  return /^120363\d{10}$/.test(clean);
 };
 
 export const isCommunityPhone = (phone: string): boolean => {
   const clean = String(phone || '').replace(/\D/g, '');
-  return /^12036\d{14,}$/.test(clean) || 
-    (phone.includes('-group') && /^12036/.test(clean) && clean.length > 16);
+  // Comunidades começam com 120363 e têm mais de 16 dígitos
+  return /^120363\d{11,}$/.test(clean) || 
+    (phone.includes('-group') && /^120363/.test(clean) && clean.length > 16);
 };
 
 export const isNewsletterPhone = (phone: string): boolean => {
