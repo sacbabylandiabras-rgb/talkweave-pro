@@ -344,58 +344,33 @@ const SaveContactDialog = ({
   );
 };
 
-const ChatTypeBadge = ({ phone, name, customName }: { phone: string; name: string | null; customName?: string | null }) => {
+const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
   const lowerName = (name || "").toLowerCase();
-  const isGeneric = (n: string | null) => {
-    const low = (n || "").toLowerCase();
-    return !n || low === 'grupo' || low === 'comunidade' || low === 'canal';
-  };
   
   if (phone.includes('@newsletter') || (lowerName.includes('canal') && !lowerName.includes('grupo'))) {
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-          <Megaphone className="w-2.5 h-2.5" />
-          Canal
-        </Badge>
-        {!isGeneric(customName) && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 truncate max-w-[120px]">
-            {customName}
-          </Badge>
-        )}
-      </div>
+      <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-1.5 py-0 h-4 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Canal
+      </Badge>
     );
   }
 
   if (isCommunityPhone(phone)) {
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-          <Megaphone className="w-2.5 h-2.5" />
-          Comunidade
-        </Badge>
-        {!isGeneric(customName) && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 truncate max-w-[120px]">
-            {customName}
-          </Badge>
-        )}
-      </div>
+      <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Megaphone className="w-2.5 h-2.5" />
+        Comunidade
+      </Badge>
     );
   }
 
   if (isRegularGroupPhone(phone)) {
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant="outline" className="text-blue-700 border-blue-200 px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-          <Users className="w-2.5 h-2.5" />
-          Grupo
-        </Badge>
-        {!isGeneric(customName) && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 truncate max-w-[120px]">
-            {customName}
-          </Badge>
-        )}
-      </div>
+      <Badge variant="outline" className="text-blue-700 border-blue-200 px-1.5 py-0 h-4 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+        <Users className="w-2.5 h-2.5" />
+        Grupo
+      </Badge>
     );
   }
 
