@@ -82,8 +82,6 @@ Deno.serve(async (req) => {
     let token = "";
     let clientToken = "";
     let apiProvider = 'zapi';
-    let uazapiUrl: string | null = null;
-    let uazapiToken: string | null = null;
     const userId = user.id;
 
     if (body?.instanceId) {
@@ -100,8 +98,6 @@ Deno.serve(async (req) => {
         token = specificInstance.zapi_token;
         clientToken = specificInstance.zapi_client_token;
         apiProvider = specificInstance.api_provider || 'zapi';
-        uazapiUrl = specificInstance.evolution_api_url || null;
-        uazapiToken = specificInstance.evolution_api_key || null;
         console.log(`📌 Using specific instance: ${instanceId}`);
       }
     }
@@ -122,8 +118,6 @@ Deno.serve(async (req) => {
         token = activeInstance.zapi_token;
         clientToken = activeInstance.zapi_client_token;
         apiProvider = activeInstance.api_provider || 'zapi';
-        uazapiUrl = activeInstance.evolution_api_url || null;
-        uazapiToken = activeInstance.evolution_api_key || null;
         console.log(`📌 Using active instance fallback: ${instanceId} (${apiProvider})`);
       } else {
         const fallbackCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
@@ -134,7 +128,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!instanceId && apiProvider !== 'uazapi') {
+    if (!instanceId) {
       throw new Error('Instância não encontrada para sincronização');
     }
 
@@ -149,44 +143,7 @@ Deno.serve(async (req) => {
     while (hasMore && allChats.length < maxChats) {
       let chats: any[] = [];
 
-      if (apiProvider === 'uazapi') {
-        const apiUrl = (uazapiUrl || '').replace(/\/+$/, '');
-        const apiToken = uazapiToken || '';
-        if (!apiUrl || !apiToken) {
-          throw new Error('UAZAPI URL/Token não configurados');
-        }
-
-        const chatsResponse = await fetch(`${apiUrl}/chat/find`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            token: apiToken,
-          },
-          body: JSON.stringify({
-            limit: Math.min(pageSize, Math.max(maxChats, pageSize)),
-            offset: (page - 1) * pageSize,
-            sort: '-wa_lastMsgTimestamp',
-          }),
-        });
-
-        const rawText = await chatsResponse.text();
-        let chatsPayload: any = {};
-        try { chatsPayload = JSON.parse(rawText); } catch { chatsPayload = { message: rawText }; }
-
-        if (!chatsResponse.ok) {
-          console.error(`❌ UAZAPI chats error: ${chatsResponse.status} - ${rawText}`);
-          if (String(rawText).toLowerCase().includes('disconnect') || String(rawText).toLowerCase().includes('not connected')) {
-            return new Response(
-              JSON.stringify({ success: false, error: 'disconnected', message: 'Instância WhatsApp desconectada.' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-            );
-          }
-          throw new Error(`UAZAPI chats error: ${chatsResponse.status}`);
-        }
-
-        chats = Array.isArray(chatsPayload?.chats) ? chatsPayload.chats : [];
-      } else {
-        const chatsUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=${page}&pageSize=${pageSize}`;
+      const chatsUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}/chats?page=${page}&pageSize=${pageSize}`;
 
         const chatsResponse = await fetch(chatsUrl, {
           method: "GET",
@@ -209,8 +166,7 @@ Deno.serve(async (req) => {
         }
 
         const chatsPayload = await chatsResponse.json();
-        chats = Array.isArray(chatsPayload) ? chatsPayload : [];
-      }
+      chats = Array.isArray(chatsPayload) ? chatsPayload : [];
 
       console.log(`📄 Page ${page}: ${chats.length} chats`);
       allChats = [...allChats, ...chats];
@@ -333,21 +289,8 @@ Deno.serve(async (req) => {
         latestLocalTimestampByPhone.set(r.phone, r.timestamp);
       }
     });
-    // Track latest existing placeholder per phone so we can refresh its timestamp
-    // to reflect the most recent UAZAPI lastMessageTime (keeps recent chats on top).
-    const latestPlaceholderByPhone = new Map<string, { id: string; timestamp: string }>();
-    (existingPhones || []).forEach((r: any) => {
-      if (r.keyword_matched !== '__history_import__') return;
-      const current = latestPlaceholderByPhone.get(r.phone);
-      if (!current || new Date(r.timestamp).getTime() > new Date(current.timestamp).getTime()) {
-        latestPlaceholderByPhone.set(r.phone, { id: r.id, timestamp: r.timestamp });
-      }
-    });
-    const placeholderTimestampUpdates: Array<{ id: string; timestamp: string }> = [];
-    
     const placeholderRows: any[] = [];
     const groupContactsToUpsert: any[] = [];
-    const apiUrlClean = (uazapiUrl || '').replace(/\/+$/, '');
 
     const isUsableImportedGroupName = (value: unknown) => {
       const normalized = String(value || '').trim();
@@ -356,55 +299,6 @@ Deno.serve(async (req) => {
       if (/^(grupo|grupo sem nome|conversa com grupo)$/i.test(normalized)) return false;
       if (/^conversa com\s+grupo$/i.test(normalized)) return false;
       return true;
-    };
-
-    // Helper: fetch group name via UAZAPI /group/info
-    const fetchUazapiGroupName = async (groupjid: string): Promise<{ name: string; pic: string | null }> => {
-      if (apiProvider !== 'uazapi' || !apiUrlClean || !uazapiToken) return { name: '', pic: null };
-      // Normaliza para o formato esperado pela UAZAPI: "<numeros>@g.us"
-      const cleanId = String(groupjid).replace('@g.us', '').replace('-group', '').replace(/\D/g, '');
-      const jidWithSuffix = `${cleanId}@g.us`;
-
-      const extractName = (g: any): string => {
-        return String(
-          g?.subject || g?.name || g?.wa_name || g?.wa_chatName || g?.wa_contactName ||
-          g?.group?.subject || g?.group?.name ||
-          g?.groupMetadata?.subject || g?.data?.subject || g?.data?.name ||
-          g?.chat?.name || g?.chat?.subject || ''
-        ).trim();
-      };
-      const extractPic = (g: any): string | null => {
-        return extractProfilePictureUrl(g);
-      };
-
-      // 1) /group/info com groupjid puro (com @g.us)
-      const attempts: Array<{ url: string; body: any }> = [
-        { url: `${apiUrlClean}/group/info`, body: { groupjid: jidWithSuffix } },
-        { url: `${apiUrlClean}/group/info`, body: { groupjid: cleanId } },
-        { url: `${apiUrlClean}/chat/details`, body: { number: jidWithSuffix } },
-        { url: `${apiUrlClean}/chat/details`, body: { number: cleanId } },
-      ];
-
-      for (const attempt of attempts) {
-        try {
-          const r = await fetch(attempt.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: uazapiToken },
-            body: JSON.stringify(attempt.body),
-          });
-          if (!r.ok) continue;
-          const g = await r.json();
-          const name = extractName(g);
-          const pic = extractPic(g);
-          if (name) {
-            console.log(`✅ Group name resolved via ${attempt.url}: ${name}`);
-            return { name, pic };
-          }
-        } catch (e) {
-          console.error(`UAZAPI ${attempt.url} failed:`, e);
-        }
-      }
-      return { name: '', pic: null };
     };
 
     for (const chat of allChats) {
@@ -430,14 +324,6 @@ Deno.serve(async (req) => {
 
       let chatPic = extractProfilePictureUrl(chat);
 
-      // For UAZAPI groups, fetch /group/info whenever the current label is not a real group name
-      const needsResolvedGroupName = isGroup && !isUsableImportedGroupName(chatName);
-      if (apiProvider === 'uazapi' && needsResolvedGroupName) {
-        const info = await fetchUazapiGroupName(rawId);
-        if (isUsableImportedGroupName(info.name)) chatName = info.name;
-        if (info.pic) chatPic = info.pic;
-      }
-
       // Insert placeholder log only if no message exists yet for this chat
       if (!existingPhoneSet.has(phone)) {
         placeholderRows.push({
@@ -449,32 +335,6 @@ Deno.serve(async (req) => {
           keyword_matched: "__history_import__",
           instance_id: instanceId,
         });
-      } else {
-        // Chat already exists locally — refresh placeholder timestamp if UAZAPI
-        // reports a more recent lastMessageTime, so recent conversations float
-        // back to the top of the list.
-        const existingPlaceholder = latestPlaceholderByPhone.get(phone);
-        if (existingPlaceholder && lastMessageTime &&
-            new Date(lastMessageTime).getTime() > new Date(existingPlaceholder.timestamp).getTime()) {
-          placeholderTimestampUpdates.push({ id: existingPlaceholder.id, timestamp: lastMessageTime });
-        } else {
-          const latestLocalTimestamp = latestLocalTimestampByPhone.get(phone);
-          if (
-            !existingPlaceholder &&
-            lastMessageTime &&
-            (!latestLocalTimestamp || new Date(lastMessageTime).getTime() > new Date(latestLocalTimestamp).getTime())
-          ) {
-            placeholderRows.push({
-              phone,
-              user_id: userId,
-              timestamp: lastMessageTime,
-              message_received: `💬 Conversa com ${isUsableImportedGroupName(chatName) ? chatName : (isGroup ? 'Grupo' : phone)}`,
-              response_sent: null,
-              keyword_matched: "__history_import__",
-              instance_id: instanceId,
-            });
-          }
-        }
       }
 
       // Always upsert group name so the chat list shows the friendly name (even for existing chats)
@@ -508,22 +368,6 @@ Deno.serve(async (req) => {
           console.error(`❌ Error inserting placeholder messages:`, insertError);
         } else {
           importedChats += batch.length;
-        }
-      }
-    }
-
-    // Refresh timestamps on existing placeholders so the chat list reflects
-    // the latest activity reported by UAZAPI (e.g. messages from today).
-    if (placeholderTimestampUpdates.length > 0) {
-      console.log(`🔄 Refreshing ${placeholderTimestampUpdates.length} placeholder timestamps`);
-      for (const upd of placeholderTimestampUpdates) {
-        try {
-          await adminClient
-            .from('message_logs')
-            .update({ timestamp: upd.timestamp })
-            .eq('id', upd.id);
-        } catch (e) {
-          console.error('Failed to refresh placeholder timestamp', upd.id, e);
         }
       }
     }
