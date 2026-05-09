@@ -215,12 +215,20 @@ const extractGroupName = (payload: any): string | null => {
                const link = extractUrl(data)
                if (res.ok && link) return { success: true, data: { link, raw: data } }
              }
-              // Try chats-metadata which is often more reliable than profile-picture for some contacts
-              const metaRes = await fetch(`${base}/chats-metadata/${encodeURIComponent(isGroup ? `${numericId}@g.us` : `${numericId}@c.us`)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const metaData = await metaRes.json().catch(() => null)
-              const metaLink = extractUrl(metaData)
-              const metaName = extractGroupName(metaData)
-              if (metaRes.ok && (metaLink || metaName)) return { success: true, data: { link: metaLink, name: metaName, raw: metaData } }
+               // Try get-contact profile picture endpoint
+               if (!isGroup) {
+                 const contactRes = await fetch(`${base}/contacts/${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                 const contactData = await contactRes.json().catch(() => null)
+                 const contactLink = extractUrl(contactData)
+                 if (contactRes.ok && contactLink) return { success: true, data: { link: contactLink, raw: contactData } }
+               }
+
+               // Try chats-metadata which is often more reliable than profile-picture for some contacts
+               const metaRes = await fetch(`${base}/chats-metadata/${encodeURIComponent(isGroup ? `${numericId}@g.us` : `${numericId}@c.us`)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+               const metaData = await metaRes.json().catch(() => null)
+               const metaLink = extractUrl(metaData)
+               const metaName = extractGroupName(metaData)
+               if (metaRes.ok && (metaLink || metaName)) return { success: true, data: { link: metaLink, name: metaName, raw: metaData } }
 
               if (isGroup) {
                 const gr = await fetch(`${base}/groups?page=1&pageSize=100`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
