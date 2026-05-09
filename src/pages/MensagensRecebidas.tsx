@@ -1451,6 +1451,7 @@ const MensagensRecebidas = () => {
         if (!cancelled) {
           setConnectedInstanceIds([]);
           setConnectedInstanceNames([]);
+          setConnectedUiInstanceIds([]);
         }
         return;
       }
@@ -1471,7 +1472,13 @@ const MensagensRecebidas = () => {
 
       if (cancelled) return;
       const connected = results.filter(Boolean);
-      setConnectedInstanceIds(connected.map((i) => i!.zapi_instance_id).filter(Boolean));
+      
+      // ✅ Pega APENAS os zapi_instance_ids das instâncias conectadas agora
+      const connectedZapiIds = connected
+        .map((i) => i!.zapi_instance_id)
+        .filter(Boolean);
+        
+      setConnectedInstanceIds(connectedZapiIds);
       setConnectedInstanceNames(connected.map((i) => i!.instance_name).filter(Boolean));
       setConnectedUiInstanceIds(connected.map((i) => i!.id).filter(Boolean));
     };
@@ -1483,6 +1490,27 @@ const MensagensRecebidas = () => {
       window.clearInterval(interval);
     };
   }, [instances]);
+
+  const prevConnectedRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!connectedInstanceIds || connectedInstanceIds.length === 0) {
+      prevConnectedRef.current = [];
+      return;
+    }
+
+    // Detecta instâncias que acabaram de conectar (não estavam antes)
+    const newlyConnected = connectedInstanceIds.filter(
+      id => !prevConnectedRef.current.includes(id)
+    );
+
+    if (newlyConnected.length > 0) {
+      console.log('Nova instância conectada, sincronizando...', newlyConnected);
+      syncHistory(); // ✅ sincroniza automaticamente ao conectar
+    }
+
+    prevConnectedRef.current = connectedInstanceIds;
+  }, [connectedInstanceIds]);
 
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
