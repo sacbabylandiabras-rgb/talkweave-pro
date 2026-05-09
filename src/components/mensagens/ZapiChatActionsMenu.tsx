@@ -13,16 +13,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   MoreVertical,
-  Pin,
-  BellOff,
-  Archive,
+   BellOff,
    CheckCheck,
    Pin,
    Archive,
    Eraser,
    Trash2,
    Timer,
-  Loader2,
+   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
