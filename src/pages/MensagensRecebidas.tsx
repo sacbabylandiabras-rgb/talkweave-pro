@@ -1167,6 +1167,7 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { forwardMessage, sendReaction } = useZapi();
 
   const syncHistory = async () => {
     setSyncing(true);
@@ -1436,10 +1437,28 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} savedContacts={savedContacts} onSendMessage={async (phone, message, options) => {
-            await sendMessage(phone, message, options);
-            toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
-          }} />
+          <ChatView
+            conversation={selectedConversation}
+            onBack={() => setSelectedPhone(null)}
+            isMobile={isMobile}
+            onSaveContact={handleSaveContact}
+            onFetchPhoto={handleFetchPhoto}
+            loadingPhoto={loadingPhoto}
+            onOpenProfile={() => setProfileOpen(true)}
+            onTriggerFlow={(phone) => setProfileOpen(true)}
+            campaignTemplates={campaignTemplates}
+            savedContacts={savedContacts}
+            onSendMessage={async (phone, message, options) => {
+              await sendMessage(phone, message, options);
+              toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
+            }}
+            onForwardMessage={async (phone, messageId) => {
+              await forwardMessage(phone, messageId);
+            }}
+            onSendReaction={async (phone, messageId, emoji) => {
+              await sendReaction(phone, messageId, emoji);
+            }}
+          />
         )}
       </div>
       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
