@@ -226,12 +226,15 @@ Deno.serve(async (req) => {
     const base = buildBase(creds);
     const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
-    let url = base + ep.path;
-    if (creds.apiProvider === 'uazapi' && !ep.path.includes('?')) {
-      url += `/${creds.instanceId}`;
-    } else if (creds.apiProvider === 'uazapi' && ep.path.includes('?')) {
-      url = url.replace('?', `/${creds.instanceId}?`);
-    }
+   let url: string;
+   if (creds.apiProvider === 'uazapi') {
+     const pathWithInstance = ep.path.includes('?') 
+       ? ep.path.replace('?', `/${creds.instanceId}?`)
+       : `${ep.path}/${creds.instanceId}`;
+     url = base + pathWithInstance;
+   } else {
+     url = base + ep.path;
+   }
 
     const init: RequestInit = {
       method: ep.method,
