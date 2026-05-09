@@ -848,6 +848,15 @@ const ChatView = ({
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 hover:bg-muted text-foreground"
+                            title="Responder"
+                            onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                          >
+                            <Reply className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-muted text-foreground"
                             title="Encaminhar"
                             onClick={() => onForwardMessage(conversation.phone, msg.id)}
                           >
