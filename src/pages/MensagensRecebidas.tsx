@@ -790,7 +790,7 @@ const ChatView = ({
             title="Apagar conversa" 
             onClick={() => {
               if (window.confirm("Tem certeza que deseja apagar o histórico desta conversa localmente? Esta ação não apaga as mensagens no WhatsApp do contato.")) {
-                deleteConversation(conversation.phone)
+                onDeleteConversation(conversation.phone)
                   .then(() => {
                     toast({ title: "Conversa apagada", description: "O histórico local foi removido." });
                     onBack();
