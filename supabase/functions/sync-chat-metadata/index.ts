@@ -52,18 +52,23 @@
        throw new Error('Invalid response from Z-API')
      }
  
-     const upserts = chats.map(chat => {
-       const phone = chat.id || chat.phone
-       if (!phone) return null
-       
-       return {
-         phone,
-         name: chat.name || '',
-         profile_picture_url: chat.profilePictureUrl || null,
-         user_id: credentials.userId,
-         updated_at: new Date().toISOString()
-       }
-     }).filter(Boolean)
+      const upserts = chats.map(chat => {
+        const phone = chat.id || chat.phone || chat.jid;
+        if (!phone) return null;
+        
+        let photoUrl = chat.profilePictureUrl || chat.imgUrl || chat.image || chat.profileThumbnail || null;
+        if (photoUrl === 'null' || photoUrl === 'undefined' || (typeof photoUrl === 'string' && !photoUrl.startsWith('http'))) {
+          photoUrl = null;
+        }
+
+        return {
+          phone,
+          name: chat.name || chat.contactName || '',
+          profile_picture_url: photoUrl,
+          user_id: credentials.userId,
+          updated_at: new Date().toISOString()
+        };
+      }).filter(Boolean);
  
      if (upserts.length > 0) {
        // Batch upsert to saved_contacts

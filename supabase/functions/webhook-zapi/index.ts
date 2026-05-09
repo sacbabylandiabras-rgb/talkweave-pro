@@ -69,15 +69,16 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
-    senderName?: string;
-    senderPhone?: string;
+     senderName?: string;
+     senderPhone?: string;
+     senderPhoto?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
-  // Embed sender info as a prefix so the frontend can show name/phone
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone, senderPhoto } = params;
+  // Embed sender info as a prefix so the frontend can show name/phone/photo
   // without requiring a schema change. The frontend strips this prefix.
-  const senderPrefix = (senderName || senderPhone)
-    ? `[sender:${(senderName || '').replace(/[\|\]]/g, ' ')}|${(senderPhone || '').replace(/[\|\]]/g, ' ')}] `
+  const senderPrefix = (senderName || senderPhone || senderPhoto)
+    ? `[sender:${(senderName || '').replace(/[\|\]]/g, ' ')}|${(senderPhone || '').replace(/[\|\]]/g, ' ')}|${(senderPhoto || '').replace(/[\|\]]/g, ' ')}] `
     : '';
   const messageWithSender = senderPrefix + (rawMessage || '');
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
@@ -96,8 +97,11 @@ async function acquireMessageProcessingLock(
     id: lockId,
     phone,
     message_received: messageWithSender,
-    keyword_matched: "__processing__",
-    response_sent: "__processing__",
+     keyword_matched: "__processing__",
+     response_sent: "__processing__",
+     sender_name: senderName || null,
+     sender_phone: senderPhone || null,
+     sender_photo: senderPhoto || null,
     timestamp: new Date().toISOString(),
     user_id: userId,
     instance_id: instanceId || null,
@@ -113,10 +117,26 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
   await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
 }
 
-async function releaseMessageProcessingLock(supabase: any, lockId: string) {
-  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
-}
-
+ async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+   await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
+ }
+ 
+ async function upsertSavedContact(supabase: any, params: { userId: string; phone: string; name: string; photo?: string }) {
+   const { userId, phone, name, photo } = params;
+   if (!phone || (!name && !photo)) return;
+   
+   const updateData: any = { 
+     user_id: userId, 
+     phone, 
+     updated_at: new Date().toISOString() 
+   };
+   
+   if (name) updateData.name = name;
+   if (photo && photo !== "undefined" && photo !== "null") updateData.profile_picture_url = photo;
+ 
+   await supabase.from("saved_contacts").upsert(updateData, { onConflict: "phone,user_id" });
+ }
+ 
 function extractAudioUrl(webhook: any): string {
   const candidates = [
     webhook?.audio?.audioUrl, webhook?.audio?.url, webhook?.audioMessage?.url, webhook?.message?.audioMessage?.url,
@@ -2941,8 +2961,9 @@ serve(async (req) => {
     const senderPhone = webhook?.senderPhone || "";
     const chatPhone = webhook?.chatPhone || "";
     const chatLid = webhook?.chatLid || "";
-    const senderName = webhook?.senderName || "";
-    const chatName = webhook?.chatName || "";
+     const senderName = webhook?.senderName || "";
+     const senderPhoto = webhook?.senderPhoto || webhook?.data?.senderPhoto || "";
+     const chatName = webhook?.chatName || "";
     const isGroupMessage = webhook?.isGroup === true;
 
     // Log ALL phone-related fields when @lid is detected for debugging
@@ -3477,8 +3498,9 @@ serve(async (req) => {
       rawMessage: storedMessage,
       instanceId,
       messageId: String(webhook?.messageId || "").trim() || undefined,
-      senderName: senderName || undefined,
-      senderPhone: senderPhone || participantPhone || undefined,
+       senderName: senderName || undefined,
+       senderPhone: senderPhone || participantPhone || undefined,
+       senderPhoto: senderPhoto || undefined,
     });
 
     if (!lockResult.acquired) {
@@ -3494,8 +3516,18 @@ serve(async (req) => {
     processingLockId = lockResult.lockId;
     const lockId = lockResult.lockId;
 
-    await makeMessageVisibleInInbox(supabase, lockId);
-
+     await makeMessageVisibleInInbox(supabase, lockId);
+ 
+     // Upsert into saved_contacts to keep name and photo updated in real-time
+     if (userId && phone) {
+       await upsertSavedContact(supabase, {
+         userId,
+         phone,
+         name: senderName || chatName || "",
+         photo: senderPhoto || undefined,
+       }).catch(e => console.error("❌ Erro ao atualizar saved_contacts:", e));
+     }
+ 
     // Do not forward regular inbound WhatsApp messages to payment/webhook integrations.
     // These integrations are reserved for gateway transaction events (approved, pending, refunded, etc).
     console.log(

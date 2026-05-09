@@ -18,8 +18,9 @@ export interface MessageLog {
   created_at: string;
   user_id: string | null;
   instance_id: string | null;
-  sender_name?: string | null;
-  sender_phone?: string | null;
+   sender_name?: string | null;
+   sender_phone?: string | null;
+   sender_photo?: string | null;
 }
 
 export interface CampaignSendMessage {
@@ -43,8 +44,9 @@ export interface UnifiedMessage {
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
   campaign_id?: string | null;
-  sender_name?: string | null;
-  sender_phone?: string | null;
+   sender_name?: string | null;
+   sender_phone?: string | null;
+   sender_photo?: string | null;
 }
 
 export interface SavedContact {
@@ -185,23 +187,25 @@ const isRedundantManualFlowEcho = (
   });
 };
 
-const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^\]]*)\]\s*/;
+ const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^|\]]*)(?:\|([^\]]*))?\]\s*/;
+ 
+ const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; photo: string | null; rest: string } => {
+   const match = raw.match(SENDER_PREFIX_REGEX);
+   if (!match) return { name: null, phone: null, photo: null, rest: raw };
+   const name = (match[1] || '').trim() || null;
+   const phone = (match[2] || '').trim() || null;
+   const photo = (match[3] || '').trim() || null;
+   return { name, phone, photo, rest: raw.replace(SENDER_PREFIX_REGEX, '') };
+ };
 
-const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; rest: string } => {
-  const match = raw.match(SENDER_PREFIX_REGEX);
-  if (!match) return { name: null, phone: null, rest: raw };
-  const name = (match[1] || '').trim() || null;
-  const phone = (match[2] || '').trim() || null;
-  return { name, phone, rest: raw.replace(SENDER_PREFIX_REGEX, '') };
-};
-
-const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
-  const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
-  if (buttonText) return buttonText;
-  const rawContent = parseSenderFromContent(String(log.message_received || '')).rest.trim();
-  if (isTechnicalMessageReference(rawContent)) return '';
-  return rawContent;
-};
+ const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
+   const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
+   if (buttonText) return buttonText;
+   const { rest } = parseSenderFromContent(String(log.message_received || ''));
+   const rawContent = rest.trim();
+   if (isTechnicalMessageReference(rawContent)) return '';
+   return rawContent;
+ };
 
 const isGroupMembershipLog = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
   return (log.keyword_matched === '__group_join__' || log.keyword_matched === '__group_leave__') && isGroupPhone(String(log.message_received || ''));
@@ -389,7 +393,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-        .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id')
+         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
         .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
@@ -405,7 +409,7 @@ export const useMessageLogs = (
     while (hasMore && importedHistoryData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-        .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id')
+         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
         .eq('keyword_matched', '__history_import__')
         .lt('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
@@ -951,9 +955,10 @@ export const useMessageLogs = (
 
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
-        let senderName = log.sender_name || parsed.name || null;
-        let senderPhone = log.sender_phone || parsed.phone || null;
-
+         let senderName = log.sender_name || parsed.name || null;
+         let senderPhone = log.sender_phone || parsed.phone || null;
+         let senderPhoto = log.sender_photo || parsed.photo || null;
+ 
         if (isManualTrigger) {
           senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;
         }
@@ -967,7 +972,8 @@ export const useMessageLogs = (
           source: 'message_log',
           keyword_matched: log.keyword_matched,
           sender_name: senderName,
-          sender_phone: senderPhone,
+           sender_phone: senderPhone,
+           sender_photo: senderPhoto,
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
@@ -1245,33 +1251,43 @@ export const useMessageLogs = (
 
      setLoading(true);
      try {
-       const uniquePhones = [...new Set(conversations.map(c => c.phone))];
-       let updatedCount = 0;
+       // Step 1: Sync bulk metadata using /chats (faster)
+       await syncMetadata();
+       
+       // Step 2: Fetch individual photos for remaining ones that still have no photo
+       const remainingPhones = conversations
+         .filter(c => !c.profilePictureUrl || c.profilePictureUrl.includes('undefined'))
+         .map(c => c.phone)
+         .slice(0, 50); // Limit to avoid massive storming
 
-       for (const phone of uniquePhones) {
-         try {
-           const body: Record<string, unknown> = { phone };
-           if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
-           
-           const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
-           if (error) continue;
+       if (remainingPhones.length > 0) {
+         const CHUNK_SIZE = 5;
+         for (let i = 0; i < remainingPhones.length; i += CHUNK_SIZE) {
+           const chunk = remainingPhones.slice(i, i + CHUNK_SIZE);
+           await Promise.all(chunk.map(async (phone) => {
+             try {
+               const body: Record<string, unknown> = { phone };
+               if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
+               
+               const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
+               if (error) return;
 
-           const responsePayload = rawData?.data ?? rawData;
-           const finalUrl = extractProfilePictureUrl(responsePayload);
+               const responsePayload = rawData?.data ?? rawData;
+               const finalUrl = extractProfilePictureUrl(responsePayload);
 
-           if (finalUrl) {
-             updatedCount++;
-             const userId = session.user.id;
-             const existing = safeMapGet(savedContacts, phone);
-             await savedContactsApi.upsert(session.access_token, {
-               phone,
-               name: existing?.name || '',
-               user_id: userId,
-               profile_picture_url: finalUrl,
-             });
-           }
-           await new Promise(r => setTimeout(r, 100));
-         } catch { /* ignore individual errors */ }
+               if (finalUrl) {
+                 await savedContactsApi.upsert(session.access_token, {
+                   phone,
+                   name: conversations.find(c => c.phone === phone)?.contactName || '',
+                   user_id: session.user.id,
+                   profile_picture_url: finalUrl,
+                 });
+               }
+             } catch { /* ignore */ }
+           }));
+           // Small delay between chunks
+           await new Promise(r => setTimeout(r, 200));
+         }
        }
        
        await fetchAll();

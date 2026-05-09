@@ -750,9 +750,9 @@ const ChatView = ({
                 </span>
               </div>
               {msgs.map((msg) => {
-                const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
-                const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
-                const senderPhoto = senderContact?.profile_picture_url;
+                 const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
+                 const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
+                 const senderPhoto = msg.sender_photo || senderContact?.profile_picture_url;
 
                 return (
                   <div key={msg.id} className="mb-2">
