@@ -538,7 +538,8 @@ interface ChatViewProps {
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
   onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
-  onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+   onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
   onDeleteConversation: (phone: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
@@ -555,8 +556,9 @@ const ChatView = ({
   onTriggerFlow,
   onForwardMessage,
    onSendReaction,
-   onSendSticker,
-   onDeleteConversation,
+    onSendSticker,
+    onSendGif,
+    onDeleteConversation,
   campaignTemplates,
   savedContacts,
 }: ChatViewProps) => {
