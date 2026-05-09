@@ -1,9 +1,333 @@
+const isUazapiTechnicalReplyReference = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
+};
+
+const pickPreferredInteractiveText = (candidates: unknown[]) => {
+  const values = candidates.filter((v): v is string => typeof v === "string").map(v => v.trim()).filter(Boolean);
+  return values.find(v => !isUazapiTechnicalReplyReference(v)) || values[0] || "";
+};
+
+function extractButtonReplyCandidates(webhook: any): string[] {
+  const values = new Set<string>();
+  const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
+  [
+    webhook?.text?.title, webhook?.text?.description, webhook?.buttonReply?.title, webhook?.buttonReply?.text,
+    webhook?.buttonReply?.label, webhook?.buttonReply?.selectedDisplayText, webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedDisplayText, webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedButtonId, webhook?.buttonsResponseMessage?.selectedButtonText,
+    webhook?.buttonResponseMessage?.selectedDisplayText, webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.interactiveResponse?.title, webhook?.interactiveResponse?.description, webhook?.title,
+    webhook?.selectedButtonId, webhook?.response?.title, webhook?.response?.text, webhook?.response?.selectedDisplayText,
+  ].forEach(push);
+  return Array.from(values);
+}
+
+function extractQuotedMessageTextCandidates(webhook: any): string[] {
+  const values = new Set<string>();
+  const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
+  [
+    webhook?.contextInfo?.quotedMessage?.conversation, webhook?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+    webhook?.message?.contextInfo?.quotedMessage?.conversation, webhook?.message?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+  ].forEach(push);
+  return Array.from(values);
+}
+
+function extractMessageText(webhook: any): string {
+  const candidates = [
+    webhook?.message?.text, webhook?.message?.conversation, webhook?.message?.extendedTextMessage?.text,
+    webhook?.message?.imageMessage?.caption, webhook?.message?.videoMessage?.caption, webhook?.message?.documentMessage?.caption,
+    webhook?.buttonReply?.title, webhook?.buttonReply?.text, webhook?.buttonReply?.label,
+    webhook?.buttonReply?.selectedDisplayText, webhook?.buttonReply?.selectedRowId, webhook?.buttonReply?.id,
+    webhook?.message?.buttonsResponseMessage?.selectedDisplayText, webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText, webhook?.buttonsResponseMessage?.selectedButtonId,
+    webhook?.buttonsResponseMessage?.selectedButtonText, webhook?.buttonsResponseMessage?.message,
+    webhook?.buttonsResponseMessage?.text, webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonResponseMessage?.selectedButtonId, webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId, webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description, webhook?.title, webhook?.selectedButtonId,
+    webhook?.response?.title, webhook?.response?.text, webhook?.response?.selectedDisplayText,
+    webhook?.message?.interactiveResponseMessage?.body?.text, webhook?.interactiveResponseMessage?.body?.text,
+    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText, webhook?.message?.templateButtonReplyMessage?.selectedId,
+    webhook?.templateButtonReplyMessage?.selectedDisplayText, webhook?.templateButtonReplyMessage?.selectedId,
+    webhook?.message?.listResponseMessage?.title, webhook?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.waitingMessage?.text, webhook?.waitingMessage?.message, webhook?.waitingMessage?.body,
+    webhook?.waitingMessage?.buttonReply?.title, webhook?.waitingMessage?.buttonReply?.text,
+    webhook?.waitingMessage?.buttonReply?.label, webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
+    webhook?.text?.message, typeof webhook?.text === "string" ? webhook.text : undefined,
+    webhook?.body, typeof webhook?.message === "string" ? webhook.message : undefined,
+    webhook?.conversation, webhook?.image?.caption, webhook?.video?.caption, webhook?.document?.caption,
+    webhook?.data?.message?.text, webhook?.data?.message, webhook?.data?.text?.message,
+    webhook?.data?.body, webhook?.data?.conversation, webhook?.data?.image?.caption,
+    webhook?.data?.video?.caption, webhook?.data?.document?.caption, webhook?.data?.buttonReply?.title,
+    webhook?.data?.buttonReply?.text, webhook?.data?.buttonReply?.label, webhook?.data?.buttonReply?.selectedDisplayText,
+    webhook?.data?.waitingMessage?.text, webhook?.data?.waitingMessage?.message, webhook?.data?.waitingMessage?.body,
+  ];
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
+  if (preferredDirectCandidate) return preferredDirectCandidate;
+  for (const value of candidates) if (typeof value === "string" && value.trim()) return value.trim();
+  const objectCandidates = [
+    webhook?.text, webhook?.buttonReply, webhook?.message, webhook?.buttonsResponseMessage,
+    webhook?.buttonResponseMessage, webhook?.waitingMessage, webhook?.data?.text,
+    webhook?.data?.buttonReply, webhook?.data?.message, webhook?.data?.waitingMessage,
+    webhook?.data?.buttonsResponseMessage,
+  ];
+  const fallbackKeys = [ "text", "message", "body", "caption", "conversation", "title", "description", "label", "selectedDisplayText", "selectedButtonId", "selectedButtonText", "selectedRowId", "id" ];
+  for (const candidate of objectCandidates) {
+    if (!candidate || typeof candidate !== "object") continue;
+    for (const key of fallbackKeys) {
+      const value = candidate?.[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+  }
+  return "";
+}
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+async function stableUuidFromText(value: string): Promise<string> {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  const hash = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
+
+function normalizeForMatch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function acquireMessageProcessingLock(
+  supabase: any,
+  params: {
+    userId: string;
+    phone: string;
+    normalizedMessage: string;
+    rawMessage: string;
+    instanceId?: string;
+    messageId?: string;
+    senderName?: string;
+    senderPhone?: string;
+  },
+): Promise<{ acquired: boolean; lockId: string }> {
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
+  const norm = normalizedMessage || normalizeForMatch(rawMessage);
+  const now = Date.now();
+  const bucketSize = 15000;
+  const currentBucket = Math.floor(now / bucketSize);
+  const prevBucket = currentBucket - 1;
+  const dedupeSubject = String(messageId || "").trim() ? `mid:${String(messageId || "").trim()}` : `txt:${norm}`;
+  const currentKey = `${userId}|${phone}|${dedupeSubject}|${currentBucket}`;
+  const prevKey = `${userId}|${phone}|${dedupeSubject}|${prevBucket}`;
+  const lockId = await stableUuidFromText(currentKey);
+  const prevLockId = await stableUuidFromText(prevKey);
+  const { data: prevLock } = await supabase.from("message_logs").select("id").eq("id", prevLockId).maybeSingle();
+  if (prevLock) return { acquired: false, lockId };
+  const { error } = await supabase.from("message_logs").insert({
+    id: lockId,
+    phone,
+    message_received: rawMessage,
+    keyword_matched: "__processing__",
+    response_sent: "__processing__",
+    timestamp: new Date().toISOString(),
+    user_id: userId,
+    instance_id: instanceId || null,
+    sender_name: senderName || null,
+    sender_phone: senderPhone || null,
+  });
+  if (!error) return { acquired: true, lockId };
+  const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
+  if (isDuplicate) return { acquired: false, lockId };
+  throw new Error(`Erro ao adquirir lock de dedupe: ${error.message}`);
+}
+
+async function finalizeMessageLog(supabase: any, lockId: string, params: { keywordMatched: string; responseSent: string }) {
+  const { keywordMatched, responseSent } = params;
+  await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
+}
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
+}
+
+function extractAudioUrl(webhook: any): string {
+  const candidates = [
+    webhook?.audio?.audioUrl, webhook?.audio?.url, webhook?.audioMessage?.url, webhook?.message?.audioMessage?.url,
+    webhook?.data?.audio?.audioUrl, webhook?.data?.audio?.url, webhook?.data?.audioMessage?.url, webhook?.data?.message?.audioMessage?.url,
+    webhook?.waitingMessage?.audio?.audioUrl, webhook?.waitingMessage?.audioMessage?.url
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim().startsWith("http")) return value.trim();
+  }
+  return "";
+}
+
+async function transcribeAudio(audioUrl: string): Promise<string> {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key) return "";
+  try {
+    const res = await fetch(audioUrl);
+    if (!res.ok) return "";
+    const buffer = await res.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
+    const base64Audio = btoa(binary);
+    let mimeType = "audio/ogg";
+    if (audioUrl.includes(".mp3")) mimeType = "audio/mpeg";
+    else if (audioUrl.includes(".wav")) mimeType = "audio/wav";
+    else if (audioUrl.includes(".m4a")) mimeType = "audio/mp4";
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "system", content: "Transcreva fielmente." }, { role: "user", content: [{ type: "input_audio", input_audio: { data: base64Audio, format: mimeType === "audio/wav" ? "wav" : "mp3" } }, { type: "text", text: "Transcreva este áudio." }] }], stream: false })
+    });
+    if (!response.ok) return "";
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "";
+  } catch (error) { return ""; }
+}
+
+function extractMessageText(webhook: any): string {
+  const candidates = [
+    webhook?.message?.text,
+    webhook?.message?.conversation,
+    webhook?.message?.extendedTextMessage?.text,
+    webhook?.message?.imageMessage?.caption,
+    webhook?.message?.videoMessage?.caption,
+    webhook?.message?.documentMessage?.caption,
+
+    // Interactive/button replies (Z-API variations)
+    webhook?.buttonReply?.title,
+    webhook?.buttonReply?.text,
+    webhook?.buttonReply?.label,
+    webhook?.buttonReply?.selectedDisplayText,
+    webhook?.buttonReply?.selectedRowId,
+    webhook?.buttonReply?.id,
+    webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedButtonId,
+    webhook?.buttonsResponseMessage?.selectedButtonText,
+    webhook?.buttonsResponseMessage?.message,
+    webhook?.buttonsResponseMessage?.text,
+    webhook?.buttonResponseMessage?.selectedDisplayText,
+    webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.listResponseMessage?.title,
+    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    webhook?.interactiveResponse?.title,
+    webhook?.interactiveResponse?.description,
+
+    // send-button-actions response formats (Z-API)
+    webhook?.title,
+    webhook?.selectedButtonId,
+    webhook?.response?.title,
+    webhook?.response?.text,
+    webhook?.response?.selectedDisplayText,
+    webhook?.message?.interactiveResponseMessage?.body?.text,
+    webhook?.message?.interactiveResponseMessage?.nativeFlowResponseMessage
+      ?.paramsJson,
+    webhook?.interactiveResponseMessage?.body?.text,
+    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.message?.templateButtonReplyMessage?.selectedId,
+    webhook?.templateButtonReplyMessage?.selectedDisplayText,
+    webhook?.templateButtonReplyMessage?.selectedId,
+    webhook?.message?.listResponseMessage?.title,
+    webhook?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+
+    webhook?.waitingMessage?.text,
+    webhook?.waitingMessage?.message,
+    webhook?.waitingMessage?.body,
+    webhook?.waitingMessage?.buttonReply?.title,
+    webhook?.waitingMessage?.buttonReply?.text,
+    webhook?.waitingMessage?.buttonReply?.label,
+    webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
+
+    webhook?.text?.message,
+    typeof webhook?.text === "string" ? webhook.text : undefined,
+    webhook?.body,
+    typeof webhook?.message === "string" ? webhook.message : undefined,
+    webhook?.conversation,
+    webhook?.image?.caption,
+    webhook?.video?.caption,
+    webhook?.document?.caption,
+
+    webhook?.data?.message?.text,
+    webhook?.data?.message,
+    webhook?.data?.text?.message,
+    webhook?.data?.body,
+    webhook?.data?.conversation,
+    webhook?.data?.image?.caption,
+    webhook?.data?.video?.caption,
+    webhook?.data?.document?.caption,
+    webhook?.data?.buttonReply?.title,
+    webhook?.data?.buttonReply?.text,
+    webhook?.data?.buttonReply?.label,
+    webhook?.data?.buttonReply?.selectedDisplayText,
+    webhook?.data?.waitingMessage?.text,
+    webhook?.data?.waitingMessage?.message,
+    webhook?.data?.waitingMessage?.body,
+  ];
+
+  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
+  if (preferredDirectCandidate) return preferredDirectCandidate;
+
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+
+  const objectCandidates = [
+    webhook?.text,
+    webhook?.buttonReply,
+    webhook?.message,
+    webhook?.buttonsResponseMessage,
+    webhook?.buttonResponseMessage,
+    webhook?.waitingMessage,
+    webhook?.data?.text,
+    webhook?.data?.buttonReply,
+    webhook?.data?.message,
+    webhook?.data?.waitingMessage,
+    webhook?.data?.buttonsResponseMessage,
+  ];
+
+  const fallbackKeys = [
+    "text",
+    "message",
+    "body",
+    "caption",
+    "conversation",
+    "title",
+    "description",
+    "label",
+    "selectedDisplayText",
+    "selectedButtonId",
+    "selectedButtonText",
+    "selectedRowId",
+    "id",
+  ];
+  for (const candidate of objectCandidates) {
+    if (!candidate || typeof candidate !== "object") continue;
+    for (const key of fallbackKeys) {
+      const value = candidate?.[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+  }
+
+  return "";
+}
 
 interface WebhookMessage {
   phone: string;
@@ -6507,268 +6831,6 @@ function extractFlowKeywords(flow: any): string[] {
   return Array.from(keywords);
 }
 
-function extractAudioUrl(webhook: any): string {
-  const candidates = [
-    webhook?.audio?.audioUrl,
-    webhook?.audio?.url,
-    webhook?.audioMessage?.url,
-    webhook?.message?.audioMessage?.url,
-    webhook?.data?.audio?.audioUrl,
-    webhook?.data?.audio?.url,
-    webhook?.data?.audioMessage?.url,
-    webhook?.data?.message?.audioMessage?.url,
-    webhook?.waitingMessage?.audio?.audioUrl,
-    webhook?.waitingMessage?.audioMessage?.url,
-  ];
-
-  for (const value of candidates) {
-    if (typeof value === "string" && value.trim().startsWith("http")) {
-      return value.trim();
-    }
-  }
-
-  return "";
 }
 
-async function transcribeAudio(audioUrl: string): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.log("⚠️ LOVABLE_API_KEY not set, skipping audio transcription");
-    return "";
-  }
 
-  try {
-    // Download audio as base64
-    const audioResponse = await fetch(audioUrl);
-    if (!audioResponse.ok) {
-      console.error("❌ Failed to download audio:", audioResponse.status);
-      return "";
-    }
-
-    const audioBuffer = await audioResponse.arrayBuffer();
-    const uint8Array = new Uint8Array(audioBuffer);
-    let binary = "";
-    for (let i = 0; i < uint8Array.length; i++) {
-      binary += String.fromCharCode(uint8Array[i]);
-    }
-    const base64Audio = btoa(binary);
-
-    // Detect mime type from URL or default to audio/ogg
-    let mimeType = "audio/ogg";
-    if (audioUrl.includes(".mp3") || audioUrl.includes("audio/mpeg")) {
-      mimeType = "audio/mpeg";
-    } else if (audioUrl.includes(".wav")) mimeType = "audio/wav";
-    else if (audioUrl.includes(".m4a") || audioUrl.includes(".mp4")) {
-      mimeType = "audio/mp4";
-    }
-
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content:
-                'Você é um transcritor de áudio. Transcreva o áudio fielmente, palavra por palavra. Retorne APENAS a transcrição, sem comentários, sem aspas, sem prefixos como "Transcrição:". Se não conseguir entender o áudio, retorne "[áudio não reconhecido]".',
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_audio",
-                  input_audio: {
-                    data: base64Audio,
-                    format: mimeType === "audio/wav" ? "wav" : "mp3",
-                  },
-                },
-                {
-                  type: "text",
-                  text: "Transcreva este áudio.",
-                },
-              ],
-            },
-          ],
-          stream: false,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      console.error(
-        "❌ AI transcription failed:",
-        response.status,
-        await response.text(),
-      );
-      return "";
-    }
-
-    const data = await response.json();
-    const transcription = data.choices?.[0]?.message?.content?.trim() || "";
-    console.log(
-      `🎙️ Transcription result (${transcription.length} chars):`,
-      transcription.substring(0, 200),
-    );
-    return transcription;
-  } catch (error) {
-    console.error("❌ Audio transcription error:", error);
-    return "";
-  }
-}
-
-function extractMessageText(webhook: any): string {
-  const candidates = [
-    webhook?.message?.text,
-    webhook?.message?.conversation,
-    webhook?.message?.extendedTextMessage?.text,
-    webhook?.message?.imageMessage?.caption,
-    webhook?.message?.videoMessage?.caption,
-    webhook?.message?.documentMessage?.caption,
-
-    // Interactive/button replies (Z-API variations)
-    webhook?.buttonReply?.title,
-    webhook?.buttonReply?.text,
-    webhook?.buttonReply?.label,
-    webhook?.buttonReply?.selectedDisplayText,
-    webhook?.buttonReply?.selectedRowId,
-    webhook?.buttonReply?.id,
-    webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
-    webhook?.message?.buttonResponseMessage?.selectedDisplayText,
-    webhook?.buttonsResponseMessage?.selectedDisplayText,
-    webhook?.buttonsResponseMessage?.selectedButtonId,
-    webhook?.buttonsResponseMessage?.selectedButtonText,
-    webhook?.buttonsResponseMessage?.message,
-    webhook?.buttonsResponseMessage?.text,
-    webhook?.buttonResponseMessage?.selectedDisplayText,
-    webhook?.buttonResponseMessage?.selectedButtonId,
-    webhook?.listResponseMessage?.title,
-    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
-    webhook?.interactiveResponse?.title,
-    webhook?.interactiveResponse?.description,
-
-    // send-button-actions response formats (Z-API)
-    webhook?.title,
-    webhook?.selectedButtonId,
-    webhook?.response?.title,
-    webhook?.response?.text,
-    webhook?.response?.selectedDisplayText,
-    webhook?.message?.interactiveResponseMessage?.body?.text,
-    webhook?.message?.interactiveResponseMessage?.nativeFlowResponseMessage
-      ?.paramsJson,
-    webhook?.interactiveResponseMessage?.body?.text,
-    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText,
-    webhook?.message?.templateButtonReplyMessage?.selectedId,
-    webhook?.templateButtonReplyMessage?.selectedDisplayText,
-    webhook?.templateButtonReplyMessage?.selectedId,
-    webhook?.message?.listResponseMessage?.title,
-    webhook?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
-
-    webhook?.waitingMessage?.text,
-    webhook?.waitingMessage?.message,
-    webhook?.waitingMessage?.body,
-    webhook?.waitingMessage?.buttonReply?.title,
-    webhook?.waitingMessage?.buttonReply?.text,
-    webhook?.waitingMessage?.buttonReply?.label,
-    webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
-
-    webhook?.text?.message,
-    typeof webhook?.text === "string" ? webhook.text : undefined,
-    webhook?.body,
-    typeof webhook?.message === "string" ? webhook.message : undefined,
-    webhook?.conversation,
-    webhook?.image?.caption,
-    webhook?.video?.caption,
-    webhook?.document?.caption,
-
-    webhook?.data?.message?.text,
-    webhook?.data?.message,
-    webhook?.data?.text?.message,
-    webhook?.data?.body,
-    webhook?.data?.conversation,
-    webhook?.data?.image?.caption,
-    webhook?.data?.video?.caption,
-    webhook?.data?.document?.caption,
-    webhook?.data?.buttonReply?.title,
-    webhook?.data?.buttonReply?.text,
-    webhook?.data?.buttonReply?.label,
-    webhook?.data?.buttonReply?.selectedDisplayText,
-    webhook?.data?.waitingMessage?.text,
-    webhook?.data?.waitingMessage?.message,
-    webhook?.data?.waitingMessage?.body,
-  ];
-
-  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
-  if (preferredDirectCandidate) return preferredDirectCandidate;
-
-  for (const value of candidates) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-
-  const objectCandidates = [
-    webhook?.text,
-    webhook?.buttonReply,
-    webhook?.message,
-    webhook?.buttonsResponseMessage,
-    webhook?.buttonResponseMessage,
-    webhook?.waitingMessage,
-    webhook?.data?.text,
-    webhook?.data?.buttonReply,
-    webhook?.data?.message,
-    webhook?.data?.waitingMessage,
-    webhook?.data?.buttonsResponseMessage,
-  ];
-
-  const fallbackKeys = [
-    "text",
-    "message",
-    "body",
-    "caption",
-    "conversation",
-    "title",
-    "description",
-    "label",
-    "selectedDisplayText",
-    "selectedButtonId",
-    "selectedButtonText",
-    "selectedRowId",
-    "id",
-  ];
-  for (const candidate of objectCandidates) {
-    if (!candidate || typeof candidate !== "object") continue;
-    for (const key of fallbackKeys) {
-      const value = candidate?.[key];
-      if (typeof value === "string" && value.trim()) return value.trim();
-    }
-  }
-
-  return "";
-}
-
-function normalizeForMatch(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isKeywordMatch(message: string, keyword: string): boolean {
-  const normalizedKeyword = normalizeForMatch(keyword);
-  if (!normalizedKeyword || !message) return false;
-
-  if (message.includes(normalizedKeyword)) return true;
-
-  const words = normalizedKeyword.split(" ").filter((w) => w.length >= 3);
-  if (words.length === 0) return false;
-  const hits = words.filter((w) => message.includes(w)).length;
-  return hits / words.length >= 0.7;
-}
-}
