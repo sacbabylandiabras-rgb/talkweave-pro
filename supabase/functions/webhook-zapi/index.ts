@@ -107,7 +107,7 @@ async function acquireMessageProcessingLock(
      sender_name: senderName || null,
      sender_phone: senderPhone || null,
      sender_photo: senderPhoto || null,
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOString().replace('T', ' ').split('.')[0],
     user_id: userId,
     instance_id: instanceId || null,
   });

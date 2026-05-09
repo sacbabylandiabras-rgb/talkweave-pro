@@ -380,11 +380,6 @@ export const useMessageLogs = (
    }, [filterInstanceId, fetchSavedContacts]);
  
   const fetchMessageLogs = useCallback(async () => {
-    // Limit to last 30 days to avoid loading tens of thousands of records
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
-    const sinceISO = since.toISOString();
-
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
@@ -393,8 +388,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-         .select('*')
-        .gte('timestamp', sinceISO)
+        .select('*')
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -403,26 +397,8 @@ export const useMessageLogs = (
       from += batchSize;
     }
 
-    let importedHistoryData: MessageLog[] = [];
-    from = 0;
-    hasMore = true;
-    while (hasMore && importedHistoryData.length < maxRecords) {
-      const { data, error } = await supabase
-        .from('message_logs')
-         .select('*')
-        .eq('keyword_matched', '__history_import__')
-        .lt('timestamp', sinceISO)
-        .order('timestamp', { ascending: false })
-        .range(from, from + batchSize - 1);
-
-      if (error || !data) { hasMore = false; break; }
-      importedHistoryData = [...importedHistoryData, ...(data as unknown as MessageLog[])];
-      hasMore = data.length === batchSize;
-      from += batchSize;
-    }
-
     const mergedLogs = new Map<string, MessageLog>();
-    [...allData, ...importedHistoryData].forEach((log) => mergedLogs.set(log.id, log));
+    allData.forEach((log) => mergedLogs.set(log.id, log));
     allData = Array.from(mergedLogs.values()).sort((a, b) => {
       const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
       if (timeDiff !== 0) return timeDiff;
