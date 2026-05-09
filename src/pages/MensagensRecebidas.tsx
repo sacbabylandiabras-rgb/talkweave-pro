@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-  import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid } from "lucide-react";
+   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -538,7 +538,8 @@ interface ChatViewProps {
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
   onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
-  onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+   onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
   onDeleteConversation: (phone: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
@@ -555,8 +556,9 @@ const ChatView = ({
   onTriggerFlow,
   onForwardMessage,
    onSendReaction,
-   onSendSticker,
-   onDeleteConversation,
+    onSendSticker,
+    onSendGif,
+    onDeleteConversation,
   campaignTemplates,
   savedContacts,
 }: ChatViewProps) => {
@@ -573,7 +575,8 @@ const ChatView = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
    const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-   const stickerInputRef = useRef<HTMLInputElement>(null);
+    const stickerInputRef = useRef<HTMLInputElement>(null);
+    const gifInputRef = useRef<HTMLInputElement>(null);
    const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
      if (!file || !conversation) return;
@@ -596,9 +599,35 @@ const ChatView = ({
        toast({ title: "Erro ao enviar figurinha", description: e?.message || "Falha ao enviar figurinha", variant: "destructive" });
      } finally {
        setSending(false);
-       if (stickerInputRef.current) stickerInputRef.current.value = '';
-     }
-   };
+        if (stickerInputRef.current) stickerInputRef.current.value = '';
+      }
+    };
+
+    const handleGifUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !conversation) return;
+      
+      setSending(true);
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const ext = file.name.split('.').pop() || 'gif';
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error("Usuário não autenticado");
+        
+        const path = `${currentUser.id}/chat-media/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('template-media').upload(path, file);
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+        await onSendGif(conversation.phone, publicUrl);
+        toast({ title: "GIF enviado", description: "GIF enviado com sucesso." });
+      } catch (e: any) {
+        toast({ title: "Erro ao enviar GIF", description: e?.message || "Falha ao enviar GIF", variant: "destructive" });
+      } finally {
+        setSending(false);
+        if (gifInputRef.current) gifInputRef.current.value = '';
+      }
+    };
 
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
@@ -666,7 +695,8 @@ const ChatView = ({
     if (!file) return;
     
     let mediaType = 'document';
-    if (file.type.startsWith('image/')) mediaType = 'image';
+    if (file.type === 'image/gif') mediaType = 'gif';
+    else if (file.type.startsWith('image/')) mediaType = 'image';
     else if (file.type.startsWith('video/')) mediaType = 'video';
     else if (file.type.startsWith('audio/')) mediaType = 'audio';
 
@@ -1220,16 +1250,33 @@ const ChatView = ({
                  accept="image/webp,image/png,image/jpeg"
                  onChange={handleStickerUpload}
                />
-               <Button
-                 variant="ghost"
-                 size="icon"
-                 className="shrink-0 h-10 w-10"
-                 onClick={() => stickerInputRef.current?.click()}
-                 disabled={sending}
-                 title="Enviar figurinha"
-               >
-                 <StickyNote className="w-4 h-4" />
-               </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={() => stickerInputRef.current?.click()}
+                  disabled={sending}
+                  title="Enviar figurinha"
+                >
+                  <StickyNote className="w-4 h-4" />
+                </Button>
+                <input
+                  type="file"
+                  ref={gifInputRef}
+                  className="hidden"
+                  accept="image/gif"
+                  onChange={handleGifUpload}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  onClick={() => gifInputRef.current?.click()}
+                  disabled={sending}
+                  title="Enviar GIF"
+                >
+                  <FileImage className="w-4 h-4 text-purple-500" />
+                </Button>
                <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -1432,7 +1479,7 @@ const MensagensRecebidas = () => {
      refetch();
    }, []); // roda só uma vez ao montar
 
-   const { forwardMessage, sendReaction, sendSticker } = useZapi();
+   const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
   const syncHistory = async () => {
     setSyncing(true);
     try {
@@ -1853,9 +1900,12 @@ const MensagensRecebidas = () => {
              onSendReaction={async (phone, messageId, emoji) => {
                await sendReaction(phone, messageId, emoji);
              }}
-             onSendSticker={async (phone, stickerUrl) => {
-               await sendSticker(phone, stickerUrl);
-             }}
+              onSendSticker={async (phone, stickerUrl) => {
+                await sendSticker(phone, stickerUrl);
+              }}
+              onSendGif={async (phone, gifUrl, caption) => {
+                await sendGif(phone, gifUrl, caption);
+              }}
              onDeleteConversation={async (phone) => {
                await deleteConversation(phone);
              }}

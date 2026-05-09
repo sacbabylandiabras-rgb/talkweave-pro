@@ -367,6 +367,10 @@ serve(async (req) => {
        } else if (type === 'sticker') {
          endpoint = '/send-sticker';
          payload.sticker = url;
+       } else if (type === 'gif') {
+         endpoint = '/send-gif';
+         payload.gif = url;
+         payload.caption = text || '';
        } else {
          const ext = getDocumentExtension(url, text);
          endpoint = `/send-document/${ext}`;
