@@ -762,11 +762,25 @@ const ChatView = ({
                       </span>
                     </div>
                   ) : msg.type === 'received' ? (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start gap-2 items-end">
+                      {isGroupPhone(conversation.phone) && (
+                        <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[11px] font-semibold shrink-0 overflow-hidden border border-border">
+                          {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
+                        </div>
+                      )}
                       <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
-                        {isGroupPhone(conversation.phone) && msg.sender_name && (
-                          <div className="text-[11px] font-semibold mb-0.5 truncate" style={{ color: '#128c7e' }}>
-                            {msg.sender_name}
+                        {isGroupPhone(conversation.phone) && (msg.sender_name || msg.sender_phone) && (
+                          <div className="flex items-baseline gap-2 mb-0.5">
+                            {msg.sender_name && (
+                              <span className="text-[11px] font-semibold truncate" style={{ color: '#128c7e' }}>
+                                {msg.sender_name}
+                              </span>
+                            )}
+                            {msg.sender_phone && (
+                              <span className="text-[10px] text-muted-foreground truncate">
+                                +{String(msg.sender_phone).replace(/\D/g, '')}
+                              </span>
+                            )}
                           </div>
                         )}
                         <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
