@@ -825,7 +825,7 @@ const getZAPIConfig = async () => {
 
   const sendSpecialTemplate = async (
     phone: string,
-    specialType: 'pix' | 'localizacao' | 'contato' | 'uaz_status' | 'uaz_location_button' | 'uaz_request_payment',
+    specialType: 'pix' | 'localizacao' | 'contato',
     specialPayload: Record<string, any>,
   ) => {
     setLoading(true);
