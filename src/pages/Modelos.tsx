@@ -1831,6 +1831,9 @@ const Modelos = () => {
                   {template.carouselCards && template.carouselCards.length > 0 && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">🎠 {template.carouselCards.length} cards</Badge>
                   )}
+                  {template.listItems && template.listItems.length > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">📋 {template.listItems.length} itens</Badge>
+                  )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                   Usado {loadingUsage ? "..." : (realUsage[template.id] ?? template.usage_count ?? 0)}x
