@@ -354,6 +354,20 @@ export const useMessageLogs = (
     } catch { /* table might not exist */ }
   }, []);
 
+   const syncMetadata = useCallback(async () => {
+     try {
+       const { data, error } = await supabase.functions.invoke('sync-chat-metadata', {
+         body: { instanceId: filterInstanceId }
+       });
+       if (error) throw error;
+       await fetchSavedContacts();
+       return data;
+     } catch (error) {
+       console.error('Error syncing metadata:', error);
+       throw error;
+     }
+   }, [filterInstanceId, fetchSavedContacts]);
+ 
   const fetchMessageLogs = useCallback(async () => {
     // Limit to last 30 days to avoid loading tens of thousands of records
     const since = new Date();
