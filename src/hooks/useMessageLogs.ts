@@ -133,11 +133,19 @@ const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'c
 
 const isHistoryPlaceholderText = (content?: string | null) => /^💬\s*Conversa com\s+/i.test(String(content || '').trim());
 
-const isHistoryPlaceholderMessage = (message: Pick<UnifiedMessage, 'source' | 'keyword_matched' | 'content'>) => (
-  message.source === 'message_log' &&
-  message.keyword_matched === '__history_import__' &&
-  isHistoryPlaceholderText(message.content)
-);
+const isHistoryPlaceholderMessage = (message: Pick<UnifiedMessage, 'source' | 'keyword_matched' | 'content'>) => {
+  const isPlaceholder = message.source === 'message_log' &&
+    message.keyword_matched === '__history_import__' &&
+    isHistoryPlaceholderText(message.content);
+  
+  const content = String(message.content || '').toLowerCase();
+  const isDeleted = content.includes('esta mensagem foi apagada') || 
+                   content.includes('esta mensagem foi removida') || 
+                   content.includes('mensagem apagada') ||
+                   content.includes('this message was deleted');
+                   
+  return isPlaceholder || isDeleted;
+};
 
 const isInternalFlowStateKeyword = (keyword?: string | null) => {
   const value = String(keyword || '').trim();
@@ -942,12 +950,14 @@ export const useMessageLogs = (
       }
       
       // Otherwise, restrict to user's known active instances
-      if (hasKnownInstanceFilter) {
-        // Include messages from known instances OR messages without an instance_id
-        // (which are likely inbound manual interactions/leads from outside direct Z-API flows)
-        return !m.instance_id || knownIdSet!.has(m.instance_id);
+      if (hasKnownInstanceFilter && knownIdSet) {
+        // Se temos instâncias conectadas conhecidas, filtramos estritamente por elas.
+        // Mensagens sem instance_id podem ser antigas ou de outros números.
+        // Mantemos apenas se o instance_id estiver no conjunto de conhecidas (conectadas).
+        return Boolean(m.instance_id) && knownIdSet.has(m.instance_id);
       }
       
+      // Fallback: se não temos filtro, mostramos tudo do usuário (conforme query inicial)
       return true;
     });
 
