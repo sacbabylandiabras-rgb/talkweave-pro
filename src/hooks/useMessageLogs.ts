@@ -918,11 +918,21 @@ export const useMessageLogs = (
     // removed/disconnected instances don't pollute the list.
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
-    const filteredLogs = filterInstanceId && filterInstanceId !== 'all'
-      ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : hasKnownInstanceFilter
-        ? messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id))
-        : messageLogs;
+    const filteredLogs = messageLogs.filter(m => {
+      // If we are filtering by a specific instance
+      if (filterInstanceId && filterInstanceId !== 'all') {
+        return m.instance_id === filterInstanceId;
+      }
+      
+      // Otherwise, restrict to user's known active instances
+      if (hasKnownInstanceFilter) {
+        // Include messages from known instances OR messages without an instance_id
+        // (which are likely inbound manual interactions/leads from outside direct Z-API flows)
+        return !m.instance_id || knownIdSet!.has(m.instance_id);
+      }
+      
+      return true;
+    });
 
     // From message_logs
     filteredLogs.forEach(log => {
