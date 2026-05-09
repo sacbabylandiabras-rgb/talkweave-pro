@@ -30,10 +30,8 @@
  
       const provider = (instance.api_provider || 'zapi').toLowerCase()
       const isZapi = provider === 'zapi';
-      const isUazapi = provider === 'uazapi';
-      
-      if (!isZapi && !isUazapi) {
-        return new Response(JSON.stringify({ success: false, message: 'Only Z-API and UAZAPI are supported for full metadata sync' }), {
+      if (!isZapi) {
+        return new Response(JSON.stringify({ success: false, message: 'Only Z-API is supported for full metadata sync' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
@@ -93,15 +91,7 @@
           } catch (err) {
             console.error('Error fetching Z-API communities:', err);
           }
-       } else if (isUazapi) {
-        const url = (instance.evolution_api_url || '').replace(/\/+$/, '');
-        const headers = { 'Content-Type': 'application/json', token: instance.evolution_api_key || '' };
-        
-        const res = await fetch(`${url}/chat/list`, { headers });
-        if (res.ok) {
-          chats = await res.json();
-        }
-      }
+       }
 
       if (!Array.isArray(chats)) {
         chats = [];
