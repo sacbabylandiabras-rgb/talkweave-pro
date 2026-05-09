@@ -1453,7 +1453,11 @@ const MensagensRecebidas = () => {
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
             onForwardMessage={async (phone, messageId) => {
-              await forwardMessage(phone, messageId);
+              const destination = window.prompt(
+                'Encaminhar mensagem para qual número? (ex: 5511999998888)',
+              );
+              if (!destination) return;
+              await forwardMessage(phone, messageId, destination);
             }}
             onSendReaction={async (phone, messageId, emoji) => {
               await sendReaction(phone, messageId, emoji);
