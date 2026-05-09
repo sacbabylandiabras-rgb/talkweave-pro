@@ -812,7 +812,8 @@ const ChatView = ({
                     </div>
                   )}
                 </div>
-              ))}
+              );
+            })}
             </div>
           ))}
           <div ref={messagesEndRef} />
