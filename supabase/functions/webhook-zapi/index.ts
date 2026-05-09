@@ -69,15 +69,16 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
-    senderName?: string;
-    senderPhone?: string;
+     senderName?: string;
+     senderPhone?: string;
+     senderPhoto?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
-  // Embed sender info as a prefix so the frontend can show name/phone
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone, senderPhoto } = params;
+  // Embed sender info as a prefix so the frontend can show name/phone/photo
   // without requiring a schema change. The frontend strips this prefix.
-  const senderPrefix = (senderName || senderPhone)
-    ? `[sender:${(senderName || '').replace(/[\|\]]/g, ' ')}|${(senderPhone || '').replace(/[\|\]]/g, ' ')}] `
+  const senderPrefix = (senderName || senderPhone || senderPhoto)
+    ? `[sender:${(senderName || '').replace(/[\|\]]/g, ' ')}|${(senderPhone || '').replace(/[\|\]]/g, ' ')}|${(senderPhoto || '').replace(/[\|\]]/g, ' ')}] `
     : '';
   const messageWithSender = senderPrefix + (rawMessage || '');
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
@@ -96,8 +97,11 @@ async function acquireMessageProcessingLock(
     id: lockId,
     phone,
     message_received: messageWithSender,
-    keyword_matched: "__processing__",
-    response_sent: "__processing__",
+     keyword_matched: "__processing__",
+     response_sent: "__processing__",
+     sender_name: senderName || null,
+     sender_phone: senderPhone || null,
+     sender_photo: senderPhoto || null,
     timestamp: new Date().toISOString(),
     user_id: userId,
     instance_id: instanceId || null,
