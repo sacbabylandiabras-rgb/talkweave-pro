@@ -389,7 +389,9 @@ export const useMessageLogs = (
      }
    }, [filterInstanceId, fetchSavedContacts]);
  
-  const fetchMessageLogs = useCallback(async () => {
+  const fetchMessageLogs = useCallback(async (currentUserId: string | null) => {
+    if (!currentUserId) return;
+    
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
@@ -399,6 +401,7 @@ export const useMessageLogs = (
       const { data, error } = await supabase
         .from('message_logs')
         .select('*')
+        .eq('user_id', currentUserId)
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
       if (error || !data) { hasMore = false; break; }
@@ -512,7 +515,9 @@ export const useMessageLogs = (
     }
   }, []);
 
-  const fetchCampaignSends = useCallback(async () => {
+  const fetchCampaignSends = useCallback(async (currentUserId: string | null) => {
+    if (!currentUserId) return;
+    
     const since = new Date();
     since.setDate(since.getDate() - 30);
     const sinceISO = since.toISOString();
@@ -526,6 +531,7 @@ export const useMessageLogs = (
       const { data, error } = await supabase
         .from('campaign_sends')
         .select('id, phone, message_content, contact_name, status, sent_at, created_at, instance_name, campaign_id')
+        .eq('user_id', currentUserId)
         .eq('status', 'delivered')
         .gte('created_at', sinceISO)
         .order('created_at', { ascending: false })
@@ -581,8 +587,17 @@ export const useMessageLogs = (
   }, []);
 
   const fetchAll = useCallback(async () => {
+    const userId = await getUserId();
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     await fetchLidMap();
-    await Promise.all([fetchMessageLogs(), fetchCampaignSends(), fetchSavedContacts()]);
+    await Promise.all([
+      fetchMessageLogs(userId),
+      fetchCampaignSends(userId),
+      fetchSavedContacts()
+    ]);
     setLoading(false);
   }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
 
