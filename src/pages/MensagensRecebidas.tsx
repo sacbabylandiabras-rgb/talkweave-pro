@@ -1385,6 +1385,7 @@ const MensagensRecebidas = () => {
       syncMetadata,
       savedContacts,
       deleteConversation,
+      clearFetchedPhotosCache,
       refetch: refetchLogs
     } = useMessageLogs(
     filterZapiInstanceId,
@@ -1696,6 +1697,7 @@ const MensagensRecebidas = () => {
    const handleRefreshAll = async () => {
      setSyncing(true);
      try {
+       clearFetchedPhotosCache(); // ✅ Limpa cache antes de forçar
        await syncMetadata();
        await forceUpdateAllPhotos();
        toast({ title: "Sincronização concluída", description: "Fotos e nomes de contatos atualizados do WhatsApp." });

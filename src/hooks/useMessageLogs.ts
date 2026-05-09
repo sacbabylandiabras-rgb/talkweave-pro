@@ -1423,8 +1423,12 @@ export const useMessageLogs = (
      sendMessage, 
      forceUpdateAllPhotos,
      syncMetadata,
-    syncHistory: fetchAll,
-    deleteConversation: useCallback(async (phone: string) => {
+      syncHistory: fetchAll,
+      clearFetchedPhotosCache: () => {
+        fetchedPhotosRef.current = new Set();
+        inFlightPhotosRef.current = new Set();
+      },
+      deleteConversation: useCallback(async (phone: string) => {
       const zapiPhone = phone.endsWith('-group')
         ? `${phone.replace(/-group$/, '')}@g.us`
         : phone;
