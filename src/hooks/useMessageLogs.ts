@@ -1350,6 +1350,27 @@ export const useMessageLogs = (
      sendMessage, 
      forceUpdateAllPhotos,
      syncMetadata,
-     syncHistory: fetchAll
+   syncHistory: fetchAll,
+   deleteConversation: async (phone: string) => {
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) throw new Error('Not authenticated');
+     
+     const { error } = await supabase
+       .from('message_logs')
+       .delete()
+       .eq('user_id', user.id)
+       .eq('phone', phone);
+       
+     if (error) throw error;
+     
+     // Also delete from campaign_send_messages if applicable
+     await supabase
+       .from('campaign_send_messages')
+       .delete()
+       .eq('user_id', user.id)
+       .eq('phone', phone);
+       
+     await fetchAll();
+   }
    };
 };
