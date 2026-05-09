@@ -1781,7 +1781,7 @@ const EnviarMensagem = () => {
                       id="numero-lista" 
                       type="tel"
                       placeholder="5511999999999"
-                      className={`mt-1 ${errors.phone ? "border-destructive" : ""}`}
+                      className={`mt-1 text-black ${errors.phone ? "border-destructive" : ""}`}
                       value={numero}
                       onChange={(e) => setNumero(normalizePhoneInput(e.target.value))}
                     />
@@ -1795,7 +1795,7 @@ const EnviarMensagem = () => {
                     <Textarea 
                       id="mensagem-lista"
                       placeholder="Digite sua mensagem aqui..."
-                      className={`mt-1 min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
+                      className={`mt-1 min-h-[120px] text-black ${errors.message ? "border-destructive" : ""}`}
                       value={mensagem}
                       onChange={(e) => setMensagem(e.target.value)}
                     />
@@ -1809,6 +1809,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="titulo-lista" 
                       placeholder="Opções disponíveis"
+                      className="text-black"
                       value={tituloLista}
                       onChange={(e) => setTituloLista(e.target.value)}
                     />
