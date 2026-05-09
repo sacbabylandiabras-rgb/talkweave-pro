@@ -127,17 +127,25 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
 
 // Parse media tag from message content like "[media:video:https://...]"
 const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string; transcription: string | null } => {
-    const mediaRegex = /^\[media:(image|video|audio|document|sticker):(.+?)\]\n?/;
+    const mediaRegex = /^\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha):(.+?)\]\n?/i;
     const match = content.match(mediaRegex);
   if (match) {
     const remaining = content.replace(mediaRegex, '').trim();
+    const rawType = match[1].toLowerCase();
+    const typeMap: Record<string, string> = {
+      imagem: 'image',
+      documento: 'document',
+      arquivo: 'document',
+      figurinha: 'sticker',
+    };
+    const normalizedType = typeMap[rawType] || rawType;
     // Check for transcription marker 🎙️
     const transcriptionRegex = /^🎙️\s*(.+)/;
     const transcriptionMatch = remaining.match(transcriptionRegex);
     if (transcriptionMatch) {
-      return { mediaType: match[1], mediaUrl: match[2], text: '', transcription: transcriptionMatch[1].trim() };
+      return { mediaType: normalizedType, mediaUrl: match[2], text: '', transcription: transcriptionMatch[1].trim() };
     }
-    return { mediaType: match[1], mediaUrl: match[2], text: remaining, transcription: null };
+    return { mediaType: normalizedType, mediaUrl: match[2], text: remaining, transcription: null };
   }
   return { mediaType: null, mediaUrl: null, text: content, transcription: null };
 };
