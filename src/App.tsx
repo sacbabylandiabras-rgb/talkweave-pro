@@ -111,7 +111,6 @@ const ExtrairComunidade = lazyWithRecovery(() => import("./pages/ExtrairComunida
 const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
-const Status = lazyWithRecovery(() => import("./pages/Status"));
 
 const queryClient = new QueryClient();
 
@@ -178,7 +177,6 @@ const App = () => (
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
-                   <Route path="/status" element={<PaidRouteGuard><Status /></PaidRouteGuard>} />
                    <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
                    <Route path="/agente-ia" element={<AgenteIA />} />
                   <Route path="/aquecimento" element={<AquecimentoNumero />} />
