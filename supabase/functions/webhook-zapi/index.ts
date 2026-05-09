@@ -3516,8 +3516,18 @@ serve(async (req) => {
     processingLockId = lockResult.lockId;
     const lockId = lockResult.lockId;
 
-    await makeMessageVisibleInInbox(supabase, lockId);
-
+     await makeMessageVisibleInInbox(supabase, lockId);
+ 
+     // Upsert into saved_contacts to keep name and photo updated in real-time
+     if (userId && phone) {
+       await upsertSavedContact(supabase, {
+         userId,
+         phone,
+         name: senderName || chatName || "",
+         photo: senderPhoto || undefined,
+       }).catch(e => console.error("❌ Erro ao atualizar saved_contacts:", e));
+     }
+ 
     // Do not forward regular inbound WhatsApp messages to payment/webhook integrations.
     // These integrations are reserved for gateway transaction events (approved, pending, refunded, etc).
     console.log(
