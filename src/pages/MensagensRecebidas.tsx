@@ -670,11 +670,13 @@ const ChatView = ({
     }
   };
 
-  const filteredTemplates = templates.filter(t => 
-    t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
-    t.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
-    t.content.toLowerCase().includes(templateSearch.toLowerCase())
-  );
+   const filteredTemplates = useMemo(() => {
+     return templates.filter(t => 
+       t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+       (t.category && t.category.toLowerCase().includes(templateSearch.toLowerCase())) ||
+       (t.content && t.content.toLowerCase().includes(templateSearch.toLowerCase()))
+     );
+   }, [templates, templateSearch]);
 
   if (!conversation) {
     return (
