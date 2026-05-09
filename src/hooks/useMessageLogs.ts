@@ -55,6 +55,8 @@ export interface SavedContact {
   name: string;
   profile_picture_url?: string | null;
   updated_at?: string | null;
+  is_community?: boolean;
+  community_id?: string | null;
 }
 
 export interface Conversation {
@@ -67,6 +69,8 @@ export interface Conversation {
   unreadCount: number;
   messages: UnifiedMessage[];
   preferredInstanceId?: string | null;
+  isCommunity?: boolean;
+  communityId?: string | null;
 }
 
 type OutboundButtonAction = {
@@ -1237,6 +1241,8 @@ export const useMessageLogs = (
           unreadCount: 0,
           messages: visibleMessages,
           preferredInstanceId,
+          isCommunity: saved?.is_community || false,
+          communityId: saved?.community_id || null,
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));

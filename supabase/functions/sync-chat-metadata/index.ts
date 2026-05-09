@@ -108,10 +108,20 @@
 
         const name = chat.name || chat.contactName || chat.pushname || chat.verifiedName || '';
 
+        // Detect community status from available metadata
+        const isCommunity = chat.isCommunity === true || 
+                           chat.isGroupAnnouncement === true || 
+                           !!chat.communityId || 
+                           (chat.id && chat.id.includes('@newsletter')); // Newsletter/Channels
+        
+        const communityId = chat.communityId || null;
+
         return {
           phone,
           name: name.trim(),
           profile_picture_url: photoUrl,
+          is_community: isCommunity,
+          community_id: communityId,
           user_id: credentials.userId,
           updated_at: new Date().toISOString()
         };

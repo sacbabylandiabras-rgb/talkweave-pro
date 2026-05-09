@@ -60,11 +60,11 @@ const looksLikePhoneOrId = (value: string) => {
   return /^[+\d()\-\s]+$/.test(trimmed) && /\d/.test(trimmed);
 };
 
-const getConversationDisplayName = (name?: string | null, phone?: string | null) => {
+const getConversationDisplayName = (name?: string | null, phone?: string | null, isCommunityProp?: boolean) => {
   if (!phone) return name || '';
   
   const isGroup = isGroupPhone(phone);
-  const isCommunity = isCommunityPhone(phone);
+  const isCommunity = isCommunityProp || isCommunityPhone(phone);
   const isChannel = phone.includes('@newsletter');
 
   // For groups, communities and channels, prioritize the real name if available
@@ -344,7 +344,7 @@ const SaveContactDialog = ({
   );
 };
 
-const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) => {
+const ChatTypeBadge = ({ phone, name, isCommunity }: { phone: string; name: string | null; isCommunity?: boolean }) => {
   const lowerName = (name || "").toLowerCase();
   
   if (phone.includes('@newsletter') || (lowerName.includes('canal') && !lowerName.includes('grupo'))) {
@@ -353,13 +353,13 @@ const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) 
     );
   }
 
-  if (isCommunityPhone(phone)) {
+  if (isCommunity || isCommunityPhone(phone)) {
     return (
       <Badge variant="secondary" className="text-[10px] shrink-0">COMUNIDADE</Badge>
     );
   }
 
-  if (isRegularGroupPhone(phone)) {
+  if (isRegularGroupPhone(phone) || isGroupPhone(phone)) {
     return (
       <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
     );
@@ -497,9 +497,9 @@ const ConversationList = ({
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <span className="font-medium text-sm text-foreground truncate">
-                    {getConversationDisplayName(conv.contactName, conv.phone)}
+                    {getConversationDisplayName(conv.contactName, conv.phone, conv.isCommunity)}
                   </span>
-                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} />
+                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
@@ -765,7 +765,7 @@ const ChatView = ({
 
   const handleClearChat = async () => {
     if (!conversation) return;
-    if (!confirm(`Apagar toda a conversa com ${getConversationDisplayName(conversation.contactName, conversation.phone)}?`)) return;
+    if (!confirm(`Apagar toda a conversa com ${getConversationDisplayName(conversation.contactName, conversation.phone, conversation.isCommunity)}?`)) return;
     
     try {
       await onDeleteConversation(conversation.phone);
@@ -926,9 +926,9 @@ const ChatView = ({
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="font-medium text-foreground truncate">
-              {getConversationDisplayName(conversation.contactName, conversation.phone)}
+              {getConversationDisplayName(conversation.contactName, conversation.phone, conversation.isCommunity)}
             </h3>
-            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} />
+            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} isCommunity={conversation.isCommunity} />
           </div>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
