@@ -49,10 +49,6 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   };
 }
 
-function buildBase(c: { instanceId: string; token: string; apiProvider: string; evolutionUrl?: string | null }) {
-  return "https://api.z-api.io/instances/" + c.instanceId + "/token/" + c.token;
-}
-
 function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
   const zapiPhone = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
   const expirationMap: Record<string, string> = {
@@ -84,9 +80,9 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'unmute':
       return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, action: "unmute" } };
     case 'clear':
-      return { method: 'POST', path: "/clear-chat", body: { phone: zapiPhone, action: "clear" } };
+      return { method: 'POST', path: "/clear-chat/" + zapiPhone, body: { phone: zapiPhone, action: "clear" } };
     case 'delete':
-      return { method: 'POST', path: "/delete-chat", body: { phone: zapiPhone, action: "delete" } };
+      return { method: 'DELETE', path: "/delete-chat/" + zapiPhone, body: { phone: zapiPhone, action: "delete" } };
      case 'expiration':
         return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
@@ -213,7 +209,7 @@ Deno.serve(async (req) => {
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
-    const base = buildBase(creds);
+    const base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
     const ep = endpointFor(action, phone, payload, creds.apiProvider);
 
    let url: string;
