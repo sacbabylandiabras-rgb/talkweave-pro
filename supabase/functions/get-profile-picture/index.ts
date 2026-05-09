@@ -1,6 +1,73 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from '../_shared/cors.ts'
-import { getUserZAPICredentials } from "../_shared/user-credentials.ts"
+import { createClient } from "npm:@supabase/supabase-js@2.58.0"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+}
+
+interface UserZAPICredentials {
+  instanceId: string
+  token: string
+  clientToken: string
+  userId: string
+  instanceName: string
+}
+
+async function getUserZAPICredentials(
+  req: Request,
+  supabaseUrl: string,
+  supabaseServiceKey: string
+): Promise<UserZAPICredentials> {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) throw new Error('No authorization header')
+
+  const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+  const { data: { user }, error: userError } = await adminClient.auth.getUser(token)
+  if (userError || !user) throw new Error('Unauthorized: ' + (userError?.message || 'User not found'))
+
+  console.log(`📋 Fetching Z-API credentials for user: ${user.id}`)
+
+  const { data: zapiInstances } = await adminClient
+    .from('zapi_instances')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .neq('api_provider', 'uazapi')
+    .order('is_default', { ascending: false })
+
+  const zapi = zapiInstances?.[0]
+  if (zapi) {
+    console.log(`✅ Found Z-API credentials for user ${user.id}`)
+    return {
+      instanceId: zapi.zapi_instance_id,
+      token: zapi.zapi_token || '',
+      clientToken: zapi.zapi_client_token || '',
+      userId: user.id,
+      instanceName: zapi.instance_name || 'Z-API Instance',
+    }
+  }
+
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('zapi_instance_id, zapi_token, zapi_client_token')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.zapi_instance_id && profile?.zapi_token && profile?.zapi_client_token) {
+    return {
+      instanceId: profile.zapi_instance_id,
+      token: profile.zapi_token,
+      clientToken: profile.zapi_client_token,
+      userId: user.id,
+      instanceName: 'Instância Perfil',
+    }
+  }
+
+  throw new Error('Z-API credentials not configured. Please configure in settings.')
+}
 
 const sanitizeUrl = (value: unknown): string | null => {
   const str = String(value || '').trim()
@@ -76,9 +143,9 @@ const extractGroupName = (payload: any): string | null => {
    }
  
    try {
-     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-     const adminClient = (await import("npm:@supabase/supabase-js@2.58.0")).createClient(supabaseUrl, supabaseServiceKey)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey)
      const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
  
      const { phone, instanceId } = await req.json()
