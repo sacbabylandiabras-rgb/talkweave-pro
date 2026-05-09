@@ -695,7 +695,8 @@ const ChatView = ({
     if (!file) return;
     
     let mediaType = 'document';
-    if (file.type.startsWith('image/')) mediaType = 'image';
+    if (file.type === 'image/gif') mediaType = 'gif';
+    else if (file.type.startsWith('image/')) mediaType = 'image';
     else if (file.type.startsWith('video/')) mediaType = 'video';
     else if (file.type.startsWith('audio/')) mediaType = 'audio';
 
