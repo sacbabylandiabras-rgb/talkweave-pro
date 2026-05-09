@@ -1699,23 +1699,18 @@ const MensagensRecebidas = () => {
     try {
       clearFetchedPhotosCache();
       
-      // Roda a sync de fotos em background (processa 50 por vez)
-      // Chama 3x para cobrir 150 contatos por clique
-      for (let i = 0; i < 3; i++) {
+      // Chama 5x = processa até 250 contatos por clique
+      for (let i = 0; i < 5; i++) {
         await supabase.functions.invoke('sync-profile-photos');
       }
       
-      await refetch(); // atualiza a lista
+      await refetch();
       toast({ 
         title: "Fotos sincronizadas", 
-        description: "Fotos de perfil atualizadas com sucesso." 
+        description: "Fotos de perfil atualizadas." 
       });
-    } catch (error) {
-      console.error('Erro na sincronização:', error);
-      toast({ 
-        title: "Erro na sincronização", 
-        variant: "destructive" 
-      });
+    } catch {
+      toast({ title: "Erro", variant: "destructive" });
     } finally {
       setSyncing(false);
     }
