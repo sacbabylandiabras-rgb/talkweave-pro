@@ -19,22 +19,19 @@ export interface SavedContactLike {
   profile_picture_url?: string | null;
 }
 
-export const isGroupPhone = (phone: string): boolean => {
+export const isCommunityPhone = (phone: string): boolean => {
   const clean = String(phone || '').replace(/\D/g, '');
+  return clean.startsWith('120363') && clean.length > 15;
+};
+
+export const isGroupPhone = (phone: string): boolean => {
+  if (!phone) return false;
+  const clean = String(phone).replace(/\D/g, '');
   return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(clean);
 };
 
-export const isCommunityPhone = (phone: string): boolean => {
-  // Community identifiers in WhatsApp usually follow the pattern 120363...
-  // However, most community-related chats that appear in the list are "Announcement Groups"
-  // which have a specific suffix in some providers or a very long numeric ID.
-  // A more robust check for Communities/Announcement Groups is @community or 120363 prefix with @g.us
-  const isGroup = isGroupPhone(phone);
-  if (!isGroup) return false;
-
-  const clean = String(phone || '').replace(/\D/g, '');
-  // Community announcement groups always start with 120363 and are @g.us
-  return clean.startsWith('120363') && (phone.includes('@g.us') || phone.includes('-group'));
+export const isRegularGroupPhone = (phone: string): boolean => {
+  return isGroupPhone(phone) && !isCommunityPhone(phone);
 };
 
 export const isNewsletterPhone = (phone: string): boolean => {
