@@ -24,6 +24,16 @@ export const isGroupPhone = (phone: string): boolean => {
   return phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(clean);
 };
 
+export const isCommunityPhone = (phone: string): boolean => {
+  const clean = String(phone || '').replace(/\D/g, '');
+  // Announcement groups for communities typically have IDs starting with 120363
+  return isGroupPhone(phone) && clean.startsWith('120363');
+};
+
+export const isNewsletterPhone = (phone: string): boolean => {
+  return phone.includes('@newsletter');
+};
+
 export const isUsableGroupDisplayName = (value: string | null | undefined): boolean => {
   const normalized = String(value || '').trim();
   if (!normalized) return false;
