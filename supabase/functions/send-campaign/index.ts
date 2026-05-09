@@ -1578,10 +1578,16 @@ serve(async (req) => {
             },
           );
 
-          if (uazResult.ok) {
+          // @lid bypass: ignore "user_not_found"-style errors for @lid identifiers.
+          const uazLidBypass = isLidIdentifier(contact.phone) && (() => {
+            const blob = `${uazResult.error || ''} ${JSON.stringify(uazResult.raw || {})}`.toLowerCase();
+            return blob.includes('not_found') || blob.includes('user_not_found');
+          })();
+
+          if (uazResult.ok || uazLidBypass) {
             campaignSend.status = 'pending';
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
-            console.log(`⏳ [UAZAPI] Accepted ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}); waiting callback confirmation`);
+            console.log(`⏳ Accepted${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}); waiting callback confirmation`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
