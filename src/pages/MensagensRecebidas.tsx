@@ -165,18 +165,6 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 
 // Render message content with visual buttons and media
 const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
-  // If it's a campaign message and the content is plain text, 
-  // wrap it with a template tag to force interactive rendering
-  const augmentedContent = useMemo(() => {
-    if (campaignId && campaignTemplates && !content.includes('[modelo:') && !content.includes('[media:') && !content.includes('[Botões:')) {
-      const tplId = campaignTemplates.get(campaignId);
-      if (tplId) {
-        return `[modelo:${tplId}] ${content}`;
-      }
-    }
-    return content;
-  }, [content, campaignId, campaignTemplates]);
-
   // If this message comes from a campaign whose template is a carousel, render its cards.
   const carouselTemplate: MessageTemplate | null = (() => {
     if (!templates) return null;
@@ -229,6 +217,30 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
       </div>
     );
   }
+
+  const augmentedContent = useMemo(() => {
+    // If it's a campaign message and missing interactive markers, enrich it using the template.
+    // This handles messages sent before the logger was updated to include markers.
+    if (campaignId && campaignTemplates && !content.includes('[media:') && !content.includes('[Botões:')) {
+      const tplId = content.match(/\[modelo:([a-f0-9-]+)\]/i)?.[1] || campaignTemplates.get(campaignId);
+      const tpl = templates?.find(t => t.id === tplId);
+      if (tpl) {
+        let result = content.replace(/\[modelo:[a-f0-9-]+\]\s*/gi, '');
+        if (tpl.header && !result.includes(tpl.header)) result = `*${tpl.header}*\n${result}`;
+        if (tpl.footer && !result.includes(tpl.footer)) result = `${result}\n\n_${tpl.footer}_`;
+        const buttonLabels = (tpl.buttons || []).map(b => b.text || b.label).filter(Boolean);
+        if (buttonLabels.length > 0 && !result.includes('[Botões:')) {
+          result = `${result}\n\n[Botões: ${buttonLabels.join(' | ')}]`;
+        }
+        if (tpl.mediaUrl && !result.includes('[media:')) {
+          const type = tpl.type?.split('_')[0] || 'image';
+          result = `[media:${type}:${tpl.mediaUrl}]\n${result}`;
+        }
+        return result;
+      }
+    }
+    return content;
+  }, [content, campaignId, campaignTemplates, templates]);
 
   const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
