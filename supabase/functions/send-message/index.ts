@@ -576,6 +576,7 @@ serve(async (req) => {
           buttonActions: [
             { id: '1', type: 'COPY', label: copyLabel, copyCode: copyText },
           ],
+          ...mentionFlag(resolvedPhone),
         }),
       });
       logMessage = `📋 ${copyLabel}`;
@@ -659,6 +660,7 @@ serve(async (req) => {
           phone: resolvedPhone,
           message: message || optionList.title || 'Selecione uma opção:',
           optionList,
+          ...mentionFlag(resolvedPhone),
         }),
       });
       logMessage = logMessage || '📋 Lista de opções';
