@@ -1425,19 +1425,19 @@ export const useMessageLogs = (
 
       const normalizedPhone = normalizeConversationPhone(phone);
       // Extract just the numeric/ID part to match inconsistent formats in DB
-      const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
-
-      // Delete using multiple possible phone formats to ensure cleanup
-      const formats = [
-        phone,
-        normalizedPhone,
-        rawId,
-        rawId + '@c.us',
-        rawId + '@s.whatsapp.net',
-        rawId + '@g.us',
-        rawId + '@lid',
-        rawId + '-group'
-      ];
+       // Numeric ID for regular phones, or stripped ID for groups
+       const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
+       const isGroup = isGroupPhone(phone);
+ 
+       // Delete using multiple possible phone formats to ensure cleanup
+       const formats = [
+         phone,
+         normalizedPhone,
+         rawId,
+         rawId + (isGroup ? '@g.us' : '@c.us'),
+         rawId + (isGroup ? '-group' : '@s.whatsapp.net'),
+         rawId + '@lid'
+       ];
 
       const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
 
