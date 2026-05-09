@@ -749,7 +749,7 @@ const ChatView = ({
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
               <div className="flex justify-center my-3">
-                <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm">
+                <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
                   {formatDateSeparator(msgs[0].timestamp)}
                 </span>
               </div>
