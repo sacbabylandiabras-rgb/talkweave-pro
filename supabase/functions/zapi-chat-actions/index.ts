@@ -69,34 +69,34 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       if (isUazapi) return { method: 'GET', path: "/chat/find-messages?remoteJid=" + uazapiPhone + "&count=1" };
       return { method: 'GET', path: "/chats/" + phone };
     case 'read':
-      if (isUazapi) return { method: 'POST', path: "/chat/read", body: { remoteJid: uazapiPhone } };
+      if (isUazapi) return { method: 'POST', path: "/chat/markRead", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/chats/" + phone + "/read" };
     case 'unread':
-      if (isUazapi) return { method: 'POST', path: "/chat/unread", body: { remoteJid: uazapiPhone } };
+      if (isUazapi) return { method: 'POST', path: "/chat/markUnread", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/chats/" + phone + "/unread" };
     case 'archive':
-      if (isUazapi) return { method: 'POST', path: "/chat/archive", body: { remoteJid: uazapiPhone, archive: true } };
+      if (isUazapi) return { method: 'POST', path: "/chat/archiveChat", body: { remoteJid: uazapiPhone, archive: true } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'archive' } };
     case 'unarchive':
-      if (isUazapi) return { method: 'POST', path: "/chat/archive", body: { remoteJid: uazapiPhone, archive: false } };
+      if (isUazapi) return { method: 'POST', path: "/chat/archiveChat", body: { remoteJid: uazapiPhone, archive: false } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unarchive' } };
     case 'pin':
-      if (isUazapi) return { method: 'POST', path: "/chat/pin", body: { remoteJid: uazapiPhone, pin: true } };
+      if (isUazapi) return { method: 'POST', path: "/chat/pinChat", body: { remoteJid: uazapiPhone, pin: true } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'pin' } };
     case 'unpin':
-      if (isUazapi) return { method: 'POST', path: "/chat/pin", body: { remoteJid: uazapiPhone, pin: false } };
+      if (isUazapi) return { method: 'POST', path: "/chat/pinChat", body: { remoteJid: uazapiPhone, pin: false } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'unpin' } };
     case 'mute':
-      if (isUazapi) return { method: 'POST', path: "/chat/mute", body: { remoteJid: uazapiPhone, muteFor: payload?.muteFor ?? 28800 } };
+      if (isUazapi) return { method: 'POST', path: "/chat/muteChat", body: { remoteJid: uazapiPhone, muteFor: payload?.muteFor ?? 28800 } };
       return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: payload?.muteFor ?? 28800 } };
     case 'unmute':
-      if (isUazapi) return { method: 'POST', path: "/chat/mute", body: { remoteJid: uazapiPhone, muteFor: 0 } };
+      if (isUazapi) return { method: 'POST', path: "/chat/muteChat", body: { remoteJid: uazapiPhone, muteFor: 0 } };
       return { method: 'POST', path: "/mute-chat", body: { phone, muteFor: 0 } };
     case 'clear':
-      if (isUazapi) return { method: 'DELETE', path: "/chat/clear", body: { remoteJid: uazapiPhone } };
+      if (isUazapi) return { method: 'DELETE', path: "/chat/clearChat", body: { remoteJid: uazapiPhone } };
       return { method: 'POST', path: "/clear-chat", body: { phone } };
     case 'delete':
-      if (isUazapi) return { method: 'DELETE', path: "/chat/delete", body: { remoteJid: uazapiPhone } };
+      if (isUazapi) return { method: 'DELETE', path: "/chat/deleteChat", body: { remoteJid: uazapiPhone } };
       return { method: 'DELETE', path: "/chats/" + phone };
      case 'expiration':
       if (isUazapi) return { method: 'POST', path: "/chat/expiration", body: { remoteJid: uazapiPhone, expiration: payload?.expiration ?? 0 } };
