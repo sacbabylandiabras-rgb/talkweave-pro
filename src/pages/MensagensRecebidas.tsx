@@ -393,9 +393,9 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
-}: {
-  conversation: Conversation | null; onBack: () => void; isMobile: boolean;
+   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates, savedContacts
+ }: {
+   conversation: Conversation | null; onBack: () => void; isMobile: boolean; savedContacts: Map<string, any>;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, options?: {
     mediaUrl?: string;
