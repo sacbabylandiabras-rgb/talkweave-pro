@@ -1722,6 +1722,7 @@ const MensagensRecebidas = () => {
                   setSelectedPhones(new Set());
                 }}
                 onDeleteSelected={handleDeleteSelected}
+                onDeleteConversation={handleDeleteConversation}
               />
           </div>
         )}
