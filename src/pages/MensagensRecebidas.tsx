@@ -432,7 +432,7 @@ const ConversationList = ({
             key={conv.phone}
             onClick={() => isSelectionMode ? onToggleSelect(conv.phone) : onSelect(conv.phone)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 group",
+              "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 group relative",
               selectedPhone === conv.phone && !isSelectionMode && "bg-muted",
               isSelectionMode && selectedPhones.has(conv.phone) && "bg-primary/5 ring-1 ring-inset ring-primary/20"
             )}
