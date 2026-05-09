@@ -1011,23 +1011,26 @@ export const useMessageLogs = (
     // removed/disconnected instances don't pollute the list.
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
-    const filteredLogs = messageLogs.filter(m => {
-      // If we are filtering by a specific instance
-      if (filterInstanceId && filterInstanceId !== 'all') {
-        return m.instance_id === filterInstanceId;
-      }
-      
-      // Otherwise, restrict to user's known active instances
-      if (hasKnownInstanceFilter && knownIdSet) {
-        // Se temos instâncias conectadas conhecidas, filtramos estritamente por elas.
-        // Mensagens sem instance_id podem ser antigas ou de outros números.
-        // Mantemos apenas se o instance_id estiver no conjunto de conhecidas (conectadas).
-        return Boolean(m.instance_id) && knownIdSet.has(m.instance_id);
-      }
-      
-      // Fallback: se não temos filtro, mostramos tudo do usuário (conforme query inicial)
-      return true;
-    });
+     const filteredLogs = messageLogs.filter(m => {
+       // If we are filtering by a specific instance, show only that
+       if (filterInstanceId && filterInstanceId !== 'all') {
+         return m.instance_id === filterInstanceId;
+       }
+       
+       // If no specific instance is selected, restrict to the user's known instances
+       // to avoid seeing messages from other disconnected/removed devices.
+       if (hasKnownInstanceFilter && knownIdSet) {
+         // If message has an instance_id, it must be one of ours
+         if (m.instance_id && !knownIdSet.has(m.instance_id)) return false;
+         
+         // If message has no instance_id, we keep it as it might be an old log
+         // or a manually created entry for one of our conversations.
+         return true;
+       }
+       
+       // Fallback: show everything if we can't filter
+       return true;
+     });
 
     // From message_logs
     filteredLogs.forEach(log => {
