@@ -1296,6 +1296,19 @@ const MensagensRecebidas = () => {
     }
   }, [selectedPhone, normalizedSelectedPhone, conversations]);
 
+   const handleRefreshAll = async () => {
+     setSyncing(true);
+     try {
+       await syncMetadata();
+       await forceUpdateAllPhotos();
+       toast({ title: "Sincronização concluída", description: "Fotos e nomes de contatos atualizados do WhatsApp." });
+     } catch (error) {
+       toast({ title: "Erro na sincronização", description: "Algumas informações não puderam ser atualizados.", variant: "destructive" });
+     } finally {
+       setSyncing(false);
+     }
+   };
+ 
   const handleSaveContact = (phone: string, currentName: string) => {
     setSaveDialogPhone(phone);
     setSaveDialogName(currentName);
@@ -1341,7 +1354,7 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-             <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={forceUpdateAllPhotos} />
+              <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={handleRefreshAll} />
           </div>
         )}
         {showChat && (
