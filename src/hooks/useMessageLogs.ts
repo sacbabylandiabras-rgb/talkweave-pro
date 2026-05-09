@@ -110,11 +110,18 @@ const isConversationBoundInstanceLog = (log: Pick<MessageLog, 'instance_id' | 'm
 };
 
 const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 'timestamp' | 'created_at'>) => {
+  // Prefer timestamp if available as it is set by the webhook/client.
+  // Fallback to created_at if timestamp is missing.
+  const ts = log.timestamp || log.created_at;
+  
+  // For history imports, we always want the original timestamp
   if (log.keyword_matched === '__history_import__') {
-    return log.timestamp || log.created_at;
+    return ts;
   }
 
-  return log.created_at || log.timestamp;
+  // For real-time messages, created_at might be more accurate for sorting 
+  // once it exists, but timestamp is available immediately.
+  return ts;
 };
 
 const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered';
@@ -418,12 +425,15 @@ export const useMessageLogs = (
       return a.id.localeCompare(b.id);
     });
 
-    // Filter out processing locks and LID mapping entries
-    allData = allData.filter(m => 
-      m.keyword_matched !== '__processing__' && 
-      m.keyword_matched !== '__lid_map__' &&
-      !isInternalFlowStateKeyword(m.keyword_matched)
-    );
+    // Filter out internal system entries that carry no visible content
+    allData = allData.filter(m => {
+      const isInternal = isInternalFlowStateKeyword(m.keyword_matched);
+      const hasContent = Boolean(m.message_received || (m.response_sent && m.response_sent !== '__processing__'));
+      // Keep it if it has content, even if it has an internal keyword (e.g. during a flow capture)
+      if (hasContent) return true;
+      // Otherwise filter it out
+      return !isInternal;
+    });
     const lidEvidence = new Set<string>();
     allData.forEach((row) => {
       if (row.phone.includes('@lid')) lidEvidence.add(row.phone);
@@ -747,42 +757,53 @@ export const useMessageLogs = (
      fetchAll().then(() => {
        console.log('[Realtime] Initial fetch complete, setting up subscriptions...');
        
-       // Realtime for message_logs
-       const ch1 = supabase
-         .channel(`msg-logs-rt-${Date.now()}`)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
-           console.log('[Realtime] message_logs event:', payload.eventType, (payload.new as any)?.id);
-           if (payload.eventType === 'INSERT') {
-             const newMsg = payload.new as MessageLog;
-             if (newMsg.keyword_matched === '__processing__' || newMsg.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(newMsg.keyword_matched)) return;
-             setMessageLogs(prev => {
-               if (prev.some(m => m.id === newMsg.id)) return prev;
-               const next = [...prev, newMsg].sort((a, b) => {
-                 const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
-                 return timeDiff !== 0 ? timeDiff : a.id.localeCompare(b.id);
-               });
-               return next;
-             });
-           } else if (payload.eventType === 'UPDATE') {
-             const updated = payload.new as MessageLog;
-             if (updated.keyword_matched === '__processing__' || updated.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(updated.keyword_matched)) return;
-             setMessageLogs(prev => {
-               const exists = prev.some(m => m.id === updated.id);
-               if (exists) return prev.map(m => m.id === updated.id ? updated : m);
-               const next = [...prev, updated].sort((a, b) => {
-                 const timeDiff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
-                 return timeDiff !== 0 ? timeDiff : a.id.localeCompare(b.id);
-               });
-               return next;
-             });
-           } else if (payload.eventType === 'DELETE') {
-             setMessageLogs(prev => prev.filter(m => m.id !== (payload.old as any).id));
-           }
-         })
-         .subscribe((status) => {
-           console.log('[Realtime] message_logs channel status:', status);
-         });
-       channelRef.current = ch1;
+        const ch1 = supabase.channel(`msg-logs-rt-${Date.now()}`);
+        ch1
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
+            console.log('[Realtime] message_logs event:', payload.eventType, payload.new ? (payload.new as any).id : (payload.old as any).id);
+            
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const record = payload.new as MessageLog;
+              if (!record) return;
+              
+              const isInternal = isInternalFlowStateKeyword(record.keyword_matched);
+              const hasContent = Boolean(record.message_received || (record.response_sent && record.response_sent !== '__processing__'));
+              
+              if (isInternal && !hasContent) {
+                console.log('[Realtime] Ignoring internal system record:', record.id, record.keyword_matched);
+                return;
+              }
+
+              setMessageLogs(prev => {
+                const exists = prev.some(m => m.id === record.id);
+                let next;
+                if (exists) {
+                  next = prev.map(m => m.id === record.id ? record : m);
+                } else {
+                  next = [...prev, record];
+                }
+                
+                return next.sort((a, b) => {
+                  const timeA = toMillis(a.timestamp || a.created_at);
+                  const timeB = toMillis(b.timestamp || b.created_at);
+                  const diff = timeA - timeB;
+                  return diff !== 0 ? diff : a.id.localeCompare(b.id);
+                });
+              });
+            } else if (payload.eventType === 'DELETE') {
+              const oldRecord = payload.old as any;
+              if (oldRecord?.id) {
+                setMessageLogs(prev => prev.filter(m => m.id !== oldRecord.id));
+              }
+            }
+          })
+          .subscribe((status) => {
+            console.log('[Realtime] message_logs channel status:', status);
+            if (status === 'CHANNEL_ERROR') {
+              console.error('[Realtime] message_logs channel error - possible RLS or subscription issue');
+            }
+          });
+        channelRef.current = ch1;
  
        // Realtime for campaign_sends
        const ch2 = supabase
@@ -922,7 +943,12 @@ export const useMessageLogs = (
       }
 
       const inboundContent = resolveVisibleInboundContent(log);
-      if (inboundContent) {
+      const isInternal = isInternalFlowStateKeyword(log.keyword_matched);
+      
+      if (inboundContent || (isInternal && log.message_received)) {
+        const displayContent = inboundContent || parseSenderFromContent(String(log.message_received || '')).rest.trim();
+        if (!displayContent) return;
+
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
         let senderName = log.sender_name || parsed.name || null;
@@ -936,7 +962,7 @@ export const useMessageLogs = (
           id: `log-recv-${log.id}`,
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
-          content: inboundContent,
+          content: displayContent,
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
@@ -945,7 +971,7 @@ export const useMessageLogs = (
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
-        if (isInternalFlowStateKeyword(log.keyword_matched)) return;
+        // Allow internal keywords for sent messages too if they have content
         if (isTechnicalMessageReference(log.response_sent)) return;
         if (isRedundantManualFlowEcho(log, messageLogs)) return;
         // Legacy compatibility: keep old summary entries when no detailed flow logs exist nearby.
