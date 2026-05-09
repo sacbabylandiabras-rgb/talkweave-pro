@@ -2945,8 +2945,9 @@ serve(async (req) => {
     const senderPhone = webhook?.senderPhone || "";
     const chatPhone = webhook?.chatPhone || "";
     const chatLid = webhook?.chatLid || "";
-    const senderName = webhook?.senderName || "";
-    const chatName = webhook?.chatName || "";
+     const senderName = webhook?.senderName || "";
+     const senderPhoto = webhook?.senderPhoto || webhook?.data?.senderPhoto || "";
+     const chatName = webhook?.chatName || "";
     const isGroupMessage = webhook?.isGroup === true;
 
     // Log ALL phone-related fields when @lid is detected for debugging
