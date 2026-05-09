@@ -1241,6 +1241,8 @@ export const useMessageLogs = (
           unreadCount: 0,
           messages: visibleMessages,
           preferredInstanceId,
+          isCommunity: saved?.is_community || false,
+          communityId: saved?.community_id || null,
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
