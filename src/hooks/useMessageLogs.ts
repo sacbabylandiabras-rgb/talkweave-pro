@@ -380,6 +380,12 @@ export const useMessageLogs = (
    }, [filterInstanceId, fetchSavedContacts]);
  
   const fetchMessageLogs = useCallback(async () => {
+    // Check columns first to avoid breaking the whole fetch if migration is pending
+    const { data: colCheck } = await supabase.rpc('check_message_logs_columns').catch(() => ({ data: null }));
+    const hasSenderCols = colCheck || false;
+    const selectFields = 'id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id' + 
+      (hasSenderCols ? ', sender_name, sender_phone, sender_photo' : '');
+
     // Limit to last 30 days to avoid loading tens of thousands of records
     const since = new Date();
     since.setDate(since.getDate() - 30);
@@ -393,7 +399,7 @@ export const useMessageLogs = (
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
+         .select(selectFields)
         .gte('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
         .range(from, from + batchSize - 1);
@@ -409,7 +415,7 @@ export const useMessageLogs = (
     while (hasMore && importedHistoryData.length < maxRecords) {
       const { data, error } = await supabase
         .from('message_logs')
-         .select('id, phone, message_received, response_sent, keyword_matched, timestamp, created_at, user_id, instance_id, sender_name, sender_phone, sender_photo')
+         .select(selectFields)
         .eq('keyword_matched', '__history_import__')
         .lt('timestamp', sinceISO)
         .order('timestamp', { ascending: false })
