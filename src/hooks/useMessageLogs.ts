@@ -1418,7 +1418,7 @@ export const useMessageLogs = (
      sendMessage, 
      forceUpdateAllPhotos,
      syncMetadata,
-   syncHistory: fetchAll,
+    syncHistory: fetchAll,
     deleteConversation: async (phone: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -1441,10 +1441,24 @@ export const useMessageLogs = (
 
       const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
 
-      // Clear from local state immediately to avoid lag/flicker
-      setMessageLogs(prev => prev.filter(log => !uniqueFormats.includes(log.phone)));
-      setCampaignSends(prev => prev.filter(send => !uniqueFormats.includes(send.phone)));
+      // Update persistence layers immediately
+      setDeletedConversations(prev => {
+        const next = new Set(prev);
+        next.add(normalizedPhone);
+        return next;
+      });
 
+      // Clear from local state immediately to avoid lag/flicker
+      setMessageLogs(prev => prev.filter(log => {
+        const logNormalized = normalizeConversationPhone(log.phone);
+        return !uniqueFormats.includes(log.phone) && logNormalized !== normalizedPhone;
+      }));
+      setCampaignSends(prev => prev.filter(send => {
+        const sendNormalized = normalizeConversationPhone(send.phone);
+        return !uniqueFormats.includes(send.phone) && sendNormalized !== normalizedPhone;
+      }));
+
+      // Execute database deletion
       const { error } = await supabase
         .from('message_logs')
         .delete()
@@ -1466,6 +1480,7 @@ export const useMessageLogs = (
         console.warn('Could not delete campaign sends (might not exist):', campaignError);
       }
 
+      // Final sync (will be filtered by local deletedConversations state)
       await fetchAll();
     }
    };
