@@ -42,17 +42,16 @@ serve(async (req) => {
       })
     }
 
-    // Pega contatos sem foto ou com foto antiga do usuário atual (lote de 50)
-    // Considera "antiga" se updated_at for null ou mais de 24h atrás
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    
+    // Busca APENAS grupos sem metadata (is_community null)
+    // Prio 1: Começa com 120363, ou contém @g.us ou contém -group
+    // Limitado a 10 por chamada para ser rápido
     const { data: contacts, error: contactsError } = await adminClient
       .from('saved_contacts')
-      .select('phone, name, profile_picture_url, updated_at')
+      .select('phone, name, profile_picture_url, is_community')
       .eq('user_id', user.id)
-      .or(`profile_picture_url.is.null,profile_picture_url.eq.null,updated_at.is.null,updated_at.lt.${yesterday}`)
-      .order('updated_at', { ascending: true, nullsFirst: true })
-      .limit(50)
+      .is('is_community', null)
+      .or('phone.like.120363%,phone.like.%@g.us,phone.like.%-group')
+      .limit(10)
 
     if (contactsError) throw contactsError
     if (!contacts?.length) {
