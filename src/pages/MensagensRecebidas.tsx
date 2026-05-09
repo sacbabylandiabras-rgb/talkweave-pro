@@ -431,6 +431,7 @@ const ChatView = ({
   onForwardMessage,
    onSendReaction,
    onSendSticker,
+   onDeleteConversation,
   campaignTemplates,
   savedContacts,
 }: ChatViewProps) => {
