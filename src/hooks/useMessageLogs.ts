@@ -214,7 +214,7 @@ const isGroupMembershipLog = (log: Pick<MessageLog, 'message_received' | 'keywor
 const resolveGroupMembershipContent = (log: Pick<MessageLog, 'phone' | 'response_sent' | 'keyword_matched'>) => {
   const joinedName = String(log.response_sent || '').trim();
   const joinedPhone = String(log.phone || '').replace(/\D/g, '');
-  const action = log.keyword_matched === '__group_leave__' ? 'saiu da comunidade' : 'entrou na comunidade';
+  const action = log.keyword_matched === '__group_leave__' ? 'saiu do grupo' : 'entrou no grupo';
   return `${joinedName || (joinedPhone ? `+${joinedPhone}` : 'Membro')} ${action}`;
 };
 
