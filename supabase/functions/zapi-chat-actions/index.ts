@@ -60,26 +60,17 @@ function buildBase(c: { instanceId: string; token: string; apiProvider: string; 
 }
 
 function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
-  const isUazapi = apiProvider === 'uazapi';
-  
-  // Normalize phone for Evolution API if needed
-  const cleanPhone = phone.replace('@g.us', '').replace(/-group$/, '');
-  const uazapiSuffix = phone.includes('-group') || phone.includes('@g.us') ? '@g.us' : '@s.whatsapp.net';
-  const uazapiPhone = cleanPhone + uazapiSuffix;
+  const zapiPhone = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
 
   switch (action) {
     case 'list-chats':
-      if (isUazapi) return { method: 'GET', path: "/chat/find-all" };
       return { method: 'GET', path: "/chats?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
     case 'metadata':
-      if (isUazapi) return { method: 'GET', path: "/chat/find-messages?remoteJid=" + uazapiPhone + "&count=1" };
-      return { method: 'GET', path: "/chats/" + phone };
+      return { method: 'GET', path: "/chats/" + zapiPhone };
     case 'read':
-      if (isUazapi) return { method: 'POST', path: "/chat/markRead", body: { remoteJid: uazapiPhone } };
-      return { method: 'POST', path: "/chats/" + phone + "/read" };
+      return { method: 'POST', path: "/chats/" + zapiPhone + "/read" };
     case 'unread':
-      if (isUazapi) return { method: 'POST', path: "/chat/markUnread", body: { remoteJid: uazapiPhone } };
-      return { method: 'POST', path: "/chats/" + phone + "/unread" };
+      return { method: 'POST', path: "/chats/" + zapiPhone + "/unread" };
     case 'archive':
       if (isUazapi) return { method: 'POST', path: "/chat/archiveChat", body: { remoteJid: uazapiPhone, archive: true } };
       return { method: 'POST', path: "/modify-chat", body: { phone, action: 'archive' } };
