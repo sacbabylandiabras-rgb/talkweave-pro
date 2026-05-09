@@ -73,18 +73,6 @@ export default function ZapiChatActionsMenu({ phone, instanceDbId }: Props) {
         <DropdownMenuItem onClick={() => run("read", undefined, "Marcado como lido")}>
           <CheckCheck className="w-4 h-4 mr-2" /> Marcar como lido
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => run("pin", undefined, "Conversa fixada")}>
-          <Pin className="w-4 h-4 mr-2" /> Fixar conversa
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => run("unpin", undefined, "Fixação removida")}>
-          <Pin className="w-4 h-4 mr-2 opacity-50" /> Desafixar
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => run("archive", undefined, "Conversa arquivada")}>
-          <Archive className="w-4 h-4 mr-2" /> Arquivar
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => run("unarchive", undefined, "Conversa desarquivada")}>
-          <Archive className="w-4 h-4 mr-2 opacity-50" /> Desarquivar
-        </DropdownMenuItem>
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
