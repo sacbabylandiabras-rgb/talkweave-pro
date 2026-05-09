@@ -103,7 +103,10 @@ export const useZapiInstances = () => {
         setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
       }
 
-      const deduped = normalizeInstances(await fetchInstancesWithRetry(user.id));
+      const allInstances = await fetchInstancesWithRetry(user.id);
+      // Filter out UAZAPI instances from the messages part as requested
+      const filtered = allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi');
+      const deduped = normalizeInstances(filtered);
 
       setInstances(deduped);
       setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
