@@ -523,26 +523,6 @@ const buildLidCandidateFromTechnicalId = (value: unknown) => {
     : "";
 };
 
-const isUazapiTechnicalReplyReference = (value: unknown) => {
-  const raw = String(value || "").trim();
-  return /^\d{10,}:[A-Z0-9]{10,}$/i.test(raw);
-};
-
-const sanitizeTechnicalMessageReference = (value: unknown) => {
-  const raw = String(value || "").trim();
-  return isUazapiTechnicalReplyReference(raw) ? "" : raw;
-};
-
-const pickPreferredInteractiveText = (candidates: unknown[]) => {
-  const values = candidates
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return values.find((value) => !isUazapiTechnicalReplyReference(value)) ||
-    values[0] || "";
-};
-
 const resolveWebhookPhone = (webhook: any) => {
   const rawPhone = String(webhook?.phone || "");
   const participantPhone = String(webhook?.participantPhone || "");
