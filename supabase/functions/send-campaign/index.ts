@@ -1827,7 +1827,18 @@ serve(async (req) => {
           const confirmed = isZapiConfirmed(zapiResult);
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
-          if (zapiResponse.ok && !explicitError && confirmed) {
+          // For @lid identifiers the upstream may return a "user_not_found" / NOT_FOUND
+          // error even though the message is actually delivered. The user explicitly
+          // requested that @lid destinations skip the WhatsApp existence check and
+          // be treated as accepted.
+          const isLidContact = isLidIdentifier(contact.phone);
+          const looksLikeNotFound = (() => {
+            const blob = `${explicitError || ''} ${JSON.stringify(zapiResult || {})}`.toLowerCase();
+            return blob.includes('not_found') || blob.includes('user_not_found');
+          })();
+          const lidBypass = isLidContact && (looksLikeNotFound || (!confirmed && zapiResponse.ok));
+
+          if ((zapiResponse.ok && !explicitError && confirmed) || lidBypass) {
             if (specialTpl?.type === 'uaz_location_button') {
               await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
               const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
@@ -1846,7 +1857,7 @@ serve(async (req) => {
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
-            console.log(`⏳ Accepted by Z-API for ${contact.phone}; waiting callback to mark as sent/delivered`);
+            console.log(`⏳ Accepted${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone}; waiting callback to mark as sent/delivered`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
