@@ -913,10 +913,13 @@ const ChatView = ({
             <WhatsAppDefaultAvatar />
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-foreground truncate">
-            {getConversationDisplayName(conversation.contactName, conversation.phone)}
-          </h3>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="font-medium text-foreground truncate">
+              {getConversationDisplayName(conversation.contactName, conversation.phone)}
+            </h3>
+            <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} />
+          </div>
           <p className="text-xs text-muted-foreground">
             {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
           </p>
