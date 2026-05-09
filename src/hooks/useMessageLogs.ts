@@ -188,6 +188,14 @@ const isRedundantManualFlowEcho = (
 };
 
  const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^|\]]*)(?:\|([^\]]*))?\]\s*/;
+ const MESSAGE_ID_PREFIX_REGEX = /^\[msgid:([^\]]+)\]\s*/;
+
+ const parseExternalMessageIdFromContent = (raw?: string | null): { externalMessageId: string | null; rest: string } => {
+   const value = String(raw || '');
+   const match = value.match(MESSAGE_ID_PREFIX_REGEX);
+   if (!match) return { externalMessageId: null, rest: value };
+   return { externalMessageId: match[1].trim() || null, rest: value.replace(MESSAGE_ID_PREFIX_REGEX, '') };
+ };
  
  const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; photo: string | null; rest: string } => {
    const match = raw.match(SENDER_PREFIX_REGEX);
@@ -202,7 +210,8 @@ const isRedundantManualFlowEcho = (
    const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
    if (buttonText) return buttonText;
    const { rest } = parseSenderFromContent(String(log.message_received || ''));
-   const rawContent = rest.trim();
+   const { rest: contentWithoutId } = parseExternalMessageIdFromContent(rest);
+   const rawContent = contentWithoutId.trim();
    if (isTechnicalMessageReference(rawContent)) return '';
    return rawContent;
  };
