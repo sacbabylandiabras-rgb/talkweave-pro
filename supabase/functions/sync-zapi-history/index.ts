@@ -239,22 +239,41 @@ Deno.serve(async (req) => {
 
     const contactsToUpsert: any[] = [];
 
-    for (const chat of allChats) {
+    for (let i = 0; i < allChats.length; i++) {
+      const chat = allChats[i];
       const phone = String(chat?.phone || chat?.wa_chatid || "").trim();
       if (!phone) continue;
 
       const chatName = chat?.name || chat?.wa_contactName || chat?.wa_name || chat?.contact || chat?.contact_name || chat?.contactName || "";
-      const profilePic = extractProfilePictureUrl(chat);
+      let profilePic = extractProfilePictureUrl(chat);
       const isGroup = chat?.isGroup === true || chat?.wa_isGroup === true || phone.includes("-group") || phone.includes("@g.us");
 
       // Skip groups for contact saving
       if (isGroup) continue;
 
-      const existing = existingMap.get(phone);
-      const existingPhoto = sanitizeProfilePictureUrl(existing?.profile_picture_url);
+      const existingContact = existingMap.get(phone);
+      const existingPhoto = sanitizeProfilePictureUrl(existingContact?.profile_picture_url);
+
+      // Fallback: If no photo is found in chat metadata, try to fetch it dynamically
+      if (!profilePic && !existingPhoto) {
+        try {
+          // Limit dynamic fetching to avoid rate limits during sync
+          if (i < 20) {
+            const { data: picData, error: picError } = await adminClient.functions.invoke('get-profile-picture', {
+              body: { phone, instanceId }
+            });
+            if (!picError && picData?.success && picData?.data?.link) {
+              profilePic = picData.data.link;
+              console.log(`📸 Foto de perfil recuperada dinamicamente para ${phone} durante sincronização`);
+            }
+          }
+        } catch (e) {
+          console.error(`⚠️ Erro ao buscar foto dinâmica durante sync para ${phone}:`, e);
+        }
+      }
 
       // Only upsert if we have new info or contact doesn't exist yet
-      if (!existing) {
+      if (!existingContact) {
         contactsToUpsert.push({
           phone,
           name: chatName,
@@ -262,7 +281,7 @@ Deno.serve(async (req) => {
           profile_picture_url: profilePic,
         });
         importedContacts++;
-      } else if (!existing.name && chatName) {
+      } else if (!existingContact.name && chatName) {
         // Update name if existing contact has no name
         contactsToUpsert.push({
           phone,
@@ -275,7 +294,7 @@ Deno.serve(async (req) => {
         // Update photo if existing contact has no photo
         contactsToUpsert.push({
           phone,
-          name: existing.name,
+          name: existingContact.name,
           user_id: userId,
           profile_picture_url: profilePic,
         });
