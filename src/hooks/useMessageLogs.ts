@@ -874,7 +874,9 @@ export const useMessageLogs = (
 
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-whatsapp-groups');
+        const { data, error } = await supabase.functions.invoke('get-whatsapp-groups', {
+          body: { instanceId: filterInstanceId }
+        });
         if (error || !data?.groups) return;
         const map = new Map(groupNames);
         const photoMap = new Map(groupPhotos);
@@ -907,7 +909,7 @@ export const useMessageLogs = (
         setGroupSourceInstances(instanceMap);
       } catch { /* ignore */ }
     })();
-  }, [loading, messageLogs, campaignSends, groupNames, groupPhotos]);
+  }, [loading, messageLogs, campaignSends, filterInstanceId]);
 
   // Auto-fetch profile pictures when conversations are available
    useEffect(() => {
