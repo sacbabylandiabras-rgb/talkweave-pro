@@ -1351,19 +1351,54 @@ export const useMessageLogs = (
      forceUpdateAllPhotos,
      syncMetadata,
    syncHistory: fetchAll,
-   deleteConversation: async (phone: string) => {
-     const { data: { user } } = await supabase.auth.getUser();
-     if (!user) throw new Error('Not authenticated');
-     
-     const { error } = await supabase
-       .from('message_logs')
-       .delete()
-       .eq('user_id', user.id)
-       .eq('phone', phone);
-       
-     if (error) throw error;
-     
-     await fetchAll();
-   }
+    deleteConversation: async (phone: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const normalizedPhone = normalizeConversationPhone(phone);
+      // Extract just the numeric/ID part to match inconsistent formats in DB
+      const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
+
+      // Delete using multiple possible phone formats to ensure cleanup
+      const formats = [
+        phone,
+        normalizedPhone,
+        rawId,
+        rawId + '@c.us',
+        rawId + '@s.whatsapp.net',
+        rawId + '@g.us',
+        rawId + '@lid',
+        rawId + '-group'
+      ];
+
+      const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
+
+      // Clear from local state immediately to avoid lag/flicker
+      setMessageLogs(prev => prev.filter(log => !uniqueFormats.includes(log.phone)));
+      setCampaignSends(prev => prev.filter(send => !uniqueFormats.includes(send.phone)));
+
+      const { error } = await supabase
+        .from('message_logs')
+        .delete()
+        .eq('user_id', user.id)
+        .in('phone', uniqueFormats);
+
+      if (error) {
+        console.error('Error deleting conversation logs:', error);
+        throw error;
+      }
+
+      // Also cleanup campaign sends which contribute to the conversation list
+      const { error: campaignError } = await supabase
+        .from('campaign_sends')
+        .delete()
+        .in('phone', uniqueFormats);
+
+      if (campaignError) {
+        console.warn('Could not delete campaign sends (might not exist):', campaignError);
+      }
+
+      await fetchAll();
+    }
    };
 };
