@@ -1820,6 +1820,7 @@ const EnviarMensagem = () => {
                     <Input 
                       id="label-botao" 
                       placeholder="Ver opções"
+                      className="text-black"
                       value={labelBotaoLista}
                       onChange={(e) => setLabelBotaoLista(e.target.value)}
                     />
@@ -1833,6 +1834,7 @@ const EnviarMensagem = () => {
                           <div className="flex gap-2 items-center">
                             <Input
                               placeholder="Título da opção"
+                              className="text-black"
                               value={opcao.title}
                               onChange={(e) => updateOption(index, 'title', e.target.value)}
                             />
@@ -1849,6 +1851,7 @@ const EnviarMensagem = () => {
                           </div>
                           <Input
                             placeholder="Descrição da opção"
+                            className="text-black"
                             value={opcao.description}
                             onChange={(e) => updateOption(index, 'description', e.target.value)}
                           />
