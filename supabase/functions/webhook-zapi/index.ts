@@ -69,9 +69,17 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
+    senderName?: string;
+    senderPhone?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId } = params;
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
+  // Embed sender info as a prefix so the frontend can show name/phone
+  // without requiring a schema change. The frontend strips this prefix.
+  const senderPrefix = (senderName || senderPhone)
+    ? `[sender:${(senderName || '').replace(/[\|\]]/g, ' ')}|${(senderPhone || '').replace(/[\|\]]/g, ' ')}] `
+    : '';
+  const messageWithSender = senderPrefix + (rawMessage || '');
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
   const now = Date.now();
   const bucketSize = 15000;
@@ -87,7 +95,7 @@ async function acquireMessageProcessingLock(
   const { error } = await supabase.from("message_logs").insert({
     id: lockId,
     phone,
-    message_received: rawMessage,
+    message_received: messageWithSender,
     keyword_matched: "__processing__",
     response_sent: "__processing__",
     timestamp: new Date().toISOString(),
