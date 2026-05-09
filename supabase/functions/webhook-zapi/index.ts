@@ -146,6 +146,18 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
    await supabase.from("saved_contacts").upsert(updateData, { onConflict: "phone,user_id" });
  }
  
+ function extractMediaUrl(webhook: any): { url: string; type: string; caption: string } {
+   const mediaTypes = ["image", "video", "audio", "document", "sticker"];
+   for (const type of mediaTypes) {
+     const obj = webhook?.[type] || webhook?.message?.[`${type}Message`] || webhook?.data?.[type];
+     const url = obj?.url || obj?.[`${type}Url`] || (type === "audio" ? obj?.audioUrl : null);
+     if (typeof url === "string" && url.trim().startsWith("http")) {
+       return { url: url.trim(), type, caption: obj?.caption || "" };
+     }
+   }
+   return { url: "", type: "", caption: "" };
+ }
+
 function extractAudioUrl(webhook: any): string {
   const candidates = [
     webhook?.audio?.audioUrl, webhook?.audio?.url, webhook?.audioMessage?.url, webhook?.message?.audioMessage?.url,
@@ -2849,9 +2861,10 @@ serve(async (req) => {
       }
     }
 
-    const isManualFlowTriggerEarly = webhook?.__manual_flow_trigger__ === true;
-    let messageRaw = extractMessageText(webhook);
-    const audioUrl = extractAudioUrl(webhook);
+     const isManualFlowTriggerEarly = webhook?.__manual_flow_trigger__ === true;
+     let messageRaw = extractMessageText(webhook);
+     const mediaData = extractMediaUrl(webhook);
+     const audioUrl = mediaData.type === "audio" ? mediaData.url : extractAudioUrl(webhook);
 
     if (!messageRaw) {
       const replyCandidates = extractButtonReplyCandidates(webhook);
@@ -2898,7 +2911,7 @@ serve(async (req) => {
     let normalizedMessage = normalizeForMatch(messageRaw);
     let audioTranscription = "";
 
-    if (!messageRaw && !audioUrl) {
+     if (!messageRaw && !audioUrl && !mediaData.url) {
       console.log(
         "Evento sem texto detectado, ignorando. Chaves:",
         Object.keys(webhook || {}),
@@ -3477,18 +3490,19 @@ serve(async (req) => {
       });
     }
 
-    // Build the raw message content for storage (include audio tag + transcription)
-    let storedMessage = messageRaw;
-    if (audioUrl) {
-      const audioTag = `[media:audio:${audioUrl}]`;
-      if (
-        audioTranscription && audioTranscription !== "[áudio não reconhecido]"
-      ) {
-        storedMessage = `${audioTag}\n🎙️ ${audioTranscription}`;
-      } else {
-        storedMessage = audioTag + (messageRaw ? `\n${messageRaw}` : "");
-      }
-    }
+     // Build the raw message content for storage (include media tag + transcription)
+     let storedMessage = messageRaw;
+     if (mediaData.url || audioUrl) {
+       const mUrl = mediaData.url || audioUrl;
+       const mType = mediaData.type || "audio";
+       const mediaTag = `[media:${mType}:${mUrl}]`;
+       
+       if (mType === "audio" && audioTranscription && audioTranscription !== "[áudio não reconhecido]") {
+         storedMessage = `${mediaTag}\n🎙️ ${audioTranscription}`;
+       } else {
+         storedMessage = mediaTag + (messageRaw ? `\n${messageRaw}` : "");
+       }
+     }
 
     // Dedupe idempotente: cria um lock por usuário+telefone+mensagem em janela de 15s
     const lockResult = await acquireMessageProcessingLock(supabase, {

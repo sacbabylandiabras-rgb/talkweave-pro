@@ -38,15 +38,16 @@ const extractMessageContent = (msg: any): { text: string; mediaType: string | nu
       || ""
   ).trim();
 
-  const mediaUrl: string | null = msg?.mediaUrl || msg?.url || msg?.fileUrl || msg?.image
-    || msg?.video || msg?.audio || msg?.document || null;
+   const mediaUrl: string | null = msg?.mediaUrl || msg?.url || msg?.fileUrl || msg?.image
+     || msg?.video || msg?.audio || msg?.document || msg?.sticker || msg?.stickerUrl || null;
 
   let mediaType: string | null = null;
   const lowerType = String(msg?.messageType || msg?.type || "").toLowerCase();
-  if (lowerType.includes("image")) mediaType = "image";
-  else if (lowerType.includes("video")) mediaType = "video";
-  else if (lowerType.includes("audio") || lowerType.includes("ptt")) mediaType = "audio";
-  else if (lowerType.includes("document")) mediaType = "document";
+   if (lowerType.includes("image")) mediaType = "image";
+   else if (lowerType.includes("video")) mediaType = "video";
+   else if (lowerType.includes("audio") || lowerType.includes("ptt")) mediaType = "audio";
+   else if (lowerType.includes("document")) mediaType = "document";
+   else if (lowerType.includes("sticker")) mediaType = "sticker";
 
   return { text, mediaType, mediaUrl };
 };

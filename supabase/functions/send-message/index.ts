@@ -673,48 +673,9 @@ serve(async (req) => {
       logMessage = logMessage || '📋 Lista de opções';
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
     } else if (mediaUrl && mediaType) {
-      if (mediaType === 'audio') {
-        zapiResponse = await fetch(`${baseUrl}/send-audio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, audio: mediaUrl, waveform: true, ...mentionFlag(resolvedPhone) }),
-        });
-        logMessage = logMessage || '🎤 Áudio';
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'audio');
-      } else if (mediaType === 'image') {
-        zapiResponse = await fetch(`${baseUrl}/send-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, image: mediaUrl, caption: message || '', ...mentionFlag(resolvedPhone) }),
-        });
-        logMessage = logMessage || '📷 Imagem';
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'image');
-      } else if (mediaType === 'video' && isPtv) {
-        zapiResponse = await fetch(`${baseUrl}/send-ptv`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, ptv: mediaUrl, ...mentionFlag(resolvedPhone) }),
-        });
-        logMessage = logMessage || '🎬 Vídeo Instantâneo';
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
-      } else if (mediaType === 'video') {
-        zapiResponse = await fetch(`${baseUrl}/send-video`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, video: mediaUrl, caption: message || '', ...(viewOnce ? { viewOnce: true } : {}), ...mentionFlag(resolvedPhone) }),
-        });
-        logMessage = logMessage || '🎥 Vídeo';
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'video');
-      } else {
-        const extension = getDocumentExtension(mediaUrl, message);
-        zapiResponse = await fetch(`${baseUrl}/send-document/${extension}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: resolvedPhone, document: mediaUrl, fileName: message || `arquivo.${extension}`, caption: '', ...mentionFlag(resolvedPhone) }),
-        });
-        logMessage = logMessage || '📎 Arquivo';
-        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'document');
-      }
+      zapiData = await sendZapiMedia(mediaUrl, mediaType, message);
+      const emojiMap: any = { audio: '🎤', image: '📷', video: '🎬', sticker: '🖼️', document: '📄' };
+      logMessage = logMessage || `${emojiMap[mediaType] || '📎'} Mídia`;
     } else {
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
         method: 'POST',
