@@ -1349,6 +1349,16 @@ const MensagensRecebidas = () => {
     if (connectedInstanceNames.length > 0) return connectedInstanceNames;
     return allInstanceNames.length > 0 ? allInstanceNames : undefined;
   }, [connectedInstanceNames, allInstanceNames]);
+  const handleDeleteConversation = async (phone: string) => {
+    try {
+      await deleteConversation(phone);
+      if (selectedPhone === phone) setSelectedPhone(null);
+      toast({ title: "Conversa apagada", description: "A conversa foi removida com sucesso." });
+    } catch (err) {
+      toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+    }
+  };
+
   const [selectedInstanceId, setSelectedInstanceId] = useState("all");
   // Only show connected instances in the picker. While we're still checking
   // connection status, fall back to all registered instances to avoid an empty UI.
