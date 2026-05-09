@@ -484,10 +484,14 @@ const ConversationList = ({
               </Avatar>
              </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm text-foreground truncate">
-                    {getConversationDisplayName(conv.contactName, conv.phone)}
-                  </span>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span className="font-medium text-sm text-foreground truncate">
+                      {getConversationDisplayName(conv.contactName, conv.phone)}
+                    </span>
+                    <ChatTypeBadge phone={conv.phone} name={conv.contactName} />
+                  </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
                 </span>
