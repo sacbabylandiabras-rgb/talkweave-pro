@@ -955,9 +955,10 @@ export const useMessageLogs = (
 
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
         const parsed = parseSenderFromContent(String(log.message_received || ''));
-        let senderName = log.sender_name || parsed.name || null;
-        let senderPhone = log.sender_phone || parsed.phone || null;
-
+         let senderName = log.sender_name || parsed.name || null;
+         let senderPhone = log.sender_phone || parsed.phone || null;
+         let senderPhoto = log.sender_photo || parsed.photo || null;
+ 
         if (isManualTrigger) {
           senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;
         }
@@ -971,7 +972,8 @@ export const useMessageLogs = (
           source: 'message_log',
           keyword_matched: log.keyword_matched,
           sender_name: senderName,
-          sender_phone: senderPhone,
+           sender_phone: senderPhone,
+           sender_photo: senderPhoto,
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
