@@ -764,11 +764,16 @@ export const useMessageLogs = (
             
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const record = payload.new as MessageLog;
-              if (!record || record.keyword_matched === '__processing__' || record.keyword_matched === '__lid_map__' || isInternalFlowStateKeyword(record.keyword_matched)) {
-                console.log('[Realtime] Ignoring message:', record?.id, record?.keyword_matched);
+              if (!record) return;
+              
+              const isInternal = isInternalFlowStateKeyword(record.keyword_matched);
+              const hasContent = Boolean(record.message_received || (record.response_sent && record.response_sent !== '__processing__'));
+              
+              if (isInternal && !hasContent) {
+                console.log('[Realtime] Ignoring internal system record:', record.id, record.keyword_matched);
                 return;
               }
-              
+
               setMessageLogs(prev => {
                 const exists = prev.some(m => m.id === record.id);
                 let next;
