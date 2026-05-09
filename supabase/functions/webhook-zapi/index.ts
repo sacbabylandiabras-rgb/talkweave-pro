@@ -3118,8 +3118,7 @@ serve(async (req) => {
       const matchesId = normalizeInstanceIdentifier(item?.id) === normalizedInstanceId;
       const matchesExternalId = normalizeInstanceIdentifier(item?.zapi_instance_id) ===
         normalizedInstanceId;
-      const matchesName = !isIncomingUazapiWebhook &&
-        normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
+      const matchesName = normalizeInstanceIdentifier(item?.instance_name) === normalizedInstanceId;
 
       return matchesId || matchesExternalId || matchesName;
     });
