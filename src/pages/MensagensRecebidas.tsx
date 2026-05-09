@@ -1070,7 +1070,17 @@ const MensagensRecebidas = () => {
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
-   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch, forceUpdateAllPhotos } = useMessageLogs(
+    const { 
+      conversations, 
+      loading, 
+      saveContact, 
+      fetchProfilePicture, 
+      sendMessage, 
+      refetch, 
+      forceUpdateAllPhotos, 
+      syncMetadata, 
+      savedContacts 
+    } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
     knownInstanceIds,
