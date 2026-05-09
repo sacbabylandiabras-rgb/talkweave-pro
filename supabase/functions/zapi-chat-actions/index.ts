@@ -64,25 +64,25 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'metadata':
       return { method: 'GET', path: "/chats/" + zapiPhone };
     case 'read':
-      return { method: 'POST', path: "/read-chat", body: { phone: zapiPhone, action: "read" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/read", body: { value: true } };
     case 'unread':
-      return { method: 'POST', path: "/read-chat", body: { phone: zapiPhone, action: "unread" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/read", body: { value: false } };
     case 'archive':
-      return { method: 'POST', path: "/archive-chat", body: { phone: zapiPhone, action: "archive" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/archive", body: { value: true } };
     case 'unarchive':
-      return { method: 'POST', path: "/archive-chat", body: { phone: zapiPhone, action: "unarchive" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/archive", body: { value: false } };
     case 'pin':
-      return { method: 'POST', path: "/pin-chat", body: { phone: zapiPhone, action: "pin" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/pin", body: { value: true } };
     case 'unpin':
-      return { method: 'POST', path: "/pin-chat", body: { phone: zapiPhone, action: "unpin" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/pin", body: { value: false } };
     case 'mute':
-      return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, action: "mute" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/mute", body: { value: true, muteFor: payload?.muteFor ?? 28800 } };
     case 'unmute':
-      return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, action: "unmute" } };
+      return { method: 'PUT', path: "/chats/" + zapiPhone + "/mute", body: { value: false } };
     case 'clear':
-      return { method: 'POST', path: "/clear-chat/" + zapiPhone, body: { phone: zapiPhone, action: "clear" } };
+      return { method: 'DELETE', path: "/chats/" + zapiPhone + "/messages" };
     case 'delete':
-      return { method: 'DELETE', path: "/delete-chat/" + zapiPhone, body: { phone: zapiPhone, action: "delete" } };
+      return { method: 'DELETE', path: "/chats/" + zapiPhone };
      case 'expiration':
         return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
