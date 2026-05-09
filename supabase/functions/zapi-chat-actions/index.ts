@@ -211,6 +211,10 @@ Deno.serve(async (req) => {
     const creds = await resolveCreds(req, instanceDbId || undefined);
     const base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
     const ep = endpointFor(action, phone, payload, creds.apiProvider);
+    
+    console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId}`);
+    console.log(`[zapi-chat-actions] URL: ${ep.method} ${base}${ep.path}`);
+    if (ep.body) console.log(`[zapi-chat-actions] Body:`, JSON.stringify(ep.body));
 
    let url: string;
     url = base + ep.path;
@@ -229,8 +233,10 @@ Deno.serve(async (req) => {
     let data: any;
     try { data = JSON.parse(text); } catch { data = text; }
 
+    console.log(`[zapi-chat-actions] Z-API Response (${resp.status}):`, text);
+
     if (!resp.ok) {
-      console.error(`[zapi-chat-actions] ${ep.method} ${url} -> ${resp.status}`, text);
+      console.error(`[zapi-chat-actions] Z-API Error: ${ep.method} ${url} -> ${resp.status}`, text);
       return new Response(JSON.stringify({ error: data, status: resp.status }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
