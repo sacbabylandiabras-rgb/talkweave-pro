@@ -840,8 +840,39 @@ const ChatView = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex justify-end">
-                      <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-primary text-primary-foreground">
+                    <div className="flex justify-end group/msg">
+                      <div className="max-w-[75%] relative rounded-lg px-3 py-2 shadow-sm bg-primary text-primary-foreground">
+                        <div className="absolute top-0 -left-8 flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-muted text-foreground"
+                            title="Encaminhar"
+                            onClick={() => onForwardMessage(conversation.phone, msg.id)}
+                          >
+                            <Send className="w-3 h-3" />
+                          </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted text-foreground" title="Reagir">
+                                <Smile className="w-3 h-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-1" side="top">
+                              <div className="flex gap-1">
+                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    className="hover:scale-125 transition-transform p-1"
+                                    onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
