@@ -1697,12 +1697,30 @@ const MensagensRecebidas = () => {
    const handleRefreshAll = async () => {
      setSyncing(true);
      try {
-       clearFetchedPhotosCache(); // ✅ Limpa cache antes de forçar
+       clearFetchedPhotosCache();
+       
+       // Roda a sync em background várias vezes para cobrir muitos contatos
+       // (cada chamada processa 50)
+       const rounds = 5; // processa até 250 contatos por clique
+       for (let i = 0; i < rounds; i++) {
+         await supabase.functions.invoke('sync-profile-photos');
+       }
+       
        await syncMetadata();
        await forceUpdateAllPhotos();
-       toast({ title: "Sincronização concluída", description: "Fotos e nomes de contatos atualizados do WhatsApp." });
+       refetch(); // Atualiza o estado local
+
+       toast({ 
+         title: "Sincronização concluída", 
+         description: "Fotos e nomes de contatos atualizados." 
+       });
      } catch (error) {
-       toast({ title: "Erro na sincronização", description: "Algumas informações não puderam ser atualizados.", variant: "destructive" });
+       console.error('Erro na sincronização:', error);
+       toast({ 
+         title: "Erro na sincronização", 
+         description: "Algumas informações não puderam ser atualizadas.", 
+         variant: "destructive" 
+       });
      } finally {
        setSyncing(false);
      }
