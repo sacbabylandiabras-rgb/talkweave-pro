@@ -344,31 +344,6 @@ const SaveContactDialog = ({
   );
 };
 
-const ChatTypeBadge = ({ phone, name, isCommunity }: { phone: string; name: string | null; isCommunity?: boolean }) => {
-  const lowerName = (name || "").toLowerCase();
-  
-  if (phone.includes('@newsletter') || (lowerName.includes('canal') && !lowerName.includes('grupo'))) {
-    return (
-      <Badge variant="secondary" className="text-[10px] shrink-0">CANAL</Badge>
-    );
-  }
-
-  if (isCommunity || isCommunityPhone(phone)) {
-    return (
-      <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">COMUNIDADE</Badge>
-    );
-  }
-
-  if (isRegularGroupPhone(phone) || isGroupPhone(phone)) {
-    return (
-      <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
-    );
-  }
-
-  return null;
-};
-
-// Conversation list
 const ConversationList = ({
    conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
  }: {
@@ -499,7 +474,11 @@ const ConversationList = ({
                   <span className="font-medium text-sm text-foreground truncate">
                     {getConversationDisplayName(conv.contactName, conv.phone, conv.isCommunity)}
                   </span>
-                  <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
+                  {conv.isCommunity ? (
+                    <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">COMUNIDADE</Badge>
+                  ) : isGroupPhone(conv.phone) && (
+                    <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
+                  )}
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
