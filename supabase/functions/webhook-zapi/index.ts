@@ -33,56 +33,6 @@ function extractQuotedMessageTextCandidates(webhook: any): string[] {
   return Array.from(values);
 }
 
-function extractMessageText(webhook: any): string {
-  const candidates = [
-    webhook?.message?.text, webhook?.message?.conversation, webhook?.message?.extendedTextMessage?.text,
-    webhook?.message?.imageMessage?.caption, webhook?.message?.videoMessage?.caption, webhook?.message?.documentMessage?.caption,
-    webhook?.buttonReply?.title, webhook?.buttonReply?.text, webhook?.buttonReply?.label,
-    webhook?.buttonReply?.selectedDisplayText, webhook?.buttonReply?.selectedRowId, webhook?.buttonReply?.id,
-    webhook?.message?.buttonsResponseMessage?.selectedDisplayText, webhook?.message?.buttonResponseMessage?.selectedDisplayText,
-    webhook?.buttonsResponseMessage?.selectedDisplayText, webhook?.buttonsResponseMessage?.selectedButtonId,
-    webhook?.buttonsResponseMessage?.selectedButtonText, webhook?.buttonsResponseMessage?.message,
-    webhook?.buttonsResponseMessage?.text, webhook?.buttonResponseMessage?.selectedDisplayText,
-    webhook?.buttonResponseMessage?.selectedButtonId, webhook?.listResponseMessage?.title,
-    webhook?.listResponseMessage?.singleSelectReply?.selectedRowId, webhook?.interactiveResponse?.title,
-    webhook?.interactiveResponse?.description, webhook?.title, webhook?.selectedButtonId,
-    webhook?.response?.title, webhook?.response?.text, webhook?.response?.selectedDisplayText,
-    webhook?.message?.interactiveResponseMessage?.body?.text, webhook?.interactiveResponseMessage?.body?.text,
-    webhook?.message?.templateButtonReplyMessage?.selectedDisplayText, webhook?.message?.templateButtonReplyMessage?.selectedId,
-    webhook?.templateButtonReplyMessage?.selectedDisplayText, webhook?.templateButtonReplyMessage?.selectedId,
-    webhook?.message?.listResponseMessage?.title, webhook?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
-    webhook?.waitingMessage?.text, webhook?.waitingMessage?.message, webhook?.waitingMessage?.body,
-    webhook?.waitingMessage?.buttonReply?.title, webhook?.waitingMessage?.buttonReply?.text,
-    webhook?.waitingMessage?.buttonReply?.label, webhook?.waitingMessage?.buttonReply?.selectedDisplayText,
-    webhook?.text?.message, typeof webhook?.text === "string" ? webhook.text : undefined,
-    webhook?.body, typeof webhook?.message === "string" ? webhook.message : undefined,
-    webhook?.conversation, webhook?.image?.caption, webhook?.video?.caption, webhook?.document?.caption,
-    webhook?.data?.message?.text, webhook?.data?.message, webhook?.data?.text?.message,
-    webhook?.data?.body, webhook?.data?.conversation, webhook?.data?.image?.caption,
-    webhook?.data?.video?.caption, webhook?.data?.document?.caption, webhook?.data?.buttonReply?.title,
-    webhook?.data?.buttonReply?.text, webhook?.data?.buttonReply?.label, webhook?.data?.buttonReply?.selectedDisplayText,
-    webhook?.data?.waitingMessage?.text, webhook?.data?.waitingMessage?.message, webhook?.data?.waitingMessage?.body,
-  ];
-  const preferredDirectCandidate = pickPreferredInteractiveText(candidates);
-  if (preferredDirectCandidate) return preferredDirectCandidate;
-  for (const value of candidates) if (typeof value === "string" && value.trim()) return value.trim();
-  const objectCandidates = [
-    webhook?.text, webhook?.buttonReply, webhook?.message, webhook?.buttonsResponseMessage,
-    webhook?.buttonResponseMessage, webhook?.waitingMessage, webhook?.data?.text,
-    webhook?.data?.buttonReply, webhook?.data?.message, webhook?.data?.waitingMessage,
-    webhook?.data?.buttonsResponseMessage,
-  ];
-  const fallbackKeys = [ "text", "message", "body", "caption", "conversation", "title", "description", "label", "selectedDisplayText", "selectedButtonId", "selectedButtonText", "selectedRowId", "id" ];
-  for (const candidate of objectCandidates) {
-    if (!candidate || typeof candidate !== "object") continue;
-    for (const key of fallbackKeys) {
-      const value = candidate?.[key];
-      if (typeof value === "string" && value.trim()) return value.trim();
-    }
-  }
-  return "";
-}
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -119,11 +69,9 @@ async function acquireMessageProcessingLock(
     rawMessage: string;
     instanceId?: string;
     messageId?: string;
-    senderName?: string;
-    senderPhone?: string;
   },
 ): Promise<{ acquired: boolean; lockId: string }> {
-  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId, senderName, senderPhone } = params;
+  const { userId, phone, normalizedMessage, rawMessage, instanceId, messageId } = params;
   const norm = normalizedMessage || normalizeForMatch(rawMessage);
   const now = Date.now();
   const bucketSize = 15000;
@@ -145,8 +93,6 @@ async function acquireMessageProcessingLock(
     timestamp: new Date().toISOString(),
     user_id: userId,
     instance_id: instanceId || null,
-    sender_name: senderName || null,
-    sender_phone: senderPhone || null,
   });
   if (!error) return { acquired: true, lockId };
   const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
