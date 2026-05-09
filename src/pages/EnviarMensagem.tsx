@@ -2042,7 +2042,7 @@ Formatos aceitos:
                       max="60"
                       value={delay}
                       onChange={(e) => setDelay(parseInt(e.target.value) || 2)}
-                      className="mt-1"
+                      className="mt-1 text-black"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Recomendado: 2-5 segundos para evitar bloqueios
