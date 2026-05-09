@@ -598,6 +598,16 @@ const ChatView = ({
     }
   };
 
+  const handleDeleteConversation = async (phone: string) => {
+    try {
+      await deleteConversation(phone);
+      if (selectedPhone === phone) setSelectedPhone(null);
+      toast({ title: "Conversa apagada", description: "A conversa foi removida com sucesso." });
+    } catch (err) {
+      toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages.length]);
