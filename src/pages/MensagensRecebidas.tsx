@@ -355,7 +355,7 @@ const ChatTypeBadge = ({ phone, name, isCommunity }: { phone: string; name: stri
 
   if (isCommunity || isCommunityPhone(phone)) {
     return (
-      <Badge variant="secondary" className="text-[10px] shrink-0">COMUNIDADE</Badge>
+      <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">COMUNIDADE</Badge>
     );
   }
 
