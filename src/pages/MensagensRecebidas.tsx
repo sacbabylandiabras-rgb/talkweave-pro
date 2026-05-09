@@ -143,12 +143,20 @@ const parseMediaFromContent = (content: string): { mediaType: string | null; med
 };
 
 // Resolve [modelo:UUID] references to template name
-const resolveTemplateRef = (content: string, templates: MessageTemplate[]): string => {
+const resolveTemplateRef = (content: string, templates: MessageTemplate[], forceShowMedia = false): string => {
   if (!content) return '';
   return content.replace(/\[modelo:([a-f0-9-]+)\]/gi, (_match, id) => {
     const tpl = templates.find(t => t.id === id);
     if (tpl) {
-      let resolved = tpl.content || '';
+      let resolved = '';
+      
+      // Add media tag if present and not already in content
+      if (tpl.media_url && !content.includes('[media:')) {
+        const type = tpl.type?.split('_')[0] || 'image';
+        resolved += `[media:${type}:${tpl.media_url}]\n`;
+      }
+
+      resolved += tpl.content || '';
       if (tpl.header) resolved = `*${tpl.header}*\n${resolved}`;
       if (tpl.footer) resolved += `\n_${tpl.footer}_`;
       const buttonLabels = (tpl.buttons || [])
