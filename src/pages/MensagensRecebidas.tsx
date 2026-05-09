@@ -1345,7 +1345,7 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} onSendMessage={async (phone, message, options) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} savedContacts={savedContacts} onSendMessage={async (phone, message, options) => {
             await sendMessage(phone, message, options);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
