@@ -3482,8 +3482,9 @@ serve(async (req) => {
       rawMessage: storedMessage,
       instanceId,
       messageId: String(webhook?.messageId || "").trim() || undefined,
-      senderName: senderName || undefined,
-      senderPhone: senderPhone || participantPhone || undefined,
+       senderName: senderName || undefined,
+       senderPhone: senderPhone || participantPhone || undefined,
+       senderPhoto: senderPhoto || undefined,
     });
 
     if (!lockResult.acquired) {
