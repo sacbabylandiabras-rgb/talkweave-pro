@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile } from "lucide-react";
+ import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -1201,7 +1201,43 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const { forwardMessage, sendReaction } = useZapi();
+   const { forwardMessage, sendReaction, sendSticker } = useZapi();
+   const stickerInputRef = useRef<HTMLInputElement>(null);
+
+   const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file || !selectedPhone) return;
+     
+     setSending(true);
+     try {
+       const fileExt = file.name.split('.').pop();
+       const fileName = `${Math.random()}.${fileExt}`;
+       const filePath = `chat_stickers/${fileName}`;
+
+       const { error: uploadError } = await supabase.storage
+         .from('chat_media')
+         .upload(filePath, file);
+
+       if (uploadError) throw uploadError;
+
+       const { data: { publicUrl } } = supabase.storage
+         .from('chat_media')
+         .getPublicUrl(filePath);
+
+       await sendSticker(selectedPhone, publicUrl);
+     } catch (error) {
+       console.error('Erro ao enviar figurinha:', error);
+       toast({
+         title: "Erro ao enviar figurinha",
+         description: error instanceof Error ? error.message : "Erro desconhecido",
+         variant: "destructive",
+       });
+     } finally {
+       setSending(false);
+       if (stickerInputRef.current) stickerInputRef.current.value = '';
+     }
+   };
+
 
   const syncHistory = async () => {
     setSyncing(true);

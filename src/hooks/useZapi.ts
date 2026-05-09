@@ -191,7 +191,7 @@ const getZAPIConfig = async () => {
         phone?: string;
         url?: string;
       }>;
-       specialType?: 'pix' | 'localizacao' | 'contato';
+       specialType?: 'pix' | 'localizacao' | 'contato' | 'sticker';
       specialPayload?: Record<string, any>;
       carouselCards?: Array<{
         id?: string;
@@ -458,7 +458,29 @@ const getZAPIConfig = async () => {
     }
   };
 
-  const sendAudio = async (phone: string, audio: string, caption?: string) => {
+   const sendAudio = async (phone: string, audio: string, caption?: string) => {
+   const sendSticker = async (phone: string, stickerUrl: string) => {
+     setLoading(true);
+     try {
+       const data = await invokeSendMessageEdge({ phone, mediaUrl: stickerUrl, mediaType: 'sticker' }, 'Erro ao enviar figurinha');
+       toast({
+         title: "Figurinha enviada!",
+         description: "A figurinha foi enviada com sucesso.",
+       });
+       return data;
+     } catch (error) {
+       console.error('Erro ao enviar figurinha:', error);
+       toast({
+         title: "Erro ao enviar figurinha",
+         description: error instanceof Error ? error.message : "Erro desconhecido",
+         variant: "destructive",
+       });
+       throw error;
+     } finally {
+       setLoading(false);
+     }
+   };
+
     setLoading(true);
     
     try {
