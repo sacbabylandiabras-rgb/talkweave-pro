@@ -1338,15 +1338,16 @@ const MensagensRecebidas = () => {
     [instances],
   );
   const knownInstanceIds = useMemo(() => {
-    if (connectedInstanceIds === null) return undefined; // still checking → show everything
-    if (connectedInstanceIds.length > 0) return connectedInstanceIds;
-    return allInstanceIds.length > 0 ? allInstanceIds : undefined;
-  }, [connectedInstanceIds, allInstanceIds]);
+    if (connectedInstanceIds === null) return undefined; // ainda verificando
+    if (connectedInstanceIds.length > 0) return connectedInstanceIds; // mostra só as conectadas
+    return []; // nenhuma conectada = lista vazia
+  }, [connectedInstanceIds]);
+
   const knownInstanceNames = useMemo(() => {
     if (connectedInstanceNames === null) return undefined;
     if (connectedInstanceNames.length > 0) return connectedInstanceNames;
-    return allInstanceNames.length > 0 ? allInstanceNames : undefined;
-  }, [connectedInstanceNames, allInstanceNames]);
+    return []; // nenhuma conectada = lista vazia
+  }, [connectedInstanceNames]);
   const handleDeleteConversation = async (phone: string) => {
     try {
       await deleteConversation(phone);
@@ -1399,12 +1400,35 @@ const MensagensRecebidas = () => {
   const syncHistory = async () => {
     setSyncing(true);
     try {
+      // Usa a instância conectada, não "all"
+      const targetInstance = connectedUiInstanceIds?.length
+        ? instances.find(i => i.id === connectedUiInstanceIds[0])
+        : selectedInstance || activeInstance;
+
+      if (!targetInstance) {
+        toast({ 
+          title: "Nenhuma instância conectada", 
+          description: "Conecte seu WhatsApp primeiro.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
-        body: { maxChats: 200, amountPerChat: 12, instanceId: selectedInstance?.id || activeInstance?.id },
+        body: { 
+          maxChats: 200, 
+          amountPerChat: 12, 
+          instanceId: targetInstance.id // só dessa instância
+        },
       });
+
       if (error) throw error;
       if (data?.error === 'disconnected') {
-        toast({ title: "⚠️ WhatsApp desconectado", description: "Reconecte sua instância na página de Dispositivos.", variant: "destructive" });
+        toast({ 
+          title: "⚠️ WhatsApp desconectado", 
+          description: "Reconecte sua instância na página de Dispositivos.", 
+          variant: "destructive" 
+        });
       } else if ((data?.importedMessages || data?.importedChats || 0) > 0) {
         toast({ title: "Histórico sincronizado", description: `${data?.importedMessages || data?.importedChats || 0} conversas importadas.` });
         refetch();
@@ -1427,6 +1451,7 @@ const MensagensRecebidas = () => {
         if (!cancelled) {
           setConnectedInstanceIds([]);
           setConnectedInstanceNames([]);
+          setConnectedUiInstanceIds([]);
         }
         return;
       }
@@ -1447,7 +1472,13 @@ const MensagensRecebidas = () => {
 
       if (cancelled) return;
       const connected = results.filter(Boolean);
-      setConnectedInstanceIds(connected.map((i) => i!.zapi_instance_id).filter(Boolean));
+      
+      // ✅ Pega APENAS os zapi_instance_ids das instâncias conectadas agora
+      const connectedZapiIds = connected
+        .map((i) => i!.zapi_instance_id)
+        .filter(Boolean);
+        
+      setConnectedInstanceIds(connectedZapiIds);
       setConnectedInstanceNames(connected.map((i) => i!.instance_name).filter(Boolean));
       setConnectedUiInstanceIds(connected.map((i) => i!.id).filter(Boolean));
     };
@@ -1459,6 +1490,27 @@ const MensagensRecebidas = () => {
       window.clearInterval(interval);
     };
   }, [instances]);
+
+  const prevConnectedRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!connectedInstanceIds || connectedInstanceIds.length === 0) {
+      prevConnectedRef.current = [];
+      return;
+    }
+
+    // Detecta instâncias que acabaram de conectar (não estavam antes)
+    const newlyConnected = connectedInstanceIds.filter(
+      id => !prevConnectedRef.current.includes(id)
+    );
+
+    if (newlyConnected.length > 0) {
+      console.log('Nova instância conectada, sincronizando...', newlyConnected);
+      syncHistory(); // ✅ sincroniza automaticamente ao conectar
+    }
+
+    prevConnectedRef.current = connectedInstanceIds;
+  }, [connectedInstanceIds]);
 
   // Track read conversations in localStorage
   const [readPhones, setReadPhones] = useState<Set<string>>(() => {
