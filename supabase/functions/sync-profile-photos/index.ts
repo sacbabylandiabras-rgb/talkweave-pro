@@ -70,9 +70,10 @@ serve(async (req) => {
           ? `${contact.phone.replace(/-group$/, '')}@g.us`
           : contact.phone
 
-        const isGroup = phone.includes('@g.us')
-        // Usando o endpoint profiles-picture que parece ser mais genérico na Z-API
-        const endpoint = `${zapiBase}/profile-picture?phone=${encodeURIComponent(phone)}`
+        const isGroup = phone.includes('@g.us');
+        const endpoint = isGroup
+          ? `${zapiBase}/group-thumbnail/${phone}`
+          : `${zapiBase}/profile-picture?phone=${phone}`;
 
         const res = await fetch(endpoint, {
           headers: { 'client-token': instance.zapi_client_token || '' },
