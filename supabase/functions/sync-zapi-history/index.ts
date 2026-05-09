@@ -7,9 +7,10 @@ const normalizeTimestamp = (value: unknown) => {
   if (!Number.isFinite(raw) || raw <= 0) return new Date().toISOString();
   const ms = raw < 4102444800 ? raw * 1000 : raw;
   const parsed = new Date(ms);
-  return parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100
-    ? parsed.toISOString()
-    : new Date().toISOString();
+  return (parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100 ? parsed : new Date())
+    .toISOString()
+    .replace('T', ' ')
+    .split('.')[0];
 };
 
 const sanitizeProfilePictureUrl = (value: unknown): string | null => {
