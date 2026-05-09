@@ -1243,7 +1243,7 @@ export const useMessageLogs = (
   })();
 
   const unresolvedGroupKey = conversations
-    .filter((c) => isGroupPhone(c.phone) && (!c.contactName || c.contactName === 'Grupo' || c.contactName === 'Comunidade'))
+    .filter((c) => isGroupPhone(c.phone) && (!c.contactName || c.contactName === 'Grupo' || c.contactName === 'Comunidade' || c.contactName === 'Canal'))
     .map((c) => c.phone)
     .sort()
     .join('|');
