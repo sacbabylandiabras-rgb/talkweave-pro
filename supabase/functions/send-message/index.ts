@@ -367,9 +367,12 @@ serve(async (req) => {
       } else {
         const ext = getDocumentExtension(url, text);
         endpoint = `/send-document/${ext}`;
-        payload.document = url;
-        payload.fileName = text || `arquivo.${ext}`;
-      }
+         payload.document = url;
+         payload.fileName = text || `arquivo.${ext}`;
+       }
+     } else if (type === 'sticker') {
+       endpoint = '/send-sticker';
+       payload.sticker = url;
       return sendZapi(endpoint, payload, `media-${type}`);
     };
 
