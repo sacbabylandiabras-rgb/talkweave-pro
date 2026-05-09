@@ -1182,16 +1182,16 @@ const MensagensRecebidas = () => {
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
-    const { 
-      conversations, 
+    const {
+      conversations,
       loading, 
       saveContact, 
       fetchProfilePicture, 
       sendMessage, 
       refetch, 
       forceUpdateAllPhotos, 
-      syncMetadata, 
-      savedContacts 
+       syncMetadata,
+       savedContacts
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -1201,44 +1201,6 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-   const { forwardMessage, sendReaction, sendSticker } = useZapi();
-   const stickerInputRef = useRef<HTMLInputElement>(null);
-
-   const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-     const file = e.target.files?.[0];
-     if (!file || !selectedPhone) return;
-     
-     setSending(true);
-     try {
-       const fileExt = file.name.split('.').pop();
-       const fileName = `${Math.random()}.${fileExt}`;
-       const filePath = `chat_stickers/${fileName}`;
-
-       const { error: uploadError } = await supabase.storage
-         .from('chat_media')
-         .upload(filePath, file);
-
-       if (uploadError) throw uploadError;
-
-       const { data: { publicUrl } } = supabase.storage
-         .from('chat_media')
-         .getPublicUrl(filePath);
-
-       await sendSticker(selectedPhone, publicUrl);
-     } catch (error) {
-       console.error('Erro ao enviar figurinha:', error);
-       toast({
-         title: "Erro ao enviar figurinha",
-         description: error instanceof Error ? error.message : "Erro desconhecido",
-         variant: "destructive",
-       });
-     } finally {
-       setSending(false);
-       if (stickerInputRef.current) stickerInputRef.current.value = '';
-     }
-   };
-
-
   const syncHistory = async () => {
     setSyncing(true);
     try {
