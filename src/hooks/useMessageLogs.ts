@@ -18,8 +18,9 @@ export interface MessageLog {
   created_at: string;
   user_id: string | null;
   instance_id: string | null;
-  sender_name?: string | null;
-  sender_phone?: string | null;
+   sender_name?: string | null;
+   sender_phone?: string | null;
+   sender_photo?: string | null;
 }
 
 export interface CampaignSendMessage {
@@ -43,8 +44,9 @@ export interface UnifiedMessage {
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
   campaign_id?: string | null;
-  sender_name?: string | null;
-  sender_phone?: string | null;
+   sender_name?: string | null;
+   sender_phone?: string | null;
+   sender_photo?: string | null;
 }
 
 export interface SavedContact {
