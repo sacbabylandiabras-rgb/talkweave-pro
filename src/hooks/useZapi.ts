@@ -62,7 +62,7 @@ const getZAPIConfig = async () => {
     .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .or('api_provider.is.null,api_provider.eq.zapi')
+      .or('api_provider.is.null,api_provider.eq.zapi')
     .order('is_default', { ascending: false })
     .limit(1);
 
@@ -191,7 +191,7 @@ const getZAPIConfig = async () => {
         phone?: string;
         url?: string;
       }>;
-       specialType?: 'pix' | 'localizacao' | 'contato' | 'uaz_status' | 'uaz_location_button' | 'uaz_request_payment';
+       specialType?: 'pix' | 'localizacao' | 'contato';
       specialPayload?: Record<string, any>;
       carouselCards?: Array<{
         id?: string;
@@ -825,105 +825,11 @@ const getZAPIConfig = async () => {
 
   const sendSpecialTemplate = async (
     phone: string,
-    specialType: 'pix' | 'localizacao' | 'contato' | 'uaz_status' | 'uaz_location_button' | 'uaz_request_payment',
+    specialType: 'pix' | 'localizacao' | 'contato',
     specialPayload: Record<string, any>,
   ) => {
     setLoading(true);
     try {
-      // UAZAPI-only special endpoints → roteia para edge function dedicada
-      if (specialType === 'uaz_status' || specialType === 'uaz_location_button' || specialType === 'uaz_request_payment') {
-        const kindMap: Record<string, string> = {
-          uaz_status: 'status',
-          uaz_location_button: 'location-button',
-          uaz_request_payment: 'request-payment',
-        };
-        const kind = kindMap[specialType];
-
-        // Monta o payload no formato esperado pelo endpoint da UAZAPI
-        let apiPayload: Record<string, any> = {};
-        if (kind === 'status') {
-          const t = specialPayload.statusType || 'text';
-          // UAZAPI background_color: integer 1-19 (19=cinza padrão)
-          // Mapeia hex → índice numérico mais próximo
-          const hexToUazBg = (hex: string): number => {
-            if (!hex || typeof hex !== 'string') return 19;
-            const m = hex.replace('#', '').match(/^([0-9a-f]{6})$/i);
-            if (!m) {
-              // Já é número?
-              const n = Number(hex);
-              if (!isNaN(n) && n >= 1 && n <= 19) return Math.round(n);
-              return 19;
-            }
-            const r = parseInt(m[1].slice(0, 2), 16);
-            const g = parseInt(m[1].slice(2, 4), 16);
-            const b = parseInt(m[1].slice(4, 6), 16);
-            // heurística simples
-            if (r > 200 && g > 200 && b < 100) return 2;       // amarelo
-            if (g > 150 && r < 150 && b < 150) return 5;       // verde
-            if (b > 150 && r < 150) return 8;                  // azul
-            if (r > 150 && b > 150 && g < 150) return 11;      // lilás
-            if (r > 200 && b > 100 && g < 100) return 13;      // magenta
-            if (r > 200 && g < 150 && b > 150) return 14;      // rosa
-            if (r > 100 && g > 60 && b < 80) return 16;        // marrom
-            return 19;                                         // cinza/preto/padrão
-          };
-          if (t === 'text') {
-            apiPayload = {
-              type: 'text',
-              text: specialPayload.text || specialPayload.description || '',
-              background_color: hexToUazBg(specialPayload.backgroundColor || '19'),
-              font: Number(specialPayload.font || 1),
-            };
-          } else {
-            apiPayload = {
-              type: t,
-              file: specialPayload.media || '',
-              text: specialPayload.caption || '',
-            };
-          }
-        } else if (kind === 'location-button') {
-          apiPayload = {
-            latitude: Number(specialPayload.latitude || 0),
-            longitude: Number(specialPayload.longitude || 0),
-            name: specialPayload.name || '',
-            address: specialPayload.address || '',
-            text: specialPayload.text || specialPayload.description || '',
-            buttonText: specialPayload.buttonLabel || 'Ver no mapa',
-            buttonUrl: specialPayload.url || '',
-          };
-        } else if (kind === 'request-payment') {
-          apiPayload = {
-            amount: Number(specialPayload.amount || 0),
-            currency: specialPayload.currency || 'BRL',
-            note: specialPayload.note || specialPayload.description || '',
-            ...(specialPayload.expiry ? { expiry: Number(specialPayload.expiry) } : {}),
-          };
-        }
-
-        const selectedSpecialInstanceId = getSelectedInstanceId();
-        const { data, error } = await supabase.functions.invoke('send-uazapi-special', {
-          body: {
-            kind,
-            phone,
-            payload: apiPayload,
-            ...(selectedSpecialInstanceId ? { instanceId: selectedSpecialInstanceId } : {}),
-          },
-        });
-        if (error) throw new Error(error.message || `Erro ao enviar ${specialType}`);
-        if (data && data.success === false) throw new Error(data.error || `Falha no envio (${specialType})`);
-
-        toast({
-          title:
-            kind === 'status'
-              ? 'Status enviado!'
-              : kind === 'location-button'
-                ? 'Botão de localização enviado!'
-                : 'Solicitação de pagamento enviada!',
-          description: 'A mensagem foi enviada com sucesso.',
-        });
-        return data;
-      }
-
       const data = await invokeSendMessageEdge(
         { phone, specialType, specialPayload },
         `Erro ao enviar ${specialType}`,
@@ -1381,162 +1287,9 @@ const getZAPIConfig = async () => {
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
   // Status Functions
-   const sendTextStatus = async (text: string, backgroundColor?: string, font?: number) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone: 'status',
-         specialType: 'uaz_status',
-         specialPayload: {
-           statusType: 'text',
-           text,
-           backgroundColor: backgroundColor || "#000000",
-           font: font || 1
-         }
-       }, 'Erro ao enviar status de texto');
-       toast({ title: "Status enviado", description: "O status de texto foi publicado com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao enviar status de texto:', error);
-       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   const sendImageStatus = async (image: string, caption?: string) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone: 'status',
-         specialType: 'uaz_status',
-         specialPayload: {
-           statusType: 'image',
-           image,
-           caption: caption || ''
-         }
-       }, 'Erro ao enviar status de imagem');
-       toast({ title: "Status enviado", description: "O status de imagem foi publicado com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao enviar status de imagem:', error);
-       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   const sendVideoStatus = async (video: string, caption?: string) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone: 'status',
-         specialType: 'uaz_status',
-         specialPayload: {
-           statusType: 'video',
-           video,
-           caption: caption || ''
-         }
-       }, 'Erro ao enviar status de vídeo');
-       toast({ title: "Status enviado", description: "O status de vídeo foi publicado com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao enviar status de vídeo:', error);
-       toast({ title: "Erro ao enviar status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   const replyStatusText = async (statusId: string, phone: string, text: string) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone,
-         message: text,
-         specialType: 'uaz_status', // Roteado via send-message
-         specialPayload: {
-           statusType: 'reply-text',
-           statusId,
-           phone,
-           message: text
-         }
-       }, 'Erro ao responder status');
-       toast({ title: "Resposta enviada", description: "A resposta ao status foi enviada com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao responder status:', error);
-       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   const replyStatusGif = async (statusId: string, phone: string, gifUrl: string) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone,
-         mediaUrl: gifUrl,
-         mediaType: 'gif',
-         specialType: 'uaz_status',
-         specialPayload: {
-           statusType: 'reply-gif',
-           statusId,
-           phone,
-           gif: gifUrl
-         }
-       }, 'Erro ao responder status com GIF');
-       toast({ title: "Resposta enviada", description: "O GIF foi enviado como resposta com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao responder status com GIF:', error);
-       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   const replyStatusSticker = async (statusId: string, phone: string, stickerUrl: string) => {
-     setLoading(true);
-     try {
-       const data = await invokeSendMessageEdge({
-         phone,
-         mediaUrl: stickerUrl,
-         mediaType: 'sticker',
-         specialType: 'uaz_status',
-         specialPayload: {
-           statusType: 'reply-sticker',
-           statusId,
-           phone,
-           sticker: stickerUrl
-         }
-       }, 'Erro ao responder status com figurinha');
-       toast({ title: "Resposta enviada", description: "A figurinha foi enviada como resposta com sucesso." });
-       return data;
-     } catch (error) {
-       console.error('Erro ao responder status com figurinha:', error);
-       toast({ title: "Erro ao responder status", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
-
-   return {
-     setZapiInstanceOverride: setOverride,
-     sendTextStatus,
-    sendImageStatus,
-    sendVideoStatus,
-    replyStatusText,
-    replyStatusGif,
-    replyStatusSticker,
-    sendMessage,
+    return {
+      setZapiInstanceOverride: setOverride,
+      sendMessage,
     sendButtonList,
     sendButtonActions,
     sendOptionList,
