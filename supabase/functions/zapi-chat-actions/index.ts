@@ -296,8 +296,16 @@ Deno.serve(async (req) => {
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    let finalPayload = payload;
+
+    if ((action === 'send-message-reaction' || action === 'send-remove-reaction' || action === 'forward-message') && payload?.messageId) {
+      const resolvedMessageId = await resolveStoredMessageId(admin, creds, phone, payload);
+      finalPayload = { ...payload, messageId: resolvedMessageId };
+    }
+
     const base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
-    const ep = endpointFor(action, phone, payload, creds.apiProvider);
+    const ep = endpointFor(action, phone, finalPayload, creds.apiProvider);
     
     console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId}`);
     console.log(`[zapi-chat-actions] URL: ${ep.method} ${base}${ep.path}`);
