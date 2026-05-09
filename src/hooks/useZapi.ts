@@ -881,7 +881,12 @@ const getZAPIConfig = async () => {
 
     if (data?.error) {
       console.error(`[useZapi] API error in ${action}:`, data);
-      throw new Error(data.message || data.error || `Erro na API Z-API ao executar ${action}`);
+      const raw = data.error;
+      const msg =
+        typeof raw === 'string'
+          ? raw
+          : raw?.message || raw?.error || raw?.value || data.message;
+      throw new Error(msg || `Erro na API ao executar ${action}`);
     }
 
     return data?.data ?? data;
@@ -1286,10 +1291,20 @@ const getZAPIConfig = async () => {
   const getInvitationLink = (phone: string) => invokeGroupAction('get-invitation-link', null, phone);
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
-  const forwardMessage = async (phone: string, messageId: string) => {
+  const forwardMessage = async (
+    originPhone: string,
+    messageId: string,
+    destinationPhone: string,
+  ) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('forward-message', phone, { messageId });
+      const cleanDest = String(destinationPhone || '').replace(/\D/g, '');
+      if (!cleanDest) throw new Error('Informe um número de destino válido');
+      const data = await invokeZapiAction('forward-message', cleanDest, {
+        phone: cleanDest,
+        messageId,
+        messagePhone: String(originPhone || '').replace(/\D/g, ''),
+      });
       toast({ title: "Mensagem encaminhada", description: "A mensagem foi encaminhada com sucesso." });
       return data;
     } catch (error) {
