@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
- import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote } from "lucide-react";
+  import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2 } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -413,7 +413,8 @@ interface ChatViewProps {
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
    onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
-   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+    onDeleteConversation: (phone: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
 
@@ -430,6 +431,7 @@ const ChatView = ({
   onForwardMessage,
    onSendReaction,
    onSendSticker,
+   onDeleteConversation,
   campaignTemplates,
   savedContacts,
 }: ChatViewProps) => {
@@ -781,6 +783,26 @@ const ChatView = ({
           </p>
         </div>
         <div className="flex gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
+            title="Apagar conversa" 
+            onClick={() => {
+              if (window.confirm("Tem certeza que deseja apagar o histórico desta conversa localmente? Esta ação não apaga as mensagens no WhatsApp do contato.")) {
+                onDeleteConversation(conversation.phone)
+                  .then(() => {
+                    toast({ title: "Conversa apagada", description: "O histórico local foi removido." });
+                    onBack();
+                  })
+                  .catch(() => {
+                    toast({ title: "Erro", description: "Falha ao apagar conversa.", variant: "destructive" });
+                  });
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
             <Bot className="w-4 h-4" />
           </Button>
@@ -1245,7 +1267,8 @@ const MensagensRecebidas = () => {
       refetch, 
       forceUpdateAllPhotos, 
        syncMetadata,
-       savedContacts
+       savedContacts,
+       deleteConversation
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -1551,6 +1574,9 @@ const MensagensRecebidas = () => {
              }}
              onSendSticker={async (phone, stickerUrl) => {
                await sendSticker(phone, stickerUrl);
+             }}
+             onDeleteConversation={async (phone) => {
+               await deleteConversation(phone);
              }}
           />
         )}
