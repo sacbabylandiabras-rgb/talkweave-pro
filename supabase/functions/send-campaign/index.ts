@@ -1473,7 +1473,7 @@ serve(async (req) => {
           campaign_id: campaignId,
           phone: contact.phone,
           contact_name: contact.name,
-          message_content: messageContent,
+          message_content: `[modelo:${campaign.template.id}] ${messageContent}`,
           status: 'pending',
           user_id: credentials.userId,
           instance_name: currentInstance.instanceName,
