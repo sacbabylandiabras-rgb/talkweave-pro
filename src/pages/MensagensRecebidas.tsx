@@ -749,21 +749,29 @@ const ChatView = ({
                   {formatDateSeparator(msgs[0].timestamp)}
                 </span>
               </div>
-              {msgs.map((msg) => (
-                <div key={msg.id} className="mb-2">
-                  {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
-                    <div className="flex justify-center my-2">
-                      <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
-                        {String(msg.content || '').trim()}
-                      </span>
-                    </div>
-                  ) : msg.type === 'received' ? (
-                    <div className="flex justify-start gap-2 items-end">
-                      {isGroupPhone(conversation.phone) && (
-                        <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[11px] font-semibold shrink-0 overflow-hidden border border-border">
-                          {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
-                        </div>
-                      )}
+              {msgs.map((msg) => {
+                const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
+                const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
+                const senderPhoto = senderContact?.profile_picture_url;
+
+                return (
+                  <div key={msg.id} className="mb-2">
+                    {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
+                      <div className="flex justify-center my-2">
+                        <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
+                          {String(msg.content || '').trim()}
+                        </span>
+                      </div>
+                    ) : msg.type === 'received' ? (
+                      <div className="flex justify-start gap-2 items-end">
+                        {isGroupPhone(conversation.phone) && (
+                          <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
+                            {senderPhoto && <AvatarImage src={senderPhoto} className="object-cover" />}
+                            <AvatarFallback className="text-[10px] font-semibold">
+                              {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
                       <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
                         {isGroupPhone(conversation.phone) && (msg.sender_name || msg.sender_phone) && (
                           <div className="flex items-baseline gap-2 mb-0.5">
