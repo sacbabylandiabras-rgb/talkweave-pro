@@ -1,5 +1,6 @@
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+}
 function extractAudioUrl(webhook: any): string {
   const candidates = [
     webhook?.audio?.audioUrl,
