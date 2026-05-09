@@ -61,6 +61,12 @@ function buildBase(c: { instanceId: string; token: string; apiProvider: string; 
 
 function endpointFor(action: string, phone: string, payload: any, apiProvider: string) {
   const zapiPhone = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
+  const expirationMap: Record<string, string> = {
+    '0': 'OFF',
+    '86400': '24_HOURS',
+    '604800': '7_DAYS',
+    '7776000': '90_DAYS',
+  };
 
   switch (action) {
     case 'list-chats':
@@ -68,9 +74,9 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'metadata':
       return { method: 'GET', path: "/chats/" + zapiPhone };
     case 'read':
-      return { method: 'POST', path: "/chats/" + zapiPhone + "/read" };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'read' } };
     case 'unread':
-      return { method: 'POST', path: "/chats/" + zapiPhone + "/unread" };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unread' } };
     case 'archive':
       return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'archive' } };
     case 'unarchive':
