@@ -25,12 +25,20 @@ export const isRegularGroupPhone = (phone: string): boolean => {
 
 export const isGroupPhone = (phone: string): boolean => {
   const clean = String(phone || '').replace(/\D/g, '');
+  
+  // @g.us é sempre grupo
   if (phone.includes('@g.us')) return true;
+  
+  // Começa com 120363 = grupo real do WhatsApp
+  if (/^12036/.test(clean)) return true;
+  
+  // -group com menos de 20 dígitos = grupo real
+  // -group com 21+ dígitos = número brasileiro salvo errado
   if (phone.includes('-group')) {
-    return clean.length <= 20; 
+    return clean.length <= 20;
   }
-  // Grupos reais começam com 120363 e têm exatamente 16 dígitos
-  return /^120363\d{10}$/.test(clean);
+  
+  return false;
 };
 
 export const isCommunityPhone = (phone: string): boolean => {
