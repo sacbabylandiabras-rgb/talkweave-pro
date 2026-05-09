@@ -36,12 +36,23 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
   return true;
 };
 
-export const normalizeConversationPhone = (phone: string): string => {
-  if (!isGroupPhone(phone)) return phone;
-  // Strip suffix but preserve internal hyphens for legacy groups
-  const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '');
-  return rawId ? `${rawId}-group` : phone;
-};
+ export const normalizeConversationPhone = (phone: string): string => {
+   if (!phone) return '';
+   
+   // Handle groups first
+   if (isGroupPhone(phone)) {
+     // Strip suffix but preserve internal hyphens for legacy groups
+     const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '');
+     return rawId ? `${rawId}-group` : phone;
+   }
+ 
+   // Handle regular phones - strip common suffixes and standardize to digits@c.us
+   const digits = phone.replace(/\D/g, '');
+   if (!digits) return phone;
+   
+   // Normalizing to digits@c.us ensures consistent keys while staying compatible with expectations
+   return `${digits}@c.us`;
+ };
 
 export const rememberGroupDisplayName = (
   store: Map<string, string>,

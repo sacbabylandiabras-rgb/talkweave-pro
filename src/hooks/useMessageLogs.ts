@@ -477,22 +477,21 @@ export const useMessageLogs = (
       if (row.phone.includes('@lid')) lidEvidence.add(row.phone);
       if (row.message_received?.includes('@lid')) lidEvidence.add(row.message_received);
     });
-    // Resolve @lid phones to real numbers using LID map
-    allData = allData.map(m => {
-      let normalizedPhone = m.phone;
-      if (isLikelyTechnicalIdentifier(normalizedPhone)) {
-        const suspectLid = `${normalizedPhone.replace(/\D/g, '')}@lid`;
-        if (lidEvidence.has(suspectLid)) {
-          normalizedPhone = suspectLid;
-        }
-      }
-      if (normalizedPhone.includes('@lid')) {
-        const resolved = lidMapRef.current.get(normalizedPhone);
-        if (resolved) return { ...m, phone: resolved };
-        if (normalizedPhone !== m.phone) return { ...m, phone: normalizedPhone };
-      }
-      return m;
-    });
+     // Normalize all phones and resolve @lid phones using LID map
+     allData = allData.map(m => {
+       let workingPhone = m.phone;
+       if (isLikelyTechnicalIdentifier(workingPhone)) {
+         const suspectLid = `${workingPhone.replace(/\D/g, '')}@lid`;
+         if (lidEvidence.has(suspectLid)) {
+           workingPhone = suspectLid;
+         }
+       }
+       if (workingPhone.includes('@lid')) {
+         const resolved = lidMapRef.current.get(workingPhone);
+         if (resolved) workingPhone = resolved;
+       }
+       return { ...m, phone: normalizeConversationPhone(workingPhone) };
+     });
     // Keep messages with unresolved @lid - show them with the LID identifier
     const dataKey = JSON.stringify(
       allData.map((d) => [
@@ -1011,23 +1010,26 @@ export const useMessageLogs = (
     // removed/disconnected instances don't pollute the list.
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
-    const filteredLogs = messageLogs.filter(m => {
-      // If we are filtering by a specific instance
-      if (filterInstanceId && filterInstanceId !== 'all') {
-        return m.instance_id === filterInstanceId;
-      }
-      
-      // Otherwise, restrict to user's known active instances
-      if (hasKnownInstanceFilter && knownIdSet) {
-        // Se temos instâncias conectadas conhecidas, filtramos estritamente por elas.
-        // Mensagens sem instance_id podem ser antigas ou de outros números.
-        // Mantemos apenas se o instance_id estiver no conjunto de conhecidas (conectadas).
-        return Boolean(m.instance_id) && knownIdSet.has(m.instance_id);
-      }
-      
-      // Fallback: se não temos filtro, mostramos tudo do usuário (conforme query inicial)
-      return true;
-    });
+     const filteredLogs = messageLogs.filter(m => {
+       // If we are filtering by a specific instance, show only that
+       if (filterInstanceId && filterInstanceId !== 'all') {
+         return m.instance_id === filterInstanceId;
+       }
+       
+       // If no specific instance is selected, restrict to the user's known instances
+       // to avoid seeing messages from other disconnected/removed devices.
+       if (hasKnownInstanceFilter && knownIdSet) {
+         // If message has an instance_id, it must be one of ours
+         if (m.instance_id && !knownIdSet.has(m.instance_id)) return false;
+         
+         // If message has no instance_id, we keep it as it might be an old log
+         // or a manually created entry for one of our conversations.
+         return true;
+       }
+       
+       // Fallback: show everything if we can't filter
+       return true;
+     });
 
     // From message_logs
     filteredLogs.forEach(log => {
@@ -1425,19 +1427,19 @@ export const useMessageLogs = (
 
       const normalizedPhone = normalizeConversationPhone(phone);
       // Extract just the numeric/ID part to match inconsistent formats in DB
-      const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
-
-      // Delete using multiple possible phone formats to ensure cleanup
-      const formats = [
-        phone,
-        normalizedPhone,
-        rawId,
-        rawId + '@c.us',
-        rawId + '@s.whatsapp.net',
-        rawId + '@g.us',
-        rawId + '@lid',
-        rawId + '-group'
-      ];
+       // Numeric ID for regular phones, or stripped ID for groups
+       const rawId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/@c\.us$/i, '').replace(/@s\.whatsapp\.net$/i, '').replace(/@lid$/i, '').replace(/\D/g, '');
+       const isGroup = isGroupPhone(phone);
+ 
+       // Delete using multiple possible phone formats to ensure cleanup
+       const formats = [
+         phone,
+         normalizedPhone,
+         rawId,
+         rawId + (isGroup ? '@g.us' : '@c.us'),
+         rawId + (isGroup ? '-group' : '@s.whatsapp.net'),
+         rawId + '@lid'
+       ];
 
       const uniqueFormats = Array.from(new Set(formats)).filter(Boolean);
 
