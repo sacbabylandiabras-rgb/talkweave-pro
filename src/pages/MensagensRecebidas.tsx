@@ -393,9 +393,9 @@ const ConversationList = ({
 
 // Chat view
 const ChatView = ({
-  conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates,
-}: {
-  conversation: Conversation | null; onBack: () => void; isMobile: boolean;
+   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates, savedContacts
+ }: {
+   conversation: Conversation | null; onBack: () => void; isMobile: boolean; savedContacts: Map<string, any>;
   onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
   onSendMessage: (phone: string, message: string, options?: {
     mediaUrl?: string;
@@ -749,21 +749,29 @@ const ChatView = ({
                   {formatDateSeparator(msgs[0].timestamp)}
                 </span>
               </div>
-              {msgs.map((msg) => (
-                <div key={msg.id} className="mb-2">
-                  {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
-                    <div className="flex justify-center my-2">
-                      <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
-                        {String(msg.content || '').trim()}
-                      </span>
-                    </div>
-                  ) : msg.type === 'received' ? (
-                    <div className="flex justify-start gap-2 items-end">
-                      {isGroupPhone(conversation.phone) && (
-                        <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[11px] font-semibold shrink-0 overflow-hidden border border-border">
-                          {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
-                        </div>
-                      )}
+              {msgs.map((msg) => {
+                const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
+                const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
+                const senderPhoto = senderContact?.profile_picture_url;
+
+                return (
+                  <div key={msg.id} className="mb-2">
+                    {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
+                      <div className="flex justify-center my-2">
+                        <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
+                          {String(msg.content || '').trim()}
+                        </span>
+                      </div>
+                    ) : msg.type === 'received' ? (
+                      <div className="flex justify-start gap-2 items-end">
+                        {isGroupPhone(conversation.phone) && (
+                          <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
+                            {senderPhoto && <AvatarImage src={senderPhoto} className="object-cover" />}
+                            <AvatarFallback className="text-[10px] font-semibold">
+                              {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
                       <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
                         {isGroupPhone(conversation.phone) && (msg.sender_name || msg.sender_phone) && (
                           <div className="flex items-baseline gap-2 mb-0.5">
@@ -804,7 +812,8 @@ const ChatView = ({
                     </div>
                   )}
                 </div>
-              ))}
+              );
+            })}
             </div>
           ))}
           <div ref={messagesEndRef} />
@@ -1061,7 +1070,17 @@ const MensagensRecebidas = () => {
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
-   const { conversations, loading, saveContact, fetchProfilePicture, sendMessage, refetch, forceUpdateAllPhotos } = useMessageLogs(
+    const { 
+      conversations, 
+      loading, 
+      saveContact, 
+      fetchProfilePicture, 
+      sendMessage, 
+      refetch, 
+      forceUpdateAllPhotos, 
+      syncMetadata, 
+      savedContacts 
+    } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
     knownInstanceIds,
@@ -1277,6 +1296,19 @@ const MensagensRecebidas = () => {
     }
   }, [selectedPhone, normalizedSelectedPhone, conversations]);
 
+   const handleRefreshAll = async () => {
+     setSyncing(true);
+     try {
+       await syncMetadata();
+       await forceUpdateAllPhotos();
+       toast({ title: "Sincronização concluída", description: "Fotos e nomes de contatos atualizados do WhatsApp." });
+     } catch (error) {
+       toast({ title: "Erro na sincronização", description: "Algumas informações não puderam ser atualizados.", variant: "destructive" });
+     } finally {
+       setSyncing(false);
+     }
+   };
+ 
   const handleSaveContact = (phone: string, currentName: string) => {
     setSaveDialogPhone(phone);
     setSaveDialogName(currentName);
@@ -1322,11 +1354,11 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-             <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={forceUpdateAllPhotos} />
+              <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={handleRefreshAll} />
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} onSendMessage={async (phone, message, options) => {
+          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} savedContacts={savedContacts} onSendMessage={async (phone, message, options) => {
             await sendMessage(phone, message, options);
             toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
           }} />
