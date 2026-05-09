@@ -205,7 +205,9 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const brandLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
 
   const renderItem = (item: { id: string; label: string; icon: any; path: string; adminOnly?: boolean; external?: boolean; badge?: string }) => {
-    if (item.adminOnly && !loading && !isAdmin) return null;
+    // Hide admin-only items unless the role check has finished AND the user is admin.
+    // Showing them while loading would briefly reveal the Admin entry to non-admins.
+    if (item.adminOnly && (loading || !isAdmin)) return null;
 
     const Icon = item.icon;
     const isActive = activeItem === item.id;
