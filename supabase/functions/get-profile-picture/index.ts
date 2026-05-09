@@ -215,14 +215,21 @@ const extractGroupName = (payload: any): string | null => {
                const link = extractUrl(data)
                if (res.ok && link) return { success: true, data: { link, raw: data } }
              }
-             if (isGroup) {
-               const gr = await fetch(`${base}/groups?page=1&pageSize=100`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const gd = await gr.json().catch(() => null)
-               const match = (Array.isArray(gd) ? gd : []).find((g: any) => String(g.phone || g.id || '').includes(numericId))
-               const linkG = extractUrl(match)
-               const nameG = extractGroupName(match)
-               if (linkG || nameG) return { success: true, data: { link: linkG, name: nameG, raw: match } }
-             }
+              // Try chats-metadata which is often more reliable than profile-picture for some contacts
+              const metaRes = await fetch(`${base}/chats-metadata/${encodeURIComponent(isGroup ? `${numericId}@g.us` : `${numericId}@c.us`)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const metaData = await metaRes.json().catch(() => null)
+              const metaLink = extractUrl(metaData)
+              const metaName = extractGroupName(metaData)
+              if (metaRes.ok && (metaLink || metaName)) return { success: true, data: { link: metaLink, name: metaName, raw: metaData } }
+
+              if (isGroup) {
+                const gr = await fetch(`${base}/groups?page=1&pageSize=100`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const gd = await gr.json().catch(() => null)
+                const match = (Array.isArray(gd) ? gd : []).find((g: any) => String(g.phone || g.id || '').includes(numericId))
+                const linkG = extractUrl(match)
+                const nameG = extractGroupName(match)
+                if (linkG || nameG) return { success: true, data: { link: linkG, name: nameG, raw: match } }
+              }
            }
          } catch (e) {
            console.log(`📷 Error on instance ${provider}: ${e.message}`)
