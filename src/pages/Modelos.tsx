@@ -293,12 +293,6 @@ const getTemplateIcon = (type?: string) => {
       return <MapPin className="w-5 h-5 text-primary" />;
     case "contato":
       return <UserIcon className="w-5 h-5 text-primary" />;
-    case "uaz_status":
-      return <Image className="w-5 h-5 text-primary" />;
-    case "uaz_location_button":
-      return <MapPin className="w-5 h-5 text-primary" />;
-    case "uaz_request_payment":
-      return <DollarSign className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -322,9 +316,6 @@ const getTypeFriendlyName = (type?: string) => {
     pix: "PIX",
     localizacao: "Localização",
     contato: "Contato (vCard)",
-    uaz_status: "Status / Stories",
-    uaz_location_button: "Botão Localização",
-    uaz_request_payment: "Solicitar Pagamento",
   };
   return names[type || "texto"] || "Texto";
 };
@@ -1260,9 +1251,6 @@ const Modelos = () => {
                       <SelectItem value="pix">PIX (cobrança)</SelectItem>
                       <SelectItem value="localizacao">localização</SelectItem>
                       <SelectItem value="contato">contato (vCard)</SelectItem>
-                      <SelectItem value="uaz_status">status / stories</SelectItem>
-                      <SelectItem value="uaz_location_button">botão com localização</SelectItem>
-                      <SelectItem value="uaz_request_payment">solicitar pagamento</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1890,9 +1878,6 @@ const Modelos = () => {
                   <SelectItem value="pix">PIX (cobrança)</SelectItem>
                   <SelectItem value="localizacao">localização</SelectItem>
                   <SelectItem value="contato">contato (vCard)</SelectItem>
-                  <SelectItem value="uaz_status">status / stories</SelectItem>
-                  <SelectItem value="uaz_location_button">botão com localização</SelectItem>
-                  <SelectItem value="uaz_request_payment">solicitar pagamento</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
