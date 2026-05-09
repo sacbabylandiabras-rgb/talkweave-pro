@@ -326,11 +326,18 @@ const extractResolvedGroupName = (payload: any): string | null => {
   return null;
 };
 
-const toMillis = (value: string | null | undefined): number => {
-  if (!value) return 0;
-  const ms = new Date(value).getTime();
-  return Number.isFinite(ms) ? ms : 0;
-};
+ const toMillis = (value: string | null | undefined): number => {
+   if (!value) return 0;
+   const ms = new Date(value).getTime();
+   return Number.isFinite(ms) ? ms : 0;
+ };
+ 
+ const toZapiPhone = (phone: string): string => {
+   if (phone.endsWith('-group')) {
+     return `${phone.replace(/-group$/, '')}@g.us`;
+   }
+   return phone;
+ };
 
 const isLikelyTechnicalIdentifier = (phone: string): boolean => {
   const clean = phone.replace(/\D/g, '');
@@ -667,63 +674,60 @@ export const useMessageLogs = (
     await fetchSavedContacts();
   }, [fetchSavedContacts]);
 
-    const fetchProfilePicture = useCallback(async (rawPhone: string, force = false, instanceId?: string | null): Promise<string | null> => {
-     try {
-       // Ensure correct format for Z-API/Edge Function (needs @g.us for groups)
-       const phone = rawPhone.endsWith('-group') 
-         ? `${rawPhone.replace(/-group$/, '')}@g.us` 
-         : rawPhone;
-
-       if (!force && fetchedPhotosRef.current.has(phone)) {
-         return localManualPhotos.get(phone) || null;
-       }
+     const fetchProfilePicture = useCallback(async (phone: string, force = false, instanceId?: string | null): Promise<string | null> => {
+      try {
+        const zapiPhone = toZapiPhone(phone);
  
-       const body: Record<string, unknown> = { phone };
+        if (!force && fetchedPhotosRef.current.has(zapiPhone)) {
+          return localManualPhotos.get(zapiPhone) || null;
+        }
+  
+        const body: Record<string, unknown> = { phone: zapiPhone };
       if (instanceId) body.instanceId = instanceId;
       else if (filterInstanceId && filterInstanceId !== 'all') body.instanceId = filterInstanceId;
 
-      const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
-      if (error) return null;
-      
-      const responsePayload = rawData?.data ?? rawData;
-      const resolvedName = isGroupPhone(phone) ? extractResolvedGroupName(responsePayload) : null;
-      const finalUrl = extractProfilePictureUrl(responsePayload);
-
-      // Only blacklist this phone when we actually obtained a URL, or when it's a
-      // 1:1 contact (which is stable). For groups without photo, allow future retries
-      // via the missing-photos sync effect so the avatar can appear when it becomes
-      // available upstream.
-      if (finalUrl || !isGroupPhone(phone)) {
-        fetchedPhotosRef.current.add(phone);
-      }
-
-      setLocalManualPhotos(prev => {
-        const next = new Map(prev);
-        if (finalUrl) {
-          next.set(phone, finalUrl);
-        } else {
-          next.delete(phone);
-        }
-        return next;
-      });
-
-      if (finalUrl || resolvedName || (!finalUrl && !isGroupPhone(phone))) {
-        const token = await getToken();
-        const userId = await getUserId();
-        if (token && userId) {
-          const existing = safeMapGet(savedContacts, phone);
-          await savedContactsApi.upsert(token, {
-            phone,
-            name: resolvedName || existing?.name || '',
-            user_id: userId,
-            profile_picture_url: finalUrl || (isGroupPhone(phone) ? (existing?.profile_picture_url || null) : null),
-          });
-          await fetchSavedContacts();
-        }
-      }
-      return finalUrl;
-    } catch { return null; }
-  }, [savedContacts, fetchSavedContacts, filterInstanceId]);
+       const { data: rawData, error } = await supabase.functions.invoke('get-profile-picture', { body });
+       if (error) return null;
+       
+       const responsePayload = rawData?.data ?? rawData;
+       const resolvedName = isGroupPhone(zapiPhone) ? extractResolvedGroupName(responsePayload) : null;
+       const finalUrl = extractProfilePictureUrl(responsePayload);
+ 
+       // Only blacklist this phone when we actually obtained a URL, or when it's a
+       // 1:1 contact (which is stable). For groups without photo, allow future retries
+       // via the missing-photos sync effect so the avatar can appear when it becomes
+       // available upstream.
+       if (finalUrl || !isGroupPhone(zapiPhone)) {
+         fetchedPhotosRef.current.add(zapiPhone);
+       }
+ 
+       setLocalManualPhotos(prev => {
+         const next = new Map(prev);
+         if (finalUrl) {
+           next.set(zapiPhone, finalUrl);
+         } else {
+           next.delete(zapiPhone);
+         }
+         return next;
+       });
+ 
+       if (finalUrl || resolvedName || (!finalUrl && !isGroupPhone(zapiPhone))) {
+         const token = await getToken();
+         const userId = await getUserId();
+         if (token && userId) {
+           const existing = safeMapGet(savedContacts, zapiPhone);
+           await savedContactsApi.upsert(token, {
+             phone: zapiPhone,
+             name: resolvedName || existing?.name || '',
+             user_id: userId,
+             profile_picture_url: finalUrl || (isGroupPhone(zapiPhone) ? (existing?.profile_picture_url || null) : null),
+           });
+           await fetchSavedContacts();
+         }
+       }
+       return finalUrl;
+     } catch { return null; }
+   }, [savedContacts, fetchSavedContacts, filterInstanceId]);
 
   const autoFetchPhotos = useCallback(async (phones: string[]) => {
     const token = await getToken();
