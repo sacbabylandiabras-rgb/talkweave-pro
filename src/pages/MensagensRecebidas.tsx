@@ -756,7 +756,7 @@ const ChatView = ({
 
                 return (
                   <div key={msg.id} className="mb-2">
-                    {(/(?:entrou na comunidade|saiu da comunidade|entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
+                    {(/(?:entrou no grupo|saiu do grupo)\s*$/i).test(String(msg.content || '').trim()) ? (
                       <div className="flex justify-center my-2">
                         <span className="text-[12px] px-3 py-1 rounded-full bg-muted text-muted-foreground shadow-sm border border-border">
                           {String(msg.content || '').trim()}
