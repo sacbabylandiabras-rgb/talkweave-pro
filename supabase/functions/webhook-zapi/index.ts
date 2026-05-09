@@ -6763,3 +6763,4 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   const hits = words.filter((w) => message.includes(w)).length;
   return hits / words.length >= 0.7;
 }
+}
