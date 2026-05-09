@@ -364,14 +364,18 @@ serve(async (req) => {
         endpoint = '/send-audio';
         payload.audio = url;
         payload.waveform = true;
-      } else {
-        const ext = getDocumentExtension(url, text);
-        endpoint = `/send-document/${ext}`;
-        payload.document = url;
-        payload.fileName = text || `arquivo.${ext}`;
-      }
-      return sendZapi(endpoint, payload, `media-${type}`);
-    };
+       } else if (type === 'sticker') {
+         endpoint = '/send-sticker';
+         payload.sticker = url;
+       } else {
+         const ext = getDocumentExtension(url, text);
+         endpoint = `/send-document/${ext}`;
+         payload.document = url;
+         payload.fileName = text || `arquivo.${ext}`;
+       }
+
+     return sendZapi(endpoint, payload, `media-${type}`);
+   };
 
     // Define common button logic to be used if needed
     const smartSendButtons = async () => {

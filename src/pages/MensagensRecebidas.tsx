@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile } from "lucide-react";
+ import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -404,7 +404,8 @@ interface ChatViewProps {
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
-  onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
+   onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
+   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
 
@@ -419,7 +420,8 @@ const ChatView = ({
   onOpenProfile,
   onTriggerFlow,
   onForwardMessage,
-  onSendReaction,
+   onSendReaction,
+   onSendSticker,
   campaignTemplates,
   savedContacts,
 }: ChatViewProps) => {
@@ -435,7 +437,34 @@ const ChatView = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+   const stickerInputRef = useRef<HTMLInputElement>(null);
+   const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file || !conversation) return;
+     
+     setSending(true);
+     try {
+       const { supabase } = await import('@/integrations/supabase/client');
+       const ext = file.name.split('.').pop() || 'webp';
+       const { data: { user: currentUser } } = await supabase.auth.getUser();
+       if (!currentUser) throw new Error("Usuário não autenticado");
+       
+       const path = `${currentUser.id}/chat-media/${Date.now()}.${ext}`;
+       const { error: uploadError } = await supabase.storage.from('template-media').upload(path, file);
+       if (uploadError) throw uploadError;
+       
+       const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+       await onSendSticker(conversation.phone, publicUrl);
+       toast({ title: "Figurinha enviada", description: "Figurinha enviada com sucesso." });
+     } catch (e: any) {
+       toast({ title: "Erro ao enviar figurinha", description: e?.message || "Falha ao enviar figurinha", variant: "destructive" });
+     } finally {
+       setSending(false);
+       if (stickerInputRef.current) stickerInputRef.current.value = '';
+     }
+   };
+
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
@@ -1024,7 +1053,24 @@ const ChatView = ({
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
-              <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
+               <input
+                 type="file"
+                 ref={stickerInputRef}
+                 className="hidden"
+                 accept="image/webp,image/png,image/jpeg"
+                 onChange={handleStickerUpload}
+               />
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="shrink-0 h-10 w-10"
+                 onClick={() => stickerInputRef.current?.click()}
+                 disabled={sending}
+                 title="Enviar figurinha"
+               >
+                 <StickyNote className="w-4 h-4" />
+               </Button>
+               <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -1182,16 +1228,16 @@ const MensagensRecebidas = () => {
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
   const shouldAutoSyncHistory = Boolean(selectedInstance?.api_provider || activeInstance?.api_provider);
-    const { 
-      conversations, 
+    const {
+      conversations,
       loading, 
       saveContact, 
       fetchProfilePicture, 
       sendMessage, 
       refetch, 
       forceUpdateAllPhotos, 
-      syncMetadata, 
-      savedContacts 
+       syncMetadata,
+       savedContacts
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -1199,10 +1245,9 @@ const MensagensRecebidas = () => {
     knownInstanceNames,
   );
   const [syncing, setSyncing] = useState(false);
-  const isMobile = useIsMobile();
-  const { toast } = useToast();
-  const { forwardMessage, sendReaction } = useZapi();
-
+   const isMobile = useIsMobile();
+   const { toast } = useToast();
+   const { forwardMessage, sendReaction, sendSticker } = useZapi();
   const syncHistory = async () => {
     setSyncing(true);
     try {
@@ -1493,9 +1538,12 @@ const MensagensRecebidas = () => {
               if (!destination) return;
               await forwardMessage(phone, messageId, destination);
             }}
-            onSendReaction={async (phone, messageId, emoji) => {
-              await sendReaction(phone, messageId, emoji);
-            }}
+             onSendReaction={async (phone, messageId, emoji) => {
+               await sendReaction(phone, messageId, emoji);
+             }}
+             onSendSticker={async (phone, stickerUrl) => {
+               await sendSticker(phone, stickerUrl);
+             }}
           />
         )}
       </div>
