@@ -306,25 +306,67 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos,
+   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected,
  }: {
    conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
-   instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void;
+    instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void; selectedPhones: Set<string>; onToggleSelect: (phone: string) => void; isSelectionMode: boolean; onToggleSelectionMode: () => void; onDeleteSelected: () => void;
    onFetchPhoto: (phone: string, force?: boolean) => void;
    onRefreshPhotos: () => void;
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
-         <div className="flex gap-1">
-           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onRefreshPhotos} disabled={syncing} title="Atualizar fotos de perfil">
-             <Camera className={cn("w-4 h-4", syncing && "animate-spin")} />
-           </Button>
-           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
-             <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-           </Button>
-         </div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
+          {isSelectionMode && selectedPhones.size > 0 && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
+              {selectedPhones.size}
+            </Badge>
+          )}
+        </div>
+        <div className="flex gap-1">
+          {isSelectionMode ? (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                onClick={onDeleteSelected}
+                disabled={selectedPhones.size === 0 || syncing}
+                title="Apagar selecionadas"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={onToggleSelectionMode} 
+                title="Cancelar seleção"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={onToggleSelectionMode} 
+                title="Selecionar conversas"
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onRefreshPhotos} disabled={syncing} title="Atualizar fotos de perfil">
+                <Camera className={cn("w-4 h-4", syncing && "animate-spin")} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSync} disabled={syncing} title="Sincronizar histórico">
+                <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
       {instances.length > 1 && (
         <select
@@ -355,13 +397,23 @@ const ConversationList = ({
         conversations.map((conv) => (
           <button
             key={conv.phone}
-            onClick={() => onSelect(conv.phone)}
+            onClick={() => isSelectionMode ? onToggleSelect(conv.phone) : onSelect(conv.phone)}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50",
-              selectedPhone === conv.phone && "bg-muted"
+              selectedPhone === conv.phone && !isSelectionMode && "bg-muted",
+              isSelectionMode && selectedPhones.has(conv.phone) && "bg-primary/5 ring-1 ring-inset ring-primary/20"
             )}
           >
-             <Avatar className="h-11 w-11 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
+             <div className="relative shrink-0">
+               {isSelectionMode && (
+                 <div className={cn(
+                   "absolute -top-1 -left-1 z-10 w-5 h-5 rounded-full border-2 border-background flex items-center justify-center transition-colors",
+                   selectedPhones.has(conv.phone) ? "bg-primary text-primary-foreground" : "bg-muted text-transparent"
+                 )}>
+                   <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                 </div>
+               )}
+               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
                {conv.profilePictureUrl ? (
                  <AvatarImage
                    src={conv.profilePictureUrl}
@@ -376,6 +428,7 @@ const ConversationList = ({
                  <WhatsAppDefaultAvatar />
               </AvatarFallback>
             </Avatar>
+             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                   <span className="font-medium text-sm text-foreground truncate">
@@ -1220,6 +1273,8 @@ const MensagensRecebidas = () => {
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
   const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
   // Show data from connected instances. If none are online yet (e.g., new instance still pending QR scan),
   // fall back to all registered instances so the user keeps seeing the historic conversations
   // instead of an empty list.
@@ -1266,9 +1321,10 @@ const MensagensRecebidas = () => {
       sendMessage, 
       refetch, 
       forceUpdateAllPhotos, 
-       syncMetadata,
-       savedContacts,
-       deleteConversation
+      syncMetadata,
+      savedContacts,
+      deleteConversation,
+      refetch: refetchLogs
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
@@ -1358,6 +1414,37 @@ const MensagensRecebidas = () => {
       localStorage.setItem('readConversations', JSON.stringify([...next]));
       return next;
     });
+  };
+
+  const toggleSelectPhone = (phone: string) => {
+    const normalized = normalizeSelectedConversationPhone(phone);
+    if (!normalized) return;
+    setSelectedPhones(prev => {
+      const next = new Set(prev);
+      if (next.has(normalized)) next.delete(normalized);
+      else next.add(normalized);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedPhones.size === 0) return;
+    if (!window.confirm(`Tem certeza que deseja apagar as ${selectedPhones.size} conversas selecionadas? Esta ação não apaga as mensagens no WhatsApp dos contatos.`)) return;
+
+    setSyncing(true);
+    try {
+      for (const phone of selectedPhones) {
+        await deleteConversation(phone);
+      }
+      toast({ title: "Conversas apagadas", description: `${selectedPhones.size} conversas foram removidas localmente.` });
+      setSelectedPhones(new Set());
+      setIsSelectionMode(false);
+      refetchLogs();
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao apagar algumas conversas.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSelectPhone = (phone: string) => {
@@ -1543,7 +1630,29 @@ const MensagensRecebidas = () => {
       <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-              <ConversationList conversations={filteredConversations} selectedPhone={selectedPhone} onSelect={handleSelectPhone} searchTerm={searchTerm} onSearchChange={setSearchTerm} readPhones={readPhones} instances={visibleInstances} selectedInstanceId={selectedInstanceId} onInstanceChange={setSelectedInstanceId} syncing={syncing} onSync={syncHistory} onFetchPhoto={handleFetchPhoto} onRefreshPhotos={handleRefreshAll} />
+              <ConversationList 
+                conversations={filteredConversations} 
+                selectedPhone={selectedPhone} 
+                onSelect={handleSelectPhone} 
+                searchTerm={searchTerm} 
+                onSearchChange={setSearchTerm} 
+                readPhones={readPhones} 
+                instances={visibleInstances} 
+                selectedInstanceId={selectedInstanceId} 
+                onInstanceChange={setSelectedInstanceId} 
+                syncing={syncing} 
+                onSync={syncHistory} 
+                onFetchPhoto={handleFetchPhoto} 
+                onRefreshPhotos={handleRefreshAll}
+                isSelectionMode={isSelectionMode}
+                selectedPhones={selectedPhones}
+                onToggleSelect={toggleSelectPhone}
+                onToggleSelectionMode={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  setSelectedPhones(new Set());
+                }}
+                onDeleteSelected={handleDeleteSelected}
+              />
           </div>
         )}
         {showChat && (
