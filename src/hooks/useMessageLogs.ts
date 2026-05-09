@@ -1425,44 +1425,48 @@ export const useMessageLogs = (
      syncMetadata,
     syncHistory: fetchAll,
     deleteConversation: useCallback(async (phone: string) => {
-      try {
-        // Deleta message_logs
-        const zapiPhone = phone.endsWith('-group')
-          ? `${phone.replace(/-group$/, '')}@g.us`
-          : phone;
+      const zapiPhone = phone.endsWith('-group')
+        ? `${phone.replace(/-group$/, '')}@g.us`
+        : phone;
 
-        await supabase
-          .from('message_logs')
-          .delete()
-          .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
+      // Pega o user_id atual
+      const userId = await getUserId();
+      if (!userId) throw new Error('Não autenticado');
 
-        // Deleta campaign_sends
-        await supabase
-          .from('campaign_sends')
-          .delete()
-          .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
+      // Deleta message_logs APENAS do usuário atual
+      const { error: error1 } = await supabase
+        .from('message_logs')
+        .delete()
+        .eq('user_id', userId)  // ✅ filtro por user_id
+        .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
 
-        // Remove do estado local imediatamente (sem esperar o polling)
-        setMessageLogs(prev => 
-          prev.filter(m => m.phone !== phone && m.phone !== zapiPhone)
-        );
-        setCampaignSends(prev => 
-          prev.filter(s => s.phone !== phone && s.phone !== zapiPhone)
-        );
+      if (error1) throw error1;
 
-        // Salva no localStorage como backup contra o realtime restaurar
-        setDeletedPhones(prev => {
-          const next = new Set(prev);
-          next.add(phone);
-          next.add(zapiPhone);
-          localStorage.setItem('deletedConversations', JSON.stringify([...next]));
-          return next;
-        });
+      // Deleta campaign_sends APENAS do usuário atual
+      const { error: error2 } = await supabase
+        .from('campaign_sends')
+        .delete()
+        .eq('user_id', userId)  // ✅ filtro por user_id
+        .or(`phone.eq.${phone},phone.eq.${zapiPhone}`);
 
-      } catch (error) {
-        console.error('Erro ao deletar conversa:', error);
-        throw error;
-      }
+      if (error2) throw error2;
+
+      // Remove do estado local imediatamente
+      setMessageLogs(prev => 
+        prev.filter(m => m.phone !== phone && m.phone !== zapiPhone)
+      );
+      setCampaignSends(prev => 
+        prev.filter(s => s.phone !== phone && s.phone !== zapiPhone)
+      );
+
+      // Salva no localStorage para evitar que o realtime restaure
+      setDeletedPhones(prev => {
+        const next = new Set(prev);
+        next.add(phone);
+        next.add(zapiPhone);
+        localStorage.setItem('deletedConversations', JSON.stringify([...next]));
+        return next;
+      });
     }, []),
    };
 };
