@@ -198,7 +198,12 @@ Deno.serve(async (req) => {
       if (!content) content = "[mensagem]";
 
       const keyword = `__msg_import__:${externalId}`;
-      const contentWithId = `[msgid:${externalId}] ${content}`;
+      const safeSenderName = String(senderName || "").replace(/[|\]]/g, " ").trim();
+      const safeSenderPhone = String(senderPhone || "").replace(/[|\]]/g, " ").trim();
+      const senderPrefix = !fromMe && (safeSenderName || safeSenderPhone)
+        ? `[sender:${safeSenderName}|${safeSenderPhone}|] `
+        : "";
+      const contentWithId = `${senderPrefix}[msgid:${externalId}] ${content}`;
 
       rows.push({
         phone,
