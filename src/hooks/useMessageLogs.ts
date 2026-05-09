@@ -278,17 +278,17 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id || null;
 }
 
- const extractProfilePictureUrl = (payload: any): string | null => {
-   if (!payload) return null;
-   if (typeof payload === 'string') {
-     const str = payload.trim();
-     if (!str || str.toLowerCase() === 'null' || !/^https?:\/\//i.test(str)) return null;
-     return str;
-   }
-   if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
-   const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link;
-   return extractProfilePictureUrl(rawUrl);
- };
+const extractProfilePictureUrl = (payload: any): string | null => {
+  if (!payload) return null;
+  if (typeof payload === 'string') {
+    const str = payload.trim();
+    if (!str || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined' || !/^https?:\/\//i.test(str)) return null;
+    return str;
+  }
+  if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
+  const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link || payload?.data?.imageUrl;
+  return extractProfilePictureUrl(rawUrl);
+};
 
 const extractResolvedGroupName = (payload: any): string | null => {
   if (!payload) return null;
