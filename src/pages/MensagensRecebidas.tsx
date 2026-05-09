@@ -1245,7 +1245,8 @@ const MensagensRecebidas = () => {
       refetch, 
       forceUpdateAllPhotos, 
        syncMetadata,
-       savedContacts
+       savedContacts,
+       deleteConversation
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
