@@ -8,6 +8,31 @@ const pickPreferredInteractiveText = (candidates: unknown[]) => {
   return values.find(v => !isUazapiTechnicalReplyReference(v)) || values[0] || "";
 };
 
+function extractButtonReplyCandidates(webhook: any): string[] {
+  const values = new Set<string>();
+  const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
+  [
+    webhook?.text?.title, webhook?.text?.description, webhook?.buttonReply?.title, webhook?.buttonReply?.text,
+    webhook?.buttonReply?.label, webhook?.buttonReply?.selectedDisplayText, webhook?.message?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.message?.buttonResponseMessage?.selectedDisplayText, webhook?.buttonsResponseMessage?.selectedDisplayText,
+    webhook?.buttonsResponseMessage?.selectedButtonId, webhook?.buttonsResponseMessage?.selectedButtonText,
+    webhook?.buttonResponseMessage?.selectedDisplayText, webhook?.buttonResponseMessage?.selectedButtonId,
+    webhook?.interactiveResponse?.title, webhook?.interactiveResponse?.description, webhook?.title,
+    webhook?.selectedButtonId, webhook?.response?.title, webhook?.response?.text, webhook?.response?.selectedDisplayText,
+  ].forEach(push);
+  return Array.from(values);
+}
+
+function extractQuotedMessageTextCandidates(webhook: any): string[] {
+  const values = new Set<string>();
+  const push = (v: any) => { if (typeof v === "string" && v.trim()) values.add(v.trim()); };
+  [
+    webhook?.contextInfo?.quotedMessage?.conversation, webhook?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+    webhook?.message?.contextInfo?.quotedMessage?.conversation, webhook?.message?.contextInfo?.quotedMessage?.extendedTextMessage?.text,
+  ].forEach(push);
+  return Array.from(values);
+}
+
 function extractMessageText(webhook: any): string {
   const candidates = [
     webhook?.message?.text, webhook?.message?.conversation, webhook?.message?.extendedTextMessage?.text,
