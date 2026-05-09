@@ -881,8 +881,8 @@ export const useMessageLogs = (
       const inboundContent = resolveVisibleInboundContent(log);
       if (inboundContent) {
         const isManualTrigger = log.keyword_matched?.startsWith('__manual_flow_trigger__:');
-        let senderName = null;
-        let senderPhone = null;
+        let senderName = log.sender_name || null;
+        let senderPhone = log.sender_phone || null;
 
         if (isManualTrigger) {
           senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;
