@@ -64,8 +64,36 @@
            }
          } catch (err) {
            console.error('Error fetching Z-API groups:', err);
-         }
-      } else if (isUazapi) {
+          }
+
+          // Fetch communities to ensure all community metadata is captured
+          try {
+            const communitiesRes = await fetch(`${baseUrl}/communities`, { headers });
+            if (communitiesRes.ok) {
+              const communities = await communitiesRes.json();
+              if (Array.isArray(communities)) {
+                // For each community, fetch its full metadata
+                for (const community of communities) {
+                  const communityId = community.id || community.phone || community.jid;
+                  if (communityId) {
+                    const metadataRes = await fetch(`${baseUrl}/community-metadata/${communityId}`, { headers });
+                    if (metadataRes.ok) {
+                      const metadata = await metadataRes.ok ? await metadataRes.json() : null;
+                      if (metadata) {
+                        chats.push(metadata);
+                      }
+                    } else {
+                      // Fallback to basic community info if detailed metadata fails
+                      chats.push(community);
+                    }
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching Z-API communities:', err);
+          }
+       } else if (isUazapi) {
         const url = (instance.evolution_api_url || '').replace(/\/+$/, '');
         const headers = { 'Content-Type': 'application/json', token: instance.evolution_api_key || '' };
         
