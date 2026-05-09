@@ -413,7 +413,8 @@ interface ChatViewProps {
   onTriggerFlow: (phone: string) => void;
   onForwardMessage: (phone: string, messageId: string) => Promise<void>;
    onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
-   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
+    onDeleteConversation: (phone: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
 }
 
