@@ -70,9 +70,9 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null)
   // For groups, communities and channels, prioritize the real name if available
   if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
   
-  if (isChannel) return 'Canal';
-  if (isCommunity) return 'Comunidade';
-  if (isGroup) return 'Grupo';
+  if (isChannel) return 'canal';
+  if (isCommunity) return 'comunidade';
+  if (isGroup) return 'grupo';
 
   return formatPhone(phone);
 };
