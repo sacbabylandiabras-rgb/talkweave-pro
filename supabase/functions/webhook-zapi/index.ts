@@ -202,7 +202,8 @@ async function transcribeAudio(audioUrl: string): Promise<string> {
 
 function extractMessageText(webhook: any): string {
   const candidates = [
-    webhook?.message?.text,
+     webhook?.text,
+     webhook?.message?.text,
     webhook?.message?.conversation,
     webhook?.message?.extendedTextMessage?.text,
     webhook?.message?.imageMessage?.caption,
