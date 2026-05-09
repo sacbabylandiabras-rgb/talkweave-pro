@@ -338,10 +338,11 @@ const SaveContactDialog = ({
 
 // Conversation list
 const ConversationList = ({
-   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected,
+   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
  }: {
    conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
     instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void; selectedPhones: Set<string>; onToggleSelect: (phone: string) => void; isSelectionMode: boolean; onToggleSelectionMode: () => void; onDeleteSelected: () => void;
+   onDeleteConversation: (phone: string) => void;
    onFetchPhoto: (phone: string, force?: boolean) => void;
    onRefreshPhotos: () => void;
 }) => (
