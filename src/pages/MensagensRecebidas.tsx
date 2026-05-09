@@ -575,7 +575,8 @@ const ChatView = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
    const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-   const stickerInputRef = useRef<HTMLInputElement>(null);
+    const stickerInputRef = useRef<HTMLInputElement>(null);
+    const gifInputRef = useRef<HTMLInputElement>(null);
    const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
      if (!file || !conversation) return;
@@ -598,9 +599,35 @@ const ChatView = ({
        toast({ title: "Erro ao enviar figurinha", description: e?.message || "Falha ao enviar figurinha", variant: "destructive" });
      } finally {
        setSending(false);
-       if (stickerInputRef.current) stickerInputRef.current.value = '';
-     }
-   };
+        if (stickerInputRef.current) stickerInputRef.current.value = '';
+      }
+    };
+
+    const handleGifUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !conversation) return;
+      
+      setSending(true);
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const ext = file.name.split('.').pop() || 'gif';
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error("Usuário não autenticado");
+        
+        const path = `${currentUser.id}/chat-media/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('template-media').upload(path, file);
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+        await onSendGif(conversation.phone, publicUrl);
+        toast({ title: "GIF enviado", description: "GIF enviado com sucesso." });
+      } catch (e: any) {
+        toast({ title: "Erro ao enviar GIF", description: e?.message || "Falha ao enviar GIF", variant: "destructive" });
+      } finally {
+        setSending(false);
+        if (gifInputRef.current) gifInputRef.current.value = '';
+      }
+    };
 
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
