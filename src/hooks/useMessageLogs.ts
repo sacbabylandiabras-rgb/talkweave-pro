@@ -18,6 +18,8 @@ export interface MessageLog {
   created_at: string;
   user_id: string | null;
   instance_id: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
 }
 
 export interface CampaignSendMessage {
