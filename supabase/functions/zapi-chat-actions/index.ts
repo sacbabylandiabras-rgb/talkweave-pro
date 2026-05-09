@@ -86,15 +86,15 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'unpin':
       return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unpin' } };
     case 'mute':
-      return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, muteFor: payload?.muteFor ?? 28800 } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'mute' } };
     case 'unmute':
-      return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, muteFor: 0 } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'unmute' } };
     case 'clear':
-      return { method: 'POST', path: "/clear-chat", body: { phone: zapiPhone } };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'clear' } };
     case 'delete':
-      return { method: 'DELETE', path: "/chats/" + zapiPhone };
+      return { method: 'POST', path: "/modify-chat", body: { phone: zapiPhone, action: 'delete' } };
      case 'expiration':
-        return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, expiration: payload?.expiration ?? 0 } };
+        return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
      // Contact Actions
      case 'get-contacts':
