@@ -109,19 +109,7 @@ async function acquireMessageProcessingLock(
      instance_id: instanceId || null,
    };
 
-    // Use RPC or a raw query if possible, or try a simpler insert first.
-    // We'll wrap it in a try-catch to specifically handle schema cache issues.
-    let error: any = null;
-    try {
-      const result = await supabase.from("message_logs").insert(logEntry);
-      error = result.error;
-    } catch (e: any) {
-      console.error("❌ Exception during message_logs insert:", e);
-      // Fallback for schema cache issues: try to insert with a very minimal payload
-      // or re-throw to be handled by the duplicate check.
-      error = e;
-    }
-
+    const { error } = await supabase.from("message_logs").insert(logEntry);
   if (!error) return { acquired: true, lockId };
   const isDuplicate = error?.code === "23505" || (typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key"));
   if (isDuplicate) return { acquired: false, lockId };
