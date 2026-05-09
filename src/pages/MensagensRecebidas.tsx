@@ -358,19 +358,13 @@ const ChatTypeBadge = ({ phone, name }: { phone: string; name: string | null }) 
 
   if (isCommunityPhone(phone)) {
     return (
-      <Badge variant="secondary" className="text-[10px] shrink-0">
-        <Megaphone className="w-2.5 h-2.5" />
-        COMUNIDADE
-      </Badge>
+      <Badge variant="secondary" className="text-[10px] shrink-0">COMUNIDADE</Badge>
     );
   }
 
   if (isRegularGroupPhone(phone)) {
     return (
-      <Badge variant="outline" className="text-[10px] shrink-0">
-        <Users className="w-2.5 h-2.5" />
-        GRUPO
-      </Badge>
+      <Badge variant="outline" className="text-[10px] shrink-0">GRUPO</Badge>
     );
   }
 
