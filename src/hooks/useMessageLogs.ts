@@ -1363,13 +1363,6 @@ export const useMessageLogs = (
        
      if (error) throw error;
      
-     // Also delete from campaign_send_messages if applicable
-     await supabase
-       .from('campaign_send_messages')
-       .delete()
-       .eq('user_id', user.id)
-       .eq('phone', phone);
-       
      await fetchAll();
    }
    };
