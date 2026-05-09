@@ -314,7 +314,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
 const ChatTypeBadge = ({ phone, isCommunity }: { phone: string; name?: string | null; isCommunity?: boolean }) => {
   if (isCommunity) {
     return (
-      <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">COMUNIDADE</Badge>
+      <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700">COMUNIDADE</Badge>
     );
   }
   if (isGroupPhone(phone)) {
