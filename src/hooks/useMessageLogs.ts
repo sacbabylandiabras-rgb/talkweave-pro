@@ -187,15 +187,16 @@ const isRedundantManualFlowEcho = (
   });
 };
 
-const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^\]]*)\]\s*/;
-
-const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; rest: string } => {
-  const match = raw.match(SENDER_PREFIX_REGEX);
-  if (!match) return { name: null, phone: null, rest: raw };
-  const name = (match[1] || '').trim() || null;
-  const phone = (match[2] || '').trim() || null;
-  return { name, phone, rest: raw.replace(SENDER_PREFIX_REGEX, '') };
-};
+ const SENDER_PREFIX_REGEX = /^\[sender:([^|\]]*)\|([^|\]]*)(?:\|([^\]]*))?\]\s*/;
+ 
+ const parseSenderFromContent = (raw: string): { name: string | null; phone: string | null; photo: string | null; rest: string } => {
+   const match = raw.match(SENDER_PREFIX_REGEX);
+   if (!match) return { name: null, phone: null, photo: null, rest: raw };
+   const name = (match[1] || '').trim() || null;
+   const phone = (match[2] || '').trim() || null;
+   const photo = (match[3] || '').trim() || null;
+   return { name, phone, photo, rest: raw.replace(SENDER_PREFIX_REGEX, '') };
+ };
 
 const resolveVisibleInboundContent = (log: Pick<MessageLog, 'message_received' | 'keyword_matched'>) => {
   const buttonText = extractButtonTextFromKeyword(log.keyword_matched);
