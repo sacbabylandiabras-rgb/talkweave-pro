@@ -1223,5 +1223,16 @@ export const useMessageLogs = (
      }
    };
 
-   return { conversations, loading, refetch: fetchAll, saveContact, fetchProfilePicture, savedContacts, sendMessage, forceUpdateAllPhotos };
+   return { 
+     conversations, 
+     loading, 
+     refetch: fetchAll, 
+     saveContact, 
+     fetchProfilePicture, 
+     savedContacts, 
+     sendMessage, 
+     forceUpdateAllPhotos,
+     syncMetadata,
+     syncHistory: fetchAll
+   };
 };
