@@ -71,6 +71,26 @@ serve(async (req) => {
           : contact.phone
 
         const isGroup = phone.includes('@g.us');
+        let isCommunity = false;
+        let communityId = null;
+
+        if (isGroup) {
+          try {
+            const metaRes = await fetch(`${zapiBase}/group-metadata/${phone}`, {
+              headers: { 'client-token': instance.zapi_client_token || '' },
+              signal: AbortSignal.timeout(5000)
+            });
+            const meta = metaRes.ok ? await metaRes.json().catch(() => null) : null;
+            if (meta) {
+              isCommunity = meta.isGroupAnnouncement === true || !!meta.communityId;
+              communityId = meta.communityId || null;
+              console.log(`👥 Metadata for ${phone}: isCommunity=${isCommunity}, communityId=${communityId}`);
+            }
+          } catch (metaErr) {
+            console.error(`⚠️ Error fetching metadata for ${phone}:`, metaErr.message);
+          }
+        }
+
         const endpoint = isGroup
           ? `${zapiBase}/group-thumbnail/${phone}`
           : `${zapiBase}/profile-picture?phone=${phone}`;
@@ -88,6 +108,8 @@ serve(async (req) => {
             .from('saved_contacts')
             .update({ 
               profile_picture_url: url, 
+              is_community: isCommunity,
+              community_id: communityId,
               updated_at: new Date().toISOString() 
             })
             .eq('phone', contact.phone)
@@ -97,7 +119,11 @@ serve(async (req) => {
           // Marca como tentado mesmo sem foto para não ficar retentando imediatamente
           await adminClient
             .from('saved_contacts')
-            .update({ updated_at: new Date().toISOString() })
+            .update({ 
+              is_community: isCommunity,
+              community_id: communityId,
+              updated_at: new Date().toISOString() 
+            })
             .eq('phone', contact.phone)
             .eq('user_id', user.id)
         }
