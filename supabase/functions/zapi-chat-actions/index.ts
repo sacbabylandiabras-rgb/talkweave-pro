@@ -87,7 +87,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'clear':
       return { method: 'POST', path: "/clear-chat", body: { phone: zapiPhone } };
     case 'delete':
-      return { method: 'DELETE', path: "/delete-chat", body: { phone: zapiPhone } };
+      return { method: 'DELETE', path: "/delete-chat/" + zapiPhone, body: null };
      case 'expiration':
         return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
