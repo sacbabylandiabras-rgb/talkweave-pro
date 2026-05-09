@@ -330,8 +330,8 @@ const extractGroupName = (payload: any): string | null => {
                 if (linkG || nameG) return { success: true, data: { link: linkG, name: nameG, raw: match } }
               }
            }
-         } catch (e) {
-           console.log(`📷 Error on instance ${provider}: ${e.message}`)
+          } catch (e) {
+            console.log(`📷 Error on instance ${provider}: ${e instanceof Error ? e.message : String(e)}`)
          }
          return null
        }))
