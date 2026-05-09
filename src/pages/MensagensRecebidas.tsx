@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video } from "lucide-react";
+import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -15,6 +15,7 @@ import {
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapi } from "@/hooks/useZapi";
 import { format, isToday, isYesterday, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -391,33 +392,37 @@ const ConversationList = ({
 );
 
 // Chat view
-const ChatView = ({
-   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates, savedContacts
- }: {
-   conversation: Conversation | null; onBack: () => void; isMobile: boolean; savedContacts: Map<string, any>;
-  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, options?: {
-    mediaUrl?: string;
-    mediaType?: string;
-    viewOnce?: boolean;
-    isPtv?: boolean;
-    preferredInstanceId?: string | null;
-    title?: string;
-    footer?: string;
-    buttonActions?: Array<{
-      id: string;
-      type: 'CALL' | 'URL' | 'REPLY';
-      label: string;
-      phone?: string;
-      url?: string;
-    }>;
-    carouselCards?: MessageTemplate['carouselCards'];
-    templateId?: string;
-  }) => Promise<void>;
+interface ChatViewProps {
+  conversation: Conversation | null;
+  onBack: () => void;
+  isMobile: boolean;
+  savedContacts: Map<string, any>;
+  onSaveContact: (phone: string, currentName: string) => void;
+  onFetchPhoto: (phone: string, force?: boolean) => void;
+  loadingPhoto: boolean;
+  onSendMessage: (phone: string, message: string, options?: any) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
+  onForwardMessage: (phone: string, messageId: string) => Promise<void>;
+  onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
-}) => {
+}
+
+const ChatView = ({
+  conversation,
+  onBack,
+  isMobile,
+  onSaveContact,
+  onFetchPhoto,
+  loadingPhoto,
+  onSendMessage,
+  onOpenProfile,
+  onTriggerFlow,
+  onForwardMessage,
+  onSendReaction,
+  campaignTemplates,
+  savedContacts,
+}: ChatViewProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -787,15 +792,88 @@ const ChatView = ({
                             )}
                           </div>
                         )}
-                        <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <p className="text-[10px] text-right mt-1 opacity-70">
-                          {formatMessageTime(msg.timestamp)}
-                        </p>
+                        <div className="relative group/msg">
+                          <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                          <p className="text-[10px] text-right mt-1 opacity-70">
+                            {formatMessageTime(msg.timestamp)}
+                          </p>
+                          <div className="absolute top-0 -right-8 flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-muted"
+                              title="Responder"
+                              onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                            >
+                              <Reply className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-muted"
+                              title="Encaminhar"
+                              onClick={() => onForwardMessage(conversation.phone, msg.id)}
+                            >
+                              <Send className="w-3 h-3" />
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" title="Reagir">
+                                  <Smile className="w-3 h-3" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-1" side="top">
+                                <div className="flex gap-1">
+                                  {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                                    <button
+                                      key={emoji}
+                                      className="hover:scale-125 transition-transform p-1"
+                                      onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex justify-end">
-                      <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-primary text-primary-foreground">
+                    <div className="flex justify-end group/msg">
+                      <div className="max-w-[75%] relative rounded-lg px-3 py-2 shadow-sm bg-primary text-primary-foreground">
+                        <div className="absolute top-0 -left-8 flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-muted text-foreground"
+                            title="Encaminhar"
+                            onClick={() => onForwardMessage(conversation.phone, msg.id)}
+                          >
+                            <Send className="w-3 h-3" />
+                          </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted text-foreground" title="Reagir">
+                                <Smile className="w-3 h-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-1" side="top">
+                              <div className="flex gap-1">
+                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    className="hover:scale-125 transition-transform p-1"
+                                    onClick={() => onSendReaction(conversation.phone, msg.id, emoji)}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
@@ -1089,6 +1167,7 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { forwardMessage, sendReaction } = useZapi();
 
   const syncHistory = async () => {
     setSyncing(true);
@@ -1358,10 +1437,28 @@ const MensagensRecebidas = () => {
           </div>
         )}
         {showChat && (
-          <ChatView conversation={selectedConversation} onBack={() => setSelectedPhone(null)} isMobile={isMobile} onSaveContact={handleSaveContact} onFetchPhoto={handleFetchPhoto} loadingPhoto={loadingPhoto} onOpenProfile={() => setProfileOpen(true)} onTriggerFlow={(phone) => setProfileOpen(true)} campaignTemplates={campaignTemplates} savedContacts={savedContacts} onSendMessage={async (phone, message, options) => {
-            await sendMessage(phone, message, options);
-            toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
-          }} />
+          <ChatView
+            conversation={selectedConversation}
+            onBack={() => setSelectedPhone(null)}
+            isMobile={isMobile}
+            onSaveContact={handleSaveContact}
+            onFetchPhoto={handleFetchPhoto}
+            loadingPhoto={loadingPhoto}
+            onOpenProfile={() => setProfileOpen(true)}
+            onTriggerFlow={(phone) => setProfileOpen(true)}
+            campaignTemplates={campaignTemplates}
+            savedContacts={savedContacts}
+            onSendMessage={async (phone, message, options) => {
+              await sendMessage(phone, message, options);
+              toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
+            }}
+            onForwardMessage={async (phone, messageId) => {
+              await forwardMessage(phone, messageId);
+            }}
+            onSendReaction={async (phone, messageId, emoji) => {
+              await sendReaction(phone, messageId, emoji);
+            }}
+          />
         )}
       </div>
       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
