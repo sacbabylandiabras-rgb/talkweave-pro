@@ -175,7 +175,7 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
         let result = content.replace(/\[modelo:[a-f0-9-]+\]\s*/gi, '');
         if (tpl.header && !result.includes(tpl.header)) result = `*${tpl.header}*\n${result}`;
         if (tpl.footer && !result.includes(tpl.footer)) result = `${result}\n\n_${tpl.footer}_`;
-        const buttonLabels = (tpl.buttons || []).map(b => b.text || b.label).filter(Boolean);
+        const buttonLabels = (tpl.buttons || []).map(b => b.text || (b as any).label).filter(Boolean);
         if (buttonLabels.length > 0 && !result.includes('[Botões:')) {
           result = `${result}\n\n[Botões: ${buttonLabels.join(' | ')}]`;
         }
