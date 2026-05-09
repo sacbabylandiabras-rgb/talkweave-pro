@@ -19,6 +19,27 @@ function extractAudioUrl(webhook: any): string {
     webhook?.waitingMessage?.audio?.audioUrl,
     webhook?.waitingMessage?.audioMessage?.url,
   ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim().startsWith("http")) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+function extractAudioUrl(webhook: any): string {
+  const candidates = [
+    webhook?.audio?.audioUrl,
+    webhook?.audio?.url,
+    webhook?.audioMessage?.url,
+    webhook?.message?.audioMessage?.url,
+    webhook?.data?.audio?.audioUrl,
+    webhook?.data?.audio?.url,
+    webhook?.data?.audioMessage?.url,
+    webhook?.data?.message?.audioMessage?.url,
+    webhook?.waitingMessage?.audio?.audioUrl,
+    webhook?.waitingMessage?.audioMessage?.url,
+  ];
 
   for (const value of candidates) {
     if (typeof value === "string" && value.trim().startsWith("http")) {
