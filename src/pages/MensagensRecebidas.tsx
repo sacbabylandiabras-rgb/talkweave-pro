@@ -1575,6 +1575,9 @@ const MensagensRecebidas = () => {
              onSendSticker={async (phone, stickerUrl) => {
                await sendSticker(phone, stickerUrl);
              }}
+             onDeleteConversation={async (phone) => {
+               await deleteConversation(phone);
+             }}
           />
         )}
       </div>
