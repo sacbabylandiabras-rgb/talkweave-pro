@@ -471,11 +471,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isUazapi = instance.api_provider === 'uazapi';
-
-
-
-
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -1101,32 +1096,6 @@ const Dispositivos = () => {
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
 
-  const handleCreateInstance = async () => {
-    if (!newInstanceName.trim()) {
-      toast({ title: "Informe o nome da instância", variant: "destructive" });
-      return;
-    }
-    setCreating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('uazapi-create-instance', {
-        body: {
-          instanceName: newInstanceName.trim(),
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast({ title: "✅ Instância criada", description: "Agora escaneie o QR Code para conectar." });
-      setCreateOpen(false);
-      setNewInstanceName("");
-      refetch();
-    } catch (err) {
-      const msg = await getInvokeErrorMessage(err, 'Erro ao criar instância');
-      toast({ title: "❌ Erro ao criar instância", description: msg, variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1165,43 +1134,6 @@ const Dispositivos = () => {
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
-
-      {/* Create Instance Dialog */}
-      <Dialog open={createOpen} onOpenChange={(v) => !creating && setCreateOpen(v)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" /> Criar nova instância
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Nome da instância</Label>
-              <Input
-                placeholder="Ex: Vendas, Suporte..."
-                value={newInstanceName}
-                onChange={(e) => setNewInstanceName(e.target.value)}
-                disabled={creating}
-              />
-              <p className="text-xs text-muted-foreground">
-                Identificador único para esta conexão.
-              </p>
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateInstance} disabled={creating}>
-                {creating ? (
-                  <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Criando...</>
-                ) : (
-                  <><Plus className="w-4 h-4 mr-1" /> Criar instância</>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Planos */}
       <Card className="border-primary/20">
