@@ -391,33 +391,37 @@ const ConversationList = ({
 );
 
 // Chat view
-const ChatView = ({
-   conversation, onBack, isMobile, onSaveContact, onFetchPhoto, loadingPhoto, onSendMessage, onOpenProfile, onTriggerFlow, campaignTemplates, savedContacts
- }: {
-   conversation: Conversation | null; onBack: () => void; isMobile: boolean; savedContacts: Map<string, any>;
-  onSaveContact: (phone: string, currentName: string) => void; onFetchPhoto: (phone: string, force?: boolean) => void; loadingPhoto: boolean;
-  onSendMessage: (phone: string, message: string, options?: {
-    mediaUrl?: string;
-    mediaType?: string;
-    viewOnce?: boolean;
-    isPtv?: boolean;
-    preferredInstanceId?: string | null;
-    title?: string;
-    footer?: string;
-    buttonActions?: Array<{
-      id: string;
-      type: 'CALL' | 'URL' | 'REPLY';
-      label: string;
-      phone?: string;
-      url?: string;
-    }>;
-    carouselCards?: MessageTemplate['carouselCards'];
-    templateId?: string;
-  }) => Promise<void>;
+interface ChatViewProps {
+  conversation: Conversation | null;
+  onBack: () => void;
+  isMobile: boolean;
+  savedContacts: Map<string, any>;
+  onSaveContact: (phone: string, currentName: string) => void;
+  onFetchPhoto: (phone: string, force?: boolean) => void;
+  loadingPhoto: boolean;
+  onSendMessage: (phone: string, message: string, options?: any) => Promise<void>;
   onOpenProfile: () => void;
   onTriggerFlow: (phone: string) => void;
+  onForwardMessage: (phone: string, messageId: string) => Promise<void>;
+  onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
   campaignTemplates?: Map<string, string>;
-}) => {
+}
+
+const ChatView = ({
+  conversation,
+  onBack,
+  isMobile,
+  onSaveContact,
+  onFetchPhoto,
+  loadingPhoto,
+  onSendMessage,
+  onOpenProfile,
+  onTriggerFlow,
+  onForwardMessage,
+  onSendReaction,
+  campaignTemplates,
+  savedContacts,
+}: ChatViewProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
