@@ -900,7 +900,7 @@ export const useMessageLogs = (
     // removed/disconnected instances don't pollute the list.
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
-    const filteredLogs = filterInstanceId
+    const filteredLogs = filterInstanceId && filterInstanceId !== 'all'
       ? messageLogs.filter(m => m.instance_id === filterInstanceId)
       : hasKnownInstanceFilter
         ? messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id))
