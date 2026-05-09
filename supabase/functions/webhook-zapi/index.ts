@@ -5629,34 +5629,47 @@ async function processFlowNode(
     const targetNode = nodes.find((n) => n.id === edge.target);
     if (!targetNode) continue;
 
-          const shouldStop = await sendNodeContent(
-            targetNode,
-            nodes,
-            edges,
-            phone,
-            zapiConfig,
-            visited,
-            supabase,
-            userId,
-            flowName,
-            options,
-          );
-          if (shouldStop) continue;
+    if (targetNode.type === "blocoConteudo" || targetNode.type === "blocoAcao") {
+      const isActionDelay = targetNode.type === "blocoAcao" && targetNode.data.actionType === "delay";
+      
+      if (isActionDelay) {
+        const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
+        if (seconds > 0) {
+          const safeSeconds = Math.min(seconds, 50);
+          console.log(`[webhook-zapi] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`);
+          await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000));
         }
       }
- 
-     await processFlowNode(
-       targetNode.id,
-       nodes,
-       edges,
-       phone,
-       zapiConfig,
-       supabase,
-       visited,
-       userId,
-       flowName,
-       options,
-     );
+
+      if (targetNode.type === "blocoConteudo") {
+        const shouldStop = await sendNodeContent(
+          targetNode,
+          nodes,
+          edges,
+          phone,
+          zapiConfig,
+          visited,
+          supabase,
+          userId,
+          flowName,
+          options,
+        );
+        if (shouldStop) continue;
+      }
+    }
+
+    await processFlowNode(
+      targetNode.id,
+      nodes,
+      edges,
+      phone,
+      zapiConfig,
+      supabase,
+      visited,
+      userId,
+      flowName,
+      options,
+    );
   }
 }
 
