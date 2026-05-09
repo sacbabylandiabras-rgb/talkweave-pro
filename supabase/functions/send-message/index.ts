@@ -430,8 +430,11 @@ serve(async (req) => {
           payload.image = mediaUrl;
           return sendZapi('/send-button-actions-image', payload, 'buttons-actions-image');
         } else {
-          payload.video = mediaUrl;
-          return sendZapi('/send-button-actions-video', payload, 'buttons-actions-video');
+          // Z-API não possui endpoint /send-button-actions-video.
+          // Enviamos o vídeo separado e depois os botões em /send-button-actions.
+          await sendZapiMedia(mediaUrl, mediaType || 'video', '');
+          const { image: _img, video: _vid, ...rest } = payload;
+          return sendZapi('/send-button-actions', rest, 'buttons-actions-after-video');
         }
       }
 
