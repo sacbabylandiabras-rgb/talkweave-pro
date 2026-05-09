@@ -85,9 +85,9 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'unmute':
       return { method: 'POST', path: "/mute-chat", body: { phone: zapiPhone, mute: false } };
     case 'clear':
-      return { method: 'POST', path: "/clear-chat", body: { phone: zapiPhone } };
+      return { method: 'POST', path: "/clear-chat/" + zapiPhone, body: null };
     case 'delete':
-      return { method: 'DELETE', path: "/delete-chat", body: { phone: zapiPhone } };
+      return { method: 'DELETE', path: "/delete-chat/" + zapiPhone, body: null };
      case 'expiration':
         return { method: 'POST', path: "/send-chat-expiration", body: { phone: zapiPhone, chatExpiration: expirationMap[String(payload?.expiration ?? 0)] || 'OFF' } };
  
