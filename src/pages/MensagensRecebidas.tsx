@@ -135,7 +135,7 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
 
 // Parse media tag from message content like "[media:video:https://...]"
 const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string; transcription: string | null } => {
-    const mediaRegex = /^\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha):(.+?)\]\n?/i;
+    const mediaRegex = /^\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha|gif):(.+?)\]\n?/i;
     const match = content.match(mediaRegex);
   if (match) {
     const remaining = content.replace(mediaRegex, '').trim();
@@ -280,8 +280,15 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
           <span className="not-italic">🎙️</span> {transcription}
         </div>
       )}
-      {mediaType === 'sticker' && mediaUrl && (
-        <img src={mediaUrl} className="w-[120px] h-[120px] object-contain rounded mb-1" alt="figurinha" />
+      {(mediaType === 'sticker' || mediaType === 'gif') && mediaUrl && (
+        <img 
+          src={mediaUrl} 
+          className={cn(
+            "object-contain rounded mb-1",
+            mediaType === 'sticker' ? "w-[120px] h-[120px]" : "w-full max-h-[200px]"
+          )} 
+          alt={mediaType === 'sticker' ? "figurinha" : "gif"} 
+        />
       )}
       {mediaType === 'document' && mediaUrl && (
         <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className={cn("flex items-center gap-2 text-xs underline mb-1", isSent ? "text-primary-foreground/90" : "text-primary")}>
