@@ -299,8 +299,13 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     // Tag Actions (WhatsApp Business)
     case 'list-tags':
       return { method: 'GET', path: "/business/tags" };
-    case 'create-tag':
-      return { method: 'POST', path: "/business/create-tag", body: { name: payload?.name } };
+    case 'create-tag': {
+      const body: any = { name: payload?.name };
+      if (payload?.color !== undefined) {
+        body.color = payload.color;
+      }
+      return { method: 'POST', path: "/business/create-tag", body };
+    }
     case 'delete-tag':
       return { method: 'DELETE', path: `/business/delete-tag/${payload?.id}` };
     case 'edit-tag':
