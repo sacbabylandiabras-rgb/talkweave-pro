@@ -37,6 +37,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [unbanStatus, setUnbanStatus] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -209,6 +210,22 @@ export const MobileEmulator = ({ instances }: Props) => {
       const res = await call("set-account-email", { email: newEmail });
       toast({ title: "✅ E-mail cadastrado", description: res?.message || "E-mail vinculado à conta." });
       setNewEmail("");
+      handleGetEmail();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    if (!verificationCode) return toast({ title: "Informe o código de verificação", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("verify-account-email", { verificationCode });
+      toast({ title: "✅ E-mail verificado", description: "O e-mail da conta foi verificado." });
+      setVerificationCode("");
       handleGetEmail();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
