@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
 import { useAdminKycQueue } from "@/hooks/useGatewayKyc";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2, Wallet, Clock, CheckCircle, XCircle, Eye, FileSearch, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2, Wallet, Clock, CheckCircle, XCircle, Eye, FileSearch, ThumbsUp, ThumbsDown, MessageSquare, Save, Search } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
@@ -98,7 +98,35 @@ const AdminZapLynx = () => {
   const [wTab, setWTab] = useState("pending");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; withdrawal: Withdrawal | null; action: "approved" | "rejected" }>({ open: false, withdrawal: null, action: "approved" });
   const [adminNotes, setAdminNotes] = useState("");
+  const [notePhone, setNotePhone] = useState("");
+  const [chatNote, setChatNote] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [noteInstanceId, setNoteInstanceId] = useState("");
   const [wSubmitting, setWSubmitting] = useState(false);
+
+  const handleSaveChatNote = async () => {
+    const phone = notePhone.replace(/\D/g, "");
+    if (!phone || !chatNote.trim() || !noteInstanceId) {
+      toast.error("Informe a instância, o telefone e o conteúdo da nota");
+      return;
+    }
+    setIsSavingNote(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "save-chat-notes", phone, instanceDbId: noteInstanceId, payload: { notes: chatNote.trim() } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : data.error?.message || "Erro na API");
+      toast.success("Nota salva com sucesso!");
+      setChatNote("");
+      setNotePhone("");
+    } catch (err: any) {
+      console.error("Error saving chat note:", err);
+      toast.error("Erro ao salvar nota: " + err.message);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   const fetchWithdrawals = async () => {
     setWLoading(true);
