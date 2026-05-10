@@ -2141,9 +2141,11 @@ const Dispositivos = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {instances.map((instance) => (
-          <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
-        ))}
+        {instances
+          .filter((instance) => instance.instance_type !== "mobile")
+          .map((instance) => (
+            <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+          ))}
       </div>
 
       {/* Bulk Profile Update Dialog */}
