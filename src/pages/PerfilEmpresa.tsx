@@ -232,18 +232,19 @@ const PerfilEmpresa = () => {
               <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
             </Button>
             <div className="flex items-center gap-2 min-w-[200px]">
-           <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
-             <SelectTrigger>
-               <SelectValue placeholder="Selecione uma instância" />
-             </SelectTrigger>
-             <SelectContent>
-               {instances.map((inst) => (
-                 <SelectItem key={inst.id} value={inst.id}>
-                   {inst.instance_name || inst.zapi_instance_id}
-                 </SelectItem>
-               ))}
-             </SelectContent>
-           </Select>
+              <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma instância" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name || inst.zapi_instance_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
  
