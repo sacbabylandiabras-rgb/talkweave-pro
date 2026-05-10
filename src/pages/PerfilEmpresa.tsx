@@ -567,7 +567,14 @@ const PerfilEmpresa = () => {
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-sm line-clamp-2 leading-tight">{product.name}</h3>
                         <Badge variant="secondary" className="shrink-0 font-mono bg-primary/10 text-primary border-primary/20">
-                          {product.currency} {(Number(product.price || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {product.currency} {(() => {
+                            const price = Number(product.price || 0);
+                            // Standard Z-API response uses 1/1000 format
+                            return (price > 10000 ? price / 1000 : price).toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 2, 
+                              maximumFractionDigits: 2 
+                            });
+                          })()}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -582,7 +589,10 @@ const PerfilEmpresa = () => {
                             size="icon" 
                             className="w-8 h-8"
                             onClick={() => {
-                              setEditingProduct({ ...product, price: Number(product.price || 0) / 1000 });
+                              const rawPrice = Number(product.price || 0);
+                              // If price looks like it's in 1/1000 format (e.g. 100000 for 100.00), normalize it
+                              const price = rawPrice > 10000 ? rawPrice / 1000 : rawPrice;
+                              setEditingProduct({ ...product, price });
                               setIsDialogOpen(true);
                             }}
                           >
