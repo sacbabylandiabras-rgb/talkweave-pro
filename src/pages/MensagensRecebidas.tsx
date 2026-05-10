@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage } from "lucide-react";
+   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -547,8 +547,9 @@ interface ChatViewProps {
   onSendReaction: (phone: string, messageId: string, emoji: string) => Promise<void>;
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
-  onDeleteConversation: (phone: string) => Promise<void>;
-  campaignTemplates?: Map<string, string>;
+   onDeleteConversation: (phone: string) => Promise<void>;
+   onUpdate?: () => void;
+   campaignTemplates?: Map<string, string>;
 }
 
 const ChatView = ({
@@ -566,9 +567,20 @@ const ChatView = ({
     onSendSticker,
     onSendGif,
     onDeleteConversation,
-  campaignTemplates,
-  savedContacts,
-}: ChatViewProps) => {
+   campaignTemplates,
+   savedContacts,
+   onUpdate,
+ }: ChatViewProps) => {
+   const { listTags, addTagChat, removeTagChat } = useZapi();
+   const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+   const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
+   const [loadingTags, setLoadingTags] = useState(false);
+   const [tagSearchTerm, setTagSearchTerm] = useState("");
+   const [isCreateTagOpen, setIsCreateTagOpen] = useState(false);
+   const [newTagName, setNewTagName] = useState("");
+   const [newTagDescription, setNewTagDescription] = useState("");
+   const [newTagColor, setNewTagColor] = useState(0);
+   const [addingTag, setAddingTag] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -655,9 +667,36 @@ const ChatView = ({
     }
   };
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conversation?.messages.length]);
+   const loadAvailableTags = async () => {
+     setLoadingTags(true);
+     try {
+       const data = await listTags();
+       setAvailableTags(Array.isArray(data) ? data : []);
+     } catch (e) {
+       console.error('loadAvailableTags error:', e);
+     } finally {
+       setLoadingTags(false);
+     }
+   };
+
+   const fetchTagColors = async () => {
+     try {
+       const { data } = await supabase.functions.invoke("zapi-chat-actions", {
+         body: { action: "tag-colors" },
+       });
+       setTagColors(Array.isArray(data?.data) ? data.data : []);
+     } catch (err) {
+       console.error("Erro ao buscar cores de etiquetas:", err);
+     }
+   };
+
+   useEffect(() => {
+     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+     if (conversation) {
+       loadAvailableTags();
+       fetchTagColors();
+     }
+   }, [conversation?.messages.length, conversation?.phone]);
 
   const handleSend = async () => {
     if ((!newMessage.trim() && !attachedFile) || !conversation || sending) return;
@@ -807,7 +846,51 @@ const ChatView = ({
     }
   };
 
-  const handleSelectTemplate = async (template: MessageTemplate) => {
+   const handleCreateTag = async () => {
+     if (!newTagName.trim() || !conversation) return;
+     setLoadingTags(true);
+     try {
+       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+         body: { 
+           action: "create-tag", 
+           payload: { name: newTagName, color: newTagColor } 
+         },
+       });
+       if (error) throw error;
+       toast({ title: "Etiqueta criada" });
+       setNewTagName("");
+       setNewTagDescription("");
+       setIsCreateTagOpen(false);
+       loadAvailableTags();
+     } catch (err: any) {
+       toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
+     } finally {
+       setLoadingTags(false);
+     }
+   };
+
+   const handleAddTag = async (tagId: string) => {
+     if (!conversation) return;
+     try {
+       await addTagChat(conversation.phone, tagId);
+       setAddingTag(false);
+       onUpdate?.();
+     } catch (e) {
+       console.error('handleAddTag error:', e);
+     }
+   };
+
+   const handleRemoveTag = async (tagId: string) => {
+     if (!conversation) return;
+     try {
+       await removeTagChat(conversation.phone, tagId);
+       onUpdate?.();
+     } catch (e) {
+       console.error('handleRemoveTag error:', e);
+     }
+   };
+
+   const handleSelectTemplate = async (template: MessageTemplate) => {
     setTemplatePopoverOpen(false);
     setTemplateSearch("");
 
