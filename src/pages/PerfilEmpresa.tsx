@@ -56,6 +56,7 @@ const PerfilEmpresa = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +74,14 @@ const PerfilEmpresa = () => {
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      // Convert file to base64 for the catalog API (it expects base64, not URL)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      setImageBase64(base64);
       setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
       toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
     } catch (err: any) {
