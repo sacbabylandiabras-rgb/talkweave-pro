@@ -170,7 +170,7 @@ const getZAPIConfig = async () => {
 
   const invokeSendMessageEdge = async (
     payload: {
-      phone: string;
+      phone: string | string[];
       message?: string;
       mediaUrl?: string;
       mediaType?: string;
