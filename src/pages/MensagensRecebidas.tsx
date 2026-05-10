@@ -2166,30 +2166,8 @@ const MensagensRecebidas = () => {
          </DialogContent>
        </Dialog>
  
-       {selectedConversation && (
-          />
-        )}
-      </div>
-      <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
-      {selectedConversation && (
-        <ContactProfileDialog
-          contact={{
-            phone: selectedConversation.phone,
-            name: selectedConversation.contactName || undefined,
-            lastMessage: selectedConversation.lastMessage,
-            lastMessageDate: selectedConversation.lastTimestamp,
-            status: 'ativo',
-            messageCount: selectedConversation.messages.length,
-            tags: [] as string[],
-            profilePictureUrl: manualProfilePic || selectedConversation.profilePictureUrl,
-          }}
-          preferredInstanceId={filterZapiInstanceId || selectedConversation.preferredInstanceId}
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-        />
-      )}
-    </>
-  );
-};
+     </>
+   );
+ };
 
 export default MensagensRecebidas;
