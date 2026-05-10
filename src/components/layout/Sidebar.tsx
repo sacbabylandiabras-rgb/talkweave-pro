@@ -39,6 +39,7 @@ import {
   ShoppingBag,
   MessagesSquare,
   Repeat,
+  Trash2,
   BellRing,
   TrendingDown,
   Target,
