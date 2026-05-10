@@ -7,23 +7,50 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle } from "lucide-react";
+ import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, Eye, EyeOff } from "lucide-react";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+ import { Input } from "@/components/ui/input";
+ import { Textarea } from "@/components/ui/textarea";
+ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
-interface BusinessProfile {
-  description?: string;
-  address?: string;
-  email?: string;
-  websites?: string[];
-  categories?: { id: string; label: string }[];
-  businessHours?: any;
-}
+ interface Product {
+   id: string;
+   name: string;
+   description: string;
+   price: number;
+   currency: string;
+   retailerId?: string;
+   url?: string;
+   isHidden?: boolean;
+   salePrice?: number;
+   imageUrls?: {
+     requested: string;
+     original: string;
+     thumbnail: string;
+   };
+ }
+ 
+ interface BusinessProfile {
+   description?: string;
+   address?: string;
+   email?: string;
+   websites?: string[];
+   categories?: { id: string; label: string }[];
+   businessHours?: any;
+ }
 
 const PerfilEmpresa = () => {
   const { instances, loading: loadingInstances } = useZapiInstances();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
-  const [profile, setProfile] = useState<BusinessProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+   const [products, setProducts] = useState<Product[]>([]);
+   const [loading, setLoading] = useState(false);
+   const [loadingProducts, setLoadingProducts] = useState(false);
+   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+   const [isDialogOpen, setIsDialogOpen] = useState(false);
+   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,11 +59,114 @@ const PerfilEmpresa = () => {
     }
   }, [instances, selectedInstanceId]);
 
-  useEffect(() => {
-    if (selectedInstanceId) {
-      fetchProfile(selectedInstanceId);
-    }
-  }, [selectedInstanceId]);
+   useEffect(() => {
+     if (selectedInstanceId) {
+       fetchProfile(selectedInstanceId);
+       fetchProducts(selectedInstanceId);
+     }
+   }, [selectedInstanceId]);
+   const fetchProducts = async (instanceId: string) => {
+     setLoadingProducts(true);
+     try {
+       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+         body: { action: "list-products", instanceDbId: instanceId },
+       });
+ 
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       
+       setProducts(data?.data?.products || []);
+     } catch (err: any) {
+       console.error("Erro ao buscar produtos:", err);
+       toast({
+         title: "Erro ao carregar catálogo",
+         description: err.message,
+         variant: "destructive",
+       });
+     } finally {
+       setLoadingProducts(false);
+     }
+   };
+ 
+   const handleSaveProduct = async () => {
+     if (!editingProduct?.name || !editingProduct?.price || !editingProduct?.currency) {
+       toast({
+         title: "Campos obrigatórios",
+         description: "Nome, preço e moeda são obrigatórios.",
+         variant: "destructive",
+       });
+       return;
+     }
+ 
+     setIsSaving(true);
+     try {
+       const action = editingProduct.id ? "edit-product" : "create-product";
+       const payload = {
+         ...editingProduct,
+         // Z-API expects an array of image URLs
+         images: typeof editingProduct.imageUrls === 'string' 
+           ? [editingProduct.imageUrls] 
+           : (editingProduct.imageUrls as any)?.requested 
+             ? [(editingProduct.imageUrls as any).requested]
+             : []
+       };
+ 
+       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+         body: { action, instanceDbId: selectedInstanceId, payload },
+       });
+ 
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+ 
+       toast({
+         title: editingProduct.id ? "Produto atualizado" : "Produto criado",
+         description: "As alterações foram salvas com sucesso.",
+       });
+ 
+       setIsDialogOpen(false);
+       fetchProducts(selectedInstanceId);
+     } catch (err: any) {
+       console.error("Erro ao salvar produto:", err);
+       toast({
+         title: "Erro ao salvar",
+         description: err.message,
+         variant: "destructive",
+       });
+     } finally {
+       setIsSaving(false);
+     }
+   };
+ 
+   const handleDeleteProduct = async (productId: string) => {
+     if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+ 
+     try {
+       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+         body: { 
+           action: "delete-product", 
+           instanceDbId: selectedInstanceId, 
+           payload: { id: productId } 
+         },
+       });
+ 
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+ 
+       toast({
+         title: "Produto excluído",
+         description: "O produto foi removido do catálogo.",
+       });
+ 
+       fetchProducts(selectedInstanceId);
+     } catch (err: any) {
+       console.error("Erro ao excluir produto:", err);
+       toast({
+         title: "Erro ao excluir",
+         description: err.message,
+         variant: "destructive",
+       });
+     }
+   };
 
   const fetchProfile = async (instanceId: string) => {
     setLoading(true);
