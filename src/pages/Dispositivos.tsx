@@ -1533,7 +1533,8 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
         body: { action: "list-products", instanceDbId: targetId },
       });
       if (error) throw error;
-      const products = data?.data?.products || data?.data?.value || [];
+      let products = data?.data?.products || data?.data?.value || [];
+      if (!Array.isArray(products)) products = [];
       setAvailableProducts(products);
     } catch (err) {
       console.error("Erro ao buscar produtos para coleção:", err);
