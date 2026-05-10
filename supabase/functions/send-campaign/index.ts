@@ -1423,6 +1423,7 @@ serve(async (req) => {
               flowId: flowId,
               body: { message: { text: { body: `__flow_trigger_${flowId}__` } } },
               fromMe: false,
+            __tagId__: campaign.target_audience?.tag_id,
             };
 
             const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, {
@@ -1825,6 +1826,21 @@ serve(async (req) => {
             zapiUrl = `${baseZapiUrl}/send-button-list`;
             delete requestBody._useButtonList;
             console.log(`📌 Enviando respostas rápidas por lista de botões para melhor renderização no WhatsApp.`);
+          }
+
+          const tagId = campaign.target_audience?.tag_id;
+          if (tagId && tagId !== 'none' && !isGroupDestination(contact.phone)) {
+            try {
+              console.log(`🏷️ Applying tag ${tagId} to ${contact.phone}`);
+              const tagUrl = `${baseZapiUrl}/add-tag-chat`;
+              await fetch(tagUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+                body: JSON.stringify({ phone: contact.phone, tagId }),
+              });
+            } catch (tagErr) {
+              console.error(`⚠️ Failed to apply tag to ${contact.phone}:`, tagErr);
+            }
           }
 
           // Sempre enviar texto + botões juntos na mesma mensagem interativa,

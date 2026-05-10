@@ -3543,6 +3543,25 @@ serve(async (req) => {
     processingLockId = lockResult.lockId;
     const lockId = lockResult.lockId;
 
+  // Check for campaign tag override if this is a manual trigger (e.g. from campaign)
+  const tagIdOverride = webhook?.__tagId__;
+  if (tagIdOverride && tagIdOverride !== 'none' && userId && phone && !isGroupMessage) {
+    try {
+      console.log(`🏷️ Applying campaign tag override: ${tagIdOverride} to ${phone}`);
+      // Use direct fetch to Z-API as zapiConfig might not be fully populated yet if we return early
+      if (zapiConfig?.zapi_instance_id && zapiConfig?.zapi_token) {
+        const tagUrl = `https://api.z-api.io/instances/${zapiConfig.zapi_instance_id}/token/${zapiConfig.zapi_token}/add-tag-chat`;
+        await fetch(tagUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': zapiConfig.zapi_client_token || '' },
+          body: JSON.stringify({ phone, tagId: tagIdOverride }),
+        });
+      }
+    } catch (tagErr) {
+      console.error(`⚠️ Failed to apply tag override to ${phone}:`, tagErr);
+    }
+  }
+
      await makeMessageVisibleInInbox(supabase, lockId);
  
      // Upsert into saved_contacts to keep name and photo updated in real-time

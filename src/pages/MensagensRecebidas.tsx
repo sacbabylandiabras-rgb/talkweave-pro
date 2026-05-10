@@ -1058,7 +1058,10 @@ const ChatView = ({
                <div className="flex gap-1 flex-wrap">
                  {Array.from(new Set(conversation.messages.flatMap(m => (m as any).tags || []))).map(tagName => {
                    const tag = availableTags.find(t => t.name === tagName);
-                   const colorHex = tagColors.find(c => c.id === tag?.color)?.hex || '#94a3b8';
+                    // Z-API defines colors as numeric IDs. If availableTags has the color, use it.
+                    // Otherwise, try to find by name in availableTags to get its color ID.
+                    const effectiveColorId = tag?.color ?? 0;
+                    const colorHex = tagColors.find(c => c.id === effectiveColorId)?.hex || '#94a3b8';
                    return (
                      <Badge 
                        key={tagName} 
@@ -1473,7 +1476,7 @@ const ChatView = ({
                                  <div className="flex items-center gap-2 overflow-hidden">
                                    <div 
                                      className="w-3 h-3 rounded-full shrink-0" 
-                                     style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || 'hsl(var(--primary))' }} 
+                                  style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || '#94a3b8' }} 
                                    />
                                    <span className="text-sm truncate">{tag.name}</span>
                                  </div>
