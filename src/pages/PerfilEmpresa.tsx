@@ -56,7 +56,9 @@ interface BusinessProfile {
   catalogConfig?: {
     isCartEnabled: boolean;
     isCatalogVisible: boolean;
+    catalogId?: string;
   };
+  catalogId?: string;
 }
 
 const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
@@ -457,9 +459,20 @@ const PerfilEmpresa = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Descrição</Label>
-                    <p className="text-sm leading-relaxed">{profile.description || "Sem descrição definida"}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Descrição</Label>
+                      <p className="text-sm leading-relaxed">{profile.description || "Sem descrição definida"}</p>
+                    </div>
+                    
+                    {(profile.catalogId || profile.catalogConfig?.catalogId) && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">ID do Catálogo</Label>
+                        <code className="text-xs bg-muted/50 px-2 py-1 rounded block select-all w-fit">
+                          {profile.catalogId || profile.catalogConfig?.catalogId}
+                        </code>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-start gap-2 pt-2">
