@@ -718,6 +718,7 @@ const Modelos = () => {
     locTitle: "",
      contactName: "",
      contactPhone: "",
+     contactBusinessDescription: "",
      variables: {} as Record<string, any>,
     catalogId: "",
     productId: "",
