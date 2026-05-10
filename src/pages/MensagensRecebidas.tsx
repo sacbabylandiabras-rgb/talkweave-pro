@@ -698,6 +698,15 @@ const ChatView = ({
      }
    }, [conversation?.messages.length, conversation?.phone]);
 
+   useEffect(() => {
+     if (conversation) {
+       (window as any).handleCreateTag = handleCreateTag;
+     }
+     return () => {
+       delete (window as any).handleCreateTag;
+     };
+   }, [conversation, newTagName, newTagColor, newTagDescription]);
+
   const handleSend = async () => {
     if ((!newMessage.trim() && !attachedFile) || !conversation || sending) return;
     setSending(true);
