@@ -80,7 +80,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
-    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
+    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [note, setNote] = useState("");
     const [isSavingNote, setIsSavingNote] = useState(false);
@@ -125,16 +125,37 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     }
   };
 
+  const fetchContactMetadata = async () => {
+    if (!contact) return;
+    try {
+      const data = await getChatMetadata(contact.phone);
+      if (data) {
+        if (data.tags) {
+          const tagNames = data.tags.map((t: any) => t.name);
+          setLocalTags(tagNames);
+        }
+        if (data.notes) {
+          setNote(data.notes.content || "");
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching contact metadata:', e);
+    }
+  };
+
   useEffect(() => {
     if (!open || !contact) {
       if (!open) setZapiInstanceOverride(null);
       return;
     }
-    setLocalTags([...contact.tags]);
+    
+    setLocalTags([...(contact.tags || [])]);
     setNote(contact.notes?.content || (contact as any).notes?.content || "");
     setNewName(contact.name || '');
+    
     loadFlows();
     loadAvailableTags();
+    fetchContactMetadata();
 
     // If we have a preferred instance, set it in useZapi so subsequent actions use it
     if (preferredInstanceId && preferredInstanceId !== 'all') {
@@ -159,6 +180,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     setIsSavingNote(true);
     try {
       await saveChatNote(contact.phone, note);
+      toast({ title: "Anotação salva!", description: "A anotação foi salva com sucesso no WhatsApp Business." });
       onUpdate?.();
     } catch (e) {
       console.error('handleSaveNote error:', e);
