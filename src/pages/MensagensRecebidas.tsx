@@ -1457,6 +1457,154 @@ const ChatView = ({
                    </ScrollArea>
                  </PopoverContent>
                </Popover>
+               <Popover open={addingTag} onOpenChange={setAddingTag}>
+                 <PopoverTrigger asChild>
+                   <Button
+                     variant="ghost"
+                     size="icon"
+                     className="shrink-0 h-10 w-10"
+                     disabled={sending}
+                     title="Gerenciar etiquetas"
+                   >
+                     <Tag className="w-4 h-4 text-blue-500" />
+                   </Button>
+                 </PopoverTrigger>
+                 <PopoverContent className="w-80 p-0" align="start" side="top">
+                   <div className="p-3 border-b border-border bg-muted/20">
+                     <div className="flex items-center justify-between mb-2">
+                       <h4 className="text-sm font-semibold">Etiquetas do Contato</h4>
+                       <Button 
+                         variant="ghost" 
+                         size="icon" 
+                         className="h-6 w-6" 
+                         onClick={() => {
+                           setNewTagName("");
+                           setNewTagDescription("");
+                           setNewTagColor(tagColors[0]?.id ?? 0);
+                           setIsCreateTagOpen(true);
+                         }}
+                       >
+                         <Plus className="w-4 h-4" />
+                       </Button>
+                     </div>
+                     <div className="relative">
+                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                       <Input
+                         placeholder="Buscar etiqueta..."
+                         value={tagSearchTerm}
+                         onChange={(e) => setTagSearchTerm(e.target.value)}
+                         className="h-8 pl-8 text-xs"
+                       />
+                     </div>
+                   </div>
+                   <ScrollArea className="max-h-[300px]">
+                     <div className="p-1">
+                       {loadingTags ? (
+                         <div className="flex items-center justify-center py-4">
+                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                         </div>
+                       ) : availableTags.length === 0 ? (
+                         <div className="text-center py-4 text-xs text-muted-foreground">
+                           Nenhuma etiqueta encontrada
+                         </div>
+                       ) : (
+                         availableTags
+                           .filter(t => t.name.toLowerCase().includes(tagSearchTerm.toLowerCase()))
+                           .map((tag) => {
+                             const isAttached = conversation?.messages.some(m => 
+                               m.keyword_matched?.includes(`[Tag:${tag.name}]`) || 
+                               (m as any).tags?.includes(tag.name)
+                             ) || false;
+
+                             return (
+                               <button
+                                 key={tag.id}
+                                 onClick={() => handleAddTag(tag.id)}
+                                 className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md transition-colors"
+                               >
+                                 <div className="flex items-center gap-2 overflow-hidden">
+                                   <div 
+                                     className="w-3 h-3 rounded-full shrink-0" 
+                                     style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || 'hsl(var(--primary))' }} 
+                                   />
+                                   <span className="text-sm truncate">{tag.name}</span>
+                                 </div>
+                                 {isAttached && <Check className="w-4 h-4 text-primary shrink-0" />}
+                               </button>
+                             );
+                           })
+                       )}
+                     </div>
+                   </ScrollArea>
+                 </PopoverContent>
+               </Popover>
+
+               {/* Dialog for creating new Tag */}
+               <Dialog open={isCreateTagOpen} onOpenChange={setIsCreateTagOpen}>
+                 <DialogContent className="sm:max-w-[480px]">
+                   <DialogHeader>
+                     <DialogTitle>Nova Etiqueta</DialogTitle>
+                     <DialogDescription>Crie novas tags para uma melhor organização</DialogDescription>
+                   </DialogHeader>
+                   <div className="space-y-4 py-2">
+                     <div className="space-y-2">
+                       <Label htmlFor="newTagName" className="text-sm">Nome</Label>
+                       <Input
+                         id="newTagName"
+                         placeholder="Nome da tag"
+                         value={newTagName}
+                         onChange={(e) => setNewTagName(e.target.value)}
+                       />
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label htmlFor="newTagDescription" className="text-sm">Descrição</Label>
+                       <Input
+                         id="newTagDescription"
+                         placeholder="Descrição da tag"
+                         value={newTagDescription}
+                         onChange={(e) => setNewTagDescription(e.target.value)}
+                       />
+                     </div>
+
+                     <div className="grid grid-cols-9 gap-3 pt-2">
+                       {tagColors.length > 0 ? (
+                         tagColors.map((c) => (
+                           <button
+                             key={c.id}
+                             type="button"
+                             onClick={() => setNewTagColor(c.id)}
+                             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                             style={{ backgroundColor: c.hex }}
+                             aria-label={c.label || `Cor ${c.id}`}
+                           >
+                             {newTagColor === c.id && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
+                           </button>
+                         ))
+                       ) : (
+                         ['#ef4444', '#dc2626', '#f87171', '#fb7185', '#ec4899', '#f472b6', '#fed7aa', '#f97316', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#7dd3fc', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d8b4fe', '#94a3b8', '#000000'].map((hex, idx) => (
+                           <button
+                             key={idx}
+                             type="button"
+                             onClick={() => setNewTagColor(idx)}
+                             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                             style={{ backgroundColor: hex }}
+                           >
+                             {newTagColor === idx && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
+                           </button>
+                         ))
+                       )}
+                     </div>
+                   </div>
+                   <DialogFooter>
+                     <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()} className="w-full sm:w-auto">
+                       {loadingTags ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+                       Confirmar
+                     </Button>
+                   </DialogFooter>
+                 </DialogContent>
+               </Dialog>
+
                <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
