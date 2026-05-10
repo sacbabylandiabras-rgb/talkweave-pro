@@ -261,8 +261,12 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/business/company-address", body: { value: payload?.address ?? payload?.value } };
      case 'company-websites':
        return { method: 'POST', path: "/business/company-websites", body: { websites: payload?.websites || (payload?.value ? [payload.value] : []) } };
-     case 'business-hours':
-       return { method: 'POST', path: "/business/business-hours", body: payload };
+    case 'business-hours':
+      return { method: 'POST', path: "/business/business-hours", body: payload };
+    case 'available-categories':
+      return { method: 'GET', path: "/business/available-categories" };
+    case 'company-categories':
+      return { method: 'POST', path: "/business/categories", body: payload };
 
     // Group Actions
     case 'get-groups':
