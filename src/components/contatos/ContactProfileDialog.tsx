@@ -3,6 +3,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -82,6 +83,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [sendingFlow, setSendingFlow] = useState(false);
     const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+    const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
     const [note, setNote] = useState("");
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [loadingTags, setLoadingTags] = useState(false);
@@ -110,6 +112,17 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       toast({ title: "Erro ao carregar fluxos", variant: "destructive" });
     } finally {
       setLoadingFlows(false);
+    }
+  };
+
+  const fetchTagColors = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "tag-colors" },
+      });
+      setTagColors(Array.isArray(data?.data) ? data.data : []);
+    } catch (err) {
+      console.error("Erro ao buscar cores de etiquetas:", err);
     }
   };
 
@@ -155,6 +168,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     
     loadFlows();
     loadAvailableTags();
+    fetchTagColors();
     fetchContactMetadata();
 
     // If we have a preferred instance, set it in useZapi so subsequent actions use it
@@ -583,12 +597,23 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <p className="text-xs text-muted-foreground">Nenhuma tag</p>
                 ) : (
                   localTags.map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs gap-1 pr-1">
-                      {tag}
-                      <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-destructive">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
+                    (() => {
+                      const tagObj = availableTags.find(t => t.name === tag);
+                      const colorHex = tagColors.find(c => c.id === tagObj?.color)?.hex || '#94a3b8';
+                      return (
+                        <Badge 
+                          key={tag} 
+                          variant="secondary" 
+                          className="text-xs gap-1 pr-1 text-white"
+                          style={{ backgroundColor: colorHex }}
+                        >
+                          {tag}
+                          <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-100">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })()
                   ))
                 )}
               </div>
