@@ -112,6 +112,7 @@ const PerfilEmpresa = () => {
   const [loadingTags, setLoadingTags] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
+  const [editingTag, setEditingTag] = useState<WhatsappTag | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +212,29 @@ const PerfilEmpresa = () => {
       fetchTags(selectedInstanceId);
     } catch (err: any) {
       toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const handleEditTag = async () => {
+    if (!editingTag || !editingTag.name.trim()) return;
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { 
+          action: "edit-tag", 
+          instanceDbId: selectedInstanceId, 
+          payload: { id: editingTag.id, name: editingTag.name, color: editingTag.color } 
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      toast({ title: "Etiqueta atualizada" });
+      setEditingTag(null);
+      fetchTags(selectedInstanceId);
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar etiqueta", description: err.message, variant: "destructive" });
     } finally {
       setLoadingTags(false);
     }
