@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
-   Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image
+   Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
+    Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image, RefreshCw
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Contact } from "@/hooks/useContacts";
