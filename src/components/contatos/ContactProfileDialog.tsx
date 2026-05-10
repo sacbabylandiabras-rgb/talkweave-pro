@@ -80,7 +80,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
-    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride } = useZapi();
+    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat } = useZapi();
+    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+    const [loadingTags, setLoadingTags] = useState(false);
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -109,6 +111,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     }
   };
 
+  const loadAvailableTags = async () => {
+    setLoadingTags(true);
+    try {
+      const data = await listTags();
+      setAvailableTags(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('loadAvailableTags error:', e);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
   useEffect(() => {
     if (!open || !contact) {
       if (!open) setZapiInstanceOverride(null);
@@ -117,6 +131,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     setLocalTags([...contact.tags]);
     setNewName(contact.name || '');
     loadFlows();
+    loadAvailableTags();
 
     // If we have a preferred instance, set it in useZapi so subsequent actions use it
     if (preferredInstanceId && preferredInstanceId !== 'all') {
@@ -154,16 +169,35 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     onUpdate?.();
   };
 
-  const handleAddTag = () => {
-    if (!newTag.trim() || localTags.includes(newTag.trim())) return;
-    setLocalTags([...localTags, newTag.trim()]);
-    setNewTag("");
-    setAddingTag(false);
-    toast({ title: "Tag adicionada", description: newTag.trim() });
+  const handleAddTag = async (tagId: string, tagName: string) => {
+    if (!contact) return;
+    try {
+      await addTagChat(contact.phone, tagId);
+      if (!localTags.includes(tagName)) {
+        setLocalTags([...localTags, tagName]);
+      }
+      setAddingTag(false);
+      onUpdate?.();
+    } catch (e) {
+      console.error('handleAddTag error:', e);
+    }
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setLocalTags(localTags.filter(t => t !== tag));
+  const handleRemoveTag = async (tagName: string) => {
+    if (!contact) return;
+    const tagObj = availableTags.find(t => t.name === tagName);
+    if (!tagObj) {
+      setLocalTags(localTags.filter(t => t !== tagName));
+      return;
+    }
+
+    try {
+      await removeTagChat(contact.phone, tagObj.id);
+      setLocalTags(localTags.filter(t => t !== tagName));
+      onUpdate?.();
+    } catch (e) {
+      console.error('handleRemoveTag error:', e);
+    }
   };
 
   const handleSendFlow = async () => {
