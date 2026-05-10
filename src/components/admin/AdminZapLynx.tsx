@@ -11,13 +11,15 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers, UserProfile } from "@/hooks/useAdminUsers";
 import { useAdminKycQueue } from "@/hooks/useGatewayKyc";
-import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2, Wallet, Clock, CheckCircle, XCircle, Eye, FileSearch, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, Shield, ShieldOff, UserCheck, UserX, RefreshCw, Pencil, Users, DollarSign, Key, AlertCircle, Trash2, Wallet, Clock, CheckCircle, XCircle, Eye, FileSearch, ThumbsUp, ThumbsDown, MessageSquare, Save, Search } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { ViewUserAccountDialog } from "@/components/admin/ViewUserAccountDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface Withdrawal {
   id: string;
@@ -98,7 +100,35 @@ const AdminZapLynx = () => {
   const [wTab, setWTab] = useState("pending");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; withdrawal: Withdrawal | null; action: "approved" | "rejected" }>({ open: false, withdrawal: null, action: "approved" });
   const [adminNotes, setAdminNotes] = useState("");
+  const [notePhone, setNotePhone] = useState("");
+  const [chatNote, setChatNote] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [noteInstanceId, setNoteInstanceId] = useState("");
   const [wSubmitting, setWSubmitting] = useState(false);
+
+  const handleSaveChatNote = async () => {
+    const phone = notePhone.replace(/\D/g, "");
+    if (!phone || !chatNote.trim() || !noteInstanceId) {
+      toast.error("Informe a instância, o telefone e o conteúdo da nota");
+      return;
+    }
+    setIsSavingNote(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "save-chat-notes", phone, instanceDbId: noteInstanceId, payload: { notes: chatNote.trim() } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : data.error?.message || "Erro na API");
+      toast.success("Nota salva com sucesso!");
+      setChatNote("");
+      setNotePhone("");
+    } catch (err: any) {
+      console.error("Error saving chat note:", err);
+      toast.error("Erro ao salvar nota: " + err.message);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   const fetchWithdrawals = async () => {
     setWLoading(true);
@@ -379,6 +409,82 @@ const AdminZapLynx = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* === SEÇÃO NOTAS DE CHAT === */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-primary" />
+            <CardTitle>Notas de Chats (WhatsApp Business)</CardTitle>
+          </div>
+          <CardDescription>Adicione anotações internas a conversas específicas utilizando a API oficial.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Selecione a Instância Z-API</Label>
+                <Select value={noteInstanceId} onValueChange={setNoteInstanceId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha uma instância..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.filter(u => u.zapi_instance_id).map(u => (
+                      <SelectItem key={u.id} value={u.zapi_instance_id!}>
+                        {u.full_name || u.email} ({u.zapi_instance_id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Telefone do Cliente (DDI + DDD + Número)</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Ex: 5511999999999" 
+                    value={notePhone} 
+                    onChange={e => setNotePhone(e.target.value)} 
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nota / Anotação Interna</Label>
+                <Textarea 
+                  placeholder="Digite aqui as observações sobre este chat..." 
+                  value={chatNote} 
+                  onChange={e => setChatNote(e.target.value)} 
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              <Button 
+                className="w-full" 
+                onClick={handleSaveChatNote} 
+                disabled={isSavingNote || !notePhone || !chatNote.trim() || !noteInstanceId}
+              >
+                {isSavingNote ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Nota no Chat
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
