@@ -130,6 +130,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showBusiness, setShowBusiness] = useState(false);
+    const [businessLoading, setBusinessLoading] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
    const fetchCollections = async () => {
