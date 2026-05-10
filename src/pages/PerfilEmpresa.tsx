@@ -30,6 +30,7 @@ interface Product {
     original: string;
     thumbnail: string;
   };
+  images?: Array<string | { url?: string; requested?: string; original?: string; thumbnail?: string }>;
 }
 
 interface BusinessProfile {
@@ -60,6 +61,20 @@ const formatErrorMessage = (value: unknown, fallback = "Não foi possível concl
   }
 
   return String(value);
+};
+
+const getProductImageUrl = (product?: Partial<Product> | null): string => {
+  if (!product) return "";
+  if (typeof product.imageUrls === "string") return product.imageUrls;
+  const imageUrls = product.imageUrls as Product["imageUrls"] | undefined;
+  const firstImage = Array.isArray(product.images) ? product.images[0] : undefined;
+
+  if (typeof firstImage === "string") return firstImage;
+  if (firstImage && typeof firstImage === "object") {
+    return firstImage.thumbnail || firstImage.url || firstImage.requested || firstImage.original || "";
+  }
+
+  return imageUrls?.thumbnail || imageUrls?.requested || imageUrls?.original || "";
 };
 
 const PerfilEmpresa = () => {
