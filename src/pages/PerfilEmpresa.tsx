@@ -520,7 +520,7 @@ const PerfilEmpresa = () => {
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-sm line-clamp-2 leading-tight">{product.name}</h3>
                         <Badge variant="secondary" className="shrink-0 font-mono bg-primary/10 text-primary border-primary/20">
-                          {product.currency} {product.price}
+                          {product.currency} {(Number(product.price || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -535,7 +535,7 @@ const PerfilEmpresa = () => {
                             size="icon" 
                             className="w-8 h-8"
                             onClick={() => {
-                              setEditingProduct(product);
+                              setEditingProduct({ ...product, price: Number(product.price || 0) / 1000 });
                               setIsDialogOpen(true);
                             }}
                           >
