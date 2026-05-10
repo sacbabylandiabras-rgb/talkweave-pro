@@ -564,7 +564,31 @@ const PerfilEmpresa = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="imageUrl" className="text-right">Imagem URL</Label>
-              <Input value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''} onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))} className="col-span-3" />
+              <div className="col-span-3 flex flex-col gap-2">
+                <Input
+                  value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''}
+                  onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))}
+                  placeholder="https://..."
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="imageUpload"
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingImage}
+                    onChange={handleImageUpload}
+                    className="flex-grow"
+                  />
+                  {isUploadingImage && <span className="text-xs text-muted-foreground">Enviando...</span>}
+                </div>
+                {(typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested) && (
+                  <img
+                    src={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested}
+                    alt="Pré-visualização"
+                    className="h-20 w-20 rounded-md object-cover border border-border"
+                  />
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isHidden" className="text-right">Oculto</Label>
