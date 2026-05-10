@@ -875,6 +875,53 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           </DialogContent>
         </Dialog>
 
+        {/* Collection Products Dialog */}
+        <Dialog open={!!viewingProductsId} onOpenChange={(open) => !open && setViewingProductsId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" /> Produtos da Coleção
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {productsLoading ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Buscando produtos...</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-8 space-y-2">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">Nenhum produto nesta coleção.</p>
+                </div>
+              ) : (
+                <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
+                  {products.map((prod: any, idx: number) => (
+                    <div key={prod.id || idx} className="p-3 border rounded-lg bg-muted/20 flex gap-3 items-center">
+                      {prod.image_url || prod.url ? (
+                        <img src={prod.image_url || prod.url} alt={prod.name} className="w-12 h-12 rounded object-cover border" />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
+                          <Package className="w-6 h-6 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{prod.name || prod.title}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs text-primary font-medium">
+                            {prod.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: prod.currency || 'BRL' }).format(prod.price / 1000) : 'Preço não inf.'}
+                          </span>
+                          <Badge variant="outline" className="text-[10px]">{prod.id || prod.retailer_id}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Edit Collection Dialog */}
         <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
           <DialogContent className="sm:max-w-md">
