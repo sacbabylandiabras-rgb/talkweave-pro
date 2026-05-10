@@ -119,7 +119,12 @@ const PerfilEmpresa = () => {
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error?.message || data.error);
+      if (data?.error) {
+        const msg = typeof data.error === 'string'
+          ? data.error
+          : (data.error?.message || data.error?.error || JSON.stringify(data.error));
+        throw new Error(msg);
+      }
       
       if (cursor) {
         setProducts(prev => [...prev, ...(data?.data?.products || [])]);
