@@ -269,10 +269,11 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/business/categories", body: payload };
      case 'business-profile':
        return { method: 'GET', path: "/business/profile" };
-      case 'list-products': {
-        const phoneParam = payload?.phone ? `?phone=${payload.phone}` : '';
-        return { method: 'GET', path: `/catalogs${phoneParam}` };
-      }
+      case 'list-products':
+        if (payload?.phone) {
+          return { method: 'GET', path: `/catalogs?phone=${payload.phone}` };
+        }
+        return { method: 'POST', path: "/catalogs", body: { nextCursor: payload?.nextCursor || null } };
      case 'edit-product':
      case 'create-product':
        return { method: 'POST', path: "/products", body: payload };
