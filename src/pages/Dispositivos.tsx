@@ -817,6 +817,29 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             <Send className="w-3 h-3 mr-1" /> Enviar
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="h-7 text-[11px] px-2"
+            onClick={async () => {
+              try {
+                toast({ title: "🧹 Limpando fila...", description: "Aguarde alguns segundos." });
+                const { data, error } = await supabase.functions.invoke('clear-zapi-queue', {
+                  body: { instanceId: instance.id },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.message || data.error);
+                toast({ title: "✅ Fila limpa", description: "As mensagens pendentes foram removidas." });
+              } catch (err) {
+                const message = await getInvokeErrorMessage(err, 'Erro ao limpar fila');
+                toast({ title: "❌ Erro ao limpar fila", description: message, variant: "destructive" });
+              }
+            }}
+          >
+            <Trash2 className="w-3 h-3 mr-1" /> Limpar fila
+          </Button>
+
            {!isConnected && (
              <Button size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowConnect(!showConnect)}>
                <Wifi className="w-3 h-3 mr-1" /> Conectar
