@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Loader2, ShieldCheck, MessageSquare } from "lucide-react";
+import { Smartphone, Loader2, ShieldCheck, MessageSquare, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ZapiInstance } from "@/hooks/useZapiInstances";
@@ -35,6 +35,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [appealToken, setAppealToken] = useState<string | null>(null);
   const [unbanDescription, setUnbanDescription] = useState("");
   const [unbanStatus, setUnbanStatus] = useState<string | null>(null);
+  const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -182,6 +183,23 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleGetEmail = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    setLoading(true);
+    try {
+      const res = await call("get-account-email", {});
+      setAccountEmail({ email: res?.email, hasEmail: res?.hasEmail, verified: res?.verified });
+      toast({
+        title: res?.hasEmail ? "✅ E-mail da conta" : "Sem e-mail vinculado",
+        description: res?.hasEmail ? `${res?.email || ""}${res?.verified ? " (verificado)" : ""}` : "Nenhum e-mail cadastrado.",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -264,7 +282,18 @@ export const MobileEmulator = ({ instances }: Props) => {
             2. Solicitar código
           </Button>
           <Button onClick={reset} variant="ghost" size="sm">Limpar</Button>
+          <Button onClick={handleGetEmail} variant="outline" size="sm" disabled={loading || !instanceDbId}>
+            <Mail className="w-4 h-4 mr-2" /> Ver e-mail da conta
+          </Button>
         </div>
+
+        {accountEmail && (
+          <p className="text-xs text-muted-foreground">
+            {accountEmail.hasEmail
+              ? <>📧 E-mail: <span className="font-mono">{accountEmail.email}</span> {accountEmail.verified ? "(verificado)" : "(não verificado)"}</>
+              : "Nenhum e-mail vinculado à conta."}
+          </p>
+        )}
 
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
         {waitInfo && (
