@@ -1196,12 +1196,6 @@ serve(async (req) => {
                 | { type: "carousel"; message: string; cards: any[] }
                 | { type: "catalog"; productId: string; catalogId: string; caption: string }
                 | { type: "contact"; contactName: string; contactPhone: string; caption: string },
-              const sendWelcomeContact = async (name: string, phone: string, caption: string) =>
-                sendWelcomeWithFallback({ type: "contact", contactName: name, contactPhone: phone, caption }, "Welcome contact");
-
-              const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
-                sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
-
                 context: string,
               ) => {
                 try {
