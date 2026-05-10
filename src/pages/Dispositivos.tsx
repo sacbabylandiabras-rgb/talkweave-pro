@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
@@ -1083,6 +1084,170 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 };
 
 
+const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [productsRaw, setProductsRaw] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const handleSubmit = async () => {
+    const collectionName = name.trim();
+    const productIds = productsRaw
+      .split(/[\s,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (!collectionName) {
+      toast({ title: "Informe o nome da coleção", variant: "destructive" });
+      return;
+    }
+    if (productIds.length === 0) {
+      toast({ title: "Adicione ao menos um ID de produto", variant: "destructive" });
+      return;
+    }
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    if (targets.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const inst of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: {
+            action: "create-collection",
+            instanceDbId: inst.id,
+            payload: {
+              name: collectionName,
+              products: productIds.map((id) => ({ id })),
+            },
+          },
+        });
+        if (error) {
+          const msg = await getInvokeErrorMessage(error, "Falha ao criar coleção");
+          throw new Error(msg);
+        }
+        if ((data as any)?.error) throw new Error((data as any).error);
+        success++;
+      } catch (err) {
+        failed++;
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${err instanceof Error ? err.message : "Erro"}`);
+      }
+    }
+
+    setSubmitting(false);
+    toast({
+      title: success > 0 ? "✅ Coleção criada" : "❌ Erro",
+      description:
+        failed > 0
+          ? `${success} de ${targets.length} criada(s). Erros:\n${errors.slice(0, 3).join("\n")}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ""}`
+          : `Coleção criada em ${success} instância(s)`,
+      variant: failed === targets.length ? "destructive" : "default",
+      duration: failed > 0 ? 8000 : 3000,
+    });
+
+    if (success > 0) {
+      setName("");
+      setProductsRaw("");
+    }
+  };
+
+  if (instances.length === 0) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5" /> Criar Coleção do Catálogo
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Crie uma coleção a partir de produtos do catálogo do WhatsApp Business nas instâncias selecionadas.
+          </p>
+        </DialogHeader>
+        <div className="space-y-5 pt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={submitting}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => (
+                <label
+                  key={inst.id}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(inst.id)}
+                    onChange={() => toggleOne(inst.id)}
+                    disabled={submitting}
+                    className="accent-primary"
+                  />
+                  <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nome da Coleção</Label>
+            <Input
+              placeholder="Ex.: Lançamentos"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={submitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>IDs dos Produtos</Label>
+            <Textarea
+              placeholder="Cole um ID por linha (ou separados por vírgula)"
+              value={productsRaw}
+              onChange={(e) => setProductsRaw(e.target.value)}
+              disabled={submitting}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use os IDs dos produtos já cadastrados no catálogo do WhatsApp Business.
+            </p>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !name.trim() || !productsRaw.trim() || selectedIds.length === 0}
+            className="w-full"
+          >
+            {submitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Criando...</>
+            ) : (
+              <><LayoutGrid className="w-4 h-4 mr-2" /> Criar nas {selectedIds.length} instância(s)</>
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
   // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
@@ -1092,6 +1257,7 @@ const Dispositivos = () => {
   );
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -1105,6 +1271,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
               <User className="w-4 h-4 mr-1" />
               Perfil WhatsApp
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Criar Coleção
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
@@ -1134,6 +1306,9 @@ const Dispositivos = () => {
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+
+      {/* Bulk Create Collection Dialog */}
+      <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
