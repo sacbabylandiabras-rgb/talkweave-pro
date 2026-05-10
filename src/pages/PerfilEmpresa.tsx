@@ -357,23 +357,8 @@ const PerfilEmpresa = () => {
                           {url}
                         </a>
                       ))}
-              </div>
-              
-              {nextCursor && (
-                <div className="flex justify-center pt-8">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => fetchProducts(selectedInstanceId, isExternalCatalog ? searchPhone : undefined, nextCursor)}
-                    disabled={loadingMore}
-                    className="gap-2"
-                  >
-                    {loadingMore ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    Carregar mais produtos
-                  </Button>
-                </div>
-              )}
-            </>
-            ) : (
+                    </div>
+                  ) : (
                     <p className="text-sm">Não informado</p>
                   )}
                 </div>
