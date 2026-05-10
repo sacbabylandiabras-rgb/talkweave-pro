@@ -660,9 +660,22 @@ const PerfilEmpresa = () => {
                           })()}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                        {product.description || "Sem descrição"}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {product.description || "Sem descrição"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60 font-mono bg-muted/30 px-1.5 py-0.5 rounded w-fit select-all hover:bg-muted/50 transition-colors">
+                          ID: {product.id}
+                        </p>
+                      </div>
+            {editingProduct?.id && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">ID</Label>
+                <div className="col-span-3">
+                  <code className="text-xs bg-muted p-2 rounded block select-all">{editingProduct.id}</code>
+                </div>
+              </div>
+            )}
                     </CardContent>
                     <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
                       {!isExternalCatalog ? (
