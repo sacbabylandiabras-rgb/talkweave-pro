@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import MediaModelSection from "@/components/envio/MediaModelSection";
 import WhatsAppCarouselPreview from "@/components/envio/WhatsAppCarouselPreview";
+import EventosSection from "@/components/envio/EventosSection";
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 const parseSpecialTemplate = (content?: string | null) => {
