@@ -24,6 +24,7 @@ const SPECIAL_FIELD_DEFAULTS = {
   locTitle: "",
    contactName: "",
    contactPhone: "",
+   catalogId: "",
    productId: "",
  };
 
@@ -52,11 +53,15 @@ const buildSpecialContent = (type: string, data: any): string => {
     const vars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
       ? data.variables as Record<string, any>
       : {};
-     payload.copyText = vars.copyText || data.header || data.content || "";
-     payload.description = data.content || "";
-   }
-   return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
- };
+      payload.copyText = vars.copyText || data.header || data.content || "";
+      payload.description = data.content || "";
+    } else if (type === "produto") {
+      payload.catalogId = data.catalogId || "";
+      payload.productId = data.productId || "";
+      payload.description = data.content || "";
+    }
+    return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+  };
 
 const parseSpecialContent = (content: string): any | null => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
@@ -263,26 +268,38 @@ const SpecialFieldsEditor = ({
   }
 
 
-   if (type === "produto") {
-     return (
-       <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-         <div className="flex items-center gap-2 text-sm font-medium">
-           <ShoppingBag className="w-4 h-4" /> Enviar Produto
-         </div>
-         <div>
-           <Label>ID do Produto (conforme cadastrado no Catálogo)</Label>
-           <Input
-             placeholder="Ex: 123456789"
-             value={data.productId || ""}
-             onChange={(e) => onChange({ productId: e.target.value })}
-           />
-           <p className="text-xs text-muted-foreground mt-1">
-             Informe o ID do produto que deseja enviar. Você pode encontrar este ID na seção de Catálogo.
-           </p>
-         </div>
-       </div>
-     );
-   }
+  if (type === "produto") {
+    return (
+      <div className="space-y-4 border rounded-xl p-4 bg-accent/10 border-accent/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          <ShoppingBag className="w-5 h-5" /> Enviar Produto do Catálogo
+        </div>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">ID do Catálogo (Opcional)</Label>
+            <Input
+              placeholder="Ex: 123456789 (vazio para catálogo padrão)"
+              value={data.catalogId || ""}
+              onChange={(e) => onChange({ catalogId: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">ID do Produto *</Label>
+            <Input
+              placeholder="Ex: 987654321"
+              value={data.productId || ""}
+              onChange={(e) => onChange({ productId: e.target.value })}
+              className="bg-background border-primary/50 focus-visible:ring-primary"
+            />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              ID do produto cadastrado no Gerenciador de Comércio do Facebook. Obrigatório para este tipo de mensagem.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
  
   return null;
 };
@@ -647,7 +664,8 @@ const Modelos = () => {
     locTitle: "",
     // Contato (vCard)
     contactName: "",
-     contactPhone: "",
+    contactPhone: "",
+    catalogId: "",
     productId: "",
    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
@@ -682,6 +700,7 @@ const Modelos = () => {
      contactName: "",
      contactPhone: "",
      variables: {} as Record<string, any>,
+    catalogId: "",
     productId: "",
    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -934,7 +953,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
        setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -1009,6 +1028,7 @@ const Modelos = () => {
       locAddress: special.address || "",
       locTitle: special.title || "",
       contactName: special.contactName || "",
+      catalogId: special.catalogId || "",
       productId: special.productId || "",
        contactPhone: special.contactPhone || "",
      });
@@ -1149,7 +1169,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1184,7 +1204,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
   };
 
   const addButton = useCallback((isEdit = false) => {

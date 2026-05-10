@@ -87,7 +87,7 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
@@ -209,23 +209,21 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
     }
 
-     if (isProductTemplate) {
-       const special = parseSpecialTemplate(modeloData?.content);
-       const prodId = special?.productId || (modeloData as any)?.productId || '';
-       if (!prodId) throw new Error('ID do produto não encontrado no modelo');
- 
-       await sendButtonActions(
-         phone,
-         mensagemPersonalizada || modeloData?.name || 'Veja este produto',
-         [],
-         undefined,
-         undefined,
-         undefined,
-         'product',
-         { productId: prodId }
-       );
-       return `[produto:${prodId}] ${modeloData?.name || mensagemPersonalizada || 'Produto enviado'}`;
-     }
+    if (isProductTemplate) {
+      const special = parseSpecialTemplate(modeloData?.content);
+      const prodId = special?.productId || (modeloData as any)?.productId || '';
+      const catId = special?.catalogId || (modeloData as any)?.catalogId || '';
+      if (!prodId) throw new Error('ID do produto não encontrado no modelo');
+
+      await sendMessageCatalog(
+        phone,
+        catId,
+        prodId,
+        mensagemPersonalizada || modeloData?.name || '',
+        modeloData?.footer || ''
+      );
+      return `[produto:${prodId}] ${modeloData?.name || mensagemPersonalizada || 'Produto enviado'}`;
+    }
  
      if (temCarrossel) {
       await sendCarousel(phone, modeloData!.carouselCards as any, mensagemPersonalizada);

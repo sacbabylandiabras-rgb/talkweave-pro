@@ -56,7 +56,7 @@ const typeIcons: Record<string, any> = {
   poll: HelpCircle,
   order: ShoppingBag,
   product: Package,
-  catalog: List,
+  catalog: ShoppingBag,
   reaction: Smile,
   "remove-reaction": X,
   reply: Reply,
@@ -87,7 +87,7 @@ const typeLabels: Record<string, string> = {
   poll: "Enquete / Poll",
   order: "Pedido / Checkout",
   product: "Produto Específico",
-  catalog: "Catálogo",
+  catalog: "Mensagem de Produto",
   reaction: "Reação",
   "remove-reaction": "Remover Reação",
   reply: "Responder Mensagem",
@@ -121,13 +121,17 @@ function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; me
     );
   }
 
-  if (contentType === "product" || contentType === "order") {
+  if (contentType === "product" || contentType === "order" || contentType === "catalog") {
     return (
       <div className="mt-2 flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 p-2 rounded-md">
         <ShoppingBag className="w-4 h-4 text-blue-500" />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-bold truncate">{contentType === "product" ? "Produto" : data.orderTitle || "Pedido"}</div>
-          <div className="text-[9px] text-muted-foreground truncate">{contentType === "product" ? `ID: ${data.productId}` : `Total: R$ ${data.orderTotal}`}</div>
+          <div className="text-[10px] font-bold truncate">
+            {contentType === "product" ? "Produto" : contentType === "catalog" ? "Mensagem Catálogo" : data.orderTitle || "Pedido"}
+          </div>
+          <div className="text-[9px] text-muted-foreground truncate">
+            {contentType === "product" ? `ID: ${data.productId}` : contentType === "catalog" ? `ID: ${data.productId}` : `Total: R$ ${data.orderTotal}`}
+          </div>
         </div>
       </div>
     );
