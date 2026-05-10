@@ -126,6 +126,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [viewingProductsId, setViewingProductsId] = useState<string | number | null>(null);
     const [products, setProducts] = useState<any[]>([]);
     const [productsLoading, setProductsLoading] = useState(false);
+    const [addingProductId, setAddingProductId] = useState("");
+    const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -219,6 +221,33 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        setViewingProductsId(null);
      } finally {
        setProductsLoading(false);
+     }
+   };
+
+   const addProductToCollection = async (collectionId: string | number) => {
+     if (!addingProductId.trim()) return;
+     setIsAddingProduct(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'add-products-to-collection', 
+           instanceDbId: instance.id,
+           payload: { 
+             collectionId, 
+             products: [{ id: addingProductId.trim() }] 
+           }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Produto adicionado" });
+       setAddingProductId("");
+       fetchCollectionProducts(collectionId);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao adicionar produto');
+       toast({ title: "❌ Erro ao adicionar", description: message, variant: "destructive" });
+     } finally {
+       setIsAddingProduct(false);
      }
    };
 
