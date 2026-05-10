@@ -380,16 +380,240 @@ const PerfilEmpresa = () => {
               )}
             </CardContent>
           </Card>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <AlertCircle className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-          <h2 className="text-xl font-semibold mb-1">Nenhum dado encontrado</h2>
-          <p className="text-muted-foreground max-w-xs">Não foi possível carregar as informações desta instância.</p>
-        </div>
-      )}
-    </div>
-  );
-};
+             </div>
+           ) : (
+             <div className="flex flex-col items-center justify-center py-20 text-center">
+               <AlertCircle className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
+               <h2 className="text-xl font-semibold mb-1">Nenhum dado encontrado</h2>
+               <p className="text-muted-foreground max-w-xs">Não foi possível carregar as informações desta instância.</p>
+             </div>
+           )}
+         </TabsContent>
+ 
+         <TabsContent value="catalogo" className="space-y-6">
+           <div className="flex items-center justify-between">
+             <h2 className="text-lg font-semibold flex items-center gap-2">
+               <ShoppingBag className="w-5 h-5 text-primary" />
+               Produtos ({products.length})
+             </h2>
+             <Button onClick={() => {
+               setEditingProduct({ currency: 'BRL', isHidden: false });
+               setIsDialogOpen(true);
+             }} className="gap-2">
+               <Plus className="w-4 h-4" />
+               Novo Produto
+             </Button>
+           </div>
+ 
+           {loadingProducts ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+               {[1, 2, 3, 4].map((i) => (
+                 <Skeleton key={i} className="h-64 w-full rounded-xl" />
+               ))}
+             </div>
+           ) : products.length > 0 ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+               {products.map((product) => (
+                 <Card key={product.id} className="overflow-hidden border-border/50 bg-card/50 flex flex-col group">
+                   <div className="aspect-square bg-muted relative overflow-hidden">
+                     {product.imageUrls?.thumbnail ? (
+                       <img 
+                         src={product.imageUrls.thumbnail} 
+                         alt={product.name}
+                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                       />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                         <ShoppingBag className="w-12 h-12 opacity-20" />
+                       </div>
+                     )}
+                     {product.isHidden && (
+                       <Badge variant="secondary" className="absolute top-2 right-2 gap-1 backdrop-blur-md bg-background/50">
+                         <EyeOff className="w-3 h-3" />
+                         Oculto
+                       </Badge>
+                     )}
+                   </div>
+                   <CardContent className="p-4 flex-grow space-y-2">
+                     <div className="flex items-start justify-between gap-2">
+                       <h3 className="font-semibold text-sm line-clamp-2 leading-tight">{product.name}</h3>
+                       <Badge variant="outline" className="shrink-0 font-mono">
+                         {product.currency} {product.price}
+                       </Badge>
+                     </div>
+                     <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                       {product.description || "Sem descrição"}
+                     </p>
+                   </CardContent>
+                   <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
+                     <div className="flex items-center gap-1">
+                       <Button 
+                         variant="ghost" 
+                         size="icon" 
+                         className="w-8 h-8"
+                         onClick={() => {
+                           setEditingProduct(product);
+                           setIsDialogOpen(true);
+                         }}
+                       >
+                         <Pencil className="w-3.5 h-3.5" />
+                       </Button>
+                       <Button 
+                         variant="ghost" 
+                         size="icon" 
+                         className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                         onClick={() => handleDeleteProduct(product.id)}
+                       >
+                         <Trash2 className="w-3.5 h-3.5" />
+                       </Button>
+                     </div>
+                     {product.url && (
+                       <Button variant="outline" size="sm" asChild className="h-8 text-[10px]">
+                         <a href={product.url} target="_blank" rel="noopener noreferrer" className="gap-1.5">
+                           <ExternalLink className="w-3 h-3" />
+                           Ver Site
+                         </a>
+                       </Button>
+                     )}
+                   </div>
+                 </Card>
+               ))}
+             </div>
+           ) : (
+             <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-border/50 rounded-xl">
+               <ShoppingBag className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
+               <h3 className="text-lg font-semibold mb-1">Nenhum produto</h3>
+               <p className="text-muted-foreground max-w-xs mb-6">
+                 Você ainda não tem produtos cadastrados no seu catálogo do WhatsApp.
+               </p>
+               <Button onClick={() => {
+                 setEditingProduct({ currency: 'BRL', isHidden: false });
+                 setIsDialogOpen(true);
+               }} variant="outline">
+                 Criar Primeiro Produto
+               </Button>
+             </div>
+           )}
+         </TabsContent>
+       </Tabs>
+ 
+       {/* Dialog para Criar/Editar Produto */}
+       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+         <DialogContent className="sm:max-w-[500px]">
+           <DialogHeader>
+             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+             <DialogDescription>
+               Preencha os dados do produto para o catálogo do WhatsApp.
+             </DialogDescription>
+           </DialogHeader>
+           
+           <div className="grid gap-4 py-4">
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="name" className="text-right">Nome*</Label>
+               <Input 
+                 id="name" 
+                 value={editingProduct?.name || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, name: e.target.value }))}
+                 className="col-span-3" 
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="price" className="text-right">Preço*</Label>
+               <div className="flex items-center gap-2 col-span-3">
+                 <Input 
+                   id="currency" 
+                   value={editingProduct?.currency || 'BRL'} 
+                   onChange={(e) => setEditingProduct(prev => ({ ...prev, currency: e.target.value }))}
+                   className="w-20" 
+                   placeholder="BRL"
+                 />
+                 <Input 
+                   id="price" 
+                   type="number"
+                   value={editingProduct?.price || ''} 
+                   onChange={(e) => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))}
+                   className="flex-grow" 
+                 />
+               </div>
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="salePrice" className="text-right">Promocional</Label>
+               <Input 
+                 id="salePrice" 
+                 type="number"
+                 value={editingProduct?.salePrice || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, salePrice: Number(e.target.value) }))}
+                 className="col-span-3" 
+                 placeholder="Opcional"
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="description" className="text-right">Descrição</Label>
+               <Textarea 
+                 id="description" 
+                 value={editingProduct?.description || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, description: e.target.value }))}
+                 className="col-span-3" 
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="imageUrl" className="text-right">Imagem (URL)</Label>
+               <Input 
+                 id="imageUrl" 
+                 value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))}
+                 className="col-span-3" 
+                 placeholder="https://exemplo.com/foto.jpg"
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="retailerId" className="text-right">SKU/ID</Label>
+               <Input 
+                 id="retailerId" 
+                 value={editingProduct?.retailerId || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, retailerId: e.target.value }))}
+                 className="col-span-3" 
+                 placeholder="Ex: PROD-001"
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="url" className="text-right">Link Externo</Label>
+               <Input 
+                 id="url" 
+                 value={editingProduct?.url || ''} 
+                 onChange={(e) => setEditingProduct(prev => ({ ...prev, url: e.target.value }))}
+                 className="col-span-3" 
+                 placeholder="https://sualoja.com/produto"
+               />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="isHidden" className="text-right">Oculto</Label>
+               <div className="col-span-3 flex items-center gap-2">
+                 <Switch 
+                   id="isHidden" 
+                   checked={editingProduct?.isHidden || false}
+                   onCheckedChange={(checked) => setEditingProduct(prev => ({ ...prev, isHidden: checked }))}
+                 />
+                 <span className="text-xs text-muted-foreground">Ocultar produto no catálogo</span>
+               </div>
+             </div>
+           </div>
+ 
+           <DialogFooter>
+             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
+               Cancelar
+             </Button>
+             <Button onClick={handleSaveProduct} disabled={isSaving} className="gap-2">
+               {isSaving && <RefreshCw className="w-4 h-4 animate-spin" />}
+               Salvar Alterações
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+     </div>
+   );
+ };
+ 
+ export default PerfilEmpresa;
 
 export default PerfilEmpresa;
