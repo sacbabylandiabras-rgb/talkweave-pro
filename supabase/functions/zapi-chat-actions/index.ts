@@ -307,6 +307,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: `/tags/${phone}/add/${payload?.tagId}` };
     case 'remove-tag-chat':
       return { method: 'POST', path: `/tags/${phone}/remove/${payload?.tagId}` };
+    case 'search-tags':
+      return { method: 'GET', path: `/tags/search?tagId=${payload?.tagId}` };
+    case 'tag-colors':
+      return { method: 'GET', path: "/tags/colors" };
 
     // Group Actions
     case 'get-groups':
