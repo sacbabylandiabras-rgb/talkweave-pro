@@ -5,6 +5,7 @@ import { Smartphone } from "lucide-react";
 
 const EmuladorMobile = () => {
   const { instances, loading } = useZapiInstances();
+  const mobileInstances = instances.filter((i: any) => i.instance_type === 'mobile');
 
   return (
     <div className="space-y-4">
@@ -15,18 +16,18 @@ const EmuladorMobile = () => {
         </p>
       </div>
 
-      {instances.length === 0 && !loading ? (
+      {mobileInstances.length === 0 && !loading ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Nenhuma conexão configurada</h3>
+            <h3 className="text-lg font-semibold mb-2">Nenhuma instância Mobile configurada</h3>
             <p className="text-muted-foreground">
-              Crie uma conexão na página de Dispositivos antes de usar o emulador.
+              Peça ao administrador para adicionar uma instância do tipo "Mobile" na sua conta.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <MobileEmulator instances={instances} />
+        <MobileEmulator instances={mobileInstances} />
       )}
     </div>
   );
