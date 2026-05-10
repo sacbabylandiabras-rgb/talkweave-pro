@@ -39,6 +39,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [hasPin, setHasPin] = useState<boolean | null>(null);
+  const [newPin, setNewPin] = useState("");
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -245,6 +246,22 @@ export const MobileEmulator = ({ instances }: Props) => {
         title: res?.hasCode ? "🔒 PIN configurado" : "Sem PIN",
         description: res?.hasCode ? "Esta conta possui código PIN ativo." : "Esta conta não possui código PIN.",
       });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetPin = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    if (!newPin || newPin.length < 4) return toast({ title: "Informe um PIN válido (mín. 4 dígitos)", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("set-security-code", { code: newPin });
+      toast({ title: "✅ PIN cadastrado", description: "O código PIN foi configurado na conta." });
+      setNewPin("");
+      setHasPin(true);
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
