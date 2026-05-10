@@ -66,7 +66,7 @@ const formatErrorMessage = (value: unknown, fallback = "Não foi possível concl
 const getProductImageUrl = (product?: Partial<Product> | null): string => {
   if (!product) return "";
   if (typeof product.imageUrls === "string") return product.imageUrls;
-  const imageUrls = product.imageUrls as Product["imageUrls"] | undefined;
+  const imageUrls = product.imageUrls;
   const firstImage = Array.isArray(product.images) ? product.images[0] : undefined;
 
   if (typeof firstImage === "string") return firstImage;
@@ -74,7 +74,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
     return firstImage.thumbnail || firstImage.url || firstImage.requested || firstImage.original || "";
   }
 
-  return imageUrls?.thumbnail || imageUrls?.requested || imageUrls?.original || "";
+  return typeof imageUrls === "object" ? imageUrls.thumbnail || imageUrls.requested || imageUrls.original || "" : "";
 };
 
 const PerfilEmpresa = () => {
