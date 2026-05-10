@@ -108,8 +108,11 @@ export const MobileEmulator = ({ instances }: Props) => {
       const res = await call("request-code", { ddi: onlyDigits(ddi), phone: onlyDigits(phone), method });
       if (res?.blocked) {
         const wait = res?.retryAfter ? ` Tente novamente em ${res.retryAfter}s.` : "";
-        toast({ title: "Bloqueado temporariamente", description: `Muitas tentativas.${wait}`, variant: "destructive" });
-        setInfo(`Solicitação bloqueada.${wait}`);
+        const reason = res?.reason || res?.message || (method === "wa_old"
+          ? "Pop-up no WhatsApp não disponível para este número agora. Tente SMS ou Chamada de voz."
+          : "Solicitação recusada pelo WhatsApp. Tente outro método.");
+        toast({ title: "Solicitação recusada", description: `${reason}${wait}`, variant: "destructive" });
+        setInfo(`${reason}${wait}`);
         return;
       }
       if (res?.captcha) {
