@@ -1354,6 +1354,19 @@ const getZAPIConfig = async () => {
     }
   };
 
+  const saveChatNote = async (phone: string, notes: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('save-chat-notes', phone, { notes });
+      return data;
+    } catch (error) {
+      console.error('Erro ao salvar nota do chat:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const forwardMessage = async (
     originPhone: string,
     messageId: string,
