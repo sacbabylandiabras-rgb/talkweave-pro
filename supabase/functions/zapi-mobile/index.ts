@@ -53,6 +53,7 @@ const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' | 'DELETE' 
   'verify-account-email': { path: '/security/verify-email', method: 'POST' },
   'get-has-security-code': { path: '/security/two-fa-code', method: 'GET' },
   'set-security-code': { path: '/security/two-fa-code', method: 'POST' },
+  'remove-security-code': { path: '/security/two-fa-code', method: 'DELETE' },
 };
 
 function formatErr(value: unknown, fallback: string): string {

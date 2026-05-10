@@ -283,6 +283,20 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleRemovePin = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("remove-security-code", {});
+      toast({ title: "✅ PIN removido", description: "O código PIN foi removido da conta." });
+      setHasPin(false);
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -392,6 +406,9 @@ export const MobileEmulator = ({ instances }: Props) => {
           </div>
           <Button onClick={handleSetPin} disabled={loading || !newPin || !instanceDbId} variant="outline" size="sm">
             <ShieldCheck className="w-4 h-4 mr-2" /> Salvar PIN
+          </Button>
+          <Button onClick={handleRemovePin} disabled={loading || !instanceDbId} variant="outline" size="sm">
+            <Trash2 className="w-4 h-4 mr-2" /> Remover PIN
           </Button>
         </div>
 
