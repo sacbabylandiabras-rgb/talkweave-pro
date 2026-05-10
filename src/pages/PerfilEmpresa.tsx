@@ -92,6 +92,7 @@ const PerfilEmpresa = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +110,16 @@ const PerfilEmpresa = () => {
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
-      setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
+      
+      // Also get base64 for Z-API because it's more reliable than Supabase public URLs for their crawler
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setImageBase64(base64);
+        setEditingProduct(prev => ({ ...prev, imageUrls: base64 }));
+      };
+      reader.readAsDataURL(file);
+
       toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err?.message || "Não foi possível enviar a imagem.", variant: "destructive" });
@@ -187,16 +197,22 @@ const PerfilEmpresa = () => {
     setIsSaving(true);
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
-      // Send only a public URL because the catalog API reads images from URLs.
-      const { imageUrls, ...rest } = editingProduct as any;
+      const { imageUrls: _, images: __, ...rest } = editingProduct as any;
+      
       const payload: any = {
         ...rest,
-        // Catalog API expects price as integer in 1/1000 of currency unit (100.00 -> 100000)
-        price: Math.round(Number(editingProduct.price || 0) * 1000),
+        // Reverting to raw price as user reported "100" gives wrong value with *1000
+        price: Number(editingProduct.price || 0),
       };
-      if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls)) {
-        // Catalog API expects image URLs, not base64.
-        payload.images = [imageUrls];
+
+      // Handle images: prioritize new base64 upload, then fallback to existing URL
+      if (imageBase64) {
+        payload.images = [imageBase64];
+      } else {
+        const currentUrl = getProductImageUrl(editingProduct as Product);
+        if (currentUrl && (currentUrl.startsWith('http') || currentUrl.startsWith('data:image'))) {
+          payload.images = [currentUrl];
+        }
       }
 
       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
@@ -212,6 +228,7 @@ const PerfilEmpresa = () => {
       });
 
       setIsDialogOpen(false);
+      setImageBase64(null);
       fetchProducts(selectedInstanceId);
     } catch (err: any) {
       console.error("Erro ao salvar produto:", err);
@@ -611,7 +628,16 @@ const PerfilEmpresa = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog 
+        open={isDialogOpen} 
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setImageBase64(null);
+            setEditingProduct(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
