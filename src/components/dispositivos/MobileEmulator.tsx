@@ -33,6 +33,8 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [info, setInfo] = useState<string | null>(null);
   const [waitInfo, setWaitInfo] = useState<{ sms?: number; voice?: number; waOld?: number; waOldEligible?: boolean } | null>(null);
   const [appealToken, setAppealToken] = useState<string | null>(null);
+  const [unbanDescription, setUnbanDescription] = useState("");
+  const [unbanStatus, setUnbanStatus] = useState<string | null>(null);
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -52,6 +54,8 @@ export const MobileEmulator = ({ instances }: Props) => {
     setInfo(null);
     setWaitInfo(null);
     setAppealToken(null);
+    setUnbanDescription("");
+    setUnbanStatus(null);
   };
 
   const handleAvailable = async () => {
@@ -179,6 +183,20 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleRequestUnbanning = async () => {
+    if (!appealToken) return;
+    setLoading(true);
+    try {
+      const res = await call("request-unbanning", { appealToken, description: unbanDescription });
+      setUnbanStatus(res?.status || "Solicitação enviada");
+      toast({ title: "✅ Desbanimento solicitado", description: res?.status || "Aguarde análise." });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="border-primary/20">
       <CardHeader>
@@ -247,7 +265,23 @@ export const MobileEmulator = ({ instances }: Props) => {
           </div>
         )}
         {appealToken && (
-          <p className="text-xs text-destructive break-all">Appeal token: {appealToken}</p>
+          <div className="border border-destructive/30 rounded-lg p-3 space-y-2 bg-destructive/5">
+            <Label className="text-xs flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Solicitar desbanimento
+            </Label>
+            <p className="text-[11px] text-muted-foreground break-all">Token: {appealToken}</p>
+            <Input
+              value={unbanDescription}
+              onChange={(e) => setUnbanDescription(e.target.value)}
+              placeholder="Descreva o motivo do uso do número"
+              className="h-9"
+            />
+            <Button onClick={handleRequestUnbanning} disabled={loading || !unbanDescription} size="sm" variant="destructive">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Enviar solicitação
+            </Button>
+            {unbanStatus && <p className="text-xs text-emerald-600">Status: {unbanStatus}</p>}
+          </div>
         )}
 
         {step === "captcha" && captchaImg && (
