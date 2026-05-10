@@ -1485,7 +1485,8 @@ const getZAPIConfig = async () => {
         sendReaction,
         sendSticker,
         sendGif,
-       removeReaction,
+      removeReaction,
+      getChatMetadata,
       loading,
     };
   };
