@@ -80,7 +80,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
-    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride } = useZapi();
+    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat } = useZapi();
+    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+    const [loadingTags, setLoadingTags] = useState(false);
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -109,6 +111,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     }
   };
 
+  const loadAvailableTags = async () => {
+    setLoadingTags(true);
+    try {
+      const data = await listTags();
+      setAvailableTags(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('loadAvailableTags error:', e);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
   useEffect(() => {
     if (!open || !contact) {
       if (!open) setZapiInstanceOverride(null);
@@ -117,6 +131,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     setLocalTags([...contact.tags]);
     setNewName(contact.name || '');
     loadFlows();
+    loadAvailableTags();
 
     // If we have a preferred instance, set it in useZapi so subsequent actions use it
     if (preferredInstanceId && preferredInstanceId !== 'all') {
@@ -154,16 +169,35 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     onUpdate?.();
   };
 
-  const handleAddTag = () => {
-    if (!newTag.trim() || localTags.includes(newTag.trim())) return;
-    setLocalTags([...localTags, newTag.trim()]);
-    setNewTag("");
-    setAddingTag(false);
-    toast({ title: "Tag adicionada", description: newTag.trim() });
+  const handleAddTag = async (tagId: string, tagName: string) => {
+    if (!contact) return;
+    try {
+      await addTagChat(contact.phone, tagId);
+      if (!localTags.includes(tagName)) {
+        setLocalTags([...localTags, tagName]);
+      }
+      setAddingTag(false);
+      onUpdate?.();
+    } catch (e) {
+      console.error('handleAddTag error:', e);
+    }
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setLocalTags(localTags.filter(t => t !== tag));
+  const handleRemoveTag = async (tagName: string) => {
+    if (!contact) return;
+    const tagObj = availableTags.find(t => t.name === tagName);
+    if (!tagObj) {
+      setLocalTags(localTags.filter(t => t !== tagName));
+      return;
+    }
+
+    try {
+      await removeTagChat(contact.phone, tagObj.id);
+      setLocalTags(localTags.filter(t => t !== tagName));
+      onUpdate?.();
+    } catch (e) {
+      console.error('handleRemoveTag error:', e);
+    }
   };
 
   const handleSendFlow = async () => {
@@ -451,21 +485,34 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
               </div>
 
               {addingTag && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Nome da tag..."
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
-                    className="h-8 text-sm"
-                    autoFocus
-                    onKeyDown={e => e.key === 'Enter' && handleAddTag()}
-                  />
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={handleAddTag}>
-                    <Check className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => { setAddingTag(false); setNewTag(""); }}>
-                    <X className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Select 
+                      onValueChange={(val) => {
+                        const tag = availableTags.find(t => t.id === val);
+                        if (tag) handleAddTag(tag.id, tag.name);
+                      }}
+                      disabled={loadingTags}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder={loadingTags ? "Carregando..." : "Selecionar etiqueta..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTags
+                          .filter(t => !localTags.includes(t.name))
+                          .map(tag => (
+                            <SelectItem key={tag.id} value={tag.id}>{tag.name}</SelectItem>
+                          ))
+                        }
+                        {availableTags.length === 0 && !loadingTags && (
+                          <div className="p-2 text-xs text-muted-foreground">Crie etiquetas no Perfil da Empresa</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setAddingTag(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
 

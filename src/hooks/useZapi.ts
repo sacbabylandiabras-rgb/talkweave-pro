@@ -1312,6 +1312,48 @@ const getZAPIConfig = async () => {
   const getInvitationLink = (phone: string) => invokeGroupAction('get-invitation-link', null, phone);
   const acceptGroupInvite = (payload: { inviteUrl: string }) => invokeGroupAction('accept-group-invite', payload);
 
+  const addTagChat = async (phone: string, tagId: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('add-tag-chat', phone, { tagId });
+      toast({ title: "Etiqueta adicionada", description: "O contato foi marcado com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao adicionar etiqueta:', error);
+      toast({ title: "Erro ao adicionar etiqueta", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeTagChat = async (phone: string, tagId: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeZapiAction('remove-tag-chat', phone, { tagId });
+      toast({ title: "Etiqueta removida", description: "A marcação foi removida com sucesso." });
+      return data;
+    } catch (error) {
+      console.error('Erro ao remover etiqueta:', error);
+      toast({ title: "Erro ao remover etiqueta", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const listTags = async () => {
+    setLoading(true);
+    try {
+      return await invokeZapiAction('list-tags');
+    } catch (error) {
+      console.error('Erro ao listar etiquetas:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const forwardMessage = async (
     originPhone: string,
     messageId: string,
@@ -1422,6 +1464,9 @@ const getZAPIConfig = async () => {
       redefineInvitationLink,
       getInvitationLink,
       acceptGroupInvite,
+      addTagChat,
+      removeTagChat,
+      listTags,
       forwardMessage,
         sendReaction,
         sendSticker,
