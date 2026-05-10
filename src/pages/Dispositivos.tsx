@@ -128,6 +128,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [productsLoading, setProductsLoading] = useState(false);
     const [addingProductId, setAddingProductId] = useState("");
     const [isAddingProduct, setIsAddingProduct] = useState(false);
+    const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -248,6 +249,31 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        toast({ title: "❌ Erro ao adicionar", description: message, variant: "destructive" });
      } finally {
        setIsAddingProduct(false);
+     }
+   };
+
+   const removeProductFromCollection = async (collectionId: string | number, productId: string | number) => {
+     setRemovingProductId(productId);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'remove-products-from-collection', 
+           instanceDbId: instance.id,
+           payload: { 
+             collectionId, 
+             products: [{ id: productId }] 
+           }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Produto removido" });
+       fetchCollectionProducts(collectionId);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao remover produto');
+       toast({ title: "❌ Erro ao remover", description: message, variant: "destructive" });
+     } finally {
+       setRemovingProductId(null);
      }
    };
 
