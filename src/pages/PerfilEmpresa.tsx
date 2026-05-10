@@ -182,6 +182,7 @@ const PerfilEmpresa = () => {
       });
 
       setIsDialogOpen(false);
+      setImageBase64(null);
       fetchProducts(selectedInstanceId);
     } catch (err: any) {
       console.error("Erro ao salvar produto:", err);
@@ -581,7 +582,7 @@ const PerfilEmpresa = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setImageBase64(null); }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
