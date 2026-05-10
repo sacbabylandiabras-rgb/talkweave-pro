@@ -42,7 +42,7 @@ const ACTION_PATHS: Record<string, string> = {
   'registration-available': '/mobile/registration-available',
   'request-code': '/mobile/request-registration-code',
   'captcha-confirm': '/mobile/respond-captcha',
-  'confirm-code': '/mobile/confirm-code',
+  'confirm-code': '/mobile/confirm-registration-code',
   'confirm-security-code': '/mobile/confirm-security-code',
   'forgot-security-code': '/mobile/forgot-security-code',
   'request-unbanning': '/mobile/request-unbanning',
