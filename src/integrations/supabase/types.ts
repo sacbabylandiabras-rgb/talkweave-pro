@@ -2160,6 +2160,7 @@ export type Database = {
           evolution_api_url: string | null
           id: string
           instance_name: string
+          instance_type: string
           is_active: boolean
           is_default: boolean
           updated_at: string
@@ -2175,6 +2176,7 @@ export type Database = {
           evolution_api_url?: string | null
           id?: string
           instance_name?: string
+          instance_type?: string
           is_active?: boolean
           is_default?: boolean
           updated_at?: string
@@ -2190,6 +2192,7 @@ export type Database = {
           evolution_api_url?: string | null
           id?: string
           instance_name?: string
+          instance_type?: string
           is_active?: boolean
           is_default?: boolean
           updated_at?: string
