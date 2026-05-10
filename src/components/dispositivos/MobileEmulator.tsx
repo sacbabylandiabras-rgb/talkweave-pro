@@ -36,6 +36,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [unbanDescription, setUnbanDescription] = useState("");
   const [unbanStatus, setUnbanStatus] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
+  const [newEmail, setNewEmail] = useState("");
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -200,6 +201,22 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleSetEmail = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    if (!newEmail) return toast({ title: "Informe um e-mail", variant: "destructive" });
+    setLoading(true);
+    try {
+      const res = await call("set-account-email", { email: newEmail });
+      toast({ title: "✅ E-mail cadastrado", description: res?.message || "E-mail vinculado à conta." });
+      setNewEmail("");
+      handleGetEmail();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -294,6 +311,22 @@ export const MobileEmulator = ({ instances }: Props) => {
               : "Nenhum e-mail vinculado à conta."}
           </p>
         )}
+
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cadastrar/atualizar e-mail da conta</Label>
+            <Input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="email@exemplo.com"
+              className="h-9 w-[260px]"
+            />
+          </div>
+          <Button onClick={handleSetEmail} disabled={loading || !newEmail || !instanceDbId} variant="outline" size="sm">
+            <Mail className="w-4 h-4 mr-2" /> Salvar e-mail
+          </Button>
+        </div>
 
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
         {waitInfo && (
