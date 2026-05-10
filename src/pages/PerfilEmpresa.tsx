@@ -7,13 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+
+interface WhatsappTag {
+  id: string;
+  name: string;
+  color: number;
+}
 
 interface Product {
   id: string;
@@ -95,6 +101,10 @@ const PerfilEmpresa = () => {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [tags, setTags] = useState<WhatsappTag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(0);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,8 +151,67 @@ const PerfilEmpresa = () => {
     if (selectedInstanceId) {
       fetchProfile(selectedInstanceId);
       fetchProducts(selectedInstanceId);
+      fetchTags(selectedInstanceId);
     }
   }, [selectedInstanceId]);
+
+  const fetchTags = async (instanceId: string) => {
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "list-tags", instanceDbId: instanceId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      setTags(Array.isArray(data?.data) ? data.data : []);
+    } catch (err: any) {
+      console.error("Erro ao buscar etiquetas:", err);
+      toast({ title: "Erro ao carregar etiquetas", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { 
+          action: "create-tag", 
+          instanceDbId: selectedInstanceId, 
+          payload: { name: newTagName, color: newTagColor } 
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      toast({ title: "Etiqueta criada", description: `A etiqueta "${newTagName}" foi criada com sucesso.` });
+      setNewTagName("");
+      fetchTags(selectedInstanceId);
+    } catch (err: any) {
+      toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "delete-tag", instanceDbId: selectedInstanceId, payload: { id: tagId } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      toast({ title: "Etiqueta excluída" });
+      fetchTags(selectedInstanceId);
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir etiqueta", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
 
   const fetchProducts = async (instanceId: string, phone?: string, cursor?: string) => {
     if (cursor) setLoadingMore(true);
@@ -352,7 +421,7 @@ const PerfilEmpresa = () => {
       </div>
 
       <Tabs defaultValue="perfil" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Perfil de Negócios
@@ -364,6 +433,10 @@ const PerfilEmpresa = () => {
           <TabsTrigger value="remover" className="flex items-center gap-2">
             <Trash2 className="w-4 h-4" />
             Remover Produtos
+          </TabsTrigger>
+          <TabsTrigger value="mensagens" className="flex items-center gap-2">
+            <Tag className="w-4 h-4" />
+            Etiquetas e Fluxos
           </TabsTrigger>
         </TabsList>
 
@@ -704,6 +777,113 @@ const PerfilEmpresa = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mensagens" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-primary" />
+                  Etiquetas (Tags) do WhatsApp Business
+                </CardTitle>
+                <CardDescription>Gerencie as etiquetas do seu WhatsApp Business para categorizar conversas.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-end gap-3 p-4 rounded-xl border border-dashed border-border/50 bg-background/20">
+                  <div className="flex-grow space-y-2">
+                    <Label className="text-xs">Nova Etiqueta</Label>
+                    <Input 
+                      placeholder="Ex: Cliente VIP, Aguardando Pagamento..." 
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="w-24 space-y-2">
+                    <Label className="text-xs">Cor</Label>
+                    <Select value={String(newTagColor)} onValueChange={(v) => setNewTagColor(Number(v))}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(c => (
+                          <SelectItem key={c} value={String(c)}>
+                            Cor {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()} size="sm" className="h-9">
+                    Criar
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {loadingTags ? (
+                    <Skeleton className="h-12 w-full col-span-full" />
+                  ) : tags.length > 0 ? (
+                    tags.map(tag => (
+                      <div key={tag.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/40 hover:bg-background/60 transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full bg-primary opacity-80`} style={{ filter: `hue-rotate(${tag.color * 36}deg)` }} />
+                          <span className="text-sm font-medium">{tag.name}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                          onClick={() => handleDeleteTag(tag.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-10 text-center border border-dashed border-border/50 rounded-lg">
+                      <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-20" />
+                      <p className="text-sm text-muted-foreground">Nenhuma etiqueta encontrada.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Workflow className="w-5 h-5 text-primary" />
+                  Fluxos e Automação
+                </CardTitle>
+                <CardDescription>Automatize o atendimento com base em etiquetas.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    <MessageSquare className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Disparo por Etiqueta</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Em breve você poderá disparar mensagens em massa para todos os contatos marcados com uma etiqueta específica.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
+                  <div className="flex items-center gap-2 text-foreground/80">
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Gatilhos de Fluxo</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Configure seu <strong>Fluxo Visual</strong> para ser ativado automaticamente quando uma etiqueta for adicionada a uma conversa.
+                  </p>
+                  <Button variant="outline" size="sm" className="w-full mt-2 text-[10px] h-7" onClick={() => window.location.href='/fluxo-visual'}>
+                    Ir para Fluxo Visual
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
