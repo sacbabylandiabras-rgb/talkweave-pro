@@ -244,8 +244,9 @@ const PerfilEmpresa = () => {
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+  const handleDeleteProduct = async (productId: string, productName?: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o produto "${productName || 'este produto'}"?`)) return;
+    setDeletingId(productId);
 
     try {
       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
@@ -264,7 +265,7 @@ const PerfilEmpresa = () => {
         description: "O produto foi removido do catálogo.",
       });
 
-      fetchProducts(selectedInstanceId);
+      fetchProducts(selectedInstanceId, isExternalCatalog ? searchPhone : undefined);
     } catch (err: any) {
       console.error("Erro ao excluir produto:", err);
       toast({
@@ -272,6 +273,8 @@ const PerfilEmpresa = () => {
         description: err.message,
         variant: "destructive",
       });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -641,6 +644,66 @@ const PerfilEmpresa = () => {
               <h3 className="text-lg font-semibold mb-1">Nenhum produto</h3>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="remover" className="space-y-6">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-destructive" />
+                Remover Produtos em Massa
+              </CardTitle>
+              <CardDescription>
+                Busque e remova produtos rapidamente do catálogo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Filtrar produtos carregados por nome ou ID..." 
+                  className="pl-10"
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                {loadingProducts ? (
+                  <div className="py-12 text-center text-muted-foreground">Carregando produtos...</div>
+                ) : products.length > 0 ? (
+                  products
+                    .filter(p => p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) || p.id.includes(productSearchTerm))
+                    .map((product) => (
+                      <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/30 hover:bg-background/50 transition-colors">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{product.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">ID: {product.id}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteProduct(product.id, product.name)}
+                          disabled={deletingId === product.id}
+                        >
+                          {deletingId === product.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    ))
+                ) : (
+                  <div className="py-8 text-center border-2 border-dashed border-border/50 rounded-lg">
+                    <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-20" />
+                    <p className="text-sm text-muted-foreground">Nenhum produto carregado.</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
