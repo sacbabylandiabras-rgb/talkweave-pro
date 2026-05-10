@@ -496,10 +496,6 @@ const PerfilEmpresa = () => {
             <Trash2 className="w-4 h-4" />
             Remover Produtos
           </TabsTrigger>
-          <TabsTrigger value="mensagens" className="flex items-center gap-2">
-            <Tag className="w-4 h-4" />
-            Etiquetas e Fluxos
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-6">
@@ -841,92 +837,6 @@ const PerfilEmpresa = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="mensagens" className="space-y-6">
-          <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4">
-              <div>
-                <CardTitle className="text-2xl">Tags</CardTitle>
-                <CardDescription>Organize suas conversas com tags</CardDescription>
-              </div>
-              <Button onClick={() => { setNewTagName(""); setNewTagDescription(""); setNewTagColor(tagColors[0]?.id ?? 0); setIsCreateTagOpen(true); }} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Criar
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Pesquisar..." 
-                    className="pl-10 h-9"
-                    value={tagSearchTerm}
-                    onChange={(e) => setTagSearchTerm(e.target.value)}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">{tags.length} resultado{tags.length !== 1 ? 's' : ''}</span>
-              </div>
-
-              <div className="rounded-lg border border-border/50 overflow-hidden">
-                <div className="grid grid-cols-[1fr_1fr_180px_120px] items-center px-4 py-3 bg-muted/30 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <span>Tags</span>
-                  <span>Descrição</span>
-                  <span>Data de criação</span>
-                  <span className="text-right">Ações</span>
-                </div>
-                {loadingTags ? (
-                  <div className="p-4"><Skeleton className="h-12 w-full" /></div>
-                ) : tags.filter(t => t.name.toLowerCase().includes(tagSearchTerm.toLowerCase())).length > 0 ? (
-                  tags
-                    .filter(t => t.name.toLowerCase().includes(tagSearchTerm.toLowerCase()))
-                    .map(tag => (
-                      <div 
-                        key={tag.id} 
-                        className="grid grid-cols-[1fr_1fr_180px_120px] items-center px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-3 h-3 rounded-full shrink-0" 
-                            style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || 'hsl(var(--primary))' }} 
-                          />
-                          <span className="text-sm font-medium">{tag.name}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground truncate">{(tag as any).description || '—'}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date().toLocaleDateString('pt-BR')}
-                        </span>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-8 h-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => setEditingTag(tag)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-8 h-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDeleteTag(tag.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="py-12 text-center">
-                    <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-20" />
-                    <p className="text-sm text-muted-foreground">
-                      {tagSearchTerm ? 'Nenhum resultado para sua busca.' : 'Nenhuma etiqueta encontrada.'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       <Dialog 
