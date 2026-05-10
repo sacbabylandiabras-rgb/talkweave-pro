@@ -1050,9 +1050,36 @@ const ChatView = ({
             </h3>
             <ChatTypeBadge phone={conversation.phone} name={conversation.contactName} isCommunity={conversation.isCommunity} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
-          </p>
+           <div className="flex items-center gap-2">
+             <p className="text-xs text-muted-foreground">
+               {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
+             </p>
+             {conversation.messages.some(m => (m as any).tags?.length > 0) && (
+               <div className="flex gap-1 flex-wrap">
+                 {Array.from(new Set(conversation.messages.flatMap(m => (m as any).tags || []))).map(tagName => {
+                   const tag = availableTags.find(t => t.name === tagName);
+                   const colorHex = tagColors.find(c => c.id === tag?.color)?.hex || '#94a3b8';
+                   return (
+                     <Badge 
+                       key={tagName} 
+                       variant="secondary" 
+                       className="text-[9px] px-1.5 h-4 text-white" 
+                       style={{ backgroundColor: colorHex }}
+                     >
+                       {tagName}
+                       <X 
+                         className="w-2 h-2 ml-1 cursor-pointer hover:text-red-200" 
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (tag) handleRemoveTag(tag.id);
+                         }}
+                       />
+                     </Badge>
+                   );
+                 })}
+               </div>
+             )}
+           </div>
         </div>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
