@@ -48,6 +48,8 @@ const PerfilEmpresa = () => {
    const [products, setProducts] = useState<Product[]>([]);
    const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchPhone, setSearchPhone] = useState("");
   const [isExternalCatalog, setIsExternalCatalog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -67,21 +69,29 @@ const PerfilEmpresa = () => {
        fetchProducts(selectedInstanceId);
      }
    }, [selectedInstanceId]);
-    const fetchProducts = async (instanceId: string, phone?: string) => {
-     setLoadingProducts(true);
+    const fetchProducts = async (instanceId: string, phone?: string, cursor?: string) => {
+      if (cursor) setLoadingMore(true);
+      else setLoadingProducts(true);
+
      try {
        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
           body: { 
             action: "list-products", 
             instanceDbId: instanceId,
-            payload: phone ? { phone } : undefined
+            payload: phone ? { phone } : { nextCursor: cursor }
           },
        });
  
        if (error) throw error;
        if (data?.error) throw new Error(data.error?.message || data.error);
        
-       setProducts(data?.data?.products || []);
+        if (cursor) {
+          setProducts(prev => [...prev, ...(data?.data?.products || [])]);
+        } else {
+          setProducts(data?.data?.products || []);
+        }
+        
+        setNextCursor(data?.data?.nextCursor || null);
         setIsExternalCatalog(!!phone);
      } catch (err: any) {
        console.error("Erro ao buscar produtos:", err);
@@ -90,9 +100,10 @@ const PerfilEmpresa = () => {
          description: err.message,
          variant: "destructive",
        });
-     } finally {
-       setLoadingProducts(false);
-     }
+      } finally {
+        setLoadingProducts(false);
+        setLoadingMore(false);
+      }
    };
  
    const handleSaveProduct = async () => {
