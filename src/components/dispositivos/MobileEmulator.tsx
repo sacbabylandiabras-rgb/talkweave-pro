@@ -170,6 +170,18 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleForgotPin = async () => {
+    setLoading(true);
+    try {
+      await call("forgot-security-code", {});
+      toast({ title: "📨 Recuperação de PIN solicitada", description: "Siga as instruções recebidas." });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -313,6 +325,7 @@ export const MobileEmulator = ({ instances }: Props) => {
                 <div className="flex gap-2">
                   <Input value={pin} onChange={(e) => setPin(onlyDigits(e.target.value))} placeholder="PIN" className="h-9 max-w-[200px]" maxLength={8} />
                   <Button onClick={handleConfirmPin} disabled={loading || !pin}>4. Confirmar PIN</Button>
+                  <Button onClick={handleForgotPin} variant="outline" disabled={loading}>Esqueci o PIN</Button>
                 </div>
               </div>
             )}
