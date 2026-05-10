@@ -296,6 +296,18 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       case 'get-product':
         return { method: 'GET', path: `/products/${payload?.id}` };
 
+    // Tag Actions (WhatsApp Business)
+    case 'list-tags':
+      return { method: 'GET', path: "/tags" };
+    case 'create-tag':
+      return { method: 'POST', path: "/tags", body: payload };
+    case 'delete-tag':
+      return { method: 'DELETE', path: `/tags/${payload?.id}` };
+    case 'add-tag-chat':
+      return { method: 'POST', path: `/tags/${phone}/add/${payload?.tagId}` };
+    case 'remove-tag-chat':
+      return { method: 'POST', path: `/tags/${phone}/remove/${payload?.tagId}` };
+
     // Group Actions
     case 'get-groups':
       return { method: 'GET', path: "/groups?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
