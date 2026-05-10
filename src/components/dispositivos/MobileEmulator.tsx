@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Loader2, ShieldCheck, MessageSquare, Mail } from "lucide-react";
+import { Smartphone, Loader2, ShieldCheck, MessageSquare, Mail, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ZapiInstance } from "@/hooks/useZapiInstances";
@@ -236,6 +236,20 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleRemoveEmail = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("remove-account-email", {});
+      toast({ title: "✅ E-mail removido", description: "O e-mail foi desvinculado da conta." });
+      setAccountEmail({ hasEmail: false });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCheckHasPin = async () => {
     if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
     setLoading(true);
@@ -402,6 +416,9 @@ export const MobileEmulator = ({ instances }: Props) => {
           </div>
           <Button onClick={handleSetEmail} disabled={loading || !newEmail || !instanceDbId} variant="outline" size="sm">
             <Mail className="w-4 h-4 mr-2" /> Salvar e-mail
+          </Button>
+          <Button onClick={handleRemoveEmail} disabled={loading || !instanceDbId} variant="outline" size="sm">
+            <Trash2 className="w-4 h-4 mr-2" /> Remover e-mail
           </Button>
         </div>
 
