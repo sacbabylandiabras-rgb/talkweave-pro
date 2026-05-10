@@ -43,7 +43,7 @@ const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
   'request-code': { path: '/mobile/request-registration-code', method: 'POST' },
   'captcha-confirm': { path: '/mobile/respond-captcha', method: 'POST' },
   'confirm-code': { path: '/mobile/confirm-registration-code', method: 'POST' },
-  'confirm-security-code': { path: '/mobile/confirm-security-code', method: 'POST' },
+  'confirm-security-code': { path: '/mobile/confirm-pin-code', method: 'POST' },
   'forgot-security-code': { path: '/mobile/forgot-security-code', method: 'POST' },
   'request-unbanning': { path: '/mobile/request-unbanning', method: 'POST' },
   'device-transfer-confirmed': { path: '/mobile/device-transfer-confirmed', method: 'GET' },
