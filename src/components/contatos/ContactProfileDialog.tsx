@@ -131,7 +131,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       return;
     }
     setLocalTags([...contact.tags]);
-    setNote(contact.notes?.content || "");
+    setNote(contact.notes?.content || (contact as any).notes?.content || "");
     setNewName(contact.name || '');
     loadFlows();
     loadAvailableTags();
@@ -501,7 +501,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   size="sm" 
                   className="w-full h-8 text-xs" 
                   onClick={handleSaveNote} 
-                  disabled={isSavingNote || note === (contact.notes?.content || "")}
+                  disabled={isSavingNote || note === (contact.notes?.content || (contact as any).notes?.content || "")}
                 >
                   {isSavingNote ? <RefreshCw className="w-3 h-3 animate-spin mr-2" /> : <Check className="w-3 h-3 mr-2" />}
                   Salvar Anotação
