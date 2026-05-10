@@ -514,30 +514,50 @@ export const MobileEmulator = ({ instances }: Props) => {
           </div>
         )}
 
-        {(step === "code" || step === "pin") && (
-          <div className="border border-border rounded-lg p-4 space-y-3">
-            {step === "code" && (
-              <div className="space-y-2">
-                <Label className="text-xs">Código de confirmação recebido</Label>
-                <div className="flex gap-2">
-                  <Input value={code} onChange={(e) => setCode(onlyDigits(e.target.value))} placeholder="123456" className="h-9 max-w-[200px]" maxLength={8} />
-                  <Button onClick={handleConfirmCode} disabled={loading || !code}>3. Confirmar código</Button>
-                  <Button onClick={handleDeviceTransfer} variant="outline" disabled={loading}>Confirmar transferência</Button>
-                </div>
-              </div>
-            )}
-            {step === "pin" && (
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> PIN de segurança (verificação em 2 etapas)</Label>
-                <div className="flex gap-2">
-                  <Input value={pin} onChange={(e) => setPin(onlyDigits(e.target.value))} placeholder="PIN" className="h-9 max-w-[200px]" maxLength={8} />
-                  <Button onClick={handleConfirmPin} disabled={loading || !pin}>4. Confirmar PIN</Button>
-                  <Button onClick={handleForgotPin} variant="outline" disabled={loading}>Esqueci o PIN</Button>
-                </div>
-              </div>
-            )}
+        <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
+          <div className="space-y-2">
+            <Label className="text-xs font-bold text-primary">3. Inserir código de confirmação (6 dígitos)</Label>
+            <div className="flex flex-wrap gap-2">
+              <Input 
+                value={code} 
+                onChange={(e) => setCode(onlyDigits(e.target.value))} 
+                placeholder="Ex: 123456" 
+                className="h-9 max-w-[200px] border-primary/50" 
+                maxLength={8} 
+              />
+              <Button onClick={handleConfirmCode} disabled={loading || !code || !instanceDbId}>
+                Confirmar registro
+              </Button>
+              <Button onClick={handleDeviceTransfer} variant="outline" disabled={loading || !instanceDbId}>
+                Confirmar transferência
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">O código é enviado pelo WhatsApp após você clicar em "Solicitar código" acima.</p>
           </div>
-        )}
+
+          {(step === "pin" || hasPin) && (
+            <div className="space-y-2 pt-3 border-t border-border">
+              <Label className="text-xs flex items-center gap-1 font-bold">
+                <ShieldCheck className="w-3 h-3" /> 4. PIN de segurança (2FA)
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                <Input 
+                  value={pin} 
+                  onChange={(e) => setPin(onlyDigits(e.target.value))} 
+                  placeholder="PIN" 
+                  className="h-9 max-w-[200px]" 
+                  maxLength={8} 
+                />
+                <Button onClick={handleConfirmPin} disabled={loading || !pin || !instanceDbId} variant="secondary">
+                  Confirmar PIN
+                </Button>
+                <Button onClick={handleForgotPin} variant="ghost" size="sm" disabled={loading || !instanceDbId}>
+                  Esqueci o PIN
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {step === "done" && (
           <Badge className="bg-emerald-500 text-white">Número conectado com sucesso</Badge>
