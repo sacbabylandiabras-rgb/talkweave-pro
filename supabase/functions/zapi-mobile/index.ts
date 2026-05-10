@@ -38,15 +38,15 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   };
 }
 
-const ACTION_PATHS: Record<string, string> = {
-  'registration-available': '/mobile/registration-available',
-  'request-code': '/mobile/request-registration-code',
-  'captcha-confirm': '/mobile/respond-captcha',
-  'confirm-code': '/mobile/confirm-registration-code',
-  'confirm-security-code': '/mobile/confirm-security-code',
-  'forgot-security-code': '/mobile/forgot-security-code',
-  'request-unbanning': '/mobile/request-unbanning',
-  'device-transfer-confirmed': '/mobile/device-transfer-confirmed',
+const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
+  'registration-available': { path: '/mobile/registration-available', method: 'POST' },
+  'request-code': { path: '/mobile/request-registration-code', method: 'POST' },
+  'captcha-confirm': { path: '/mobile/respond-captcha', method: 'POST' },
+  'confirm-code': { path: '/mobile/confirm-registration-code', method: 'POST' },
+  'confirm-security-code': { path: '/mobile/confirm-security-code', method: 'POST' },
+  'forgot-security-code': { path: '/mobile/forgot-security-code', method: 'POST' },
+  'request-unbanning': { path: '/mobile/request-unbanning', method: 'POST' },
+  'device-transfer-confirmed': { path: '/mobile/device-transfer-confirmed', method: 'GET' },
 };
 
 function formatErr(value: unknown, fallback: string): string {
@@ -69,20 +69,21 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, instanceDbId, payload } = body || {};
     if (!action) throw new Error('Missing action');
-    const path = ACTION_PATHS[action];
-    if (!path) throw new Error('Unknown action: ' + action);
+    const cfg = ACTIONS[action];
+    if (!cfg) throw new Error('Unknown action: ' + action);
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
-    const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}${path}`;
+    const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}${cfg.path}`;
 
-    const resp = await fetch(url, {
-      method: 'POST',
+    const init: RequestInit = {
+      method: cfg.method,
       headers: {
         'Content-Type': 'application/json',
         'Client-Token': creds.clientToken,
       },
-      body: JSON.stringify(payload || {}),
-    });
+    };
+    if (cfg.method === 'POST') init.body = JSON.stringify(payload || {});
+    const resp = await fetch(url, init);
     const text = await resp.text();
     let data: any;
     try { data = JSON.parse(text); } catch { data = text; }
