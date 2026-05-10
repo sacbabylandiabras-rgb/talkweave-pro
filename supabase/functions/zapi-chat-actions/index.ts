@@ -254,13 +254,13 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'list-collection-products':
       return { method: 'GET', path: `/catalogs/collection-products/${payload?.collectionId}?phone=${phone}` };
     case 'company-description':
-      return { method: 'POST', path: "/company-description", body: payload };
+      return { method: 'POST', path: "/business/company-description", body: { value: payload?.description ?? payload?.value } };
     case 'company-email':
-      return { method: 'POST', path: "/company-email", body: payload };
+      return { method: 'POST', path: "/business/company-email", body: { value: payload?.email ?? payload?.value } };
     case 'company-address':
-      return { method: 'POST', path: "/company-address", body: payload };
+      return { method: 'POST', path: "/business/company-address", body: { value: payload?.address ?? payload?.value } };
     case 'company-websites':
-      return { method: 'POST', path: "/company-websites", body: payload };
+      return { method: 'POST', path: "/business/company-websites", body: { value: payload?.websites ?? payload?.value } };
 
     // Group Actions
     case 'get-groups':
