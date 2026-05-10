@@ -2207,14 +2207,13 @@ const MensagensRecebidas = () => {
 
         <ContactProfileDialog
           contact={selectedConversation ? {
-            id: selectedConversation.phone,
             phone: selectedConversation.phone,
             name: selectedConversation.contactName || '',
             status: 'ativo',
             messageCount: selectedConversation.messages.length,
             lastMessageDate: selectedConversation.lastTimestamp,
             firstContactDate: selectedConversation.messages[0]?.timestamp || null,
-            tags: [], // Tags could be extracted if needed
+            tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl || null,
           } : null}
           open={profileOpen}
