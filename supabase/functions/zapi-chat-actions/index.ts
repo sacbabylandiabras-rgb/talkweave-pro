@@ -313,8 +313,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'GET', path: `/tags/search?tagId=${payload?.tagId}` };
     case 'tag-colors':
       return { method: 'GET', path: "/tags/colors" };
-    case 'save-chat-notes':
-      return { method: 'POST', path: `/chat-notes/${phone}`, body: { notes: payload?.notes } };
+    case 'save-chat-notes': {
+      const target = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
+      return { method: 'POST', path: `/chat-notes/${target}`, body: { notes: payload?.notes } };
+    }
 
     // Group Actions
     case 'get-groups':
