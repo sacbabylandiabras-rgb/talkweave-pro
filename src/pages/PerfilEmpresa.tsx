@@ -47,8 +47,10 @@ const PerfilEmpresa = () => {
    const [profile, setProfile] = useState<BusinessProfile | null>(null);
    const [products, setProducts] = useState<Product[]>([]);
    const [loading, setLoading] = useState(false);
-   const [loadingProducts, setLoadingProducts] = useState(false);
-   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [searchPhone, setSearchPhone] = useState("");
+  const [isExternalCatalog, setIsExternalCatalog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
    const [isDialogOpen, setIsDialogOpen] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -65,17 +67,22 @@ const PerfilEmpresa = () => {
        fetchProducts(selectedInstanceId);
      }
    }, [selectedInstanceId]);
-   const fetchProducts = async (instanceId: string) => {
+    const fetchProducts = async (instanceId: string, phone?: string) => {
      setLoadingProducts(true);
      try {
        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-         body: { action: "list-products", instanceDbId: instanceId },
+          body: { 
+            action: "list-products", 
+            instanceDbId: instanceId,
+            payload: phone ? { phone } : undefined
+          },
        });
  
        if (error) throw error;
        if (data?.error) throw new Error(data.error?.message || data.error);
        
        setProducts(data?.data?.products || []);
+        setIsExternalCatalog(!!phone);
      } catch (err: any) {
        console.error("Erro ao buscar produtos:", err);
        toast({
@@ -211,33 +218,35 @@ const PerfilEmpresa = () => {
            <p className="text-muted-foreground">Gerencie o perfil e o catálogo de produtos da sua empresa no WhatsApp.</p>
          </div>
          
-         <div className="flex items-center gap-2 min-w-[250px]">
-           <Label className="whitespace-nowrap">Instância:</Label>
-           <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
-             <SelectTrigger>
-               <SelectValue placeholder="Selecione uma instância" />
-             </SelectTrigger>
-             <SelectContent>
-               {instances.map((inst) => (
-                 <SelectItem key={inst.id} value={inst.id}>
-                   {inst.instance_name || inst.zapi_instance_id}
-                 </SelectItem>
-               ))}
-             </SelectContent>
-           </Select>
-           <Button 
-             variant="outline" 
-             size="icon" 
-             onClick={() => {
-               fetchProfile(selectedInstanceId);
-               fetchProducts(selectedInstanceId);
-             }} 
-             disabled={loading || loadingProducts || !selectedInstanceId}
-           >
-             <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
-           </Button>
-         </div>
-       </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => {
+                fetchProfile(selectedInstanceId);
+                setSearchPhone("");
+                fetchProducts(selectedInstanceId);
+              }} 
+              disabled={loading || loadingProducts || !selectedInstanceId}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
+            </Button>
+            <div className="flex items-center gap-2 min-w-[200px]">
+              <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma instância" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name || inst.zapi_instance_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
  
        <Tabs defaultValue="perfil" className="w-full">
          <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -392,17 +401,53 @@ const PerfilEmpresa = () => {
  
          <TabsContent value="catalogo" className="space-y-6">
            <div className="flex items-center justify-between">
-             <h2 className="text-lg font-semibold flex items-center gap-2">
-               <ShoppingBag className="w-5 h-5 text-primary" />
-               Produtos ({products.length})
-             </h2>
-             <Button onClick={() => {
-               setEditingProduct({ currency: 'BRL', isHidden: false });
-               setIsDialogOpen(true);
-             }} className="gap-2">
-               <Plus className="w-4 h-4" />
-               Novo Produto
-             </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-primary" />
+                  {isExternalCatalog ? "Catálogo Externo" : "Seu Catálogo"} ({products.length})
+                </h2>
+                {isExternalCatalog && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Visualizando produtos do número: {searchPhone}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-muted/50 rounded-lg px-2 py-1 border border-border/50 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+                  <Input 
+                    placeholder="Buscar por telefone..." 
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value.replace(/\D/g, ''))}
+                    className="border-0 bg-transparent h-8 w-40 focus-visible:ring-0 text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchPhone) fetchProducts(selectedInstanceId, searchPhone);
+                    }}
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-7 px-2 text-xs"
+                    onClick={() => fetchProducts(selectedInstanceId, searchPhone)}
+                    disabled={!searchPhone || loadingProducts}
+                  >
+                    Buscar
+                  </Button>
+                </div>
+
+                {!isExternalCatalog && (
+                  <Button onClick={() => {
+                    setEditingProduct({ currency: 'BRL', isHidden: false });
+                    setIsDialogOpen(true);
+                  }} className="gap-2 h-9 text-xs">
+                    <Plus className="w-4 h-4" />
+                    Novo Produto
+                  </Button>
+                )}
+              </div>
+            </div>
            </div>
  
            {loadingProducts ? (
@@ -445,28 +490,32 @@ const PerfilEmpresa = () => {
                        {product.description || "Sem descrição"}
                      </p>
                    </CardContent>
-                   <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
-                     <div className="flex items-center gap-1">
-                       <Button 
-                         variant="ghost" 
-                         size="icon" 
-                         className="w-8 h-8"
-                         onClick={() => {
-                           setEditingProduct(product);
-                           setIsDialogOpen(true);
-                         }}
-                       >
-                         <Pencil className="w-3.5 h-3.5" />
-                       </Button>
-                       <Button 
-                         variant="ghost" 
-                         size="icon" 
-                         className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                         onClick={() => handleDeleteProduct(product.id)}
-                       >
-                         <Trash2 className="w-3.5 h-3.5" />
-                       </Button>
-                     </div>
+                    <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
+                      {!isExternalCatalog ? (
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8"
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteProduct(product.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex-grow" />
+                      )}
                      {product.url && (
                        <Button variant="outline" size="sm" asChild className="h-8 text-[10px]">
                          <a href={product.url} target="_blank" rel="noopener noreferrer" className="gap-1.5">
