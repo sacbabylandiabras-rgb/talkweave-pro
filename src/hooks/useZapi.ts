@@ -324,7 +324,8 @@ const getZAPIConfig = async () => {
     title?: string,
     footer?: string,
     mediaUrl?: string,
-    mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog'
+     mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog',
+     specialPayload?: Record<string, any>
   ) => {
     setLoading(true);
     
@@ -334,7 +335,8 @@ const getZAPIConfig = async () => {
         message,
         title,
         footer,
-        ...(mediaUrl ? { mediaUrl, mediaType: mediaType || 'image' } : {}),
+         ...(mediaUrl ? { mediaUrl, mediaType: mediaType || 'image' } : {}),
+         ...(specialPayload ? { specialPayload } : {}),
         buttonActions: buttons.map(btn => {
           const buttonData: {
             id: string;
