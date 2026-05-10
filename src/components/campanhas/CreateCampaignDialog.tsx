@@ -140,6 +140,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         target_audience: {
           contacts: targetContacts,
           ...(isFlow ? { flow_id: formData.flow_id, campaign_type: 'flow' } : {}),
+          ...(formData.tag_id && formData.tag_id !== "none" ? { tag_id: formData.tag_id } : {}),
           ...(viewOnce ? { viewOnce: true } : {}),
           ...(isPtv ? { isPtv: true } : {}),
         },
@@ -165,6 +166,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         contact_selection: "all",
         specific_contacts: "",
         delay_seconds: 2,
+        tag_id: "",
       });
       setImportedContacts([]);
       setViewOnce(false);
@@ -448,6 +450,43 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               </div>
             );
           })()}
+
+          {/* Etiquetas da Campanha */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Configurações Extra</h3>
+            </div>
+            
+            <div>
+              <Label htmlFor="tag_id">Adicionar etiqueta na campanha</Label>
+              <Select
+                value={formData.tag_id}
+                onValueChange={(val) => setFormData(prev => ({ ...prev, tag_id: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhuma etiqueta selecionada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem etiqueta</SelectItem>
+                  {availableTags.map((tag) => {
+                    const colorHex = tagColors.find(c => c.id === tag.color)?.hex || '#94a3b8';
+                    return (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colorHex }} />
+                          {tag.name}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Esta etiqueta será aplicada aos contatos que receberem a campanha (WhatsApp Business).
+              </p>
+            </div>
+          </div>
 
           {/* Agendamento */}
           <div className="space-y-4">
