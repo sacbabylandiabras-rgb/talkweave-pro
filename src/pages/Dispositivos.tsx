@@ -283,22 +283,39 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
      }
    };
 
-   const updatePrivacy = async (action: string, payload: any) => {
-     setPrivacyLoading(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { action, instanceDbId: instance.id, payload },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Configuração atualizada" });
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao atualizar privacidade');
-       toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
-     } finally {
-       setPrivacyLoading(false);
-     }
-   };
+    const updateBusinessInfo = async (action: string, payload: any) => {
+      setBusinessLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action, instanceDbId: instance.id, payload },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        toast({ title: "✅ Informação atualizada" });
+      } catch (err: any) {
+        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar');
+        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
+      } finally {
+        setBusinessLoading(false);
+      }
+    };
+
+    const updatePrivacy = async (action: string, payload: any) => {
+      setPrivacyLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action, instanceDbId: instance.id, payload },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        toast({ title: "✅ Configuração atualizada" });
+      } catch (err: any) {
+        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar privacidade');
+        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
+      } finally {
+        setPrivacyLoading(false);
+      }
+    };
 
    const fetchBlacklist = async () => {
      setPrivacyLoading(true);
