@@ -653,11 +653,24 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <Wifi className="w-3 h-3 mr-1" /> Conectar
              </Button>
            )}
-           {isConnected && (
-             <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
-               <User className="w-3 h-3 mr-1" /> Privacidade
-             </Button>
-           )}
+            {isConnected && (
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
+                  <Globe className="w-3 h-3 mr-1" /> Privacidade
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-[11px] px-2" 
+                  onClick={() => {
+                    setShowCollections(true);
+                    fetchCollections();
+                  }}
+                >
+                  <LayoutGrid className="w-3 h-3 mr-1" /> Coleções
+                </Button>
+              </div>
+            )}
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
          <DialogContent className="sm:max-w-md">
