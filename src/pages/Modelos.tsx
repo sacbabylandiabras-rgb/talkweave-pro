@@ -27,6 +27,17 @@ const SPECIAL_FIELD_DEFAULTS = {
    contactBusinessDescription: "",
    catalogId: "",
    productId: "",
+   eventTitle: "",
+   eventDescription: "",
+   eventStartTime: "",
+   eventEndTime: "",
+   eventLocation: "",
+   eventUrl: "",
+   eventIsAllDay: false,
+   orderStatus: "",
+   orderPaymentStatus: "",
+   orderReferenceId: "",
+   orderJson: "",
  };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
@@ -61,6 +72,24 @@ const buildSpecialContent = (type: string, data: any): string => {
       payload.catalogId = data.catalogId || "";
       payload.productId = data.productId || "";
       payload.description = data.content || "";
+    } else if (type === "evento") {
+      payload.title = data.eventTitle || "";
+      payload.description = data.eventDescription || data.content || "";
+      payload.startTime = data.eventStartTime ? Math.floor(new Date(data.eventStartTime).getTime() / 1000) : "";
+      if (data.eventEndTime) payload.endTime = Math.floor(new Date(data.eventEndTime).getTime() / 1000);
+      if (data.eventLocation) payload.location = data.eventLocation;
+      if (data.eventUrl) payload.url = data.eventUrl;
+      if (data.eventIsAllDay) payload.isAllDay = true;
+    } else if (type === "status_pedido" || type === "pagamento_pedido") {
+      payload.orderStatus = data.orderStatus || "";
+      payload.paymentStatus = data.orderPaymentStatus || "";
+      payload.referenceId = data.orderReferenceId || "";
+      try {
+        if (data.orderJson) payload.order = JSON.parse(data.orderJson);
+      } catch {
+        payload.orderRaw = data.orderJson;
+      }
+      payload.description = data.content || "";
     }
     return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
   };
@@ -76,7 +105,8 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-    || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto";
+    || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
+    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
