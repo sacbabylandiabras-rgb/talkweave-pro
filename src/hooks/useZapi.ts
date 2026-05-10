@@ -1764,6 +1764,7 @@ const getZAPIConfig = async () => {
       sendMultipleMessages,
       sendEvent,
       sendEditEvent,
+      sendEventResponse,
       sendOrderStatusUpdate,
       sendOrderPaymentUpdate,
       loading,
