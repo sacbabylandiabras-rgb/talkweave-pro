@@ -260,7 +260,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'company-address':
       return { method: 'POST', path: "/business/company-address", body: { value: payload?.address ?? payload?.value } };
     case 'company-websites':
-      return { method: 'POST', path: "/business/company-websites", body: { value: payload?.websites ?? payload?.value } };
+      return { method: 'POST', path: "/business/company-websites", body: { websites: payload?.websites || (payload?.value ? [payload.value] : []) } };
 
     // Group Actions
     case 'get-groups':
