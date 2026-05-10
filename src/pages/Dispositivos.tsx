@@ -2090,9 +2090,6 @@ const Dispositivos = () => {
     return allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi');
   }, [allInstances]);
 
-  const mobileInstances = useMemo(() => {
-    return instances.filter(i => i.instance_type === 'mobile');
-  }, [instances]);
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
