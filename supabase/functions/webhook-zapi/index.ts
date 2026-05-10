@@ -1196,12 +1196,6 @@ serve(async (req) => {
                 | { type: "carousel"; message: string; cards: any[] }
                 | { type: "catalog"; productId: string; catalogId: string; caption: string }
                 | { type: "contact"; contactName: string; contactPhone: string; caption: string },
-              const sendWelcomeContact = async (name: string, phone: string, caption: string) =>
-                sendWelcomeWithFallback({ type: "contact", contactName: name, contactPhone: phone, caption }, "Welcome contact");
-
-              const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
-                sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
-
                 context: string,
               ) => {
                 try {
@@ -1237,6 +1231,12 @@ serve(async (req) => {
 
               const sendWelcomeCarousel = async (message: string, cards: any[]) =>
                 sendWelcomeWithFallback({ type: "carousel", message, cards }, "Welcome carousel");
+
+              const sendWelcomeContact = async (name: string, phone: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "contact", contactName: name, contactPhone: phone, caption }, "Welcome contact");
+
+              const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
 
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
@@ -1441,12 +1441,7 @@ serve(async (req) => {
                         "📤 Welcome template image+text-buttons confirmed:",
                         JSON.stringify(buttonResponse).substring(0, 300),
                       );
-                    } else if (isContact) {
-                      const special = parseSpecialTemplate(tpl.content);
-                      logContent = `[contato:${special?.contactName || ""}] ${logContent}`;
-                    } else if (isProduct) {
-                      const special = parseSpecialTemplate(tpl.content);
-                      logContent = `[produto:${special?.productId || ""}] ${logContent}`;
+                    }
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
                     if (replyBtns.length > 0) {
                       const buttonResponse = await sendWelcomeButtons(
