@@ -111,8 +111,11 @@ const PerfilEmpresa = () => {
   const [tagColors, setTagColors] = useState<TagColor[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+  const [newTagDescription, setNewTagDescription] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
   const [editingTag, setEditingTag] = useState<WhatsappTag | null>(null);
+  const [tagSearchTerm, setTagSearchTerm] = useState("");
+  const [isCreateTagOpen, setIsCreateTagOpen] = useState(false);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,6 +212,9 @@ const PerfilEmpresa = () => {
       if (data?.error) throw new Error(formatErrorMessage(data.error));
       toast({ title: "Etiqueta criada", description: `A etiqueta "${newTagName}" foi criada com sucesso.` });
       setNewTagName("");
+      setNewTagDescription("");
+      setNewTagColor(0);
+      setIsCreateTagOpen(false);
       fetchTags(selectedInstanceId);
     } catch (err: any) {
       toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
