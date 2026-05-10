@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
-   Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image
+   Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
+    Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image, RefreshCw
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Contact } from "@/hooks/useContacts";
@@ -80,8 +80,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [sendingFlow, setSendingFlow] = useState(false);
-    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat } = useZapi();
+    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+    const [note, setNote] = useState("");
+    const [isSavingNote, setIsSavingNote] = useState(false);
     const [loadingTags, setLoadingTags] = useState(false);
 
   const loadFlows = async () => {
@@ -129,6 +131,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       return;
     }
     setLocalTags([...contact.tags]);
+    setNote(contact.notes?.content || (contact as any).notes?.content || "");
     setNewName(contact.name || '');
     loadFlows();
     loadAvailableTags();
@@ -150,6 +153,19 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       fetchAndSetInstance();
     }
   }, [open, contact?.phone, preferredInstanceId]);
+
+  const handleSaveNote = async () => {
+    if (!contact) return;
+    setIsSavingNote(true);
+    try {
+      await saveChatNote(contact.phone, note);
+      onUpdate?.();
+    } catch (e) {
+      console.error('handleSaveNote error:', e);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   const handleOpen = (isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -470,6 +486,30 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <Separator />
               </>
             )}
+
+            {/* Notes */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Anotações (WhatsApp Business)</h3>
+              <div className="space-y-2">
+                <textarea
+                  className="w-full min-h-[100px] p-3 text-sm rounded-lg border border-border bg-background/50 focus:ring-1 focus:ring-primary outline-none resize-none"
+                  placeholder="Digite aqui anotações internas sobre este contato..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <Button 
+                  size="sm" 
+                  className="w-full h-8 text-xs" 
+                  onClick={handleSaveNote} 
+                  disabled={isSavingNote || note === (contact.notes?.content || (contact as any).notes?.content || "")}
+                >
+                  {isSavingNote ? <RefreshCw className="w-3 h-3 animate-spin mr-2" /> : <Check className="w-3 h-3 mr-2" />}
+                  Salvar Anotação
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
 
             {/* Tags */}
             <div className="space-y-3">

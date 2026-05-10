@@ -11,6 +11,12 @@ export interface Contact {
   messageCount: number;
   firstContactDate?: string;
   tags: string[];
+  notes?: {
+    id: string;
+    content: string;
+    createdAt: number;
+    lastUpdateAt: number;
+  };
   profilePictureUrl?: string;
   lastUpdated?: string;
 }
