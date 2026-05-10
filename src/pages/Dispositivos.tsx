@@ -1795,11 +1795,92 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
             </Label>
             <div className="flex gap-2 items-start">
               <Textarea placeholder="https://empresa.com" value={websites} onChange={(e) => setWebsites(e.target.value)} disabled={!!submitting} rows={3} />
-              <Button size="sm" onClick={() => applyToAll('company-websites', { websites: websites.split('\n').map(s => s.trim()).filter(Boolean) }, 'Websites')} disabled={!!submitting || !websites.trim() || selectedIds.length === 0}>
-                {submitting === 'company-websites' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
-              </Button>
-            </div>
-          </div>
+               <Button size="sm" onClick={() => applyToAll('company-websites', { websites: websites.split('\n').map(s => s.trim()).filter(Boolean) }, 'Websites')} disabled={!!submitting || !websites.trim() || selectedIds.length === 0}>
+                 {submitting === 'company-websites' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+               </Button>
+             </div>
+           </div>
+ 
+           <div className="space-y-4 border-t pt-4">
+             <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Horário de Funcionamento</Label>
+             
+             <div className="space-y-3">
+               <Select value={businessHoursType} onValueChange={setBusinessHoursType} disabled={!!submitting}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Tipo de horário" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="open_24h">Aberto 24 horas</SelectItem>
+                   <SelectItem value="appointment_only">Apenas com hora marcada</SelectItem>
+                   <SelectItem value="specific_hours">Horários específicos</SelectItem>
+                 </SelectContent>
+               </Select>
+ 
+               {businessHoursType === 'specific_hours' && (
+                 <div className="space-y-2 bg-muted/30 p-3 rounded-lg border border-border/50">
+                   {Object.entries(days).map(([day, config]: [string, any]) => (
+                     <div key={day} className="flex items-center justify-between gap-2 py-1 border-b last:border-0 border-border/30">
+                       <div className="flex items-center gap-2 min-w-[100px]">
+                         <input 
+                           type="checkbox" 
+                           checked={config.open} 
+                           onChange={(e) => setDays({...days, [day]: { ...config, open: e.target.checked }})}
+                           className="accent-primary"
+                         />
+                         <span className="text-sm capitalize">
+                           {day === 'monday' ? 'Segunda' : 
+                            day === 'tuesday' ? 'Terça' : 
+                            day === 'wednesday' ? 'Quarta' : 
+                            day === 'thursday' ? 'Quinta' : 
+                            day === 'friday' ? 'Sexta' : 
+                            day === 'saturday' ? 'Sábado' : 'Domingo'}
+                         </span>
+                       </div>
+                       
+                       <div className="flex items-center gap-1">
+                         <Input 
+                           type="time" 
+                           className="h-8 w-24 text-xs px-2" 
+                           value={config.start} 
+                           disabled={!config.open}
+                           onChange={(e) => setDays({...days, [day]: { ...config, start: e.target.value }})}
+                         />
+                         <span className="text-xs">às</span>
+                         <Input 
+                           type="time" 
+                           className="h-8 w-24 text-xs px-2" 
+                           value={config.end} 
+                           disabled={!config.open}
+                           onChange={(e) => setDays({...days, [day]: { ...config, end: e.target.value }})}
+                         />
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+ 
+               <Button 
+                 className="w-full" 
+                 onClick={() => {
+                   const payload: any = { timezone: "America/Sao_Paulo", type: businessHoursType };
+                   if (businessHoursType === 'specific_hours') {
+                     payload.days = Object.entries(days)
+                       .filter(([, cfg]: [string, any]) => cfg.open)
+                       .map(([day, cfg]: [string, any]) => ({
+                         day: day.toUpperCase(),
+                         start: cfg.start,
+                         end: cfg.end
+                       }));
+                   }
+                   applyToAll('business-hours', payload, 'Horário de Funcionamento');
+                 }} 
+                 disabled={!!submitting || selectedIds.length === 0}
+               >
+                 {submitting === 'business-hours' ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Clock className="w-4 h-4 mr-2" />}
+                 Aplicar Horário às Selecionadas
+               </Button>
+             </div>
+           </div>
         </div>
       </DialogContent>
     </Dialog>
