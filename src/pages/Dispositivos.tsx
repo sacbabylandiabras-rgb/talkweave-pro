@@ -1053,53 +1053,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           </DialogContent>
         </Dialog>
 
-       {/* Business Dialog */}
-       <Dialog open={showBusiness} onOpenChange={setShowBusiness}>
-         <DialogContent className="sm:max-w-md">
-           <DialogHeader>
-             <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
-           </DialogHeader>
-           <div className="space-y-4 py-4">
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Edit2 className="w-3 h-3" /> Descrição da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input placeholder="Ex: Venda de eletrônicos..." value={bizDescription} onChange={(e) => setBizDescription(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-description', { description: bizDescription })} disabled={businessLoading || !bizDescription.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Mail className="w-3 h-3" /> E-mail da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input type="email" placeholder="contato@empresa.com" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-email', { email: bizEmail })} disabled={businessLoading || !bizEmail.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><MapPin className="w-3 h-3" /> Endereço da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input placeholder="Rua Exemplo, 123..." value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-address', { address: bizAddress })} disabled={businessLoading || !bizAddress.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Websites (um por linha)</Label>
-               <div className="flex gap-2 items-start">
-                 <Textarea placeholder="https://empresa.com" value={bizWebsites} onChange={(e) => setBizWebsites(e.target.value)} disabled={businessLoading} rows={3} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-websites', { websites: bizWebsites.split('\n').filter(s => s.trim()) })} disabled={businessLoading || !bizWebsites.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-           </div>
-         </DialogContent>
-       </Dialog>
-
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
          <DialogContent className="sm:max-w-md">
