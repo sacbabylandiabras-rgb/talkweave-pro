@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { MobileEmulator } from "@/components/dispositivos/MobileEmulator";
 
 const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
   if (error instanceof FunctionsHttpError) {
@@ -2145,6 +2146,8 @@ const Dispositivos = () => {
           <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
         ))}
       </div>
+
+      {instances.length > 0 && <MobileEmulator instances={instances} />}
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
