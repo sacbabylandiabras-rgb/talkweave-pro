@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -93,6 +93,8 @@ const PerfilEmpresa = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,7 +349,7 @@ const PerfilEmpresa = () => {
       </div>
 
       <Tabs defaultValue="perfil" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Perfil de Negócios
@@ -355,6 +357,10 @@ const PerfilEmpresa = () => {
           <TabsTrigger value="catalogo" className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4" />
             Catálogo de Produtos
+          </TabsTrigger>
+          <TabsTrigger value="remover" className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4" />
+            Remover Produtos
           </TabsTrigger>
         </TabsList>
 
