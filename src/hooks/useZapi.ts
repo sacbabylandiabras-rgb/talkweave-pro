@@ -1605,6 +1605,7 @@ const getZAPIConfig = async () => {
       removeReaction,
       sendMessageCatalog,
       sendMessageContact,
+      sendMultipleMessages,
       loading,
     };
   };
