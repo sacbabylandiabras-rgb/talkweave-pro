@@ -829,6 +829,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
                   <Globe className="w-3 h-3 mr-1" /> Privacidade
                 </Button>
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowBusiness(true)}>
+                  <Building2 className="w-3 h-3 mr-1" /> Empresa
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
