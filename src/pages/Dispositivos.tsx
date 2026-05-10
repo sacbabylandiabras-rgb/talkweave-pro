@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense, lazy } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +101,8 @@ const normalizeCollectionsPayload = (payload: unknown): CollectionItem[] => {
 
   return [];
 };
+
+const MobileEmulator = lazy(() => import("@/components/dispositivos/MobileEmulator").then(module => ({ default: module.MobileEmulator })));
 
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
@@ -2085,11 +2087,14 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-  // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
-  const instances = useMemo(
-    () => allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi'),
-    [allInstances],
-  );
+  // Exibir todas as instâncias (Web e Mobile), ocultando apenas as instâncias UAZAPI doadoras
+  const instances = useMemo(() => {
+    return allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi');
+  }, [allInstances]);
+
+  const mobileInstances = useMemo(() => {
+    return instances.filter(i => i.instance_type === 'mobile');
+  }, [instances]);
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
@@ -2097,6 +2102,7 @@ const Dispositivos = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
+  const [showMobileEmulator, setShowMobileEmulator] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -2121,6 +2127,14 @@ const Dispositivos = () => {
               Perfil da Empresa
             </Button>
           )}
+          <Button 
+            variant={showMobileEmulator ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setShowMobileEmulator(!showMobileEmulator)}
+          >
+            <Smartphone className="w-4 h-4 mr-1" />
+            {showMobileEmulator ? "Ver Web" : "Ver Mobile"}
+          </Button>
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
@@ -2128,7 +2142,7 @@ const Dispositivos = () => {
         </div>
       </div>
 
-      {instances.length === 0 && !loading && (
+      {!showMobileEmulator && instances.length === 0 && !loading && (
         <Card>
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -2140,11 +2154,41 @@ const Dispositivos = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {instances.map((instance) => (
-          <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
-        ))}
-      </div>
+      {showMobileEmulator ? (
+        <div className="space-y-4">
+          {mobileInstances.length === 0 && !loading ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Nenhuma instância Mobile configurada</h3>
+                <p className="text-muted-foreground">
+                  Peça ao administrador para adicionar uma instância do tipo "Mobile" na sua conta.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {mobileInstances.map((instance) => (
+                  <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+                ))}
+              </div>
+              <Suspense fallback={<div className="h-40 flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+                <MobileEmulator instances={mobileInstances} />
+              </Suspense>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {instances
+            .filter(i => (i.instance_type || 'web') !== 'mobile')
+            .map((instance) => (
+              <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+            ))
+          }
+        </div>
+      )}
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
