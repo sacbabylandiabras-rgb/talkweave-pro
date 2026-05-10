@@ -38,6 +38,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -234,6 +235,23 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleCheckHasPin = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    setLoading(true);
+    try {
+      const res = await call("get-has-security-code", {});
+      setHasPin(!!res?.hasCode);
+      toast({
+        title: res?.hasCode ? "🔒 PIN configurado" : "Sem PIN",
+        description: res?.hasCode ? "Esta conta possui código PIN ativo." : "Esta conta não possui código PIN.",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -319,7 +337,16 @@ export const MobileEmulator = ({ instances }: Props) => {
           <Button onClick={handleGetEmail} variant="outline" size="sm" disabled={loading || !instanceDbId}>
             <Mail className="w-4 h-4 mr-2" /> Ver e-mail da conta
           </Button>
+          <Button onClick={handleCheckHasPin} variant="outline" size="sm" disabled={loading || !instanceDbId}>
+            <ShieldCheck className="w-4 h-4 mr-2" /> Verificar PIN
+          </Button>
         </div>
+
+        {hasPin !== null && (
+          <p className="text-xs text-muted-foreground">
+            {hasPin ? "🔒 Conta possui código PIN ativo." : "🔓 Conta sem código PIN."}
+          </p>
+        )}
 
         {accountEmail && (
           <p className="text-xs text-muted-foreground">
