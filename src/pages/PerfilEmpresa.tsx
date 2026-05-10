@@ -155,19 +155,20 @@ const PerfilEmpresa = () => {
     setIsSaving(true);
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
-      const imagesPayload = imageBase64
-        ? [imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64]
-        : (typeof editingProduct.imageUrls === 'string'
-            ? [editingProduct.imageUrls]
-            : (editingProduct.imageUrls as any)?.requested
-              ? [(editingProduct.imageUrls as any).requested]
-              : []);
-      const payload = {
-        ...editingProduct,
+      // Only send images if the user uploaded a new file in this session.
+      // Existing images returned from the catalog are CDN URLs that the API cannot re-read.
+      const { imageUrls, ...rest } = editingProduct as any;
+      const payload: any = {
+        ...rest,
         // Catalog API expects price as integer in 1/1000 of currency unit (100.00 -> 100000)
         price: Math.round(Number(editingProduct.price || 0) * 1000),
-        images: imagesPayload,
       };
+      if (imageBase64) {
+        payload.images = [imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64];
+      } else if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls) && !imageUrls.includes('whatsapp.net')) {
+        // Allow user-supplied external URL (e.g. from Supabase storage), but skip WhatsApp CDN URLs
+        payload.images = [imageUrls];
+      }
 
       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
         body: { action, instanceDbId: selectedInstanceId, payload },
