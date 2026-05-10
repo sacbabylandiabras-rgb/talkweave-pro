@@ -839,6 +839,46 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
           </DialogContent>
         </Dialog>
 
+        {/* Edit Collection Dialog */}
+        <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5" /> Editar Coleção
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Novo nome da coleção</Label>
+                <Input 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Digite o novo nome..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setEditingCollection(null)}
+                  disabled={editingLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleEditCollection}
+                  disabled={editingLoading || !editName.trim()}
+                >
+                  {editingLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
          <DialogContent className="sm:max-w-md">
