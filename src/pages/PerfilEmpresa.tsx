@@ -56,7 +56,9 @@ interface BusinessProfile {
   catalogConfig?: {
     isCartEnabled: boolean;
     isCatalogVisible: boolean;
+    catalogId?: string;
   };
+  catalogId?: string;
 }
 
 const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
@@ -457,9 +459,20 @@ const PerfilEmpresa = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Descrição</Label>
-                    <p className="text-sm leading-relaxed">{profile.description || "Sem descrição definida"}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Descrição</Label>
+                      <p className="text-sm leading-relaxed">{profile.description || "Sem descrição definida"}</p>
+                    </div>
+                    
+                    {(profile.catalogId || profile.catalogConfig?.catalogId) && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">ID do Catálogo</Label>
+                        <code className="text-xs bg-muted/50 px-2 py-1 rounded block select-all w-fit">
+                          {profile.catalogId || profile.catalogConfig?.catalogId}
+                        </code>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-start gap-2 pt-2">
@@ -660,9 +673,22 @@ const PerfilEmpresa = () => {
                           })()}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                        {product.description || "Sem descrição"}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {product.description || "Sem descrição"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60 font-mono bg-muted/30 px-1.5 py-0.5 rounded w-fit select-all hover:bg-muted/50 transition-colors">
+                          ID: {product.id}
+                        </p>
+                      </div>
+            {editingProduct?.id && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">ID</Label>
+                <div className="col-span-3">
+                  <code className="text-xs bg-muted p-2 rounded block select-all">{editingProduct.id}</code>
+                </div>
+              </div>
+            )}
                     </CardContent>
                     <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
                       {!isExternalCatalog ? (
