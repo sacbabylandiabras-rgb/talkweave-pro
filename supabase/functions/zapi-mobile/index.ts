@@ -38,7 +38,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   };
 }
 
-const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
+const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' | 'DELETE' }> = {
   'registration-available': { path: '/mobile/registration-available', method: 'POST' },
   'request-code': { path: '/mobile/request-registration-code', method: 'POST' },
   'captcha-confirm': { path: '/mobile/respond-captcha', method: 'POST' },
@@ -49,6 +49,7 @@ const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
   'device-transfer-confirmed': { path: '/mobile/device-transfer-confirmed', method: 'GET' },
   'get-account-email': { path: '/security/email', method: 'GET' },
   'set-account-email': { path: '/security/email', method: 'POST' },
+  'remove-account-email': { path: '/security/email', method: 'DELETE' },
   'verify-account-email': { path: '/security/verify-email', method: 'POST' },
   'get-has-security-code': { path: '/security/two-fa-code', method: 'GET' },
   'set-security-code': { path: '/security/two-fa-code', method: 'POST' },
