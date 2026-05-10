@@ -1675,7 +1675,7 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [address, setAddress] = useState("");
   const [websites, setWebsites] = useState("");
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
    const [businessHoursType, setBusinessHoursType] = useState<string>("open_24h");
    const [days, setDays] = useState<any>({
@@ -1836,32 +1836,63 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <LayoutGrid className="w-3 h-3" /> Categoria
+              <LayoutGrid className="w-3 h-3" /> Categorias (máx. 3)
             </Label>
-            <div className="flex gap-2">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!!submitting || loadingCategories}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder={loadingCategories ? "Carregando categorias..." : "Selecione uma categoria"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.displayName || cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button 
-                size="sm" 
-                onClick={() => {
-                  if (selectedCategory) {
-                    applyToAll('company-categories', { categories: [selectedCategory] }, 'Categoria');
-                  }
-                }} 
-                disabled={!!submitting || !selectedCategory || selectedIds.length === 0}
-              >
-                {submitting === 'company-categories' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
-              </Button>
+            <div className="flex gap-2 items-start">
+              <div className="flex-1 space-y-2">
+                <Select 
+                  value="" 
+                  onValueChange={(val) => {
+                    if (val && !selectedCategories.includes(val) && selectedCategories.length < 3) {
+                      setSelectedCategories(prev => [...prev, val]);
+                    }
+                  }} 
+                  disabled={!!submitting || loadingCategories || selectedCategories.length >= 3}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingCategories ? "Carregando..." : (selectedCategories.length >= 3 ? "Limite atingido" : "Adicionar categoria")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories
+                      .filter(cat => !selectedCategories.includes(cat.id))
+                      .map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.displayName || cat.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedCategories.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedCategories.map(catId => {
+                      const cat = availableCategories.find(c => c.id === catId);
+                      return (
+                        <div key={catId} className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/20">
+                          {cat?.displayName || cat?.label || catId}
+                          <button onClick={() => setSelectedCategories(prev => prev.filter(id => id !== catId))} className="hover:text-destructive ml-1 font-bold">
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <Button 
+                  size="sm" 
+                  onClick={() => applyToAll('company-categories', { categories: selectedCategories }, 'Categorias')} 
+                  disabled={!!submitting || selectedCategories.length === 0 || selectedIds.length === 0}
+                >
+                  {submitting === 'company-categories' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                </Button>
+                {selectedCategories.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedCategories([])} className="h-7 text-[10px] text-muted-foreground">
+                    Limpar
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
  
