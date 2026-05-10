@@ -664,7 +664,8 @@ const Modelos = () => {
     locTitle: "",
     // Contato (vCard)
     contactName: "",
-     contactPhone: "",
+    contactPhone: "",
+    catalogId: "",
     productId: "",
    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
@@ -951,7 +952,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
        setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -1026,6 +1027,7 @@ const Modelos = () => {
       locAddress: special.address || "",
       locTitle: special.title || "",
       contactName: special.contactName || "",
+      catalogId: special.catalogId || "",
       productId: special.productId || "",
        contactPhone: special.contactPhone || "",
      });
@@ -1166,7 +1168,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1201,7 +1203,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, productId: "" });
+     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
   };
 
   const addButton = useCallback((isEdit = false) => {
