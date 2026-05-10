@@ -709,6 +709,14 @@ serve(async (req) => {
       zapiData = await sendZapiMedia(mediaUrl, mediaType, message);
       const emojiMap: any = { audio: '🎤', image: '📷', video: '🎬', sticker: '🖼️', document: '📄' };
       logMessage = logMessage || `${emojiMap[mediaType] || '📎'} Mídia`;
+    } else if (isMultiple) {
+      zapiResponse = await fetch(`${baseUrl}/send-message-multiple-contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({ phones: phones, message }),
+      });
+      logMessage = message || '';
+      zapiData = await parseZapiResponse(zapiResponse, phones[0], instanceId, 'multiple-contacts');
     } else {
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
         method: 'POST',
