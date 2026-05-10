@@ -345,6 +345,21 @@ export const MobileEmulator = ({ instances }: Props) => {
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Código de verificação do e-mail</Label>
+            <Input
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="Código recebido por e-mail"
+              className="h-9 w-[260px]"
+            />
+          </div>
+          <Button onClick={handleVerifyEmail} disabled={loading || !verificationCode || !instanceDbId} variant="outline" size="sm">
+            <ShieldCheck className="w-4 h-4 mr-2" /> Verificar e-mail
+          </Button>
+        </div>
+
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
         {waitInfo && (
           <div className="text-xs text-muted-foreground space-y-0.5">
