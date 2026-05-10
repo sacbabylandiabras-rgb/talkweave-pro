@@ -1285,7 +1285,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
              case "text":
                if (!content) continue;
                await sendWithInstance({ phone: contact, message: content }, targetNode.data);
-               break;
+                 break;
+               }
+               case "product": {
+                 if (!targetNode.data.productId) continue;
+                 await sendWithInstance({
+                   phone: contact,
+                   message: content || '',
+                   mediaType: 'product',
+                   specialPayload: { productId: targetNode.data.productId }
+                 }, targetNode.data);
+                 break;
              case "image":
                if (!mediaUrl) continue;
                await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' }, targetNode.data);
