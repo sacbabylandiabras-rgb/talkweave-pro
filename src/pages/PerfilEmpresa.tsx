@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check, Settings, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,10 @@ interface BusinessProfile {
   websites?: string[];
   categories?: { id: string; label: string }[];
   businessHours?: any;
+  catalogConfig?: {
+    isCartEnabled: boolean;
+    isCatalogVisible: boolean;
+  };
 }
 
 const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
@@ -110,6 +114,8 @@ const PerfilEmpresa = () => {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [catalogConfig, setCatalogConfig] = useState({ isCartEnabled: true, isCatalogVisible: true });
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -304,7 +310,15 @@ const PerfilEmpresa = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error?.message || data.error);
       
-      setProfile(data?.data || null);
+      const profileData = data?.data || null;
+      setProfile(profileData);
+      
+      if (profileData?.catalogConfig) {
+        setCatalogConfig({
+          isCartEnabled: profileData.catalogConfig.isCartEnabled ?? true,
+          isCatalogVisible: profileData.catalogConfig.isCatalogVisible ?? true
+        });
+      }
     } catch (err: any) {
       console.error("Erro ao buscar perfil:", err);
       toast({
@@ -314,6 +328,38 @@ const PerfilEmpresa = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCatalogConfig = async () => {
+    if (!selectedInstanceId) return;
+    
+    setIsSavingConfig(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { 
+          action: "save-catalog-config", 
+          instanceDbId: selectedInstanceId,
+          payload: catalogConfig 
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+
+      toast({
+        title: "Configuração salva",
+        description: "As configurações do catálogo foram atualizadas com sucesso.",
+      });
+    } catch (err: any) {
+      console.error("Erro ao salvar configuração do catálogo:", err);
+      toast({
+        title: "Erro ao salvar",
+        description: formatErrorMessage(err),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingConfig(false);
     }
   };
 
@@ -376,7 +422,7 @@ const PerfilEmpresa = () => {
         }}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Perfil de Negócios
@@ -384,6 +430,10 @@ const PerfilEmpresa = () => {
           <TabsTrigger value="catalogo" className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4" />
             Catálogo de Produtos
+          </TabsTrigger>
+          <TabsTrigger value="configuracao" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Configurações
           </TabsTrigger>
           <TabsTrigger value="remover" className="flex items-center gap-2">
             <Trash2 className="w-4 h-4" />
@@ -668,6 +718,58 @@ const PerfilEmpresa = () => {
               <h3 className="text-lg font-semibold mb-1">Nenhum produto</h3>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="configuracao" className="space-y-6">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
+                Configurações do Catálogo
+              </CardTitle>
+              <CardDescription>
+                Controle a visibilidade do seu catálogo e a funcionalidade do carrinho.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-background/30">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Carrinho de Compras</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Permite que os clientes adicionem múltiplos itens ao carrinho antes de enviar o pedido.
+                  </p>
+                </div>
+                <Switch 
+                  checked={catalogConfig.isCartEnabled} 
+                  onCheckedChange={(checked) => setCatalogConfig(prev => ({ ...prev, isCartEnabled: checked }))} 
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-background/30">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Visibilidade do Catálogo</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Define se o catálogo estará visível para os seus contatos no WhatsApp.
+                  </p>
+                </div>
+                <Switch 
+                  checked={catalogConfig.isCatalogVisible} 
+                  onCheckedChange={(checked) => setCatalogConfig(prev => ({ ...prev, isCatalogVisible: checked }))} 
+                />
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button 
+                  onClick={handleSaveCatalogConfig} 
+                  disabled={isSavingConfig || !selectedInstanceId}
+                  className="gap-2"
+                >
+                  {isSavingConfig ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salvar Configurações
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="remover" className="space-y-6">
