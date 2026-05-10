@@ -293,6 +293,8 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
        return { method: 'POST', path: "/products", body: payload };
      case 'delete-product':
        return { method: 'DELETE', path: `/products/${payload?.id}` };
+      case 'get-product':
+        return { method: 'GET', path: `/products/${payload?.id}` };
 
     // Group Actions
     case 'get-groups':
