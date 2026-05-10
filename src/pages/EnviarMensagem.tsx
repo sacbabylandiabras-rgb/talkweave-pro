@@ -87,7 +87,7 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
