@@ -55,7 +55,33 @@ const PerfilEmpresa = () => {
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const { toast } = useToast();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user?.id || 'anon'}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
+      toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err?.message || "Não foi possível enviar a imagem.", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     if (instances.length > 0 && !selectedInstanceId) {
@@ -564,7 +590,31 @@ const PerfilEmpresa = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="imageUrl" className="text-right">Imagem URL</Label>
-              <Input value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''} onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))} className="col-span-3" />
+              <div className="col-span-3 flex flex-col gap-2">
+                <Input
+                  value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''}
+                  onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))}
+                  placeholder="https://..."
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="imageUpload"
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingImage}
+                    onChange={handleImageUpload}
+                    className="flex-grow"
+                  />
+                  {isUploadingImage && <span className="text-xs text-muted-foreground">Enviando...</span>}
+                </div>
+                {(typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested) && (
+                  <img
+                    src={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested}
+                    alt="Pré-visualização"
+                    className="h-20 w-20 rounded-md object-cover border border-border"
+                  />
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isHidden" className="text-right">Oculto</Label>
