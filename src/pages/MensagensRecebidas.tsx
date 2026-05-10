@@ -1517,13 +1517,12 @@ const ChatView = ({
 
                      <div className="grid grid-cols-9 gap-3 pt-2">
                        {tagColors.length > 0 ? (
-                        tagColors.length > 0 ? tagColors.map((c, idx) => (
+                        tagColors.length > 0 ? tagColors.map((c) => (
                            <button
                              key={c.id}
                              type="button"
                             onClick={() => {
                               setNewTagColor(c.id);
-                              // Optional: auto-select another color if they click again
                             }}
                              className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                              style={{ backgroundColor: c.hex }}
@@ -1531,7 +1530,19 @@ const ChatView = ({
                            >
                              {newTagColor === c.id && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
                            </button>
-                        )) : null
+                        )) : (
+                          ['#ef4444', '#dc2626', '#f87171', '#fb7185', '#ec4899', '#f472b6', '#fed7aa', '#f97316', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#7dd3fc', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d8b4fe', '#94a3b8', '#000000'].map((hex, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setNewTagColor(idx)}
+                              className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                              style={{ backgroundColor: hex }}
+                            >
+                              {newTagColor === idx && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
+                            </button>
+                          ))
+                        )
                        ) : (
                          ['#ef4444', '#dc2626', '#f87171', '#fb7185', '#ec4899', '#f472b6', '#fed7aa', '#f97316', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#7dd3fc', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d8b4fe', '#94a3b8', '#000000'].map((hex, idx) => (
                            <button
