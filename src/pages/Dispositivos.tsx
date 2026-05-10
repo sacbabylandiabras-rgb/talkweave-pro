@@ -67,23 +67,36 @@ const normalizeDeviceStatusPayload = (payload: any) => {
   };
 };
 
-const normalizeCollectionsPayload = (payload: any): any[] => {
+type CollectionItem = {
+  id?: string | number;
+  name?: string;
+  status?: string;
+  [key: string]: unknown;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getNestedValue = (source: unknown, path: string[]) =>
+  path.reduce<unknown>((current, key) => isRecord(current) ? current[key] : undefined, source);
+
+const normalizeCollectionsPayload = (payload: unknown): CollectionItem[] => {
   const candidates = [
     payload,
-    payload?.data,
-    payload?.data?.value,
-    payload?.data?.collections,
-    payload?.data?.value?.collections,
-    payload?.data?.items,
-    payload?.data?.value?.items,
-    payload?.collections,
-    payload?.value,
-    payload?.value?.collections,
-    payload?.items,
+    getNestedValue(payload, ['data']),
+    getNestedValue(payload, ['data', 'value']),
+    getNestedValue(payload, ['data', 'collections']),
+    getNestedValue(payload, ['data', 'value', 'collections']),
+    getNestedValue(payload, ['data', 'items']),
+    getNestedValue(payload, ['data', 'value', 'items']),
+    getNestedValue(payload, ['collections']),
+    getNestedValue(payload, ['value']),
+    getNestedValue(payload, ['value', 'collections']),
+    getNestedValue(payload, ['items']),
   ];
 
   for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate)) return candidate as CollectionItem[];
   }
 
   return [];
@@ -104,7 +117,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [pairingCode, setPairingCode] = useState<string | null>(null);
    const [showConnect, setShowConnect] = useState(false);
     const [showCollections, setShowCollections] = useState(false);
-    const [collections, setCollections] = useState<any[]>([]);
+    const [collections, setCollections] = useState<CollectionItem[]>([]);
     const [collectionsLoading, setCollectionsLoading] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
