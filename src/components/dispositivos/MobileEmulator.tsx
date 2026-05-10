@@ -337,7 +337,16 @@ export const MobileEmulator = ({ instances }: Props) => {
           <Button onClick={handleGetEmail} variant="outline" size="sm" disabled={loading || !instanceDbId}>
             <Mail className="w-4 h-4 mr-2" /> Ver e-mail da conta
           </Button>
+          <Button onClick={handleCheckHasPin} variant="outline" size="sm" disabled={loading || !instanceDbId}>
+            <ShieldCheck className="w-4 h-4 mr-2" /> Verificar PIN
+          </Button>
         </div>
+
+        {hasPin !== null && (
+          <p className="text-xs text-muted-foreground">
+            {hasPin ? "🔒 Conta possui código PIN ativo." : "🔓 Conta sem código PIN."}
+          </p>
+        )}
 
         {accountEmail && (
           <p className="text-xs text-muted-foreground">
