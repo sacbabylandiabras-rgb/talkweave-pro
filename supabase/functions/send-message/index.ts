@@ -676,7 +676,20 @@ serve(async (req) => {
       });
       logMessage = logMessage || '📋 Lista de opções';
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'option-list');
-    } else if (mediaUrl && mediaType) {
+     } else if (mediaType === 'product' && specialPayload?.productId) {
+       zapiResponse = await fetch(`${baseUrl}/send-product`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+         body: JSON.stringify({
+           phone: resolvedPhone,
+           message: message || '',
+           productId: specialPayload.productId,
+           ...mentionFlag(resolvedPhone),
+         }),
+       });
+       logMessage = logMessage || `📦 Produto: ${specialPayload.productId}`;
+       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'product');
+     } else if (mediaUrl && mediaType) {
       zapiData = await sendZapiMedia(mediaUrl, mediaType, message);
       const emojiMap: any = { audio: '🎤', image: '📷', video: '🎬', sticker: '🖼️', document: '📄' };
       logMessage = logMessage || `${emojiMap[mediaType] || '📎'} Mídia`;
