@@ -199,10 +199,20 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-online':
       return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
-    case 'set-read-receipts':
-      return { method: 'POST', path: '/privacy/read-receipts', body: { active: payload?.active } };
-    case 'set-messages-duration':
-      return { method: 'POST', path: '/privacy/messages-duration', body: { duration: payload?.duration } };
+    case 'set-read-receipts': {
+      const value = payload?.active === true || payload?.active === 'true' || payload?.value === 'enable' ? 'enable' : 'disable';
+      return { method: 'POST', path: `/privacy/read-receipts?value=${value}` };
+    }
+    case 'set-messages-duration': {
+      const durationMap: Record<string, string> = {
+        '0': 'disable',
+        '86400': 'hours24',
+        '604800': 'days7',
+        '7776000': 'days90',
+      };
+      const value = durationMap[String(payload?.duration ?? 0)] || 'disable';
+      return { method: 'POST', path: `/privacy/messages-duration?value=${value}` };
+    }
 
     // Call Actions
     case 'send-call':
