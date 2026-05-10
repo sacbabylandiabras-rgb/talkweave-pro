@@ -364,8 +364,12 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'accept-group-invite':
       return { method: 'POST', path: "/accept-group-invite", body: payload };
 
-    // Message Actions
-    case 'forward-message':
+    // Business / Catalog Config Actions
+    case 'save-catalog-config':
+      return { method: 'POST', path: "/business/save-catalog-config", body: payload };
+
+     // Message Actions
+     case 'forward-message':
       return { method: 'POST', path: "/forward-message", body: { ...payload, phone: zapiPhone } };
     case 'send-message-reaction':
       return { method: 'POST', path: "/send-reaction", body: { ...payload, phone: zapiPhone } };
