@@ -401,17 +401,53 @@ const PerfilEmpresa = () => {
  
          <TabsContent value="catalogo" className="space-y-6">
            <div className="flex items-center justify-between">
-             <h2 className="text-lg font-semibold flex items-center gap-2">
-               <ShoppingBag className="w-5 h-5 text-primary" />
-               Produtos ({products.length})
-             </h2>
-             <Button onClick={() => {
-               setEditingProduct({ currency: 'BRL', isHidden: false });
-               setIsDialogOpen(true);
-             }} className="gap-2">
-               <Plus className="w-4 h-4" />
-               Novo Produto
-             </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-primary" />
+                  {isExternalCatalog ? "Catálogo Externo" : "Seu Catálogo"} ({products.length})
+                </h2>
+                {isExternalCatalog && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Visualizando produtos do número: {searchPhone}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-muted/50 rounded-lg px-2 py-1 border border-border/50 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+                  <Input 
+                    placeholder="Buscar por telefone..." 
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value.replace(/\D/g, ''))}
+                    className="border-0 bg-transparent h-8 w-40 focus-visible:ring-0 text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchPhone) fetchProducts(selectedInstanceId, searchPhone);
+                    }}
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-7 px-2 text-xs"
+                    onClick={() => fetchProducts(selectedInstanceId, searchPhone)}
+                    disabled={!searchPhone || loadingProducts}
+                  >
+                    Buscar
+                  </Button>
+                </div>
+
+                {!isExternalCatalog && (
+                  <Button onClick={() => {
+                    setEditingProduct({ currency: 'BRL', isHidden: false });
+                    setIsDialogOpen(true);
+                  }} className="gap-2 h-9 text-xs">
+                    <Plus className="w-4 h-4" />
+                    Novo Produto
+                  </Button>
+                )}
+              </div>
+            </div>
            </div>
  
            {loadingProducts ? (
