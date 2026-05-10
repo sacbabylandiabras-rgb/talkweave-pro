@@ -119,6 +119,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [showCollections, setShowCollections] = useState(false);
     const [collections, setCollections] = useState<CollectionItem[]>([]);
     const [collectionsLoading, setCollectionsLoading] = useState(false);
+    const [deletingCollectionId, setDeletingCollectionId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -141,6 +142,29 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
      } finally {
        setCollectionsLoading(false);
+     }
+   };
+
+   const deleteCollection = async (collectionId: string | number) => {
+     setDeletingCollectionId(collectionId);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'delete-collection', 
+           instanceDbId: instance.id,
+           payload: { collectionId }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Coleção excluída" });
+       // Refresh list
+       fetchCollections();
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao excluir coleção');
+       toast({ title: "❌ Erro ao excluir", description: message, variant: "destructive" });
+     } finally {
+       setDeletingCollectionId(null);
      }
    };
 
