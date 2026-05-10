@@ -120,6 +120,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [collections, setCollections] = useState<CollectionItem[]>([]);
     const [collectionsLoading, setCollectionsLoading] = useState(false);
     const [deletingCollectionId, setDeletingCollectionId] = useState<string | number | null>(null);
+    const [editingCollection, setEditingCollection] = useState<{ id: string | number; name: string } | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editingLoading, setEditingLoading] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -165,6 +168,30 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        toast({ title: "❌ Erro ao excluir", description: message, variant: "destructive" });
      } finally {
        setDeletingCollectionId(null);
+     }
+   };
+
+   const handleEditCollection = async () => {
+     if (!editingCollection || !editName.trim()) return;
+     setEditingLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'edit-collection', 
+           instanceDbId: instance.id,
+           payload: { collectionId: editingCollection.id, name: editName.trim() }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Coleção atualizada" });
+       setEditingCollection(null);
+       fetchCollections();
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao editar coleção');
+       toast({ title: "❌ Erro ao editar", description: message, variant: "destructive" });
+     } finally {
+       setEditingLoading(false);
      }
    };
 
@@ -764,35 +791,90 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                   <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
                     {collections.map((col: any, idx: number) => (
                       <div key={col.id || idx} className="p-3 border rounded-lg bg-muted/20 space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="font-semibold text-sm truncate">{col.name}</p>
-                              <Badge variant="outline" className="text-[10px] shrink-0">{col.id}</Badge>
+                        <div className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/20">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="font-semibold text-sm truncate">{col.name}</p>
+                                <Badge variant="outline" className="text-[10px] shrink-0">{col.id}</Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground italic">
+                                Status: {col.status || 'N/A'}
+                              </p>
                             </div>
-                            <p className="text-[11px] text-muted-foreground italic">
-                              Status: {col.status || 'N/A'}
-                            </p>
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+                                onClick={() => {
+                                  setEditingCollection({ id: col.id, name: col.name || '' });
+                                  setEditName(col.name || '');
+                                }}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                onClick={() => col.id && deleteCollection(col.id)}
+                                disabled={deletingCollectionId === col.id}
+                              >
+                                {deletingCollectionId === col.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                            onClick={() => col.id && deleteCollection(col.id)}
-                            disabled={deletingCollectionId === col.id}
-                          >
-                            {deletingCollectionId === col.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Collection Dialog */}
+        <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5" /> Editar Coleção
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Novo nome da coleção</Label>
+                <Input 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Digite o novo nome..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setEditingCollection(null)}
+                  disabled={editingLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleEditCollection}
+                  disabled={editingLoading || !editName.trim()}
+                >
+                  {editingLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                  Salvar
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
