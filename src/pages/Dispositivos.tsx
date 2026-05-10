@@ -912,7 +912,28 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Package className="w-5 h-5" /> Produtos da Coleção
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 pt-4">
+              <div className="flex gap-2 items-end border-b pb-4 mb-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs">Adicionar Produto (ID)</Label>
+                  <Input 
+                    placeholder="Ex: prod_123" 
+                    value={addingProductId}
+                    onChange={(e) => setAddingProductId(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button 
+                  size="sm" 
+                  className="h-8" 
+                  onClick={() => viewingProductsId && addProductToCollection(viewingProductsId)}
+                  disabled={isAddingProduct || !addingProductId.trim()}
+                >
+                  {isAddingProduct ? <Loader2 className="w-3 h-3 animate-spin" /> : <PlusCircle className="w-3 h-3 mr-1" />}
+                  Add
+                </Button>
+              </div>
+
               {productsLoading ? (
                 <div className="flex flex-col items-center justify-center py-8 space-y-2">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
