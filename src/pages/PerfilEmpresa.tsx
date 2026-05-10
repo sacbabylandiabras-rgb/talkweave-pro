@@ -41,6 +41,27 @@ interface BusinessProfile {
   businessHours?: any;
 }
 
+const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message || fallback;
+  if (Array.isArray(value)) return value.map((item) => formatErrorMessage(item, "")).filter(Boolean).join(" | ") || fallback;
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.message || obj.error || obj.details || obj.description;
+    if (nested && nested !== value) return formatErrorMessage(nested, fallback);
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return String(value);
+};
+
 const PerfilEmpresa = () => {
   const { instances, loading: loadingInstances } = useZapiInstances();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
@@ -56,7 +77,6 @@ const PerfilEmpresa = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,14 +94,6 @@ const PerfilEmpresa = () => {
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
-      // Convert file to base64 for the catalog API (it expects base64, not URL)
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      setImageBase64(base64);
       setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
       toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
     } catch (err: any) {
