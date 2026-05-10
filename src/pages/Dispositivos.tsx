@@ -1673,7 +1673,17 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [websites, setWebsites] = useState("");
+   const [websites, setWebsites] = useState("");
+   const [businessHoursType, setBusinessHoursType] = useState<string>("open_24h");
+   const [days, setDays] = useState<any>({
+     monday: { open: false, start: "08:00", end: "18:00" },
+     tuesday: { open: false, start: "08:00", end: "18:00" },
+     wednesday: { open: false, start: "08:00", end: "18:00" },
+     thursday: { open: false, start: "08:00", end: "18:00" },
+     friday: { open: false, start: "08:00", end: "18:00" },
+     saturday: { open: false, start: "08:00", end: "18:00" },
+     sunday: { open: false, start: "08:00", end: "18:00" }
+   });
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   useEffect(() => {
