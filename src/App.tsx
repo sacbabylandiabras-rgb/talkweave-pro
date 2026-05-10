@@ -173,6 +173,7 @@ const App = () => (
                   <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/emulador-mobile" element={<EmuladorMobile />} />
+                  <Route path="/emulador-mobile" element={<EmuladorMobile />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
