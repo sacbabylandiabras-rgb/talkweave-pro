@@ -1673,7 +1673,10 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-   const [websites, setWebsites] = useState("");
+  const [websites, setWebsites] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [loadingCategories, setLoadingCategories] = useState(false);
    const [businessHoursType, setBusinessHoursType] = useState<string>("open_24h");
    const [days, setDays] = useState<any>({
      monday: { open: false, start: "08:00", end: "18:00" },
@@ -1689,6 +1692,36 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
   }, [open, instances]);
+
+  useEffect(() => {
+    if (open && availableCategories.length === 0 && !loadingCategories) {
+      fetchCategories();
+    }
+  }, [open]);
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      // Use the first selected instance or the first available instance to fetch categories
+      const targetInstance = instances.find(i => selectedIds.includes(i.id)) || instances[0];
+      if (!targetInstance) return;
+
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: 'available-categories', instanceDbId: targetInstance.id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error?.message || data.error);
+      
+      const categories = data?.data || [];
+      setAvailableCategories(Array.isArray(categories) ? categories : []);
+    } catch (err: any) {
+      console.error("Erro ao buscar categorias:", err);
+      toast({ title: "Erro ao buscar categorias", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const allSelected = selectedIds.length === instances.length && instances.length > 0;
   const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
@@ -1800,8 +1833,39 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                </Button>
              </div>
            </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <LayoutGrid className="w-3 h-3" /> Categoria
+            </Label>
+            <div className="flex gap-2">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!!submitting || loadingCategories}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={loadingCategories ? "Carregando categorias..." : "Selecione uma categoria"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.displayName || cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  if (selectedCategory) {
+                    applyToAll('company-categories', { categories: [selectedCategory] }, 'Categoria');
+                  }
+                }} 
+                disabled={!!submitting || !selectedCategory || selectedIds.length === 0}
+              >
+                {submitting === 'company-categories' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
  
-           <div className="space-y-4 border-t pt-4">
+            <div className="space-y-4 border-t pt-4">
              <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Horário de Funcionamento</Label>
              
              <div className="space-y-3">
