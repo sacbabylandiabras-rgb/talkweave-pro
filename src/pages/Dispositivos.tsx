@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
@@ -1092,6 +1093,7 @@ const Dispositivos = () => {
   );
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -1105,6 +1107,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
               <User className="w-4 h-4 mr-1" />
               Perfil WhatsApp
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Criar Coleção
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
@@ -1134,6 +1142,9 @@ const Dispositivos = () => {
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+
+      {/* Bulk Create Collection Dialog */}
+      <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
