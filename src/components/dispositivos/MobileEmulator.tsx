@@ -31,6 +31,8 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [step, setStep] = useState<Step>("available");
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+  const [waitInfo, setWaitInfo] = useState<{ sms?: number; voice?: number; waOld?: number; waOldEligible?: boolean } | null>(null);
+  const [appealToken, setAppealToken] = useState<string | null>(null);
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -48,6 +50,8 @@ export const MobileEmulator = ({ instances }: Props) => {
     setCode("");
     setPin("");
     setInfo(null);
+    setWaitInfo(null);
+    setAppealToken(null);
   };
 
   const handleAvailable = async () => {
@@ -57,14 +61,21 @@ export const MobileEmulator = ({ instances }: Props) => {
     try {
       const res = await call("registration-available", { ddi: onlyDigits(ddi), phone: onlyDigits(phone) });
       if (res?.blocked) {
+        setAppealToken(res?.appealToken || null);
         toast({ title: "Número bloqueado", description: "Solicite o desbanimento.", variant: "destructive" });
-        setInfo("Número bloqueado pelo WhatsApp.");
+        setInfo(`Número bloqueado pelo WhatsApp.${res?.reason ? ` Motivo: ${res.reason}` : ""}`);
         return;
       }
       if (!res?.available) {
         toast({ title: "Indisponível", description: "Número indisponível para registro.", variant: "destructive" });
         return;
       }
+      setWaitInfo({
+        sms: res?.smsWaitSeconds,
+        voice: res?.voiceWaitSeconds,
+        waOld: res?.waOldWaitSeconds,
+        waOldEligible: res?.waOldEligible,
+      });
       toast({ title: "✅ Número disponível", description: "Solicite o código de confirmação." });
       setInfo("Número disponível. Escolha o método e solicite o código.");
     } catch (e: any) {
@@ -215,6 +226,18 @@ export const MobileEmulator = ({ instances }: Props) => {
         </div>
 
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
+        {waitInfo && (
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            {typeof waitInfo.sms === "number" && <div>⏱ SMS: aguardar {waitInfo.sms}s</div>}
+            {typeof waitInfo.voice === "number" && <div>⏱ Voz: aguardar {waitInfo.voice}s</div>}
+            {typeof waitInfo.waOld === "number" && (
+              <div>⏱ Pop-up WhatsApp: aguardar {waitInfo.waOld}s {waitInfo.waOldEligible ? "(elegível)" : "(não elegível)"}</div>
+            )}
+          </div>
+        )}
+        {appealToken && (
+          <p className="text-xs text-destructive break-all">Appeal token: {appealToken}</p>
+        )}
 
         {step === "captcha" && captchaImg && (
           <div className="border border-border rounded-lg p-4 space-y-2">
