@@ -1023,6 +1023,56 @@ const PerfilEmpresa = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Etiqueta</DialogTitle>
+            <DialogDescription>Altere o nome ou a cor da sua etiqueta do WhatsApp.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tagName" className="text-right">Nome</Label>
+              <Input 
+                id="tagName" 
+                value={editingTag?.name || ''} 
+                onChange={(e) => setEditingTag(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
+                className="col-span-3" 
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tagColor" className="text-right">Cor</Label>
+              <div className="col-span-3">
+                <Select 
+                  value={String(editingTag?.color ?? 0)} 
+                  onValueChange={(v) => setEditingTag(prev => prev ? ({ ...prev, color: Number(v) }) : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tagColors.map(c => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.hex }} />
+                          <span>{c.label || `Cor ${c.id}`}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTag(null)} disabled={loadingTags}>Cancelar</Button>
+            <Button onClick={handleEditTag} disabled={loadingTags || !editingTag?.name.trim()}>
+              {loadingTags ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
