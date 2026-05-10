@@ -1085,7 +1085,6 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 
 
 const Dispositivos = () => {
-  // (real component below)
   const { instances: allInstances, loading, refetch } = useZapiInstances();
   // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
   const instances = useMemo(
