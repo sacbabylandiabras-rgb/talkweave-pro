@@ -48,6 +48,7 @@ import {
   Sparkles,
   Building2,
   Camera,
+  Tag,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const zapiMenuItems = [
   { id: "perfil-empresa", label: "Perfil Empresa", icon: Building2, path: "/perfil-empresa" },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
+  { id: "etiquetas", label: "Etiquetas", icon: Tag, path: "/perfil-empresa?tab=mensagens" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
   { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
