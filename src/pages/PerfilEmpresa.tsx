@@ -203,48 +203,64 @@ const PerfilEmpresa = () => {
     );
   }
 
-  return (
-    <div className="container mx-auto py-6 space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Perfil de Negócios</h1>
-          <p className="text-muted-foreground">Visualize as informações comerciais configuradas no WhatsApp Business.</p>
-        </div>
-        
-        <div className="flex items-center gap-2 min-w-[250px]">
-          <Label className="whitespace-nowrap">Instância:</Label>
-          <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione uma instância" />
-            </SelectTrigger>
-            <SelectContent>
-              {instances.map((inst) => (
-                <SelectItem key={inst.id} value={inst.id}>
-                  {inst.instance_name || inst.zapi_instance_id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => fetchProfile(selectedInstanceId)} 
-            disabled={loading || !selectedInstanceId}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      ) : profile ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   return (
+     <div className="container mx-auto py-6 space-y-6 animate-in fade-in duration-500">
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+         <div>
+           <h1 className="text-2xl font-bold text-foreground">Gestão Comercial</h1>
+           <p className="text-muted-foreground">Gerencie o perfil e o catálogo de produtos da sua empresa no WhatsApp.</p>
+         </div>
+         
+         <div className="flex items-center gap-2 min-w-[250px]">
+           <Label className="whitespace-nowrap">Instância:</Label>
+           <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+             <SelectTrigger>
+               <SelectValue placeholder="Selecione uma instância" />
+             </SelectTrigger>
+             <SelectContent>
+               {instances.map((inst) => (
+                 <SelectItem key={inst.id} value={inst.id}>
+                   {inst.instance_name || inst.zapi_instance_id}
+                 </SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
+           <Button 
+             variant="outline" 
+             size="icon" 
+             onClick={() => {
+               fetchProfile(selectedInstanceId);
+               fetchProducts(selectedInstanceId);
+             }} 
+             disabled={loading || loadingProducts || !selectedInstanceId}
+           >
+             <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
+           </Button>
+         </div>
+       </div>
+ 
+       <Tabs defaultValue="perfil" className="w-full">
+         <TabsList className="grid w-full grid-cols-2 mb-8">
+           <TabsTrigger value="perfil" className="flex items-center gap-2">
+             <Building2 className="w-4 h-4" />
+             Perfil de Negócios
+           </TabsTrigger>
+           <TabsTrigger value="catalogo" className="flex items-center gap-2">
+             <ShoppingBag className="w-4 h-4" />
+             Catálogo de Produtos
+           </TabsTrigger>
+         </TabsList>
+ 
+         <TabsContent value="perfil" className="space-y-6">
+           {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <Skeleton className="h-48 w-full" />
+               <Skeleton className="h-48 w-full" />
+               <Skeleton className="h-48 w-full" />
+               <Skeleton className="h-48 w-full" />
+             </div>
+           ) : profile ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Informações Básicas */}
           <Card className="border-border/50 bg-card/50">
             <CardHeader className="pb-3">
