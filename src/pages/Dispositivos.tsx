@@ -764,13 +764,30 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                   <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
                     {collections.map((col: any, idx: number) => (
                       <div key={col.id || idx} className="p-3 border rounded-lg bg-muted/20 space-y-1">
-                        <div className="flex justify-between items-start">
-                          <p className="font-semibold text-sm">{col.name}</p>
-                          <Badge variant="outline" className="text-[10px]">{col.id}</Badge>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-sm truncate">{col.name}</p>
+                              <Badge variant="outline" className="text-[10px] shrink-0">{col.id}</Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground italic">
+                              Status: {col.status || 'N/A'}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => col.id && deleteCollection(col.id)}
+                            disabled={deletingCollectionId === col.id}
+                          >
+                            {deletingCollectionId === col.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
                         </div>
-                        <p className="text-[11px] text-muted-foreground italic">
-                          Status: {col.status || 'N/A'}
-                        </p>
                       </div>
                     ))}
                   </div>
