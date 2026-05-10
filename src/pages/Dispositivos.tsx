@@ -67,6 +67,41 @@ const normalizeDeviceStatusPayload = (payload: any) => {
   };
 };
 
+type CollectionItem = {
+  id?: string | number;
+  name?: string;
+  status?: string;
+  [key: string]: unknown;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getNestedValue = (source: unknown, path: string[]) =>
+  path.reduce<unknown>((current, key) => isRecord(current) ? current[key] : undefined, source);
+
+const normalizeCollectionsPayload = (payload: unknown): CollectionItem[] => {
+  const candidates = [
+    payload,
+    getNestedValue(payload, ['data']),
+    getNestedValue(payload, ['data', 'value']),
+    getNestedValue(payload, ['data', 'collections']),
+    getNestedValue(payload, ['data', 'value', 'collections']),
+    getNestedValue(payload, ['data', 'items']),
+    getNestedValue(payload, ['data', 'value', 'items']),
+    getNestedValue(payload, ['collections']),
+    getNestedValue(payload, ['value']),
+    getNestedValue(payload, ['value', 'collections']),
+    getNestedValue(payload, ['items']),
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate as CollectionItem[];
+  }
+
+  return [];
+};
+
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -82,7 +117,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [pairingCode, setPairingCode] = useState<string | null>(null);
    const [showConnect, setShowConnect] = useState(false);
     const [showCollections, setShowCollections] = useState(false);
-    const [collections, setCollections] = useState<any[]>([]);
+    const [collections, setCollections] = useState<CollectionItem[]>([]);
     const [collectionsLoading, setCollectionsLoading] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
@@ -98,9 +133,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
          },
        });
        if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       setCollections(data?.data?.value || data?.data || []);
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        setCollections(normalizeCollectionsPayload(data));
      } catch (err: any) {
+        setCollections([]);
        const message = await getInvokeErrorMessage(err, 'Erro ao buscar coleções');
        toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
      } finally {
