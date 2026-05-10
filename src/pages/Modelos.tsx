@@ -214,25 +214,41 @@ const SpecialFieldsEditor = ({
 
   if (type === "contato") {
     return (
-      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <UserIcon className="w-4 h-4" /> Cartão de contato (vCard)
+      <div className="space-y-4 border rounded-xl p-4 bg-purple-500/5 border-purple-500/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-purple-600">
+          <UserIcon className="w-5 h-5" /> Enviar Cartão de Contato (vCard)
         </div>
-        <div>
-          <Label>Nome do contato *</Label>
-          <Input
-            placeholder="Nome completo"
-            value={data.contactName || ""}
-            onChange={(e) => onChange({ contactName: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Telefone (com DDI) *</Label>
-          <Input
-            placeholder="+5511999999999"
-            value={data.contactPhone || ""}
-            onChange={(e) => onChange({ contactPhone: e.target.value })}
-          />
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome do Contato *</Label>
+            <Input
+              placeholder="Ex: João da Silva"
+              value={data.contactName || ""}
+              onChange={(e) => onChange({ contactName: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Telefone (com DDI) *</Label>
+            <Input
+              placeholder="Ex: +5511999999999"
+              value={data.contactPhone || ""}
+              onChange={(e) => onChange({ contactPhone: e.target.value })}
+              className="bg-background border-purple-500/30 focus-visible:ring-purple-500"
+            />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Formato internacional obrigatório (DDI + DDD + Número).
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Descrição Comercial (Opcional)</Label>
+            <Input
+              placeholder="Ex: Consultor de Vendas"
+              value={data.contactBusinessDescription || ""}
+              onChange={(e) => onChange({ contactBusinessDescription: e.target.value })}
+              className="bg-background"
+            />
+          </div>
         </div>
       </div>
     );
