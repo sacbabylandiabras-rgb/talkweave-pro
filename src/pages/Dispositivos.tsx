@@ -128,6 +128,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [productsLoading, setProductsLoading] = useState(false);
     const [addingProductId, setAddingProductId] = useState("");
     const [isAddingProduct, setIsAddingProduct] = useState(false);
+    const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -248,6 +249,31 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        toast({ title: "❌ Erro ao adicionar", description: message, variant: "destructive" });
      } finally {
        setIsAddingProduct(false);
+     }
+   };
+
+   const removeProductFromCollection = async (collectionId: string | number, productId: string | number) => {
+     setRemovingProductId(productId);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'remove-products-from-collection', 
+           instanceDbId: instance.id,
+           payload: { 
+             collectionId, 
+             products: [{ id: productId }] 
+           }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Produto removido" });
+       fetchCollectionProducts(collectionId);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao remover produto');
+       toast({ title: "❌ Erro ao remover", description: message, variant: "destructive" });
+     } finally {
+       setRemovingProductId(null);
      }
    };
 
@@ -956,7 +982,22 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{prod.name || prod.title}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm truncate">{prod.name || prod.title}</p>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => viewingProductsId && removeProductFromCollection(viewingProductsId, prod.id || prod.retailer_id)}
+                            disabled={removingProductId === (prod.id || prod.retailer_id)}
+                          >
+                            {removingProductId === (prod.id || prod.retailer_id) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <MinusCircle className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </div>
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-xs text-primary font-medium">
                             {prod.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: prod.currency || 'BRL' }).format(prod.price / 1000) : 'Preço não inf.'}
