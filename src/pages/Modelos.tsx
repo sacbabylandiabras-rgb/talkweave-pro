@@ -67,8 +67,8 @@ const parseSpecialContent = (content: string): any | null => {
 };
 
 const isSpecialType = (type?: string): boolean =>
-  type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-   || type === "poll" || type === "sticker" || type === "gif" || type === "link";
+   type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
+    || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -262,6 +262,27 @@ const SpecialFieldsEditor = ({
   }
 
 
+   if (type === "produto") {
+     return (
+       <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+         <div className="flex items-center gap-2 text-sm font-medium">
+           <ShoppingBag className="w-4 h-4" /> Enviar Produto
+         </div>
+         <div>
+           <Label>ID do Produto (conforme cadastrado no Catálogo)</Label>
+           <Input
+             placeholder="Ex: 123456789"
+             value={data.productId || ""}
+             onChange={(e) => onChange({ productId: e.target.value })}
+           />
+           <p className="text-xs text-muted-foreground mt-1">
+             Informe o ID do produto que deseja enviar. Você pode encontrar este ID na seção de Catálogo.
+           </p>
+         </div>
+       </div>
+     );
+   }
+ 
   return null;
 };
 
@@ -289,6 +310,8 @@ const getTemplateIcon = (type?: string) => {
       return <Menu className="w-5 h-5 text-primary" />;
     case "pix":
       return <DollarSign className="w-5 h-5 text-primary" />;
+    case "produto":
+      return <ShoppingBag className="w-5 h-5 text-primary" />;
     case "localizacao":
       return <MapPin className="w-5 h-5 text-primary" />;
     case "contato":
@@ -315,6 +338,7 @@ const getTypeFriendlyName = (type?: string) => {
     carrossel: "Carrossel",
     pix: "PIX",
     localizacao: "Localização",
+    produto: "Produto",
     contato: "Contato (vCard)",
   };
   return names[type || "texto"] || "Texto";
@@ -623,6 +647,7 @@ const Modelos = () => {
     // Contato (vCard)
     contactName: "",
      contactPhone: "",
+    productId: "",
    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -656,6 +681,7 @@ const Modelos = () => {
      contactName: "",
      contactPhone: "",
      variables: {} as Record<string, any>,
+    productId: "",
    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -804,6 +830,10 @@ const Modelos = () => {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
+    if (newTemplate.type === "produto" && !newTemplate.productId) {
+      toast({ title: "Erro", description: "Informe o ID do produto", variant: "destructive" });
+      return;
+    }
 
     const validListItems = Array.isArray(newTemplate.listItems)
       ? newTemplate.listItems.filter(item => item.title.trim() !== "")
@@ -904,7 +934,7 @@ const Modelos = () => {
       });
 
       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS });
-      setShowCreateDialog(false);
+       setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
     }
@@ -978,6 +1008,7 @@ const Modelos = () => {
       locAddress: special.address || "",
       locTitle: special.title || "",
       contactName: special.contactName || "",
+      productId: special.productId || "",
        contactPhone: special.contactPhone || "",
      });
     setEditingTemplate(template.id);
