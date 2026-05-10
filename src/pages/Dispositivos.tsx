@@ -1780,7 +1780,9 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Websites (um por linha)</Label>
+            <Label className="flex items-center gap-2">
+              <Globe className="w-3 h-3" /> Websites (um por linha, máx. 2)
+            </Label>
             <div className="flex gap-2 items-start">
               <Textarea placeholder="https://empresa.com" value={websites} onChange={(e) => setWebsites(e.target.value)} disabled={!!submitting} rows={3} />
               <Button size="sm" onClick={() => applyToAll('company-websites', { websites: websites.split('\n').map(s => s.trim()).filter(Boolean) }, 'Websites')} disabled={!!submitting || !websites.trim() || selectedIds.length === 0}>
