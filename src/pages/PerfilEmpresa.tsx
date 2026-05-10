@@ -47,8 +47,10 @@ const PerfilEmpresa = () => {
    const [profile, setProfile] = useState<BusinessProfile | null>(null);
    const [products, setProducts] = useState<Product[]>([]);
    const [loading, setLoading] = useState(false);
-   const [loadingProducts, setLoadingProducts] = useState(false);
-   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [searchPhone, setSearchPhone] = useState("");
+  const [isExternalCatalog, setIsExternalCatalog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
    const [isDialogOpen, setIsDialogOpen] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -65,17 +67,22 @@ const PerfilEmpresa = () => {
        fetchProducts(selectedInstanceId);
      }
    }, [selectedInstanceId]);
-   const fetchProducts = async (instanceId: string) => {
+    const fetchProducts = async (instanceId: string, phone?: string) => {
      setLoadingProducts(true);
      try {
        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-         body: { action: "list-products", instanceDbId: instanceId },
+          body: { 
+            action: "list-products", 
+            instanceDbId: instanceId,
+            payload: phone ? { phone } : undefined
+          },
        });
  
        if (error) throw error;
        if (data?.error) throw new Error(data.error?.message || data.error);
        
        setProducts(data?.data?.products || []);
+        setIsExternalCatalog(!!phone);
      } catch (err: any) {
        console.error("Erro ao buscar produtos:", err);
        toast({
@@ -225,19 +232,8 @@ const PerfilEmpresa = () => {
                ))}
              </SelectContent>
            </Select>
-           <Button 
-             variant="outline" 
-             size="icon" 
-             onClick={() => {
-               fetchProfile(selectedInstanceId);
-               fetchProducts(selectedInstanceId);
-             }} 
-             disabled={loading || loadingProducts || !selectedInstanceId}
-           >
-             <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
-           </Button>
-         </div>
-       </div>
+          </div>
+        </div>
  
        <Tabs defaultValue="perfil" className="w-full">
          <TabsList className="grid w-full grid-cols-2 mb-8">
