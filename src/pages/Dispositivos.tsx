@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
- import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin, Clock } from "lucide-react";
+  import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin, Clock, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
@@ -1506,13 +1506,41 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { toast } = useToast();
   const [name, setName] = useState("");
-  const [productsRaw, setProductsRaw] = useState("");
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) setSelectedIds(instances.map((i) => i.id));
+    if (open) {
+      const initialIds = instances.map((i) => i.id);
+      setSelectedIds(initialIds);
+      fetchAvailableProducts(initialIds);
+    }
   }, [open, instances]);
+
+  const fetchAvailableProducts = async (ids: string[]) => {
+    if (ids.length === 0) {
+      setAvailableProducts([]);
+      return;
+    }
+    setLoadingProducts(true);
+    try {
+      // Tenta buscar da primeira instância selecionada
+      const targetId = ids[0];
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "list-products", instanceDbId: targetId },
+      });
+      if (error) throw error;
+      const products = data?.data?.products || data?.data?.value || [];
+      setAvailableProducts(products);
+    } catch (err) {
+      console.error("Erro ao buscar produtos para coleção:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const allSelected = selectedIds.length === instances.length && instances.length > 0;
   const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
@@ -1521,10 +1549,7 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
 
   const handleSubmit = async () => {
     const collectionName = name.trim();
-    const productIds = productsRaw
-      .split(/[\s,;\n]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const productIds = selectedProductIds;
 
     if (!collectionName) {
       toast({ title: "Informe o nome da coleção", variant: "destructive" });
@@ -1582,7 +1607,7 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
 
     if (success > 0) {
       setName("");
-      setProductsRaw("");
+      setSelectedProductIds([]);
     }
   };
 
@@ -1636,24 +1661,68 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>IDs dos Produtos</Label>
-            <Textarea
-              placeholder="Cole um ID por linha (ou separados por vírgula)"
-              value={productsRaw}
-              onChange={(e) => setProductsRaw(e.target.value)}
-              disabled={submitting}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">
-              Use os IDs dos produtos já cadastrados no catálogo do WhatsApp Business.
+          <div className="space-y-3">
+            <Label className="flex items-center justify-between">
+              <span>Produtos ({selectedProductIds.length})</span>
+              {loadingProducts && <Loader2 className="w-3 h-3 animate-spin" />}
+            </Label>
+            
+            <div className="border border-border rounded-xl p-3 bg-muted/10 space-y-3">
+              <div className="flex flex-wrap gap-2 min-h-[40px] empty:after:content-['Selecione_produtos_abaixo'] empty:after:text-[10px] empty:after:text-muted-foreground empty:after:italic">
+                {selectedProductIds.map(id => {
+                  const product = availableProducts.find(p => p.id === id);
+                  return (
+                    <Badge key={id} variant="secondary" className="gap-1.5 py-1 px-2.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors group">
+                      <span className="text-[11px] font-medium">{product?.name || id}</span>
+                      <button 
+                        onClick={() => setSelectedProductIds(prev => prev.filter(x => x !== id))}
+                        className="text-primary/40 hover:text-destructive transition-colors"
+                        disabled={submitting}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+
+              <div className="relative">
+                <Select 
+                  onValueChange={(val) => {
+                    if (val && !selectedProductIds.includes(val)) {
+                      setSelectedProductIds(prev => [...prev, val]);
+                    }
+                  }}
+                  disabled={submitting || loadingProducts || availableProducts.length === 0}
+                >
+                  <SelectTrigger className="w-full bg-background border-primary/10 hover:border-primary/30 transition-all">
+                    <SelectValue placeholder={availableProducts.length === 0 ? "Nenhum produto encontrado" : "Adicionar produto..."} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {availableProducts
+                      .filter(p => !selectedProductIds.includes(p.id))
+                      .map(product => (
+                        <SelectItem key={product.id} value={product.id} className="cursor-pointer">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{product.name}</span>
+                            <span className="text-[10px] text-muted-foreground opacity-70 font-mono">ID: {product.id}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1.5 px-1">
+              <AlertCircle className="w-3 h-3" /> Selecione os produtos do catálogo para criar a coleção
             </p>
           </div>
 
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || !productsRaw.trim() || selectedIds.length === 0}
-            className="w-full"
+            disabled={submitting || !name.trim() || selectedProductIds.length === 0 || selectedIds.length === 0}
+            className="w-full shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Criando...</>
