@@ -269,8 +269,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/business/categories", body: payload };
      case 'business-profile':
        return { method: 'GET', path: "/business/profile" };
-     case 'list-products':
-       return { method: 'GET', path: "/catalogs" };
+      case 'list-products': {
+        const phoneParam = payload?.phone ? `?phone=${payload.phone}` : '';
+        return { method: 'GET', path: `/catalogs${phoneParam}` };
+      }
      case 'edit-product':
      case 'create-product':
        return { method: 'POST', path: "/products", body: payload };
