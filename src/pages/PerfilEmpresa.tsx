@@ -7,13 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+
+interface WhatsappTag {
+  id: string;
+  name: string;
+  color: number;
+}
 
 interface Product {
   id: string;
@@ -95,6 +101,10 @@ const PerfilEmpresa = () => {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [tags, setTags] = useState<WhatsappTag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(0);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,8 +151,67 @@ const PerfilEmpresa = () => {
     if (selectedInstanceId) {
       fetchProfile(selectedInstanceId);
       fetchProducts(selectedInstanceId);
+      fetchTags(selectedInstanceId);
     }
   }, [selectedInstanceId]);
+
+  const fetchTags = async (instanceId: string) => {
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "list-tags", instanceDbId: instanceId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      setTags(Array.isArray(data?.data) ? data.data : []);
+    } catch (err: any) {
+      console.error("Erro ao buscar etiquetas:", err);
+      toast({ title: "Erro ao carregar etiquetas", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { 
+          action: "create-tag", 
+          instanceDbId: selectedInstanceId, 
+          payload: { name: newTagName, color: newTagColor } 
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      toast({ title: "Etiqueta criada", description: `A etiqueta "${newTagName}" foi criada com sucesso.` });
+      setNewTagName("");
+      fetchTags(selectedInstanceId);
+    } catch (err: any) {
+      toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
+    setLoadingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "delete-tag", instanceDbId: selectedInstanceId, payload: { id: tagId } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      toast({ title: "Etiqueta excluída" });
+      fetchTags(selectedInstanceId);
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir etiqueta", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTags(false);
+    }
+  };
 
   const fetchProducts = async (instanceId: string, phone?: string, cursor?: string) => {
     if (cursor) setLoadingMore(true);
