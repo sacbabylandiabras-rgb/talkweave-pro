@@ -654,6 +654,7 @@ const ChatView = ({
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
   const [localReactions, setLocalReactions] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; isSent: boolean } | null>(null);
 
   const handleReactionClick = async (msg: UnifiedMessage, emoji: string) => {
     if (!conversation) return;
@@ -1173,7 +1174,7 @@ const ChatView = ({
                               size="icon"
                               className="h-6 w-6 hover:bg-muted"
                               title="Responder"
-                              onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                              onClick={() => setReplyingTo({ id: msg.externalMessageId || msg.id, content: msg.content, isSent: false })}
                             >
                               <Reply className="w-3 h-3" />
                             </Button>
@@ -1219,7 +1220,7 @@ const ChatView = ({
                             size="icon"
                             className="h-6 w-6 hover:bg-muted text-foreground"
                             title="Responder"
-                            onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                            onClick={() => setReplyingTo({ id: msg.externalMessageId || msg.id, content: msg.content, isSent: true })}
                           >
                             <Reply className="w-3 h-3" />
                           </Button>
