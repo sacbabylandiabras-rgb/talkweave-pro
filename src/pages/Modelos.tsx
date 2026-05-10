@@ -1192,7 +1192,6 @@ const Modelos = () => {
       setEditingTemplate(null);
        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
     } catch (error) {
-    } catch (error) {
       console.error('Error updating template:', error);
     }
   };
