@@ -1552,6 +1552,9 @@ const Modelos = () => {
                        <SelectItem value="produto">produto</SelectItem>
                        <SelectItem value="localizacao">localização</SelectItem>
                        <SelectItem value="contato">contato (vCard)</SelectItem>
+                       <SelectItem value="evento">evento</SelectItem>
+                       <SelectItem value="status_pedido">status do pedido</SelectItem>
+                       <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -2185,6 +2188,9 @@ const Modelos = () => {
                    <SelectItem value="produto">produto</SelectItem>
                    <SelectItem value="localizacao">localização</SelectItem>
                    <SelectItem value="contato">contato (vCard)</SelectItem>
+                   <SelectItem value="evento">evento</SelectItem>
+                   <SelectItem value="status_pedido">status do pedido</SelectItem>
+                   <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
