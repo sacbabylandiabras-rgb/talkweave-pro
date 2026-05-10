@@ -180,10 +180,8 @@ const PerfilEmpresa = () => {
         // Catalog API expects price as integer in 1/1000 of currency unit (100.00 -> 100000)
         price: Math.round(Number(editingProduct.price || 0) * 1000),
       };
-      if (imageBase64) {
-        payload.images = [imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64];
-      } else if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls) && !imageUrls.includes('whatsapp.net')) {
-        // Allow user-supplied external URL (e.g. from Supabase storage), but skip WhatsApp CDN URLs
+      if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls)) {
+        // Catalog API expects image URLs, not base64.
         payload.images = [imageUrls];
       }
 
@@ -191,8 +189,8 @@ const PerfilEmpresa = () => {
         body: { action, instanceDbId: selectedInstanceId, payload },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error?.message || data.error);
+      if (error) throw new Error(formatErrorMessage(error));
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
 
       toast({
         title: editingProduct.id ? "Produto atualizado" : "Produto criado",
@@ -200,13 +198,12 @@ const PerfilEmpresa = () => {
       });
 
       setIsDialogOpen(false);
-      setImageBase64(null);
       fetchProducts(selectedInstanceId);
     } catch (err: any) {
       console.error("Erro ao salvar produto:", err);
       toast({
         title: "Erro ao salvar",
-        description: err.message,
+        description: formatErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -600,7 +597,7 @@ const PerfilEmpresa = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setImageBase64(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
