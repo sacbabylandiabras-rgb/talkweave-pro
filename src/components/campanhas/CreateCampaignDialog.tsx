@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow, Tag } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { CarouselPreview } from "./CarouselPreview";
@@ -39,6 +39,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     contact_selection: "all",
     specific_contacts: "",
     delay_seconds: 2,
+    tag_id: "",
   });
 
   const [flows, setFlows] = useState<Array<{ id: string; name: string; keyword: string }>>([]);
@@ -47,8 +48,29 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const [isPtv, setIsPtv] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
+  const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
+
   useEffect(() => {
     if (!open) return;
+
+    const loadTagsData = async () => {
+      try {
+        const { data: tagsRes } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: { action: "list-tags" },
+        });
+        setAvailableTags(Array.isArray(tagsRes?.data) ? tagsRes.data : []);
+
+        const { data: colorsRes } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: { action: "tag-colors" },
+        });
+        setTagColors(Array.isArray(colorsRes?.data) ? colorsRes.data : []);
+      } catch (e) {
+        console.error('Error loading tags data:', e);
+      }
+    };
+    loadTagsData();
+
     supabase
       .from('flow_automations')
       .select('id, name, keyword')
