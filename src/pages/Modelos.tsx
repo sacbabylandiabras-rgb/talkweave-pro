@@ -349,6 +349,142 @@ const SpecialFieldsEditor = ({
     );
   }
  
+  if (type === "evento") {
+    return (
+      <div className="space-y-4 border rounded-xl p-4 bg-accent/10 border-accent/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          <CalendarClock className="w-5 h-5" /> Convite de Evento
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <Label>Título do evento *</Label>
+            <Input
+              placeholder="Ex: Reunião de planejamento"
+              value={data.eventTitle || ""}
+              onChange={(e) => onChange({ eventTitle: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              placeholder="Detalhes do evento"
+              value={data.eventDescription || ""}
+              onChange={(e) => onChange({ eventDescription: e.target.value })}
+              rows={2}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Início *</Label>
+              <Input
+                type="datetime-local"
+                value={data.eventStartTime || ""}
+                onChange={(e) => onChange({ eventStartTime: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Término</Label>
+              <Input
+                type="datetime-local"
+                value={data.eventEndTime || ""}
+                onChange={(e) => onChange({ eventEndTime: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Local</Label>
+            <Input
+              placeholder="Endereço ou nome do local"
+              value={data.eventLocation || ""}
+              onChange={(e) => onChange({ eventLocation: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Link (opcional)</Label>
+            <Input
+              placeholder="https://..."
+              value={data.eventUrl || ""}
+              onChange={(e) => onChange({ eventUrl: e.target.value })}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!data.eventIsAllDay}
+              onChange={(e) => onChange({ eventIsAllDay: e.target.checked })}
+            />
+            Evento de dia inteiro
+          </label>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "status_pedido" || type === "pagamento_pedido") {
+    const isPayment = type === "pagamento_pedido";
+    return (
+      <div className="space-y-4 border rounded-xl p-4 bg-accent/10 border-accent/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          {isPayment ? <CreditCard className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+          {isPayment ? "Atualização de Pagamento do Pedido" : "Atualização de Status do Pedido"}
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Status do pedido {isPayment ? "" : "*"}</Label>
+              <Select
+                value={data.orderStatus || ""}
+                onValueChange={(v) => onChange({ orderStatus: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="processing">Processando</SelectItem>
+                  <SelectItem value="shipped">Enviado</SelectItem>
+                  <SelectItem value="delivered">Entregue</SelectItem>
+                  <SelectItem value="canceled">Cancelado</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status do pagamento {isPayment ? "*" : ""}</Label>
+              <Select
+                value={data.orderPaymentStatus || ""}
+                onValueChange={(v) => onChange({ orderPaymentStatus: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="paid">Pago</SelectItem>
+                  <SelectItem value="refunded">Reembolsado</SelectItem>
+                  <SelectItem value="failed">Falhou</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>ID de referência</Label>
+            <Input
+              placeholder="Ex: pedido-123"
+              value={data.orderReferenceId || ""}
+              onChange={(e) => onChange({ orderReferenceId: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Detalhes do pedido (JSON, opcional)</Label>
+            <Textarea
+              placeholder='{"total":"100.00","items":[...]}'
+              value={data.orderJson || ""}
+              onChange={(e) => onChange({ orderJson: e.target.value })}
+              rows={4}
+              className="font-mono text-xs"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return null;
 };
 
@@ -382,6 +518,12 @@ const getTemplateIcon = (type?: string) => {
       return <MapPin className="w-5 h-5 text-primary" />;
     case "contato":
       return <UserIcon className="w-5 h-5 text-primary" />;
+    case "evento":
+      return <CalendarClock className="w-5 h-5 text-primary" />;
+    case "status_pedido":
+      return <Package className="w-5 h-5 text-primary" />;
+    case "pagamento_pedido":
+      return <CreditCard className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -406,6 +548,9 @@ const getTypeFriendlyName = (type?: string) => {
     localizacao: "Localização",
     produto: "Produto",
     contato: "Contato (vCard)",
+    evento: "Evento",
+    status_pedido: "Status do Pedido",
+    pagamento_pedido: "Pagamento do Pedido",
   };
   return names[type || "texto"] || "Texto";
 };
