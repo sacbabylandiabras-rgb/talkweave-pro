@@ -359,6 +359,9 @@ const PerfilEmpresa = () => {
                 ))}
               </div>
 
+                ))}
+              </div>
+              
               {nextCursor && (
                 <div className="flex justify-center pt-8 pb-4">
                   <Button 
