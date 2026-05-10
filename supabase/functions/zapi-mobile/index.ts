@@ -51,6 +51,7 @@ const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
   'set-account-email': { path: '/security/email', method: 'POST' },
   'verify-account-email': { path: '/security/verify-email', method: 'POST' },
   'get-has-security-code': { path: '/security/two-fa-code', method: 'GET' },
+  'set-security-code': { path: '/security/two-fa-code', method: 'POST' },
 };
 
 function formatErr(value: unknown, fallback: string): string {

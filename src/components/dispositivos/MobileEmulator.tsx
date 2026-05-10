@@ -39,6 +39,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [hasPin, setHasPin] = useState<boolean | null>(null);
+  const [newPin, setNewPin] = useState("");
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -252,6 +253,22 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleSetPin = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    if (!newPin || newPin.length < 4) return toast({ title: "Informe um PIN válido (mín. 4 dígitos)", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("set-security-code", { code: newPin });
+      toast({ title: "✅ PIN cadastrado", description: "O código PIN foi configurado na conta." });
+      setNewPin("");
+      setHasPin(true);
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -347,6 +364,22 @@ export const MobileEmulator = ({ instances }: Props) => {
             {hasPin ? "🔒 Conta possui código PIN ativo." : "🔓 Conta sem código PIN."}
           </p>
         )}
+
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cadastrar código PIN (2FA)</Label>
+            <Input
+              value={newPin}
+              onChange={(e) => setNewPin(onlyDigits(e.target.value))}
+              placeholder="Ex: 1234"
+              maxLength={8}
+              className="h-9 w-[180px]"
+            />
+          </div>
+          <Button onClick={handleSetPin} disabled={loading || !newPin || !instanceDbId} variant="outline" size="sm">
+            <ShieldCheck className="w-4 h-4 mr-2" /> Salvar PIN
+          </Button>
+        </div>
 
         {accountEmail && (
           <p className="text-xs text-muted-foreground">
