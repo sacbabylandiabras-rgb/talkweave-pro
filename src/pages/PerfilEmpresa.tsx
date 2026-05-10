@@ -529,9 +529,9 @@ const PerfilEmpresa = () => {
                 {products.map((product) => (
                   <Card key={product.id} className="overflow-hidden border-border/50 bg-card/40 backdrop-blur-sm flex flex-col group hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-500">
                     <div className="aspect-square bg-muted relative overflow-hidden">
-                      {product.imageUrls?.thumbnail ? (
+                      {getProductImageUrl(product) ? (
                         <img 
-                          src={product.imageUrls.thumbnail} 
+                          src={getProductImageUrl(product)} 
                           alt={product.name}
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
@@ -637,7 +637,7 @@ const PerfilEmpresa = () => {
               <Label htmlFor="imageUrl" className="text-right">Imagem URL</Label>
               <div className="col-span-3 flex flex-col gap-2">
                 <Input
-                  value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''}
+                  value={getProductImageUrl(editingProduct)}
                   onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))}
                   placeholder="https://..."
                 />
@@ -652,9 +652,9 @@ const PerfilEmpresa = () => {
                   />
                   {isUploadingImage && <span className="text-xs text-muted-foreground">Enviando...</span>}
                 </div>
-                {(typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested) && (
+                {getProductImageUrl(editingProduct) && (
                   <img
-                    src={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested}
+                    src={getProductImageUrl(editingProduct)}
                     alt="Pré-visualização"
                     className="h-20 w-20 rounded-md object-cover border border-border"
                   />
