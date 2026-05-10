@@ -132,7 +132,11 @@ export const MobileEmulator = ({ instances }: Props) => {
       }
       setStep("code");
       const usedMethod = res?.method || method;
-      toast({ title: "📨 Código enviado", description: `Aguarde o código via ${String(usedMethod).toUpperCase()}.` });
+      toast({ 
+        title: "📨 Código enviado", 
+        description: `O WhatsApp enviou o código via ${String(usedMethod).toUpperCase()}. Se não aparecer no aparelho, verifique se o número está ativo e com sinal.` 
+      });
+      setInfo(`Código enviado via ${String(usedMethod).toUpperCase()}. Insira o código abaixo para concluir.`);
     } catch (e: any) {
       toast({ title: "Erro ao solicitar código", description: e.message, variant: "destructive" });
     } finally {
