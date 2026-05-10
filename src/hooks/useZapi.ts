@@ -1593,8 +1593,6 @@ const getZAPIConfig = async () => {
     phone: string;
     orderStatus: string;
     paymentStatus?: string;
-  }) => { return null as any; };
-  // placeholder
     order?: any;
     referenceId?: string;
     messageId?: string;
