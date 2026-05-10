@@ -55,7 +55,33 @@ const PerfilEmpresa = () => {
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const { toast } = useToast();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user?.id || 'anon'}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
+      toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err?.message || "Não foi possível enviar a imagem.", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     if (instances.length > 0 && !selectedInstanceId) {
