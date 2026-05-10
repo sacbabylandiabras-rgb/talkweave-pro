@@ -176,7 +176,7 @@ export const MobileEmulator = ({ instances }: Props) => {
               <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {instances.map(i => (
-                  <SelectItem key={i.id} value={i.id}>{i.name || i.zapi_instance_id}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>{i.instance_name || i.zapi_instance_id}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
