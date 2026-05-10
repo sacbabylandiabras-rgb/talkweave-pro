@@ -182,6 +182,8 @@ serve(async (req) => {
       templateId,
       preferStandardConnection,
       mentionAll,
+      catalogId,
+      productId,
     } = payloadRaw;
 
     const mentionFlag = (p: string) => {
@@ -371,6 +373,12 @@ serve(async (req) => {
          endpoint = '/send-gif';
          payload.gif = url;
          payload.caption = text || '';
+       } else if (type === 'product-catalog') {
+         endpoint = '/send-message-catalog';
+         payload.catalogId = specialPayload?.catalogId || catalogId || '';
+         payload.productId = specialPayload?.productId || productId || '';
+         payload.body = message || '';
+         payload.footer = footer || '';
        } else {
          const ext = getDocumentExtension(url, text);
          endpoint = `/send-document/${ext}`;
@@ -378,8 +386,8 @@ serve(async (req) => {
          payload.fileName = text || `arquivo.${ext}`;
        }
 
-     return sendZapi(endpoint, payload, `media-${type}`);
-   };
+       return sendZapi(endpoint, payload, `media-${type}`);
+     };
 
     // Define common button logic to be used if needed
     const smartSendButtons = async () => {

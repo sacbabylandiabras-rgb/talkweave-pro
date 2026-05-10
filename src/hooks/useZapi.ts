@@ -324,7 +324,7 @@ const getZAPIConfig = async () => {
     title?: string,
     footer?: string,
     mediaUrl?: string,
-     mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog',
+      mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog' | 'product-catalog',
      specialPayload?: Record<string, any>
   ) => {
     setLoading(true);
@@ -504,6 +504,47 @@ const getZAPIConfig = async () => {
        setLoading(false);
      }
    };
+
+  const sendMessageCatalog = async (
+    phone: string,
+    catalogId: string,
+    productId: string,
+    message?: string,
+    footer?: string
+  ) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        {
+          phone,
+          message,
+          footer,
+          mediaType: 'product-catalog',
+          specialPayload: { catalogId, productId }
+        },
+        'Erro ao enviar mensagem de catálogo'
+      );
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem de catálogo.');
+
+      toast({
+        title: "Mensagem de catálogo enviada!",
+        description: "O produto foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar mensagem de catálogo:', error);
+      toast({
+        title: "Erro ao enviar mensagem",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDeviceStatus = async () => {
     setLoading(true);
@@ -1488,6 +1529,7 @@ const getZAPIConfig = async () => {
         sendSticker,
         sendGif,
       removeReaction,
+      sendMessageCatalog,
       loading,
     };
   };
