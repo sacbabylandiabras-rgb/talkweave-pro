@@ -106,12 +106,12 @@ export const MobileEmulator = ({ instances }: Props) => {
     setLoading(true);
     try {
       const res = await call("request-code", { ddi: onlyDigits(ddi), phone: onlyDigits(phone), method });
+      console.log("[MobileEmulator] request-code response:", res);
       if (res?.blocked) {
-        const wait = res?.retryAfter ? ` Tente novamente em ${res.retryAfter}s.` : "";
-        const reason = res?.reason || res?.message || (method === "wa_old"
-          ? "Pop-up no WhatsApp não disponível para este número agora. Tente SMS ou Chamada de voz."
-          : "Solicitação recusada pelo WhatsApp. Tente outro método.");
-        toast({ title: "Solicitação recusada", description: `${reason}${wait}`, variant: "destructive" });
+        const wait = res?.retryAfter ? ` Aguarde ${res.retryAfter}s e tente novamente.` : "";
+        const reason = res?.reason || res?.message
+          || "O WhatsApp não autorizou o envio do código agora. Pode ser limite temporário do número ou método indisponível — tente outro método (SMS / Chamada de voz / Pop-up) ou aguarde alguns minutos.";
+        toast({ title: "WhatsApp não enviou o código", description: `${reason}${wait}`, variant: "destructive" });
         setInfo(`${reason}${wait}`);
         return;
       }
