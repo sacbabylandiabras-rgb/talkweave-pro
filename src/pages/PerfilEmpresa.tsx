@@ -25,11 +25,12 @@ interface Product {
   url?: string;
   isHidden?: boolean;
   salePrice?: number;
-  imageUrls?: {
+  imageUrls?: string | {
     requested: string;
     original: string;
     thumbnail: string;
   };
+  images?: Array<string | { url?: string; requested?: string; original?: string; thumbnail?: string }>;
 }
 
 interface BusinessProfile {
@@ -40,6 +41,41 @@ interface BusinessProfile {
   categories?: { id: string; label: string }[];
   businessHours?: any;
 }
+
+const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message || fallback;
+  if (Array.isArray(value)) return value.map((item) => formatErrorMessage(item, "")).filter(Boolean).join(" | ") || fallback;
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.message || obj.error || obj.details || obj.description;
+    if (nested && nested !== value) return formatErrorMessage(nested, fallback);
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return String(value);
+};
+
+const getProductImageUrl = (product?: Partial<Product> | null): string => {
+  if (!product) return "";
+  if (typeof product.imageUrls === "string") return product.imageUrls;
+  const imageUrls = product.imageUrls;
+  const firstImage = Array.isArray(product.images) ? product.images[0] : undefined;
+
+  if (typeof firstImage === "string") return firstImage;
+  if (firstImage && typeof firstImage === "object") {
+    return firstImage.thumbnail || firstImage.url || firstImage.requested || firstImage.original || "";
+  }
+
+  return typeof imageUrls === "object" ? imageUrls.thumbnail || imageUrls.requested || imageUrls.original || "" : "";
+};
 
 const PerfilEmpresa = () => {
   const { instances, loading: loadingInstances } = useZapiInstances();
@@ -56,7 +92,6 @@ const PerfilEmpresa = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,14 +109,6 @@ const PerfilEmpresa = () => {
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
-      // Convert file to base64 for the catalog API (it expects base64, not URL)
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      setImageBase64(base64);
       setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
       toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
     } catch (err: any) {
@@ -160,18 +187,15 @@ const PerfilEmpresa = () => {
     setIsSaving(true);
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
-      // Only send images if the user uploaded a new file in this session.
-      // Existing images returned from the catalog are CDN URLs that the API cannot re-read.
+      // Send only a public URL because the catalog API reads images from URLs.
       const { imageUrls, ...rest } = editingProduct as any;
       const payload: any = {
         ...rest,
         // Catalog API expects price as integer in 1/1000 of currency unit (100.00 -> 100000)
         price: Math.round(Number(editingProduct.price || 0) * 1000),
       };
-      if (imageBase64) {
-        payload.images = [imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64];
-      } else if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls) && !imageUrls.includes('whatsapp.net')) {
-        // Allow user-supplied external URL (e.g. from Supabase storage), but skip WhatsApp CDN URLs
+      if (typeof imageUrls === 'string' && /^https?:\/\//.test(imageUrls)) {
+        // Catalog API expects image URLs, not base64.
         payload.images = [imageUrls];
       }
 
@@ -179,8 +203,8 @@ const PerfilEmpresa = () => {
         body: { action, instanceDbId: selectedInstanceId, payload },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error?.message || data.error);
+      if (error) throw new Error(formatErrorMessage(error));
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
 
       toast({
         title: editingProduct.id ? "Produto atualizado" : "Produto criado",
@@ -188,13 +212,12 @@ const PerfilEmpresa = () => {
       });
 
       setIsDialogOpen(false);
-      setImageBase64(null);
       fetchProducts(selectedInstanceId);
     } catch (err: any) {
       console.error("Erro ao salvar produto:", err);
       toast({
         title: "Erro ao salvar",
-        description: err.message,
+        description: formatErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -505,9 +528,9 @@ const PerfilEmpresa = () => {
                 {products.map((product) => (
                   <Card key={product.id} className="overflow-hidden border-border/50 bg-card/40 backdrop-blur-sm flex flex-col group hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-500">
                     <div className="aspect-square bg-muted relative overflow-hidden">
-                      {product.imageUrls?.thumbnail ? (
+                      {getProductImageUrl(product) ? (
                         <img 
-                          src={product.imageUrls.thumbnail} 
+                          src={getProductImageUrl(product)} 
                           alt={product.name}
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
@@ -588,7 +611,7 @@ const PerfilEmpresa = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setImageBase64(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
@@ -613,7 +636,7 @@ const PerfilEmpresa = () => {
               <Label htmlFor="imageUrl" className="text-right">Imagem URL</Label>
               <div className="col-span-3 flex flex-col gap-2">
                 <Input
-                  value={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested || ''}
+                  value={getProductImageUrl(editingProduct)}
                   onChange={(e) => setEditingProduct(prev => ({ ...prev, imageUrls: e.target.value as any }))}
                   placeholder="https://..."
                 />
@@ -628,9 +651,9 @@ const PerfilEmpresa = () => {
                   />
                   {isUploadingImage && <span className="text-xs text-muted-foreground">Enviando...</span>}
                 </div>
-                {(typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested) && (
+                {getProductImageUrl(editingProduct) && (
                   <img
-                    src={typeof editingProduct?.imageUrls === 'string' ? editingProduct.imageUrls : (editingProduct?.imageUrls as any)?.requested}
+                    src={getProductImageUrl(editingProduct)}
                     alt="Pré-visualização"
                     className="h-20 w-20 rounded-md object-cover border border-border"
                   />
