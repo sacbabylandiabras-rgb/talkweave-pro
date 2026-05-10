@@ -1965,9 +1965,10 @@ const Modelos = () => {
                   <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
                   <SelectItem value="documento">documento</SelectItem>
                   <SelectItem value="carrossel">carrossel</SelectItem>
-                  <SelectItem value="pix">PIX (cobrança)</SelectItem>
-                  <SelectItem value="localizacao">localização</SelectItem>
-                  <SelectItem value="contato">contato (vCard)</SelectItem>
+                   <SelectItem value="pix">PIX (cobrança)</SelectItem>
+                   <SelectItem value="produto">produto</SelectItem>
+                   <SelectItem value="localizacao">localização</SelectItem>
+                   <SelectItem value="contato">contato (vCard)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
