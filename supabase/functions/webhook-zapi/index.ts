@@ -1169,10 +1169,16 @@ serve(async (req) => {
                   body.message = payload.message;
                   body.buttonList = { buttons: payload.buttons.map((b: any) => ({ label: b.label })) };
                 } else {
-                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio" };
+                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio", catalog: "/send-message-catalog" };
                   endpoint = epMap[payload.kind];
-                  body[payload.kind] = payload.file;
-                  body.caption = payload.caption;
+                  if (payload.kind === "catalog") {
+                    body.catalogId = payload.catalogId;
+                    body.productId = payload.productId;
+                    body.body = payload.caption;
+                  } else {
+                    body[payload.kind] = payload.file;
+                    body.caption = payload.caption;
+                  }
                 }
                 const res = await fetch(`${providerBaseUrl}${endpoint}`, { method: "POST", headers: providerHeaders, body: JSON.stringify(body) });
                 return await parseWelcomeResponse(res, context);
@@ -1182,8 +1188,12 @@ serve(async (req) => {
                 payload:
                   | { type: "text"; message: string }
                   | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
-                  | { type: "buttons"; message: string; buttons: any[] }
-                  | { type: "carousel"; message: string; cards: any[] },
+                | { type: "buttons"; message: string; buttons: any[] }
+                | { type: "carousel"; message: string; cards: any[] }
+                | { type: "catalog"; productId: string; catalogId: string; caption: string },
+              const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
+
                 context: string,
               ) => {
                 try {
@@ -1360,7 +1370,22 @@ serve(async (req) => {
                       normalizedTemplateType === "carousel" ||
                       normalizedTemplateType.includes("carrossel"));
 
-                  if (isCarousel) {
+                  const isProduct = normalizedTemplateType === "produto" || normalizedTemplateType === "product";
+
+                  if (isProduct) {
+                    const special = parseSpecialTemplate(tpl.content);
+                    const productId = special?.productId || "";
+                    const catalogId = special?.catalogId || "";
+                    const sendResponse = await sendWelcomeCatalog(
+                      productId,
+                      catalogId,
+                      tplMessage
+                    );
+                    console.log(
+                      "📤 Welcome template product confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
+                    );
+                  } else if (isCarousel) {
                     const carouselResponse = await sendWelcomeCarousel(
                       tplMessage,
                       carouselCards,
@@ -1394,7 +1419,9 @@ serve(async (req) => {
                         "📤 Welcome template image+text-buttons confirmed:",
                         JSON.stringify(buttonResponse).substring(0, 300),
                       );
-                    }
+                    } else if (isProduct) {
+                      const special = parseSpecialTemplate(tpl.content);
+                      logContent = `[produto:${special?.productId || ""}] ${logContent}`;
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
                     if (replyBtns.length > 0) {
                       const buttonResponse = await sendWelcomeButtons(
