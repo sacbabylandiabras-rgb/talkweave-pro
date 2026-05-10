@@ -38,6 +38,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -227,6 +228,23 @@ export const MobileEmulator = ({ instances }: Props) => {
       toast({ title: "✅ E-mail verificado", description: "O e-mail da conta foi verificado." });
       setVerificationCode("");
       handleGetEmail();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckHasPin = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    setLoading(true);
+    try {
+      const res = await call("get-has-security-code", {});
+      setHasPin(!!res?.hasCode);
+      toast({
+        title: res?.hasCode ? "🔒 PIN configurado" : "Sem PIN",
+        description: res?.hasCode ? "Esta conta possui código PIN ativo." : "Esta conta não possui código PIN.",
+      });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
