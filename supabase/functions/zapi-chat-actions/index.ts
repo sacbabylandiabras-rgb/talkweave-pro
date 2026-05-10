@@ -432,6 +432,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Normaliza resposta de cores: API retorna { "0": "#FF9485", ... }
+    // UI espera: [{ id, hex, label }]
+    if (action === 'tag-colors' && data && typeof data === 'object' && !Array.isArray(data)) {
+      data = Object.entries(data)
+        .map(([id, hex]) => ({
+          id: Number(id),
+          hex: String(hex),
+          label: `Cor ${Number(id) + 1}`,
+        }))
+        .sort((a, b) => a.id - b.id);
+    }
+
     return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
