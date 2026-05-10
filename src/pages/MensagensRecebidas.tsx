@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check } from "lucide-react";
+   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus } from "lucide-react";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
 import {
@@ -2080,6 +2080,84 @@ const MensagensRecebidas = () => {
              onDeleteConversation={async (phone) => {
                await deleteConversation(phone);
              }}
+             onUpdate={refetch}
+           />
+         )}
+       </div>
+       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
+       
+       {/* Dialog for creating new Tag */}
+       <Dialog open={isCreateTagOpen} onOpenChange={setIsCreateTagOpen}>
+         <DialogContent className="sm:max-w-[480px]">
+           <DialogHeader>
+             <DialogTitle>Nova Etiqueta</DialogTitle>
+             <DialogDescription>Crie novas tags para uma melhor organização</DialogDescription>
+           </DialogHeader>
+           <div className="space-y-4 py-2">
+             <div className="space-y-2">
+               <Label htmlFor="newTagName" className="text-sm">Nome</Label>
+               <Input
+                 id="newTagName"
+                 placeholder="Nome da tag"
+                 value={newTagName}
+                 onChange={(e) => setNewTagName(e.target.value)}
+               />
+             </div>
+ 
+             <div className="space-y-2">
+               <Label htmlFor="newTagDescription" className="text-sm">Descrição</Label>
+               <Input
+                 id="newTagDescription"
+                 placeholder="Descrição da tag"
+                 value={newTagDescription}
+                 onChange={(e) => setNewTagDescription(e.target.value)}
+               />
+             </div>
+ 
+             <div className="grid grid-cols-9 gap-3 pt-2">
+               {tagColors.length > 0 ? (
+                 tagColors.map((c) => (
+                   <button
+                     key={c.id}
+                     type="button"
+                     onClick={() => setNewTagColor(c.id)}
+                     className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                     style={{ backgroundColor: c.hex }}
+                     aria-label={c.label || `Cor ${c.id}`}
+                   >
+                     {newTagColor === c.id && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
+                   </button>
+                 ))
+               ) : (
+                 ['#ef4444', '#dc2626', '#f87171', '#fb7185', '#ec4899', '#f472b6', '#fed7aa', '#f97316', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#7dd3fc', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d8b4fe', '#94a3b8', '#000000'].map((hex, idx) => (
+                   <button
+                     key={idx}
+                     type="button"
+                     onClick={() => setNewTagColor(idx)}
+                     className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                     style={{ backgroundColor: hex }}
+                   >
+                     {newTagColor === idx && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
+                   </button>
+                 ))
+               )}
+             </div>
+           </div>
+           <DialogFooter>
+             <Button onClick={() => {
+               // This is a hack because the logic is inside ChatView but the Dialog is here
+               // In a real refactor, we would move this dialog into ChatView or lift the state
+               const chatViewHandleCreate = (window as any).handleCreateTag;
+               if (chatViewHandleCreate) chatViewHandleCreate();
+             }} disabled={loadingTags || !newTagName.trim()} className="w-full sm:w-auto">
+               {loadingTags ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+               Confirmar
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+ 
+       {selectedConversation && (
           />
         )}
       </div>
