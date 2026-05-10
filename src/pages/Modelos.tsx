@@ -24,6 +24,7 @@ const SPECIAL_FIELD_DEFAULTS = {
   locTitle: "",
    contactName: "",
    contactPhone: "",
+   contactBusinessDescription: "",
    catalogId: "",
    productId: "",
  };
@@ -48,6 +49,7 @@ const buildSpecialContent = (type: string, data: any): string => {
   } else if (type === "contato") {
     payload.contactName = data.contactName;
     payload.contactPhone = data.contactPhone;
+    payload.contactBusinessDescription = data.contactBusinessDescription || "";
     payload.description = data.content || "";
   } else if (type === "copia_cola") {
     const vars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
@@ -681,6 +683,7 @@ const Modelos = () => {
     // Contato (vCard)
     contactName: "",
     contactPhone: "",
+    contactBusinessDescription: "",
     catalogId: "",
     productId: "",
    });
@@ -969,7 +972,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
+       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
        setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -1044,6 +1047,7 @@ const Modelos = () => {
       locAddress: special.address || "",
       locTitle: special.title || "",
       contactName: special.contactName || "",
+      contactBusinessDescription: special.contactBusinessDescription || "",
       catalogId: special.catalogId || "",
       productId: special.productId || "",
        contactPhone: special.contactPhone || "",
@@ -1185,7 +1189,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
+       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1220,7 +1224,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, catalogId: "", productId: "" });
+     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
   };
 
   const addButton = useCallback((isEdit = false) => {
