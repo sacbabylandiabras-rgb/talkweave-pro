@@ -615,5 +615,3 @@ const PerfilEmpresa = () => {
  };
  
  export default PerfilEmpresa;
-
-export default PerfilEmpresa;
