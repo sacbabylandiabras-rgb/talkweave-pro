@@ -298,21 +298,21 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
     // Tag Actions (WhatsApp Business)
     case 'list-tags':
-      return { method: 'GET', path: "/tags" };
+      return { method: 'GET', path: "/business/tags" };
     case 'create-tag':
-      return { method: 'POST', path: "/tags", body: payload };
+      return { method: 'POST', path: "/business/create-tag", body: { name: payload?.name } };
     case 'delete-tag':
-      return { method: 'DELETE', path: `/tags/${payload?.id}` };
+      return { method: 'DELETE', path: `/business/delete-tag/${payload?.id}` };
     case 'edit-tag':
-      return { method: 'PUT', path: `/tags/${payload?.id}`, body: { name: payload?.name, color: payload?.color } };
+      return { method: 'PUT', path: `/business/edit-tag/${payload?.id}`, body: { name: payload?.name, color: payload?.color } };
     case 'add-tag-chat':
-      return { method: 'POST', path: `/tags/${phone}/add/${payload?.tagId}` };
+      return { method: 'PUT', path: `/chats/${phone}/tags/${payload?.tagId}/add` };
     case 'remove-tag-chat':
-      return { method: 'POST', path: `/tags/${phone}/remove/${payload?.tagId}` };
+      return { method: 'PUT', path: `/chats/${phone}/tags/${payload?.tagId}/remove` };
     case 'search-tags':
       return { method: 'GET', path: `/tags/search?tagId=${payload?.tagId}` };
     case 'tag-colors':
-      return { method: 'GET', path: "/tags/colors" };
+      return { method: 'GET', path: "/business/tags-colors" };
     case 'save-chat-notes': {
       const target = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
       return { method: 'POST', path: `/chat-notes/${target}`, body: { notes: payload?.notes } };
@@ -430,6 +430,18 @@ Deno.serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Normaliza resposta de cores: API retorna { "0": "#FF9485", ... }
+    // UI espera: [{ id, hex, label }]
+    if (action === 'tag-colors' && data && typeof data === 'object' && !Array.isArray(data)) {
+      data = Object.entries(data)
+        .map(([id, hex]) => ({
+          id: Number(id),
+          hex: String(hex),
+          label: `Cor ${Number(id) + 1}`,
+        }))
+        .sort((a, b) => a.id - b.id);
     }
 
     return new Response(JSON.stringify({ success: true, data }), {
