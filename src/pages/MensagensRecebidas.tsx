@@ -1286,6 +1286,31 @@ const ChatView = ({
         </div>
       </ScrollArea>
 
+      {/* Reply preview */}
+      {replyingTo && (
+        <div className="border-t border-border bg-muted/30 px-4 py-2">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="flex-1 min-w-0 border-l-4 border-primary pl-3">
+              <p className="text-xs font-medium text-primary">
+                Respondendo {replyingTo.isSent ? 'à sua mensagem' : 'à mensagem'}
+              </p>
+              <p className="text-sm text-muted-foreground truncate">
+                {replyingTo.content}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setReplyingTo(null)}
+              title="Cancelar resposta"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Attached file preview */}
       {attachedFile && (
         <div className="border-t border-border bg-muted/30 px-4 py-2">
