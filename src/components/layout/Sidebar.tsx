@@ -48,6 +48,7 @@ import {
   Sparkles,
   Building2,
   Camera,
+  Tag,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
