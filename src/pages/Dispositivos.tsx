@@ -130,12 +130,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
-    const [showBusiness, setShowBusiness] = useState(false);
-    const [businessLoading, setBusinessLoading] = useState(false);
-    const [bizDescription, setBizDescription] = useState("");
-    const [bizEmail, setBizEmail] = useState("");
-    const [bizAddress, setBizAddress] = useState("");
-    const [bizWebsites, setBizWebsites] = useState("");
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
    const fetchCollections = async () => {
@@ -282,23 +276,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        setRemovingProductId(null);
      }
    };
-
-    const updateBusinessInfo = async (action: string, payload: any) => {
-      setBusinessLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-          body: { action, instanceDbId: instance.id, payload },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error?.message || data.error);
-        toast({ title: "✅ Informação atualizada" });
-      } catch (err: any) {
-        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar');
-        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
-      } finally {
-        setBusinessLoading(false);
-      }
-    };
 
     const updatePrivacy = async (action: string, payload: any) => {
       setPrivacyLoading(true);
