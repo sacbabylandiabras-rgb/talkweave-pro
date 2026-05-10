@@ -1833,8 +1833,40 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                </Button>
              </div>
            </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <LayoutGrid className="w-3 h-3" /> Categoria
+            </Label>
+            <div className="flex gap-2">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!!submitting || loadingCategories}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={loadingCategories ? "Carregando categorias..." : "Selecione uma categoria"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.displayName || cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  const cat = availableCategories.find(c => c.id === selectedCategory);
+                  if (cat) {
+                    applyToAll('company-categories', { categories: [{ id: cat.id, label: cat.displayName || cat.label }] }, 'Categoria');
+                  }
+                }} 
+                disabled={!!submitting || !selectedCategory || selectedIds.length === 0}
+              >
+                {submitting === 'company-categories' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
  
-           <div className="space-y-4 border-t pt-4">
+            <div className="space-y-4 border-t pt-4">
              <Label className="flex items-center gap-2"><Clock className="w-4 h-4" /> Horário de Funcionamento</Label>
              
              <div className="space-y-3">
