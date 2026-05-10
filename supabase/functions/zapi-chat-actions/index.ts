@@ -5,6 +5,20 @@ import { corsHeaders } from "../_shared/cors.ts";
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+function formatErrorMessage(value: unknown, fallback = 'Erro ao processar solicitação'): string {
+  if (!value) return fallback;
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.message || fallback;
+  if (Array.isArray(value)) return value.map((item) => formatErrorMessage(item, '')).filter(Boolean).join(' | ') || fallback;
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.error || obj.message || obj.details || obj.description;
+    if (nested && nested !== value) return formatErrorMessage(nested, fallback);
+    try { return JSON.stringify(value); } catch { return fallback; }
+  }
+  return String(value);
+}
+
 async function resolveCreds(req: Request, instanceDbId?: string) {
   const auth = req.headers.get('authorization');
   if (!auth) throw new Error('Unauthorized');
@@ -384,7 +398,7 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       console.error(`[zapi-chat-actions] Z-API Error: ${ep.method} ${url} -> ${resp.status}`, text);
-      return new Response(JSON.stringify({ error: data, status: resp.status }), {
+      return new Response(JSON.stringify({ error: formatErrorMessage(data, `Erro HTTP ${resp.status}`), details: data, status: resp.status }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
