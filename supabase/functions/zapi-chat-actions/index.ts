@@ -303,6 +303,8 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/tags", body: payload };
     case 'delete-tag':
       return { method: 'DELETE', path: `/tags/${payload?.id}` };
+    case 'edit-tag':
+      return { method: 'PUT', path: `/tags/${payload?.id}`, body: { name: payload?.name, color: payload?.color } };
     case 'add-tag-chat':
       return { method: 'POST', path: `/tags/${phone}/add/${payload?.tagId}` };
     case 'remove-tag-chat':
