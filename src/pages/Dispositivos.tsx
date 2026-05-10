@@ -67,6 +67,28 @@ const normalizeDeviceStatusPayload = (payload: any) => {
   };
 };
 
+const normalizeCollectionsPayload = (payload: any): any[] => {
+  const candidates = [
+    payload,
+    payload?.data,
+    payload?.data?.value,
+    payload?.data?.collections,
+    payload?.data?.value?.collections,
+    payload?.data?.items,
+    payload?.data?.value?.items,
+    payload?.collections,
+    payload?.value,
+    payload?.value?.collections,
+    payload?.items,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  return [];
+};
+
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -98,9 +120,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
          },
        });
        if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       setCollections(data?.data?.value || data?.data || []);
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        setCollections(normalizeCollectionsPayload(data));
      } catch (err: any) {
+        setCollections([]);
        const message = await getInvokeErrorMessage(err, 'Erro ao buscar coleções');
        toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
      } finally {
