@@ -352,6 +352,7 @@ serve(async (req) => {
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
       let endpoint = '/send-text';
       const payload: any = { phone: resolvedPhone, ...mentionFlag(resolvedPhone) };
+      if (replyMessageId) payload.messageId = replyMessageId;
 
       if (type === 'image') {
         endpoint = '/send-image';
