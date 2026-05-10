@@ -1232,6 +1232,12 @@ serve(async (req) => {
               const sendWelcomeCarousel = async (message: string, cards: any[]) =>
                 sendWelcomeWithFallback({ type: "carousel", message, cards }, "Welcome carousel");
 
+              const sendWelcomeContact = async (name: string, phone: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "contact", contactName: name, contactPhone: phone, caption }, "Welcome contact");
+
+              const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
+
               if (responseType === "flow" && welcomeConfig.flow_id) {
                 // Trigger the flow for this contact by invoking webhook-zapi recursively with a virtual message
                 const { data: flowData } = await supabase
