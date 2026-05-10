@@ -1677,6 +1677,7 @@ const Dispositivos = () => {
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -1696,6 +1697,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
               <LayoutGrid className="w-4 h-4 mr-1" />
               Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)}>
+              <Building2 className="w-4 h-4 mr-1" />
+              Perfil da Empresa
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
@@ -1728,6 +1735,9 @@ const Dispositivos = () => {
 
       {/* Bulk Create Collection Dialog */}
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
+
+      {/* Bulk Business Info Dialog */}
+      <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
