@@ -89,6 +89,12 @@ export const MobileEmulator = ({ instances }: Props) => {
     setLoading(true);
     try {
       const res = await call("request-code", { ddi: onlyDigits(ddi), phone: onlyDigits(phone), method });
+      if (res?.blocked) {
+        const wait = res?.retryAfter ? ` Tente novamente em ${res.retryAfter}s.` : "";
+        toast({ title: "Bloqueado temporariamente", description: `Muitas tentativas.${wait}`, variant: "destructive" });
+        setInfo(`Solicitação bloqueada.${wait}`);
+        return;
+      }
       if (res?.captcha) {
         const img = String(res.captcha).startsWith("data:") ? res.captcha : `data:image/png;base64,${res.captcha}`;
         setCaptchaImg(img);
@@ -96,8 +102,13 @@ export const MobileEmulator = ({ instances }: Props) => {
         toast({ title: "Captcha necessário", description: "Resolva o captcha para continuar." });
         return;
       }
+      if (res?.success === false) {
+        toast({ title: "Falha ao solicitar código", description: "Tente outro método de envio.", variant: "destructive" });
+        return;
+      }
       setStep("code");
-      toast({ title: "📨 Código enviado", description: `Aguarde o código via ${method.toUpperCase()}.` });
+      const usedMethod = res?.method || method;
+      toast({ title: "📨 Código enviado", description: `Aguarde o código via ${String(usedMethod).toUpperCase()}.` });
     } catch (e: any) {
       toast({ title: "Erro ao solicitar código", description: e.message, variant: "destructive" });
     } finally {

@@ -40,7 +40,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 
 const ACTION_PATHS: Record<string, string> = {
   'registration-available': '/mobile/registration-available',
-  'request-code': '/mobile/request-code',
+  'request-code': '/mobile/request-registration-code',
   'captcha-confirm': '/mobile/captcha-confirm',
   'confirm-code': '/mobile/confirm-code',
   'confirm-security-code': '/mobile/confirm-security-code',
