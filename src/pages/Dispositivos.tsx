@@ -2100,6 +2100,7 @@ const Dispositivos = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
+  const [showMobileEmulator, setShowMobileEmulator] = useState(false);
 
   return (
     <div className="space-y-4">
