@@ -156,7 +156,7 @@ const PerfilEmpresa = () => {
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
       const imagesPayload = imageBase64
-        ? [imageBase64]
+        ? [imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64]
         : (typeof editingProduct.imageUrls === 'string'
             ? [editingProduct.imageUrls]
             : (editingProduct.imageUrls as any)?.requested
