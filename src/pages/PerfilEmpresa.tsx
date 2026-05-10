@@ -490,28 +490,32 @@ const PerfilEmpresa = () => {
                        {product.description || "Sem descrição"}
                      </p>
                    </CardContent>
-                   <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
-                     <div className="flex items-center gap-1">
-                       <Button 
-                         variant="ghost" 
-                         size="icon" 
-                         className="w-8 h-8"
-                         onClick={() => {
-                           setEditingProduct(product);
-                           setIsDialogOpen(true);
-                         }}
-                       >
-                         <Pencil className="w-3.5 h-3.5" />
-                       </Button>
-                       <Button 
-                         variant="ghost" 
-                         size="icon" 
-                         className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                         onClick={() => handleDeleteProduct(product.id)}
-                       >
-                         <Trash2 className="w-3.5 h-3.5" />
-                       </Button>
-                     </div>
+                    <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
+                      {!isExternalCatalog ? (
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8"
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteProduct(product.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex-grow" />
+                      )}
                      {product.url && (
                        <Button variant="outline" size="sm" asChild className="h-8 text-[10px]">
                          <a href={product.url} target="_blank" rel="noopener noreferrer" className="gap-1.5">
