@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,8 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
 
 const PerfilEmpresa = () => {
   const { instances, loading: loadingInstances } = useZapiInstances();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "perfil";
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -471,7 +474,15 @@ const PerfilEmpresa = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="perfil" className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          const next = new URLSearchParams(searchParams);
+          if (v === "perfil") next.delete("tab"); else next.set("tab", v);
+          setSearchParams(next, { replace: true });
+        }}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
