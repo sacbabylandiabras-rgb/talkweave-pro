@@ -25,7 +25,7 @@ interface Product {
   url?: string;
   isHidden?: boolean;
   salePrice?: number;
-  imageUrls?: {
+  imageUrls?: string | {
     requested: string;
     original: string;
     thumbnail: string;
@@ -187,8 +187,7 @@ const PerfilEmpresa = () => {
     setIsSaving(true);
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
-      // Only send images if the user uploaded a new file in this session.
-      // Existing images returned from the catalog are CDN URLs that the API cannot re-read.
+      // Send only a public URL because the catalog API reads images from URLs.
       const { imageUrls, ...rest } = editingProduct as any;
       const payload: any = {
         ...rest,
