@@ -56,6 +56,7 @@ const PerfilEmpresa = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +74,14 @@ const PerfilEmpresa = () => {
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      // Convert file to base64 for the catalog API (it expects base64, not URL)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      setImageBase64(base64);
       setEditingProduct(prev => ({ ...prev, imageUrls: publicUrl as any }));
       toast({ title: "Imagem enviada", description: "A imagem foi carregada com sucesso." });
     } catch (err: any) {
@@ -146,13 +155,18 @@ const PerfilEmpresa = () => {
     setIsSaving(true);
     try {
       const action = editingProduct.id ? "edit-product" : "create-product";
+      const imagesPayload = imageBase64
+        ? [imageBase64]
+        : (typeof editingProduct.imageUrls === 'string'
+            ? [editingProduct.imageUrls]
+            : (editingProduct.imageUrls as any)?.requested
+              ? [(editingProduct.imageUrls as any).requested]
+              : []);
       const payload = {
         ...editingProduct,
-        images: typeof editingProduct.imageUrls === 'string' 
-          ? [editingProduct.imageUrls] 
-          : (editingProduct.imageUrls as any)?.requested 
-            ? [(editingProduct.imageUrls as any).requested]
-            : []
+        // Catalog API expects price as integer in 1/1000 of currency unit (100.00 -> 100000)
+        price: Math.round(Number(editingProduct.price || 0) * 1000),
+        images: imagesPayload,
       };
 
       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
@@ -168,6 +182,7 @@ const PerfilEmpresa = () => {
       });
 
       setIsDialogOpen(false);
+      setImageBase64(null);
       fetchProducts(selectedInstanceId);
     } catch (err: any) {
       console.error("Erro ao salvar produto:", err);
@@ -506,7 +521,7 @@ const PerfilEmpresa = () => {
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-sm line-clamp-2 leading-tight">{product.name}</h3>
                         <Badge variant="secondary" className="shrink-0 font-mono bg-primary/10 text-primary border-primary/20">
-                          {product.currency} {product.price}
+                          {product.currency} {(Number(product.price || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -521,7 +536,7 @@ const PerfilEmpresa = () => {
                             size="icon" 
                             className="w-8 h-8"
                             onClick={() => {
-                              setEditingProduct(product);
+                              setEditingProduct({ ...product, price: Number(product.price || 0) / 1000 });
                               setIsDialogOpen(true);
                             }}
                           >
@@ -567,7 +582,7 @@ const PerfilEmpresa = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setImageBase64(null); }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingProduct?.id ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
