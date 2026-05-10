@@ -49,6 +49,7 @@ const ACTIONS: Record<string, { path: string; method: 'GET' | 'POST' }> = {
   'device-transfer-confirmed': { path: '/mobile/device-transfer-confirmed', method: 'GET' },
   'get-account-email': { path: '/security/email', method: 'GET' },
   'set-account-email': { path: '/security/email', method: 'POST' },
+  'verify-account-email': { path: '/security/verify-email', method: 'POST' },
 };
 
 function formatErr(value: unknown, fallback: string): string {

@@ -37,6 +37,7 @@ export const MobileEmulator = ({ instances }: Props) => {
   const [unbanStatus, setUnbanStatus] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<{ email?: string; hasEmail?: boolean; verified?: boolean } | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
 
   const call = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke("zapi-mobile", {
@@ -217,6 +218,22 @@ export const MobileEmulator = ({ instances }: Props) => {
     }
   };
 
+  const handleVerifyEmail = async () => {
+    if (!instanceDbId) return toast({ title: "Selecione uma conexão", variant: "destructive" });
+    if (!verificationCode) return toast({ title: "Informe o código de verificação", variant: "destructive" });
+    setLoading(true);
+    try {
+      await call("verify-account-email", { verificationCode });
+      toast({ title: "✅ E-mail verificado", description: "O e-mail da conta foi verificado." });
+      setVerificationCode("");
+      handleGetEmail();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeviceTransfer = async () => {
     setLoading(true);
     try {
@@ -325,6 +342,21 @@ export const MobileEmulator = ({ instances }: Props) => {
           </div>
           <Button onClick={handleSetEmail} disabled={loading || !newEmail || !instanceDbId} variant="outline" size="sm">
             <Mail className="w-4 h-4 mr-2" /> Salvar e-mail
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Código de verificação do e-mail</Label>
+            <Input
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="Código recebido por e-mail"
+              className="h-9 w-[260px]"
+            />
+          </div>
+          <Button onClick={handleVerifyEmail} disabled={loading || !verificationCode || !instanceDbId} variant="outline" size="sm">
+            <ShieldCheck className="w-4 h-4 mr-2" /> Verificar e-mail
           </Button>
         </div>
 
