@@ -267,6 +267,8 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'GET', path: "/business/available-categories" };
     case 'company-categories':
       return { method: 'POST', path: "/business/categories", body: payload };
+    case 'business-profile':
+      return { method: 'GET', path: "/business/profile" };
 
     // Group Actions
     case 'get-groups':
