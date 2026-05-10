@@ -982,7 +982,22 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{prod.name || prod.title}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm truncate">{prod.name || prod.title}</p>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => viewingProductsId && removeProductFromCollection(viewingProductsId, prod.id || prod.retailer_id)}
+                            disabled={removingProductId === (prod.id || prod.retailer_id)}
+                          >
+                            {removingProductId === (prod.id || prod.retailer_id) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <MinusCircle className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </div>
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-xs text-primary font-medium">
                             {prod.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: prod.currency || 'BRL' }).format(prod.price / 1000) : 'Preço não inf.'}
