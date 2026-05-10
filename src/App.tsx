@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -26,7 +26,7 @@ const Campanhas = lazyWithRecovery(() => import("./pages/Campanhas"));
 const CampanhaGrupoFluxo = lazyWithRecovery(() => import("./pages/CampanhaGrupoFluxo"));
 const Contatos = lazyWithRecovery(() => import("./pages/Contatos"));
 const Modelos = lazyWithRecovery(() => import("./pages/Modelos"));
-const EnviarMensagem = lazyWithRecovery(() => import("./pages/EnviarMensagem"));
+// EnviarMensagem page removed — manual sending now happens in /mensagens
 const Relatorio = lazyWithRecovery(() => import("./pages/Relatorio"));
 const FluxoVisual = lazyWithRecovery(() => import("./pages/FluxoVisual"));
 const FluxoGrupos = lazyWithRecovery(() => import("./pages/FluxoGrupos"));
@@ -170,7 +170,8 @@ const App = () => (
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
-                  <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
+                  <Route path="/enviar-mensagem" element={<Navigate to="/mensagens" replace />} />
+                  <Route path="/enviar" element={<Navigate to="/mensagens" replace />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
                   <Route path="/apanhador-grupos" element={<PaidRouteGuard><ApanhadorGrupos /></PaidRouteGuard>} />
