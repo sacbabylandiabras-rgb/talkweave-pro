@@ -365,6 +365,22 @@ export const MobileEmulator = ({ instances }: Props) => {
           </p>
         )}
 
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cadastrar código PIN (2FA)</Label>
+            <Input
+              value={newPin}
+              onChange={(e) => setNewPin(onlyDigits(e.target.value))}
+              placeholder="Ex: 1234"
+              maxLength={8}
+              className="h-9 w-[180px]"
+            />
+          </div>
+          <Button onClick={handleSetPin} disabled={loading || !newPin || !instanceDbId} variant="outline" size="sm">
+            <ShieldCheck className="w-4 h-4 mr-2" /> Salvar PIN
+          </Button>
+        </div>
+
         {accountEmail && (
           <p className="text-xs text-muted-foreground">
             {accountEmail.hasEmail
