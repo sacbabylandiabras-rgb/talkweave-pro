@@ -21,6 +21,12 @@ interface WhatsappTag {
   color: number;
 }
 
+interface TagColor {
+  id: number;
+  hex: string;
+  label: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -102,6 +108,7 @@ const PerfilEmpresa = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [tags, setTags] = useState<WhatsappTag[]>([]);
+  const [tagColors, setTagColors] = useState<TagColor[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
@@ -152,8 +159,22 @@ const PerfilEmpresa = () => {
       fetchProfile(selectedInstanceId);
       fetchProducts(selectedInstanceId);
       fetchTags(selectedInstanceId);
+      fetchTagColors(selectedInstanceId);
     }
   }, [selectedInstanceId]);
+
+  const fetchTagColors = async (instanceId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "tag-colors", instanceDbId: instanceId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(formatErrorMessage(data.error));
+      setTagColors(Array.isArray(data?.data) ? data.data : []);
+    } catch (err: any) {
+      console.error("Erro ao buscar cores de etiquetas:", err);
+    }
+  };
 
   const fetchTags = async (instanceId: string) => {
     setLoadingTags(true);
@@ -807,11 +828,20 @@ const PerfilEmpresa = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(c => (
-                          <SelectItem key={c} value={String(c)}>
-                            Cor {c}
-                          </SelectItem>
-                        ))}
+                        {tagColors.length > 0 ? (
+                          tagColors.map(c => (
+                            <SelectItem key={c.id} value={String(c.id)}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.hex }} />
+                                <span>{c.label || `Cor ${c.id}`}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(c => (
+                            <SelectItem key={c} value={String(c)}>Cor {c}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -827,7 +857,10 @@ const PerfilEmpresa = () => {
                     tags.map(tag => (
                       <div key={tag.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/40 hover:bg-background/60 transition-all group">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full bg-primary opacity-80`} style={{ filter: `hue-rotate(${tag.color * 36}deg)` }} />
+                          <div 
+                            className="w-3 h-3 rounded-full opacity-80" 
+                            style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || 'hsl(var(--primary))' }} 
+                          />
                           <span className="text-sm font-medium">{tag.name}</span>
                         </div>
                         <Button 
