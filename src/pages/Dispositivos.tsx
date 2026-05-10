@@ -2121,14 +2121,6 @@ const Dispositivos = () => {
               Perfil da Empresa
             </Button>
           )}
-          <Button 
-            variant={showMobileEmulator ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setShowMobileEmulator(!showMobileEmulator)}
-          >
-            <Smartphone className="w-4 h-4 mr-1" />
-            {showMobileEmulator ? "Ver Web" : "Ver Mobile"}
-          </Button>
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
