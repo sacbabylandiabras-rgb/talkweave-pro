@@ -185,6 +185,7 @@ serve(async (req) => {
       catalogId,
       productId,
     } = payloadRaw;
+    const replyMessageId = payloadRaw.messageId || payloadRaw.replyMessageId || null;
 
     const mentionFlag = (p: string) => {
       const isGroup = typeof p === 'string' && (p.includes('-group') || p.includes('@g.us'));
@@ -351,6 +352,7 @@ serve(async (req) => {
     const sendZapiMedia = async (url: string, type: string, text?: string) => {
       let endpoint = '/send-text';
       const payload: any = { phone: resolvedPhone, ...mentionFlag(resolvedPhone) };
+      if (replyMessageId) payload.messageId = replyMessageId;
 
       if (type === 'image') {
         endpoint = '/send-image';
@@ -721,7 +723,7 @@ serve(async (req) => {
       zapiResponse = await fetch(`${baseUrl}/send-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: resolvedPhone, message, ...mentionFlag(resolvedPhone) }),
+        body: JSON.stringify({ phone: resolvedPhone, message, ...(replyMessageId ? { messageId: replyMessageId } : {}), ...mentionFlag(resolvedPhone) }),
       });
       zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'text');
     }

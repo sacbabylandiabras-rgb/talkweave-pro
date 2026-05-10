@@ -654,6 +654,7 @@ const ChatView = ({
   const { templates, loading: templatesLoading, incrementUsage } = useMessageTemplates();
   const { toast } = useToast();
   const [localReactions, setLocalReactions] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; isSent: boolean } | null>(null);
 
   const handleReactionClick = async (msg: UnifiedMessage, emoji: string) => {
     if (!conversation) return;
@@ -730,6 +731,7 @@ const ChatView = ({
           viewOnce: isVideo ? viewOnce : undefined,
           isPtv: isVideo ? isPtv : undefined,
           preferredInstanceId: conversation.preferredInstanceId,
+          ...(replyingTo ? { messageId: replyingTo.id } : {}),
         });
         setAttachedFile(null);
         setViewOnce(false);
@@ -737,9 +739,11 @@ const ChatView = ({
       } else {
         await onSendMessage(conversation.phone, newMessage.trim(), {
           preferredInstanceId: conversation.preferredInstanceId,
+          ...(replyingTo ? { messageId: replyingTo.id } : {}),
         });
       }
       setNewMessage("");
+      setReplyingTo(null);
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e?.message || "Falha ao enviar mensagem", variant: "destructive" });
     } finally {
@@ -1173,7 +1177,7 @@ const ChatView = ({
                               size="icon"
                               className="h-6 w-6 hover:bg-muted"
                               title="Responder"
-                              onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                              onClick={() => setReplyingTo({ id: msg.externalMessageId || msg.id, content: msg.content, isSent: false })}
                             >
                               <Reply className="w-3 h-3" />
                             </Button>
@@ -1219,7 +1223,7 @@ const ChatView = ({
                             size="icon"
                             className="h-6 w-6 hover:bg-muted text-foreground"
                             title="Responder"
-                            onClick={() => setNewMessage(`Reposta a: ${msg.content.slice(0, 30)}${msg.content.length > 30 ? '...' : ''}\n\n`)}
+                            onClick={() => setReplyingTo({ id: msg.externalMessageId || msg.id, content: msg.content, isSent: true })}
                           >
                             <Reply className="w-3 h-3" />
                           </Button>
@@ -1281,6 +1285,31 @@ const ChatView = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
+      {/* Reply preview */}
+      {replyingTo && (
+        <div className="border-t border-border bg-muted/30 px-4 py-2">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="flex-1 min-w-0 border-l-4 border-primary pl-3">
+              <p className="text-xs font-medium text-primary">
+                Respondendo {replyingTo.isSent ? 'à sua mensagem' : 'à mensagem'}
+              </p>
+              <p className="text-sm text-muted-foreground truncate">
+                {replyingTo.content}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setReplyingTo(null)}
+              title="Cancelar resposta"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Attached file preview */}
       {attachedFile && (

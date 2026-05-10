@@ -257,11 +257,11 @@ const getZAPIConfig = async () => {
     return [optionList.title, message, lines.length ? `\n${lines.join('\n')}` : ''].filter(Boolean).join('\n\n');
   };
 
-  const sendMessage = async (phone: string, message: string) => {
+  const sendMessage = async (phone: string, message: string, options?: any) => {
     setLoading(true);
     
     try {
-      const data = await invokeSendMessageEdge({ phone, message }, 'Erro ao enviar mensagem');
+      const data = await invokeSendMessageEdge({ phone, message, ...(options || {}) }, 'Erro ao enviar mensagem');
 
       ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
 
