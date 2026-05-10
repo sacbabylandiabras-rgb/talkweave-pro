@@ -262,7 +262,7 @@ const PerfilEmpresa = () => {
            ) : profile ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Informações Básicas */}
-          <Card className="border-border/50 bg-card/50">
+           <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-primary" />
@@ -296,7 +296,7 @@ const PerfilEmpresa = () => {
           </Card>
 
           {/* Contato e Endereço */}
-          <Card className="border-border/50 bg-card/50">
+           <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
@@ -347,7 +347,7 @@ const PerfilEmpresa = () => {
           </Card>
 
           {/* Horários */}
-          <Card className="md:col-span-2 border-border/50 bg-card/50">
+           <Card className="md:col-span-2 border-border/50 bg-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
@@ -365,12 +365,12 @@ const PerfilEmpresa = () => {
                        'Horário específico'}
                     </p>
                   </div>
-                  {profile.businessHours.days && profile.businessHours.days.map((day: any) => (
-                    <div key={day.dayOfWeek} className="p-3 rounded-md bg-muted/40 border border-border/30">
-                      <p className="text-xs font-bold uppercase text-muted-foreground tracking-tighter mb-1">{day.dayOfWeek}</p>
-                      <p className="text-sm font-mono">{day.openTime} - {day.closeTime}</p>
-                    </div>
-                  ))}
+                   {profile.businessHours.days && profile.businessHours.days.map((day: any) => (
+                     <div key={day.dayOfWeek} className="p-3 rounded-xl bg-secondary/20 border border-border/40 hover:border-primary/30 transition-colors">
+                       <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest mb-1">{day.dayOfWeek}</p>
+                       <p className="text-sm font-mono text-foreground/90">{day.openTime} - {day.closeTime}</p>
+                     </div>
+                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -414,7 +414,7 @@ const PerfilEmpresa = () => {
            ) : products.length > 0 ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                {products.map((product) => (
-                 <Card key={product.id} className="overflow-hidden border-border/50 bg-card/50 flex flex-col group">
+                 <Card key={product.id} className="overflow-hidden border-border/50 bg-card/40 backdrop-blur-sm flex flex-col group hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-500">
                    <div className="aspect-square bg-muted relative overflow-hidden">
                      {product.imageUrls?.thumbnail ? (
                        <img 
@@ -437,7 +437,7 @@ const PerfilEmpresa = () => {
                    <CardContent className="p-4 flex-grow space-y-2">
                      <div className="flex items-start justify-between gap-2">
                        <h3 className="font-semibold text-sm line-clamp-2 leading-tight">{product.name}</h3>
-                       <Badge variant="outline" className="shrink-0 font-mono">
+                       <Badge variant="secondary" className="shrink-0 font-mono bg-primary/10 text-primary border-primary/20">
                          {product.currency} {product.price}
                        </Badge>
                      </div>
