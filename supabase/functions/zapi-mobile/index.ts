@@ -14,10 +14,10 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) throw new Error('Unauthorized');
 
-  const sel = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider';
+  const sel = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_type';
   const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  let q = admin.from('zapi_instances').select(sel).eq('user_id', user.id).eq('api_provider', 'zapi');
+  let q = admin.from('zapi_instances').select(sel).eq('user_id', user.id).eq('api_provider', 'zapi').eq('instance_type', 'mobile');
   if (instanceDbId) {
     q = uuidLike.test(instanceDbId) ? q.eq('id', instanceDbId) : q.eq('zapi_instance_id', instanceDbId);
   } else {
@@ -25,11 +25,11 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   }
   let { data: inst } = await q.maybeSingle();
   if (!inst) {
-    const r = await admin.from('zapi_instances').select(sel).eq('user_id', user.id).eq('api_provider', 'zapi').eq('is_active', true).limit(1).maybeSingle();
+    const r = await admin.from('zapi_instances').select(sel).eq('user_id', user.id).eq('api_provider', 'zapi').eq('instance_type', 'mobile').eq('is_active', true).limit(1).maybeSingle();
     inst = r.data as any;
   }
   if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
-    throw new Error('Credenciais da conexão WhatsApp não configuradas');
+    throw new Error('Nenhuma instância Mobile configurada. Peça ao administrador para adicionar uma instância do tipo "Mobile".');
   }
   return {
     instanceId: inst.zapi_instance_id,

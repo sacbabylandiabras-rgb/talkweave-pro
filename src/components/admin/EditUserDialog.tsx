@@ -54,6 +54,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
    const [newProvider, setNewProvider] = useState<'zapi'>('zapi');
+  const [newInstanceType, setNewInstanceType] = useState<'web' | 'mobile'>('web');
 
   useEffect(() => {
     if (user) {
@@ -110,6 +111,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewClientToken('');
     setNewIsDefault(false);
      setNewProvider('zapi');
+    setNewInstanceType('web');
   };
 
    const handleAddInstance = async () => {
@@ -126,6 +128,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
        zapi_client_token: newClientToken.trim(),
        is_default: newIsDefault,
        api_provider: 'zapi',
+       instance_type: newInstanceType,
      });
      setAddingInstance(false);
      if (ok) {
@@ -235,6 +238,19 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <Card className="mb-3 border-primary/40">
                 <CardContent className="pt-4 pb-4 space-y-3">
                   <h4 className="font-medium text-sm">Nova instância</h4>
+                  <div className="space-y-2">
+                    <Label>Tipo de instância</Label>
+                    <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as 'web' | 'mobile')}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="web">Web (QR Code)</SelectItem>
+                        <SelectItem value="mobile">Mobile (Emulador — conectar número)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Use "Mobile" para instâncias dedicadas ao Emulador Mobile (registro por número).
+                    </p>
+                  </div>
                    <div className="space-y-2">
                      <Label>Nome da instância</Label>
                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
@@ -274,6 +290,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
                            <Badge variant="outline" className="text-xs uppercase">Z-API</Badge>
+                          <Badge variant="outline" className="text-xs uppercase">
+                            {(inst as any).instance_type === 'mobile' ? 'Mobile' : 'Web'}
+                          </Badge>
                           {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
                           {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
                         </div>
