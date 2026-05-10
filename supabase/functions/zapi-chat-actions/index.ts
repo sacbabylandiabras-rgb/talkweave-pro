@@ -262,7 +262,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
      case 'company-websites':
        return { method: 'POST', path: "/business/company-websites", body: { websites: payload?.websites || (payload?.value ? [payload.value] : []) } };
     case 'business-hours':
-      return { method: 'POST', path: "/business/business-hours", body: payload };
+      return { method: 'POST', path: "/business/hours", body: payload };
     case 'available-categories':
       return { method: 'GET', path: "/business/available-categories" };
     case 'company-categories':

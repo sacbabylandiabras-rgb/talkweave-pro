@@ -1926,16 +1926,24 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                <Button 
                  className="w-full" 
                  onClick={() => {
-                   const payload: any = { timezone: "America/Sao_Paulo", type: businessHoursType };
-                   if (businessHoursType === 'specific_hours') {
-                     payload.days = Object.entries(days)
-                       .filter(([, cfg]: [string, any]) => cfg.open)
-                       .map(([day, cfg]: [string, any]) => ({
-                         day: day.toUpperCase(),
-                         start: cfg.start,
-                         end: cfg.end
-                       }));
-                   }
+                    const modeMap: Record<string, string> = {
+                      open_24h: 'open24h',
+                      appointment_only: 'appointmentOnly',
+                      specific_hours: 'specificHours',
+                    };
+                    const payload: any = {
+                      timezone: "America/Sao_Paulo",
+                      mode: modeMap[businessHoursType] || 'open24h',
+                    };
+                    if (businessHoursType === 'specific_hours') {
+                      payload.days = Object.entries(days)
+                        .filter(([, cfg]: [string, any]) => cfg.open)
+                        .map(([day, cfg]: [string, any]) => ({
+                          dayOfWeek: day.toUpperCase(),
+                          openTime: cfg.start,
+                          closeTime: cfg.end,
+                        }));
+                    }
                    applyToAll('business-hours', payload, 'Horário de Funcionamento');
                  }} 
                  disabled={!!submitting || selectedIds.length === 0}
