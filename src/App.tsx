@@ -22,6 +22,7 @@ const DashboardMeta = lazyWithRecovery(() => import("./pages/DashboardMeta"));
 const Admin = lazyWithRecovery(() => import("./pages/Admin"));
 const Dispositivos = lazyWithRecovery(() => import("./pages/Dispositivos"));
 const Perfil = lazyWithRecovery(() => import("./pages/Perfil"));
+const PerfilEmpresa = lazyWithRecovery(() => import("./pages/PerfilEmpresa"));
 const Campanhas = lazyWithRecovery(() => import("./pages/Campanhas"));
 const CampanhaGrupoFluxo = lazyWithRecovery(() => import("./pages/CampanhaGrupoFluxo"));
 const Contatos = lazyWithRecovery(() => import("./pages/Contatos"));
@@ -159,6 +160,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/gateway-checkout/dashboard" element={<KycWrap><PayDashboard /></KycWrap>} />
                   <Route path="/perfil" element={<Perfil />} />
+                  <Route path="/perfil-empresa" element={<PerfilEmpresa />} />
                   <Route path="/campanhas" element={<Campanhas />} />
                   <Route path="/campanhas-grupo" element={<Campanhas mode="groups" />} />
                   <Route path="/campanhas-grupo/nova" element={<CampanhaGrupoFluxo />} />
