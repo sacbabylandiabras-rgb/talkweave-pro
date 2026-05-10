@@ -110,15 +110,6 @@ const PerfilEmpresa = () => {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
-  const [tags, setTags] = useState<WhatsappTag[]>([]);
-  const [tagColors, setTagColors] = useState<TagColor[]>([]);
-  const [loadingTags, setLoadingTags] = useState(false);
-  const [newTagName, setNewTagName] = useState("");
-  const [newTagDescription, setNewTagDescription] = useState("");
-  const [newTagColor, setNewTagColor] = useState(0);
-  const [editingTag, setEditingTag] = useState<WhatsappTag | null>(null);
-  const [tagSearchTerm, setTagSearchTerm] = useState("");
-  const [isCreateTagOpen, setIsCreateTagOpen] = useState(false);
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,107 +156,9 @@ const PerfilEmpresa = () => {
     if (selectedInstanceId) {
       fetchProfile(selectedInstanceId);
       fetchProducts(selectedInstanceId);
-      fetchTags(selectedInstanceId);
-      fetchTagColors(selectedInstanceId);
     }
   }, [selectedInstanceId]);
 
-  const fetchTagColors = async (instanceId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { action: "tag-colors", instanceDbId: instanceId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      setTagColors(Array.isArray(data?.data) ? data.data : []);
-    } catch (err: any) {
-      console.error("Erro ao buscar cores de etiquetas:", err);
-    }
-  };
-
-  const fetchTags = async (instanceId: string) => {
-    setLoadingTags(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { action: "list-tags", instanceDbId: instanceId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      setTags(Array.isArray(data?.data) ? data.data : []);
-    } catch (err: any) {
-      console.error("Erro ao buscar etiquetas:", err);
-      toast({ title: "Erro ao carregar etiquetas", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingTags(false);
-    }
-  };
-
-  const handleCreateTag = async () => {
-    if (!newTagName.trim()) return;
-    setLoadingTags(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { 
-          action: "create-tag", 
-          instanceDbId: selectedInstanceId, 
-          payload: { name: newTagName, color: newTagColor } 
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta criada", description: `A etiqueta "${newTagName}" foi criada com sucesso.` });
-      setNewTagName("");
-      setNewTagDescription("");
-      setNewTagColor(0);
-      setIsCreateTagOpen(false);
-      fetchTags(selectedInstanceId);
-    } catch (err: any) {
-      toast({ title: "Erro ao criar etiqueta", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingTags(false);
-    }
-  };
-
-  const handleEditTag = async () => {
-    if (!editingTag || !editingTag.name.trim()) return;
-    setLoadingTags(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { 
-          action: "edit-tag", 
-          instanceDbId: selectedInstanceId, 
-          payload: { id: editingTag.id, name: editingTag.name, color: editingTag.color } 
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta atualizada" });
-      setEditingTag(null);
-      fetchTags(selectedInstanceId);
-    } catch (err: any) {
-      toast({ title: "Erro ao atualizar etiqueta", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingTags(false);
-    }
-  };
-
-  const handleDeleteTag = async (tagId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
-    setLoadingTags(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { action: "delete-tag", instanceDbId: selectedInstanceId, payload: { id: tagId } },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta excluída" });
-      fetchTags(selectedInstanceId);
-    } catch (err: any) {
-      toast({ title: "Erro ao excluir etiqueta", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingTags(false);
-    }
-  };
 
   const fetchProducts = async (instanceId: string, phone?: string, cursor?: string) => {
     if (cursor) setLoadingMore(true);
