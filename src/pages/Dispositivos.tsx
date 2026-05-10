@@ -102,8 +102,6 @@ const normalizeCollectionsPayload = (payload: unknown): CollectionItem[] => {
   return [];
 };
 
-const MobileEmulator = lazy(() => import("@/components/dispositivos/MobileEmulator").then(module => ({ default: module.MobileEmulator })));
-
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
