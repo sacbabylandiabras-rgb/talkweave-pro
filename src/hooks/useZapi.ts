@@ -1509,6 +1509,162 @@ const getZAPIConfig = async () => {
     }
   };
 
+  const sendEvent = async (payload: {
+    phone: string;
+    title: string;
+    startTime: number;
+    description?: string;
+    endTime?: number;
+    location?: string;
+    isAllDay?: boolean;
+    url?: string;
+    instanceDbId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-event', {
+        body: payload,
+      });
+
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao enviar evento'));
+      if (data?.error) throw new Error(data.message || data.error);
+
+      toast({
+        title: "Evento enviado!",
+        description: "O convite de evento foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar evento:', error);
+      toast({
+        title: "Erro ao enviar evento",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendEditEvent = async (payload: {
+    phone: string;
+    messageIdToEdit: string;
+    title?: string;
+    startTime?: number;
+    description?: string;
+    endTime?: number;
+    location?: string;
+    isAllDay?: boolean;
+    url?: string;
+    cancelEvent?: boolean;
+    instanceDbId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-edit-event', {
+        body: payload,
+      });
+
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao editar evento'));
+      if (data?.error) throw new Error(data.message || data.error);
+
+      toast({
+        title: payload.cancelEvent ? "Evento cancelado!" : "Evento editado!",
+        description: `O evento foi ${payload.cancelEvent ? 'cancelado' : 'atualizado'} com sucesso.`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao editar evento:', error);
+      toast({
+        title: "Erro ao editar evento",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOrderStatusUpdate = async (payload: {
+    phone: string;
+    orderStatus: string;
+    paymentStatus?: string;
+    order?: any;
+    referenceId?: string;
+    messageId?: string;
+    orderRequestId?: string;
+    instanceDbId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-order-status-update', {
+        body: payload,
+      });
+
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao atualizar status do pedido'));
+      if (data?.error) throw new Error(data.message || data.error);
+
+      toast({
+        title: "Status do pedido atualizado!",
+        description: "A atualização foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar status do pedido:', error);
+      toast({
+        title: "Erro ao atualizar status",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOrderPaymentUpdate = async (payload: {
+    phone: string;
+    paymentStatus: string;
+    orderStatus?: string;
+    order?: any;
+    referenceId?: string;
+    messageId?: string;
+    orderRequestId?: string;
+    instanceDbId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-order-payment-update', {
+        body: payload,
+      });
+
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao atualizar pagamento do pedido'));
+      if (data?.error) throw new Error(data.message || data.error);
+
+      toast({
+        title: "Pagamento do pedido atualizado!",
+        description: "A atualização de pagamento foi enviada com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar pagamento do pedido:', error);
+      toast({
+        title: "Erro ao atualizar pagamento",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sendReaction = async (phone: string, messageId: string, emoji: string) => {
     try {
       return await invokeZapiAction('send-message-reaction', phone, { messageId, reaction: emoji });
@@ -1606,6 +1762,10 @@ const getZAPIConfig = async () => {
       sendMessageCatalog,
       sendMessageContact,
       sendMultipleMessages,
+      sendEvent,
+      sendEditEvent,
+      sendOrderStatusUpdate,
+      sendOrderPaymentUpdate,
       loading,
     };
   };
