@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles } from "lucide-react";
+import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle } from "lucide-react";
 import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
@@ -1491,7 +1491,10 @@ const EnviarMensagem = () => {
             <Users className="w-4 h-4" />
             Envio em Massa
           </TabsTrigger>
-          
+          <TabsTrigger value="eventos" className="flex items-center gap-2">
+            <CalendarClock className="w-4 h-4" />
+            Eventos
+          </TabsTrigger>
         </TabsList>
 
         {/* Mensagem de Texto Simples */}
