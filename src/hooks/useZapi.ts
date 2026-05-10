@@ -1288,6 +1288,7 @@ const getZAPIConfig = async () => {
     }
   };
 
+  const createCollection = (payload: { name: string, products: { id: string }[] }) => invokeGroupAction('create-collection', payload);
   const getGroups = (page = 1, pageSize = 50) => invokeGroupAction('get-groups', { page, pageSize });
   const createGroup = (payload: { groupName: string, phones: string[] }) => invokeGroupAction('create-group', payload);
   const updateGroupName = (payload: { phone: string, groupName: string }) => invokeGroupAction('update-group-name', payload);
@@ -1398,7 +1399,8 @@ const getZAPIConfig = async () => {
      getCallToken,
      getSipToken,
       getSipInfo,
-      getGroups,
+       createCollection,
+       getGroups,
       createGroup,
       updateGroupName,
       updateGroupPhoto,

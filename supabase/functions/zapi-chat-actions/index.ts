@@ -228,6 +228,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'reply-status-sticker':
       return { method: 'POST', path: "/reply-status-sticker", body: payload };
 
+    // Business / Catalog Actions
+    case 'create-collection':
+      return { method: 'POST', path: "/create-collection", body: payload };
+
     // Group Actions
     case 'get-groups':
       return { method: 'GET', path: "/groups?page=" + (payload?.page ?? 1) + "&pageSize=" + (payload?.pageSize ?? 50) };
