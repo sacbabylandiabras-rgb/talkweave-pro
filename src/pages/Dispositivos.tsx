@@ -81,9 +81,33 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
    const [showConnect, setShowConnect] = useState(false);
-   const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showCollections, setShowCollections] = useState(false);
+    const [collections, setCollections] = useState<any[]>([]);
+    const [collectionsLoading, setCollectionsLoading] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
+   const fetchCollections = async () => {
+     setCollectionsLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'list-collections', 
+           instanceDbId: instance.id,
+           phone: connectedPhone 
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       setCollections(data?.data?.value || data?.data || []);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao buscar coleções');
+       toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
+     } finally {
+       setCollectionsLoading(false);
+     }
+   };
+
    const updatePrivacy = async (action: string, payload: any) => {
      setPrivacyLoading(true);
      try {
