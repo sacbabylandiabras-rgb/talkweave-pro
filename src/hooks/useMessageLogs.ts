@@ -360,12 +360,16 @@ export const useMessageLogs = (
   knownInstanceNames?: string[],
 ) => {
   const [messageLogs, setMessageLogs] = useState<MessageLog[]>(() => {
-    const cached = localStorage.getItem('talkweave_cached_message_logs');
-    return cached ? JSON.parse(cached) : [];
+    try {
+      const cached = localStorage.getItem('talkweave_cached_message_logs');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
   });
   const [campaignSends, setCampaignSends] = useState<CampaignSendMessage[]>(() => {
-    const cached = localStorage.getItem('talkweave_cached_campaign_sends');
-    return cached ? JSON.parse(cached) : [];
+    try {
+      const cached = localStorage.getItem('talkweave_cached_campaign_sends');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
   });
   
   // State to track locally deleted conversations to prevent them from reappearing
@@ -376,13 +380,27 @@ export const useMessageLogs = (
     } catch { return new Set(); }
   });
 
-  // Persistence effects
+  // Persistence effects (cap size to avoid quota exceeded)
+  const safeSetItem = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      try {
+        localStorage.removeItem('talkweave_cached_message_logs');
+        localStorage.removeItem('talkweave_cached_campaign_sends');
+        localStorage.setItem(key, value);
+      } catch { /* give up silently */ }
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('talkweave_cached_message_logs', JSON.stringify(messageLogs));
+    const capped = messageLogs.slice(-500);
+    safeSetItem('talkweave_cached_message_logs', JSON.stringify(capped));
   }, [messageLogs]);
 
   useEffect(() => {
-    localStorage.setItem('talkweave_cached_campaign_sends', JSON.stringify(campaignSends));
+    const capped = campaignSends.slice(-500);
+    safeSetItem('talkweave_cached_campaign_sends', JSON.stringify(capped));
   }, [campaignSends]);
 
   useEffect(() => {
