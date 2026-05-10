@@ -81,9 +81,33 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
    const [showConnect, setShowConnect] = useState(false);
-   const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showCollections, setShowCollections] = useState(false);
+    const [collections, setCollections] = useState<any[]>([]);
+    const [collectionsLoading, setCollectionsLoading] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
+   const fetchCollections = async () => {
+     setCollectionsLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'list-collections', 
+           instanceDbId: instance.id,
+           phone: connectedPhone 
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       setCollections(data?.data?.value || data?.data || []);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao buscar coleções');
+       toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
+     } finally {
+       setCollectionsLoading(false);
+     }
+   };
+
    const updatePrivacy = async (action: string, payload: any) => {
      setPrivacyLoading(true);
      try {
@@ -629,11 +653,73 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <Wifi className="w-3 h-3 mr-1" /> Conectar
              </Button>
            )}
-           {isConnected && (
-             <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
-               <User className="w-3 h-3 mr-1" /> Privacidade
-             </Button>
-           )}
+            {isConnected && (
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
+                  <Globe className="w-3 h-3 mr-1" /> Privacidade
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-[11px] px-2" 
+                  onClick={() => {
+                    setShowCollections(true);
+                    fetchCollections();
+                  }}
+                >
+                  <LayoutGrid className="w-3 h-3 mr-1" /> Coleções
+                </Button>
+              </div>
+            )}
+        {/* Collections Dialog */}
+        <Dialog open={showCollections} onOpenChange={setShowCollections}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <LayoutGrid className="w-5 h-5" /> Coleções do Catálogo
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {collectionsLoading ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Buscando coleções...</p>
+                </div>
+              ) : collections.length === 0 ? (
+                <div className="text-center py-8 space-y-2">
+                  <LayoutGrid className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">Nenhuma coleção encontrada.</p>
+                  <Button variant="outline" size="sm" onClick={fetchCollections}>
+                    <RefreshCw className="w-3 h-3 mr-2" /> Tentar novamente
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{collections.length} coleções encontradas</span>
+                    <Button variant="ghost" size="sm" onClick={fetchCollections}>
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                    {collections.map((col: any, idx: number) => (
+                      <div key={col.id || idx} className="p-3 border rounded-lg bg-muted/20 space-y-1">
+                        <div className="flex justify-between items-start">
+                          <p className="font-semibold text-sm">{col.name}</p>
+                          <Badge variant="outline" className="text-[10px]">{col.id}</Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          Status: {col.status || 'N/A'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
          <DialogContent className="sm:max-w-md">
