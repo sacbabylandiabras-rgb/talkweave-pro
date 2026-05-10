@@ -41,7 +41,7 @@ const typeIcons: Record<string, any> = {
   video: Video,
   audio: Mic,
   document: FileText,
-  contact: Contact,
+  contact: User,
   location: MapPin,
   presence: Activity,
   status: Camera,
@@ -56,7 +56,7 @@ const typeIcons: Record<string, any> = {
   poll: HelpCircle,
   order: ShoppingBag,
   product: Package,
-  catalog: ShoppingBag,
+  catalog: List,
   reaction: Smile,
   "remove-reaction": X,
   reply: Reply,
@@ -121,16 +121,16 @@ function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; me
     );
   }
 
-  if (contentType === "product" || contentType === "order" || contentType === "catalog") {
+  if (contentType === "product" || contentType === "order" || contentType === "catalog" || contentType === "contact") {
     return (
       <div className="mt-2 flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 p-2 rounded-md">
         <ShoppingBag className="w-4 h-4 text-blue-500" />
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-bold truncate">
-            {contentType === "product" ? "Produto" : contentType === "catalog" ? "Mensagem Catálogo" : data.orderTitle || "Pedido"}
+            {contentType === "product" ? "Produto" : contentType === "catalog" ? "Mensagem Catálogo" : contentType === "contact" ? "Contato (vCard)" : data.orderTitle || "Pedido"}
           </div>
           <div className="text-[9px] text-muted-foreground truncate">
-            {contentType === "product" ? `ID: ${data.productId}` : contentType === "catalog" ? `ID: ${data.productId}` : `Total: R$ ${data.orderTotal}`}
+            {contentType === "product" ? `ID: ${data.productId}` : contentType === "catalog" ? `ID: ${data.productId}` : contentType === "contact" ? (data.contactName || data.phone || "Contato") : `Total: R$ ${data.orderTotal}`}
           </div>
         </div>
       </div>

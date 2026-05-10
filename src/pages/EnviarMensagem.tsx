@@ -87,7 +87,7 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, loading } = useZapi();
+  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, loading } = useZapi();
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances();
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
@@ -160,6 +160,7 @@ const EnviarMensagem = () => {
     const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
     const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
+    const isContactTemplate = templateType === 'contato' || templateType === 'contact' || templateType === 'contato (vcard)';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
      const isProductTemplate = templateType === 'produto' || templateType === 'product';
      const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
@@ -207,6 +208,18 @@ const EnviarMensagem = () => {
       }
 
       return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
+    }
+
+    if (isContactTemplate) {
+      const special = parseSpecialTemplate(modeloData?.content);
+      const contactName = special?.contactName || (modeloData as any)?.contactName || '';
+      const contactPhone = special?.contactPhone || (modeloData as any)?.contactPhone || '';
+      const contactDesc = special?.description || special?.contactBusinessDescription || '';
+
+      if (!contactName || !contactPhone) throw new Error('Nome e telefone do contato são obrigatórios no modelo');
+
+      await sendMessageContact(phone, contactName, contactPhone, contactDesc);
+      return `[contato:${contactName}] ${modeloData?.name || mensagemPersonalizada || 'Contato enviado'}`;
     }
 
     if (isProductTemplate) {

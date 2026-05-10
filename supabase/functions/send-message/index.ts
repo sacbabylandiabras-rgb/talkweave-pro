@@ -374,6 +374,11 @@ serve(async (req) => {
          payload.gif = url;
          payload.caption = text || '';
        } else if (type === 'product-catalog') {
+       } else if (type === 'contact') {
+         endpoint = '/send-contact';
+         payload.contactName = specialPayload?.contactName || '';
+         payload.contactPhone = specialPayload?.contactPhone || '';
+         payload.contactBusinessDescription = specialPayload?.contactBusinessDescription || '';
          endpoint = '/send-message-catalog';
          payload.catalogId = specialPayload?.catalogId || catalogId || '';
          payload.productId = specialPayload?.productId || productId || '';

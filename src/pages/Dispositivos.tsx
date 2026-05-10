@@ -1533,7 +1533,8 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
         body: { action: "list-products", instanceDbId: targetId },
       });
       if (error) throw error;
-      const products = data?.data?.products || data?.data?.value || [];
+      let products = data?.data?.products || data?.data?.value || [];
+      if (!Array.isArray(products)) products = [];
       setAvailableProducts(products);
     } catch (err) {
       console.error("Erro ao buscar produtos para coleção:", err);
@@ -1702,7 +1703,7 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
                     {availableProducts
                       .filter(p => !selectedProductIds.includes(p.id))
                       .map(product => (
-                        <SelectItem key={product.id} value={product.id} className="cursor-pointer">
+                        <SelectItem key={product.id || Math.random().toString()} value={String(product.id || '')} className="cursor-pointer">
                           <div className="flex flex-col">
                             <span className="font-medium text-sm">{product.name}</span>
                             <span className="text-[10px] text-muted-foreground opacity-70 font-mono">ID: {product.id}</span>

@@ -324,7 +324,7 @@ const getZAPIConfig = async () => {
     title?: string,
     footer?: string,
     mediaUrl?: string,
-      mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog' | 'product-catalog',
+      mediaType?: 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif' | 'poll' | 'reaction' | 'order' | 'product' | 'catalog' | 'product-catalog' | 'contact',
      specialPayload?: Record<string, any>
   ) => {
     setLoading(true);
@@ -504,6 +504,48 @@ const getZAPIConfig = async () => {
        setLoading(false);
      }
    };
+
+  const sendMessageContact = async (
+    phone: string,
+    contactName: string,
+    contactPhone: string,
+    contactBusinessDescription?: string
+  ) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        {
+          phone,
+          mediaType: 'contact',
+          specialPayload: {
+            contactName,
+            contactPhone,
+            contactBusinessDescription
+          }
+        },
+        'Erro ao enviar contato'
+      );
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio do contato.');
+
+      toast({
+        title: "Contato enviado!",
+        description: "O cartão de contato foi enviado com sucesso.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar contato:', error);
+      toast({
+        title: "Erro ao enviar contato",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sendMessageCatalog = async (
     phone: string,
@@ -1530,6 +1572,7 @@ const getZAPIConfig = async () => {
         sendGif,
       removeReaction,
       sendMessageCatalog,
+      sendMessageContact,
       loading,
     };
   };

@@ -1169,12 +1169,16 @@ serve(async (req) => {
                   body.message = payload.message;
                   body.buttonList = { buttons: payload.buttons.map((b: any) => ({ label: b.label })) };
                 } else {
-                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio", catalog: "/send-message-catalog" };
+                  const epMap: any = { image: "/send-image", video: "/send-video", audio: "/send-audio", catalog: "/send-message-catalog", contact: "/send-contact" };
                   endpoint = epMap[payload.kind];
                   if (payload.kind === "catalog") {
                     body.catalogId = payload.catalogId;
                     body.productId = payload.productId;
                     body.body = payload.caption;
+                  } else if (payload.kind === "contact") {
+                    body.contactName = payload.contactName;
+                    body.contactPhone = payload.contactPhone;
+                    body.contactBusinessDescription = payload.caption;
                   } else {
                     body[payload.kind] = payload.file;
                     body.caption = payload.caption;
@@ -1190,7 +1194,11 @@ serve(async (req) => {
                   | { type: "media"; kind: "image" | "video" | "audio"; file: string; caption: string }
                 | { type: "buttons"; message: string; buttons: any[] }
                 | { type: "carousel"; message: string; cards: any[] }
-                | { type: "catalog"; productId: string; catalogId: string; caption: string },
+                | { type: "catalog"; productId: string; catalogId: string; caption: string }
+                | { type: "contact"; contactName: string; contactPhone: string; caption: string },
+              const sendWelcomeContact = async (name: string, phone: string, caption: string) =>
+                sendWelcomeWithFallback({ type: "contact", contactName: name, contactPhone: phone, caption }, "Welcome contact");
+
               const sendWelcomeCatalog = async (productId: string, catalogId: string, caption: string) =>
                 sendWelcomeWithFallback({ type: "catalog", productId, catalogId, caption }, "Welcome catalog");
 
@@ -1371,8 +1379,22 @@ serve(async (req) => {
                       normalizedTemplateType.includes("carrossel"));
 
                   const isProduct = normalizedTemplateType === "produto" || normalizedTemplateType === "product";
+                  const isContact = normalizedTemplateType === "contato" || normalizedTemplateType === "contact" || normalizedTemplateType === "contato (vcard)";
 
-                  if (isProduct) {
+                  if (isContact) {
+                    const special = parseSpecialTemplate(tpl.content);
+                    const contactName = special?.contactName || (tpl as any)?.contactName || "";
+                    const contactPhone = special?.contactPhone || (tpl as any)?.contactPhone || "";
+                    const sendResponse = await sendWelcomeContact(
+                      contactName,
+                      contactPhone,
+                      special?.description || special?.contactBusinessDescription || ""
+                    );
+                    console.log(
+                      "📤 Welcome template contact confirmed:",
+                      JSON.stringify(sendResponse).substring(0, 300),
+                    );
+                  } else if (isProduct) {
                     const special = parseSpecialTemplate(tpl.content);
                     const productId = special?.productId || "";
                     const catalogId = special?.catalogId || "";
@@ -1419,6 +1441,9 @@ serve(async (req) => {
                         "📤 Welcome template image+text-buttons confirmed:",
                         JSON.stringify(buttonResponse).substring(0, 300),
                       );
+                    } else if (isContact) {
+                      const special = parseSpecialTemplate(tpl.content);
+                      logContent = `[contato:${special?.contactName || ""}] ${logContent}`;
                     } else if (isProduct) {
                       const special = parseSpecialTemplate(tpl.content);
                       logContent = `[produto:${special?.productId || ""}] ${logContent}`;
