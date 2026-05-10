@@ -70,7 +70,6 @@ const zapiMenuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   { id: "perfil-empresa", label: "Perfil Empresa", icon: Building2, path: "/perfil-empresa" },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
-  { id: "emulador-mobile", label: "Emulador Mobile", icon: Smartphone, path: "/emulador-mobile" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "etiquetas", label: "Etiquetas", icon: Tag, path: "/etiquetas" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
