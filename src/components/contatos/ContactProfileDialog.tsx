@@ -485,21 +485,34 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
               </div>
 
               {addingTag && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Nome da tag..."
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
-                    className="h-8 text-sm"
-                    autoFocus
-                    onKeyDown={e => e.key === 'Enter' && handleAddTag()}
-                  />
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={handleAddTag}>
-                    <Check className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => { setAddingTag(false); setNewTag(""); }}>
-                    <X className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Select 
+                      onValueChange={(val) => {
+                        const tag = availableTags.find(t => t.id === val);
+                        if (tag) handleAddTag(tag.id, tag.name);
+                      }}
+                      disabled={loadingTags}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder={loadingTags ? "Carregando..." : "Selecionar etiqueta..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTags
+                          .filter(t => !localTags.includes(t.name))
+                          .map(tag => (
+                            <SelectItem key={tag.id} value={tag.id}>{tag.name}</SelectItem>
+                          ))
+                        }
+                        {availableTags.length === 0 && !loadingTags && (
+                          <div className="p-2 text-xs text-muted-foreground">Crie etiquetas no Perfil da Empresa</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setAddingTag(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
 
