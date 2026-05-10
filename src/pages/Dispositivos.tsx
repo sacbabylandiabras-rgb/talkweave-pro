@@ -123,6 +123,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [editingCollection, setEditingCollection] = useState<{ id: string | number; name: string } | null>(null);
     const [editName, setEditName] = useState("");
     const [editingLoading, setEditingLoading] = useState(false);
+    const [viewingProductsId, setViewingProductsId] = useState<string | number | null>(null);
+    const [products, setProducts] = useState<any[]>([]);
+    const [productsLoading, setProductsLoading] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -192,6 +195,30 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        toast({ title: "❌ Erro ao editar", description: message, variant: "destructive" });
      } finally {
        setEditingLoading(false);
+     }
+   };
+
+   const fetchCollectionProducts = async (collectionId: string | number) => {
+     setViewingProductsId(collectionId);
+     setProductsLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'list-collection-products', 
+           instanceDbId: instance.id,
+           phone: connectedPhone,
+           payload: { collectionId }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       setProducts(data?.data?.value || data?.data?.items || data?.data?.products || []);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao buscar produtos');
+       toast({ title: "❌ Erro ao buscar produtos", description: message, variant: "destructive" });
+       setViewingProductsId(null);
+     } finally {
+       setProductsLoading(false);
      }
    };
 
@@ -803,6 +830,15 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                               </p>
                             </div>
                             <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+                                onClick={() => col.id && fetchCollectionProducts(col.id)}
+                                title="Ver Produtos"
+                              >
+                                <Package className="w-3.5 h-3.5" />
+                              </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
