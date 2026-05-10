@@ -239,8 +239,20 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/reply-status-sticker", body: payload };
 
     // Business / Catalog Actions
+    case 'list-collections':
+      return { method: 'GET', path: `/catalogs/collections?phone=${phone}` };
     case 'create-collection':
-      return { method: 'POST', path: "/create-collection", body: payload };
+      return { method: 'POST', path: "/catalogs/collection", body: payload };
+    case 'edit-collection':
+      return { method: 'POST', path: `/catalogs/collection-edit/${payload?.collectionId}`, body: { name: payload?.name } };
+    case 'delete-collection':
+      return { method: 'DELETE', path: `/catalogs/collection/${payload?.collectionId}` };
+    case 'add-products-to-collection':
+      return { method: 'POST', path: "/catalogs/collection/add-product", body: payload };
+    case 'remove-products-from-collection':
+      return { method: 'POST', path: "/catalogs/collection/remove-product", body: payload };
+    case 'list-collection-products':
+      return { method: 'GET', path: `/catalogs/collection-products/${payload?.collectionId}?phone=${phone}` };
 
     // Group Actions
     case 'get-groups':
