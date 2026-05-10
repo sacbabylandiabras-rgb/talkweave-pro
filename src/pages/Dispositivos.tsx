@@ -2154,11 +2154,41 @@ const Dispositivos = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {instances.map((instance) => (
-          <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
-        ))}
-      </div>
+      {showMobileEmulator ? (
+        <div className="space-y-4">
+          {mobileInstances.length === 0 && !loading ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Nenhuma instância Mobile configurada</h3>
+                <p className="text-muted-foreground">
+                  Peça ao administrador para adicionar uma instância do tipo "Mobile" na sua conta.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {mobileInstances.map((instance) => (
+                  <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+                ))}
+              </div>
+              <Suspense fallback={<div className="h-40 flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+                <MobileEmulator instances={mobileInstances} />
+              </Suspense>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {instances
+            .filter(i => (i.instance_type || 'web') !== 'mobile')
+            .map((instance) => (
+              <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+            ))
+          }
+        </div>
+      )}
 
       {/* Bulk Profile Update Dialog */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
