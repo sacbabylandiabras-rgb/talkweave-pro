@@ -1441,12 +1441,7 @@ serve(async (req) => {
                         "📤 Welcome template image+text-buttons confirmed:",
                         JSON.stringify(buttonResponse).substring(0, 300),
                       );
-                    } else if (isContact) {
-                      const special = parseSpecialTemplate(tpl.content);
-                      logContent = `[contato:${special?.contactName || ""}] ${logContent}`;
-                    } else if (isProduct) {
-                      const special = parseSpecialTemplate(tpl.content);
-                      logContent = `[produto:${special?.productId || ""}] ${logContent}`;
+                    }
                   } else if (!tpl.media_url && canSendInteractiveButtons) {
                     if (replyBtns.length > 0) {
                       const buttonResponse = await sendWelcomeButtons(
