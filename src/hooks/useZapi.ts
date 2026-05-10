@@ -588,6 +588,38 @@ const getZAPIConfig = async () => {
     }
   };
 
+  const sendMultipleMessages = async (phones: string[], message: string) => {
+    setLoading(true);
+    try {
+      const data = await invokeSendMessageEdge(
+        {
+          phone: phones,
+          message,
+        },
+        'Erro ao enviar mensagens múltiplas'
+      );
+
+      ensureZapiSendConfirmed(data, '❌ Falha no envio de mensagens múltiplas.');
+
+      toast({
+        title: "Mensagens enviadas!",
+        description: `As mensagens foram enviadas para ${phones.length} contatos.`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao enviar mensagens múltiplas:', error);
+      toast({
+        title: "Erro ao enviar mensagens",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getDeviceStatus = async () => {
     setLoading(true);
     
