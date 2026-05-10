@@ -700,6 +700,7 @@ const Modelos = () => {
      contactName: "",
      contactPhone: "",
      variables: {} as Record<string, any>,
+    catalogId: "",
     productId: "",
    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
