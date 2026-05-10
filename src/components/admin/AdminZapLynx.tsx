@@ -18,6 +18,8 @@ import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { ViewUserAccountDialog } from "@/components/admin/ViewUserAccountDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface Withdrawal {
   id: string;
