@@ -95,6 +95,14 @@ export const MobileEmulator = ({ instances }: Props) => {
   };
 
   const handleRequestCode = async () => {
+    if (method === "wa_old" && waitInfo && waitInfo.waOldEligible === false) {
+      toast({
+        title: "Pop-up no WhatsApp indisponível",
+        description: "Esse número não está elegível ao pop-up. Use SMS ou Chamada de voz.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const res = await call("request-code", { ddi: onlyDigits(ddi), phone: onlyDigits(phone), method });
@@ -112,7 +120,11 @@ export const MobileEmulator = ({ instances }: Props) => {
         return;
       }
       if (res?.success === false) {
-        toast({ title: "Falha ao solicitar código", description: "Tente outro método de envio.", variant: "destructive" });
+        const detail = res?.reason || res?.error || res?.message
+          || (method === "wa_old"
+            ? "Pop-up no WhatsApp não está disponível para este número. Tente SMS ou Chamada de voz."
+            : "Tente outro método de envio.");
+        toast({ title: "Falha ao solicitar código", description: String(detail), variant: "destructive" });
         return;
       }
       setStep("code");
