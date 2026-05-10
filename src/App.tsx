@@ -21,6 +21,7 @@ const Dashboard = lazyWithRecovery(() => import("./pages/Dashboard"));
 const DashboardMeta = lazyWithRecovery(() => import("./pages/DashboardMeta"));
 const Admin = lazyWithRecovery(() => import("./pages/Admin"));
 const Dispositivos = lazyWithRecovery(() => import("./pages/Dispositivos"));
+const EmuladorMobile = lazyWithRecovery(() => import("./pages/EmuladorMobile"));
 const Perfil = lazyWithRecovery(() => import("./pages/Perfil"));
 const PerfilEmpresa = lazyWithRecovery(() => import("./pages/PerfilEmpresa"));
 const Etiquetas = lazyWithRecovery(() => import("./pages/Etiquetas"));
@@ -171,6 +172,7 @@ const App = () => (
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
                   <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
                   <Route path="/dispositivos" element={<Dispositivos />} />
+                  <Route path="/emulador-mobile" element={<EmuladorMobile />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
