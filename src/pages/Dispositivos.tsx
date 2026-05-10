@@ -1854,9 +1854,8 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
               <Button 
                 size="sm" 
                 onClick={() => {
-                  const cat = availableCategories.find(c => c.id === selectedCategory);
-                  if (cat) {
-                    applyToAll('company-categories', { categories: [{ id: cat.id, label: cat.displayName || cat.label }] }, 'Categoria');
+                  if (selectedCategory) {
+                    applyToAll('company-categories', { categories: [selectedCategory] }, 'Categoria');
                   }
                 }} 
                 disabled={!!submitting || !selectedCategory || selectedIds.length === 0}
