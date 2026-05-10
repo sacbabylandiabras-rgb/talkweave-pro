@@ -1589,6 +1589,40 @@ const getZAPIConfig = async () => {
     }
   };
 
+  const sendEventResponse = async (payload: {
+    phone: string;
+    eventMessageId: string;
+    eventResponse: string | number;
+    instanceDbId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-event-response', {
+        body: { ...payload, eventResponse: String(payload.eventResponse) },
+      });
+
+      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao responder evento'));
+      if (data?.error) throw new Error(data.message || data.error);
+
+      toast({
+        title: "Resposta enviada!",
+        description: "Sua resposta ao evento foi registrada.",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao responder evento:', error);
+      toast({
+        title: "Erro ao responder evento",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sendOrderStatusUpdate = async (payload: {
     phone: string;
     orderStatus: string;
@@ -1764,6 +1798,7 @@ const getZAPIConfig = async () => {
       sendMultipleMessages,
       sendEvent,
       sendEditEvent,
+      sendEventResponse,
       sendOrderStatusUpdate,
       sendOrderPaymentUpdate,
       loading,
