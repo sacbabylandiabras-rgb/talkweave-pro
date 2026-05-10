@@ -126,6 +126,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [viewingProductsId, setViewingProductsId] = useState<string | number | null>(null);
     const [products, setProducts] = useState<any[]>([]);
     const [productsLoading, setProductsLoading] = useState(false);
+    const [addingProductId, setAddingProductId] = useState("");
+    const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
@@ -219,6 +221,33 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        setViewingProductsId(null);
      } finally {
        setProductsLoading(false);
+     }
+   };
+
+   const addProductToCollection = async (collectionId: string | number) => {
+     if (!addingProductId.trim()) return;
+     setIsAddingProduct(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { 
+           action: 'add-products-to-collection', 
+           instanceDbId: instance.id,
+           payload: { 
+             collectionId, 
+             products: [{ id: addingProductId.trim() }] 
+           }
+         },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Produto adicionado" });
+       setAddingProductId("");
+       fetchCollectionProducts(collectionId);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao adicionar produto');
+       toast({ title: "❌ Erro ao adicionar", description: message, variant: "destructive" });
+     } finally {
+       setIsAddingProduct(false);
      }
    };
 
@@ -883,7 +912,28 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Package className="w-5 h-5" /> Produtos da Coleção
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 pt-4">
+              <div className="flex gap-2 items-end border-b pb-4 mb-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs">Adicionar Produto (ID)</Label>
+                  <Input 
+                    placeholder="Ex: prod_123" 
+                    value={addingProductId}
+                    onChange={(e) => setAddingProductId(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button 
+                  size="sm" 
+                  className="h-8" 
+                  onClick={() => viewingProductsId && addProductToCollection(viewingProductsId)}
+                  disabled={isAddingProduct || !addingProductId.trim()}
+                >
+                  {isAddingProduct ? <Loader2 className="w-3 h-3 animate-spin" /> : <PlusCircle className="w-3 h-3 mr-1" />}
+                  Add
+                </Button>
+              </div>
+
               {productsLoading ? (
                 <div className="flex flex-col items-center justify-center py-8 space-y-2">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
