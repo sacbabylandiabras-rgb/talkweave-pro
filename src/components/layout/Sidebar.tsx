@@ -66,6 +66,7 @@ interface SidebarProps {
 
 const zapiMenuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
+  { id: "perfil-empresa", label: "Perfil Empresa", icon: Building2, path: "/perfil-empresa" },
   { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
