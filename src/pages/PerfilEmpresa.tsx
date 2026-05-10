@@ -218,8 +218,20 @@ const PerfilEmpresa = () => {
            <p className="text-muted-foreground">Gerencie o perfil e o catálogo de produtos da sua empresa no WhatsApp.</p>
          </div>
          
-         <div className="flex items-center gap-2 min-w-[250px]">
-           <Label className="whitespace-nowrap">Instância:</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => {
+                fetchProfile(selectedInstanceId);
+                setSearchPhone("");
+                fetchProducts(selectedInstanceId);
+              }} 
+              disabled={loading || loadingProducts || !selectedInstanceId}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading || loadingProducts ? "animate-spin" : ""}`} />
+            </Button>
+            <div className="flex items-center gap-2 min-w-[200px]">
            <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
              <SelectTrigger>
                <SelectValue placeholder="Selecione uma instância" />
