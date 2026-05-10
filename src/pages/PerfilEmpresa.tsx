@@ -831,132 +831,90 @@ const PerfilEmpresa = () => {
         </TabsContent>
 
         <TabsContent value="mensagens" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-primary" />
-                  Etiquetas (Tags) do WhatsApp Business
-                </CardTitle>
-                <CardDescription>Gerencie as etiquetas do seu WhatsApp Business para categorizar conversas.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-end gap-3 p-4 rounded-xl border border-dashed border-border/50 bg-background/20">
-                  <div className="flex-grow space-y-2">
-                    <Label className="text-xs">Nova Etiqueta</Label>
-                    <Input 
-                      placeholder="Ex: Cliente VIP, Aguardando Pagamento..." 
-                      value={newTagName}
-                      onChange={(e) => setNewTagName(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="w-24 space-y-2">
-                    <Label className="text-xs">Cor</Label>
-                    <Select value={String(newTagColor)} onValueChange={(v) => setNewTagColor(Number(v))}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tagColors.length > 0 ? (
-                          tagColors.map(c => (
-                            <SelectItem key={c.id} value={String(c.id)}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.hex }} />
-                                <span>{c.label || `Cor ${c.id}`}</span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        ) : (
-                          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(c => (
-                            <SelectItem key={c} value={String(c)}>Cor {c}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()} size="sm" className="h-9">
-                    Criar
-                  </Button>
+          <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
+            <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-2xl">Tags</CardTitle>
+                <CardDescription>Organize suas conversas com tags</CardDescription>
+              </div>
+              <Button onClick={() => { setNewTagName(""); setNewTagDescription(""); setNewTagColor(tagColors[0]?.id ?? 0); setIsCreateTagOpen(true); }} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Criar
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Pesquisar..." 
+                    className="pl-10 h-9"
+                    value={tagSearchTerm}
+                    onChange={(e) => setTagSearchTerm(e.target.value)}
+                  />
                 </div>
+                <span className="text-xs text-muted-foreground">{tags.length} resultado{tags.length !== 1 ? 's' : ''}</span>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {loadingTags ? (
-                    <Skeleton className="h-12 w-full col-span-full" />
-                  ) : tags.length > 0 ? (
-                    tags.map(tag => (
-                      <div key={tag.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/40 hover:bg-background/60 transition-all group">
+              <div className="rounded-lg border border-border/50 overflow-hidden">
+                <div className="grid grid-cols-[1fr_1fr_180px_120px] items-center px-4 py-3 bg-muted/30 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span>Tags</span>
+                  <span>Descrição</span>
+                  <span>Data de criação</span>
+                  <span className="text-right">Ações</span>
+                </div>
+                {loadingTags ? (
+                  <div className="p-4"><Skeleton className="h-12 w-full" /></div>
+                ) : tags.filter(t => t.name.toLowerCase().includes(tagSearchTerm.toLowerCase())).length > 0 ? (
+                  tags
+                    .filter(t => t.name.toLowerCase().includes(tagSearchTerm.toLowerCase()))
+                    .map(tag => (
+                      <div 
+                        key={tag.id} 
+                        className="grid grid-cols-[1fr_1fr_180px_120px] items-center px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors group"
+                      >
                         <div className="flex items-center gap-3">
                           <div 
-                            className="w-3 h-3 rounded-full opacity-80" 
+                            className="w-3 h-3 rounded-full shrink-0" 
                             style={{ backgroundColor: tagColors.find(c => c.id === tag.color)?.hex || 'hsl(var(--primary))' }} 
                           />
                           <span className="text-sm font-medium">{tag.name}</span>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-sm text-muted-foreground truncate">{(tag as any).description || '—'}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date().toLocaleDateString('pt-BR')}
+                        </span>
+                        <div className="flex items-center justify-end gap-1">
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="w-7 h-7"
+                            className="w-8 h-8 text-muted-foreground hover:text-foreground"
                             onClick={() => setEditingTag(tag)}
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="w-7 h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="w-8 h-8 text-muted-foreground hover:text-destructive"
                             onClick={() => handleDeleteTag(tag.id)}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     ))
-                  ) : (
-                    <div className="col-span-full py-10 text-center border border-dashed border-border/50 rounded-lg">
-                      <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-20" />
-                      <p className="text-sm text-muted-foreground">Nenhuma etiqueta encontrada.</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Workflow className="w-5 h-5 text-primary" />
-                  Fluxos e Automação
-                </CardTitle>
-                <CardDescription>Automatize o atendimento com base em etiquetas.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
-                  <div className="flex items-center gap-2 text-primary">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Disparo por Etiqueta</span>
+                ) : (
+                  <div className="py-12 text-center">
+                    <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-20" />
+                    <p className="text-sm text-muted-foreground">
+                      {tagSearchTerm ? 'Nenhum resultado para sua busca.' : 'Nenhuma etiqueta encontrada.'}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Em breve você poderá disparar mensagens em massa para todos os contatos marcados com uma etiqueta específica.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
-                  <div className="flex items-center gap-2 text-foreground/80">
-                    <RefreshCw className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Gatilhos de Fluxo</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Configure seu <strong>Fluxo Visual</strong> para ser ativado automaticamente quando uma etiqueta for adicionada a uma conversa.
-                  </p>
-                  <Button variant="outline" size="sm" className="w-full mt-2 text-[10px] h-7" onClick={() => window.location.href='/fluxo-visual'}>
-                    Ir para Fluxo Visual
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
