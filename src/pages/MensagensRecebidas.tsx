@@ -731,6 +731,7 @@ const ChatView = ({
           viewOnce: isVideo ? viewOnce : undefined,
           isPtv: isVideo ? isPtv : undefined,
           preferredInstanceId: conversation.preferredInstanceId,
+          ...(replyingTo ? { messageId: replyingTo.id } : {}),
         });
         setAttachedFile(null);
         setViewOnce(false);
@@ -738,9 +739,11 @@ const ChatView = ({
       } else {
         await onSendMessage(conversation.phone, newMessage.trim(), {
           preferredInstanceId: conversation.preferredInstanceId,
+          ...(replyingTo ? { messageId: replyingTo.id } : {}),
         });
       }
       setNewMessage("");
+      setReplyingTo(null);
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e?.message || "Falha ao enviar mensagem", variant: "destructive" });
     } finally {
