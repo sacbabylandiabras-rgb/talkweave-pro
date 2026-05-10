@@ -2203,10 +2203,25 @@ const MensagensRecebidas = () => {
            />
          )}
        </div>
-       <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
-       
- 
-     </>
+        <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
+
+        <ContactProfileDialog
+          contact={selectedConversation ? {
+            phone: selectedConversation.phone,
+            name: selectedConversation.contactName || '',
+            status: 'ativo',
+            messageCount: selectedConversation.messages.length,
+            lastMessageDate: selectedConversation.lastTimestamp,
+            firstContactDate: selectedConversation.messages[0]?.timestamp || null,
+            tags: [],
+            profilePictureUrl: selectedConversation.profilePictureUrl || null,
+          } : null}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          onUpdate={refetch}
+          preferredInstanceId={selectedInstanceId === 'all' ? undefined : selectedInstanceId}
+        />
+      </>
    );
  };
 
