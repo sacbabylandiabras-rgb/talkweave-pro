@@ -1467,6 +1467,7 @@ const getZAPIConfig = async () => {
       addTagChat,
       removeTagChat,
       listTags,
+      saveChatNote,
       forwardMessage,
         sendReaction,
         sendSticker,
