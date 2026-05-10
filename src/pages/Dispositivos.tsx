@@ -2128,7 +2128,7 @@ const Dispositivos = () => {
         </div>
       </div>
 
-      {!showMobileEmulator && instances.length === 0 && !loading && (
+      {instances.length === 0 && !loading && (
         <Card>
           <CardContent className="py-12 text-center">
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
