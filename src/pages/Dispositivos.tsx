@@ -130,12 +130,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
-    const [showBusiness, setShowBusiness] = useState(false);
-    const [businessLoading, setBusinessLoading] = useState(false);
-    const [bizDescription, setBizDescription] = useState("");
-    const [bizEmail, setBizEmail] = useState("");
-    const [bizAddress, setBizAddress] = useState("");
-    const [bizWebsites, setBizWebsites] = useState("");
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
    const fetchCollections = async () => {
@@ -282,23 +276,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        setRemovingProductId(null);
      }
    };
-
-    const updateBusinessInfo = async (action: string, payload: any) => {
-      setBusinessLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-          body: { action, instanceDbId: instance.id, payload },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error?.message || data.error);
-        toast({ title: "✅ Informação atualizada" });
-      } catch (err: any) {
-        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar');
-        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
-      } finally {
-        setBusinessLoading(false);
-      }
-    };
 
     const updatePrivacy = async (action: string, payload: any) => {
       setPrivacyLoading(true);
@@ -850,9 +827,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
                   <Globe className="w-3 h-3 mr-1" /> Privacidade
                 </Button>
-                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowBusiness(true)}>
-                  <Building2 className="w-3 h-3 mr-1" /> Empresa
-                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -1078,53 +1052,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </div>
           </DialogContent>
         </Dialog>
-
-       {/* Business Dialog */}
-       <Dialog open={showBusiness} onOpenChange={setShowBusiness}>
-         <DialogContent className="sm:max-w-md">
-           <DialogHeader>
-             <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
-           </DialogHeader>
-           <div className="space-y-4 py-4">
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Edit2 className="w-3 h-3" /> Descrição da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input placeholder="Ex: Venda de eletrônicos..." value={bizDescription} onChange={(e) => setBizDescription(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-description', { description: bizDescription })} disabled={businessLoading || !bizDescription.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Mail className="w-3 h-3" /> E-mail da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input type="email" placeholder="contato@empresa.com" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-email', { email: bizEmail })} disabled={businessLoading || !bizEmail.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><MapPin className="w-3 h-3" /> Endereço da Empresa</Label>
-               <div className="flex gap-2">
-                 <Input placeholder="Rua Exemplo, 123..." value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} disabled={businessLoading} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-address', { address: bizAddress })} disabled={businessLoading || !bizAddress.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Websites (um por linha)</Label>
-               <div className="flex gap-2 items-start">
-                 <Textarea placeholder="https://empresa.com" value={bizWebsites} onChange={(e) => setBizWebsites(e.target.value)} disabled={businessLoading} rows={3} />
-                 <Button size="sm" onClick={() => updateBusinessInfo('company-websites', { websites: bizWebsites.split('\n').filter(s => s.trim()) })} disabled={businessLoading || !bizWebsites.trim()}>
-                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                 </Button>
-               </div>
-             </div>
-           </div>
-         </DialogContent>
-       </Dialog>
 
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
@@ -1740,6 +1667,133 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
   );
 };
 
+const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [websites, setWebsites] = useState("");
+  const [submitting, setSubmitting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const applyToAll = async (action: string, payload: any, label: string) => {
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    if (targets.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+    setSubmitting(action);
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    for (const inst of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: { action, instanceDbId: inst.id, payload },
+        });
+        if (error) {
+          const msg = await getInvokeErrorMessage(error, "Falha");
+          throw new Error(msg);
+        }
+        if ((data as any)?.error) throw new Error((data as any).error?.message || (data as any).error);
+        success++;
+      } catch (err) {
+        failed++;
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${err instanceof Error ? err.message : "Erro"}`);
+      }
+    }
+    setSubmitting(null);
+    toast({
+      title: success > 0 ? `✅ ${label} atualizado` : "❌ Erro",
+      description: failed > 0
+        ? `${success} de ${targets.length} atualizada(s). Erros:\n${errors.slice(0, 3).join("\n")}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ""}`
+        : `Aplicado em ${success} instância(s)`,
+      variant: failed === targets.length ? "destructive" : "default",
+      duration: failed > 0 ? 8000 : 3000,
+    });
+  };
+
+  if (instances.length === 0) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
+          <p className="text-sm text-muted-foreground">Atualize as informações comerciais nas instâncias selecionadas.</p>
+        </DialogHeader>
+        <div className="space-y-5 pt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={!!submitting}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => (
+                <label key={inst.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={selectedIds.includes(inst.id)} onChange={() => toggleOne(inst.id)} disabled={!!submitting} className="accent-primary" />
+                  <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2"><Edit2 className="w-3 h-3" /> Descrição</Label>
+            <div className="flex gap-2">
+              <Input placeholder="Ex: Venda de eletrônicos..." value={description} onChange={(e) => setDescription(e.target.value)} disabled={!!submitting} />
+              <Button size="sm" onClick={() => applyToAll('company-description', { description }, 'Descrição')} disabled={!!submitting || !description.trim() || selectedIds.length === 0}>
+                {submitting === 'company-description' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2"><Mail className="w-3 h-3" /> E-mail</Label>
+            <div className="flex gap-2">
+              <Input type="email" placeholder="contato@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!submitting} />
+              <Button size="sm" onClick={() => applyToAll('company-email', { email }, 'E-mail')} disabled={!!submitting || !email.trim() || selectedIds.length === 0}>
+                {submitting === 'company-email' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2"><MapPin className="w-3 h-3" /> Endereço</Label>
+            <div className="flex gap-2">
+              <Input placeholder="Rua Exemplo, 123..." value={address} onChange={(e) => setAddress(e.target.value)} disabled={!!submitting} />
+              <Button size="sm" onClick={() => applyToAll('company-address', { address }, 'Endereço')} disabled={!!submitting || !address.trim() || selectedIds.length === 0}>
+                {submitting === 'company-address' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Websites (um por linha)</Label>
+            <div className="flex gap-2 items-start">
+              <Textarea placeholder="https://empresa.com" value={websites} onChange={(e) => setWebsites(e.target.value)} disabled={!!submitting} rows={3} />
+              <Button size="sm" onClick={() => applyToAll('company-websites', { websites: websites.split('\n').map(s => s.trim()).filter(Boolean) }, 'Websites')} disabled={!!submitting || !websites.trim() || selectedIds.length === 0}>
+                {submitting === 'company-websites' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
   // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
@@ -1750,6 +1804,7 @@ const Dispositivos = () => {
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -1769,6 +1824,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
               <LayoutGrid className="w-4 h-4 mr-1" />
               Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)}>
+              <Building2 className="w-4 h-4 mr-1" />
+              Perfil da Empresa
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
@@ -1801,6 +1862,9 @@ const Dispositivos = () => {
 
       {/* Bulk Create Collection Dialog */}
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
+
+      {/* Bulk Business Info Dialog */}
+      <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
