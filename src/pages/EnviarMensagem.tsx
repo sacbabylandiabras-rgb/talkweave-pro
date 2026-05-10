@@ -161,7 +161,8 @@ const EnviarMensagem = () => {
     const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
-    const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
+     const isProductTemplate = templateType === 'produto' || templateType === 'product';
+     const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
     const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const imagemComBotoes = isImageTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
@@ -208,7 +209,25 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
     }
 
-    if (temCarrossel) {
+     if (isProductTemplate) {
+       const special = parseSpecialTemplate(modeloData?.content);
+       const prodId = special?.productId || (modeloData as any)?.productId || '';
+       if (!prodId) throw new Error('ID do produto não encontrado no modelo');
+ 
+       await sendButtonActions(
+         phone,
+         mensagemPersonalizada || modeloData?.name || 'Veja este produto',
+         [],
+         undefined,
+         undefined,
+         undefined,
+         'product',
+         { productId: prodId }
+       );
+       return `[produto:${prodId}] ${modeloData?.name || mensagemPersonalizada || 'Produto enviado'}`;
+     }
+ 
+     if (temCarrossel) {
       await sendCarousel(phone, modeloData!.carouselCards as any, mensagemPersonalizada);
       return `[carrossel] ${modeloData?.name || mensagemPersonalizada || 'Modelo enviado'}`;
     }
