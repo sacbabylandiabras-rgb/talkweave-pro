@@ -163,7 +163,7 @@ serve(async (req) => {
 
     const payloadRaw = await req.json();
     const {
-      phone,
+      phone, // can be a string or array of strings for multiple contacts
       message,
       mediaUrl,
       mediaType,
@@ -201,7 +201,10 @@ serve(async (req) => {
 
     const hasSpecialPayload = !!specialType && !!specialPayload;
 
-    if (!phone || (!message && !mediaUrl && !hasInteractivePayload && !hasSpecialPayload)) {
+    const phones = Array.isArray(phone) ? phone : [phone];
+    const isMultiple = Array.isArray(phone) && phone.length > 1;
+
+    if (!phone || (Array.isArray(phone) && phone.length === 0) || (!message && !mediaUrl && !hasInteractivePayload && !hasSpecialPayload)) {
       return new Response(
         JSON.stringify({ error: 'Phone and message, mediaUrl, or interactive payload are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
