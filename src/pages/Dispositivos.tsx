@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
- import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
@@ -130,6 +130,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showBusiness, setShowBusiness] = useState(false);
+    const [businessLoading, setBusinessLoading] = useState(false);
+    const [bizDescription, setBizDescription] = useState("");
+    const [bizEmail, setBizEmail] = useState("");
+    const [bizAddress, setBizAddress] = useState("");
+    const [bizWebsites, setBizWebsites] = useState("");
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
    const fetchCollections = async () => {
@@ -277,22 +283,39 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
      }
    };
 
-   const updatePrivacy = async (action: string, payload: any) => {
-     setPrivacyLoading(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { action, instanceDbId: instance.id, payload },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Configuração atualizada" });
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao atualizar privacidade');
-       toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
-     } finally {
-       setPrivacyLoading(false);
-     }
-   };
+    const updateBusinessInfo = async (action: string, payload: any) => {
+      setBusinessLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action, instanceDbId: instance.id, payload },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        toast({ title: "✅ Informação atualizada" });
+      } catch (err: any) {
+        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar');
+        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
+      } finally {
+        setBusinessLoading(false);
+      }
+    };
+
+    const updatePrivacy = async (action: string, payload: any) => {
+      setPrivacyLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action, instanceDbId: instance.id, payload },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error?.message || data.error);
+        toast({ title: "✅ Configuração atualizada" });
+      } catch (err: any) {
+        const message = await getInvokeErrorMessage(err, 'Erro ao atualizar privacidade');
+        toast({ title: "❌ Erro ao atualizar", description: message, variant: "destructive" });
+      } finally {
+        setPrivacyLoading(false);
+      }
+    };
 
    const fetchBlacklist = async () => {
      setPrivacyLoading(true);
@@ -827,6 +850,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
                   <Globe className="w-3 h-3 mr-1" /> Privacidade
                 </Button>
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowBusiness(true)}>
+                  <Building2 className="w-3 h-3 mr-1" /> Empresa
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -1052,6 +1078,53 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </div>
           </DialogContent>
         </Dialog>
+
+       {/* Business Dialog */}
+       <Dialog open={showBusiness} onOpenChange={setShowBusiness}>
+         <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+             <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-4 py-4">
+             <div className="space-y-2">
+               <Label className="flex items-center gap-2"><Edit2 className="w-3 h-3" /> Descrição da Empresa</Label>
+               <div className="flex gap-2">
+                 <Input placeholder="Ex: Venda de eletrônicos..." value={bizDescription} onChange={(e) => setBizDescription(e.target.value)} disabled={businessLoading} />
+                 <Button size="sm" onClick={() => updateBusinessInfo('company-description', { description: bizDescription })} disabled={businessLoading || !bizDescription.trim()}>
+                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                 </Button>
+               </div>
+             </div>
+             <div className="space-y-2">
+               <Label className="flex items-center gap-2"><Mail className="w-3 h-3" /> E-mail da Empresa</Label>
+               <div className="flex gap-2">
+                 <Input type="email" placeholder="contato@empresa.com" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} disabled={businessLoading} />
+                 <Button size="sm" onClick={() => updateBusinessInfo('company-email', { email: bizEmail })} disabled={businessLoading || !bizEmail.trim()}>
+                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                 </Button>
+               </div>
+             </div>
+             <div className="space-y-2">
+               <Label className="flex items-center gap-2"><MapPin className="w-3 h-3" /> Endereço da Empresa</Label>
+               <div className="flex gap-2">
+                 <Input placeholder="Rua Exemplo, 123..." value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} disabled={businessLoading} />
+                 <Button size="sm" onClick={() => updateBusinessInfo('company-address', { address: bizAddress })} disabled={businessLoading || !bizAddress.trim()}>
+                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                 </Button>
+               </div>
+             </div>
+             <div className="space-y-2">
+               <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Websites (um por linha)</Label>
+               <div className="flex gap-2 items-start">
+                 <Textarea placeholder="https://empresa.com" value={bizWebsites} onChange={(e) => setBizWebsites(e.target.value)} disabled={businessLoading} rows={3} />
+                 <Button size="sm" onClick={() => updateBusinessInfo('company-websites', { websites: bizWebsites.split('\n').filter(s => s.trim()) })} disabled={businessLoading || !bizWebsites.trim()}>
+                   {businessLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                 </Button>
+               </div>
+             </div>
+           </div>
+         </DialogContent>
+       </Dialog>
 
        {/* Privacy Dialog */}
        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
