@@ -2085,11 +2085,14 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-  // Não exibir instâncias UAZAPI doadoras (cadastradas em /admin/aquecimento)
-  const instances = useMemo(
-    () => allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi'),
-    [allInstances],
-  );
+  // Exibir todas as instâncias (Web e Mobile), ocultando apenas as instâncias UAZAPI doadoras
+  const instances = useMemo(() => {
+    return allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi');
+  }, [allInstances]);
+
+  const mobileInstances = useMemo(() => {
+    return instances.filter(i => i.instance_type === 'mobile');
+  }, [instances]);
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
