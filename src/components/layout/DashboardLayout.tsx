@@ -322,7 +322,6 @@ export function DashboardLayout() {
       "/dispositivos": "dispositivos",
       "/perfil": "perfil",
       "/perfil-empresa": "perfil-empresa",
-      "/deletar-produtos": "deletar-produtos",
       "/campanhas": "campanhas",
       "/contatos": "contatos",
       "/modelos": "modelos",
