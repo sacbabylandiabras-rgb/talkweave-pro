@@ -780,9 +780,14 @@ Deno.serve(async (req) => {
     const normalizedProviderFilter = providerFilter?.toLowerCase() || null;
     const filteredInstances = instances.filter((inst) => {
       const provider = (inst.api_provider || 'zapi').toLowerCase();
-      // Exclude UAZAPI from group fetching as well to fully remove it from messages
-      if (provider === 'uazapi') return false;
-      return !normalizedProviderFilter || provider === normalizedProviderFilter;
+      if (normalizedProviderFilter === 'uazapi' && provider === 'uazapi') return true;
+      if (normalizedProviderFilter === 'zapi' && provider === 'zapi') return true;
+      if (!normalizedProviderFilter) {
+        // If no filter, we only exclude uazapi if it's NOT explicitly requested
+        // (e.g. general group list for other parts of the app)
+        return provider !== 'uazapi';
+      }
+      return provider === normalizedProviderFilter;
     });
     console.log(`📦 Group source instances: ${filteredInstances.length} / ${instances.length}`);
 
