@@ -53,7 +53,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [newInstanceToken, setNewInstanceToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
-   const [newProvider, setNewProvider] = useState<'zapi'>('zapi');
+   const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+   const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
+   const [newEvolutionKey, setNewEvolutionKey] = useState('');
   const [newInstanceType, setNewInstanceType] = useState<'web' | 'mobile'>('web');
 
   useEffect(() => {
@@ -110,24 +112,35 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceToken('');
     setNewClientToken('');
     setNewIsDefault(false);
-     setNewProvider('zapi');
+    setNewProvider('zapi');
+    setNewEvolutionUrl('');
+    setNewEvolutionKey('');
     setNewInstanceType('web');
   };
 
    const handleAddInstance = async () => {
      if (!user) return;
-     if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-       toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-       return;
-     }
+    if (newProvider === 'zapi') {
+      if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+        toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!newInstanceName.trim() || !newEvolutionUrl.trim() || !newEvolutionKey.trim()) {
+        toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key para UAZAPI.", variant: "destructive" });
+        return;
+      }
+    }
      setAddingInstance(true);
      const ok = await addInstance(user.id, {
        instance_name: newInstanceName.trim(),
-       zapi_instance_id: newInstanceId.trim(),
-       zapi_token: newInstanceToken.trim(),
-       zapi_client_token: newClientToken.trim(),
+       zapi_instance_id: newProvider === 'zapi' ? newInstanceId.trim() : '',
+       zapi_token: newProvider === 'zapi' ? newInstanceToken.trim() : '',
+       zapi_client_token: newProvider === 'zapi' ? newClientToken.trim() : '',
+       evolution_api_url: newProvider === 'uazapi' ? newEvolutionUrl.trim() : '',
+       evolution_api_key: newProvider === 'uazapi' ? newEvolutionKey.trim() : '',
        is_default: newIsDefault,
-       api_provider: 'zapi',
+       api_provider: newProvider,
        instance_type: newInstanceType,
      });
      setAddingInstance(false);
@@ -238,19 +251,56 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <Card className="mb-3 border-primary/40">
                 <CardContent className="pt-4 pb-4 space-y-3">
                   <h4 className="font-medium text-sm">Nova instância</h4>
-                  <div className="space-y-2">
-                    <Label>Tipo de instância</Label>
-                    <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as 'web' | 'mobile')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="web">Web (QR Code)</SelectItem>
-                        <SelectItem value="mobile">Mobile (Emulador — conectar número)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Use "Mobile" para instâncias dedicadas ao Emulador Mobile (registro por número).
-                    </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Provedor</Label>
+                      <Select value={newProvider} onValueChange={(v) => setNewProvider(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="zapi">Z-API</SelectItem>
+                          <SelectItem value="uazapi">UAZAPI (Evolution)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="web">Web (QR Code)</SelectItem>
+                          <SelectItem value="mobile">Mobile (Número)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  {newProvider === 'uazapi' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>URL da API (UAZAPI)</Label>
+                        <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>API Key / Global Token</Label>
+                        <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Instance ID</Label>
+                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Instance Token</Label>
+                        <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Client Token</Label>
+                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                      </div>
+                    </>
+                  )}
                    <div className="space-y-2">
                      <Label>Nome da instância</Label>
                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
@@ -289,7 +339,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
-                           <Badge variant="outline" className="text-xs uppercase">Z-API</Badge>
+                           <Badge variant="outline" className="text-xs uppercase">
+                             {inst.api_provider === 'uazapi' ? 'UAZAPI' : 'Z-API'}
+                           </Badge>
                           <Badge variant="outline" className="text-xs uppercase">
                             {(inst as any).instance_type === 'mobile' ? 'Mobile' : 'Web'}
                           </Badge>

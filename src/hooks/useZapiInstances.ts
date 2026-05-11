@@ -105,9 +105,7 @@ export const useZapiInstances = () => {
       }
 
       const allInstances = await fetchInstancesWithRetry(user.id);
-      // Filter out UAZAPI instances from the messages part as requested
-      const filtered = allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi');
-      const deduped = normalizeInstances(filtered);
+      const deduped = normalizeInstances(allInstances);
 
       setInstances(deduped);
       setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
@@ -160,7 +158,9 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
-     api_provider?: 'zapi';
+      api_provider?: 'zapi' | 'uazapi';
+      evolution_api_url?: string;
+      evolution_api_key?: string;
      instance_type?: 'web' | 'mobile';
   }) => {
     try {
@@ -177,8 +177,11 @@ export const useAdminZapiInstances = (userId?: string) => {
       }
 
       const normalizedName = data.instance_name.trim().toLowerCase();
-      const normalizedId = data.zapi_instance_id.trim().toLowerCase();
-      const duplicated = instances.find(i => i.instance_name.trim().toLowerCase() === normalizedName || i.zapi_instance_id.trim().toLowerCase() === normalizedId);
+      const normalizedId = (data.zapi_instance_id || '').trim().toLowerCase();
+      const duplicated = instances.find(i => 
+        i.instance_name.trim().toLowerCase() === normalizedName || 
+        (normalizedId && i.zapi_instance_id && i.zapi_instance_id.trim().toLowerCase() === normalizedId)
+      );
       if (duplicated) {
         toast({ title: "Instância duplicada", description: "Essa instância já está cadastrada.", variant: "destructive" });
         return false;
@@ -192,11 +195,13 @@ export const useAdminZapiInstances = (userId?: string) => {
       const { error } = await fromZapiInstances().insert({
         user_id: uid,
         instance_name: data.instance_name,
-        zapi_instance_id: data.zapi_instance_id,
-        zapi_token: data.zapi_token,
-        zapi_client_token: data.zapi_client_token,
+        zapi_instance_id: data.zapi_instance_id || null,
+        zapi_token: data.zapi_token || null,
+        zapi_client_token: data.zapi_client_token || null,
+        evolution_api_url: data.evolution_api_url || null,
+        evolution_api_key: data.evolution_api_key || null,
         is_default: data.is_default || isFirst,
-         api_provider: 'zapi',
+         api_provider: data.api_provider || 'zapi',
          instance_type: data.instance_type || 'web',
       });
 
@@ -212,7 +217,9 @@ export const useAdminZapiInstances = (userId?: string) => {
 
    const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
      instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-     api_provider: 'zapi';
+     api_provider: 'zapi' | 'uazapi';
+     evolution_api_url: string;
+     evolution_api_key: string;
      instance_type: 'web' | 'mobile';
    }>) => {
     try {
