@@ -77,12 +77,21 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
       });
-      const authData = await authRes.json();
+      
+      const authText = await authRes.text();
+      let authData: any = {};
+      try {
+        authData = JSON.parse(authText);
+      } catch (e) {
+        console.error("❌ [CartWave Auth] Failed to parse response:", authText.substring(0, 500));
+        throw new Error(`CartWave Auth Error (HTTP ${authRes.status}): ${authText.substring(0, 100)}`);
+      }
+
       const token = authData?.access_token;
       if (!token) throw new Error("Falha na autenticação CartWave");
 
       // Charge Step
-      const r = await fetch("https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/", {
+      const r = await fetch("https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -98,7 +107,16 @@ serve(async (req) => {
           base_64_image: true
         }),
       });
-      const d = await r.json();
+      
+      const resText = await r.text();
+      let d: any = {};
+      try {
+        d = JSON.parse(resText);
+      } catch (e) {
+        console.error("❌ [CartWave] Failed to parse response:", resText.substring(0, 500));
+        throw new Error(`CartWave API Error (HTTP ${r.status}): ${resText.substring(0, 100)}`);
+      }
+
       brCode = d?.copy_and_paste || d?.brcode || d?.data?.copy_and_paste || "";
       qrCodeImage = d?.qrcode_base64 || d?.data?.qrcode_base64 || "";
     } else {
