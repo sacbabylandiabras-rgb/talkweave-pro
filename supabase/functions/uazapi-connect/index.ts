@@ -21,14 +21,20 @@ const normalizeConnectPayload = (data: any) => {
     data?.instance?.qrcode,
     data?.instance?.base64,
     data?.instance?.code,
+    data?.instance?.qr,
+    data?.qr
   );
   const pairingCode = pickFirstString(
     data?.pairingCode, 
     data?.pairing_code, 
     data?.codePairing, 
     data?.data?.pairingCode,
-    data?.code, // Alguns retornam apenas "code" quando é pareamento
-    data?.data?.code
+    data?.code,
+    data?.data?.code,
+    data?.instance?.pairingCode,
+    data?.instance?.paircode,
+    data?.paircode,
+    data?.instance?.code
   );
   const connectionStatus = typeof data?.status === "string" ? data.status : pickFirstString(data?.connectionStatus, data?.state, data?.instance?.status, data?.data?.status);
   return { ...data, qrCode, pairingCode, connectionStatus: connectionStatus || "connecting" };
