@@ -198,8 +198,8 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
             console.log(`✅ Instance ${instance.instance_name} is connected (status: ${status})`);
             return true;
           }
-          // resposta válida mas não conectada
-          console.log(`ℹ️ Instance ${instance.instance_name} response valid but not connected (status: ${status})`);
+           // resposta válida mas não conectada
+           console.log(`ℹ️ Instance ${instance.instance_name} response valid but not connected (status: ${status}). Full response: ${JSON.stringify(j).substring(0, 300)}`);
           return false;
         } catch (_) {
           continue;
