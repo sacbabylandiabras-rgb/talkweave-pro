@@ -847,7 +847,10 @@ const EnviarMensagem = () => {
       let ultimoErro: string | null = null;
       const errosDetalhados: string[] = [];
 
-      for (let i = 0; i < contatosProcessados.length; i++) {
+       for (let i = 0; i < contatosProcessados.length; i++) {
+         // Se o envio terminou ou foi interrompido anteriormente, sair do loop
+         if (!enviandoEmMassa) break;
+
         // Verificar se o envio foi cancelado localmente
         if (cancelarEnvioRef.current) {
           await supabase
@@ -1297,11 +1300,13 @@ const EnviarMensagem = () => {
         });
       }
 
-      // Limpar formulário
-      setMensagem("");
-      setContatos("");
-      setArquivoMidia(null);
-      setLegenda("");
+       // Limpar formulário e resetar estados
+       setMensagem("");
+       setContatos("");
+       setArquivoMidia(null);
+       setLegenda("");
+       setModeloSelecionado("");
+       setNumero("");
 
     } catch (error) {
       toast({
