@@ -3126,8 +3126,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
  
                   {selectedNode.data.actionType === "tag" && (
                     <div>
-                      <Label>Escolher Etiqueta</Label>
-                      <div className="flex gap-2 mb-2">
+                       <div className="flex items-center justify-between mb-1">
+                         <Label>Escolher Etiqueta</Label>
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-6 w-6" 
+                           onClick={fetchTagsForEditor}
+                           disabled={loadingTags}
+                         >
+                           <RefreshCw className={`h-3 w-3 ${loadingTags ? "animate-spin" : ""}`} />
+                         </Button>
+                       </div>
+                       <div className="flex gap-2 mb-2">
                         <Select
                           value={availableTags.includes(selectedNode.data.actionConfig || "") ? selectedNode.data.actionConfig : "manual"}
                           onValueChange={(value) => {
