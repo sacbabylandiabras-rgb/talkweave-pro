@@ -661,23 +661,34 @@ const ApanhadorGrupos = () => {
                       </Button>
                     </div>
                   )
-                ) : qrCodeImage ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <img
-                      src={qrCodeImage}
-                      alt="QR Code"
-                      className="w-64 h-64 bg-white p-2 rounded-lg"
-                    />
-                    <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
-                    </p>
-                  </div>
+                ) : connectMode === 'qr' && (qrCode || qrCodeImage) ? (
+                  qrCodeImage ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <img
+                        src={qrCodeImage}
+                        alt="QR Code"
+                        className="w-64 h-64 bg-white p-2 rounded-lg"
+                      />
+                      <p className="text-xs text-muted-foreground text-center max-w-xs">
+                        Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Processando QR Code...</p>
+                    </div>
+                  )
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-center">
-                    <p className="text-sm text-muted-foreground">QR Code indisponível.</p>
-                    <Button size="sm" variant="outline" onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}>
-                      <RefreshCw className="w-4 h-4 mr-1" /> Tentar novamente
-                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      {connectMode === 'qr' ? 'Aguardando QR Code...' : 'Informe o telefone para gerar o código'}
+                    </p>
+                    {(connectMode === 'qr' || pairingCode) && (
+                      <Button size="sm" variant="outline" onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}>
+                        <RefreshCw className="w-4 h-4 mr-1" /> Tentar novamente
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
