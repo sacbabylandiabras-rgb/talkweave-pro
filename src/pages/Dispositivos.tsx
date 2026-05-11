@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
-import { useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+import { isMobileZapiInstance, useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
 import { Input } from "@/components/ui/input";
@@ -2085,10 +2085,10 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-   // Exibir apenas instâncias de uso (Z-API)
+   // Exibir apenas instâncias de uso (Z-API Web), ocultando legados Mobile
    const instances = useMemo(() => {
      return allInstances.filter(
-       (i) => (i.api_provider || 'zapi') === 'zapi'
+       (i) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)
      );
    }, [allInstances]);
 
