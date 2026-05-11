@@ -1301,12 +1301,10 @@ const EnviarMensagem = () => {
       }
 
        // Limpar formulário e resetar estados
-       setMensagem("");
-       setContatos("");
+       // Mantém contatos e mensagem preenchidos para permitir novos envios
+       // sem precisar recarregar a página. Apenas limpa anexos auxiliares.
        setArquivoMidia(null);
        setLegenda("");
-       setModeloSelecionado("");
-       setNumero("");
 
     } catch (error) {
       toast({
