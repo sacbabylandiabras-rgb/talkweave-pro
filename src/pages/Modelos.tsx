@@ -528,6 +528,19 @@ const SpecialFieldsEditor = ({
           <CreditCard className="w-5 h-5" /> Solicitação de Pagamento
         </div>
         <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <Label>Origem da Cobrança</Label>
+            <Select 
+              value={data.paymentSource || "manual"} 
+              onValueChange={(v) => onChange({ paymentSource: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Manual (Dados abaixo)</SelectItem>
+                <SelectItem value="gateway">Gateway (Checkout Real)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Título do Pagamento *</Label>
             <Input
@@ -687,7 +700,10 @@ const getTemplateIcon = (type?: string) => {
       return <Package className="w-5 h-5 text-primary" />;
     case "pagamento":
     case "pagamento_pedido":
+    case "gateway_billing":
       return <CreditCard className="w-5 h-5 text-primary" />;
+    case "status":
+      return <Camera className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -716,6 +732,8 @@ const getTypeFriendlyName = (type?: string) => {
     status_pedido: "Status do Pedido",
     pagamento_pedido: "Pagamento do Pedido",
     pagamento: "Solicitar Pagamento",
+    gateway_billing: "Cobrança Gateway",
+    status: "WhatsApp Status",
   };
   return names[type || "texto"] || "Texto";
 };
