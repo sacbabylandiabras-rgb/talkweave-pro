@@ -850,7 +850,9 @@ Deno.serve(async (req) => {
     console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
     if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
 
-    const { data: activeInstances } = await adminClient
+    const { data: activeInstances, error: activeError } = await adminClient
+    if (activeError) console.error("❌ Error fetching active instances:", activeError);
+    console.log(`🔎 Found ${activeInstances?.length || 0} active instances in DB for user ${credentials.userId}`);
       .from("zapi_instances")
       .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
       .eq("user_id", credentials.userId)
