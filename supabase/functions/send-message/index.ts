@@ -523,16 +523,58 @@ serve(async (req) => {
         footer: footer || ""
       }, 'otp');
       logMessage = `🔐 Código OTP: ${payloadRaw.otpCode}`;
-    } else if (specialType === 'pix' && specialPayload) {
+    } else if ((specialType === 'pix' || specialType === 'gateway-billing' || specialType === 'request-payment' || specialType === 'pagamento') && specialPayload) {
+      const amountReais = Number(String(specialPayload.amount || specialPayload.pixAmount || specialPayload.paymentAmount || '0.00').replace(',', '.'));
+      const amountCents = Math.round(amountReais * 100);
+      const description = String(specialPayload.description || specialPayload.text || specialPayload.pixDescription || specialPayload.paymentDescription || message || 'Pagamento').trim();
+      const isGateway = specialPayload.pixSource === 'gateway' || specialPayload.paymentSource === 'gateway' || specialType === 'gateway-billing';
+
+      let brCode = '';
+      if (isGateway && amountCents > 0) {
+        try {
+          const chargeRes = await fetch(`${supabaseUrl}/functions/v1/gateway-flow-charge`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              userId: credentials.userId,
+              amount: amountCents,
+              description,
+              customerPhone: resolvedPhone,
+            }),
+          });
+          const chargeData = await chargeRes.json();
+          brCode = chargeData?.brCode || "";
+        } catch (e) {
+          console.error("❌ [Gateway SendMessage] Failed to generate charge:", e);
+        }
+      }
+
+      if (brCode) {
+        // Envia como Copia e Cola (OTP) para melhor UX
+        zapiResponse = await fetch(`${baseUrl}/send-button-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify({
+            phone: resolvedPhone,
+            message: description,
+            code: brCode,
+            footer: 'Clique abaixo para copiar o código PIX'
+          }),
+        });
+        zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'gateway-billing-otp');
+      } else {
       const pixPayload: any = {
         phone: resolvedPhone,
-        pixKey: specialPayload.pixKey || '',
+          pixKey: specialPayload.pixKey || specialPayload.paymentReceiver || '',
         type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
         merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
       };
-      if (specialPayload.amount) pixPayload.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
+        if (amountReais) pixPayload.value = amountReais;
       if (specialPayload.city) pixPayload.city = specialPayload.city.slice(0, 15);
-      if (specialPayload.description) pixPayload.description = specialPayload.description;
+        if (description) pixPayload.description = description;
 
       // Use /send-button-pix if buttons are present, otherwise /send-payment-pix
       if (Array.isArray(buttonActions) && buttonActions.length > 0) {
@@ -546,7 +588,34 @@ serve(async (req) => {
       } else {
         zapiData = await sendZapi('/send-payment-pix', pixPayload, 'pix');
       }
-      logMessage = `💰 PIX ${pixPayload.merchantName}`.trim();
+        logMessage = `💰 PIX ${pixPayload.merchantName || ''}`.trim();
+      }
+    } else if (specialType === 'order-status' || specialType === 'status_pedido' || specialType === 'order_status') {
+      zapiResponse = await fetch(`${baseUrl}/order-status-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          orderStatus: specialPayload.orderStatus || 'PROCESSING',
+          referenceId: specialPayload.referenceId || '',
+          order: specialPayload.order || {},
+        }),
+      });
+      logMessage = `📦 Status Pedido: ${specialPayload.orderStatus}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'order-status');
+    } else if (specialType === 'order-payment' || specialType === 'pagamento_pedido' || specialType === 'order_payment') {
+      zapiResponse = await fetch(`${baseUrl}/order-status-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        body: JSON.stringify({
+          phone: resolvedPhone,
+          paymentStatus: specialPayload.paymentStatus || 'PAID',
+          referenceId: specialPayload.referenceId || '',
+          order: specialPayload.order || {},
+        }),
+      });
+      logMessage = `💳 Pagamento Pedido: ${specialPayload.paymentStatus}`;
+      zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'order-payment');
     } else if (specialType === 'localizacao' && specialPayload) {
       const lat = Number(String(specialPayload.latitude ?? '').replace(',', '.')) || 0;
       const lng = Number(String(specialPayload.longitude ?? '').replace(',', '.')) || 0;
