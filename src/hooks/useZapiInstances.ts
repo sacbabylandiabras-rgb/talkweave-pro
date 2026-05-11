@@ -170,14 +170,6 @@ export const useAdminZapiInstances = (userId?: string) => {
         .select('max_instances')
         .eq('id', uid)
         .maybeSingle();
-      const limit = Number(profile?.max_instances ?? 1);
-      const webInstancesCount = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.instance_type !== 'mobile').length;
-      
-      // Only enforce limit for Z-API Web instances
-      if (data.api_provider === 'zapi' && data.instance_type !== 'mobile' && webInstancesCount >= limit) {
-        toast({ title: "Limite atingido", description: `Máximo de ${limit} instância(s) permitido para este usuário.`, variant: "destructive" });
-        return false;
-      }
 
       const normalizedName = data.instance_name.trim().toLowerCase();
       const normalizedId = (data.zapi_instance_id || '').trim().toLowerCase();
