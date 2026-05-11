@@ -121,7 +121,7 @@ const ApanhadorGrupos = () => {
 
   // Conectar instância uazapi via QR Code
   const [connectOpen, setConnectOpen] = useState(false);
-  const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
+  const [uazapiAccounts, setUazapiAccounts] = useState<{ name: string; label: string; url: string; token: string }[]>([]);
   const [activeAccountIdx, setActiveAccountIdx] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
