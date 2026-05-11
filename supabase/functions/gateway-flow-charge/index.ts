@@ -69,56 +69,84 @@ serve(async (req) => {
     } else if (acquirer === "cartwave") {
       const clientId = Deno.env.get("CARTWAVE_CLIENT_ID");
       const clientSecret = Deno.env.get("CARTWAVE_CLIENT_SECRET");
-      if (!clientId || !clientSecret) throw new Error("CartWave não configurado");
-
-      // Auth Step
-      const authRes = await fetch("https://api.cartwavehub.com.br/v2/finance/auth-token/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
-      });
+      const hmacSecret = Deno.env.get("CARTWAVE_HMAC_KEY");
       
-      const authText = await authRes.text();
-      let authData: any = {};
-      try {
-        authData = JSON.parse(authText);
-      } catch (e) {
-        console.error("❌ [CartWave Auth] Failed to parse response:", authText.substring(0, 500));
-        throw new Error(`CartWave Auth Error (HTTP ${authRes.status}): ${authText.substring(0, 100)}`);
+      if (!clientId || !clientSecret || !hmacSecret) {
+        throw new Error("CartWave não configurado corretamente (ID, Secret ou HMAC faltando)");
       }
 
-      const token = authData?.access_token;
-      if (!token) throw new Error("Falha na autenticação CartWave");
+      const PROXY_BASE = 'http://187.77.249.247:3480';
+      const AUTH_URL = `${PROXY_BASE}/v2/finance/auth-token/`;
+      const PIX_URL = `${PROXY_BASE}/v2/finance/create-pix-copy-and-paste/`;
 
-      // Charge Step
-      const r = await fetch("https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste", {
+      // Step 1: Auth via Proxy
+      const authRes = await fetch(AUTH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "User-Agent": "ZapLynxPay/1.0" },
+        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+      });
+      const authData = await authRes.json();
+      const token = authData?.access_token || authData?.access || authData?.data?.access_token || authData?.token;
+      
+      if (!token) {
+        console.error("❌ CartWave Auth failed:", JSON.stringify(authData));
+        throw new Error("Falha na autenticação CartWave via Proxy");
+      }
+
+      // Step 2: Get branch/account config
+      let branch = '0001';
+      let account = '7003299';
+      try {
+        const { data: bCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_branch').maybeSingle();
+        if (bCfg?.value) branch = bCfg.value;
+        const { data: aCfg } = await supabase.from('gateway_platform_config').select('value').eq('key', 'cartwave_account').maybeSingle();
+        if (aCfg?.value) account = aCfg.value;
+      } catch (e) {
+        console.warn("⚠️ Usando branch/account padrão para CartWave");
+      }
+
+      // Step 3: Prepare Body and HMAC
+      const cartwaveBody = {
+        amount: parseFloat((amount / 100).toFixed(2)),
+        debtor_name: (customerName || 'Cliente').substring(0, 25),
+        debtor_document: (customerCpf || "00000000000").replace(/\D/g, ""),
+        type_document: (customerCpf || "").replace(/\D/g, "").length === 14 ? 'CNPJ' : 'CPF',
+        type_fine: 'NONE',
+        fine: 0,
+        source_account_branch_identifier: branch,
+        source_account_number: account,
+        base_64_image: true,
+        tag: externalId
+      };
+
+      const bodyString = JSON.stringify(cartwaveBody);
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(hmacSecret),
+        { name: 'HMAC', hash: 'SHA-512' },
+        false,
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(bodyString));
+      const hmacHex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Step 4: Create Charge via Proxy
+      const r = await fetch(PIX_URL, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "accept": "application/json",
+          "User-Agent": "ZapLynxPay/1.0",
+          "Authorization": `Bearer ${token}`,
+          "hmac": hmacHex
         },
-        body: JSON.stringify({
-          amount: parseFloat((amount / 100).toFixed(2)),
-          type_fine: "NONE",
-          fine: 0,
-          debtor_name: customerName || "Cliente",
-          debtor_document: (customerCpf || "00000000000").replace(/\D/g, ""),
-          tag: externalId,
-          base_64_image: true
-        }),
+        body: bodyString,
       });
       
-      const resText = await r.text();
-      let d: any = {};
-      try {
-        d = JSON.parse(resText);
-      } catch (e) {
-        console.error("❌ [CartWave] Failed to parse response:", resText.substring(0, 500));
-        throw new Error(`CartWave API Error (HTTP ${r.status}): ${resText.substring(0, 100)}`);
-      }
-
-      brCode = d?.copy_and_paste || d?.brcode || d?.data?.copy_and_paste || "";
-      qrCodeImage = d?.qrcode_base64 || d?.data?.qrcode_base64 || "";
+      const d = await r.json();
+      brCode = d?.pix_copy_and_paste || d?.copy_and_paste || d?.brcode || d?.data?.pix_copy_and_paste || "";
+      qrCodeImage = d?.base_64_image_url || d?.qrcode_base64 || d?.data?.base_64_image_url || "";
     } else {
       const appId = Deno.env.get("OPENPIX_APP_ID");
       if (!appId) throw new Error("OpenPix não configurado");
