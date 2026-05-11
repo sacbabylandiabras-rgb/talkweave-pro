@@ -29,7 +29,8 @@ const pickFirstString = (...values: unknown[]) => {
       const headers = { 
         "Content-Type": "application/json", 
         "token": apiToken,
-        "apikey": apiToken 
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       let lastError = null;
