@@ -126,7 +126,9 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
   const provider = (instance.api_provider || 'zapi').toLowerCase();
   try {
     if (provider === 'uazapi' || provider === 'uazapi_warmup') {
-      const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+       let apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+       if (apiUrl && !apiUrl.startsWith('http')) apiUrl = `https://${apiUrl}`;
+ 
       const apiToken = instance.evolution_api_key || instance.zapi_token || '';
       if (!apiUrl || !apiToken) return false;
        const endpoints = ['/instance/status', '/status', '/instance', '/instance/connectionStatus'];
