@@ -16,7 +16,7 @@ export interface ZapiInstance {
   api_provider: string;
   evolution_api_url?: string | null;
   evolution_api_key?: string | null;
-  instance_type?: 'web' | 'mobile';
+   instance_type?: 'web';
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');
@@ -197,9 +197,9 @@ export const useAdminZapiInstances = (userId?: string) => {
         evolution_api_url: data.evolution_api_url || null,
         evolution_api_key: data.evolution_api_key || null,
         is_default: data.is_default || isFirst,
-         api_provider: data.api_provider || 'zapi',
-         instance_type: data.instance_type || 'web',
-      });
+          api_provider: data.api_provider || 'zapi',
+          instance_type: 'web',
+        });
 
       if (error) throw error;
       toast({ title: "✅ Instância adicionada" });
@@ -213,11 +213,11 @@ export const useAdminZapiInstances = (userId?: string) => {
 
    const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
      instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-     api_provider: 'zapi' | 'uazapi' | 'uazapi_warmup';
-     evolution_api_url: string;
-     evolution_api_key: string;
-     instance_type: 'web' | 'mobile';
-   }>) => {
+       api_provider: 'zapi' | 'uazapi' | 'uazapi_warmup';
+       evolution_api_url: string;
+       evolution_api_key: string;
+       instance_type: 'web';
+     }>) => {
     try {
       if (updates.is_default) { await fromZapiInstances().update({ is_default: false }).eq('user_id', uid); }
       const { error } = await fromZapiInstances().update(updates).eq('id', instanceId);

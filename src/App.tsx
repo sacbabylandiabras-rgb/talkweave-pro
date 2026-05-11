@@ -171,9 +171,7 @@ const App = () => (
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
                   <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
-                  <Route path="/dispositivos" element={<Dispositivos />} />
-                  <Route path="/emulador-mobile" element={<EmuladorMobile />} />
-                  <Route path="/emulador-mobile" element={<EmuladorMobile />} />
+                   <Route path="/dispositivos" element={<Dispositivos />} />
                   <Route path="/modelos" element={<Modelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />

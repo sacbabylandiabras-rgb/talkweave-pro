@@ -2085,12 +2085,12 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-  // Exibir apenas instâncias de uso (Z-API) que não sejam do tipo mobile (usadas no emulador)
-  const instances = useMemo(() => {
-    return allInstances.filter(
-      (i) => (i.api_provider || 'zapi') === 'zapi' && i.instance_type !== 'mobile'
-    );
-  }, [allInstances]);
+   // Exibir apenas instâncias de uso (Z-API)
+   const instances = useMemo(() => {
+     return allInstances.filter(
+       (i) => (i.api_provider || 'zapi') === 'zapi'
+     );
+   }, [allInstances]);
 
   const { toast } = useToast();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
