@@ -565,7 +565,7 @@ Deno.serve(async (req) => {
     if (uazapi) {
       console.log(`📱 UAZAPI participants for ${groupId}`);
       try {
-         const groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, isCommunity);
+        const groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, isCommunity || String(groupId).includes('@g.us'));
         const apiParticipants = extractParticipantArray(groupInfo);
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
