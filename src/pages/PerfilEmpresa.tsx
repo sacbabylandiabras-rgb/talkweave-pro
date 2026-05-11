@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
+ import { useEffect, useState, useMemo } from "react";
+ import { useZapiInstances, isMobileZapiInstance } from "@/hooks/useZapiInstances";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,8 +96,13 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   return typeof imageUrls === "object" ? imageUrls.thumbnail || imageUrls.requested || imageUrls.original || "" : "";
 };
 
-const PerfilEmpresa = () => {
-  const { instances, loading: loadingInstances } = useZapiInstances();
+ const PerfilEmpresa = () => {
+   const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
+   
+   const instances = useMemo(() => {
+     return allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i));
+   }, [allInstances]);
+ 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "perfil";
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
