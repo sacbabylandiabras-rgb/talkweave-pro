@@ -3357,9 +3357,32 @@ const Modelos = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
+       </AlertDialog>
+ 
+       <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+         <AlertDialogContent>
+           <AlertDialogHeader>
+             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+             <AlertDialogDescription>
+               Esta ação irá remover permanentemente todos os seus modelos de mensagem. Esta ação não pode ser desfeita.
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+             <AlertDialogAction 
+               onClick={async () => {
+                 await deleteAllTemplates();
+                 setShowDeleteAllConfirm(false);
+               }}
+               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+             >
+               Remover Tudo
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+     </div>
+   );
+ };
 
 export default Modelos;
