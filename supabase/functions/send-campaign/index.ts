@@ -474,7 +474,7 @@ const dispatchZapiSpecial = async (
       type: typeMap[rawType] || rawType,
       ...(special.merchantName ? { merchantName: special.merchantName } : {}),
     };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
     url = `${baseUrl}/send-location`;
     const latitude = parseCoordinate(special.latitude);
     const longitude = parseCoordinate(special.longitude);
@@ -498,7 +498,7 @@ const dispatchZapiSpecial = async (
       contactPhone: String(special.contactPhone || '').replace(/\D/g, ''),
       ...(special.description ? { contactBusinessDescription: special.description } : {}),
     };
-  } else if (special.type === 'uaz_status' || special.type === 'status') {
+  } else if (special.type === 'uaz_status' || special.type === 'status' || (phone === 'status@broadcast')) {
     // WhatsApp Status (Stories) via Z-API
     const statusType = String(special.statusType || 'text').toLowerCase();
     if (statusType === 'image') {
@@ -531,6 +531,35 @@ const dispatchZapiSpecial = async (
       message,
       code,
     };
+  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
+    // Para Z-API, usamos send-button-pix ou similar dependendo da config
+    url = `${baseUrl}/send-button-pix`;
+    const amount = String(special.amount || '0.00').replace(',', '.');
+    const pixKey = String(special.pixKey || '').trim();
+    const merchantName = String(special.merchantName || 'Pagamento').trim();
+    const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
+    
+    const typeMap: Record<string, string> = {
+      TELEFONE: 'PHONE',
+      CELULAR: 'PHONE',
+      'E-MAIL': 'EMAIL',
+      ALEATORIA: 'EVP',
+      'ALEATÓRIA': 'EVP',
+      RANDOM: 'EVP',
+    };
+
+    body = {
+      phone,
+      pixKey,
+      type: typeMap[rawType] || rawType,
+      merchantName,
+      amount: Number(amount) || 0,
+    };
+
+    if (special.type === 'gateway-billing') {
+       // Se for cobrança gateway, talvez precise de outro endpoint, mas por hora enviamos como PIX
+       body.message = special.description || special.text || 'Realize o pagamento via PIX:';
+    }
   }
   return { url, body };
 };
