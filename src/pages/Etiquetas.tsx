@@ -485,7 +485,6 @@ const Etiquetas = () => {
               </Label>
             </div>
           </div>
-        </div>
         <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateTagOpen(false)} disabled={loadingTags}>Cancelar</Button>
             <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()}>
