@@ -1315,7 +1315,12 @@ const Modelos = () => {
       contactBusinessDescription: special.contactBusinessDescription || "",
       catalogId: special.catalogId || "",
       productId: special.productId || "",
-       contactPhone: special.contactPhone || "",
+      contactPhone: special.contactPhone || "",
+      paymentTitle: special.title || "",
+      paymentDescription: special.description || "",
+      paymentAmount: special.amount ? String(special.amount) : "",
+      paymentCurrency: special.currency || "BRL",
+      paymentReferenceId: special.referenceId || "",
      });
     setEditingTemplate(template.id);
   };
