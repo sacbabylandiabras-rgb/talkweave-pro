@@ -48,7 +48,8 @@ import {
   Send,
   Workflow,
   ArrowLeft,
-  Trash2,
+   Trash2,
+   RefreshCw,
   Upload,
   Key,
   Download,
@@ -333,31 +334,43 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     fetchFluxos();
   }, [isGroupsMode]);
 
-   useEffect(() => {
-     const fetchTagsForEditor = async () => {
-       const firstInstance = instances.find(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
-       if (!firstInstance) return;
+   const fetchTagsForEditor = useCallback(async () => {
+     const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
+     if (activeInstances.length === 0) return;
  
-       try {
-         setLoadingTags(true);
+     try {
+       setLoadingTags(true);
+       const defaultInst = activeInstances.find(i => i.is_default) || activeInstances[0];
+       const instancesToTry = [defaultInst, ...activeInstances.filter(i => i.id !== defaultInst.id).slice(0, 2)];
+       
+       const allTagsSet = new Set<string>();
+       
+       for (const inst of instancesToTry) {
          const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-           body: { action: "list-tags", instanceDbId: firstInstance.id },
+           body: { action: "list-tags", instanceDbId: inst.id },
          });
+         
          if (!error && data) {
            const payload = data.data ?? data;
            if (Array.isArray(payload)) {
-             setAvailableTags(payload.map((t: any) => t.name));
+             payload.forEach((t: any) => {
+               if (t.name) allTagsSet.add(t.name);
+             });
+             if (allTagsSet.size > 0) break;
            }
          }
-       } catch (e) {
-         console.error("Erro ao carregar etiquetas para o editor:", e);
-       } finally {
-         setLoadingTags(false);
        }
-     };
+       
+       setAvailableTags(Array.from(allTagsSet).sort());
+     } catch (e) {
+       console.error("Erro ao carregar etiquetas para o editor:", e);
+     } finally {
+       setLoadingTags(false);
+     }
+   }, [instances]);
  
+   useEffect(() => {
      fetchTagsForEditor();
- 
      const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
      if (uazapiInstances.length === 0) return;
 
@@ -3114,8 +3127,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
  
                   {selectedNode.data.actionType === "tag" && (
                     <div>
-                      <Label>Escolher Etiqueta</Label>
-                      <div className="flex gap-2 mb-2">
+                       <div className="flex items-center justify-between mb-1">
+                         <Label>Escolher Etiqueta</Label>
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-6 w-6" 
+                           onClick={fetchTagsForEditor}
+                           disabled={loadingTags}
+                         >
+                           <RefreshCw className={`h-3 w-3 ${loadingTags ? "animate-spin" : ""}`} />
+                         </Button>
+                       </div>
+                       <div className="flex gap-2 mb-2">
                         <Select
                           value={availableTags.includes(selectedNode.data.actionConfig || "") ? selectedNode.data.actionConfig : "manual"}
                           onValueChange={(value) => {
