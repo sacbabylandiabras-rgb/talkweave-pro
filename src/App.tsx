@@ -21,7 +21,6 @@ const Dashboard = lazyWithRecovery(() => import("./pages/Dashboard"));
 const DashboardMeta = lazyWithRecovery(() => import("./pages/DashboardMeta"));
 const Admin = lazyWithRecovery(() => import("./pages/Admin"));
 const Dispositivos = lazyWithRecovery(() => import("./pages/Dispositivos"));
-const EmuladorMobile = lazyWithRecovery(() => import("./pages/EmuladorMobile"));
 const Perfil = lazyWithRecovery(() => import("./pages/Perfil"));
 const PerfilEmpresa = lazyWithRecovery(() => import("./pages/PerfilEmpresa"));
 const Etiquetas = lazyWithRecovery(() => import("./pages/Etiquetas"));
