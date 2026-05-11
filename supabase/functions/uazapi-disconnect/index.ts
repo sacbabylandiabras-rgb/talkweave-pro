@@ -8,58 +8,39 @@
      if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
-      let data = null;
-      let success = false;
+     const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+     let data = null;
+     let lastFailure = "";
 
-      // Try DELETE /instance/logout (UAZAPI / Evolution standard)
-      try {
-        const resp1 = await fetch(`${cleanUrl}/instance/logout`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json", token: apiToken },
-        });
-        if (resp1.ok) {
-          data = await resp1.json().catch(() => ({ success: true }));
-          success = true;
-        }
-      } catch (e) {
-        console.error("Logout DELETE failed:", e);
-      }
+     const attempts = [
+       { method: "POST", path: "/instance/disconnect" },
+       { method: "POST", path: "/instance/logout" },
+       { method: "DELETE", path: "/instance/logout" },
+     ];
 
-      // Try POST /instance/logout if DELETE failed
-      if (!success) {
-        try {
-          const resp2 = await fetch(`${cleanUrl}/instance/logout`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: apiToken },
-          });
-          if (resp2.ok) {
-            data = await resp2.json().catch(() => ({ success: true }));
-            success = true;
-          }
-        } catch (e) {
-          console.error("Logout POST failed:", e);
-        }
-      }
+     for (const attempt of attempts) {
+       try {
+         const response = await fetch(withToken(attempt.path), {
+           method: attempt.method,
+           headers: { "Content-Type": "application/json", token: apiToken },
+           body: attempt.method === "POST" ? JSON.stringify({}) : undefined,
+         });
+         const payload = await response.json().catch(async () => ({ raw: await response.text().catch(() => "") }));
+         if (response.ok && !payload?.error) {
+           data = { success: true, disconnected: true, ...payload };
+           break;
+         }
+         lastFailure = payload?.error || payload?.message || payload?.raw || `${attempt.method} ${attempt.path} retornou ${response.status}`;
+         console.warn(`Disconnect attempt failed: ${attempt.method} ${attempt.path}`, lastFailure);
+       } catch (e) {
+         lastFailure = e instanceof Error ? e.message : String(e);
+         console.error(`Disconnect attempt errored: ${attempt.method} ${attempt.path}`, e);
+       }
+     }
 
-      // Fallback: Try DELETE /instance/delete if logout isn't working to clear session
-      if (!success) {
-        try {
-          const resp3 = await fetch(`${cleanUrl}/instance/delete`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json", token: apiToken },
-          });
-          if (resp3.ok) {
-            data = await resp3.json().catch(() => ({ success: true }));
-            success = true;
-          }
-        } catch (e) {
-          console.error("Delete DELETE failed:", e);
-        }
-      }
-
-      if (!success && !data) {
-        throw new Error("Não foi possível desconectar a instância através dos métodos conhecidos.");
-      }
+     if (!data) {
+       throw new Error(lastFailure || "Não foi possível desconectar a instância.");
+     }
 
      return new Response(JSON.stringify(data), {
        headers: { ...corsHeaders, "Content-Type": "application/json" },
