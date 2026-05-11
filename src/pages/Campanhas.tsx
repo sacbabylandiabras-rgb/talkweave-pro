@@ -423,13 +423,16 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setResumeDialogOpen(false);
     
     try {
+      const selectedInstanceId = getSelectedCampaignInstanceId();
+      console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
+      
       const campaign = campaigns.find(c => c.id === campaignToResume);
       const targetContacts = campaign?.target_audience?.contacts || [];
       setTotalContactsCount(targetContacts.length);
       setSendingCampaignId(campaignToResume);
 
       // Start resuming FIRST so status changes to 'active' before dialog polls
-      const resumePromise = resumeCampaign(campaignToResume);
+      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId);
       
       // Small delay to let status update propagate, then open dialog
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -519,7 +522,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setCampaignToSend(null);
 
     try {
-      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
+      const selectedInstanceId = getSelectedCampaignInstanceId();
+      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
       
       // Set up progress dialog
       setTotalContactsCount(campaign.target_audience?.contacts?.length || 0);
@@ -527,7 +531,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedCampaignInstanceId());
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, selectedInstanceId);
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);

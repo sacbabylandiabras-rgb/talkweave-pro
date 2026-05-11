@@ -497,7 +497,7 @@ export const useCampaigns = () => {
     return result;
   };
 
-  const resumeCampaign = async (id: string) => {
+  const resumeCampaign = async (id: string, overrideInstanceId?: string) => {
     try {
       const campaign = campaigns.find(c => c.id === id);
       if (!campaign) {
@@ -505,9 +505,9 @@ export const useCampaigns = () => {
       }
 
       const storedSendConfig = campaign.target_audience?.__sendConfig;
-      const resumeInstanceId = storedSendConfig?.rotateAll
+      const resumeInstanceId = overrideInstanceId || (storedSendConfig?.rotateAll
         ? '__rotate_all__'
-        : (storedSendConfig?.instanceId || getSelectedCampaignInstanceId());
+        : (storedSendConfig?.instanceId || getSelectedCampaignInstanceId()));
 
       console.log('=== RESUMING CAMPAIGN ===');
       console.log('Campaign ID:', id);
