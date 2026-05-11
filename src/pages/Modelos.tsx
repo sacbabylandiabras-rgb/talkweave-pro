@@ -936,6 +936,11 @@ const Modelos = () => {
     contactBusinessDescription: "",
     catalogId: "",
     productId: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -972,6 +977,11 @@ const Modelos = () => {
      variables: {} as Record<string, any>,
     catalogId: "",
     productId: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
