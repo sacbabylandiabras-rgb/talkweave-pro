@@ -243,7 +243,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances } = useZapiInstances();
+  const { instances: allInstances } = useZapiInstances();
+  const instances = useMemo(() => allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi'), [allInstances]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
