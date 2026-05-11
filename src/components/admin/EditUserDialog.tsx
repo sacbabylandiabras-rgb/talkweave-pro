@@ -538,24 +538,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 </Card>
               )}
 
-              <div className="space-y-2">
-                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.instance_type === 'mobile').map((inst) => (
-                  <Card key={inst.id} className="border">
-                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0">
-                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância mobile?')) deleteInstance(inst.id, user.id); }}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
 
             {/* Seção Mobile */}
             <div className="space-y-3">
