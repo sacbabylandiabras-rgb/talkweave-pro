@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+ import { Label } from "@/components/ui/label";
+ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
  import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle, LayoutTemplate } from "lucide-react";
