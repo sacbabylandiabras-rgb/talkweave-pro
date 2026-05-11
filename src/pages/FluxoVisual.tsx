@@ -2041,7 +2041,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="interactive">Menu Interativo (botões/lista)</SelectItem>
                       <SelectItem value="pix">Botão PIX</SelectItem>
                       <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
-                      <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                       <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                       <SelectItem value="gateway-billing">Cobrança Gateway</SelectItem>
                       <SelectItem value="poll">Enquete / Poll</SelectItem>
                       <SelectItem value="product">Produto</SelectItem>
                       <SelectItem value="location">Localização (Nativa)</SelectItem>
@@ -2371,7 +2372,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.contentType === "request-payment" && (
+                {(selectedNode.data.contentType === "request-payment" || selectedNode.data.contentType === "gateway-billing") && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                    <Label className="text-sm font-semibold">
+                      {selectedNode.data.contentType === "gateway-billing" ? "Cobrança Gateway" : "Solicitar Pagamento"}
+                    </Label>
                   <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
                     <Label className="text-sm font-semibold">Solicitar Pagamento</Label>
                     <Select
