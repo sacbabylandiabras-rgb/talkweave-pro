@@ -71,8 +71,18 @@ const Etiquetas = () => {
 
       console.log("[Etiquetas] Resposta cores:", data);
       
-      // Normalização: Z-API pode retornar data.data ou diretamente data como array
-      const rawColors = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      // A API retorna cores em formatos variados: array, {data: [...]} ou objeto {id: hex}
+      let rawColors: TagColor[] = [];
+      const payload = data?.data ?? data;
+      
+      if (Array.isArray(payload)) {
+        rawColors = payload;
+      } else if (payload && typeof payload === "object") {
+        rawColors = Object.entries(payload)
+          .filter(([k, v]) => !isNaN(Number(k)) && typeof v === "string")
+          .map(([k, v]) => ({ id: Number(k), hex: v as string, label: `Cor ${k}` }));
+      }
+      
       setTagColors(rawColors);
       
       if (rawColors.length === 0) {
