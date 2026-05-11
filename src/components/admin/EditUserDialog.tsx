@@ -46,14 +46,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   // Add instance form
-   const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | null>(null);
+   const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | null>(null);
   const [addingInstance, setAddingInstance] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newInstanceToken, setNewInstanceToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
-   const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi'>('zapi');
+   const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi' | 'uazapi_warmup'>('zapi');
    const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
    const [newEvolutionKey, setNewEvolutionKey] = useState('');
   const [newInstanceType, setNewInstanceType] = useState<'web' | 'mobile'>('web');
@@ -125,24 +125,24 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
         toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
         return;
       }
-    } else {
+    } else if (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') {
       if (!newInstanceName.trim() || !newEvolutionUrl.trim() || !newEvolutionKey.trim()) {
         toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key para UAZAPI.", variant: "destructive" });
         return;
       }
     }
      setAddingInstance(true);
-     const ok = await addInstance(user.id, {
-       instance_name: newInstanceName.trim(),
-       zapi_instance_id: newProvider === 'zapi' ? newInstanceId.trim() : '',
-       zapi_token: newProvider === 'zapi' ? newInstanceToken.trim() : '',
-       zapi_client_token: newProvider === 'zapi' ? newClientToken.trim() : '',
-       evolution_api_url: newProvider === 'uazapi' ? newEvolutionUrl.trim() : '',
-       evolution_api_key: newProvider === 'uazapi' ? newEvolutionKey.trim() : '',
-       is_default: newIsDefault,
-       api_provider: newProvider,
-       instance_type: newInstanceType,
-     });
+    const ok = await addInstance(user.id, {
+      instance_name: newInstanceName.trim(),
+      zapi_instance_id: newProvider === 'zapi' ? newInstanceId.trim() : '',
+      zapi_token: newProvider === 'zapi' ? newInstanceToken.trim() : '',
+      zapi_client_token: newProvider === 'zapi' ? newClientToken.trim() : '',
+      evolution_api_url: (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') ? newEvolutionUrl.trim() : '',
+      evolution_api_key: (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') ? newEvolutionKey.trim() : '',
+      is_default: newIsDefault,
+      api_provider: newProvider,
+      instance_type: newInstanceType,
+    });
      setAddingInstance(false);
     if (ok) {
       resetAddForm();
