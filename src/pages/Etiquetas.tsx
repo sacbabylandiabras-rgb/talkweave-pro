@@ -121,7 +121,7 @@ const Etiquetas = () => {
         body: { 
           action: "create-tag", 
           instanceDbId: selectedInstanceId, 
-       payload: { name: newTagName, color: String(newTagColor) } 
+       payload: { name: newTagName, color: newTagColor } 
         },
       });
       if (error) throw error;
