@@ -305,12 +305,15 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const apiToken = instance.evolution_api_key || instance.zapi_token || '';
   if (!apiUrl || !apiToken) return [];
 
-  const headers = {
+  const getHeaders = (token: string) => ({
     'Content-Type': 'application/json',
-    'token': apiToken,
-    'apikey': apiToken,
-    'Authorization': `Bearer ${apiToken}`
-  };
+    'token': token,
+    'apikey': token,
+    'admintoken': token,
+    'Authorization': `Bearer ${token}`
+  });
+  
+  const headers = getHeaders(apiToken);
 
   // Detectar o nome real da instância via /status se possível
   let realInstanceName = instance.instance_name;
