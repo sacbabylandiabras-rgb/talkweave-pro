@@ -384,6 +384,7 @@ const Etiquetas = () => {
                     </button>
                   ))}
                 </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -484,7 +485,8 @@ const Etiquetas = () => {
               </Label>
             </div>
           </div>
-          <DialogFooter>
+        </div>
+        <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateTagOpen(false)} disabled={loadingTags}>Cancelar</Button>
             <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()}>
               {loadingTags ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
