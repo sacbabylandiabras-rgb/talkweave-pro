@@ -1682,7 +1682,7 @@ serve(async (req) => {
         // === UAZAPI ROUTING (short-circuit) ===
         if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
           if (specialTpl) {
-            const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl);
+          const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl, supabase, credentials.userId);
             if (uazSpecial.ok) {
               campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
@@ -1770,7 +1770,7 @@ serve(async (req) => {
         }
 
         if (specialTpl) {
-          const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl);
+          const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl, supabase, credentials.userId);
           zapiUrl = url;
           requestBody = specialBody;
         } else if (templateType === 'carrossel' && hasCarouselCards) {
