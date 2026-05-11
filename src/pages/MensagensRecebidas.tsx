@@ -1718,6 +1718,8 @@ const MensagensRecebidas = () => {
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
+  const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
+  const [pageTagColors, setPageTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
   const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
