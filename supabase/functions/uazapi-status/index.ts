@@ -53,7 +53,16 @@ const pickFirstString = (...values: unknown[]) => {
           console.log(`Raw status from ${ep}:`, resText);
           const data = JSON.parse(resText || "{}");
           
-          const statusRaw = data?.instance?.status || data?.status || data?.connectionStatus || data?.state || data?.instance?.state || "";
+          const statusRaw = 
+            data?.instance?.status || 
+            data?.status?.checked_instance?.connection_status ||
+            data?.status?.connection_status ||
+            data?.status || 
+            data?.connectionStatus || 
+            data?.state || 
+            data?.instance?.state || 
+            "";
+          
           const status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : "";
           
           const negativeStates = ["disconnected", "disconnect", "closed", "close", "logout", "logged_out", "loggedout", "offline", "connecting"];
@@ -72,7 +81,10 @@ const pickFirstString = (...values: unknown[]) => {
             data?.status?.connected === true ||
             data?.status?.loggedIn === true ||
             data?.instance?.connected === true ||
-            ["connected", "open", "online", "logged_in", "loggedin", "connected_in"].some((s) => status === s)
+            data?.status?.checked_instance?.connection_status === 'connected' ||
+            ["connected", "open", "online", "logged_in", "loggedin", "connected_in", "true"].some((s) =>
+              status === s || status.includes(s)
+            )
           );
   
            const qrCode = pickFirstString(
