@@ -2233,6 +2233,8 @@ const MensagensRecebidas = () => {
                 }}
                 onDeleteSelected={handleDeleteSelected}
                 onDeleteConversation={handleDeleteConversation}
+                availableTags={pageAvailableTags}
+                tagColors={pageTagColors}
               />
           </div>
         )}
