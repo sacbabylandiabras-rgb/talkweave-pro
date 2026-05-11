@@ -335,20 +335,35 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
    useEffect(() => {
      const fetchTagsForEditor = async () => {
-       const firstInstance = instances.find(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
-       if (!firstInstance) return;
+       const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
+       if (activeInstances.length === 0) return;
  
        try {
          setLoadingTags(true);
-         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-           body: { action: "list-tags", instanceDbId: firstInstance.id },
-         });
-         if (!error && data) {
-           const payload = data.data ?? data;
-           if (Array.isArray(payload)) {
-             setAvailableTags(payload.map((t: any) => t.name));
+         // Tenta pegar da instância padrão primeiro, se não tenta das 3 primeiras
+         const defaultInst = activeInstances.find(i => i.is_default) || activeInstances[0];
+         const instancesToTry = [defaultInst, ...activeInstances.filter(i => i.id !== defaultInst.id).slice(0, 2)];
+         
+         const allTagsSet = new Set<string>();
+         
+         for (const inst of instancesToTry) {
+           const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+             body: { action: "list-tags", instanceDbId: inst.id },
+           });
+           
+           if (!error && data) {
+             const payload = data.data ?? data;
+             if (Array.isArray(payload)) {
+               payload.forEach((t: any) => {
+                 if (t.name) allTagsSet.add(t.name);
+               });
+               // Se já encontrou tags, não precisa tentar as outras instâncias para economizar recursos
+               if (allTagsSet.size > 0) break;
+             }
            }
          }
+         
+         setAvailableTags(Array.from(allTagsSet).sort());
        } catch (e) {
          console.error("Erro ao carregar etiquetas para o editor:", e);
        } finally {
