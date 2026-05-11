@@ -445,7 +445,6 @@ const ApanhadorGrupos = () => {
     const list = extractedNumbers.get(groupId) || [];
     return list
       .filter(p => !excludeAdmins || !p.isAdmin)
-      .filter(p => !excludeLids || !p.isLid)
       .map(p => p.phone
         .replace(/@c\.us$/i, '')
         .replace(/@s\.whatsapp\.net$/i, '')
@@ -1147,7 +1146,6 @@ const ApanhadorGrupos = () => {
                   {numbers && numbers.length > 0 && (() => {
                     const visible = numbers
                       .filter(p => !excludeAdmins || !p.isAdmin)
-                      .filter(p => !excludeLids || !p.isLid);
                     if (visible.length === 0) return null;
                     return (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
