@@ -2030,9 +2030,23 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="video">Vídeo</SelectItem>
                       <SelectItem value="audio">Áudio</SelectItem>
                       <SelectItem value="document">Documento</SelectItem>
+                      <SelectItem value="image-buttons">Imagem com botões</SelectItem>
+                      <SelectItem value="video-buttons">Vídeo com botões</SelectItem>
+                      <SelectItem value="audio-buttons">Áudio com botões</SelectItem>
+                      <SelectItem value="list">Lista de opção</SelectItem>
+                      <SelectItem value="copy-paste">Cópia e cola</SelectItem>
+                      <SelectItem value="file">Arquivo</SelectItem>
+                      <SelectItem value="media-carousel">Carrossel</SelectItem>
                       <SelectItem value="interactive">Menu Interativo (botões/lista)</SelectItem>
                       <SelectItem value="pix">Botão PIX</SelectItem>
+                      <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
                       <SelectItem value="poll">Enquete / Poll</SelectItem>
+                      <SelectItem value="product">Produto</SelectItem>
+                      <SelectItem value="location">Localização</SelectItem>
+                      <SelectItem value="contact">Contato (vCard)</SelectItem>
+                      <SelectItem value="event">Evento</SelectItem>
+                      <SelectItem value="order-status">Status do pedido</SelectItem>
+                      <SelectItem value="order-payment">Pagamento do pedido</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
