@@ -40,7 +40,7 @@ const Landing = () => {
         <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
          <div className="lp-hero-ctas">
            <button className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</button>
-           <div className="lp-hero-trial-tag">7 dias de teste gratuito • Sem cartão de crédito</div>
+           <div className="lp-hero-trial-tag">2 dias de teste gratuito • Sem cartão de crédito</div>
          </div>
       </div>
 
