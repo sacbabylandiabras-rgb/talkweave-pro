@@ -19,20 +19,15 @@ const pickFirstString = (...values: unknown[]) => {
       const cleanUrl = apiUrl.replace(/\/+$/, "");
       const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
       
-      const endpoints = [];
+      const endpoints = ["/instance/status", "/status", "/instance"];
       if (instanceName) {
-        endpoints.push(`/instance/connectionStatus/${instanceName}`);
-        endpoints.push(`/instance/status/${instanceName}`);
+        endpoints.unshift(`/instance/status/${instanceName}`);
+        endpoints.unshift(`/instance/connectionStatus/${instanceName}`);
       }
-      endpoints.push("/instance/status");
-      endpoints.push("/status");
-      endpoints.push("/instance");
-      
+
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken,
-        "apikey": apiToken,
-        "Authorization": `Bearer ${apiToken}`
+        "token": apiToken
       };
 
       let lastError = null;
