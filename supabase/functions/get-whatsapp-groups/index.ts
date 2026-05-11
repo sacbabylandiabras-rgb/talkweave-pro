@@ -360,6 +360,8 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     { ep: `/v1/group/list/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/group/list/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/fetchGroups/${realInstanceName}`, method: 'GET' },
+    { ep: `/group/list/${realInstanceName}`, method: 'GET' },
+    { ep: `/group/fetchGroups/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/all`, method: 'GET' },
   ];
   
