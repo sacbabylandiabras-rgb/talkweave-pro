@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Clock, CheckCircle, XCircle, FileSearch, Camera, CreditCard, User, Eye, ZoomIn, ThumbsUp, ThumbsDown, RefreshCw, Loader2 } from "lucide-react";
+import { Clock, CheckCircle, XCircle, FileSearch, Camera, CreditCard, User, Eye, ZoomIn, ThumbsUp, ThumbsDown, RefreshCw, Loader2, FileText, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,7 +38,8 @@ export default function AdminKYC() {
       return;
     }
 
-    const urls = [selectedKyc.selfie_url, selectedKyc.doc_front_url, selectedKyc.doc_back_url].filter(Boolean) as string[];
+    const cnpjUrl = (selectedKyc.business_data as any)?.cnpj_doc_url as string | undefined;
+    const urls = [selectedKyc.selfie_url, selectedKyc.doc_front_url, selectedKyc.doc_back_url, cnpjUrl].filter(Boolean) as string[];
     if (urls.length === 0) return;
 
     const generateSignedUrls = async () => {
@@ -222,22 +223,36 @@ export default function AdminKYC() {
                 { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url },
                 { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url },
                 { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url },
+                { label: "Cartão CNPJ", icon: Building2, url: (selectedKyc?.business_data as any)?.cnpj_doc_url as string | undefined },
               ].map((doc) => {
                 const signed = getSignedUrl(doc.url);
+                const isPdf = !!doc.url && /\.pdf($|\?)/i.test(doc.url);
                 return (
                   <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
                     <CardContent className="p-0">
                       <div className="relative aspect-[4/3] bg-muted/30 flex items-center justify-center">
                         {signed ? (
-                          <>
-                            <img src={signed} alt={doc.label} className="w-full h-full object-cover" />
-                            <button
-                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-                              onClick={() => setZoomImage(signed)}
+                          isPdf ? (
+                            <a
+                              href={signed}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors p-4"
                             >
-                              <ZoomIn className="w-3.5 h-3.5 text-white" />
-                            </button>
-                          </>
+                              <FileText className="w-10 h-10 text-[#a78bfa]" />
+                              <span className="text-xs font-medium">Abrir PDF</span>
+                            </a>
+                          ) : (
+                            <>
+                              <img src={signed} alt={doc.label} className="w-full h-full object-cover" />
+                              <button
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+                                onClick={() => setZoomImage(signed)}
+                              >
+                                <ZoomIn className="w-3.5 h-3.5 text-white" />
+                              </button>
+                            </>
+                          )
                         ) : doc.url ? (
                           <div className="flex flex-col items-center gap-2 text-muted-foreground">
                             <Loader2 className="w-6 h-6 animate-spin" />
