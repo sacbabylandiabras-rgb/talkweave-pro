@@ -221,7 +221,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
 
           <div className="border-t pt-4 mt-4 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="max-instances">Limite total de instâncias permitidas</Label>
+              <Label htmlFor="max-instances">Limite de instâncias Z-API Web</Label>
               <Input
                 id="max-instances"
                 type="number"
@@ -231,7 +231,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 onChange={(e) => setMaxInstances(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
               />
               <p className="text-xs text-muted-foreground">
-                Define quantas instâncias (Z-API + UAZAPI) este usuário pode ter.
+                Define quantas instâncias de uso (Web) este usuário pode ter. Outros tipos não possuem limite.
               </p>
             </div>
 
