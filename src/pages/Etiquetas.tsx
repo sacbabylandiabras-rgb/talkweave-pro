@@ -385,6 +385,21 @@ const Etiquetas = () => {
                   ))}
                 </div>
               </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="applyToAll" 
+                checked={applyToAll} 
+                onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+              />
+              <Label 
+                htmlFor="applyToAll" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Criar esta etiqueta em todas as instâncias
+              </Label>
             </div>
           </div>
           <DialogFooter>
