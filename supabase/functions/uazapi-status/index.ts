@@ -32,6 +32,7 @@ const pickFirstString = (...values: unknown[]) => {
         "Content-Type": "application/json", 
         "token": apiToken,
         "apikey": apiToken,
+        "admintoken": apiToken,
         "Authorization": `Bearer ${apiToken}`
       };
 
