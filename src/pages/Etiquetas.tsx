@@ -180,18 +180,60 @@ const Etiquetas = () => {
   const handleEditTag = async () => {
     if (!editingTag || !editingTag.name.trim()) return;
     setLoadingTags(true);
+    
+    const targetInstances = applyToAll 
+      ? instances 
+      : [instances.find(i => i.id === selectedInstanceId)].filter(Boolean);
+
+    let successCount = 0;
+    let errorCount = 0;
+
     try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { 
-          action: "edit-tag", 
-          instanceDbId: selectedInstanceId, 
-          payload: { id: editingTag.id, name: editingTag.name, color: editingTag.color } 
-        },
+      for (const inst of targetInstances as any[]) {
+        try {
+          let tagIdToEdit = editingTag.id;
+          
+          if (inst.id !== selectedInstanceId) {
+            const { data: remoteTags } = await supabase.functions.invoke("zapi-chat-actions", {
+              body: { action: "list-tags", instanceDbId: inst.id },
+            });
+            const tagsList = remoteTags?.data ?? remoteTags;
+            const matchingTag = Array.isArray(tagsList) 
+              ? tagsList.find((t: any) => t.name === editingTag.name)
+              : null;
+            
+            if (matchingTag) {
+              tagIdToEdit = matchingTag.id;
+            } else {
+              continue;
+            }
+          }
+
+          const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+            body: { 
+              action: "edit-tag", 
+              instanceDbId: inst.id, 
+              payload: { id: tagIdToEdit, name: editingTag.name, color: editingTag.color } 
+            },
+          });
+          
+          if (error || data?.error) {
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          errorCount++;
+        }
+      }
+
+      toast({ 
+        title: applyToAll ? "Etiquetas atualizadas" : "Etiqueta atualizada",
+        description: applyToAll ? `${successCount} instâncias atualizadas.` : undefined
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta atualizada" });
+      
       setEditingTag(null);
+      setApplyToAll(false);
       fetchTags(selectedInstanceId);
     } catch (err: any) {
       toast({ title: "Erro ao atualizar etiqueta", description: err.message, variant: "destructive" });
