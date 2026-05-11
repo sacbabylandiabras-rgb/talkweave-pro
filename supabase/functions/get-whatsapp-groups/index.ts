@@ -869,23 +869,31 @@ Deno.serve(async (req) => {
     if (activeError) console.error("❌ Error fetching active instances:", activeError);
     console.log(`🔎 Found ${activeInstances?.length || 0} active instances in DB for user ${credentials.userId}`);
 
-    const instances: ZapiInstance[] =
-      profileOnly
+    const activeList = (activeInstances || []) as ZapiInstance[];
+    const wantsUazapi = providerFilter?.toLowerCase() === 'uazapi';
+    const activeUazapiInstances = activeList.filter((inst) => {
+      const provider = (inst.api_provider || 'zapi').toLowerCase();
+      return provider === 'uazapi' || provider === 'uazapi_warmup';
+    });
+
+    const instances: ZapiInstance[] = wantsUazapi && activeUazapiInstances.length > 0
+      ? activeUazapiInstances
+      : profileOnly
         ? []
-        : activeInstances && activeInstances.length > 0
-        ? (activeInstances as ZapiInstance[])
-        : [
-            {
-              zapi_instance_id: credentials.instanceId,
-              zapi_token: credentials.token,
-              zapi_client_token: credentials.clientToken,
-              instance_name: credentials.instanceName || null,
-            },
-          ];
+        : activeList.length > 0
+          ? activeList
+          : [
+              {
+                zapi_instance_id: credentials.instanceId,
+                zapi_token: credentials.token,
+                zapi_client_token: credentials.clientToken,
+                instance_name: credentials.instanceName || null,
+              },
+            ];
 
     // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
     try {
-      const shouldLoadProfileUazapi = providerFilter?.toLowerCase() === 'uazapi';
+      const shouldLoadProfileUazapi = wantsUazapi && activeUazapiInstances.length === 0;
       if (shouldLoadProfileUazapi) {
         const { data: profile } = await adminClient
           .from("profiles")
