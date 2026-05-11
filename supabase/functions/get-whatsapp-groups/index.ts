@@ -348,7 +348,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   for (const ep of listEndpoints) {
     try {
       const url = `${apiUrl}${ep}${ep.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
-      console.log(`尝试获取群组列表: ${url}`);
+      console.log(`🔎 Fetching groups via UAZAPI: ${url}`);
       response = await fetch(url, { method: 'GET', headers });
       const resText = await response.text();
       console.log(`📦 UAZAPI ${ep} response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
