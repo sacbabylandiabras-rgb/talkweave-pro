@@ -49,7 +49,8 @@ const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
 const buildSpecialContent = (type: string, data: any): string => {
   const payload: any = { type };
-  if (type === "pix") {
+    if (type === "pix" || type === "gateway_billing") {
+      payload.pixSource = data.pixSource || (type === "gateway_billing" ? "gateway" : "manual");
     payload.pixKey = data.pixKey;
     payload.pixKeyType = data.pixKeyType;
     payload.amount = data.pixAmount;
@@ -96,6 +97,7 @@ const buildSpecialContent = (type: string, data: any): string => {
       }
       payload.description = data.content || "";
     } else if (type === "pagamento") {
+      payload.paymentSource = data.paymentSource || "manual";
       payload.title = data.paymentTitle || "";
       payload.description = data.paymentDescription || data.content || "";
       payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
@@ -1691,7 +1693,9 @@ const Modelos = () => {
                        <SelectItem value="contato">contato (vCard)</SelectItem>
                        <SelectItem value="evento">evento</SelectItem>
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
-                       <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                        <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                        <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                        <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -2327,7 +2331,9 @@ const Modelos = () => {
                    <SelectItem value="contato">contato (vCard)</SelectItem>
                    <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
-                   <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                    <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                    <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                    <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
