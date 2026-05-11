@@ -42,6 +42,7 @@ const Etiquetas = () => {
   const [newTagName, setNewTagName] = useState("");
   const [newTagDescription, setNewTagDescription] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
+  const [tagColorError, setTagColorError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,14 +59,29 @@ const Etiquetas = () => {
   }, [selectedInstanceId]);
 
   const fetchTagColors = async (instanceId: string) => {
+    setTagColorError(null);
     try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+      console.log("[Etiquetas] Buscando cores para instância:", instanceId);
+      const { data, error: invokeError } = await supabase.functions.invoke("zapi-chat-actions", {
         body: { action: "tag-colors", instanceDbId: instanceId },
       });
-      if (error) throw error;
-      setTagColors(Array.isArray(data?.data) ? data.data : []);
+      
+      if (invokeError) throw invokeError;
+      if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+
+      console.log("[Etiquetas] Resposta cores:", data);
+      
+      // Normalização: Z-API pode retornar data.data ou diretamente data como array
+      const rawColors = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      setTagColors(rawColors);
+      
+      if (rawColors.length === 0) {
+        console.warn("[Etiquetas] Nenhuma cor retornada pela API.");
+        setTagColorError("Nenhuma cor disponível para esta conta.");
+      }
     } catch (err: any) {
-      console.error("Erro ao buscar cores de etiquetas:", err);
+      console.error("[Etiquetas] Erro ao buscar cores de etiquetas:", err);
+      setTagColorError("Não foi possível carregar as cores do WhatsApp Business.");
     }
   };
 
@@ -351,25 +367,60 @@ const Etiquetas = () => {
 
             <div className="space-y-2">
               <Label>Selecione uma cor</Label>
+              {tagColorError && (
+                <p className="text-[10px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {tagColorError}
+                </p>
+              )}
               <div className="grid grid-cols-7 gap-2 pt-1">
-                {tagColors.length > 0 ? (
-                  tagColors.map((c) => (
+                {(() => {
+                  if (tagColors.length > 0) {
+                    return tagColors.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setNewTagColor(c.id)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${newTagColor === c.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' : ''}`}
+                        style={{ backgroundColor: c.hex || '#cbd5e1' }}
+                        title={c.label}
+                      >
+                        {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
+                      </button>
+                    ));
+                  }
+                  
+                  if (loadingTags) {
+                    return [0, 1, 2, 3, 4, 5, 6].map(id => (
+                      <Skeleton key={id} className="w-9 h-9 rounded-full" />
+                    ));
+                  }
+
+                  // Fallback para cores padrão do WhatsApp
+                  return [
+                    { id: 0, hex: "#62ee8d", label: "Verde" },
+                    { id: 1, hex: "#52d6f4", label: "Azul claro" },
+                    { id: 2, hex: "#3581ef", label: "Azul" },
+                    { id: 3, hex: "#fef057", label: "Amarelo" },
+                    { id: 4, hex: "#fe8732", label: "Laranja" },
+                    { id: 5, hex: "#f96173", label: "Vermelho" },
+                    { id: 6, hex: "#bc81e3", label: "Roxo" },
+                    { id: 7, hex: "#91a4b0", label: "Cinza" },
+                    { id: 8, hex: "#d7dce0", label: "Cinza claro" },
+                    { id: 9, hex: "#4c5d67", label: "Cinza escuro" },
+                  ].map((c) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => setNewTagColor(c.id)}
                       className={`w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${newTagColor === c.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' : ''}`}
-                      style={{ backgroundColor: c.hex || '#cbd5e1' }}
+                      style={{ backgroundColor: c.hex }}
                       title={c.label}
                     >
                       {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
                     </button>
-                  ))
-                ) : (
-                  [0, 1, 2, 3, 4, 5, 6].map(id => (
-                    <Skeleton key={id} className="w-9 h-9 rounded-full" />
-                  ))
-                )}
+                  ));
+                })()}
               </div>
             </div>
           </div>
