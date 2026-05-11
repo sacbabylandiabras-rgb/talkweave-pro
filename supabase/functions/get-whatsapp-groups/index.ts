@@ -162,8 +162,12 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
             ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in'].some((s) =>
               status === s
             );
-          if (connected) return true;
+          if (connected) {
+            console.log(`✅ Instance ${instance.instance_name} is connected (status: ${status})`);
+            return true;
+          }
           // resposta válida mas não conectada
+          console.log(`ℹ️ Instance ${instance.instance_name} response valid but not connected (status: ${status})`);
           return false;
         } catch (_) {
           continue;
@@ -277,7 +281,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     },
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const resText = await response.text();
+  console.log(`📦 UAZAPI /group/list raw response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
+  const payload = JSON.parse(resText || '{}');
+
   if (!response.ok) {
     console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
     return [];
