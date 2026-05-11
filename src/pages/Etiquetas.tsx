@@ -415,7 +415,7 @@ const Etiquetas = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => handleDeleteTag(tag.id)}
+                        onClick={() => handleDeleteTag(tag)}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive transition-colors" />
                       </Button>
