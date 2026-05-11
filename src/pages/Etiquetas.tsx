@@ -103,7 +103,8 @@ const Etiquetas = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(formatErrorMessage(data.error));
-      setTags(Array.isArray(data?.data) ? data.data : []);
+      const payload = data?.data ?? data;
+      setTags(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
       console.error("Erro ao buscar etiquetas:", err);
       toast({ title: "Erro ao carregar etiquetas", description: err.message, variant: "destructive" });
