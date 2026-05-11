@@ -493,7 +493,7 @@ const resolveUazapiInstance = async (
   };
 };
 
-const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: string) => {
+ const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: string, isCommunity = false) => {
   const candidates = uniqueStrings([
     groupId,
     groupId.includes("@g.us") ? groupId : `${groupId.replace(/-group$/i, "")}@g.us`,
@@ -502,10 +502,15 @@ const fetchUazapiGroupInfo = async (apiUrl: string, apiToken: string, groupId: s
   let lastError: any = null;
   for (const candidate of candidates) {
     try {
-      const response = await fetch(`${apiUrl}/group/info`, {
-        method: "POST",
+       const endpoint = isCommunity ? `${apiUrl}/community/info` : `${apiUrl}/group/info`;
+       const body = isCommunity 
+         ? { communityjid: candidate }
+         : { groupjid: candidate, getInviteLink: false, force: true };
+ 
+       const response = await fetch(endpoint, {
+         method: "POST",
         headers: { "Content-Type": "application/json", token: apiToken },
-        body: JSON.stringify({ groupjid: candidate, getInviteLink: false, force: true }),
+         body: JSON.stringify(body),
       });
       const text = await response.text();
       let data: any = {};
@@ -560,7 +565,7 @@ Deno.serve(async (req) => {
     if (uazapi) {
       console.log(`📱 UAZAPI participants for ${groupId}`);
       try {
-        const groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId);
+         const groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, isCommunity);
         const apiParticipants = extractParticipantArray(groupInfo);
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
