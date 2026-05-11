@@ -456,7 +456,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                )}
  
                <div className="space-y-2">
-                 {instances.filter(i => (i.api_provider || 'zapi') === 'zapi').map((inst) => (
+                  {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && (i.instance_type === 'web' || !i.instance_type)).map((inst) => (
                    <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
                      <CardContent className="pt-3 pb-3 flex items-center justify-between">
                        <div className="min-w-0">
