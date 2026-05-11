@@ -46,7 +46,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   // Add instance form
-  const [showAddForm, setShowAddForm] = useState(false);
+   const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | null>(null);
   const [addingInstance, setAddingInstance] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
@@ -144,10 +144,10 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
        instance_type: newInstanceType,
      });
      setAddingInstance(false);
-     if (ok) {
-       resetAddForm();
-       setShowAddForm(false);
-     }
+    if (ok) {
+      resetAddForm();
+      setShowAddForm(null);
+    }
    };
 
   if (!user) return null;
@@ -219,17 +219,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             </Popover>
           </div>
 
-          <div className="border-t pt-4 mt-4">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Instâncias WhatsApp ({instances.length}/{maxInstances})</h3>
-                <Button size="sm" variant="outline" onClick={() => setShowAddForm((v) => !v)}>
-                  <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm ? "Fechar" : "Adicionar Instância"}
-                </Button>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <Label htmlFor="max-instances">Limite de instâncias permitidas</Label>
+          <div className="border-t pt-4 mt-4 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="max-instances">Limite total de instâncias permitidas</Label>
               <Input
                 id="max-instances"
                 type="number"
@@ -239,133 +231,161 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 onChange={(e) => setMaxInstances(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
               />
               <p className="text-xs text-muted-foreground">
-                Define quantas instâncias este usuário pode criar (0 a 20). Aplicado ao salvar.
+                Define quantas instâncias (Z-API + UAZAPI) este usuário pode ter.
               </p>
             </div>
 
-            {instances.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>
-            )}
+            {/* Seção UAZAPI - Extração */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-primary flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Instâncias de Extração (UAZAPI)
+                </h3>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setNewProvider('uazapi');
+                    setShowAddForm(showAddForm === 'uazapi' ? null : 'uazapi');
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extração"}
+                </Button>
+              </div>
 
-            {showAddForm && (
-              <Card className="mb-3 border-primary/40">
-                <CardContent className="pt-4 pb-4 space-y-3">
-                  <h4 className="font-medium text-sm">Nova instância</h4>
-                  <div className="grid grid-cols-2 gap-3">
+              {showAddForm === 'uazapi' && (
+                <Card className="border-primary/40">
+                  <CardContent className="pt-4 pb-4 space-y-3">
                     <div className="space-y-2">
-                      <Label>Provedor</Label>
-                      <Select value={newProvider} onValueChange={(v) => setNewProvider(v as any)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="zapi">Z-API</SelectItem>
-                          <SelectItem value="uazapi">UAZAPI (Evolution)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Nome da Instância</Label>
+                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Extração 01" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as any)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="web">Web (QR Code)</SelectItem>
-                          <SelectItem value="mobile">Mobile (Número)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>URL da API (Evolution/UAZAPI)</Label>
+                      <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
                     </div>
-                  </div>
-
-                  {newProvider === 'uazapi' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>URL da API (UAZAPI)</Label>
-                        <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>API Key / Global Token</Label>
-                        <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Instance ID</Label>
-                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Instance Token</Label>
-                        <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Client Token</Label>
-                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                      </div>
-                    </>
-                  )}
-                   <div className="space-y-2">
-                     <Label>Nome da instância</Label>
-                     <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
-                   </div>
-                   <div className="space-y-2">
-                     <Label>Instance ID</Label>
-                     <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
-                   </div>
-                   <div className="space-y-2">
-                     <Label>Instance Token</Label>
-                     <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
-                   </div>
-                   <div className="space-y-2">
-                     <Label>Client Token (Account Security)</Label>
-                     <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                   </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />
-                    Definir como padrão
-                  </label>
-                  <div className="flex gap-2 justify-end">
-                    <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(false); }}>Cancelar</Button>
-                    <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                      {addingInstance ? "Adicionando..." : "Adicionar instância"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="space-y-2">
-              {instances.map((inst) => (
-                <Card key={inst.id} className={cn("border", inst.is_default && "border-primary")}>
-                  <CardContent className="pt-3 pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm truncate">{inst.instance_name}</span>
-                           <Badge variant="outline" className="text-xs uppercase">
-                             {inst.api_provider === 'uazapi' ? 'UAZAPI' : 'Z-API'}
-                           </Badge>
-                          <Badge variant="outline" className="text-xs uppercase">
-                            {(inst as any).instance_type === 'mobile' ? 'Mobile' : 'Web'}
-                          </Badge>
-                          {inst.is_default && <Badge variant="default" className="text-xs">Padrão</Badge>}
-                          {!inst.is_active && <Badge variant="secondary" className="text-xs">Inativa</Badge>}
-                        </div>
-                         <p className="text-xs text-muted-foreground mt-1 truncate">ID: {inst.zapi_instance_id}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {!inst.is_default && (
-                          <Button size="sm" variant="ghost" title="Definir como padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
-                            <Star className="w-3 h-3" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" title="Remover instância" onClick={() => {
-                          if (confirm('Remover esta instância?')) deleteInstance(inst.id, user.id);
-                        }}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>API Key (Global Token)</Label>
+                      <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
+                        {addingInstance ? "Adicionando..." : "Salvar Extração"}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )}
+
+              <div className="space-y-2">
+                {instances.filter(i => i.api_provider === 'uazapi').map((inst) => (
+                  <Card key={inst.id} className="border">
+                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
+                        <p className="text-xs text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover extração?')) deleteInstance(inst.id, user.id); }}>
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Seção Z-API - Mensagens/Aquecimento */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-emerald-500 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  Instâncias de Aquecimento (Z-API)
+                </h3>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setNewProvider('zapi');
+                    setShowAddForm(showAddForm === 'zapi' ? null : 'zapi');
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showAddForm === 'zapi' ? "Fechar" : "Adicionar Aquecimento"}
+                </Button>
+              </div>
+
+              {showAddForm === 'zapi' && (
+                <Card className="border-emerald-500/40">
+                  <CardContent className="pt-4 pb-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Nome</Label>
+                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Aquecimento 01" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as any)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="web">Web (QR Code)</SelectItem>
+                            <SelectItem value="mobile">Mobile (Número)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Instance ID</Label>
+                      <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID Z-API" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Instance Token</Label>
+                      <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token" type="password" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Client Token</Label>
+                      <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
+                        {addingInstance ? "Adicionando..." : "Salvar Aquecimento"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="space-y-2">
+                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi').map((inst) => (
+                  <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
+                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{inst.instance_name}</span>
+                          <Badge variant="outline" className="text-[10px] uppercase">
+                            {(inst as any).instance_type === 'mobile' ? 'Mobile' : 'Web'}
+                          </Badge>
+                          {inst.is_default && <Badge variant="default" className="bg-emerald-500 text-[10px] h-4">Padrão</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!inst.is_default && (
+                          <Button size="sm" variant="ghost" title="Tornar padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
+                            <Star className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover aquecimento?')) deleteInstance(inst.id, user.id); }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
 
