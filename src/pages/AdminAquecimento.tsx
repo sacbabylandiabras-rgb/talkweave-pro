@@ -334,7 +334,7 @@ export default function AdminAquecimento() {
       list.map(async (inst) => {
         try {
           const { data } = await supabase.functions.invoke("uazapi-status", {
-            body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+            body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token },
           });
           return [
             inst.id,
@@ -395,14 +395,14 @@ export default function AdminAquecimento() {
     setConnectError(null);
     try {
       const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token },
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token },
       });
       if ((statusData as any)?.connected) {
         setConnStatus("connected");
         return;
       }
       const { data, error } = await supabase.functions.invoke("uazapi-connect", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
+        body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -433,7 +433,7 @@ export default function AdminAquecimento() {
     if (!connectOpen || !connectInst) return;
     const interval = setInterval(async () => {
       const { data } = await supabase.functions.invoke("uazapi-status", {
-        body: { apiUrl: connectInst.evolution_api_url, apiToken: connectInst.zapi_token },
+        body: { apiUrl: connectInst.evolution_api_url, apiToken: connectInst.evolution_api_key || connectInst.zapi_token },
       });
       if ((data as any)?.connected) {
         setConnStatus("connected");
