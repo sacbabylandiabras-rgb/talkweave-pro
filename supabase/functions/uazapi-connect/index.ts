@@ -44,17 +44,14 @@ const normalizeConnectPayload = (data: any) => {
 
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken,
-        "apikey": apiToken,
-        "Authorization": `Bearer ${apiToken}`
+        "token": apiToken
       };
 
       // Try multiple possible endpoints for connection
-      const connectEndpoints = [];
+      const connectEndpoints = ["/instance/connect"];
       if (instanceName) {
-        connectEndpoints.push(`/instance/connect/${instanceName}`);
+        connectEndpoints.unshift(`/instance/connect/${instanceName}`);
       }
-      connectEndpoints.push("/instance/connect");
 
       let data = {};
       let success = false;
@@ -81,19 +78,6 @@ const normalizeConnectPayload = (data: any) => {
         }
       }
  
-     // If phone is provided, try pairing code
-      if (phone && instanceName) {
-        console.log(`Trying pairing code for phone: ${phone}`);
-       const pairingResponse = await fetch(withToken(`/instance/connect?phone=${encodeURIComponent(phone)}`), {
-         method: "POST",
-          headers,
-         body: JSON.stringify({ phone }),
-       });
-        const pairingData = await pairingResponse.json().catch(() => ({}));
-        return new Response(JSON.stringify(normalizeConnectPayload({ ...data, ...pairingData })), {
-         headers: { ...corsHeaders, "Content-Type": "application/json" },
-       });
-     }
  
       return new Response(JSON.stringify(normalizeConnectPayload(data)), {
        headers: { ...corsHeaders, "Content-Type": "application/json" },
