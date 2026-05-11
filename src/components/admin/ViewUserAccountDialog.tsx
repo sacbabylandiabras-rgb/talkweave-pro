@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { UserProfile } from "@/hooks/useAdminUsers";
+import { isMobileZapiInstance } from "@/hooks/useZapiInstances";
 
 interface Props {
   user: UserProfile | null;
@@ -59,8 +60,10 @@ export function ViewUserAccountDialog({ user, open, onOpenChange }: Props) {
         supabase.from("gateway_products").select("id, name, price, type, status, category, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
       ]);
 
+      const visibleInstances = ((instances || []) as any[]).filter((instance) => !isMobileZapiInstance(instance));
+
       setData({
-        instances: instances || [],
+        instances: visibleInstances,
         contacts: contacts || [],
         campaigns: campaigns || [],
         templates: templates || [],
