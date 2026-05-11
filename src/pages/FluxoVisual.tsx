@@ -2089,9 +2089,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.contentType === "location" && (
+                {(selectedNode.data.contentType === "location" || selectedNode.data.contentType === "location-buttons") && (
                   <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
-                    <Label className="text-sm font-semibold">Localização Geográfica</Label>
+                    <Label className="text-sm font-semibold">
+                      {selectedNode.data.contentType === "location-buttons" ? "Localização com Botões" : "Localização Nativa"}
+                    </Label>
                     <div className="grid grid-cols-2 gap-2">
                       <Input
                         placeholder="Latitude"
