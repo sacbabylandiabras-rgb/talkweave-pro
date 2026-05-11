@@ -38,7 +38,10 @@ const Landing = () => {
         <div className="lp-hero-glow" />
         <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão {" "}<br />WhatsApp &amp; Instagram</h1>
         <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
-        <button className="lp-btn-cta" onClick={goSignup}>Criar Conta Grátis →</button>
+         <div className="lp-hero-ctas">
+           <button className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</button>
+           <div className="lp-hero-trial-tag">7 dias de teste gratuito • Sem cartão de crédito</div>
+         </div>
       </div>
 
       {/* FEATURE CARDS */}
@@ -151,7 +154,7 @@ const Landing = () => {
       <div className="lp-cta-final">
         <h2>Venda mais com Gateway + WhatsApp + Instagram</h2>
         <p>Receba pagamentos e automatize toda sua comunicação em uma única plataforma.</p>
-        <button className="lp-btn-cta" onClick={goSignup}>Começar Agora →</button>
+         <button className="lp-btn-cta" onClick={goSignup}>Começar Teste Grátis →</button>
       </div>
 
       {/* FOOTER */}

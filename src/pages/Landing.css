@@ -1,3 +1,16 @@
+.lp-hero-ctas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp-hero-trial-tag {
+  font-size: 13px;
+  color: var(--lp-muted);
+  font-weight: 500;
+}
+
 /* ========================================
    ZapLynx Landing Page v9 Styles
    ======================================== */
