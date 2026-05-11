@@ -46,7 +46,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
 
   // Add instance form
-   const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | null>(null);
+   const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | 'mobile' | null>(null);
   const [addingInstance, setAddingInstance] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
