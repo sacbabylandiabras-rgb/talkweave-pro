@@ -34,7 +34,7 @@ const ApanhadorGrupos = () => {
   const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
-  // Instâncias UAZAPI para esta página
+  // Instâncias UAZAPI para esta página (apenas as de extração, ignorando pool de aquecimento)
   const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi');
   const apanhadorInstances = uazapiInstances;
   const [extracting, setExtracting] = useState<string | null>(null);
