@@ -51,6 +51,7 @@ const normalizeConnectPayload = (data: any) => {
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
 
       console.log(`UAZAPI Connect: ${apiUrl} (Instance: ${instanceName})`);
+      console.log(`Phone provided: ${phone || 'NONE'}`);
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
@@ -78,10 +79,12 @@ const normalizeConnectPayload = (data: any) => {
       for (const ep of connectEndpoints) {
         try {
           console.log(`Trying connect endpoint: ${ep}`);
+          const requestBody = phone ? { phone } : {};
+          console.log(`Request body: ${JSON.stringify(requestBody)}`);
           const response = await fetch(withToken(ep), {
             method: "POST",
             headers,
-            body: JSON.stringify(phone ? { phone } : {}),
+            body: JSON.stringify(requestBody),
           });
           
           const resText = await response.text();
