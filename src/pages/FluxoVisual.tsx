@@ -248,7 +248,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
-  const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+   const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
+   const [availableTags, setAvailableTags] = useState<string[]>([]);
+   const [loadingTags, setLoadingTags] = useState(false);
 
   // Para modo grupos: grupos pré-selecionados antes de criar/abrir o fluxo
   const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
@@ -331,9 +333,33 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     fetchFluxos();
   }, [isGroupsMode]);
 
-  useEffect(() => {
-    const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
-    if (uazapiInstances.length === 0) return;
+   useEffect(() => {
+     const fetchTagsForEditor = async () => {
+       const firstInstance = instances.find(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
+       if (!firstInstance) return;
+ 
+       try {
+         setLoadingTags(true);
+         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+           body: { action: "list-tags", instanceDbId: firstInstance.id },
+         });
+         if (!error && data) {
+           const payload = data.data ?? data;
+           if (Array.isArray(payload)) {
+             setAvailableTags(payload.map((t: any) => t.name));
+           }
+         }
+       } catch (e) {
+         console.error("Erro ao carregar etiquetas para o editor:", e);
+       } finally {
+         setLoadingTags(false);
+       }
+     };
+ 
+     fetchTagsForEditor();
+ 
+     const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
+     if (uazapiInstances.length === 0) return;
 
     try {
       const flagKey = "uazapi_webhook_synced_flow_v1";
