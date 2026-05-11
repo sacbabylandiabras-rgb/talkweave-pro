@@ -121,7 +121,7 @@ const ApanhadorGrupos = () => {
 
   // Conectar instância uazapi via QR Code
   const [connectOpen, setConnectOpen] = useState(false);
-  const [uazapiAccounts, setUazapiAccounts] = useState<{ label: string; url: string; token: string }[]>([]);
+  const [uazapiAccounts, setUazapiAccounts] = useState<{ name: string; label: string; url: string; token: string }[]>([]);
   const [activeAccountIdx, setActiveAccountIdx] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -164,6 +164,7 @@ const ApanhadorGrupos = () => {
 
     const source = (data?.length ? data : uazapiInstances) as any[];
     const accounts = source.map((inst: any) => ({
+      name: inst.instance_name,
       label: inst.instance_name,
       url: inst.evolution_api_url,
       token: inst.evolution_api_key || inst.zapi_token,
@@ -172,13 +173,13 @@ const ApanhadorGrupos = () => {
     return accounts;
   };
 
-  const fetchQrFor = async (account: { url: string; token: string }, phone?: string) => {
+  const fetchQrFor = async (account: { url: string; token: string; name?: string }, phone?: string) => {
     setQrLoading(true);
     setQrCode(null);
     setPairingCode(null);
     try {
       const { data: statusData } = await supabase.functions.invoke('uazapi-status', {
-        body: { apiUrl: account.url, apiToken: account.token },
+        body: { apiUrl: account.url, apiToken: account.token, instanceName: account.name },
       });
       if (statusData?.connected) {
         setConnStatus('connected');
@@ -186,7 +187,7 @@ const ApanhadorGrupos = () => {
         return;
       }
       const { data, error } = await supabase.functions.invoke('uazapi-connect', {
-        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined },
+        body: { apiUrl: account.url, apiToken: account.token, phone: phone || undefined, instanceName: account.name },
       });
       if (error) throw error;
       setConnStatus(data?.connectionStatus || 'connecting');
@@ -233,7 +234,7 @@ const ApanhadorGrupos = () => {
     if (!account) return;
     const interval = setInterval(async () => {
       const { data } = await supabase.functions.invoke('uazapi-status', {
-        body: { apiUrl: account.url, apiToken: account.token },
+        body: { apiUrl: account.url, apiToken: account.token, instanceName: account.name },
       });
       if (data?.connected) {
         setConnStatus('connected');

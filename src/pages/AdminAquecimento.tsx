@@ -335,7 +335,11 @@ export default function AdminAquecimento() {
       list.map(async (inst) => {
         try {
           const { data } = await supabase.functions.invoke("uazapi-status", {
-            body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token },
+            body: { 
+              apiUrl: inst.evolution_api_url, 
+              apiToken: inst.evolution_api_key || inst.zapi_token,
+              instanceName: inst.instance_name
+            },
           });
           return [
             inst.id,
@@ -396,14 +400,25 @@ export default function AdminAquecimento() {
     setConnectError(null);
     try {
       const { data: statusData } = await supabase.functions.invoke("uazapi-status", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token },
+        body: { 
+          apiUrl: inst.evolution_api_url, 
+          apiToken: inst.evolution_api_key || inst.zapi_token,
+          instanceName: inst.instance_name
+        },
       });
       if ((statusData as any)?.connected) {
         setConnStatus("connected");
         return;
       }
+      console.log("Chamando uazapi-connect para:", inst.instance_name);
       const { data, error } = await supabase.functions.invoke("uazapi-connect", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
+        body: { 
+          apiUrl: inst.evolution_api_url, 
+          apiToken: inst.evolution_api_key || inst.zapi_token, 
+          phone: phone || undefined, 
+          instanceId: inst.id,
+          instanceName: inst.instance_name 
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -434,7 +449,11 @@ export default function AdminAquecimento() {
     if (!connectOpen || !connectInst) return;
     const interval = setInterval(async () => {
       const { data } = await supabase.functions.invoke("uazapi-status", {
-        body: { apiUrl: connectInst.evolution_api_url, apiToken: connectInst.evolution_api_key || connectInst.zapi_token },
+        body: { 
+          apiUrl: connectInst.evolution_api_url, 
+          apiToken: connectInst.evolution_api_key || connectInst.zapi_token,
+          instanceName: connectInst.instance_name
+        },
       });
       if ((data as any)?.connected) {
         setConnStatus("connected");
