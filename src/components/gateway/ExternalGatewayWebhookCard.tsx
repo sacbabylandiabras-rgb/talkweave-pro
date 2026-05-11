@@ -74,7 +74,7 @@ export function ExternalGatewayWebhookCard() {
           <p className="text-sm text-muted-foreground">Faça login para gerar sua URL.</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Compatível com Hotmart, Kiwify, Eduzz, Cakto, Monetizze, PerfectPay, Braip, Yampi e qualquer plataforma
+          Compatível com Hotmart, Kiwify, Eduzz, Cakto, Monetizze, Braip, Yampi e qualquer plataforma
           que envie notificações por webhook (POST com JSON).
         </p>
       </CardContent>
