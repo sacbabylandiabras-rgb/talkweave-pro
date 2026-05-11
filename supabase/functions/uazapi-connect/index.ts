@@ -31,7 +31,9 @@ const normalizeConnectPayload = (data: any) => {
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-      const { apiUrl, apiToken, phone, instanceName } = await req.json();
+      const body = await req.json();
+      const { apiUrl, apiToken, phone } = body;
+      const instanceName = body.instanceName || body.instance_name;
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
 
       console.log(`UAZAPI Connect: ${apiUrl} (Instance: ${instanceName})`);
