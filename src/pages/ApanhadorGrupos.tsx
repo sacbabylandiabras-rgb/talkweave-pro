@@ -940,19 +940,6 @@ const ApanhadorGrupos = () => {
                               {adminsCount > 0 && excludeAdmins && (
                                 <Badge variant="outline" className="text-xs">{adminsCount} admin(s) ocultos</Badge>
                               )}
-                              {lidsCount > 0 && excludeLids && (
-                                <Badge variant="outline" className="text-xs">{lidsCount} anônimo(s) ocultos</Badge>
-                              )}
-                              {allLids && excludeLids && exportable === 0 && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="h-auto p-0 text-xs text-amber-500 hover:text-amber-400"
-                                  onClick={() => setExcludeLids(false)}
-                                >
-                                  Mostrar mesmo assim ({lidsCount})
-                                </Button>
-                              )}
                             </>
                           );
                         })()}
