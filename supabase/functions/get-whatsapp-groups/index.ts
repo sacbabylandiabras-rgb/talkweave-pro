@@ -129,13 +129,29 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
       const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
       const apiToken = instance.evolution_api_key || instance.zapi_token || '';
       if (!apiUrl || !apiToken) return false;
-      const endpoints = ['/instance/status', '/status', '/instance'];
+       const endpoints = ['/instance/status', '/status', '/instance', '/instance/connectionStatus'];
+       // If instance_name is available in the instance record (from Evolution API)
+       if (instance.instance_name) {
+         endpoints.unshift(`/instance/status/${instance.instance_name}`);
+         endpoints.unshift(`/instance/connectionStatus/${instance.instance_name}`);
+       }
+ 
+       const headers = { 
+         'Content-Type': 'application/json', 
+         'token': apiToken,
+         'apikey': apiToken,
+         'Authorization': `Bearer ${apiToken}`
+       };
+ 
       for (const ep of endpoints) {
         try {
-          const r = await fetch(`${apiUrl}${ep}`, {
-            method: 'GET',
-            headers: { token: apiToken, 'Content-Type': 'application/json' },
-          });
+           const separator = ep.includes('?') ? '&' : '?';
+           const urlWithParams = `${apiUrl}${ep}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+           
+           const r = await fetch(urlWithParams, {
+             method: 'GET',
+             headers,
+           });
           if (!r.ok) continue;
           const j = await r.json().catch(() => null);
           if (!j) continue;
