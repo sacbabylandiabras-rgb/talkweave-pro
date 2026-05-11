@@ -957,7 +957,7 @@ Deno.serve(async (req) => {
                nome: group.name || group.contact || group.subject || group.title || group.groupName || "Sem nome",
                descricao: group.description || group.desc || "",
                membros: participants.length || group.memberCount || group.size || 0,
-               foto: group.imgUrl || group.profilePicture || group.image || group.photo || null,
+                foto: group.foto || group.ProfilePicture || group.ProfilePicUrl || group.profilePicture || group.imgUrl || group.image || group.photo || null,
                ultimaMensagem: group.lastMessageTimestamp || group.lastMessageTime || null,
                isAdmin: isAdmin,
                participantes: participants,
