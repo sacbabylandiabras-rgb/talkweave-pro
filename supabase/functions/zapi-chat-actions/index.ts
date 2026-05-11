@@ -298,7 +298,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
     // Tag Actions (WhatsApp Business)
     case 'list-tags':
-      return { method: 'GET', path: "/business/tags" };
+      return { method: 'GET', path: "/tags" };
     case 'create-tag': {
       const body: any = { name: payload?.name };
       if (payload?.color !== undefined) {
