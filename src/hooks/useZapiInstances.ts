@@ -150,7 +150,7 @@ export const useAdminZapiInstances = (userId?: string) => {
       setLoading(true);
       const { data, error } = await fromZapiInstances().select('*').eq('user_id', uid).order('created_at', { ascending: true });
       if (error) throw error;
-      setInstances((data || []) as ZapiInstance[]);
+      setInstances(((data || []) as ZapiInstance[]).filter((item) => !isMobileZapiInstance(item)));
     } catch (error: any) {
       console.error('Erro ao buscar instâncias do usuário:', error);
     } finally {
