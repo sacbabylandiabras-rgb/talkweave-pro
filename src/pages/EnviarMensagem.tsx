@@ -1515,8 +1515,10 @@ const EnviarMensagem = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+       <div className="flex flex-col lg:flex-row gap-6">
+         <div className="flex-1 min-w-0">
+           <Tabs defaultValue="individual" className="w-full">
+             <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Texto
@@ -2179,7 +2181,29 @@ Formatos aceitos:
             loading={loading}
           />
         </TabsContent>
-      </Tabs>
+           </Tabs>
+         </div>
+ 
+         <div className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start">
+           <div className="flex items-center justify-between">
+             <h3 className="text-sm font-semibold flex items-center gap-2">
+               <LayoutTemplate className="w-4 h-4 text-primary" />
+               Prévia do Envio
+             </h3>
+             <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+               WhatsApp Web
+             </Badge>
+           </div>
+           <div className="bg-muted/10 rounded-2xl border border-white/5 p-4 flex items-center justify-center">
+             <WhatsAppPreview template={previewTemplateData} />
+           </div>
+           <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
+             <p className="text-[11px] text-muted-foreground leading-relaxed">
+               <span className="text-primary font-medium">Nota:</span> Esta é uma simulação aproximada de como a mensagem será exibida no dispositivo do destinatário.
+             </p>
+           </div>
+         </div>
+       </div>
     </div>
   );
 };
