@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+ import { useState, useCallback, useRef, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -42,7 +42,9 @@ import {
   ArrowLeft,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+ import { toast } from "sonner";
+ import { supabase } from "@/integrations/supabase/client";
+ import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { BlocoGatewayTriggerNode } from "@/components/flow/BlocoGatewayTriggerNode";
 import { BlocoConteudoNode } from "@/components/flow/BlocoConteudoNode";
 import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
@@ -119,7 +121,36 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
   });
   const [showList, setShowList] = useState(true);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+   const { instances } = useZapiInstances();
+   const [availableTags, setAvailableTags] = useState<string[]>([]);
+   const [loadingTags, setLoadingTags] = useState(false);
+ 
+   useEffect(() => {
+     const fetchTagsForEditor = async () => {
+       const firstInstance = instances.find(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
+       if (!firstInstance) return;
+ 
+       try {
+         setLoadingTags(true);
+         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+           body: { action: "list-tags", instanceDbId: firstInstance.id },
+         });
+         if (!error && data) {
+           const payload = data.data ?? data;
+           if (Array.isArray(payload)) {
+             setAvailableTags(payload.map((t: any) => t.name));
+           }
+         }
+       } catch (e) {
+         console.error("Erro ao carregar etiquetas para o editor:", e);
+       } finally {
+         setLoadingTags(false);
+       }
+     };
+ 
+     fetchTagsForEditor();
+   }, [instances]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({
@@ -509,19 +540,71 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Configuração</Label>
-                  <Input
-                    value={selectedNode.data.actionConfig || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, actionConfig: e.target.value },
-                      })
-                    }
-                    placeholder={selectedNode.data.actionType === "delay" ? "Ex: 30 (segundos)" : "Configure..."}
-                  />
-                </div>
+                 {selectedNode.data.actionType === "tag" ? (
+                   <div>
+                     <Label>Escolher Etiqueta</Label>
+                     <div className="flex gap-2 mb-2">
+                       <Select
+                         value={availableTags.includes(selectedNode.data.actionConfig || "") ? selectedNode.data.actionConfig : "manual"}
+                         onValueChange={(value) => {
+                           if (value !== "manual") {
+                             setSelectedNode({
+                               ...selectedNode,
+                               data: { ...selectedNode.data, actionConfig: value },
+                             });
+                           } else if (availableTags.includes(selectedNode.data.actionConfig || "")) {
+                             setSelectedNode({
+                               ...selectedNode,
+                               data: { ...selectedNode.data, actionConfig: "" },
+                             });
+                           }
+                         }}
+                       >
+                         <SelectTrigger className="flex-1">
+                           <SelectValue placeholder={loadingTags ? "Carregando..." : "Selecione..."} />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="manual">-- Digitar manualmente --</SelectItem>
+                           {availableTags.map((tag) => (
+                             <SelectItem key={tag} value={tag}>
+                               {tag}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     
+                     {(!availableTags.includes(selectedNode.data.actionConfig || "") || selectedNode.data.actionConfig === "") && (
+                       <div className="mt-2">
+                         <Label className="text-[11px]">Ou digite o nome:</Label>
+                         <Input
+                           value={selectedNode.data.actionConfig || ""}
+                           onChange={(e) =>
+                             setSelectedNode({
+                               ...selectedNode,
+                               data: { ...selectedNode.data, actionConfig: e.target.value },
+                             })
+                           }
+                           placeholder="Ex: Interessado"
+                         />
+                       </div>
+                     )}
+                   </div>
+                 ) : (
+                   <div>
+                     <Label>Configuração</Label>
+                     <Input
+                       value={selectedNode.data.actionConfig || ""}
+                       onChange={(e) =>
+                         setSelectedNode({
+                           ...selectedNode,
+                           data: { ...selectedNode.data, actionConfig: e.target.value },
+                         })
+                       }
+                       placeholder={selectedNode.data.actionType === "delay" ? "Ex: 30 (segundos)" : "Configure..."}
+                     />
+                   </div>
+                 )}
               </>
             )}
 
