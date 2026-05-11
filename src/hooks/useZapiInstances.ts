@@ -16,13 +16,19 @@ export interface ZapiInstance {
   api_provider: string;
   evolution_api_url?: string | null;
   evolution_api_key?: string | null;
-    instance_type?: 'web';
+    instance_type?: 'web' | 'mobile' | null;
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');
 const INSTANCES_CACHE_PREFIX = 'zapi_instances_cache:';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type'>) => {
+  const type = String(instance.instance_type || '').trim().toLowerCase();
+  const name = String(instance.instance_name || '').trim().toLowerCase();
+  return type === 'mobile' || /^mobile\b/.test(name);
+};
 
 const readCachedInstances = (userId: string): ZapiInstance[] | null => {
   try {
@@ -52,7 +58,7 @@ const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
 const normalizeInstances = (items: ZapiInstance[]) => {
   const dedupedMap = new Map<string, ZapiInstance>();
 
-  for (const instance of items) {
+  for (const instance of items.filter((item) => !isMobileZapiInstance(item))) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
     if (!previous) { dedupedMap.set(key, instance); continue; }
@@ -144,7 +150,7 @@ export const useAdminZapiInstances = (userId?: string) => {
       setLoading(true);
       const { data, error } = await fromZapiInstances().select('*').eq('user_id', uid).order('created_at', { ascending: true });
       if (error) throw error;
-      setInstances((data || []) as ZapiInstance[]);
+      setInstances(((data || []) as ZapiInstance[]).filter((item) => !isMobileZapiInstance(item)));
     } catch (error: any) {
       console.error('Erro ao buscar instâncias do usuário:', error);
     } finally {

@@ -13,7 +13,7 @@ import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus, 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
- import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+ import { isMobileZapiInstance, useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
  import { useAdminWebInstances } from "@/hooks/useAdminWebInstances";
  import { useAdminUazapi } from "@/hooks/useAdminUazapi";
 import { Badge } from "@/components/ui/badge";
@@ -456,7 +456,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                )}
  
                <div className="space-y-2">
-                  {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && (i.instance_type === 'web' || !i.instance_type)).map((inst) => (
+                  {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && (i.instance_type === 'web' || !i.instance_type) && !isMobileZapiInstance(i)).map((inst) => (
                    <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
                      <CardContent className="pt-3 pb-3 flex items-center justify-between">
                        <div className="min-w-0">

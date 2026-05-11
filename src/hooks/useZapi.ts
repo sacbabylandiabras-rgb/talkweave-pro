@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import type { ZapiInstance } from '@/hooks/useZapiInstances';
+import { isMobileZapiInstance, type ZapiInstance } from '@/hooks/useZapiInstances';
 
 // Instância override - permite que componentes passem uma instância específica
 let _instanceOverride: ZapiInstance | null = null;
@@ -59,16 +59,16 @@ const getZAPIConfig = async () => {
 
   const { data: instances, error } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
     .eq('user_id', user.id)
     .eq('is_active', true)
       .or('api_provider.is.null,api_provider.eq.zapi')
     .order('is_default', { ascending: false })
-    .limit(1);
+    .limit(10);
 
   if (error) throw new Error('Erro ao buscar credenciais: ' + error.message);
 
-  const instance = instances?.[0];
+  const instance = instances?.find((item) => !isMobileZapiInstance(item as any));
 
   if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
     const { data: profile, error: profileError } = await supabase
