@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+ import { useEffect, useState, useMemo } from "react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,8 +96,13 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   return typeof imageUrls === "object" ? imageUrls.thumbnail || imageUrls.requested || imageUrls.original || "" : "";
 };
 
-const PerfilEmpresa = () => {
-  const { instances, loading: loadingInstances } = useZapiInstances();
+ const PerfilEmpresa = () => {
+   const { allInstances, loading: loadingInstances } = useZapiInstances();
+   
+   const instances = useMemo(() => {
+     return allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi');
+   }, [allInstances]);
+ 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "perfil";
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
