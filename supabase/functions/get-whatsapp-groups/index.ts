@@ -164,38 +164,46 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
              j?.state || 
              j?.instance?.state || 
              j?.instance?.connectionStatus || 
-             j?.status?.checked_instance?.connection_status ||
-             j?.status?.connection_status ||
-             '';
-           
-           let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
-           
-           // Se o status estiver vazio mas tivermos connected=true, forçamos o status para open
-           if (!status && (j?.connected === true || j?.instance?.connected === true || j?.status?.connected === true || j?.status?.loggedIn === true)) {
-             status = 'open';
-           }
-           
-           const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused', 'connecting'];
-          if (
+          const statusRaw = 
+            j?.instance?.status || 
+            j?.status?.checked_instance?.connection_status ||
+            j?.status?.connection_status ||
+            j?.status || 
+            j?.connectionStatus || 
+            j?.state || 
+            j?.instance?.state || 
+            j?.instance?.connectionStatus || 
+            '';
+          
+          let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+          
+          // Se o status estiver vazio mas tivermos connected=true, forçamos o status para open
+          if (!status && (j?.connected === true || j?.instance?.connected === true || j?.status?.connected === true || j?.status?.loggedIn === true || j?.status?.checked_instance?.connection_status === 'connected')) {
+            status = 'open';
+          }
+          
+          const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused', 'connecting'];
+          
+          const isDisconnected = 
             j?.connected === false ||
             j?.loggedIn === false ||
             j?.status?.connected === false ||
             j?.status?.loggedIn === false ||
             j?.instance?.connected === false ||
-            negativeStates.some((s) => status === s || status.includes(s))
-          ) {
-            return false;
-          }
-          const connected =
+            negativeStates.some((s) => status === s || status.includes(s));
+
+          const connected = !isDisconnected && (
             j?.connected === true ||
             j?.loggedIn === true ||
             j?.status?.connected === true ||
             j?.status?.loggedIn === true ||
-             j?.instance?.connected === true ||
-             j?.status?.checked_instance?.connection_status === 'connected' ||
-             ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in', 'true'].some((s) =>
-               status === s || status.includes(s)
-             );
+            j?.instance?.connected === true ||
+            j?.status?.checked_instance?.connection_status === 'connected' ||
+            ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in', 'true'].some((s) =>
+              status === s || status.includes(s)
+            )
+          );
+
           if (connected) {
             console.log(`✅ Instance ${instance.instance_name} is connected (status: ${status})`);
             return true;
