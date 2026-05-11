@@ -115,13 +115,7 @@ serve(async (req) => {
         .single();
 
       if (instError || !instance) throw new Error('Instance not found');
-      console.log('[get-pairing-code] instance loaded', {
-        provider: (instance as any).api_provider,
-        hasZapiId: Boolean((instance as any).zapi_instance_id),
-        hasZapiToken: Boolean((instance as any).zapi_token),
-        hasClientToken: Boolean((instance as any).zapi_client_token),
-      });
-
+      
       // UAZAPI provider routing
       if ((instance as any).api_provider === 'uazapi') {
         const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
@@ -131,18 +125,19 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
+        const withToken = (path: string) => `${apiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
+
         // Ensure instance is disconnected so /connect with phone returns a paircode
-        // (if already in QR-pending mode, it would return another QR instead)
         try {
-          await fetch(`${apiUrl}/instance/disconnect`, {
+          await fetch(withToken('/instance/disconnect'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', token: apiToken },
           });
         } catch (e) {
-          console.warn('[get-pairing-code] disconnect before pairing failed (continuing):', e);
+          console.warn('[get-pairing-code] disconnect before pairing failed:', e);
         }
 
-        const uazRes = await fetch(`${apiUrl}/instance/connect`, {
+        const uazRes = await fetch(withToken('/instance/connect'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify({ phone: phoneNumber }),
@@ -152,18 +147,11 @@ serve(async (req) => {
         let code = getPairingCodeValue(uazData);
         let qr = getQrCodeValue(uazData);
 
-        console.log('[get-pairing-code] connect response', {
-          status: uazRes.status,
-          hasCode: Boolean(code),
-          hasQr: Boolean(qr),
-          keys: Object.keys(uazData || {}),
-        });
-
         if (!code) {
           for (let attempt = 0; attempt < 4; attempt += 1) {
-            await new Promise((resolve) => setTimeout(resolve, 700));
+            await new Promise((resolve) => setTimeout(resolve, 800));
 
-            const statusRes = await fetch(`${apiUrl}/instance/status`, {
+            const statusRes = await fetch(withToken('/instance/status'), {
               method: 'GET',
               headers: { 'Content-Type': 'application/json', token: apiToken },
             });
@@ -203,7 +191,6 @@ serve(async (req) => {
 
     // Z-API pairing code
     const zapiUrl = `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}/phone-code/${phoneNumber}`;
-    console.log('[get-pairing-code] calling Z-API', { url: zapiUrl.replace(credentials.token, '***') });
     const response = await fetch(zapiUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
@@ -211,7 +198,6 @@ serve(async (req) => {
     const rawText = await response.text();
     let result: any = {};
     try { result = JSON.parse(rawText); } catch { result = { message: rawText }; }
-    console.log('[get-pairing-code] Z-API response', { status: response.status, body: rawText.slice(0, 500) });
 
     if (!response.ok || !result.code) {
       return new Response(
