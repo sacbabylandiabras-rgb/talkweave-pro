@@ -73,8 +73,8 @@ const PreviaModelos = () => {
         { id: "3", text: "Sexta", type: "reply" }
       ]
     },
-    { name: "Sticker (Figurinha)", category: "Especial", type: "sticker", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
-    { name: "GIF Animado", category: "Especial", type: "gif", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
+    { name: "Sticker (Figurinha)", category: "Especial", type: "sticker", content: "Figurinha enviada", mediaUrl: "https://i.giphy.com/3o7TKMGf7U1aFjD9pS.gif" },
+    { name: "GIF Animado", category: "Especial", type: "gif", content: "GIF enviado", mediaUrl: "https://i.giphy.com/3o7TKMGf7U1aFjD9pS.gif" },
     { name: "Link com Preview", category: "Especial", type: "link", content: "Acesse nosso site: https://lovable.dev" }
   ];
 
