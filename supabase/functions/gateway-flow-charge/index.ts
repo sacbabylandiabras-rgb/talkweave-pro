@@ -70,25 +70,37 @@ serve(async (req) => {
       const clientId = Deno.env.get("CARTWAVE_CLIENT_ID");
       const clientSecret = Deno.env.get("CARTWAVE_CLIENT_SECRET");
       if (!clientId || !clientSecret) throw new Error("CartWave não configurado");
-      const r = await fetch("https://api.cartwavehub.com/v1/checkout/create-pix-copy-and-paste", {
+
+      // Auth Step
+      const authRes = await fetch("https://api.cartwavehub.com.br/v2/finance/auth-token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+      });
+      const authData = await authRes.json();
+      const token = authData?.access_token;
+      if (!token) throw new Error("Falha na autenticação CartWave");
+
+      // Charge Step
+      const r = await fetch("https://api.cartwavehub.com.br/v2/finance/create-pix-copy-and-paste/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          external_id: externalId,
           amount: parseFloat((amount / 100).toFixed(2)),
-          payer: {
-            name: customerName || "Cliente",
-            email: customerEmail || "cliente@email.com",
-            document: (customerCpf || "00000000000").replace(/\D/g, ""),
-          },
-          description,
+          type_fine: "NONE",
+          fine: 0,
+          debtor_name: customerName || "Cliente",
+          debtor_document: (customerCpf || "00000000000").replace(/\D/g, ""),
+          tag: externalId,
+          base_64_image: true
         }),
       });
       const d = await r.json();
-      brCode = d?.copy_and_paste || d?.brcode || "";
-      qrCodeImage = d?.qrcode_base64 || "";
+      brCode = d?.copy_and_paste || d?.brcode || d?.data?.copy_and_paste || "";
+      qrCodeImage = d?.qrcode_base64 || d?.data?.qrcode_base64 || "";
     } else {
       const appId = Deno.env.get("OPENPIX_APP_ID");
       if (!appId) throw new Error("OpenPix não configurado");
