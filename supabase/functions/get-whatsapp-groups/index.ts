@@ -739,12 +739,13 @@ const normalizeZapiGroupId = (value: unknown, allowBareGroupId = false): string 
       ...await fetchPaginated('groups'),
     ];
 
-     const chats = Array.from(new Map(rawItems.map((item: any) => {
+     const chats = Array.from(new Map<string, any>(rawItems.map((item: any): [string, any] => {
        const rawId = item.id || item.phone || item.groupId || item.groupJid || item.groupjid || item.jid || item.chatId;
        const isGroupListItem = item.__zapiListSource === 'groups';
        const normalizedId = normalizeZapiGroupId(rawId, isGroupListItem);
-       return [normalizedId || rawId, { ...item, id: normalizedId || rawId, phone: normalizedId || rawId, __isGroupListItem: isGroupListItem }];
-     }).filter(([id]) => Boolean(id))).values());
+        const id = String(normalizedId || rawId || '');
+        return [id, { ...item, id, phone: id, __isGroupListItem: isGroupListItem }];
+      }).filter(([id]) => Boolean(id))).values());
      
  
    // Filter and map to unified format
