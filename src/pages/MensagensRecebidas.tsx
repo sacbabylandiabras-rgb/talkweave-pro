@@ -500,6 +500,26 @@ const ConversationList = ({
                     {getConversationDisplayName(conv.contactName, conv.phone, conv.isCommunity)}
                   </span>
                   <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
+                  {(() => {
+                    const tagNames = Array.from(new Set(conv.messages.flatMap(m => (m as any).tags || [])));
+                    if (tagNames.length === 0) return null;
+                    return (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {tagNames.slice(0, 3).map((tagName: string) => {
+                          const tag = availableTags?.find(t => t.name === tagName);
+                          const colorHex = tagColors?.find(c => c.id === (tag?.color ?? 0))?.hex || '#94a3b8';
+                          return (
+                            <span
+                              key={tagName}
+                              title={tagName}
+                              className="inline-block w-2.5 h-2.5 rounded-full border border-background"
+                              style={{ backgroundColor: colorHex }}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
