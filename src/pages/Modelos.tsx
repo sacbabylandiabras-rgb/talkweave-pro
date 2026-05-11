@@ -1359,6 +1359,10 @@ const Modelos = () => {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
       return;
     }
+    if (editFormData.type === "pagamento" && (!editFormData.paymentTitle || !editFormData.paymentAmount)) {
+      toast({ title: "Erro", description: "Informe o título e o valor do pagamento", variant: "destructive" });
+      return;
+    }
 
     const validListItems = Array.isArray(editFormData.listItems)
       ? editFormData.listItems.filter(item => item.title.trim() !== "")
