@@ -1749,16 +1749,6 @@ const getPreviewFileLabel = (template: any) => {
              </Button>
            )}
  
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-2"
-              onClick={() => navigate("/modelos/previa")}
-            >
-              <Eye className="w-4 h-4" />
-              Ver Prévias
-            </Button>
-
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
