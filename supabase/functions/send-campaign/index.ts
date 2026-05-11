@@ -1789,6 +1789,41 @@ serve(async (req) => {
           const { url, body: specialBody } = await dispatchZapiSpecial(baseZapiUrl, instClientToken, contact.phone, specialTpl, supabase, credentials.userId);
           zapiUrl = url;
           requestBody = specialBody;
+
+          // Se for um template especial (PIX, Localização, etc), enviamos e continuamos para o próximo contato
+          // para evitar que os blocos de template genérico abaixo (hasButtons, send-text) sobrescrevam o requestBody.
+          if (zapiUrl) {
+            const zapiResponse = await fetch(zapiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
+              body: JSON.stringify(requestBody),
+            });
+
+            let zapiResult: any = {};
+            try {
+              const responseText = await zapiResponse.text();
+              if (responseText && responseText.trim()) zapiResult = JSON.parse(responseText);
+            } catch {}
+
+            const confirmed = isZapiConfirmed(zapiResult);
+            const explicitError = getZapiExplicitError(zapiResult);
+            console.log(`📬 [Special] Campaign Z-API response for ${contact.phone}: status=${zapiResponse.status}, confirmed=${confirmed}`);
+
+            if ((zapiResponse.ok && !explicitError && confirmed) || (isLidIdentifier(contact.phone) && zapiResponse.ok)) {
+              campaignSend.status = 'pending';
+              const ackId = getZapiAckId(zapiResult);
+              if (ackId) campaignSend.message_id = String(ackId);
+              results.push({ phone: contact.phone, success: true, messageId: ackId });
+            } else {
+              campaignSend.status = 'failed';
+              campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio especial' : `HTTP ${zapiResponse.status}`);
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            }
+            
+            await persistCampaignSend(campaignSend, reusableSendId);
+            if (i < currentBatch.length - 1) await sleep(delayMs);
+            continue;
+          }
         } else if (templateType === 'carrossel' && hasCarouselCards) {
           const carouselItems = campaign.template.carousel_cards.map((card: any, idx: number) => {
             const text = [card.title, card.description].filter((s: any) => s && String(s).trim() !== '').join('\n\n') || (card.text || '');
