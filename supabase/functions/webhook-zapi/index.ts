@@ -5010,7 +5010,7 @@ async function sendNodeContent(
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
-      if (contentType === "location") {
+      if (contentType === "location" || contentType === "location-buttons") {
         const lat = Number(String(targetNode.data.locationLat || "0").replace(",", ".")) || 0;
         const lng = Number(String(targetNode.data.locationLng || "0").replace(",", ".")) || 0;
         await sendLocationWithFallback(
@@ -5668,6 +5668,7 @@ async function sendNodeContent(
           break;
         }
         case "location":
+        case "location-buttons":
         case "request-location":
           return await sendLocationWithFallback(
             Number(targetNode.data.locationLat || 0),
