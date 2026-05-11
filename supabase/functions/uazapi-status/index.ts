@@ -49,8 +49,9 @@ const pickFirstString = (...values: unknown[]) => {
             continue;
           }
 
-          const data = await response.json();
-          console.log(`Data from ${ep}:`, JSON.stringify(data).substring(0, 100));
+          const resText = await response.text();
+          console.log(`Raw status from ${ep}:`, resText);
+          const data = JSON.parse(resText || "{}");
           
           const status = String(
             data?.instance?.status || 
