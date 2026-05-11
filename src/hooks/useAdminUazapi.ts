@@ -28,9 +28,9 @@
          instance_type: 'web',
          is_default: data.is_default || false,
          // These are nullable now but let's be explicit
-         zapi_instance_id: null,
-         zapi_token: null,
-         zapi_client_token: null,
+          zapi_instance_id: `uazapi_${Date.now()}`,
+          zapi_token: 'uazapi_internal',
+          zapi_client_token: 'uazapi_internal',
        });
  
        if (error) throw error;
