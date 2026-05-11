@@ -1185,8 +1185,8 @@ serve(async (req) => {
 
     if (campaign.status === 'paused' || campaign.status === 'completed' || campaign.status === 'cancelled') {
       console.log(`🛑 Campaign ${campaignId} is ${campaign.status}. Not processing.`);
-      return new Response(JSON.stringify({ error: `Campaign is ${campaign.status}`, stopped: true }),
-        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      return new Response(JSON.stringify({ stopped: true, status: campaign.status, message: `Campaign is ${campaign.status}` }),
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
 
     if (campaign.status === 'draft') {
