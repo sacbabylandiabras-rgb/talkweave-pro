@@ -310,7 +310,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     'token': token,
     'apikey': token,
     'admintoken': token,
-    'Authorization': `Bearer ${token}`
+    'AdminToken': token,
+    'admin-token': token,
+    'Authorization': `Bearer ${token}`,
+    'X-Api-Key': token
   });
   
   const headers = getHeaders(apiToken);
