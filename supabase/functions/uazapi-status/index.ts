@@ -11,7 +11,9 @@ const pickFirstString = (...values: unknown[]) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   
     try {
-      const { apiUrl, apiToken, instanceName } = await req.json();
+      const body = await req.json();
+      const { apiUrl, apiToken } = body;
+      const instanceName = body.instanceName || body.instance_name;
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
   
       const cleanUrl = apiUrl.replace(/\/+$/, "");
