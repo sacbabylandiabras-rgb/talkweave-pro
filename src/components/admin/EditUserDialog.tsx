@@ -251,19 +251,56 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               <Card className="mb-3 border-primary/40">
                 <CardContent className="pt-4 pb-4 space-y-3">
                   <h4 className="font-medium text-sm">Nova instância</h4>
-                  <div className="space-y-2">
-                    <Label>Tipo de instância</Label>
-                    <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as 'web' | 'mobile')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="web">Web (QR Code)</SelectItem>
-                        <SelectItem value="mobile">Mobile (Emulador — conectar número)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Use "Mobile" para instâncias dedicadas ao Emulador Mobile (registro por número).
-                    </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Provedor</Label>
+                      <Select value={newProvider} onValueChange={(v) => setNewProvider(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="zapi">Z-API</SelectItem>
+                          <SelectItem value="uazapi">UAZAPI (Evolution)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="web">Web (QR Code)</SelectItem>
+                          <SelectItem value="mobile">Mobile (Número)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  {newProvider === 'uazapi' ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>URL da API (UAZAPI)</Label>
+                        <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>API Key / Global Token</Label>
+                        <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Instance ID</Label>
+                        <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID da instância Z-API" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Instance Token</Label>
+                        <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token da instância" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Client Token</Label>
+                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                      </div>
+                    </>
+                  )}
                    <div className="space-y-2">
                      <Label>Nome da instância</Label>
                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
@@ -302,7 +339,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{inst.instance_name}</span>
-                           <Badge variant="outline" className="text-xs uppercase">Z-API</Badge>
+                           <Badge variant="outline" className="text-xs uppercase">
+                             {inst.api_provider === 'uazapi' ? 'UAZAPI' : 'Z-API'}
+                           </Badge>
                           <Badge variant="outline" className="text-xs uppercase">
                             {(inst as any).instance_type === 'mobile' ? 'Mobile' : 'Web'}
                           </Badge>
