@@ -758,8 +758,9 @@ const getTypeFriendlyName = (type?: string) => {
     pagamento_pedido: "Pagamento do Pedido",
     pagamento: "Solicitar Pagamento",
     gateway_billing: "Cobrança Gateway",
-    status: "WhatsApp Status",
-  };
+     status: "WhatsApp Status",
+     multiplos_contatos: "Múltiplos Contatos",
+   };
   return names[type || "texto"] || "Texto";
 };
 
