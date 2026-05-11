@@ -42,10 +42,6 @@ const ApanhadorGrupos = () => {
   type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
   const [excludeAdmins, setExcludeAdmins] = useState<boolean>(true);
-  // @lid são pseudônimos de privacidade do WhatsApp e NÃO recebem mensagens
-  // em disparos diretos (a API confirma "entregue" mas a mensagem não chega).
-  // Por isso são removidos por padrão.
-  const [excludeLids, setExcludeLids] = useState<boolean>(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
