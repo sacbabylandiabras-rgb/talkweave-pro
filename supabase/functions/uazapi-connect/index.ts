@@ -40,7 +40,7 @@ const normalizeConnectPayload = (data: any) => {
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
 
       const headers = { 
         "Content-Type": "application/json", 
