@@ -625,6 +625,7 @@ const getTypeFriendlyName = (type?: string) => {
     evento: "Evento",
     status_pedido: "Status do Pedido",
     pagamento_pedido: "Pagamento do Pedido",
+    pagamento: "Solicitar Pagamento",
   };
   return names[type || "texto"] || "Texto";
 };
