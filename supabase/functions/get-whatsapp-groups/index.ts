@@ -338,7 +338,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     console.warn(`⚠️ Failed to detect real instance name from /status:`, e.message);
   }
 
-  const ownerJid = await fetchOwnerJidViaUazapi(apiUrl, apiToken);
+  const ownerJid = await fetchOwnerJidViaUazapi(apiUrl, apiToken, realInstanceName);
   const ownerPhone = normalizePhoneFromJid(ownerJid);
   console.log(`👤 UAZAPI owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
 
