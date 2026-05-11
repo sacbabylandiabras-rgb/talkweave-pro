@@ -458,7 +458,15 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     console.warn(`⚠️ UAZAPI newsletter/list failed for ${instance.instance_name}:`, chErr);
   }
 
-  const combinedRaw = [...rawGroups, ...rawChannels];
+  // Remove duplicates from raw groups by JID before processing details
+  const rawGroupsMap = new Map();
+  [...rawGroups, ...rawChannels].forEach(g => {
+    const jid = g?.JID || g?.id || g?.jid || g?.groupId || g?.remoteJid || '';
+    if (jid && !rawGroupsMap.has(jid)) {
+      rawGroupsMap.set(jid, g);
+    }
+  });
+  const combinedRaw = Array.from(rawGroupsMap.values());
 
   let detailedGroups: any[] = [];
   try {
