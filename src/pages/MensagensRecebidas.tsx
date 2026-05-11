@@ -1461,15 +1461,7 @@ const ChatView = ({
                 </Button>
                <Popover open={addingTag} onOpenChange={setAddingTag}>
                  <PopoverTrigger asChild>
-                   <Button
-                     variant="ghost"
-                     size="icon"
-                     className="shrink-0 h-10 w-10"
-                     disabled={sending}
-                     title="Gerenciar etiquetas"
-                   >
-                     <Tag className="w-4 h-4 text-blue-500" />
-                   </Button>
+                   <span className="hidden" />
                  </PopoverTrigger>
                  <PopoverContent className="w-80 p-0" align="start" side="top">
                    <div className="p-3 border-b border-border bg-muted/20">
