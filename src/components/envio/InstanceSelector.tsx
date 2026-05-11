@@ -18,13 +18,10 @@ const STORAGE_KEY = "zaplynx_selected_instances";
 
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances();
-  // Mesma regra da página Dispositivos: ocultar instâncias UAZAPI doadoras (aquecimento)
-  // e instâncias Mobile (devem aparecer apenas na seção Mobile/Emulador).
-  const visibleInstances = allInstances.filter(
-    (i: any) =>
-      (i.api_provider || "zapi").toLowerCase() !== "uazapi" &&
-      (i.instance_type || "web") !== "mobile",
-  );
+   // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
+   const visibleInstances = allInstances.filter(
+     (i: any) => (i.api_provider || "zapi").toLowerCase() !== "uazapi",
+   );
   const instances = providerFilter
     ? allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === providerFilter)
     : visibleInstances;
