@@ -138,36 +138,28 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceType('web');
   };
 
-   const handleAddInstance = async () => {
+   const handleAddZapiWebInstance = async () => {
      if (!user) return;
-    if (newProvider === 'zapi') {
-      if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-        toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-        return;
-      }
-    } else if (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') {
-      if (!newInstanceName.trim() || !newEvolutionUrl.trim() || !newEvolutionKey.trim()) {
-        toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key para UAZAPI.", variant: "destructive" });
-        return;
-      }
-    }
+     if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+       toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+       return;
+     }
+
      setAddingInstance(true);
-    const ok = await addInstance(user.id, {
-      instance_name: newInstanceName.trim(),
-      zapi_instance_id: newProvider === 'zapi' ? newInstanceId.trim() : '',
-      zapi_token: newProvider === 'zapi' ? newInstanceToken.trim() : '',
-      zapi_client_token: newProvider === 'zapi' ? newClientToken.trim() : '',
-      evolution_api_url: (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') ? newEvolutionUrl.trim() : '',
-      evolution_api_key: (newProvider === 'uazapi' || newProvider === 'uazapi_warmup') ? newEvolutionKey.trim() : '',
-      is_default: newIsDefault,
-      api_provider: newProvider,
-      instance_type: newInstanceType,
-    });
+     const ok = await addInstance(user.id, {
+       instance_name: newInstanceName.trim(),
+       zapi_instance_id: newInstanceId.trim(),
+       zapi_token: newInstanceToken.trim(),
+       zapi_client_token: newClientToken.trim(),
+       is_default: newIsDefault,
+       api_provider: 'zapi',
+       instance_type: 'web',
+     });
      setAddingInstance(false);
-    if (ok) {
-      resetAddForm();
-      setShowAddForm(null);
-    }
+     if (ok) {
+       resetAddForm();
+       setShowAddForm(null);
+     }
    };
 
   if (!user) return null;
@@ -456,8 +448,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     </div>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar Uso"}
+                       <Button size="sm" onClick={handleAddZapiWebInstance} disabled={addingInstance}>
+                         {addingInstance ? "Adicionando..." : "Salvar Uso"}
                       </Button>
                     </div>
                   </CardContent>
