@@ -139,13 +139,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceType('web');
   };
 
-   const handleAddZapiWebInstance = async () => {
-     if (!user) return;
-     if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-       toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-       return;
-     }
-
      const handleAddZapiInstance = async (type: 'web' | 'mobile') => {
        if (!user) return;
        if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
@@ -454,9 +447,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                      </div>
                      <div className="flex gap-2 justify-end pt-2">
                        <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                         <Button size="sm" onClick={handleAddZapiWebInstance} disabled={addingWeb}>
-                           {addingWeb ? "Adicionando..." : "Salvar Uso"}
-                       </Button>
+                          <Button size="sm" onClick={() => handleAddZapiInstance('web')} disabled={instancesLoading}>
+                            {instancesLoading ? "Adicionando..." : "Salvar Uso"}
+                          </Button>
                      </div>
                    </CardContent>
                  </Card>
