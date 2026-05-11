@@ -3,7 +3,7 @@ import { useMessageTemplates, MessageTemplate } from "@/hooks/useMessageTemplate
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, ArrowLeft, LayoutGrid, LayoutList } from "lucide-react";
+import { Loader2, Search, ArrowLeft, LayoutGrid, LayoutList, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 
