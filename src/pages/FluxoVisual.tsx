@@ -2423,9 +2423,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.contentType === "pix" && (
+                {(selectedNode.data.contentType === "pix" || selectedNode.data.contentType === "pix-charge") && (
                   <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
-                    <Label className="text-sm font-semibold">Botão PIX</Label>
+                    <Label className="text-sm font-semibold">
+                      {selectedNode.data.contentType === "pix-charge" ? "PIX (Cobrança)" : "Botão PIX"}
+                    </Label>
                     <Select
                       value={selectedNode.data.pixSource || "manual"}
                       onValueChange={(v) =>
