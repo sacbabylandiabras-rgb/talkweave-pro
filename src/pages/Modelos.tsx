@@ -975,7 +975,15 @@ const getPreviewFileLabel = (template: any) => {
 };
 
 const Modelos = () => {
-  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
+   const { 
+     templates, 
+     loading: templatesLoading, 
+     createTemplate, 
+     updateTemplate, 
+     deleteTemplate, 
+     deleteAllTemplates, 
+     duplicateTemplate 
+   } = useMessageTemplates();
   const [realUsage, setRealUsage] = useState<Record<string, number>>({});
   const [loadingUsage, setLoadingUsage] = useState(false);
   // Efeito para carregar a contagem real de uso (envios) por modelo
@@ -1119,7 +1127,8 @@ const Modelos = () => {
      paymentReferenceId: "",
      massPhones: "",
     });
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+   const [showCreateDialog, setShowCreateDialog] = useState(false);
+   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
@@ -1722,8 +1731,20 @@ const Modelos = () => {
             </Button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+         <div className="flex items-center gap-2">
+           {templates.length > 0 && (
+             <Button 
+               variant="destructive" 
+               size="sm" 
+               className="flex items-center gap-2"
+               onClick={() => setShowDeleteAllConfirm(true)}
+             >
+               <Trash2 className="w-4 h-4" />
+               Apagar Todos
+             </Button>
+           )}
+ 
+           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -3336,9 +3357,32 @@ const Modelos = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
+       </AlertDialog>
+ 
+       <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+         <AlertDialogContent>
+           <AlertDialogHeader>
+             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+             <AlertDialogDescription>
+               Esta ação irá remover permanentemente todos os seus modelos de mensagem. Esta ação não pode ser desfeita.
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+             <AlertDialogAction 
+               onClick={async () => {
+                 await deleteAllTemplates();
+                 setShowDeleteAllConfirm(false);
+               }}
+               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+             >
+               Remover Tudo
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+     </div>
+   );
+ };
 
 export default Modelos;
