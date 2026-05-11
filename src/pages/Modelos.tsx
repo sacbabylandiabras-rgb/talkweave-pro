@@ -117,7 +117,7 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento";
+    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -145,13 +145,50 @@ const SpecialFieldsEditor = ({
 }) => {
   if (!isSpecialType(type)) return null;
 
-  if (type === "pix") {
+  if (type === "pix" || type === "gateway_billing") {
     return (
       <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <DollarSign className="w-4 h-4" /> Cobrança PIX
+          <DollarSign className="w-4 h-4" /> {type === "gateway_billing" ? "Cobrança Gateway" : "Cobrança PIX"}
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
+          <Label>Origem da Cobrança</Label>
+          <Select 
+            value={data.pixSource || (type === "gateway_billing" ? "gateway" : "manual")} 
+            onValueChange={(v) => onChange({ pixSource: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="manual">Manual (Chave PIX)</SelectItem>
+              <SelectItem value="gateway">Gateway (Checkout Real)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {data.pixSource === "gateway" || type === "gateway_billing" ? (
+          <div className="space-y-3">
+            <div>
+              <Label>Valor (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={data.pixAmount || ""}
+                onChange={(e) => onChange({ pixAmount: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Descrição / Nome do Produto *</Label>
+              <Input
+                placeholder="Ex: Assinatura Mensal VIP"
+                value={data.pixMerchantName || ""}
+                onChange={(e) => onChange({ pixMerchantName: e.target.value })}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
           <div>
             <Label>Tipo da chave</Label>
             <Select value={data.pixKeyType || "cpf"} onValueChange={(v) => onChange({ pixKeyType: v })}>
@@ -203,7 +240,8 @@ const SpecialFieldsEditor = ({
               onChange={(e) => onChange({ pixCity: e.target.value })}
             />
           </div>
-        </div>
+          </>
+        )}
       </div>
     );
   }
