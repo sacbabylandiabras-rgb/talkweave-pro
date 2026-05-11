@@ -131,6 +131,8 @@ const EnviarMensagem = () => {
 
       await supabase.from('campaigns').update({ status: 'completed' }).eq('id', campanha.id);
 
+      const isMassaTemplate = modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado)?.type === 'multiplos_contatos';
+      
       await supabase.from('campaign_sends').insert({
         campaign_id: campanha.id,
         phone,
@@ -2114,9 +2116,9 @@ Formatos aceitos:
                   
                   <div className="space-y-2">
                     <Button 
-                      type="submit" 
-                      disabled={loading || enviandoEmMassa || !contatos.trim() || !mensagem.trim()}
-                      className="w-full flex items-center gap-2" 
+                       type="submit"
+                       disabled={loading || enviandoEmMassa || !contatos.trim() || (!mensagem.trim() && !modeloSelecionado)}
+                       className="w-full flex items-center gap-2"
                       size="lg"
                     >
                       {loading || enviandoEmMassa ? (
