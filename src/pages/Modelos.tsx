@@ -595,6 +595,7 @@ const getTemplateIcon = (type?: string) => {
       return <CalendarClock className="w-5 h-5 text-primary" />;
     case "status_pedido":
       return <Package className="w-5 h-5 text-primary" />;
+    case "pagamento":
     case "pagamento_pedido":
       return <CreditCard className="w-5 h-5 text-primary" />;
     default:
