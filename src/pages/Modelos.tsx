@@ -1,4 +1,5 @@
-import { useState, useCallback, memo, useEffect, useRef, useMemo } from "react";
+ import { useState, useCallback, memo, useEffect, useRef, useMemo } from "react";
+ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -976,7 +977,8 @@ const getPreviewFileLabel = (template: any) => {
   }
 };
 
-const Modelos = () => {
+ const Modelos = () => {
+   const navigate = useNavigate();
    const { 
      templates, 
      loading: templatesLoading, 
@@ -1746,7 +1748,17 @@ const Modelos = () => {
              </Button>
            )}
  
-           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => navigate("/modelos/previa")}
+            >
+              <Eye className="w-4 h-4" />
+              Ver Prévias
+            </Button>
+
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />

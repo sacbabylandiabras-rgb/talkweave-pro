@@ -27,7 +27,8 @@ const Etiquetas = lazyWithRecovery(() => import("./pages/Etiquetas"));
 const Campanhas = lazyWithRecovery(() => import("./pages/Campanhas"));
 const CampanhaGrupoFluxo = lazyWithRecovery(() => import("./pages/CampanhaGrupoFluxo"));
 const Contatos = lazyWithRecovery(() => import("./pages/Contatos"));
-const Modelos = lazyWithRecovery(() => import("./pages/Modelos"));
+ const Modelos = lazyWithRecovery(() => import("./pages/Modelos"));
+ const PreviaModelos = lazyWithRecovery(() => import("./pages/PreviaModelos"));
 const EnviarMensagem = lazyWithRecovery(() => import("./pages/EnviarMensagem"));
 const Relatorio = lazyWithRecovery(() => import("./pages/Relatorio"));
 const FluxoVisual = lazyWithRecovery(() => import("./pages/FluxoVisual"));
@@ -171,7 +172,8 @@ const App = () => (
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
                   <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
                    <Route path="/dispositivos" element={<Dispositivos />} />
-                  <Route path="/modelos" element={<Modelos />} />
+                   <Route path="/modelos" element={<Modelos />} />
+                   <Route path="/modelos/previa" element={<PreviaModelos />} />
                   <Route path="/fluxo-visual" element={<FluxoVisual />} />
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
