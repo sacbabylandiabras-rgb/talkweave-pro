@@ -93,7 +93,9 @@ const pickFirstString = (...values: unknown[]) => {
              data?.instance?.code
            );
            
-           console.log(`Normalized: connected=${connected}, status=${status}, hasQr=${!!qrCode}`);
+           console.log(`Normalized: connected=${connected}, status=${status}, hasQr=${!!qrCode}, hasPairing=${!!pairingCode}`);
+           if (qrCode) console.log(`QR Code (prefix): ${qrCode.substring(0, 50)}`);
+           if (pairingCode) console.log(`Pairing Code: ${pairingCode}`);
 
            return new Response(JSON.stringify({ connected, status, qrCode, pairingCode }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
