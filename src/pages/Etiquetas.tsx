@@ -42,6 +42,7 @@ const Etiquetas = () => {
   const [newTagName, setNewTagName] = useState("");
   const [newTagDescription, setNewTagDescription] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
+  const [tagColorError, setTagColorError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,23 +59,29 @@ const Etiquetas = () => {
   }, [selectedInstanceId]);
 
   const fetchTagColors = async (instanceId: string) => {
+    setTagColorError(null);
     try {
-      console.log("Buscando cores para instância:", instanceId);
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+      console.log("[Etiquetas] Buscando cores para instância:", instanceId);
+      const { data, error: invokeError } = await supabase.functions.invoke("zapi-chat-actions", {
         body: { action: "tag-colors", instanceDbId: instanceId },
       });
-      if (error) throw error;
-      console.log("Resposta cores:", data);
+      
+      if (invokeError) throw invokeError;
+      if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+
+      console.log("[Etiquetas] Resposta cores:", data);
       
       // Normalização: Z-API pode retornar data.data ou diretamente data como array
       const rawColors = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
       setTagColors(rawColors);
       
       if (rawColors.length === 0) {
-        console.warn("Nenhuma cor retornada pela API.");
+        console.warn("[Etiquetas] Nenhuma cor retornada pela API.");
+        setTagColorError("Nenhuma cor disponível para esta conta.");
       }
     } catch (err: any) {
-      console.error("Erro ao buscar cores de etiquetas:", err);
+      console.error("[Etiquetas] Erro ao buscar cores de etiquetas:", err);
+      setTagColorError("Não foi possível carregar as cores do WhatsApp Business.");
     }
   };
 
