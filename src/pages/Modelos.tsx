@@ -1115,8 +1115,9 @@ const Modelos = () => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-    paymentReferenceId: "",
-   });
+     paymentReferenceId: "",
+     massPhones: "",
+    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
