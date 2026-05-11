@@ -719,9 +719,6 @@ const EnviarMensagem = () => {
   const handleSendMassa = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    cancelarEnvioRef.current = false;
-    setEnviandoEmMassa(true);
-    
     if (!contatos.trim()) {
       toast({
         title: "Lista vazia",
@@ -730,6 +727,9 @@ const EnviarMensagem = () => {
       });
       return;
     }
+
+    cancelarEnvioRef.current = false;
+    setEnviandoEmMassa(true);
 
     const modeloDataValidation = modeloSelecionado
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
@@ -1301,12 +1301,10 @@ const EnviarMensagem = () => {
       }
 
        // Limpar formulário e resetar estados
-       setMensagem("");
-       setContatos("");
+       // Mantém contatos e mensagem preenchidos para permitir novos envios
+       // sem precisar recarregar a página. Apenas limpa anexos auxiliares.
        setArquivoMidia(null);
        setLegenda("");
-       setModeloSelecionado("");
-       setNumero("");
 
     } catch (error) {
       toast({
