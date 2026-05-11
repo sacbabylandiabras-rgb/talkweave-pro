@@ -157,13 +157,6 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           if (!r.ok) continue;
           const j = await r.json().catch(() => null);
           if (!j) continue;
-           const statusRaw = 
-             j?.instance?.status || 
-             j?.status || 
-             j?.connectionStatus || 
-             j?.state || 
-             j?.instance?.state || 
-             j?.instance?.connectionStatus || 
           const statusRaw = 
             j?.instance?.status || 
             j?.status?.checked_instance?.connection_status ||
