@@ -1452,9 +1452,10 @@ const Modelos = () => {
       paymentTitle: special.title || "",
       paymentDescription: special.description || "",
       paymentAmount: special.amount ? String(special.amount) : "",
-      paymentCurrency: special.currency || "BRL",
-      paymentReferenceId: special.referenceId || "",
-     });
+       paymentCurrency: special.currency || "BRL",
+       paymentReferenceId: special.referenceId || "",
+       massPhones: special.phones ? (Array.isArray(special.phones) ? special.phones.join(', ') : special.phones) : "",
+      });
     setEditingTemplate(template.id);
   };
 
