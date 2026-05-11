@@ -140,7 +140,12 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           const j = await r.json().catch(() => null);
           if (!j) continue;
           const statusRaw = j?.instance?.status || j?.status || j?.connectionStatus || j?.state || j?.instance?.state || j?.instance?.connectionStatus || '';
-          const status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+          let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+          
+          // Se o status estiver vazio mas tivermos connected=true, forçamos o status para open
+          if (!status && (j?.connected === true || j?.instance?.connected === true)) {
+            status = 'open';
+          }
           
           const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused'];
           if (
