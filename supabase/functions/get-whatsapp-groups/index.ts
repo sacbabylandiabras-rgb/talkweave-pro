@@ -139,15 +139,25 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           if (!r.ok) continue;
           const j = await r.json().catch(() => null);
           if (!j) continue;
-          const statusRaw = j?.instance?.status || j?.status || j?.connectionStatus || j?.state || j?.instance?.state || j?.instance?.connectionStatus || '';
-          let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
-          
-          // Se o status estiver vazio mas tivermos connected=true, forçamos o status para open
-          if (!status && (j?.connected === true || j?.instance?.connected === true)) {
-            status = 'open';
-          }
-          
-          const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused'];
+           const statusRaw = 
+             j?.instance?.status || 
+             j?.status || 
+             j?.connectionStatus || 
+             j?.state || 
+             j?.instance?.state || 
+             j?.instance?.connectionStatus || 
+             j?.status?.checked_instance?.connection_status ||
+             j?.status?.connection_status ||
+             '';
+           
+           let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+           
+           // Se o status estiver vazio mas tivermos connected=true, forçamos o status para open
+           if (!status && (j?.connected === true || j?.instance?.connected === true || j?.status?.connected === true || j?.status?.loggedIn === true)) {
+             status = 'open';
+           }
+           
+           const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused', 'connecting'];
           if (
             j?.connected === false ||
             j?.loggedIn === false ||
@@ -163,10 +173,11 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
             j?.loggedIn === true ||
             j?.status?.connected === true ||
             j?.status?.loggedIn === true ||
-            j?.instance?.connected === true ||
-            ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in', 'true'].some((s) =>
-              status === s
-            );
+             j?.instance?.connected === true ||
+             j?.status?.checked_instance?.connection_status === 'connected' ||
+             ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in', 'true'].some((s) =>
+               status === s || status.includes(s)
+             );
           if (connected) {
             console.log(`✅ Instance ${instance.instance_name} is connected (status: ${status})`);
             return true;
@@ -278,13 +289,17 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   const ownerPhone = normalizePhoneFromJid(ownerJid);
   console.log(`👤 UAZAPI owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
 
-  const response = await fetch(`${apiUrl}/group/list`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'token': apiToken,
-    },
-  });
+     const headers = {
+       'Content-Type': 'application/json',
+       'token': apiToken,
+       'apikey': apiToken,
+       'Authorization': `Bearer ${apiToken}`
+     };
+ 
+     const response = await fetch(`${apiUrl}/group/list`, {
+       method: 'GET',
+       headers,
+     });
 
   const resText = await response.text();
   console.log(`📦 UAZAPI /group/list raw response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
