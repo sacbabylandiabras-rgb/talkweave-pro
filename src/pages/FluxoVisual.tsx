@@ -2377,8 +2377,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <Label className="text-sm font-semibold">
                       {selectedNode.data.contentType === "gateway-billing" ? "Cobrança Gateway" : "Solicitar Pagamento"}
                     </Label>
-                  <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
-                    <Label className="text-sm font-semibold">Solicitar Pagamento</Label>
                     <Select
                       value={selectedNode.data.paymentSource || "manual"}
                       onValueChange={(v) =>
