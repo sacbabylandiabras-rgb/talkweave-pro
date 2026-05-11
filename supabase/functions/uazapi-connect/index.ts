@@ -48,11 +48,16 @@ const normalizeConnectPayload = (data: any) => {
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => {
+        const separator = path.includes("?") ? "&" : "?";
+        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      };
 
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken
+        "token": apiToken,
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       // Try multiple possible endpoints for connection
