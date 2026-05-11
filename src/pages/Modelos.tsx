@@ -2431,7 +2431,7 @@ const getPreviewFileLabel = (template: any) => {
       <Dialog open={!!editingTemplate} onOpenChange={(open) => {
         if (!open) handleCancelEdit();
       }}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+         <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5" />
@@ -2442,7 +2442,8 @@ const getPreviewFileLabel = (template: any) => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4">
+           <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6">
+             <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4 pr-2">
             <div>
               <Label htmlFor="edit-template-name">Nome do Modelo</Label>
               <Input
@@ -2981,7 +2982,17 @@ const getPreviewFileLabel = (template: any) => {
                 <div><code>{"{hora}"}</code> - Hora atual</div>
               </div>
             </div>
-          </form>
+             </form>
+             <div className="hidden md:flex w-[320px] flex-col gap-4 border-l pl-6 pt-4">
+               <h3 className="text-sm font-semibold flex items-center gap-2">
+                 <LayoutTemplate className="w-4 h-4" />
+                 Prévia em Tempo Real
+               </h3>
+               <div className="flex-1 flex items-start justify-center overflow-y-auto pb-4">
+                 <WhatsAppPreview template={editFormData} />
+               </div>
+             </div>
+           </div>
           
           <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
