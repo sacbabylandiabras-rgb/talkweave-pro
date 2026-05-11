@@ -234,7 +234,7 @@ const ApanhadorGrupos = () => {
     if (!account) return;
     const interval = setInterval(async () => {
       const { data } = await supabase.functions.invoke('uazapi-status', {
-        body: { apiUrl: account.url, apiToken: account.token },
+        body: { apiUrl: account.url, apiToken: account.token, instanceName: account.name },
       });
       if (data?.connected) {
         setConnStatus('connected');
