@@ -5668,6 +5668,7 @@ async function sendNodeContent(
           break;
         }
         case "location":
+        case "location-buttons":
         case "request-location":
           return await sendLocationWithFallback(
             Number(targetNode.data.locationLat || 0),
