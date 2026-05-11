@@ -22,7 +22,14 @@ const normalizeConnectPayload = (data: any) => {
     data?.instance?.base64,
     data?.instance?.code,
   );
-  const pairingCode = pickFirstString(data?.pairingCode, data?.pairing_code, data?.codePairing, data?.data?.pairingCode);
+  const pairingCode = pickFirstString(
+    data?.pairingCode, 
+    data?.pairing_code, 
+    data?.codePairing, 
+    data?.data?.pairingCode,
+    data?.code, // Alguns retornam apenas "code" quando é pareamento
+    data?.data?.code
+  );
   const connectionStatus = typeof data?.status === "string" ? data.status : pickFirstString(data?.connectionStatus, data?.state, data?.instance?.status, data?.data?.status);
   return { ...data, qrCode, pairingCode, connectionStatus: connectionStatus || "connecting" };
 };
@@ -32,7 +39,8 @@ const normalizeConnectPayload = (data: any) => {
  
    try {
       const body = await req.json();
-      const { apiUrl, apiToken, phone } = body;
+      const { apiUrl, apiToken } = body;
+      const phone = body.phone ? String(body.phone).replace(/\D/g, "") : null;
       const instanceName = body.instanceName || body.instance_name;
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
 
