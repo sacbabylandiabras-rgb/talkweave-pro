@@ -93,7 +93,12 @@ const normalizeConnectPayload = (data: any) => {
       }
  
  
-      return new Response(JSON.stringify(normalizeConnectPayload(data)), {
+       const normalized = normalizeConnectPayload(data);
+       console.log(`Connect Normalized: hasQr=${!!normalized.qrCode}, hasPairing=${!!normalized.pairingCode}`);
+       if (normalized.qrCode) console.log(`QR Code (prefix): ${normalized.qrCode.substring(0, 50)}`);
+       if (normalized.pairingCode) console.log(`Pairing Code: ${normalized.pairingCode}`);
+       
+       return new Response(JSON.stringify(normalized), {
        headers: { ...corsHeaders, "Content-Type": "application/json" },
      });
    } catch (err) {
