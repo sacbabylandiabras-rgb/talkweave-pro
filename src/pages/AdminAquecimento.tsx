@@ -46,10 +46,10 @@ const parseBulk = (raw: string) =>
 interface UazInstance {
   id: string;
   instance_name: string;
-  zapi_instance_id: string;
-  zapi_token: string;
+  zapi_instance_id?: string | null;
+  zapi_token?: string | null;
   evolution_api_key?: string | null;
-  evolution_api_url: string;
+  evolution_api_url?: string | null;
   created_at: string;
 }
 
