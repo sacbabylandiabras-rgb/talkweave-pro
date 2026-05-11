@@ -297,12 +297,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </div>
             </div>
 
-            {/* Seção Z-API - Mensagens/Aquecimento */}
+            {/* Seção Z-API - Instâncias de Uso */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-emerald-500 flex items-center gap-2">
                   <Smartphone className="w-4 h-4" />
-                  Instâncias de Aquecimento (Z-API)
+                  Instâncias de Uso (Z-API)
                 </h3>
                 <Button 
                   size="sm" 
@@ -313,7 +313,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   }}
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'zapi' ? "Fechar" : "Adicionar Aquecimento"}
+                  {showAddForm === 'zapi' ? "Fechar" : "Adicionar Uso"}
                 </Button>
               </div>
 
@@ -323,7 +323,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label>Nome</Label>
-                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Aquecimento 01" />
+                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Instância 01" />
                       </div>
                       <div className="space-y-2">
                         <Label>Tipo</Label>
@@ -351,7 +351,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <div className="flex gap-2 justify-end pt-2">
                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
                       <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar Aquecimento"}
+                        {addingInstance ? "Adicionando..." : "Salvar Uso"}
                       </Button>
                     </div>
                   </CardContent>
@@ -378,7 +378,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                             <Star className="w-3 h-3" />
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover aquecimento?')) deleteInstance(inst.id, user.id); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de uso?')) deleteInstance(inst.id, user.id); }}>
                           <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                       </div>
