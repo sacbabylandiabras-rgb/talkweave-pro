@@ -26,9 +26,10 @@ export function useWhatsAppGroups(options?: { provider?: 'uazapi' | 'zapi'; sour
   const fetchGroups = async () => {
     setLoading(true);
     try {
+      const provider = options?.provider || 'zapi';
       const { data, error } = await supabase.functions.invoke('get-whatsapp-groups', {
         body: {
-          ...(options?.provider ? { provider: options.provider } : {}),
+          provider,
           ...(options?.source ? { source: options.source, profileOnly: true } : {}),
         },
       });
