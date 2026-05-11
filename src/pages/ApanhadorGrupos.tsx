@@ -155,8 +155,15 @@ const ApanhadorGrupos = () => {
     }
   };
 
-  const loadUazapiAccounts = () => {
-    const accounts = uazapiInstances.map((inst: any) => ({
+  const loadUazapiAccounts = async () => {
+    const { data } = await supabase
+      .from('zapi_instances')
+      .select('instance_name,evolution_api_url,evolution_api_key,zapi_token')
+      .eq('api_provider', 'uazapi')
+      .order('created_at', { ascending: false });
+
+    const source = (data?.length ? data : uazapiInstances) as any[];
+    const accounts = source.map((inst: any) => ({
       label: inst.instance_name,
       url: inst.evolution_api_url,
       token: inst.evolution_api_key || inst.zapi_token,
