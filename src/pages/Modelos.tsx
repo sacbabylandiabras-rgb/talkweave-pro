@@ -408,6 +408,19 @@ const SpecialFieldsEditor = ({
           <CalendarClock className="w-5 h-5" /> Convite de Evento
         </div>
         <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <Label>Origem da Cobrança</Label>
+            <Select 
+              value={data.paymentSource || "manual"} 
+              onValueChange={(v) => onChange({ paymentSource: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Manual (Personalizado)</SelectItem>
+                <SelectItem value="gateway">Gateway (Checkout Real)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Título do evento *</Label>
             <Input
