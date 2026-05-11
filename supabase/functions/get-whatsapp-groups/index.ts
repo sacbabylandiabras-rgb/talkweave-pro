@@ -75,8 +75,12 @@ const extractParticipantsFromGroup = (group: any) => {
   return candidates.find((candidate) => Array.isArray(candidate)) || [];
 };
 
-const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string): Promise<string | null> => {
+const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string, instanceName?: string | null): Promise<string | null> => {
   const endpoints = ['/instance/me', '/instance/status', '/instance', '/status'];
+  if (instanceName) {
+    endpoints.unshift(`/instance/me/${instanceName}`);
+    endpoints.unshift(`/instance/status/${instanceName}`);
+  }
   for (const ep of endpoints) {
     try {
       const res = await fetch(`${apiUrl}${ep}`, {
