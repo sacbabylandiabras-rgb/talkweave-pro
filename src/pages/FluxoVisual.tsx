@@ -333,46 +333,43 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     fetchFluxos();
   }, [isGroupsMode]);
 
-   useEffect(() => {
-     const fetchTagsForEditor = async () => {
-       const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
-       if (activeInstances.length === 0) return;
+   const fetchTagsForEditor = useCallback(async () => {
+     const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
+     if (activeInstances.length === 0) return;
  
-       try {
-         setLoadingTags(true);
-         // Tenta pegar da instância padrão primeiro, se não tenta das 3 primeiras
-         const defaultInst = activeInstances.find(i => i.is_default) || activeInstances[0];
-         const instancesToTry = [defaultInst, ...activeInstances.filter(i => i.id !== defaultInst.id).slice(0, 2)];
+     try {
+       setLoadingTags(true);
+       const defaultInst = activeInstances.find(i => i.is_default) || activeInstances[0];
+       const instancesToTry = [defaultInst, ...activeInstances.filter(i => i.id !== defaultInst.id).slice(0, 2)];
+       
+       const allTagsSet = new Set<string>();
+       
+       for (const inst of instancesToTry) {
+         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+           body: { action: "list-tags", instanceDbId: inst.id },
+         });
          
-         const allTagsSet = new Set<string>();
-         
-         for (const inst of instancesToTry) {
-           const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-             body: { action: "list-tags", instanceDbId: inst.id },
-           });
-           
-           if (!error && data) {
-             const payload = data.data ?? data;
-             if (Array.isArray(payload)) {
-               payload.forEach((t: any) => {
-                 if (t.name) allTagsSet.add(t.name);
-               });
-               // Se já encontrou tags, não precisa tentar as outras instâncias para economizar recursos
-               if (allTagsSet.size > 0) break;
-             }
+         if (!error && data) {
+           const payload = data.data ?? data;
+           if (Array.isArray(payload)) {
+             payload.forEach((t: any) => {
+               if (t.name) allTagsSet.add(t.name);
+             });
+             if (allTagsSet.size > 0) break;
            }
          }
-         
-         setAvailableTags(Array.from(allTagsSet).sort());
-       } catch (e) {
-         console.error("Erro ao carregar etiquetas para o editor:", e);
-       } finally {
-         setLoadingTags(false);
        }
-     };
+       
+       setAvailableTags(Array.from(allTagsSet).sort());
+     } catch (e) {
+       console.error("Erro ao carregar etiquetas para o editor:", e);
+     } finally {
+       setLoadingTags(false);
+     }
+   }, [instances]);
  
+   useEffect(() => {
      fetchTagsForEditor();
- 
      const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
      if (uazapiInstances.length === 0) return;
 
