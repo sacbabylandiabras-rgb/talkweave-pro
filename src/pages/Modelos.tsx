@@ -221,25 +221,26 @@ const SpecialFieldsEditor = ({
             onChange={(e) => onChange({ pixKey: e.target.value })}
           />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label>Nome do recebedor *</Label>
-            <Input
-              placeholder="Razão social ou nome"
-              maxLength={25}
-              value={data.pixMerchantName || ""}
-              onChange={(e) => onChange({ pixMerchantName: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Cidade</Label>
-            <Input
-              placeholder="Cidade"
-              maxLength={15}
-              value={data.pixCity || ""}
-              onChange={(e) => onChange({ pixCity: e.target.value })}
-            />
-          </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Nome do recebedor *</Label>
+                <Input
+                  placeholder="Razão social ou nome"
+                  maxLength={25}
+                  value={data.pixMerchantName || ""}
+                  onChange={(e) => onChange({ pixMerchantName: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Cidade</Label>
+                <Input
+                  placeholder="Cidade"
+                  maxLength={15}
+                  value={data.pixCity || ""}
+                  onChange={(e) => onChange({ pixCity: e.target.value })}
+                />
+              </div>
+            </div>
           </>
         )}
       </div>
