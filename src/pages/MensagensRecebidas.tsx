@@ -368,13 +368,15 @@ const SaveContactDialog = ({
 };
 
 const ConversationList = ({
-   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation,
+   conversations, selectedPhone, onSelect, searchTerm, onSearchChange, readPhones, instances, selectedInstanceId, onInstanceChange, syncing, onSync, onFetchPhoto, onRefreshPhotos, selectedPhones, onToggleSelect, isSelectionMode, onToggleSelectionMode, onDeleteSelected, onDeleteConversation, availableTags, tagColors,
  }: {
    conversations: Conversation[]; selectedPhone: string | null; onSelect: (phone: string) => void; searchTerm: string; onSearchChange: (v: string) => void; readPhones: Set<string>;
     instances: { id: string; instance_name: string; is_default: boolean }[]; selectedInstanceId: string; onInstanceChange: (id: string) => void; syncing: boolean; onSync: () => void; selectedPhones: Set<string>; onToggleSelect: (phone: string) => void; isSelectionMode: boolean; onToggleSelectionMode: () => void; onDeleteSelected: () => void;
    onDeleteConversation: (phone: string) => void;
    onFetchPhoto: (phone: string, force?: boolean) => void;
    onRefreshPhotos: () => void;
+   availableTags?: { id: string; name: string; color: number }[];
+   tagColors?: { id: number; hex: string; label: string }[];
 }) => (
   <div className="flex flex-col h-full bg-card border-r border-border">
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
@@ -498,6 +500,26 @@ const ConversationList = ({
                     {getConversationDisplayName(conv.contactName, conv.phone, conv.isCommunity)}
                   </span>
                   <ChatTypeBadge phone={conv.phone} name={conv.contactName} isCommunity={conv.isCommunity} />
+                  {(() => {
+                    const tagNames = Array.from(new Set(conv.messages.flatMap(m => (m as any).tags || [])));
+                    if (tagNames.length === 0) return null;
+                    return (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {tagNames.slice(0, 3).map((tagName: string) => {
+                          const tag = availableTags?.find(t => t.name === tagName);
+                          const colorHex = tagColors?.find(c => c.id === (tag?.color ?? 0))?.hex || '#94a3b8';
+                          return (
+                            <span
+                              key={tagName}
+                              title={tagName}
+                              className="inline-block w-2.5 h-2.5 rounded-full border border-background"
+                              style={{ backgroundColor: colorHex }}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                   {formatTimestamp(conv.lastTimestamp)}
@@ -1718,6 +1740,8 @@ const MensagensRecebidas = () => {
   );
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
+  const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
+  const [pageTagColors, setPageTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
   const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
@@ -1802,6 +1826,22 @@ const MensagensRecebidas = () => {
    }, []); // roda só uma vez ao montar
 
    const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
+   const { listTags: pageListTags } = useZapi();
+ 
+   useEffect(() => {
+     let cancelled = false;
+     (async () => {
+       try {
+         const tags = await pageListTags();
+         if (!cancelled) setPageAvailableTags(Array.isArray(tags) ? tags : []);
+       } catch (e) { console.error('Erro ao carregar etiquetas (lista):', e); }
+       try {
+         const { data } = await supabase.functions.invoke('zapi-chat-actions', { body: { action: 'tag-colors' } });
+         if (!cancelled) setPageTagColors(Array.isArray(data?.data) ? data.data : []);
+       } catch (e) { console.error('Erro ao carregar cores das etiquetas (lista):', e); }
+     })();
+     return () => { cancelled = true; };
+   }, []);
   const syncHistory = async () => {
     setSyncing(true);
     try {
@@ -2193,6 +2233,8 @@ const MensagensRecebidas = () => {
                 }}
                 onDeleteSelected={handleDeleteSelected}
                 onDeleteConversation={handleDeleteConversation}
+                availableTags={pageAvailableTags}
+                tagColors={pageTagColors}
               />
           </div>
         )}
