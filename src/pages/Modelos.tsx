@@ -95,6 +95,12 @@ const buildSpecialContent = (type: string, data: any): string => {
         payload.orderRaw = data.orderJson;
       }
       payload.description = data.content || "";
+    } else if (type === "pagamento") {
+      payload.title = data.paymentTitle || "";
+      payload.description = data.paymentDescription || data.content || "";
+      payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
+      payload.currency = data.paymentCurrency || "BRL";
+      payload.referenceId = data.paymentReferenceId || "";
     }
     return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
   };
