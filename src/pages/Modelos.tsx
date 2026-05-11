@@ -687,7 +687,10 @@ const getTemplateIcon = (type?: string) => {
       return <Package className="w-5 h-5 text-primary" />;
     case "pagamento":
     case "pagamento_pedido":
+    case "gateway_billing":
       return <CreditCard className="w-5 h-5 text-primary" />;
+    case "status":
+      return <Camera className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -716,6 +719,8 @@ const getTypeFriendlyName = (type?: string) => {
     status_pedido: "Status do Pedido",
     pagamento_pedido: "Pagamento do Pedido",
     pagamento: "Solicitar Pagamento",
+    gateway_billing: "Cobrança Gateway",
+    status: "WhatsApp Status",
   };
   return names[type || "texto"] || "Texto";
 };
