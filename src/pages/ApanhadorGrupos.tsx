@@ -159,8 +159,8 @@ const ApanhadorGrupos = () => {
     const accounts = uazapiInstances.map((inst: any) => ({
       label: inst.instance_name,
       url: inst.evolution_api_url,
-      token: inst.zapi_token,
-    }));
+      token: inst.evolution_api_key || inst.zapi_token,
+    })).filter((account) => account.url && account.token);
     setUazapiAccounts(accounts);
     return accounts;
   };
