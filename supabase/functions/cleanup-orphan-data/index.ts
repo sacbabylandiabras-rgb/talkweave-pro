@@ -67,23 +67,36 @@ serve(async (req) => {
         );
       }
 
-      const idsToDelete = toDelete.map(i => i.id);
-
-      // Delete from zapi_instances
-      const { data: deleted, error: delError } = await supabase
-        .from('zapi_instances')
-        .delete()
-        .in('id', idsToDelete)
-        .select();
-
-      if (delError) throw delError;
-
-      console.log(`🗑️ User ${user.id} deleted ${deleted.length} instance(s), admin: ${isAdmin}`);
-
-      return new Response(
-        JSON.stringify({ success: true, deleted: deleted.length }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+       const idsToDelete = toDelete.map(i => i.id);
+ 
+       console.log(`🗑️ Executing database deletion for IDs: ${idsToDelete.join(', ')}`);
+ 
+       // Delete from zapi_instances
+       const { data: deleted, error: delError } = await supabase
+         .from('zapi_instances')
+         .delete()
+         .in('id', idsToDelete)
+         .select();
+ 
+       if (delError) {
+         console.error('❌ Database deletion error:', delError);
+         throw delError;
+       }
+ 
+       const count = deleted?.length || 0;
+       console.log(`🗑️ User ${user.id} deleted ${count} instance(s) from database, admin: ${isAdmin}`);
+ 
+       if (count === 0) {
+         return new Response(
+           JSON.stringify({ success: false, deleted: 0, error: 'A exclusão no banco de dados não retornou registros apagados.' }),
+           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+         );
+       }
+ 
+       return new Response(
+         JSON.stringify({ success: true, deleted: count }),
+         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+       );
     }
 
     // Reset campaigns that were marked as completed but have zero successful sends
