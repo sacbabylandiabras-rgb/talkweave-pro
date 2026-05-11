@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera } from "lucide-react";
+ import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate } from "lucide-react";
+ import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
@@ -1765,7 +1766,7 @@ const getPreviewFileLabel = (template: any) => {
                 Novo Modelo
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+             <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5" />
@@ -1776,7 +1777,8 @@ const getPreviewFileLabel = (template: any) => {
                 </DialogDescription>
               </DialogHeader>
               
-              <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4">
+               <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6">
+                 <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-y-auto space-y-4 py-4 pr-2">
                 <div>
                   <Label htmlFor="template-name">Nome do Modelo</Label>
                   <Input
@@ -2315,7 +2317,17 @@ const getPreviewFileLabel = (template: any) => {
                     <div><code>{"{hora}"}</code> - Hora atual</div>
                   </div>
                 </div>
-              </form>
+                 </form>
+                 <div className="hidden md:flex w-[320px] flex-col gap-4 border-l pl-6 pt-4">
+                   <h3 className="text-sm font-semibold flex items-center gap-2">
+                     <LayoutTemplate className="w-4 h-4" />
+                     Prévia em Tempo Real
+                   </h3>
+                   <div className="flex-1 flex items-start justify-center overflow-y-auto pb-4">
+                     <WhatsAppPreview template={newTemplate} />
+                   </div>
+                 </div>
+               </div>
 
               <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)} className="w-full sm:w-auto">
