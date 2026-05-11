@@ -374,26 +374,30 @@ const Etiquetas = () => {
                 </p>
               )}
               <div className="grid grid-cols-7 gap-2 pt-1">
-                {tagColors.length > 0 ? (
-                  tagColors.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setNewTagColor(c.id)}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${newTagColor === c.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' : ''}`}
-                      style={{ backgroundColor: c.hex || '#cbd5e1' }}
-                      title={c.label}
-                    >
-                      {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
-                    </button>
-                  ))
-                ) : (
-                  [0, 1, 2, 3, 4, 5, 6].map(id => (
-                    <Skeleton key={id} className="w-9 h-9 rounded-full" />
-                  ))
-                ) : !loadingTags && !tagColorError && (
-                  // Fallback para cores padrão do WhatsApp caso a API não retorne nada mas não dê erro
-                  [
+                {(() => {
+                  if (tagColors.length > 0) {
+                    return tagColors.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setNewTagColor(c.id)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${newTagColor === c.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' : ''}`}
+                        style={{ backgroundColor: c.hex || '#cbd5e1' }}
+                        title={c.label}
+                      >
+                        {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
+                      </button>
+                    ));
+                  }
+                  
+                  if (loadingTags) {
+                    return [0, 1, 2, 3, 4, 5, 6].map(id => (
+                      <Skeleton key={id} className="w-9 h-9 rounded-full" />
+                    ));
+                  }
+
+                  // Fallback para cores padrão do WhatsApp
+                  return [
                     { id: 0, hex: "#62ee8d", label: "Verde" },
                     { id: 1, hex: "#52d6f4", label: "Azul claro" },
                     { id: 2, hex: "#3581ef", label: "Azul" },
@@ -415,8 +419,8 @@ const Etiquetas = () => {
                     >
                       {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
                     </button>
-                  ))
-                )}
+                  ));
+                })()}
               </div>
             </div>
           </div>
