@@ -162,7 +162,7 @@ const EnviarMensagem = () => {
     const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
     const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
-    const isContactTemplate = templateType === 'contato' || templateType === 'contact' || templateType === 'contato (vcard)';
+    const isContactTemplate = templateType === 'contato' || templateType === 'contact' || templateType === 'contato (vcard)' || templateType === 'multiplos_contatos';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
      const isProductTemplate = templateType === 'produto' || templateType === 'product';
      const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
@@ -214,14 +214,31 @@ const EnviarMensagem = () => {
 
     if (isContactTemplate) {
       const special = parseSpecialTemplate(modeloData?.content);
-      const contactName = special?.contactName || (modeloData as any)?.contactName || '';
-      const contactPhone = special?.contactPhone || (modeloData as any)?.contactPhone || '';
-      const contactDesc = special?.description || special?.contactBusinessDescription || '';
+      
+      if (templateType === 'multiplos_contatos' || (special?.type === 'multiplos_contatos')) {
+        const phonesArray = special?.phones || [];
+        if (!Array.isArray(phonesArray) || phonesArray.length === 0) {
+          throw new Error('Nenhum número de telefone encontrado no modelo de múltiplos contatos');
+        }
+        
+        // Envia cada contato separadamente para o destinatário
+        for (const targetPhone of phonesArray) {
+          const cleanPhone = String(targetPhone).replace(/\D/g, '');
+          if (cleanPhone) {
+            await sendMessageContact(phone, `Contato ${cleanPhone}`, cleanPhone, '');
+          }
+        }
+        return `[múltiplos contatos] ${modeloData?.name || 'Contatos enviados'}`;
+      } else {
+        const contactName = special?.contactName || (modeloData as any)?.contactName || '';
+        const contactPhone = special?.contactPhone || (modeloData as any)?.contactPhone || '';
+        const contactDesc = special?.description || special?.contactBusinessDescription || '';
 
-      if (!contactName || !contactPhone) throw new Error('Nome e telefone do contato são obrigatórios no modelo');
+        if (!contactName || !contactPhone) throw new Error('Nome e telefone do contato são obrigatórios no modelo');
 
-      await sendMessageContact(phone, contactName, contactPhone, contactDesc);
-      return `[contato:${contactName}] ${modeloData?.name || mensagemPersonalizada || 'Contato enviado'}`;
+        await sendMessageContact(phone, contactName, contactPhone, contactDesc);
+        return `[contato:${contactName}] ${modeloData?.name || mensagemPersonalizada || 'Contato enviado'}`;
+      }
     }
 
     if (isProductTemplate) {
