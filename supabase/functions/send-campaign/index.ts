@@ -645,6 +645,8 @@ const dispatchUazapiSpecial = async (
   instance: ResolvedInstance,
   phone: string,
   special: any,
+  supabase?: any,
+  userId?: string,
 ) => {
   const baseUrl = String(instance.uazapiUrl || '').replace(/\/+$/, '');
   const headers = { 'Content-Type': 'application/json', token: String(instance.uazapiToken || '') };
@@ -652,54 +654,88 @@ const dispatchUazapiSpecial = async (
 
   let endpoint = '';
   let body: Record<string, unknown> = {};
-  if (special.type === 'pix') {
+
+  // Normalize type
+  const type = special.type === 'gateway_billing' ? 'gateway-billing' : special.type;
+
+  if (type === 'pix' || type === 'gateway-billing' || type === 'request-payment' || type === 'pagamento') {
+    const amountReais = Number(String(special.amount || special.pixAmount || '0.00').replace(',', '.'));
+    const amountCents = Math.round(amountReais * 100);
+    const description = String(special.description || special.text || special.pixDescription || special.paymentDescription || 'Pagamento').trim();
+    const isGateway = special.pixSource === 'gateway' || special.paymentSource === 'gateway' || type === 'gateway-billing';
+    
+    let brCode = '';
+    if (isGateway && supabase && userId && amountCents > 0) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const chargeRes = await fetch(`${supabaseUrl}/functions/v1/gateway-flow-charge`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            userId,
+            amount: amountCents,
+            description,
+            customerPhone: phone,
+          }),
+        });
+        const chargeData = await chargeRes.json();
+        brCode = chargeData?.brCode || "";
+      } catch (e) {
+        console.error("❌ [Gateway Uaz] Failed to generate charge:", e);
+      }
+    }
+
+    if (type === 'pix') {
     endpoint = '/send/text';
     const pixLines = [
       `💰 *Cobrança PIX*`,
       special.merchantName ? `Recebedor: ${special.merchantName}` : '',
-      special.amount ? `Valor: R$ ${special.amount}` : '',
-      `Chave (${special.pixKeyType || 'pix'}): ${special.pixKey || ''}`,
+        amountReais ? `Valor: R$ ${amountReais}` : '',
+        `Chave (${special.pixKeyType || 'pix'}): ${brCode || special.pixKey || ''}`,
       special.description ? `\n${special.description}` : '',
     ].filter(Boolean).join('\n');
     body = { number: targetNumber, text: pixLines };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
+    } else {
+      endpoint = '/send/text';
+      const pixKey = brCode || String(special.pixKey || special.paymentReceiver || '').trim();
+      const merchant = String(special.merchantName || special.paymentReceiver || '').trim();
+      
+      const lines = [
+        `💰 *Solicitação de Pagamento*`,
+        merchant ? `Recebedor: ${merchant}` : '',
+        amountReais ? `Valor: R$ ${amountReais}` : '',
+        pixKey ? `Chave PIX: ${pixKey}` : '',
+        description ? `\n${description}` : '',
+      ].filter(Boolean).join('\n');
+      
+      body = { number: targetNumber, text: lines };
+    }
+  } else if (type === 'localizacao' || type === 'uaz_location_button' || type === 'location' || type === 'location_button' || type === 'request-location') {
     endpoint = '/send/location';
     body = {
       number: targetNumber,
-      latitude: Number(special.latitude) || 0,
-      longitude: Number(special.longitude) || 0,
-      name: special.title || '',
-      address: special.address || '',
+      latitude: Number(special.latitude || special.locLatitude) || 0,
+      longitude: Number(special.longitude || special.locLongitude) || 0,
+      name: special.title || special.locTitle || '',
+      address: special.address || special.locAddress || '',
     };
-  } else if (special.type === 'contato') {
+  } else if (type === 'contato') {
     endpoint = '/send/contact';
     body = {
       number: targetNumber,
       fullName: special.contactName || '',
       phoneNumber: String(special.contactPhone || '').replace(/\D/g, ''),
     };
-  } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
+  } else if (type === 'copia_cola' || type === 'copy_paste') {
     endpoint = '/send/text';
     const code = String(special.copyText || special.code || '').trim();
     const desc = String(special.description || special.text || '').trim();
     const txt = [desc, code ? `\n\`\`\`${code}\`\`\`` : ''].filter(Boolean).join('\n').trim() || code;
     body = { number: targetNumber, text: txt };
-  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
-    endpoint = '/send/text';
-    const amount = String(special.amount || '').trim();
-    const pixKey = String(special.pixKey || '').trim();
-    const merchant = String(special.merchantName || '').trim();
-    const desc = String(special.description || special.text || '').trim();
-    
-    const lines = [
-      `💰 *Solicitação de Pagamento*`,
-      merchant ? `Recebedor: ${merchant}` : '',
-      amount ? `Valor: R$ ${amount}` : '',
-      pixKey ? `Chave PIX: ${pixKey}` : '',
-      desc ? `\n${desc}` : '',
-    ].filter(Boolean).join('\n');
-    
-    body = { number: targetNumber, text: lines };
   }
 
   try {
