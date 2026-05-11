@@ -125,7 +125,7 @@ const fetchOwnerJidViaUazapi = async (apiUrl: string, apiToken: string): Promise
 const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => {
   const provider = (instance.api_provider || 'zapi').toLowerCase();
   try {
-    if (provider === 'uazapi') {
+    if (provider === 'uazapi' || provider === 'uazapi_warmup') {
       const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
       const apiToken = instance.evolution_api_key || instance.zapi_token || '';
       if (!apiUrl || !apiToken) return false;
@@ -811,7 +811,7 @@ Deno.serve(async (req) => {
     for (const instance of liveInstances) {
       try {
         const provider = (instance.api_provider || 'zapi').toLowerCase();
-        const rawGroups = provider === 'uazapi'
+        const rawGroups = (provider === 'uazapi' || provider === 'uazapi_warmup')
           ? await fetchGroupsViaUazapi(instance)
           : await fetchGroupsViaZapi(instance);
         for (const group of rawGroups) {

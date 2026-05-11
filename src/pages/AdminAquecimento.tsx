@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon, Users2, Link as LinkIcon } from "lucide-react";
+import { Trash2, Plus, Flame, Loader2, Phone, Server, QrCode, RefreshCw, CheckCircle2, UserCog, ImageIcon, Users2, Link as LinkIcon, ArrowRightLeft } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -319,7 +319,7 @@ export default function AdminAquecimento() {
     const { data, error } = await supabase
       .from("zapi_instances")
       .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,created_at,api_provider")
-      .eq("api_provider", "uazapi_warmup")
+      .in("api_provider", ["uazapi", "uazapi_warmup"])
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
@@ -500,6 +500,25 @@ export default function AdminAquecimento() {
     setInstName("");
     setInstOpen(false);
     loadInstances();
+  };
+
+  const migrateLegacyInstances = async () => {
+    const legacy = instances.filter(i => (i as any).api_provider === 'uazapi');
+    if (legacy.length === 0) return;
+    setLoadingInst(true);
+    try {
+      const { error } = await supabase
+        .from('zapi_instances')
+        .update({ api_provider: 'uazapi_warmup' })
+        .in('id', legacy.map(i => i.id));
+      if (error) throw error;
+      toast.success(`${legacy.length} instâncias migradas para o pool de aquecimento`);
+      loadInstances();
+    } catch (e: any) {
+      toast.error('Erro ao migrar instâncias: ' + e.message);
+    } finally {
+      setLoadingInst(false);
+    }
   };
 
   const load = async () => {
@@ -703,7 +722,13 @@ export default function AdminAquecimento() {
         </p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {instances.some(i => (i as any).api_provider === 'uazapi') && (
+          <Button size="sm" variant="outline" onClick={migrateLegacyInstances} className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
+            <ArrowRightLeft className="w-4 h-4 mr-1" />
+            Migrar para Aquecimento
+          </Button>
+        )}
         <Dialog open={instOpen} onOpenChange={setInstOpen}>
           <DialogTrigger asChild>
             <Button size="sm">

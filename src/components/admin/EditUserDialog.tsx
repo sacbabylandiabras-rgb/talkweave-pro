@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -284,13 +284,18 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 {instances.filter(i => i.api_provider === 'uazapi').map((inst) => (
                   <Card key={inst.id} className="border">
                     <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-xs text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => updateInstance(inst.id, user.id, { api_provider: 'uazapi_warmup' })}>
+                          <ArrowRightLeft className="w-3 h-3 text-primary" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -346,13 +351,18 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 {instances.filter(i => i.api_provider === 'uazapi_warmup').map((inst) => (
                   <Card key={inst.id} className="border">
                     <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-xs text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => updateInstance(inst.id, user.id, { api_provider: 'uazapi' })}>
+                          <ArrowRightLeft className="w-3 h-3 text-orange-500" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

@@ -71,7 +71,7 @@ serve(async (req) => {
       if ((byTableIdError && !byTableId) || !instance) throw new Error('Instance not found');
 
       // UAZAPI provider routing
-      if ((instance as any).api_provider === 'uazapi') {
+      if ((instance as any).api_provider === 'uazapi' || (instance as any).api_provider === 'uazapi_warmup') {
         const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
         const apiToken = (instance as any).evolution_api_key || '';
         if (!apiUrl || !apiToken) {
@@ -151,7 +151,7 @@ serve(async (req) => {
       evolution_api_key: null,
     };
 
-    if ((activeInstance as any).api_provider === 'uazapi') {
+    if ((activeInstance as any).api_provider === 'uazapi' || (activeInstance as any).api_provider === 'uazapi_warmup') {
       const apiUrl = String((activeInstance as any).evolution_api_url || '').replace(/\/+$/, '');
       const apiToken = String((activeInstance as any).evolution_api_key || '');
       if (!apiUrl || !apiToken) {
