@@ -661,10 +661,10 @@ const ApanhadorGrupos = () => {
                       </Button>
                     </div>
                   )
-                ) : qrCode ? (
+                ) : qrCodeImage ? (
                   <div className="flex flex-col items-center gap-3">
                     <img
-                      src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
+                      src={qrCodeImage}
                       alt="QR Code"
                       className="w-64 h-64 bg-white p-2 rounded-lg"
                     />
