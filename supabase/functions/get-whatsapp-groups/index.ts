@@ -935,11 +935,9 @@ Deno.serve(async (req) => {
            // If it doesn't match standard patterns but we are in a group context, consider it a group
            const validGroup = isChannel || isGroup || isCommunity;
 
-           const isAdmin = hasTruthyValue(group.isAdmin) || 
-                           hasTruthyValue(group.isSuperAdmin) || 
-                           hasTruthyValue(group.is_admin) || 
-                           isChannel || isCommunity; 
-                           // Assume admin for channels and communities if they made it this far
+            const isAdmin = hasTruthyValue(group.isAdmin) ||
+                            hasTruthyValue(group.isSuperAdmin) ||
+                            hasTruthyValue(group.is_admin);
 
            if (!groupsById.has(groupId) && (isGroup || isCommunity || isChannel)) {
              groupsById.set(groupId, {
