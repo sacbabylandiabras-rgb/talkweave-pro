@@ -2964,6 +2964,40 @@ const Modelos = () => {
                       </div>
                     );
                   })()
+                ) : (previewTemplate.type === 'pagamento' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'pagamento')) ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const amount = special.amount
+                      ? `${special.currency || 'BRL'} ${Number(special.amount).toFixed(2).replace('.', ',')}`
+                      : '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[240px]">
+                          <div className="px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                              <CreditCard className="w-4 h-4 text-primary" />
+                              <p className="text-sm font-bold text-foreground">{special.title || 'Solicitação de Pagamento'}</p>
+                            </div>
+                            {amount && (
+                              <p className="text-xl font-black text-foreground">{amount}</p>
+                            )}
+                            {special.description && (
+                              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{special.description}</p>
+                            )}
+                            {special.referenceId && (
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground pt-1">Ref: {special.referenceId}</p>
+                            )}
+                            {previewTemplate.footer && (
+                              <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/10">{previewTemplate.footer}</p>
+                            )}
+                          </div>
+                          <div className="border-t border-border/30 bg-primary/5 text-center py-2.5 text-sm text-primary font-bold">
+                            Pagar agora
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
