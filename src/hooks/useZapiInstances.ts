@@ -181,10 +181,18 @@ export const useAdminZapiInstances = (userId?: string) => {
 
       const normalizedName = data.instance_name.trim().toLowerCase();
       const normalizedId = (data.zapi_instance_id || '').trim().toLowerCase();
-      const duplicated = instances.find(i => 
-        i.instance_name.trim().toLowerCase() === normalizedName || 
-        (normalizedId && i.zapi_instance_id && i.zapi_instance_id.trim().toLowerCase() === normalizedId)
-      );
+      const duplicated = instances.find(i => {
+        const nameMatch = i.instance_name.trim().toLowerCase() === normalizedName;
+        const idMatch = normalizedId && i.zapi_instance_id && i.zapi_instance_id.trim().toLowerCase() === normalizedId;
+        
+        // If it's a Z-API instance, check name OR ID
+        if ((data.api_provider || 'zapi') === 'zapi') {
+          return nameMatch || idMatch;
+        }
+        
+        // For UAZAPI, we only check name match to allow multiple instances from same provider URL
+        return nameMatch;
+      });
       if (duplicated) {
         toast({ title: "Instância duplicada", description: "Essa instância já está cadastrada.", variant: "destructive" });
         return false;
