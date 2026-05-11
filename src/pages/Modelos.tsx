@@ -338,6 +338,42 @@ const SpecialFieldsEditor = ({
     );
   }
 
+  if (type === "status") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Camera className="w-4 h-4" /> WhatsApp Status (Stories)
+        </div>
+        <div className="space-y-2">
+          <Label>Tipo de Status</Label>
+          <Select value={data.statusType || "text"} onValueChange={(v) => onChange({ statusType: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="image">Imagem</SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {data.statusType !== "text" && (
+          <p className="text-xs text-muted-foreground">
+            Utilize o campo de upload abaixo para anexar a mídia do Status.
+          </p>
+        )}
+        {data.statusType === "text" && (
+          <div className="space-y-2">
+            <Label>Cor de Fundo (Hex)</Label>
+            <Input
+              placeholder="#000000"
+              value={data.backgroundColor || ""}
+              onChange={(e) => onChange({ backgroundColor: e.target.value })}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (type === "copia_cola") {
     const currentVars = (data.variables && typeof data.variables === 'object' && !Array.isArray(data.variables))
       ? data.variables as Record<string, any>
