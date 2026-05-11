@@ -465,7 +465,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     detailedGroups = await Promise.all(combinedRaw.map(async (group: any) => {
     const groupId = group?.JID || group?.id || group?.jid || group?.groupId || group?.remoteJid || group?.wa_chatid || '';
     const isChannel = group?.__isChannel === true || String(groupId).includes('@newsletter');
-    if (!isChannel && !String(groupId).includes('@g.us')) return null;
+     if (!isChannel && !String(groupId).includes('@g.us') && !String(groupId).includes('@newsletter')) return null;
 
     const fallbackName =
       group?.subject ||
@@ -482,11 +482,14 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
 
     let detail: any = null;
     if (!isChannel) try {
-      const infoResponse = await fetch(`${apiUrl}/group/info`, {
+      const infoUrl = `${apiUrl}/group/info${apiUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      const infoResponse = await fetch(infoUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          token: apiToken,
+          'token': apiToken,
+          'apikey': apiToken,
+          'Authorization': `Bearer ${apiToken}`
         },
         body: JSON.stringify({ groupjid: groupId, getInviteLink: false }),
       });
