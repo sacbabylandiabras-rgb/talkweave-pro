@@ -565,7 +565,20 @@ Deno.serve(async (req) => {
     if (uazapi) {
       console.log(`📱 UAZAPI participants for ${groupId}`);
       try {
-         const groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, isCommunity);
+        // If explicitly a community or looks like one, try community info then fallback to group info
+        let groupInfo: any = null;
+        const looksLikeCommunity = isCommunity || !String(groupId).includes('@g.us');
+        
+        if (looksLikeCommunity) {
+          try {
+            groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, true);
+          } catch (e) {
+            console.log("⚠️ UAZAPI community/info failed, trying group/info fallback");
+            groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, false);
+          }
+        } else {
+          groupInfo = await fetchUazapiGroupInfo(uazapi.apiUrl, uazapi.apiToken, groupId, false);
+        }
         const apiParticipants = extractParticipantArray(groupInfo);
 
         const fallbackList = Array.isArray(fallbackParticipants) ? fallbackParticipants : [];
