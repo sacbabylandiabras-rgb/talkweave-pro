@@ -67,7 +67,11 @@ const PreviaModelos = () => {
     { 
       name: "Enquete (Poll)", category: "Especial", type: "poll", 
       content: "Qual seu dia preferido para reunião?",
-      buttons: [{ id: "1", text: "Segunda" }, { id: "2", text: "Quarta" }, { id: "3", text: "Sexta" }]
+      buttons: [
+        { id: "1", text: "Segunda", type: "reply" }, 
+        { id: "2", text: "Quarta", type: "reply" }, 
+        { id: "3", text: "Sexta", type: "reply" }
+      ]
     },
     { name: "Sticker (Figurinha)", category: "Especial", type: "sticker", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
     { name: "GIF Animado", category: "Especial", type: "gif", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
