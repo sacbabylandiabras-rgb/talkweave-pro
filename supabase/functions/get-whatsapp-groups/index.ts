@@ -347,7 +347,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       }
     }
   } catch (e) {
-    console.warn(`⚠️ Failed to detect real instance name from /status:`, e.message);
+    console.warn(`⚠️ Failed to detect real instance name from /status:`, e instanceof Error ? e.message : String(e));
   }
 
   const ownerJid = await fetchOwnerJidViaUazapi(apiUrl, apiToken, realInstanceName);
@@ -384,7 +384,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       const url = `${apiUrl}${ep}${ep.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
       console.log(`🔎 Fetching groups via UAZAPI: ${combo.method} ${url}`);
       
-      const currentHeaders = { ...headers };
+      const currentHeaders: Record<string, string> = { ...headers };
       if (realInstanceName) {
         currentHeaders['instance'] = realInstanceName;
         currentHeaders['instance-name'] = realInstanceName;
@@ -415,7 +415,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
         }
       }
     } catch (e) {
-      console.error(`❌ UAZAPI ${combo.ep} fetch failed:`, e.message);
+      console.error(`❌ UAZAPI ${combo.ep} fetch failed:`, e instanceof Error ? e.message : String(e));
     }
   }
 
