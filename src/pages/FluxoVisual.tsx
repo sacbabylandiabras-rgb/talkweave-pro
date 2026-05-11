@@ -2502,16 +2502,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {(selectedNode.data.contentType === "image" ||
-                  selectedNode.data.contentType === "video" ||
-                  selectedNode.data.contentType === "audio" ||
-                  selectedNode.data.contentType === "document") && (
+                {(["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
                   <>
                     <div>
                       <Label>
-                        URL da {selectedNode.data.contentType === "image" ? "Imagem" :
-                                selectedNode.data.contentType === "video" ? "Vídeo" :
-                                selectedNode.data.contentType === "audio" ? "Áudio" : "Documento"}
+                        URL da {selectedNode.data.contentType === "image" ? "Imagem" : 
+                                selectedNode.data.contentType === "video" ? "Vídeo" : 
+                                selectedNode.data.contentType === "audio" ? "Áudio" : 
+                                selectedNode.data.contentType === "status" ? (selectedNode.data.statusKind === "image" ? "Imagem" : selectedNode.data.statusKind === "video" ? "Vídeo" : "Mídia") : 
+                                "Mídia"}
                       </Label>
                       <Input
                         value={selectedNode.data.mediaUrl || ""}
@@ -2521,9 +2520,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             data: { ...selectedNode.data, mediaUrl: e.target.value },
                           })
                         }
-                        placeholder={`https://exemplo.com/${selectedNode.data.contentType === "image" ? "imagem.jpg" :
-                                      selectedNode.data.contentType === "video" ? "video.mp4" :
-                                      selectedNode.data.contentType === "audio" ? "audio.mp3" : "documento.pdf"}`}
+                        placeholder={`https://exemplo.com/${
+                          selectedNode.data.contentType === "image" ? "imagem.jpg" : 
+                          selectedNode.data.contentType === "video" ? "video.mp4" : 
+                          selectedNode.data.contentType === "audio" ? "audio.mp3" : 
+                          selectedNode.data.contentType === "status" ? (selectedNode.data.statusKind === "video" ? "video.mp4" : "imagem.jpg") : 
+                          "arquivo.ext"
+                        }`}
                       />
                     </div>
 
@@ -2556,13 +2559,16 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             className="hidden"
                             onChange={handleFileUpload}
                             disabled={uploadingFile}
-                            accept={
-                              selectedNode.data.contentType === "image" || selectedNode.data.contentType === "sticker" ? "image/*,.webp" :
-                              selectedNode.data.contentType === "gif" ? "video/*,image/gif" :
-                              selectedNode.data.contentType === "video" ? "video/*" :
-                              selectedNode.data.contentType === "audio" ? "audio/*" :
-                              selectedNode.data.contentType === "document" ? ".pdf,.doc,.docx" : "*"
-                            }
+                            accept={(() => {
+                              const type = selectedNode.data.contentType;
+                              const kind = selectedNode.data.statusKind;
+                              if (type === "image" || type === "sticker" || (type === "status" && kind === "image")) return "image/*,.webp";
+                              if (type === "gif") return "video/*,image/gif";
+                              if (type === "video" || (type === "status" && kind === "video")) return "video/*";
+                              if (type === "audio" || (type === "status" && kind === "audio")) return "audio/*";
+                              if (type === "document") return ".pdf,.doc,.docx";
+                              return "*";
+                            })()}
                           />
                         </label>
                       </div>
