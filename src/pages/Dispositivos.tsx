@@ -2085,11 +2085,9 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-  // Exibir todas as instâncias (Web e Mobile), ocultando apenas as instâncias UAZAPI doadoras
+  // Exibir apenas instâncias Z-API (uso normal)
   const instances = useMemo(() => {
-    return allInstances.filter(
-      (i) => (i.api_provider || 'zapi') !== 'uazapi' && i.instance_type !== 'mobile'
-    );
+    return allInstances.filter((i) => (i.api_provider || 'zapi') === 'zapi');
   }, [allInstances]);
 
   const { toast } = useToast();
