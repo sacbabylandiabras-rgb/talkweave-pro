@@ -34,17 +34,9 @@ const ApanhadorGrupos = () => {
   const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
-  // Apenas instâncias uazapi devem aparecer nesta página
-  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi' && inst.is_active !== false);
-  // Apenas instâncias que aparecem como fonte de algum grupo do apanhador
-  const groupSourceInstanceIds = new Set(
-    (groups || [])
-      .map((g: any) => g.sourceInstanceId)
-      .filter((id: any) => typeof id === 'string' && id.length > 0)
-  );
-  const apanhadorInstances = uazapiInstances.filter((inst: any) =>
-    groupSourceInstanceIds.size === 0 ? true : groupSourceInstanceIds.has(inst.id)
-  );
+  // Instâncias UAZAPI para esta página
+  const uazapiInstances = instances.filter((inst: any) => inst.api_provider === 'uazapi');
+  const apanhadorInstances = uazapiInstances;
   const [extracting, setExtracting] = useState<string | null>(null);
   type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
@@ -163,21 +155,12 @@ const ApanhadorGrupos = () => {
     }
   };
 
-  const loadUazapiAccounts = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-    const { data } = await (supabase as any)
-      .from('profiles')
-      .select('uazapi_url, uazapi_token')
-      .eq('id', user.id)
-      .maybeSingle();
-    const urls = (data?.uazapi_url || '').split('|').filter(Boolean);
-    const tokens = (data?.uazapi_token || '').split('|').filter(Boolean);
-    const accounts = urls.map((url: string, i: number) => ({
-      label: `Instância #${i + 1}`,
-      url: url.trim(),
-      token: (tokens[i] || '').trim(),
-    })).filter((a: any) => a.url && a.token);
+  const loadUazapiAccounts = () => {
+    const accounts = uazapiInstances.map((inst: any) => ({
+      label: inst.instance_name,
+      url: inst.evolution_api_url,
+      token: inst.zapi_token,
+    }));
     setUazapiAccounts(accounts);
     return accounts;
   };
