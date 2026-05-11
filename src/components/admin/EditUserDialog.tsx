@@ -369,12 +369,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </div>
             </div>
 
-            {/* Seção Z-API - Instâncias de Uso */}
+            {/* Seção Z-API - Instâncias de Uso (Web) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-emerald-500 flex items-center gap-2">
-                  <Smartphone className="w-4 h-4" />
-                  Instâncias de Uso (Z-API)
+                  <Globe className="w-4 h-4" />
+                  Instâncias de Uso (Web)
                 </h3>
                 <Button 
                   size="sm" 
@@ -385,7 +385,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   }}
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'zapi' ? "Fechar" : "Adicionar Uso"}
+                  {showAddForm === 'zapi' ? "Fechar" : "Adicionar Web"}
                 </Button>
               </div>
 
@@ -399,13 +399,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       </div>
                       <div className="space-y-2">
                         <Label>Tipo</Label>
-                        <Select value={newInstanceType} onValueChange={(v) => setNewInstanceType(v as any)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="web">Web (QR Code)</SelectItem>
-                            <SelectItem value="mobile">Mobile (Número)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input value="Web (QR Code)" disabled className="bg-muted" />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -431,7 +425,111 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               )}
 
               <div className="space-y-2">
-                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi').map((inst) => (
+                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.instance_type !== 'mobile').map((inst) => (
+                  <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
+                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
+                          {inst.is_default && <Badge variant="default" className="bg-emerald-500 text-[10px] h-4">Padrão</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!inst.is_default && (
+                          <Button size="sm" variant="ghost" title="Tornar padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
+                            <Star className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância?')) deleteInstance(inst.id, user.id); }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* NOVE SEÇÃO: Instâncias Mobile (Armazenamento) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-blue-500 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  Instâncias Mobile (Armazenamento)
+                </h3>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setNewProvider('zapi');
+                    setNewInstanceType('mobile');
+                    setShowAddForm(showAddForm === 'mobile' ? null : 'mobile');
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showAddForm === 'mobile' ? "Fechar" : "Adicionar Mobile"}
+                </Button>
+              </div>
+
+              {showAddForm === 'mobile' && (
+                <Card className="border-blue-500/40">
+                  <CardContent className="pt-4 pb-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Nome</Label>
+                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Mobile 01" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <Input value="Mobile (Número)" disabled className="bg-muted" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Instance ID</Label>
+                      <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID Z-API" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Instance Token</Label>
+                      <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token" type="password" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Client Token</Label>
+                      <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={async () => {
+                        if (!user) return;
+                        if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+                          toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+                          return;
+                        }
+                        setAddingInstance(true);
+                        const ok = await addInstance(user.id, {
+                          instance_name: newInstanceName.trim(),
+                          zapi_instance_id: newInstanceId.trim(),
+                          zapi_token: newInstanceToken.trim(),
+                          zapi_client_token: newClientToken.trim(),
+                          is_default: false,
+                          api_provider: 'zapi',
+                          instance_type: 'mobile',
+                        });
+                        setAddingInstance(false);
+                        if (ok) {
+                          resetAddForm();
+                          setShowAddForm(null);
+                        }
+                      }} disabled={addingInstance}>
+                        {addingInstance ? "Adicionando..." : "Salvar Mobile"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="space-y-2">
+                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.instance_type === 'mobile').map((inst) => (
                   <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
                     <CardContent className="pt-3 pb-3 flex items-center justify-between">
                       <div className="min-w-0">
