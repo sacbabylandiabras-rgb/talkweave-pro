@@ -483,8 +483,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </div>
             </div>
 
-          </div>
-
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={loading}>{loading ? "Salvando..." : "Salvar"}</Button>
