@@ -1813,7 +1813,9 @@ serve(async (req) => {
             requestBody = { phone: contact.phone, ptv: campaign.template.media_url };
           } else {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-            requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
+            const videoUrl = campaign.template.media_url;
+            console.log(`🎬 Enviando vídeo para ${contact.phone}: ${videoUrl}`);
+            requestBody = { phone: contact.phone, video: videoUrl, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
           }
 
         } else if (templateType === 'audio') {
