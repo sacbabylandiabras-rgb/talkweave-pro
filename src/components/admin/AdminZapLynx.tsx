@@ -152,9 +152,8 @@ const AdminZapLynx = () => {
     const fetchInstancesCount = async () => {
       const { data } = await (supabase as any)
         .from('zapi_instances')
-        .select('id, instance_name, instance_type, api_provider')
-        .eq('api_provider', 'zapi');
-      setTotalZapiInstances(((data || []) as any[]).filter((item) => !isMobileZapiInstance(item)).length);
+        .select('id, instance_name, instance_type, api_provider');
+      setTotalZapiInstances(((data || []) as any[]).filter((item) => (item.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(item)).length);
     };
     fetchInstancesCount();
   }, []);
