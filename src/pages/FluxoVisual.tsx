@@ -2042,7 +2042,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
                       <SelectItem value="poll">Enquete / Poll</SelectItem>
                       <SelectItem value="product">Produto</SelectItem>
-                      <SelectItem value="location">Localização</SelectItem>
+                      <SelectItem value="location">Localização (Nativa)</SelectItem>
+                      <SelectItem value="location-buttons">Localização com botões</SelectItem>
                       <SelectItem value="contact">Contato (vCard)</SelectItem>
                       <SelectItem value="event">Evento</SelectItem>
                       <SelectItem value="order-status">Status do pedido</SelectItem>
