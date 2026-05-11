@@ -119,7 +119,7 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing";
+    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
