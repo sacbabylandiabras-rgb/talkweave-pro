@@ -237,14 +237,20 @@ export const useAdminZapiInstances = (userId?: string) => {
     }
   };
 
-  const deleteInstance = async (instanceId: string, uid: string) => {
+  const deleteInstance = async (instanceId: string, uid: string, zapiId?: string) => {
     try {
       const { data, error } = await fromZapiInstances().delete().eq('id', instanceId).select();
       if (error) throw error;
       if (!data || data.length === 0) {
-        const { error: fnError } = await supabase.functions.invoke('cleanup-orphan-data', { body: { action: 'delete-instance', instanceId } });
+        const { error: fnError } = await supabase.functions.invoke('cleanup-orphan-data', { 
+          body: { action: 'delete-instance', instanceId, zapiInstanceId: zapiId } 
+        });
         if (fnError) throw new Error('Falha ao remover instância: permissão negada');
       }
+      
+      // Limpa cache local
+      localStorage.removeItem(`${INSTANCES_CACHE_PREFIX}${uid}`);
+      
       toast({ title: "✅ Instância removida" });
       await fetchUserInstances(uid);
       return true;
