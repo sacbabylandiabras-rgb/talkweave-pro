@@ -126,6 +126,28 @@ const ApanhadorGrupos = () => {
   const [activeAccountIdx, setActiveAccountIdx] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  useEffect(() => {
+    const generateQrImage = async () => {
+      if (!qrCode) {
+        setQrCodeImage(null);
+        return;
+      }
+      if (qrCode.startsWith('data:image')) {
+        setQrCodeImage(qrCode);
+        return;
+      }
+      try {
+        const url = await QRCodeLib.toDataURL(qrCode);
+        setQrCodeImage(url);
+      } catch (err) {
+        console.error('Erro ao gerar imagem do QR Code:', err);
+        setQrCodeImage(null);
+      }
+    };
+    generateQrImage();
+  }, [qrCode]);
+
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>('disconnected');
   const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
