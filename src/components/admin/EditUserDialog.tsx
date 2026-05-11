@@ -235,12 +235,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </p>
             </div>
 
-            {/* Seção UAZAPI - Extração / Aquecimento */}
+            {/* Seção UAZAPI - Extração */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-primary flex items-center gap-2">
-                  <Flame className="w-4 h-4" />
-                  Extração e Aquecimento (UAZAPI)
+                  <UserPlus className="w-4 h-4" />
+                  Instâncias de Extração (UAZAPI)
                 </h3>
                 <Button 
                   size="sm" 
@@ -251,7 +251,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   }}
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'uazapi' ? "Fechar" : "Adicionar UAZAPI"}
+                  {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extração"}
                 </Button>
               </div>
 
@@ -259,21 +259,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 <Card className="border-primary/40">
                   <CardContent className="pt-4 pb-4 space-y-3">
                     <div className="space-y-2">
-                      <Label>Nome da Instância (UAZAPI)</Label>
-                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Extração/Aquecimento 01" />
+                      <Label>Nome da Instância (Extração)</Label>
+                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Extração 01" />
                     </div>
                     <div className="space-y-2">
-                      <Label>URL da API (Evolution/UAZAPI)</Label>
+                      <Label>URL da API</Label>
                       <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
                     </div>
                     <div className="space-y-2">
-                      <Label>API Key (Global Token)</Label>
+                      <Label>API Key</Label>
                       <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
                     </div>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
                       <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar UAZAPI"}
+                        {addingInstance ? "Adicionando..." : "Salvar Extração"}
                       </Button>
                     </div>
                   </CardContent>
@@ -288,7 +288,69 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
                         <p className="text-xs text-muted-foreground truncate">{inst.evolution_api_url}</p>
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância UAZAPI?')) deleteInstance(inst.id, user.id); }}>
+                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Seção UAZAPI - Aquecimento */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-orange-500 flex items-center gap-2">
+                  <Flame className="w-4 h-4" />
+                  Pool de Aquecimento (UAZAPI)
+                </h3>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setNewProvider('uazapi_warmup');
+                    setShowAddForm(showAddForm === 'uazapi_warmup' ? null : 'uazapi_warmup');
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showAddForm === 'uazapi_warmup' ? "Fechar" : "Adicionar Aquecimento"}
+                </Button>
+              </div>
+
+              {showAddForm === 'uazapi_warmup' && (
+                <Card className="border-orange-500/40">
+                  <CardContent className="pt-4 pb-4 space-y-3">
+                    <div className="space-y-2">
+                      <Label>Nome da Instância (Aquecimento)</Label>
+                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Aquecimento 01" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>URL da API</Label>
+                      <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Key</Label>
+                      <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
+                        {addingInstance ? "Adicionando..." : "Salvar Aquecimento"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="space-y-2">
+                {instances.filter(i => i.api_provider === 'uazapi_warmup').map((inst) => (
+                  <Card key={inst.id} className="border">
+                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
+                        <p className="text-xs text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
                         <Trash2 className="w-3 h-3 text-destructive" />
                       </Button>
                     </CardContent>
