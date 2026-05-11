@@ -598,8 +598,8 @@ const sendZapiLocationButtonFollowUp = async (
   phone: string,
   special: any,
 ) => {
-  const latitude = parseCoordinate(special.latitude);
-  const longitude = parseCoordinate(special.longitude);
+  const latitude = parseCoordinate(special.latitude || special.locLatitude);
+  const longitude = parseCoordinate(special.longitude || special.locLongitude);
   const buttonUrl = String(special.url || (latitude && longitude ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : '')).trim();
   if (!buttonUrl) {
     return { ok: false, ack: null, error: 'Template de localização com botão sem URL do mapa', raw: null };
@@ -609,10 +609,10 @@ const sendZapiLocationButtonFollowUp = async (
   const message = String(
     special.text ||
     special.description ||
-    [special.name || special.title, special.address].filter(Boolean).join('\n') ||
+    [special.name || special.title || special.locTitle, special.address || special.locAddress].filter(Boolean).join('\n') ||
     'Abrir localização no mapa'
   ).trim();
-  const buttonLabel = String(special.buttonLabel || 'Ver no mapa').trim() || 'Ver no mapa';
+  const buttonLabel = String(special.buttonLabel || special.locButtonLabel || 'Ver no mapa').trim() || 'Ver no mapa';
   const body = {
     phone,
     message,
