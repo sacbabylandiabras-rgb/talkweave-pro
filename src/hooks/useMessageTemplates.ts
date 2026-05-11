@@ -328,17 +328,47 @@ export const useMessageTemplates = () => {
     loadTemplates();
   }, []);
 
-  return {
-    templates,
-    loading,
-    createTemplate,
-    updateTemplate,
-    deleteTemplate,
-    duplicateTemplate,
-    incrementUsage,
-    getUniqueCategories,
-    filterByCategory,
-    processVariables,
-    refetch: loadTemplates,
-  };
-};
+   const deleteAllTemplates = async () => {
+     try {
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) throw new Error('Usuário não autenticado');
+ 
+       const { error } = await supabase
+         .from('message_templates')
+         .update({ active: false })
+         .eq('user_id', user.id)
+         .eq('active', true);
+ 
+       if (error) throw error;
+ 
+       setTemplates([]);
+       toast({
+         title: "Sucesso",
+         description: "Todos os modelos foram removidos",
+       });
+     } catch (error) {
+       console.error('Error deleting all templates:', error);
+       toast({
+         title: "Erro",
+         description: "Erro ao remover todos os modelos",
+         variant: "destructive",
+       });
+       throw error;
+     }
+   };
+ 
+   return {
+     templates,
+     loading,
+     createTemplate,
+     updateTemplate,
+     deleteTemplate,
+     deleteAllTemplates,
+     duplicateTemplate,
+     incrementUsage,
+     getUniqueCategories,
+     filterByCategory,
+     processVariables,
+     refetch: loadTemplates,
+   };
+ };
