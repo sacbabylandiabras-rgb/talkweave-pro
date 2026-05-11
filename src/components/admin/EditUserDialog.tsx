@@ -318,14 +318,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
                         <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => updateInstance(inst.id, user.id, { api_provider: 'uazapi_warmup' })}>
-                          <ArrowRightLeft className="w-3 h-3 text-primary" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
+                       <div className="flex items-center gap-1">
+                         <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
+                           <ArrowRightLeft className="w-3 h-3 text-primary" />
+                         </Button>
+                         <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
+                           <Trash2 className="w-3 h-3 text-destructive" />
+                         </Button>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -395,14 +395,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
                         <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => updateInstance(inst.id, user.id, { api_provider: 'uazapi' })}>
-                          <ArrowRightLeft className="w-3 h-3 text-orange-500" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
+                       <div className="flex items-center gap-1">
+                         <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
+                           <ArrowRightLeft className="w-3 h-3 text-orange-500" />
+                         </Button>
+                         <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
+                           <Trash2 className="w-3 h-3 text-destructive" />
+                         </Button>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -537,33 +537,28 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <Label>Client Token</Label>
                       <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
                     </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={async () => {
-                        if (!user) return;
-                        if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-                          toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-                          return;
-                        }
-                        setAddingInstance(true);
-                        const ok = await addInstance(user.id, {
-                          instance_name: newInstanceName.trim(),
-                          zapi_instance_id: newInstanceId.trim(),
-                          zapi_token: newInstanceToken.trim(),
-                          zapi_client_token: newClientToken.trim(),
-                          is_default: false,
-                          api_provider: 'zapi',
-                          instance_type: 'mobile',
-                        });
-                        setAddingInstance(false);
-                        if (ok) {
-                          resetAddForm();
-                          setShowAddForm(null);
-                        }
-                      }} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar Mobile"}
-                      </Button>
-                    </div>
+                     <div className="flex gap-2 justify-end pt-2">
+                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                       <Button 
+                         size="sm" 
+                         onClick={() => {
+                           if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+                             toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Mobile.", variant: "destructive" });
+                             return;
+                           }
+                           addMobileInstance({
+                             instance_name: newInstanceName.trim(),
+                             zapi_instance_id: newInstanceId.trim(),
+                             zapi_token: newInstanceToken.trim(),
+                             zapi_client_token: newClientToken.trim(),
+                             is_default: false
+                           }).then(ok => ok && (resetAddForm(), setShowAddForm(null)));
+                         }} 
+                         disabled={addingMobile}
+                       >
+                         {addingMobile ? "Adicionando..." : "Salvar Mobile"}
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               )}
