@@ -48,6 +48,7 @@ interface UazInstance {
   instance_name: string;
   zapi_instance_id: string;
   zapi_token: string;
+  evolution_api_key?: string | null;
   evolution_api_url: string;
   created_at: string;
 }
@@ -318,7 +319,7 @@ export default function AdminAquecimento() {
     setLoadingInst(true);
     const { data, error } = await supabase
       .from("zapi_instances")
-      .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,created_at,api_provider")
+        .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,evolution_api_key,created_at,api_provider")
       .in("api_provider", ["uazapi", "uazapi_warmup"])
       .order("created_at", { ascending: false });
     if (error) {
