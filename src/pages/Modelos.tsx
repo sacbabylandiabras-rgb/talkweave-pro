@@ -37,8 +37,13 @@ const SPECIAL_FIELD_DEFAULTS = {
    orderStatus: "",
    orderPaymentStatus: "",
    orderReferenceId: "",
-   orderJson: "",
- };
+    orderJson: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
+  };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
@@ -90,6 +95,12 @@ const buildSpecialContent = (type: string, data: any): string => {
         payload.orderRaw = data.orderJson;
       }
       payload.description = data.content || "";
+    } else if (type === "pagamento") {
+      payload.title = data.paymentTitle || "";
+      payload.description = data.paymentDescription || data.content || "";
+      payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
+      payload.currency = data.paymentCurrency || "BRL";
+      payload.referenceId = data.paymentReferenceId || "";
     }
     return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
   };
@@ -106,7 +117,7 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido";
+    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -420,6 +431,68 @@ const SpecialFieldsEditor = ({
     );
   }
 
+  if (type === "pagamento") {
+    return (
+      <div className="space-y-4 border rounded-xl p-4 bg-accent/10 border-accent/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          <CreditCard className="w-5 h-5" /> Solicitação de Pagamento
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <Label>Título do Pagamento *</Label>
+            <Input
+              placeholder="Ex: Assinatura Mensal"
+              value={data.paymentTitle || ""}
+              onChange={(e) => onChange({ paymentTitle: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Valor (R$) *</Label>
+              <Input
+                type="text"
+                placeholder="0,00"
+                value={data.paymentAmount || ""}
+                onChange={(e) => onChange({ paymentAmount: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Moeda</Label>
+              <Select
+                value={data.paymentCurrency || "BRL"}
+                onValueChange={(v) => onChange({ paymentCurrency: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BRL">Real (BRL)</SelectItem>
+                  <SelectItem value="USD">Dólar (USD)</SelectItem>
+                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              placeholder="Detalhes sobre o que está sendo cobrado"
+              value={data.paymentDescription || ""}
+              onChange={(e) => onChange({ paymentDescription: e.target.value })}
+              rows={2}
+            />
+          </div>
+          <div>
+            <Label>Referência (opcional)</Label>
+            <Input
+              placeholder="Ex: fatura-001"
+              value={data.paymentReferenceId || ""}
+              onChange={(e) => onChange({ paymentReferenceId: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (type === "status_pedido" || type === "pagamento_pedido") {
     const isPayment = type === "pagamento_pedido";
     return (
@@ -522,6 +595,7 @@ const getTemplateIcon = (type?: string) => {
       return <CalendarClock className="w-5 h-5 text-primary" />;
     case "status_pedido":
       return <Package className="w-5 h-5 text-primary" />;
+    case "pagamento":
     case "pagamento_pedido":
       return <CreditCard className="w-5 h-5 text-primary" />;
     default:
@@ -551,6 +625,7 @@ const getTypeFriendlyName = (type?: string) => {
     evento: "Evento",
     status_pedido: "Status do Pedido",
     pagamento_pedido: "Pagamento do Pedido",
+    pagamento: "Solicitar Pagamento",
   };
   return names[type || "texto"] || "Texto";
 };
@@ -861,6 +936,11 @@ const Modelos = () => {
     contactBusinessDescription: "",
     catalogId: "",
     productId: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -897,6 +977,11 @@ const Modelos = () => {
      variables: {} as Record<string, any>,
     catalogId: "",
     productId: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -1049,6 +1134,10 @@ const Modelos = () => {
       toast({ title: "Erro", description: "Informe o ID do produto", variant: "destructive" });
       return;
     }
+    if (newTemplate.type === "pagamento" && (!newTemplate.paymentTitle || !newTemplate.paymentAmount)) {
+      toast({ title: "Erro", description: "Informe o título e o valor do pagamento", variant: "destructive" });
+      return;
+    }
 
     const validListItems = Array.isArray(newTemplate.listItems)
       ? newTemplate.listItems.filter(item => item.title.trim() !== "")
@@ -1148,7 +1237,7 @@ const Modelos = () => {
         carouselCards: newTemplate.carouselCards,
       });
 
-       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
+       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
        setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -1226,7 +1315,12 @@ const Modelos = () => {
       contactBusinessDescription: special.contactBusinessDescription || "",
       catalogId: special.catalogId || "",
       productId: special.productId || "",
-       contactPhone: special.contactPhone || "",
+      contactPhone: special.contactPhone || "",
+      paymentTitle: special.title || "",
+      paymentDescription: special.description || "",
+      paymentAmount: special.amount ? String(special.amount) : "",
+      paymentCurrency: special.currency || "BRL",
+      paymentReferenceId: special.referenceId || "",
      });
     setEditingTemplate(template.id);
   };
@@ -1263,6 +1357,10 @@ const Modelos = () => {
     }
     if (editFormData.type === "contato" && (!editFormData.contactName || !editFormData.contactPhone)) {
       toast({ title: "Erro", description: "Informe nome e telefone do contato", variant: "destructive" });
+      return;
+    }
+    if (editFormData.type === "pagamento" && (!editFormData.paymentTitle || !editFormData.paymentAmount)) {
+      toast({ title: "Erro", description: "Informe o título e o valor do pagamento", variant: "destructive" });
       return;
     }
 
@@ -1365,7 +1463,7 @@ const Modelos = () => {
       });
 
       setEditingTemplate(null);
-       setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
+        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1400,7 +1498,7 @@ const Modelos = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-     setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "" });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -2861,6 +2959,40 @@ const Modelos = () => {
                           </div>
                           <div className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
                             Adicionar contato
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (previewTemplate.type === 'pagamento' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'pagamento')) ? (
+                  (() => {
+                    const special = parseSpecialContent(previewTemplate.content || '') || {};
+                    const amount = special.amount
+                      ? `${special.currency || 'BRL'} ${Number(special.amount).toFixed(2).replace('.', ',')}`
+                      : '';
+                    return (
+                      <div className="flex justify-end">
+                        <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden min-w-[240px]">
+                          <div className="px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                              <CreditCard className="w-4 h-4 text-primary" />
+                              <p className="text-sm font-bold text-foreground">{special.title || 'Solicitação de Pagamento'}</p>
+                            </div>
+                            {amount && (
+                              <p className="text-xl font-black text-foreground">{amount}</p>
+                            )}
+                            {special.description && (
+                              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{special.description}</p>
+                            )}
+                            {special.referenceId && (
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground pt-1">Ref: {special.referenceId}</p>
+                            )}
+                            {previewTemplate.footer && (
+                              <p className="text-xs text-muted-foreground italic pt-1 border-t border-border/10">{previewTemplate.footer}</p>
+                            )}
+                          </div>
+                          <div className="border-t border-border/30 bg-primary/5 text-center py-2.5 text-sm text-primary font-bold">
+                            Pagar agora
                           </div>
                         </div>
                       </div>
