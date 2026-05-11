@@ -2428,15 +2428,29 @@ const Modelos = () => {
                 placeholder="Ex: Saudação Personalizada"
               />
             </div>
-            <div>
-              <Label htmlFor="edit-template-category">Categoria</Label>
-              <Input
-                id="edit-template-category"
-                value={editFormData.category}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
-                placeholder="Ex: Vendas, Suporte"
-              />
-            </div>
+             <div className="space-y-2">
+               <Label htmlFor="edit-template-category">Categoria</Label>
+               <Input
+                 id="edit-template-category"
+                 value={editFormData.category}
+                 onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
+                 placeholder="Ex: Vendas, Suporte"
+               />
+               <div className="flex flex-wrap gap-1 mt-1">
+                 {PREDEFINED_CATEGORIES.map(cat => (
+                   <Button 
+                     key={cat} 
+                     type="button"
+                     variant="outline" 
+                     size="sm" 
+                     className="h-7 px-2 text-[10px] rounded-full"
+                     onClick={() => setEditFormData(prev => ({ ...prev, category: cat }))}
+                   >
+                     {cat}
+                   </Button>
+                 ))}
+               </div>
+             </div>
 
             <div>
               <Label htmlFor="edit-template-type">Tipo de Template</Label>
