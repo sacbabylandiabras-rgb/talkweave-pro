@@ -13,7 +13,9 @@ import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus, 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useAdminZapiInstances } from "@/hooks/useZapiInstances";
+ import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+ import { useAdminUazapi } from "@/hooks/useAdminUazapi";
+ import { useAdminMobileInstances } from "@/hooks/useAdminMobileInstances";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,7 +45,25 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   const [planId, setPlanId] = useState<string>('none');
   const [customPlanValue, setCustomPlanValue] = useState<string>('');
 
-  const { instances, loading: instancesLoading, addInstance, updateInstance, deleteInstance } = useAdminZapiInstances(user?.id);
+   const { 
+     instances, 
+     loading: instancesLoading, 
+     addInstance, 
+     updateInstance, 
+     deleteInstance,
+     fetchUserInstances
+   } = useAdminZapiInstances(user?.id);
+ 
+   const { 
+     addUazapiInstance, 
+     toggleUazapiType, 
+     addingInstance: addingUazapi 
+   } = useAdminUazapi(user?.id, () => user?.id && fetchUserInstances(user.id));
+ 
+   const { 
+     addMobileInstance, 
+     addingMobile 
+   } = useAdminMobileInstances(user?.id, () => user?.id && fetchUserInstances(user.id));
 
   // Add instance form
    const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | 'mobile' | null>(null);
@@ -270,12 +290,22 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <Label>API Key</Label>
                       <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
                     </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar Extração"}
-                      </Button>
-                    </div>
+                     <div className="flex gap-2 justify-end pt-2">
+                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                       <Button 
+                         size="sm" 
+                         onClick={() => addUazapiInstance({
+                           instance_name: newInstanceName.trim(),
+                           evolution_api_url: newEvolutionUrl.trim(),
+                           evolution_api_key: newEvolutionKey.trim(),
+                           api_provider: 'uazapi',
+                           is_default: false
+                         }).then(ok => ok && (resetAddForm(), setShowAddForm(null)))} 
+                         disabled={addingUazapi}
+                       >
+                         {addingUazapi ? "Adicionando..." : "Salvar Extração"}
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               )}
@@ -337,12 +367,22 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <Label>API Key</Label>
                       <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
                     </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={handleAddInstance} disabled={addingInstance}>
-                        {addingInstance ? "Adicionando..." : "Salvar Aquecimento"}
-                      </Button>
-                    </div>
+                     <div className="flex gap-2 justify-end pt-2">
+                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                       <Button 
+                         size="sm" 
+                         onClick={() => addUazapiInstance({
+                           instance_name: newInstanceName.trim(),
+                           evolution_api_url: newEvolutionUrl.trim(),
+                           evolution_api_key: newEvolutionKey.trim(),
+                           api_provider: 'uazapi_warmup',
+                           is_default: false
+                         }).then(ok => ok && (resetAddForm(), setShowAddForm(null)))} 
+                         disabled={addingUazapi}
+                       >
+                         {addingUazapi ? "Adicionando..." : "Salvar Aquecimento"}
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               )}
