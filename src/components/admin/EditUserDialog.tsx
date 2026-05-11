@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
  import { useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
+ import { useAdminWebInstances } from "@/hooks/useAdminWebInstances";
  import { useAdminUazapi } from "@/hooks/useAdminUazapi";
  import { useAdminMobileInstances } from "@/hooks/useAdminMobileInstances";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
      addMobileInstance, 
      addingMobile 
    } = useAdminMobileInstances(user?.id, () => user?.id && fetchUserInstances(user.id));
+
+   const {
+     addWebInstance,
+     addingWeb
+   } = useAdminWebInstances(user?.id, instances, () => user?.id && fetchUserInstances(user.id));
 
   // Add instance form
    const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | 'mobile' | null>(null);
@@ -145,17 +151,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
        return;
      }
 
-     setAddingInstance(true);
-     const ok = await addInstance(user.id, {
+     const ok = await addWebInstance({
        instance_name: newInstanceName.trim(),
        zapi_instance_id: newInstanceId.trim(),
        zapi_token: newInstanceToken.trim(),
        zapi_client_token: newClientToken.trim(),
-       is_default: newIsDefault,
-       api_provider: 'zapi',
-       instance_type: 'web',
+       is_default: newIsDefault
      });
-     setAddingInstance(false);
+     
      if (ok) {
        resetAddForm();
        setShowAddForm(null);
@@ -448,8 +451,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     </div>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                       <Button size="sm" onClick={handleAddZapiWebInstance} disabled={addingInstance}>
-                         {addingInstance ? "Adicionando..." : "Salvar Uso"}
+                        <Button size="sm" onClick={handleAddZapiWebInstance} disabled={addingWeb}>
+                          {addingWeb ? "Adicionando..." : "Salvar Uso"}
                       </Button>
                     </div>
                   </CardContent>
