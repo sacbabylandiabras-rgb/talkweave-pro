@@ -8,9 +8,6 @@ const pickFirstString = (...values: unknown[]) => {
 };
  
  Deno.serve(async (req) => {
-   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
- 
-  Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   
     try {
