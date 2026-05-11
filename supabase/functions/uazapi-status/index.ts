@@ -80,7 +80,8 @@ const pickFirstString = (...values: unknown[]) => {
            const qrCode = pickFirstString(
              data?.qrCode, data?.qrcode, data?.base64, data?.code, 
              data?.data?.qrCode, data?.data?.qrcode, data?.data?.base64, data?.data?.code, 
-             data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code
+             data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code,
+             data?.instance?.qr, data?.qr
            );
            
            const pairingCode = pickFirstString(
@@ -90,6 +91,8 @@ const pickFirstString = (...values: unknown[]) => {
              data?.code,
              data?.data?.code,
              data?.instance?.pairingCode,
+             data?.instance?.paircode,
+             data?.paircode,
              data?.instance?.code
            );
            
