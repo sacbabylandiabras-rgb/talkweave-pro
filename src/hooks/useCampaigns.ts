@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getSelectedCampaignInstanceId } from '@/hooks/useZapi';
@@ -62,9 +62,9 @@ export const useCampaigns = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const loadCampaigns = async () => {
-    try {
-      setLoading(true);
+   const loadCampaigns = useCallback(async (isSilent = false) => {
+     try {
+       if (!isSilent) setLoading(true);
       const { data, error } = await supabase
         .from('campaigns')
         .select(`
@@ -107,10 +107,10 @@ export const useCampaigns = () => {
         description: "Erro ao carregar campanhas",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+     } finally {
+       if (!isSilent) setLoading(false);
+     }
+   }, [toast]);
 
   const createCampaign = async (campaignData: {
     name: string;
@@ -741,57 +741,25 @@ export const useCampaigns = () => {
     }
   };
 
-  useEffect(() => {
-    loadCampaigns();
-
-    const channel = supabase
-      .channel('campaigns-local-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'campaigns' },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            setCampaigns(prev => prev.filter(campaign => campaign.id !== payload.old.id));
-            return;
-          }
-
-          const record = payload.new as Record<string, any>;
-          const mappedCampaign: Campaign = {
-            id: record.id,
-            name: record.name,
-            description: record.description || undefined,
-            template_id: record.template_id || undefined,
-            status: (record.status as Campaign['status']) || 'draft',
-            target_audience: (typeof record.target_audience === 'object' && record.target_audience !== null)
-              ? record.target_audience as Record<string, any>
-              : {},
-            schedule_type: (record.schedule_type as Campaign['schedule_type']) || 'immediate',
-            scheduled_at: record.scheduled_at || undefined,
-            recurrence_pattern: record.recurrence_pattern || undefined,
-            delay_seconds: record.delay_seconds || undefined,
-            created_at: record.created_at,
-            updated_at: record.updated_at,
-          };
-
-          setCampaigns(prev => {
-            const exists = prev.some(campaign => campaign.id === mappedCampaign.id);
-
-            if (payload.eventType === 'INSERT') {
-              return exists ? prev : [mappedCampaign, ...prev];
-            }
-
-            return exists
-              ? prev.map(campaign => campaign.id === mappedCampaign.id ? { ...campaign, ...mappedCampaign } : campaign)
-              : [mappedCampaign, ...prev];
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+   useEffect(() => {
+     loadCampaigns();
+ 
+     const channel = supabase
+       .channel('campaigns-local-sync')
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'campaigns' },
+         () => {
+           // Just refetch all campaigns when anything changes for simplicity and consistency
+           loadCampaigns(true);
+         }
+       )
+       .subscribe();
+ 
+     return () => {
+       supabase.removeChannel(channel);
+     };
+   }, [loadCampaigns]);
 
   return {
     campaigns,
