@@ -42,20 +42,30 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body */ }
 
     if (body?.action === 'delete-instance' && body?.instanceId) {
-      if (!isAdmin) throw new Error('Only admins can delete instances');
-      
-      const { data: deleted, error: delError } = await supabase
+      let deleteQuery = supabase
         .from('zapi_instances')
         .delete()
-        .eq('id', body.instanceId)
+        .eq('id', body.instanceId);
+
+      if (!isAdmin) {
+        deleteQuery = deleteQuery.eq('user_id', user.id);
+      }
+
+      const { data: deleted, error: delError } = await deleteQuery
         .select();
 
       if (delError) throw delError;
+      if (!deleted || deleted.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, deleted: 0, error: 'Instância não encontrada ou sem permissão para apagar.' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-      console.log(`🗑️ Admin ${user.id} deleted instance ${body.instanceId}, rows: ${deleted?.length || 0}`);
+      console.log(`🗑️ User ${user.id} deleted instance ${body.instanceId}, rows: ${deleted.length}, admin: ${isAdmin}`);
 
       return new Response(
-        JSON.stringify({ success: true, deleted: deleted?.length || 0 }),
+        JSON.stringify({ success: true, deleted: deleted.length }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

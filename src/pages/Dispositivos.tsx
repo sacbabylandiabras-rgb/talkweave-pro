@@ -668,11 +668,13 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase
-        .from('zapi_instances')
-        .delete()
-        .eq('id', instance.id);
+      const { data, error } = await supabase.functions.invoke('cleanup-orphan-data', {
+        body: { action: 'delete-instance', instanceId: instance.id },
+      });
       if (error) throw error;
+      if (!data?.success || Number(data?.deleted || 0) === 0) {
+        throw new Error(data?.error || 'A instância não foi removida.');
+      }
 
       toast({ title: '🗑️ Instância apagada', description: 'A instância foi removida da sua conta.' });
       setShowDelete(false);
