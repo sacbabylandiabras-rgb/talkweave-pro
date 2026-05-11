@@ -423,13 +423,16 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setResumeDialogOpen(false);
     
     try {
+      const selectedInstanceId = getSelectedCampaignInstanceId();
+      console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
+      
       const campaign = campaigns.find(c => c.id === campaignToResume);
       const targetContacts = campaign?.target_audience?.contacts || [];
       setTotalContactsCount(targetContacts.length);
       setSendingCampaignId(campaignToResume);
 
       // Start resuming FIRST so status changes to 'active' before dialog polls
-      const resumePromise = resumeCampaign(campaignToResume);
+      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId);
       
       // Small delay to let status update propagate, then open dialog
       await new Promise(resolve => setTimeout(resolve, 500));
