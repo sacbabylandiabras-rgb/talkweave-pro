@@ -358,8 +358,9 @@ const Etiquetas = () => {
                       key={c.id}
                       type="button"
                       onClick={() => setNewTagColor(c.id)}
-                      className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                      style={{ backgroundColor: c.hex }}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${newTagColor === c.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' : ''}`}
+                      style={{ backgroundColor: c.hex || '#cbd5e1' }}
+                      title={c.label}
                     >
                       {newTagColor === c.id && <Check className="w-4 h-4 text-white" />}
                     </button>
