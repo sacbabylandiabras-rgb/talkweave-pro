@@ -878,7 +878,7 @@ Deno.serve(async (req) => {
 
     const { data: activeInstances, error: activeError } = await adminClient
       .from("zapi_instances")
-      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
+      .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key, instance_type")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
@@ -899,13 +899,19 @@ Deno.serve(async (req) => {
     const normalizedProviderFilter = providerFilter?.toLowerCase() || null;
     const filteredInstances = instances.filter((inst) => {
       const provider = (inst.api_provider || 'zapi').toLowerCase();
-      if (normalizedProviderFilter === 'uazapi' && provider === 'uazapi') return true;
-      if (normalizedProviderFilter === 'zapi' && provider === 'zapi') return true;
-      if (!normalizedProviderFilter) {
-        // If no filter, we only exclude uazapi if it's NOT explicitly requested
-        // (e.g. general group list for other parts of the app)
-        return provider !== 'uazapi';
+      // Se o filtro for UAZAPI (Apanhador de Grupos), retornamos apenas as instâncias de extração.
+      if (normalizedProviderFilter === 'uazapi') {
+        return provider === 'uazapi' && (inst as any).instance_type !== 'mobile';
       }
+
+      // Para outros casos, removemos as instâncias UAZAPI de extração do fluxo normal (mensagens/campanhas)
+      // e removemos instâncias Mobile.
+      if (provider === 'uazapi') return false;
+      if ((inst as any).instance_type === 'mobile') return false;
+
+      if (normalizedProviderFilter === 'zapi' && provider === 'zapi') return true;
+      if (!normalizedProviderFilter) return provider === 'zapi';
+
       return provider === normalizedProviderFilter;
     });
     console.log(`📦 Group source instances: ${filteredInstances.length} / ${instances.length}`);
