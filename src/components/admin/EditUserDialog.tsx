@@ -314,7 +314,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                          <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
                            <ArrowRightLeft className="w-3 h-3 text-primary" />
                          </Button>
-                         <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id); }}>
+                          <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id, inst.zapi_instance_id); }}>
                            <Trash2 className="w-3 h-3 text-destructive" />
                          </Button>
                        </div>
@@ -391,7 +391,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                          <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
                            <ArrowRightLeft className="w-3 h-3 text-orange-500" />
                          </Button>
-                         <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id, inst.zapi_instance_id); }}>
                            <Trash2 className="w-3 h-3 text-destructive" />
                          </Button>
                        </div>
@@ -472,7 +472,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                              <Star className="w-3 h-3" />
                            </Button>
                          )}
-                         <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância?')) deleteInstance(inst.id, user.id); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância?')) deleteInstance(inst.id, user.id, inst.zapi_instance_id); }}>
                            <Trash2 className="w-3 h-3 text-destructive" />
                          </Button>
                        </div>
