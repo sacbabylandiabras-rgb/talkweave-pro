@@ -850,19 +850,29 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setShowPrivacy(true)}>
                   <Globe className="w-3 h-3 mr-1" /> Privacidade
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 text-[11px] px-2" 
-                  onClick={() => {
-                    setShowCollections(true);
-                    fetchCollections();
-                  }}
-                >
-                  <LayoutGrid className="w-3 h-3 mr-1" /> Coleções
-                </Button>
-              </div>
-            )}
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="h-7 text-[11px] px-2" 
+                   onClick={() => {
+                     setShowCollections(true);
+                     fetchCollections();
+                   }}
+                 >
+                   <LayoutGrid className="w-3 h-3 mr-1" /> Coleções
+                 </Button>
+               </div>
+             )}
+ 
+           <Button 
+             variant="ghost" 
+             size="icon" 
+             className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto"
+             onClick={() => setShowDelete(true)}
+             title="Apagar Instância"
+           >
+             <Trash2 className="w-3.5 h-3.5" />
+           </Button>
         {/* Collections Dialog */}
         <Dialog open={showCollections} onOpenChange={setShowCollections}>
           <DialogContent className="sm:max-w-md">
