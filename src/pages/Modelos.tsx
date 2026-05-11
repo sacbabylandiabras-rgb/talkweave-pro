@@ -104,7 +104,7 @@ const buildSpecialContent = (type: string, data: any): string => {
       payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
       payload.currency = data.paymentCurrency || "BRL";
       payload.referenceId = data.paymentReferenceId || "";
-     } else if (type === "envio_massa") {
+      } else if (type === "multiplos_contatos") {
        payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
        payload.description = data.content || "";
      }
@@ -121,7 +121,7 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "envio_massa"
+      || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "multiplos_contatos"
     || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
 
 const getDisplayContent = (template: any): string => {
@@ -664,12 +664,12 @@ const SpecialFieldsEditor = ({
     );
   }
 
-   if (type === "envio_massa") {
-     return (
-       <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
-         <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-           <Users className="w-5 h-5" /> Envio em Massa (Vários Contatos)
-         </div>
+    if (type === "multiplos_contatos") {
+      return (
+        <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+            <Users className="w-5 h-5" /> Múltiplos Contatos
+          </div>
          <div className="space-y-2">
            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Lista de Números (DDI+DDD+Número)</Label>
            <Textarea
@@ -1785,9 +1785,9 @@ const Modelos = () => {
                        <SelectItem value="pix">PIX (cobrança)</SelectItem>
                        <SelectItem value="produto">produto</SelectItem>
                        <SelectItem value="localizacao">localização</SelectItem>
-                    <SelectItem value="contato">contato (vCard)</SelectItem>
-                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
-                    <SelectItem value="evento">evento</SelectItem>
+                     <SelectItem value="contato">contato (vCard)</SelectItem>
+                     <SelectItem value="multiplos_contatos">múltiplos contatos</SelectItem>
+                     <SelectItem value="evento">evento</SelectItem>
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
@@ -2425,9 +2425,9 @@ const Modelos = () => {
                    <SelectItem value="pix">PIX (cobrança)</SelectItem>
                    <SelectItem value="produto">produto</SelectItem>
                    <SelectItem value="localizacao">localização</SelectItem>
-                    <SelectItem value="contato">contato (vCard)</SelectItem>
-                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
-                    <SelectItem value="evento">evento</SelectItem>
+                     <SelectItem value="contato">contato (vCard)</SelectItem>
+                     <SelectItem value="multiplos_contatos">múltiplos contatos</SelectItem>
+                     <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
                   <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                   <SelectItem value="pagamento">solicitar pagamento</SelectItem>
