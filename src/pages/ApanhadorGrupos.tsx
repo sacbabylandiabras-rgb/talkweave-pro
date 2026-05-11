@@ -42,10 +42,6 @@ const ApanhadorGrupos = () => {
   type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
   const [extractedNumbers, setExtractedNumbers] = useState<Map<string, ExtractedParticipant[]>>(new Map());
   const [excludeAdmins, setExcludeAdmins] = useState<boolean>(true);
-  // @lid são pseudônimos de privacidade do WhatsApp e NÃO recebem mensagens
-  // em disparos diretos (a API confirma "entregue" mas a mensagem não chega).
-  // Por isso são removidos por padrão.
-  const [excludeLids, setExcludeLids] = useState<boolean>(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
@@ -449,7 +445,6 @@ const ApanhadorGrupos = () => {
     const list = extractedNumbers.get(groupId) || [];
     return list
       .filter(p => !excludeAdmins || !p.isAdmin)
-      .filter(p => !excludeLids || !p.isLid)
       .map(p => p.phone
         .replace(/@c\.us$/i, '')
         .replace(/@s\.whatsapp\.net$/i, '')
@@ -466,10 +461,7 @@ const ApanhadorGrupos = () => {
     }
     navigator.clipboard.writeText(phones.join('\n'));
     setCopied(groupId);
-    const extras = [
-      excludeAdmins ? 'admins removidos' : null,
-      excludeLids ? 'sem números anônimos' : null,
-    ].filter(Boolean).join(', ');
+    const extras = excludeAdmins ? 'admins removidos' : null;
     toast.success(`${phones.length} número(s) copiado(s)${extras ? ` (${extras})` : ''}!`);
     setTimeout(() => setCopied(null), 2000);
   };
@@ -932,27 +924,13 @@ const ApanhadorGrupos = () => {
                           const lidsCount = numbers.filter(p => p.isLid).length;
                           const lidAdminOverlap = numbers.filter(p => p.isLid && p.isAdmin).length;
                           let exportable = total;
-                          if (excludeAdmins) exportable -= adminsCount;
-                          if (excludeLids) exportable -= (lidsCount - (excludeAdmins ? lidAdminOverlap : 0));
+                           if (excludeAdmins) exportable = numbers.filter(p => !p.isAdmin).length;
                           const allLids = total > 0 && lidsCount === total;
                           return (
                             <>
                               <Badge variant="secondary" className="text-xs">{exportable} números extraídos</Badge>
                               {adminsCount > 0 && excludeAdmins && (
                                 <Badge variant="outline" className="text-xs">{adminsCount} admin(s) ocultos</Badge>
-                              )}
-                              {lidsCount > 0 && excludeLids && (
-                                <Badge variant="outline" className="text-xs">{lidsCount} anônimo(s) ocultos</Badge>
-                              )}
-                              {allLids && excludeLids && exportable === 0 && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="h-auto p-0 text-xs text-amber-500 hover:text-amber-400"
-                                  onClick={() => setExcludeLids(false)}
-                                >
-                                  Mostrar mesmo assim ({lidsCount})
-                                </Button>
                               )}
                             </>
                           );
@@ -1168,7 +1146,6 @@ const ApanhadorGrupos = () => {
                   {numbers && numbers.length > 0 && (() => {
                     const visible = numbers
                       .filter(p => !excludeAdmins || !p.isAdmin)
-                      .filter(p => !excludeLids || !p.isLid);
                     if (visible.length === 0) return null;
                     return (
                     <div className="mt-3 p-3 bg-muted/50 rounded-lg">
