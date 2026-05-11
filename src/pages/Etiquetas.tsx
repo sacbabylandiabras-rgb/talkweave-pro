@@ -367,6 +367,12 @@ const Etiquetas = () => {
 
             <div className="space-y-2">
               <Label>Selecione uma cor</Label>
+              {tagColorError && (
+                <p className="text-[10px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {tagColorError}
+                </p>
+              )}
               <div className="grid grid-cols-7 gap-2 pt-1">
                 {tagColors.length > 0 ? (
                   tagColors.map((c) => (
