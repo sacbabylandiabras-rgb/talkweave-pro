@@ -41,28 +41,44 @@ serve(async (req) => {
     let body: any = {};
     try { body = await req.json(); } catch { /* no body */ }
 
-    if (body?.action === 'delete-instance' && body?.instanceId) {
-      let deleteQuery = supabase
-        .from('zapi_instances')
-        .delete()
-        .eq('id', body.instanceId);
+    if (body?.action === 'delete-instance' && (body?.instanceId || body?.zapiInstanceId)) {
+      const targetId = body.instanceId;
+      const targetZapiId = body.zapiInstanceId;
+      
+      console.log(`🗑️ Deletion requested for instanceId: ${targetId}, zapiInstanceId: ${targetZapiId} by user ${user.id}`);
 
+      // Find instances to delete to confirm ownership/existence
+      let query = supabase.from('zapi_instances').select('id, user_id, zapi_instance_id, instance_name');
+      
+      if (targetId) query = query.eq('id', targetId);
+      else if (targetZapiId) query = query.eq('zapi_instance_id', targetZapiId);
+      
       if (!isAdmin) {
-        deleteQuery = deleteQuery.eq('user_id', user.id);
+        query = query.eq('user_id', user.id);
       }
 
-      const { data: deleted, error: delError } = await deleteQuery
-        .select();
+      const { data: toDelete, error: findError } = await query;
 
-      if (delError) throw delError;
-      if (!deleted || deleted.length === 0) {
+      if (findError) throw findError;
+      if (!toDelete || toDelete.length === 0) {
         return new Response(
           JSON.stringify({ success: false, deleted: 0, error: 'Instância não encontrada ou sem permissão para apagar.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log(`🗑️ User ${user.id} deleted instance ${body.instanceId}, rows: ${deleted.length}, admin: ${isAdmin}`);
+      const idsToDelete = toDelete.map(i => i.id);
+
+      // Delete from zapi_instances
+      const { data: deleted, error: delError } = await supabase
+        .from('zapi_instances')
+        .delete()
+        .in('id', idsToDelete)
+        .select();
+
+      if (delError) throw delError;
+
+      console.log(`🗑️ User ${user.id} deleted ${deleted.length} instance(s), admin: ${isAdmin}`);
 
       return new Response(
         JSON.stringify({ success: true, deleted: deleted.length }),
