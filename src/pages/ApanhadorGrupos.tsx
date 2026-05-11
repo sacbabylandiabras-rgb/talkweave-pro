@@ -45,7 +45,7 @@ const ApanhadorGrupos = () => {
   // @lid são pseudônimos de privacidade do WhatsApp e NÃO recebem mensagens
   // em disparos diretos (a API confirma "entregue" mas a mensagem não chega).
   // Por isso são removidos por padrão.
-  const [excludeLids, setExcludeLids] = useState<boolean>(true);
+  const [excludeLids, setExcludeLids] = useState<boolean>(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedWelcome, setExpandedWelcome] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<Map<string, string>>(new Map());
@@ -814,20 +814,7 @@ const ApanhadorGrupos = () => {
                 Remover administradores
               </label>
             </div>
-            <div className="flex items-center gap-2 px-3 rounded-md border border-border bg-muted/30">
-              <Switch
-                id="exclude-lids"
-                checked={excludeLids}
-                onCheckedChange={(v) => setExcludeLids(Boolean(v))}
-              />
-              <label htmlFor="exclude-lids" className="text-sm font-medium cursor-pointer whitespace-nowrap">
-                Remover anônimos (não recebem mensagem)
-              </label>
-            </div>
           </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            Administradores ficam ocultos ao exportar quando o filtro está ativo. Contatos anônimos (sem número real visível) são removidos por padrão porque a mensagem não chega ao destinatário, mesmo que o sistema mostre "entregue".
-          </p>
         </CardContent>
       </Card>
 
