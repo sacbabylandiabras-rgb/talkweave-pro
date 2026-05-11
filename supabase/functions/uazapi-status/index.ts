@@ -17,7 +17,10 @@ const pickFirstString = (...values: unknown[]) => {
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
   
       const cleanUrl = apiUrl.replace(/\/+$/, "");
-      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => {
+        const separator = path.includes("?") ? "&" : "?";
+        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      };
       
       const endpoints = ["/instance/status", "/status", "/instance"];
       if (instanceName) {
@@ -27,7 +30,9 @@ const pickFirstString = (...values: unknown[]) => {
 
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken
+        "token": apiToken,
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       let lastError = null;
