@@ -1073,8 +1073,9 @@ const Modelos = () => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-    paymentReferenceId: "",
-   });
+     paymentReferenceId: "",
+     massPhones: "",
+    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
