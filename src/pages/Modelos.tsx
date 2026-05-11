@@ -1731,8 +1731,20 @@ const Modelos = () => {
             </Button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+         <div className="flex items-center gap-2">
+           {templates.length > 0 && (
+             <Button 
+               variant="destructive" 
+               size="sm" 
+               className="flex items-center gap-2"
+               onClick={() => setShowDeleteAllConfirm(true)}
+             >
+               <Trash2 className="w-4 h-4" />
+               Apagar Todos
+             </Button>
+           )}
+ 
+           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
