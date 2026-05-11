@@ -820,13 +820,13 @@ Deno.serve(async (req) => {
           const participants = extractParticipantsFromGroup(group);
           // Uazapi pode devolver as flags de comunidade em qualquer nível do payload.
            // Prefer provider-calculated flags if available
+           // Be more inclusive for UAZAPI. If the ID contains @g.us, it's a group.
            const isChannel = group.isChannel === true || String(groupId).includes("@newsletter");
            const isCommunity = group.isCommunity === true || hasCommunityMetadata(group);
-           const isGroup = group.isGroup === true || (!isChannel && !isCommunity && (
-             String(groupId).includes("-group") ||
-             String(groupId).includes("@g.us") ||
-             (String(groupId).includes("@c.us") && !isCommunity)
-           ));
+           const isGroup = group.isGroup === true || String(groupId).includes("-group") || String(groupId).includes("@g.us");
+           
+           // If it doesn't match standard patterns but we are in a group context, consider it a group
+           const validGroup = isChannel || isGroup || isCommunity;
 
            const isAdmin = hasTruthyValue(group.isAdmin) || 
                            hasTruthyValue(group.isSuperAdmin) || 
