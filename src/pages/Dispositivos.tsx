@@ -2087,7 +2087,9 @@ const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
   // Exibir todas as instâncias (Web e Mobile), ocultando apenas as instâncias UAZAPI doadoras
   const instances = useMemo(() => {
-    return allInstances.filter((i) => (i.api_provider || 'zapi') !== 'uazapi');
+    return allInstances.filter(
+      (i) => (i.api_provider || 'zapi') !== 'uazapi' && i.instance_type !== 'mobile'
+    );
   }, [allInstances]);
 
   const { toast } = useToast();
@@ -2141,11 +2143,9 @@ const Dispositivos = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {instances
-          .filter((instance) => instance.instance_type !== "mobile")
-          .map((instance) => (
-            <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
-          ))}
+        {instances.map((instance) => (
+          <DeviceCard key={instance.id} instance={instance} onDeleted={refetch} />
+        ))}
       </div>
 
       {/* Bulk Profile Update Dialog */}
