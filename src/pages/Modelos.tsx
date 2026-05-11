@@ -37,8 +37,13 @@ const SPECIAL_FIELD_DEFAULTS = {
    orderStatus: "",
    orderPaymentStatus: "",
    orderReferenceId: "",
-   orderJson: "",
- };
+    orderJson: "",
+    paymentTitle: "",
+    paymentDescription: "",
+    paymentAmount: "",
+    paymentCurrency: "BRL",
+    paymentReferenceId: "",
+  };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
