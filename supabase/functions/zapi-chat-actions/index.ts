@@ -307,7 +307,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/business/create-tag", body };
     }
     case 'delete-tag':
-      return { method: 'DELETE', path: `/business/delete-tag/${payload?.id}` };
+      return { method: 'POST', path: "/business/delete-tag", body: { id: payload?.id } };
     case 'edit-tag':
       return { method: 'PUT', path: `/business/edit-tag/${payload?.id}`, body: { name: payload?.name, color: payload?.color } };
     case 'add-tag-chat':
