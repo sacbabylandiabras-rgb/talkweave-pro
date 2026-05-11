@@ -77,7 +77,16 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
       });
-      const authData = await authRes.json();
+      
+      const authText = await authRes.text();
+      let authData: any = {};
+      try {
+        authData = JSON.parse(authText);
+      } catch (e) {
+        console.error("❌ [CartWave Auth] Failed to parse response:", authText.substring(0, 500));
+        throw new Error(`CartWave Auth Error (HTTP ${authRes.status}): ${authText.substring(0, 100)}`);
+      }
+
       const token = authData?.access_token;
       if (!token) throw new Error("Falha na autenticação CartWave");
 
