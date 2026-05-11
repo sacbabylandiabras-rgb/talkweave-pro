@@ -139,13 +139,15 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           if (!r.ok) continue;
           const j = await r.json().catch(() => null);
           if (!j) continue;
-          const status = String(
-            j?.instance?.status || j?.status || j?.connectionStatus || j?.state || ''
-          ).toLowerCase();
+          const statusRaw = j?.instance?.status || j?.status || j?.connectionStatus || j?.state || j?.instance?.state || '';
+          const status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+          
           const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline'];
           if (
             j?.connected === false ||
             j?.loggedIn === false ||
+            j?.status?.connected === false ||
+            j?.status?.loggedIn === false ||
             j?.instance?.connected === false ||
             negativeStates.some((s) => status === s || status.includes(s))
           ) {
@@ -154,6 +156,8 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
           const connected =
             j?.connected === true ||
             j?.loggedIn === true ||
+            j?.status?.connected === true ||
+            j?.status?.loggedIn === true ||
             j?.instance?.connected === true ||
             ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in'].some((s) =>
               status === s
