@@ -665,20 +665,34 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = async (zapiId?: string) => {
     setDeleting(true);
     try {
       const { data, error } = await supabase.functions.invoke('cleanup-orphan-data', {
-        body: { action: 'delete-instance', instanceId: instance.id },
+        body: { 
+          action: 'delete-instance', 
+          instanceId: instance.id,
+          zapiInstanceId: zapiId || instance.zapi_instance_id
+        },
       });
       if (error) throw error;
       if (!data?.success || Number(data?.deleted || 0) === 0) {
         throw new Error(data?.error || 'A instância não foi removida.');
       }
 
-      toast({ title: '🗑️ Instância apagada', description: 'A instância foi removida da sua conta.' });
+      toast({ 
+        title: '🗑️ Instância apagada', 
+        description: 'A instância foi removida com sucesso.' 
+      });
       setShowDelete(false);
-      onDeleted?.();
+      
+      // Limpa cache local antes de dar refetch para garantir que não reapareça
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        localStorage.removeItem(`zapi_instances_cache:${user.id}`);
+      }
+      
+      if (onDeleted) onDeleted();
     } catch (err) {
       toast({
         title: '❌ Erro ao apagar',
