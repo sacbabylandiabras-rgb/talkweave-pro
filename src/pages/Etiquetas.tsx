@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Tag, Plus, Pencil, Trash2, RefreshCw, Search, Check, AlertCircle } from "lucide-react";
 
@@ -48,6 +49,7 @@ const Etiquetas = () => {
   const [newTagDescription, setNewTagDescription] = useState("");
   const [newTagColor, setNewTagColor] = useState(0);
   const [tagColorError, setTagColorError] = useState<string | null>(null);
+  const [applyToAll, setApplyToAll] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -121,20 +123,51 @@ const Etiquetas = () => {
   const handleCreateTag = async () => {
     if (!newTagName.trim()) return;
     setLoadingTags(true);
+    
+    const targetInstances = applyToAll 
+      ? instances 
+      : [instances.find(i => i.id === selectedInstanceId)].filter(Boolean);
+
+    let successCount = 0;
+    let errorCount = 0;
+
     try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { 
-          action: "create-tag", 
-          instanceDbId: selectedInstanceId, 
-       payload: { name: newTagName, color: newTagColor } 
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta criada", description: `A etiqueta "${newTagName}" foi criada com sucesso.` });
+      for (const inst of targetInstances as any[]) {
+        try {
+          const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+            body: { 
+              action: "create-tag", 
+              instanceDbId: inst.id, 
+              payload: { name: newTagName, color: newTagColor } 
+            },
+          });
+          if (error || data?.error) {
+            console.error(`Erro na instância ${inst.instance_name || inst.id}:`, error || data?.error);
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Erro na instância ${inst.instance_name || inst.id}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({ 
+          title: applyToAll ? "Etiquetas criadas" : "Etiqueta criada", 
+          description: applyToAll 
+            ? `${successCount} etiquetas criadas com sucesso. ${errorCount > 0 ? `${errorCount} falhas.` : ""}`
+            : `A etiqueta "${newTagName}" foi criada com sucesso.` 
+        });
+      } else if (errorCount > 0) {
+        throw new Error("Falha ao criar etiqueta. Verifique se a instância está conectada.");
+      }
+
       setNewTagName("");
       setNewTagDescription("");
       setNewTagColor(0);
+      setApplyToAll(false);
       setIsCreateTagOpen(false);
       fetchTags(selectedInstanceId);
     } catch (err: any) {
@@ -147,18 +180,60 @@ const Etiquetas = () => {
   const handleEditTag = async () => {
     if (!editingTag || !editingTag.name.trim()) return;
     setLoadingTags(true);
+    
+    const targetInstances = applyToAll 
+      ? instances 
+      : [instances.find(i => i.id === selectedInstanceId)].filter(Boolean);
+
+    let successCount = 0;
+    let errorCount = 0;
+
     try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { 
-          action: "edit-tag", 
-          instanceDbId: selectedInstanceId, 
-          payload: { id: editingTag.id, name: editingTag.name, color: editingTag.color } 
-        },
+      for (const inst of targetInstances as any[]) {
+        try {
+          let tagIdToEdit = editingTag.id;
+          
+          if (inst.id !== selectedInstanceId) {
+            const { data: remoteTags } = await supabase.functions.invoke("zapi-chat-actions", {
+              body: { action: "list-tags", instanceDbId: inst.id },
+            });
+            const tagsList = remoteTags?.data ?? remoteTags;
+            const matchingTag = Array.isArray(tagsList) 
+              ? tagsList.find((t: any) => t.name === editingTag.name)
+              : null;
+            
+            if (matchingTag) {
+              tagIdToEdit = matchingTag.id;
+            } else {
+              continue;
+            }
+          }
+
+          const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+            body: { 
+              action: "edit-tag", 
+              instanceDbId: inst.id, 
+              payload: { id: tagIdToEdit, name: editingTag.name, color: editingTag.color } 
+            },
+          });
+          
+          if (error || data?.error) {
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          errorCount++;
+        }
+      }
+
+      toast({ 
+        title: applyToAll ? "Etiquetas atualizadas" : "Etiqueta atualizada",
+        description: applyToAll ? `${successCount} instâncias atualizadas.` : undefined
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta atualizada" });
+      
       setEditingTag(null);
+      setApplyToAll(false);
       fetchTags(selectedInstanceId);
     } catch (err: any) {
       toast({ title: "Erro ao atualizar etiqueta", description: err.message, variant: "destructive" });
@@ -353,6 +428,20 @@ const Etiquetas = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="editApplyToAll" 
+                checked={applyToAll} 
+                onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+              />
+              <Label 
+                htmlFor="editApplyToAll" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Aplicar alteração em todas as instâncias (busca pelo mesmo nome)
+              </Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTag(null)} disabled={loadingTags}>Cancelar</Button>
@@ -438,9 +527,22 @@ const Etiquetas = () => {
                   ));
                 })()}
               </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="applyToAll" 
+                checked={applyToAll} 
+                onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+              />
+              <Label 
+                htmlFor="applyToAll" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Criar esta etiqueta em todas as instâncias
+              </Label>
             </div>
           </div>
-          <DialogFooter>
+        </div>
+        <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateTagOpen(false)} disabled={loadingTags}>Cancelar</Button>
             <Button onClick={handleCreateTag} disabled={loadingTags || !newTagName.trim()}>
               {loadingTags ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
