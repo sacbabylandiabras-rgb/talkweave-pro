@@ -42,8 +42,9 @@ const SPECIAL_FIELD_DEFAULTS = {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-    paymentReferenceId: "",
-  };
+     paymentReferenceId: "",
+      massPhones: "",
+   };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
@@ -103,10 +104,12 @@ const buildSpecialContent = (type: string, data: any): string => {
       payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
       payload.currency = data.paymentCurrency || "BRL";
       payload.referenceId = data.paymentReferenceId || "";
-    }
-    return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
-  };
-
+     } else if (type === "envio_massa") {
+       payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
+       payload.description = data.content || "";
+     }
+     return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+   };
 const parseSpecialContent = (content: string): any | null => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
   try {
@@ -118,7 +121,7 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-    || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
+     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "envio_massa"
     || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
 
 const getDisplayContent = (template: any): string => {
@@ -661,9 +664,31 @@ const SpecialFieldsEditor = ({
     );
   }
 
-  return null;
-};
-
+   if (type === "envio_massa") {
+     return (
+       <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
+         <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+           <Users className="w-5 h-5" /> Envio em Massa (Vários Contatos)
+         </div>
+         <div className="space-y-2">
+           <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Lista de Números (DDI+DDD+Número)</Label>
+           <Textarea
+             placeholder="Ex: 5511999999999, 5511888888888 (separados por vírgula ou um por linha)"
+             value={data.massPhones || ""}
+             onChange={(e) => onChange({ massPhones: e.target.value })}
+             rows={4}
+             className="bg-background font-mono text-xs"
+           />
+           <p className="text-[11px] text-muted-foreground leading-relaxed">
+             Informe os números que receberão esta mensagem separando por vírgula ou quebra de linha.
+           </p>
+         </div>
+       </div>
+     );
+   }
+ 
+   return null;
+ };
 
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
@@ -1048,8 +1073,9 @@ const Modelos = () => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-    paymentReferenceId: "",
-   });
+     paymentReferenceId: "",
+     massPhones: "",
+    });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -1089,8 +1115,9 @@ const Modelos = () => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-    paymentReferenceId: "",
-   });
+     paymentReferenceId: "",
+     massPhones: "",
+    });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -1427,9 +1454,10 @@ const Modelos = () => {
       paymentTitle: special.title || "",
       paymentDescription: special.description || "",
       paymentAmount: special.amount ? String(special.amount) : "",
-      paymentCurrency: special.currency || "BRL",
-      paymentReferenceId: special.referenceId || "",
-     });
+       paymentCurrency: special.currency || "BRL",
+       paymentReferenceId: special.referenceId || "",
+       massPhones: special.phones ? (Array.isArray(special.phones) ? special.phones.join(', ') : special.phones) : "",
+      });
     setEditingTemplate(template.id);
   };
 
@@ -1757,8 +1785,9 @@ const Modelos = () => {
                        <SelectItem value="pix">PIX (cobrança)</SelectItem>
                        <SelectItem value="produto">produto</SelectItem>
                        <SelectItem value="localizacao">localização</SelectItem>
-                       <SelectItem value="contato">contato (vCard)</SelectItem>
-                       <SelectItem value="evento">evento</SelectItem>
+                    <SelectItem value="contato">contato (vCard)</SelectItem>
+                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
+                    <SelectItem value="evento">evento</SelectItem>
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
@@ -2396,8 +2425,9 @@ const Modelos = () => {
                    <SelectItem value="pix">PIX (cobrança)</SelectItem>
                    <SelectItem value="produto">produto</SelectItem>
                    <SelectItem value="localizacao">localização</SelectItem>
-                   <SelectItem value="contato">contato (vCard)</SelectItem>
-                   <SelectItem value="evento">evento</SelectItem>
+                    <SelectItem value="contato">contato (vCard)</SelectItem>
+                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
+                    <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
                   <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                   <SelectItem value="pagamento">solicitar pagamento</SelectItem>
