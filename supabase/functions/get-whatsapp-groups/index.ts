@@ -876,7 +876,7 @@ Deno.serve(async (req) => {
     const wantsUazapi = providerFilter?.toLowerCase() === 'uazapi';
     const activeUazapiInstances = activeList.filter((inst) => {
       const provider = (inst.api_provider || 'zapi').toLowerCase();
-      return provider === 'uazapi' || provider === 'uazapi_warmup';
+      return provider === 'uazapi';
     });
 
     const instances: ZapiInstance[] = wantsUazapi ? activeUazapiInstances : activeList;
