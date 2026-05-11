@@ -317,7 +317,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'search-tags':
       return { method: 'GET', path: `/tags/search?tagId=${payload?.tagId}` };
     case 'tag-colors':
-      return { method: 'GET', path: "/tags-colors" };
+      return { method: 'GET', path: "/business/tags/colors" };
     case 'save-chat-notes': {
       const target = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
       return { method: 'POST', path: `/chat-notes/${target}`, body: { notes: payload?.notes } };
