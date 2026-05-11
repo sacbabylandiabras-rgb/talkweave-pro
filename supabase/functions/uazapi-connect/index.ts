@@ -64,6 +64,8 @@ const normalizeConnectPayload = (data: any) => {
         "Content-Type": "application/json", 
         "token": apiToken,
         "apikey": apiToken,
+        "admintoken": apiToken,
+        "AdminToken": apiToken,
         "Authorization": `Bearer ${apiToken}`
       };
 

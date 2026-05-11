@@ -353,13 +353,16 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     { ep: '/group/fetchAllGroups', method: 'GET' },
     { ep: `/group/fetchAllGroups/${realInstanceName}`, method: 'GET' },
     { ep: '/group/listAll', method: 'GET' },
+    { ep: '/chat/findGroups', method: 'GET' },
+    { ep: `/chat/findGroups/${realInstanceName}`, method: 'GET' },
     { ep: `/group/list?token=${apiToken}`, method: 'GET' },
-    { ep: `/instance/group/list/${realInstanceName}`, method: 'GET' },
     { ep: `/${apiToken}/group/list`, method: 'GET' },
     { ep: `/v1/group/list`, method: 'GET' },
     { ep: `/v1/group/list/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/group/list/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/fetchGroups/${realInstanceName}`, method: 'GET' },
+    { ep: `/group/list/${realInstanceName}`, method: 'GET' },
+    { ep: `/group/fetchGroups/${realInstanceName}`, method: 'GET' },
     { ep: `/instance/all`, method: 'GET' },
   ];
   
@@ -882,14 +885,17 @@ Deno.serve(async (req) => {
 
     // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
     try {
-      const shouldLoadProfileUazapi = !providerFilter || providerFilter.toLowerCase() === 'uazapi';
-      const { data: profile } = shouldLoadProfileUazapi ? await adminClient
-        .from("profiles")
-        .select("uazapi_url, uazapi_token")
-        .eq("id", credentials.userId)
-        .maybeSingle() : { data: null };
-      const urls = String((profile as any)?.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
-      const tokens = String((profile as any)?.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
+      const shouldLoadProfileUazapi = providerFilter?.toLowerCase() === 'uazapi';
+      if (shouldLoadProfileUazapi) {
+        const { data: profile } = await adminClient
+          .from("profiles")
+          .select("uazapi_url, uazapi_token")
+          .eq("id", credentials.userId)
+          .maybeSingle();
+
+        if (profile) {
+      const urls = String(profile.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
+      const tokens = String(profile.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
       const pairCount = Math.min(urls.length, tokens.length);
       for (let i = 0; i < pairCount; i++) {
         const url = urls[i];
@@ -910,6 +916,8 @@ Deno.serve(async (req) => {
           evolution_api_url: url,
           evolution_api_key: token,
         });
+      }
+        }
       }
     } catch (profileError) {
       console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
