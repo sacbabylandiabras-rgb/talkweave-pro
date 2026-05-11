@@ -431,6 +431,68 @@ const SpecialFieldsEditor = ({
     );
   }
 
+  if (type === "pagamento") {
+    return (
+      <div className="space-y-4 border rounded-xl p-4 bg-accent/10 border-accent/20">
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          <CreditCard className="w-5 h-5" /> Solicitação de Pagamento
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <Label>Título do Pagamento *</Label>
+            <Input
+              placeholder="Ex: Assinatura Mensal"
+              value={data.paymentTitle || ""}
+              onChange={(e) => onChange({ paymentTitle: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Valor (R$) *</Label>
+              <Input
+                type="text"
+                placeholder="0,00"
+                value={data.paymentAmount || ""}
+                onChange={(e) => onChange({ paymentAmount: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Moeda</Label>
+              <Select
+                value={data.paymentCurrency || "BRL"}
+                onValueChange={(v) => onChange({ paymentCurrency: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BRL">Real (BRL)</SelectItem>
+                  <SelectItem value="USD">Dólar (USD)</SelectItem>
+                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              placeholder="Detalhes sobre o que está sendo cobrado"
+              value={data.paymentDescription || ""}
+              onChange={(e) => onChange({ paymentDescription: e.target.value })}
+              rows={2}
+            />
+          </div>
+          <div>
+            <Label>Referência (opcional)</Label>
+            <Input
+              placeholder="Ex: fatura-001"
+              value={data.paymentReferenceId || ""}
+              onChange={(e) => onChange({ paymentReferenceId: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (type === "status_pedido" || type === "pagamento_pedido") {
     const isPayment = type === "pagamento_pedido";
     return (
