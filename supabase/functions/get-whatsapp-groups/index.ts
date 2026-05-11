@@ -234,8 +234,21 @@ const isInstanceConnected = async (instance: ZapiInstance): Promise<boolean> => 
 };
 
 const isDisconnectedPayload = (payload: any): boolean => {
-  const text = JSON.stringify(payload || {}).toLowerCase();
-  return /whatsapp disconnected|disconnected|logged[_\s-]?out|logout|offline|closed/.test(text);
+  if (!payload) return false;
+  if (Array.isArray(payload)) return false;
+  if (Array.isArray(payload?.groups) || Array.isArray(payload?.data)) return false;
+
+  const statusText = String(
+    payload?.error ||
+    payload?.message ||
+    payload?.status ||
+    payload?.state ||
+    payload?.instance?.status ||
+    payload?.instance?.state ||
+    ''
+  ).toLowerCase();
+
+  return /whatsapp disconnected|disconnected|logged[_\s-]?out|logout|offline|closed/.test(statusText);
 };
 
 const normalizePhoneFromJid = (jid: string | null | undefined): string => {
