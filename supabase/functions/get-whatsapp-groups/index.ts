@@ -277,7 +277,10 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     },
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const resText = await response.text();
+  console.log(`📦 UAZAPI /group/list raw response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
+  const payload = JSON.parse(resText || '{}');
+
   if (!response.ok) {
     console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
     return [];
