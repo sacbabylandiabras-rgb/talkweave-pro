@@ -242,12 +242,14 @@ const ApanhadorGrupos = () => {
         setPairingCode(null);
         toast.success(`${account ? `Instância #${activeAccountIdx + 1}` : 'Instância'} conectada!`);
         refetch();
+      } else if (data?.pairingCode && data.pairingCode !== pairingCode) {
+        setPairingCode(data.pairingCode);
       } else if (data?.qrCode && data.qrCode !== qrCode) {
         setQrCode(data.qrCode);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [connectOpen, uazapiAccounts, activeAccountIdx, qrCode, refetch]);
+  }, [connectOpen, uazapiAccounts, activeAccountIdx, qrCode, pairingCode, refetch]);
 
   const switchAccount = async (idx: number) => {
     setActiveAccountIdx(idx);
