@@ -20,6 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { isMobileZapiInstance } from "@/hooks/useZapiInstances";
 
 interface Withdrawal {
   id: string;
@@ -149,10 +150,11 @@ const AdminZapLynx = () => {
 
   useEffect(() => {
     const fetchInstancesCount = async () => {
-      const { count } = await (supabase as any)
+      const { data } = await (supabase as any)
         .from('zapi_instances')
-        .select('id', { count: 'exact', head: true });
-      setTotalZapiInstances(count || 0);
+        .select('id, instance_name, instance_type, api_provider')
+        .eq('api_provider', 'zapi');
+      setTotalZapiInstances(((data || []) as any[]).filter((item) => !isMobileZapiInstance(item)).length);
     };
     fetchInstancesCount();
   }, []);
