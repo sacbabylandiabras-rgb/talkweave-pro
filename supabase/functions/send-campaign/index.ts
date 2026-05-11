@@ -1821,6 +1821,22 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
           requestBody = { phone: contact.phone, audio: campaign.template.media_url, waveform: true };
 
+        } else if (templateType === 'status') {
+          // Postar no Status (Stories) do próprio WhatsApp logado (Z-API)
+          const statusType = String(campaign.template.status_type || 'text').toLowerCase();
+          if (statusType === 'image') {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-image`;
+            requestBody = { image: campaign.template.media_url, caption: fullMessage };
+          } else if (statusType === 'video') {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-video`;
+            requestBody = { video: campaign.template.media_url, caption: fullMessage };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-text`;
+            requestBody = { message: fullMessage };
+          }
+          // Forçar destino como status@broadcast para o Z-API
+          requestBody.phone = 'status@broadcast';
+
         } else if (templateType === 'documento' || templateType === 'arquivo') {
           if (!hasMedia) throw new Error(`Template tipo "${templateType}" requer um arquivo`);
           // Determinar extensão a partir do file_type (mime) ou da própria URL
