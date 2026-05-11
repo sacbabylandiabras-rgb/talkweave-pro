@@ -519,7 +519,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setCampaignToSend(null);
 
     try {
-      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id}`);
+      const selectedInstanceId = getSelectedCampaignInstanceId();
+      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
       
       // Set up progress dialog
       setTotalContactsCount(campaign.target_audience?.contacts?.length || 0);
@@ -527,7 +528,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts, getSelectedCampaignInstanceId());
+      await sendCampaign(campaign.id, campaign.target_audience.contacts, selectedInstanceId);
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
