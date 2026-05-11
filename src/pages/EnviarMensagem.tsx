@@ -90,7 +90,8 @@ const EnviarMensagem = () => {
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading } = useZapi();
   const { toast } = useToast();
-  const { instances, activeInstance } = useZapiInstances();
+  const { instances: allInstances, activeInstance } = useZapiInstances();
+  const instances = useMemo(() => allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi'), [allInstances]);
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
   // Subset de instâncias efetivamente escolhidas pelo usuário no seletor (modo revezamento)
