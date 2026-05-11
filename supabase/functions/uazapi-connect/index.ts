@@ -21,14 +21,20 @@ const normalizeConnectPayload = (data: any) => {
     data?.instance?.qrcode,
     data?.instance?.base64,
     data?.instance?.code,
+    data?.instance?.qr,
+    data?.qr
   );
   const pairingCode = pickFirstString(
     data?.pairingCode, 
     data?.pairing_code, 
     data?.codePairing, 
     data?.data?.pairingCode,
-    data?.code, // Alguns retornam apenas "code" quando é pareamento
-    data?.data?.code
+    data?.code,
+    data?.data?.code,
+    data?.instance?.pairingCode,
+    data?.instance?.paircode,
+    data?.paircode,
+    data?.instance?.code
   );
   const connectionStatus = typeof data?.status === "string" ? data.status : pickFirstString(data?.connectionStatus, data?.state, data?.instance?.status, data?.data?.status);
   return { ...data, qrCode, pairingCode, connectionStatus: connectionStatus || "connecting" };
@@ -48,11 +54,16 @@ const normalizeConnectPayload = (data: any) => {
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => {
+        const separator = path.includes("?") ? "&" : "?";
+        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      };
 
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken
+        "token": apiToken,
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       // Try multiple possible endpoints for connection
@@ -73,8 +84,9 @@ const normalizeConnectPayload = (data: any) => {
             body: JSON.stringify(phone ? { phone } : {}),
           });
           
-          const resData = await response.json().catch(() => ({}));
-          console.log(`Response from ${ep}:`, JSON.stringify(resData).substring(0, 100));
+          const resText = await response.text();
+          console.log(`Raw response from ${ep}:`, resText);
+          const resData = JSON.parse(resText || "{}");
           
           if (response.ok) {
             data = resData;
@@ -87,7 +99,12 @@ const normalizeConnectPayload = (data: any) => {
       }
  
  
-      return new Response(JSON.stringify(normalizeConnectPayload(data)), {
+       const normalized = normalizeConnectPayload(data);
+       console.log(`Connect Normalized: hasQr=${!!normalized.qrCode}, hasPairing=${!!normalized.pairingCode}`);
+       if (normalized.qrCode) console.log(`QR Code (prefix): ${normalized.qrCode.substring(0, 50)}`);
+       if (normalized.pairingCode) console.log(`Pairing Code: ${normalized.pairingCode}`);
+       
+       return new Response(JSON.stringify(normalized), {
        headers: { ...corsHeaders, "Content-Type": "application/json" },
      });
    } catch (err) {

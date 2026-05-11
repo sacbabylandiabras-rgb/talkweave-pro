@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug, ScrollText, CheckCircle2, XCircle } from "lucide-react";
+import { UserPlus, Search, Download, RefreshCw, Users, Eye, Loader2, Copy, Check, MessageCircle, ChevronDown, ChevronUp, FileText, Workflow, Smartphone, CheckSquare, Plug, ScrollText, CheckCircle2, XCircle, QrCode as QrCodeIcon } from "lucide-react";
+import QRCodeLib from 'qrcode';
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupWelcome } from "@/hooks/useGroupWelcome";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -125,6 +126,28 @@ const ApanhadorGrupos = () => {
   const [activeAccountIdx, setActiveAccountIdx] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  useEffect(() => {
+    const generateQrImage = async () => {
+      if (!qrCode) {
+        setQrCodeImage(null);
+        return;
+      }
+      if (qrCode.startsWith('data:image')) {
+        setQrCodeImage(qrCode);
+        return;
+      }
+      try {
+        const url = await QRCodeLib.toDataURL(qrCode);
+        setQrCodeImage(url);
+      } catch (err) {
+        console.error('Erro ao gerar imagem do QR Code:', err);
+        setQrCodeImage(null);
+      }
+    };
+    generateQrImage();
+  }, [qrCode]);
+
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>('disconnected');
   const [connectMode, setConnectMode] = useState<'qr' | 'pairing'>('qr');
@@ -242,12 +265,14 @@ const ApanhadorGrupos = () => {
         setPairingCode(null);
         toast.success(`${account ? `Instância #${activeAccountIdx + 1}` : 'Instância'} conectada!`);
         refetch();
+      } else if (data?.pairingCode && data.pairingCode !== pairingCode) {
+        setPairingCode(data.pairingCode);
       } else if (data?.qrCode && data.qrCode !== qrCode) {
         setQrCode(data.qrCode);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [connectOpen, uazapiAccounts, activeAccountIdx, qrCode, refetch]);
+  }, [connectOpen, uazapiAccounts, activeAccountIdx, qrCode, pairingCode, refetch]);
 
   const switchAccount = async (idx: number) => {
     setActiveAccountIdx(idx);
@@ -636,23 +661,34 @@ const ApanhadorGrupos = () => {
                       </Button>
                     </div>
                   )
-                ) : qrCode ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <img
-                      src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
-                      alt="QR Code"
-                      className="w-64 h-64 bg-white p-2 rounded-lg"
-                    />
-                    <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
-                    </p>
-                  </div>
+                ) : connectMode === 'qr' && (qrCode || qrCodeImage) ? (
+                  qrCodeImage ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <img
+                        src={qrCodeImage}
+                        alt="QR Code"
+                        className="w-64 h-64 bg-white p-2 rounded-lg"
+                      />
+                      <p className="text-xs text-muted-foreground text-center max-w-xs">
+                        Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Processando QR Code...</p>
+                    </div>
+                  )
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-center">
-                    <p className="text-sm text-muted-foreground">QR Code indisponível.</p>
-                    <Button size="sm" variant="outline" onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}>
-                      <RefreshCw className="w-4 h-4 mr-1" /> Tentar novamente
-                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      {connectMode === 'qr' ? 'Aguardando QR Code...' : 'Informe o telefone para gerar o código'}
+                    </p>
+                    {(connectMode === 'qr' || pairingCode) && (
+                      <Button size="sm" variant="outline" onClick={() => fetchQrFor(uazapiAccounts[activeAccountIdx])}>
+                        <RefreshCw className="w-4 h-4 mr-1" /> Tentar novamente
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

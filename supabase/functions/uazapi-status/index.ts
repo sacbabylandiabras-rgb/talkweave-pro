@@ -17,7 +17,10 @@ const pickFirstString = (...values: unknown[]) => {
       if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
   
       const cleanUrl = apiUrl.replace(/\/+$/, "");
-      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => {
+        const separator = path.includes("?") ? "&" : "?";
+        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      };
       
       const endpoints = ["/instance/status", "/status", "/instance"];
       if (instanceName) {
@@ -27,7 +30,9 @@ const pickFirstString = (...values: unknown[]) => {
 
       const headers = { 
         "Content-Type": "application/json", 
-        "token": apiToken
+        "token": apiToken,
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       let lastError = null;
@@ -44,8 +49,9 @@ const pickFirstString = (...values: unknown[]) => {
             continue;
           }
 
-          const data = await response.json();
-          console.log(`Data from ${ep}:`, JSON.stringify(data).substring(0, 100));
+          const resText = await response.text();
+          console.log(`Raw status from ${ep}:`, resText);
+          const data = JSON.parse(resText || "{}");
           
           const status = String(
             data?.instance?.status || 
@@ -74,12 +80,25 @@ const pickFirstString = (...values: unknown[]) => {
            const qrCode = pickFirstString(
              data?.qrCode, data?.qrcode, data?.base64, data?.code, 
              data?.data?.qrCode, data?.data?.qrcode, data?.data?.base64, data?.data?.code, 
-             data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code
+             data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code,
+             data?.instance?.qr, data?.qr
            );
            
-           const pairingCode = pickFirstString(data?.pairingCode, data?.pairing_code, data?.data?.pairingCode);
+           const pairingCode = pickFirstString(
+             data?.pairingCode, 
+             data?.pairing_code, 
+             data?.data?.pairingCode,
+             data?.code,
+             data?.data?.code,
+             data?.instance?.pairingCode,
+             data?.instance?.paircode,
+             data?.paircode,
+             data?.instance?.code
+           );
            
-           console.log(`Normalized: connected=${connected}, status=${status}, hasQr=${!!qrCode}`);
+           console.log(`Normalized: connected=${connected}, status=${status}, hasQr=${!!qrCode}, hasPairing=${!!pairingCode}`);
+           if (qrCode) console.log(`QR Code (prefix): ${qrCode.substring(0, 50)}`);
+           if (pairingCode) console.log(`Pairing Code: ${pairingCode}`);
 
            return new Response(JSON.stringify({ connected, status, qrCode, pairingCode }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
