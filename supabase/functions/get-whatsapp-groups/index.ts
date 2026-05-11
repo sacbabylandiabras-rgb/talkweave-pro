@@ -559,9 +559,13 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
         group?.size ||
         0,
       profilePicture:
+        detail?.ProfilePicture ||
+        detail?.ProfilePicUrl ||
         detail?.imageUrl ||
         detail?.picture ||
         detail?.profilePicUrl ||
+        group?.ProfilePicture ||
+        group?.ProfilePicUrl ||
         group?.imageUrl ||
         group?.picture ||
         null,
