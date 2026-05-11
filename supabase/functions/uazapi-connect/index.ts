@@ -31,27 +31,59 @@ const normalizeConnectPayload = (data: any) => {
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
  
    try {
-     const { apiUrl, apiToken, phone } = await req.json();
-     if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
+      const { apiUrl, apiToken, phone, instanceName } = await req.json();
+      if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
+
+      console.log(`UAZAPI Connect: ${apiUrl} (Instance: ${instanceName})`);
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-     const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(apiToken)}`;
 
-     // UAZAPI expects POST /instance/connect with the instance token in query params.
-     const response = await fetch(withToken(`/instance/connect`), {
-       method: "POST",
-       headers: { "Content-Type": "application/json", token: apiToken },
-       body: JSON.stringify(phone ? { phone } : {}),
-     });
+      const headers = { 
+        "Content-Type": "application/json", 
+        "token": apiToken,
+        "apikey": apiToken 
+      };
+
+      // Try multiple possible endpoints for connection
+      const connectEndpoints = [];
+      if (instanceName) {
+        connectEndpoints.push(`/instance/connect/${instanceName}`);
+      }
+      connectEndpoints.push("/instance/connect");
+
+      let data = {};
+      let success = false;
+
+      for (const ep of connectEndpoints) {
+        try {
+          console.log(`Trying connect endpoint: ${ep}`);
+          const response = await fetch(withToken(ep), {
+            method: "POST",
+            headers,
+            body: JSON.stringify(phone ? { phone } : {}),
+          });
+          
+          const resData = await response.json().catch(() => ({}));
+          console.log(`Response from ${ep}:`, JSON.stringify(resData).substring(0, 100));
+          
+          if (response.ok) {
+            data = resData;
+            success = true;
+            break;
+          }
+        } catch (e) {
+          console.error(`Error connecting to ${ep}:`, e.message);
+        }
+      }
  
-     const data = await response.json().catch(() => ({}));
-     
      // If phone is provided, try pairing code
-     if (phone) {
+      if (phone && instanceName) {
+        console.log(`Trying pairing code for phone: ${phone}`);
        const pairingResponse = await fetch(withToken(`/instance/connect?phone=${encodeURIComponent(phone)}`), {
          method: "POST",
-         headers: { "Content-Type": "application/json", token: apiToken },
+          headers,
          body: JSON.stringify({ phone }),
        });
         const pairingData = await pairingResponse.json().catch(() => ({}));
