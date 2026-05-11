@@ -1928,7 +1928,11 @@ serve(async (req) => {
           const lidBypass = isLidContact && (looksLikeNotFound || (!confirmed && zapiResponse.ok));
 
           if ((zapiResponse.ok && !explicitError && confirmed) || lidBypass) {
-            if (specialTpl?.type === 'uaz_location_button') {
+            const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
+                                   specialTpl?.type === 'location_button' || 
+                                   specialTpl?.type === 'request-location';
+            
+            if (isLocationButton) {
               await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
               const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
               if (!buttonResult.ok) {
