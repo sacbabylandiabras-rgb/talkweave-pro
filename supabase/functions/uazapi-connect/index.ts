@@ -78,8 +78,9 @@ const normalizeConnectPayload = (data: any) => {
             body: JSON.stringify(phone ? { phone } : {}),
           });
           
-          const resData = await response.json().catch(() => ({}));
-          console.log(`Response from ${ep}:`, JSON.stringify(resData).substring(0, 100));
+          const resText = await response.text();
+          console.log(`Raw response from ${ep}:`, resText);
+          const resData = JSON.parse(resText || "{}");
           
           if (response.ok) {
             data = resData;
