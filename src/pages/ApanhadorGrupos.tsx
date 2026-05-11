@@ -466,10 +466,7 @@ const ApanhadorGrupos = () => {
     }
     navigator.clipboard.writeText(phones.join('\n'));
     setCopied(groupId);
-    const extras = [
-      excludeAdmins ? 'admins removidos' : null,
-      excludeLids ? 'sem números anônimos' : null,
-    ].filter(Boolean).join(', ');
+    const extras = excludeAdmins ? 'admins removidos' : null;
     toast.success(`${phones.length} número(s) copiado(s)${extras ? ` (${extras})` : ''}!`);
     setTimeout(() => setCopied(null), 2000);
   };
