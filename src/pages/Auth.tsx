@@ -331,13 +331,13 @@ const Auth = () => {
               <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={email} onChange={setEmail} disabled={loading} />
               <InputField icon={<Phone size={16} />} type="text" placeholder="+5511999999999" value={whatsapp} onChange={setWhatsapp} disabled={loading} />
                <InputField icon={<Lock size={16} />} type="password" placeholder="••••••••" value={password} onChange={setPassword} disabled={loading} />
-               <SubmitButton loading={loading} label="Iniciar 7 Dias Grátis" loadingLabel="Criando conta..." />
+               <SubmitButton loading={loading} label="Iniciar 2 Dias Grátis" loadingLabel="Criando conta..." />
                <div style={{ textAlign: "center", marginTop: 8 }}>
                  <p style={{ fontSize: 12, color: "var(--lp-muted)", margin: "0 0 4px 0" }}>
                    Após criar sua conta, confirme seu email para acessar.
                  </p>
                  <p style={{ fontSize: 11, color: "var(--lp-accent)", fontWeight: 600 }}>
-                   ✓ Acesso total liberado por 7 dias
+                   ✓ Acesso total liberado por 2 dias
                  </p>
                </div>
              </form>
