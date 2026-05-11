@@ -2345,8 +2345,9 @@ const Modelos = () => {
                    <SelectItem value="contato">contato (vCard)</SelectItem>
                    <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
-                    <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
-                    <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                  <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                  <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                  <SelectItem value="status">Status (Stories)</SelectItem>
                     <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
                 </SelectContent>
               </Select>
