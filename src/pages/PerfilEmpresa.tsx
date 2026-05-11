@@ -97,7 +97,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
 };
 
  const PerfilEmpresa = () => {
-   const { allInstances, loading: loadingInstances } = useZapiInstances();
+   const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
    
    const instances = useMemo(() => {
      return allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi');
