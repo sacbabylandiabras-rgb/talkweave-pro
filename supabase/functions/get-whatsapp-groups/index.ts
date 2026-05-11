@@ -346,6 +346,9 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
     { ep: '/group/fetchAllGroups', method: 'GET' },
     { ep: `/group/fetchAllGroups/${realInstanceName}`, method: 'GET' },
     { ep: '/group/listAll', method: 'GET' },
+    { ep: `/group/list?token=${apiToken}`, method: 'GET' },
+    { ep: `/instance/group/list/${realInstanceName}`, method: 'GET' },
+    { ep: '/instance/all', method: 'GET' }, // Para descobrir o formato
   ];
   
   for (const combo of combinations) {
