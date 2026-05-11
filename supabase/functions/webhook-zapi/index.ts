@@ -5612,11 +5612,13 @@ async function sendNodeContent(
           body.message = content;
           break;
         case "image":
+        case "image-buttons":
           endpoint = "/send-image";
           body.image = mediaUrl;
           body.caption = content;
           break;
         case "video":
+        case "video-buttons":
           if (targetNode.data?.isPtv) {
             endpoint = "/send-ptv";
             body.ptv = mediaUrl;
@@ -5628,6 +5630,7 @@ async function sendNodeContent(
           }
           break;
         case "audio":
+        case "audio-buttons":
           endpoint = "/send-audio";
           body.audio = mediaUrl;
           body.waveform = true;
