@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,11 @@ const formatErrorMessage = (value: unknown, fallback = "Não foi possível concl
 };
 
 const Etiquetas = () => {
-  const { instances, loading: loadingInstances } = useZapiInstances();
+  const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
+  const instances = useMemo(
+    () => allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi'),
+    [allInstances],
+  );
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [tags, setTags] = useState<WhatsappTag[]>([]);
   const [tagColors, setTagColors] = useState<TagColor[]>([]);
