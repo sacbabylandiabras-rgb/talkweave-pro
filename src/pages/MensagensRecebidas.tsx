@@ -1804,6 +1804,22 @@ const MensagensRecebidas = () => {
    }, []); // roda só uma vez ao montar
 
    const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
+   const { listTags: pageListTags } = useZapi();
+ 
+   useEffect(() => {
+     let cancelled = false;
+     (async () => {
+       try {
+         const tags = await pageListTags();
+         if (!cancelled) setPageAvailableTags(Array.isArray(tags) ? tags : []);
+       } catch (e) { console.error('Erro ao carregar etiquetas (lista):', e); }
+       try {
+         const { data } = await supabase.functions.invoke('zapi-chat-actions', { body: { action: 'tag-colors' } });
+         if (!cancelled) setPageTagColors(Array.isArray(data?.data) ? data.data : []);
+       } catch (e) { console.error('Erro ao carregar cores das etiquetas (lista):', e); }
+     })();
+     return () => { cancelled = true; };
+   }, []);
   const syncHistory = async () => {
     setSyncing(true);
     try {
