@@ -59,9 +59,9 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
           
            {(template.mediaUrl || (specialData && specialData.mediaUrl)) && (
              <div className="mb-2 rounded overflow-hidden bg-white/5 border border-white/5">
-               {type.includes('imagem') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') ? (
+               {type.includes('imagem') || type.includes('image') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') ? (
                  <img src={template.mediaUrl || specialData.mediaUrl} alt="Preview" className="w-full h-48 object-cover" />
-               ) : type.includes('vídeo') || template.fileType?.startsWith('video') ? (
+                ) : type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video') ? (
                  <div className="relative aspect-video bg-black">
                    <video 
                      src={template.mediaUrl || specialData.mediaUrl} 
@@ -77,7 +77,7 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
                      </div>
                    </div>
                  </div>
-               ) : type.includes('áudio') || template.fileType?.startsWith('audio') ? (
+                ) : type.includes('áudio') || type.includes('audio') || template.fileType?.startsWith('audio') ? (
                  <div className="w-full py-3 px-4 bg-[#111b21] flex items-center gap-3">
                    <div className="relative w-10 h-10 rounded-full bg-[#202c33] flex items-center justify-center overflow-hidden">
                      <img src={zaplynxAvatar} alt="Avatar" className="w-full h-full object-cover" />
