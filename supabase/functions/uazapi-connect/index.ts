@@ -9,19 +9,23 @@
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-     // Try /instance/connect or similar
-     const response = await fetch(`${cleanUrl}/instance/connect`, {
-       method: "GET",
+     const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
+
+     // UAZAPI expects POST /instance/connect with the instance token in query params.
+     const response = await fetch(withToken(`/instance/connect`), {
+       method: "POST",
        headers: { "Content-Type": "application/json", token: apiToken },
+       body: JSON.stringify(phone ? { phone } : {}),
      });
  
      const data = await response.json().catch(() => ({}));
      
      // If phone is provided, try pairing code
      if (phone) {
-       const pairingResponse = await fetch(`${cleanUrl}/instance/pairing-code?phone=${phone}`, {
-         method: "GET",
+       const pairingResponse = await fetch(withToken(`/instance/connect?phone=${encodeURIComponent(phone)}`), {
+         method: "POST",
          headers: { "Content-Type": "application/json", token: apiToken },
+         body: JSON.stringify({ phone }),
        });
        const pairingData = await pairingResponse.json().catch(() => ({}));
        return new Response(JSON.stringify({ ...data, ...pairingData }), {

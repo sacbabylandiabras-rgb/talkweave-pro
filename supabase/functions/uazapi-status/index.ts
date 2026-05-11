@@ -8,12 +8,13 @@
      if (!apiUrl || !apiToken) throw new Error("apiUrl and apiToken are required");
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
+     const withToken = (path: string) => `${cleanUrl}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(apiToken)}`;
      const endpoints = ["/instance/status", "/status", "/instance"];
      
      let lastError = null;
      for (const ep of endpoints) {
        try {
-         const response = await fetch(`${cleanUrl}${ep}`, {
+         const response = await fetch(withToken(ep), {
            method: "GET",
            headers: { "Content-Type": "application/json", token: apiToken },
          });
