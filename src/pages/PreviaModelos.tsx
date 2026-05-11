@@ -7,67 +7,7 @@ import { Loader2, Search, ArrowLeft, LayoutGrid, LayoutList } from "lucide-react
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 
-const WhatsAppPreview = ({ template }: { template: any }) => {
-  const isSpecial = template.content?.startsWith("__SPECIAL_TEMPLATE__:");
-  let content = template.content;
-  let type = template.type;
-
-  if (isSpecial) {
-    try {
-      const parsed = JSON.parse(template.content.slice(21));
-      content = parsed.description || parsed.title || "Template Especial";
-      type = parsed.type;
-    } catch (e) {
-      content = "Erro ao processar template especial";
-    }
-  }
-
-  return (
-    <div className="bg-[#0b141a] rounded-lg p-3 max-w-full overflow-hidden shadow-lg border border-white/5">
-      {template.header && (
-        <div className="text-white/50 text-[11px] font-bold mb-1 uppercase tracking-wider">
-          {template.header}
-        </div>
-      )}
-      
-      {template.mediaUrl && (
-        <div className="mb-2 rounded overflow-hidden bg-white/5">
-          {template.fileType?.startsWith('image') ? (
-            <img src={template.mediaUrl} alt="Preview" className="w-full h-32 object-cover" />
-          ) : (
-            <div className="w-full h-32 flex items-center justify-center text-white/30">
-              Arquivo: {template.fileName || 'Mídia'}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="text-white text-[14.5px] whitespace-pre-wrap break-words leading-relaxed">
-        {content}
-      </div>
-
-      {template.footer && (
-        <div className="text-white/45 text-[12px] mt-1.5 italic">
-          {template.footer}
-        </div>
-      )}
-
-      {template.buttons && template.buttons.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {template.buttons.map((btn: any, idx: number) => (
-            <div 
-              key={idx} 
-              className="bg-[#202c33] hover:bg-[#2a3942] transition-colors py-2 px-4 rounded text-[#00a884] text-sm font-medium text-center border-t border-white/5"
-            >
-              {btn.text}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+ import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 const PreviaModelos = () => {
   const { templates, loading } = useMessageTemplates();
   const [searchTerm, setSearchTerm] = useState("");

@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+ import { Label } from "@/components/ui/label";
+ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle } from "lucide-react";
+ import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle, LayoutTemplate } from "lucide-react";
+ import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
@@ -1463,9 +1465,26 @@ const EnviarMensagem = () => {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">Enviar Mensagem</h1>
+   const previewTemplateData = useMemo(() => {
+     const modeloData = modeloSelecionado 
+       ? modelosDisponiveis.find(m => m.id === modeloSelecionado) 
+       : null;
+ 
+     if (modeloData) return modeloData;
+ 
+     // Se não tiver modelo, simular um modelo com o conteúdo atual
+     return {
+       content: mensagem,
+       mediaUrl: arquivoMidia ? URL.createObjectURL(arquivoMidia) : undefined,
+       fileType: arquivoMidia?.type,
+       fileName: arquivoMidia?.name,
+       buttons: botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() }))
+     };
+   }, [modeloSelecionado, modelosDisponiveis, mensagem, arquivoMidia, botoesAcao]);
+ 
+   return (
+     <div className="space-y-4">
+       <h1 className="text-lg font-semibold text-foreground">Enviar Mensagem</h1>
 
       <Card>
         <CardContent className="pt-4">
@@ -1497,8 +1516,10 @@ const EnviarMensagem = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+       <div className="flex flex-col lg:flex-row gap-6">
+         <div className="flex-1 min-w-0">
+           <Tabs defaultValue="individual" className="w-full">
+             <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Texto
@@ -2161,7 +2182,29 @@ Formatos aceitos:
             loading={loading}
           />
         </TabsContent>
-      </Tabs>
+           </Tabs>
+         </div>
+ 
+         <div className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start">
+           <div className="flex items-center justify-between">
+             <h3 className="text-sm font-semibold flex items-center gap-2">
+               <LayoutTemplate className="w-4 h-4 text-primary" />
+               Prévia do Envio
+             </h3>
+             <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+               WhatsApp Web
+             </Badge>
+           </div>
+           <div className="bg-muted/10 rounded-2xl border border-white/5 p-4 flex items-center justify-center">
+             <WhatsAppPreview template={previewTemplateData} />
+           </div>
+           <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
+             <p className="text-[11px] text-muted-foreground leading-relaxed">
+               <span className="text-primary font-medium">Nota:</span> Esta é uma simulação aproximada de como a mensagem será exibida no dispositivo do destinatário.
+             </p>
+           </div>
+         </div>
+       </div>
     </div>
   );
 };
