@@ -16,91 +16,66 @@ const PreviaModelos = () => {
   const navigate = useNavigate();
 
   const exampleTemplates: Partial<MessageTemplate>[] = [
-    {
-      name: "Boas-vindas (Exemplo)",
-      category: "Boas-vindas",
-      content: "Olá {nome}, seja muito bem-vindo(a) à nossa empresa! 🚀\n\nEstamos muito felizes em ter você conosco. Como posso te ajudar hoje?",
-      footer: "Equipe de Atendimento",
-      type: "texto"
+    // Básicos
+    { name: "Mensagem de Texto", category: "Básico", type: "texto", content: "Olá! Esta é uma mensagem de texto simples." },
+    { name: "Exemplo de Imagem", category: "Básico", type: "imagem", content: "Legenda da imagem", mediaUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475" },
+    { name: "Exemplo de Áudio", category: "Básico", type: "áudio", content: "Mensagem de voz", mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+    { name: "Exemplo de Vídeo", category: "Básico", type: "vídeo", content: "Confira este vídeo!", mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
+    { name: "Exemplo de Arquivo/Documento", category: "Básico", type: "documento", content: "Contrato de Prestação de Serviços", fileName: "contrato.pdf" },
+    
+    // Interativos
+    { 
+      name: "Imagem com Botões", category: "Interativo", type: "imagem com botões", 
+      content: "Gostou desta oferta?", 
+      mediaUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+      buttons: [{ id: "1", text: "Sim! 😍", type: "reply" }, { id: "2", text: "Não 😢", type: "reply" }]
     },
-    {
-      name: "Promoção Relâmpago (Exemplo)",
-      category: "Marketing",
-      content: "🔥 OFERTA EXCLUSIVA 🔥\n\nSomente hoje, toda a nossa loja com 50% de DESCONTO! Não perca essa oportunidade única.",
-      footer: "Válido até 23:59",
-      type: "texto",
+    { 
+      name: "Vídeo com Botões", category: "Interativo", type: "vídeo com botões", 
+      content: "Assista e escolha uma opção:", 
+      mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      buttons: [{ id: "1", text: "Saiba Mais", type: "url", value: "https://exemplo.com" }]
+    },
+    { 
+      name: "Lista de Opções", category: "Interativo", type: "lista de opção", 
+      content: "Escolha um departamento:", 
+      footer: "Menu Principal",
+      listItems: [{ id: "1", title: "Vendas" }, { id: "2", title: "Suporte" }, { id: "3", title: "Financeiro" }]
+    },
+
+    // Especiais
+    { 
+      name: "Botão Copiar", category: "Especial", type: "copia e cola", 
+      content: "__SPECIAL_TEMPLATE__:{\"type\":\"copia_cola\",\"description\":\"Clique para copiar o código do cupom:\",\"copyText\":\"PROMO2024\"}"
+    },
+    { 
+      name: "Cobrança PIX", category: "Especial", type: "pix", 
+      content: "__SPECIAL_TEMPLATE__:{\"type\":\"pix\",\"pixKey\":\"12345678900\",\"pixKeyType\":\"cpf\",\"amount\":\"150.00\",\"merchantName\":\"Minha Loja\",\"city\":\"São Paulo\",\"description\":\"Pagamento do Pedido #123\"}"
+    },
+    { 
+      name: "Localização", category: "Especial", type: "localizacao", 
+      content: "__SPECIAL_TEMPLATE__:{\"type\":\"localizacao\",\"latitude\":\"-23.5505\",\"longitude\":\"-46.6333\",\"address\":\"Av. Paulista, 1000\",\"title\":\"Nosso Escritório\"}"
+    },
+    { 
+      name: "Cartão de Contato", category: "Especial", type: "contato", 
+      content: "__SPECIAL_TEMPLATE__:{\"type\":\"contato\",\"contactName\":\"Suporte ZapLynx\",\"contactPhone\":\"+5511999999999\",\"contactBusinessDescription\":\"Atendimento 24h\"}"
+    },
+    { 
+      name: "Produto do Catálogo", category: "Especial", type: "produto", 
+      content: "__SPECIAL_TEMPLATE__:{\"type\":\"produto\",\"productId\":\"PROD-001\",\"description\":\"Confira este produto em nossa loja!\"}"
+    },
+    { 
+      name: "Enquete (Poll)", category: "Especial", type: "poll", 
+      content: "Qual seu dia preferido para reunião?",
       buttons: [
-        { id: "1", text: "Ver Ofertas", type: "url", value: "https://exemplo.com" },
-        { id: "2", text: "Falar com Vendedor", type: "reply" }
+        { id: "1", text: "Segunda", type: "reply" }, 
+        { id: "2", text: "Quarta", type: "reply" }, 
+        { id: "3", text: "Sexta", type: "reply" }
       ]
     },
-    {
-      name: "Lembrete de Agendamento (Exemplo)",
-      category: "Aviso",
-      content: "Olá! Passando para lembrar do seu agendamento amanhã às 14:00. Podemos confirmar sua presença?",
-      type: "texto",
-      buttons: [
-        { id: "1", text: "Confirmar ✅", type: "reply" },
-        { id: "2", text: "Reagendar 🗓️", type: "reply" }
-      ]
-    },
-    {
-      name: "Cobrança Amigável (Exemplo)",
-      category: "Cobrança",
-      content: "Olá! Notamos que o seu pagamento ainda não foi identificado em nosso sistema. Caso já tenha pago, por favor desconsidere esta mensagem.",
-      footer: "Dúvidas? Entre em contato.",
-      type: "texto"
-    },
-    {
-      name: "Recuperação de Carrinho (Exemplo)",
-      category: "Vendas",
-      content: "Olá {nome}! Vimos que você deixou alguns itens incríveis no seu carrinho. 🛒\n\nPara te ajudar a finalizar sua compra, liberamos um cupom de 10% OFF apenas para você: *VOLTEI10*",
-      footer: "O cupom expira em 2 horas",
-      type: "texto",
-      buttons: [
-        { id: "1", text: "Finalizar Compra", type: "url", value: "https://exemplo.com/carrinho" }
-      ]
-    },
-    {
-      name: "Suporte Técnico (Exemplo)",
-      category: "Suporte",
-      content: "Recebemos sua solicitação de suporte. Nossa equipe técnica já está analisando o caso e retornaremos em breve. ✅",
-      footer: "Protocolo: #12345",
-      type: "texto"
-    },
-    {
-      name: "Aviso de Manutenção (Exemplo)",
-      category: "Aviso",
-      content: "⚠️ AVISO IMPORTANTE\n\nRealizaremos uma manutenção programada em nossos sistemas amanhã, das 02:00 às 04:00. Algumas funcionalidades podem ficar instáveis.",
-      type: "texto"
-    },
-    {
-      name: "Pedido Confirmado (Exemplo)",
-      category: "Vendas",
-      content: "Oba! Seu pedido foi confirmado com sucesso. 🎉\n\nVocê receberá o código de rastreio assim que o produto for postado.",
-      footer: "Obrigado pela preferência!",
-      type: "texto"
-    },
-    {
-      name: "Informativo Semanal (Exemplo)",
-      category: "Informativo",
-      content: "Confira as novidades da semana! 📰\n\nPreparamos conteúdos exclusivos sobre como escalar suas vendas no WhatsApp. Clique no botão abaixo para ler.",
-      type: "texto",
-      buttons: [
-        { id: "1", text: "Ler Agora", type: "url", value: "https://exemplo.com/blog" }
-      ]
-    },
-    {
-      name: "Pesquisa de Satisfação (Exemplo)",
-      category: "Suporte",
-      content: "Como foi sua experiência com nosso atendimento hoje? Sua opinião é muito importante para nós! ⭐",
-      type: "texto",
-      buttons: [
-        { id: "1", text: "Excelente 😍", type: "reply" },
-        { id: "2", text: "Bom 🙂", type: "reply" },
-        { id: "3", text: "Pode melhorar 😐", type: "reply" }
-      ]
-    }
+    { name: "Sticker (Figurinha)", category: "Especial", type: "sticker", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
+    { name: "GIF Animado", category: "Especial", type: "gif", mediaUrl: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZ3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z3R4Z/3o7TKMGf7U1aFjD9pS/giphy.gif" },
+    { name: "Link com Preview", category: "Especial", type: "link", content: "Acesse nosso site: https://lovable.dev" }
   ];
 
   const handleCreateExamples = async () => {
