@@ -3112,21 +3112,87 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                    </div>
                  )}
  
-                 {["tag", "variable", "webhook"].includes(selectedNode.data.actionType || "tag") && (
-                  <div>
-                    <Label>Configuração da Ação</Label>
-                    <Input
-                      value={selectedNode.data.actionConfig || ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, actionConfig: e.target.value },
-                        })
-                      }
-                      placeholder="Configure a ação..."
-                    />
-                  </div>
-                )}
+                  {selectedNode.data.actionType === "tag" && (
+                    <div>
+                      <Label>Escolher Etiqueta</Label>
+                      <div className="flex gap-2 mb-2">
+                        <Select
+                          value={availableTags.includes(selectedNode.data.actionConfig || "") ? selectedNode.data.actionConfig : "manual"}
+                          onValueChange={(value) => {
+                            if (value !== "manual") {
+                              setSelectedNode({
+                                ...selectedNode,
+                                data: { ...selectedNode.data, actionConfig: value },
+                              });
+                            } else if (availableTags.includes(selectedNode.data.actionConfig || "")) {
+                              // Se selecionou manual mas o valor atual é uma tag conhecida, limpa o campo
+                              setSelectedNode({
+                                ...selectedNode,
+                                data: { ...selectedNode.data, actionConfig: "" },
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder={loadingTags ? "Carregando etiquetas..." : "Selecione uma etiqueta..."} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">-- Digitar manualmente --</SelectItem>
+                            {availableTags.map((tag) => (
+                              <SelectItem key={tag} value={tag}>
+                                {tag}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {(!availableTags.includes(selectedNode.data.actionConfig || "") || selectedNode.data.actionConfig === "") && (
+                        <div className="mt-2">
+                          <Label className="text-[11px]">Ou digite o nome da etiqueta:</Label>
+                          <Input
+                            value={selectedNode.data.actionConfig || ""}
+                            onChange={(e) =>
+                              setSelectedNode({
+                                ...selectedNode,
+                                data: { ...selectedNode.data, actionConfig: e.target.value },
+                              })
+                            }
+                            placeholder="Ex: Interessado"
+                          />
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Esta etiqueta será adicionada ao contato no WhatsApp.
+                      </p>
+                    </div>
+                  )}
+
+                  {["variable", "webhook"].includes(selectedNode.data.actionType || "") && (
+                    <div>
+                      <Label>Configuração da Ação</Label>
+                      <Input
+                        value={selectedNode.data.actionConfig || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, actionConfig: e.target.value },
+                          })
+                        }
+                        placeholder={selectedNode.data.actionType === "variable" ? "Nome da variável..." : "URL do Webhook..."}
+                      />
+                      {selectedNode.data.actionType === "variable" && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Nome da variável para salvar a resposta (ex: nome, email).
+                        </p>
+                      )}
+                      {selectedNode.data.actionType === "webhook" && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          URL do Webhook para onde os dados serão enviados.
+                        </p>
+                      )}
+                    </div>
+                  )}
               </>
             )}
 
