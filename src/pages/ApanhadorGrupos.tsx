@@ -32,7 +32,7 @@ interface FlowOption {
 
 const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
-  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi', source: 'profile' });
+  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
   const { instances } = useZapiInstances();
   // Instâncias UAZAPI para esta página (apenas as de extração, ignorando pool de aquecimento)
