@@ -1,4 +1,11 @@
  import { corsHeaders } from "../_shared/cors.ts";
+
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+};
  
  Deno.serve(async (req) => {
    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -41,7 +48,9 @@
            ["connected", "open", "online", "logged_in", "loggedin", "connected_in"].some((s) => status === s)
          );
  
-         return new Response(JSON.stringify({ connected, status, qrCode: data?.qrCode || data?.qrcode || null }), {
+          const qrCode = pickFirstString(data?.qrCode, data?.qrcode, data?.base64, data?.code, data?.data?.qrCode, data?.data?.qrcode, data?.data?.base64, data?.data?.code, data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code);
+          const pairingCode = pickFirstString(data?.pairingCode, data?.pairing_code, data?.data?.pairingCode);
+          return new Response(JSON.stringify({ connected, status, qrCode, pairingCode }), {
            headers: { ...corsHeaders, "Content-Type": "application/json" },
          });
        } catch (e) {
