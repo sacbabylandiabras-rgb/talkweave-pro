@@ -975,7 +975,15 @@ const getPreviewFileLabel = (template: any) => {
 };
 
 const Modelos = () => {
-  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate } = useMessageTemplates();
+   const { 
+     templates, 
+     loading: templatesLoading, 
+     createTemplate, 
+     updateTemplate, 
+     deleteTemplate, 
+     deleteAllTemplates, 
+     duplicateTemplate 
+   } = useMessageTemplates();
   const [realUsage, setRealUsage] = useState<Record<string, number>>({});
   const [loadingUsage, setLoadingUsage] = useState(false);
   // Efeito para carregar a contagem real de uso (envios) por modelo
@@ -1119,7 +1127,8 @@ const Modelos = () => {
      paymentReferenceId: "",
      massPhones: "",
     });
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+   const [showCreateDialog, setShowCreateDialog] = useState(false);
+   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
