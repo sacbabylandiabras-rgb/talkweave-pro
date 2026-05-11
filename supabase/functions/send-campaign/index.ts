@@ -454,35 +454,92 @@ const dispatchZapiSpecial = async (
   clientToken: string,
   phone: string,
   special: any,
+  supabase?: any,
+  userId?: string,
 ) => {
   let url = '';
   let body: Record<string, unknown> = {};
-  if (special.type === 'pix') {
-    url = `${baseUrl}/send-button-pix`;
-    const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
-    const typeMap: Record<string, string> = {
-      TELEFONE: 'PHONE',
-      CELULAR: 'PHONE',
-      'E-MAIL': 'EMAIL',
-      ALEATORIA: 'EVP',
-      'ALEATÓRIA': 'EVP',
-      RANDOM: 'EVP',
-    };
-    body = {
-      phone,
-      pixKey: String(special.pixKey || '').trim(),
-      type: typeMap[rawType] || rawType,
-      ...(special.merchantName ? { merchantName: special.merchantName } : {}),
-    };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
+  
+  // Normalize type
+  const type = special.type === 'gateway_billing' ? 'gateway-billing' : special.type;
+
+  if (type === 'pix' || type === 'gateway-billing' || type === 'request-payment' || type === 'pagamento') {
+    const amountReais = Number(String(special.amount || special.pixAmount || '0.00').replace(',', '.'));
+    const amountCents = Math.round(amountReais * 100);
+    const description = String(special.description || special.text || special.pixDescription || special.paymentDescription || 'Pagamento').trim();
+    const isGateway = special.pixSource === 'gateway' || special.paymentSource === 'gateway' || type === 'gateway-billing';
+    
+    let brCode = '';
+    let qrCodeImage = '';
+
+    if (isGateway && supabase && userId && amountCents > 0) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const chargeRes = await fetch(`${supabaseUrl}/functions/v1/gateway-flow-charge`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            userId,
+            amount: amountCents,
+            description,
+            customerPhone: phone,
+          }),
+        });
+        const chargeData = await chargeRes.json();
+        brCode = chargeData?.brCode || "";
+        qrCodeImage = chargeData?.qrCodeImage || "";
+        console.log(`✅ [Gateway] Charge generated for ${phone}: ${brCode ? 'Copied code received' : 'No code received'}`);
+      } catch (e) {
+        console.error("❌ [Gateway] Failed to generate charge:", e);
+      }
+    }
+
+    if (brCode) {
+      // If we have a gateway code, send it as a "Copy & Paste" button for better UX
+      url = `${baseUrl}/send-button-otp`;
+      body = {
+        phone,
+        message: description || 'Realize o pagamento via PIX:',
+        code: brCode,
+        footer: 'Clique abaixo para copiar o código PIX'
+      };
+    } else {
+      // Fallback or manual PIX
+      url = `${baseUrl}/send-button-pix`;
+      const pixKey = String(special.pixKey || special.paymentReceiver || '').trim();
+      const merchantName = String(special.merchantName || special.paymentReceiver || 'Pagamento').trim();
+      const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
+      
+      const typeMap: Record<string, string> = {
+        TELEFONE: 'PHONE',
+        CELULAR: 'PHONE',
+        'E-MAIL': 'EMAIL',
+        ALEATORIA: 'EVP',
+        'ALEATÓRIA': 'EVP',
+        RANDOM: 'EVP',
+      };
+
+      body = {
+        phone,
+        pixKey,
+        type: typeMap[rawType] || rawType,
+        merchantName,
+        amount: amountReais || 0,
+      };
+    }
+  } else if (type === 'localizacao' || type === 'uaz_location_button' || type === 'location' || type === 'location_button' || type === 'request-location') {
     url = `${baseUrl}/send-location`;
-    const latitude = parseCoordinate(special.latitude);
-    const longitude = parseCoordinate(special.longitude);
+    const latitude = parseCoordinate(special.latitude || special.locLatitude);
+    const longitude = parseCoordinate(special.longitude || special.locLongitude);
     if (!latitude || !longitude) {
       throw new Error('Template de localização com latitude/longitude inválidos');
     }
-    const title = String(special.title || special.name || special.address || 'Localização').trim();
-    const address = String(special.address || special.description || title).trim();
+    const title = String(special.title || special.name || special.address || special.locTitle || 'Localização').trim();
+    const address = String(special.address || special.description || special.locAddress || title).trim();
     body = {
       phone,
       title,
@@ -490,7 +547,7 @@ const dispatchZapiSpecial = async (
       latitude,
       longitude,
     };
-  } else if (special.type === 'contato') {
+  } else if (type === 'contato') {
     url = `${baseUrl}/send-contact`;
     body = {
       phone,
@@ -498,7 +555,7 @@ const dispatchZapiSpecial = async (
       contactPhone: String(special.contactPhone || '').replace(/\D/g, ''),
       ...(special.description ? { contactBusinessDescription: special.description } : {}),
     };
-  } else if (special.type === 'uaz_status' || special.type === 'status' || (phone === 'status@broadcast')) {
+  } else if (type === 'uaz_status' || type === 'status' || (phone === 'status@broadcast')) {
     // WhatsApp Status (Stories) via Z-API
     const statusType = String(special.statusType || 'text').toLowerCase();
     if (statusType === 'image') {
@@ -521,7 +578,7 @@ const dispatchZapiSpecial = async (
         ...(special.font !== undefined && special.font !== null ? { font: Number(special.font) || 1 } : {}),
       };
     }
-  } else if (special.type === 'copia_cola' || special.type === 'copy_paste') {
+  } else if (type === 'copia_cola' || type === 'copy_paste') {
     // Botão "Copiar Código" nativo do WhatsApp via endpoint Z-API /send-button-otp
     const code = String(special.copyText || special.code || '').trim();
     const message = String(special.description || special.text || '').trim() || ' ';
@@ -531,35 +588,6 @@ const dispatchZapiSpecial = async (
       message,
       code,
     };
-  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
-    // Para Z-API, usamos send-button-pix ou similar dependendo da config
-    url = `${baseUrl}/send-button-pix`;
-    const amount = String(special.amount || '0.00').replace(',', '.');
-    const pixKey = String(special.pixKey || '').trim();
-    const merchantName = String(special.merchantName || 'Pagamento').trim();
-    const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
-    
-    const typeMap: Record<string, string> = {
-      TELEFONE: 'PHONE',
-      CELULAR: 'PHONE',
-      'E-MAIL': 'EMAIL',
-      ALEATORIA: 'EVP',
-      'ALEATÓRIA': 'EVP',
-      RANDOM: 'EVP',
-    };
-
-    body = {
-      phone,
-      pixKey,
-      type: typeMap[rawType] || rawType,
-      merchantName,
-      amount: Number(amount) || 0,
-    };
-
-    if (special.type === 'gateway-billing') {
-       // Se for cobrança gateway, talvez precise de outro endpoint, mas por hora enviamos como PIX
-       body.message = special.description || special.text || 'Realize o pagamento via PIX:';
-    }
   }
   return { url, body };
 };
