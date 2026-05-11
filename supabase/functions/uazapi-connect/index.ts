@@ -43,7 +43,8 @@ const normalizeConnectPayload = (data: any) => {
       const headers = { 
         "Content-Type": "application/json", 
         "token": apiToken,
-        "apikey": apiToken 
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`
       };
 
       // Try multiple possible endpoints for connection
