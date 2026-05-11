@@ -489,13 +489,22 @@ const dispatchZapiSpecial = async (
             customerPhone: phone,
           }),
         });
-        const chargeData = await chargeRes.json();
-        brCode = chargeData?.brCode || "";
-        qrCodeImage = chargeData?.qrCodeImage || "";
-        console.log(`✅ [Gateway] Charge generated for ${phone}: ${brCode ? 'Copied code received' : 'No code received'}`);
+        if (chargeRes.ok) {
+          const chargeData = await chargeRes.json();
+          brCode = chargeData?.brCode || "";
+          qrCodeImage = chargeData?.qrCodeImage || "";
+          console.log(`✅ [Gateway] Charge generated for ${phone}: ${brCode ? 'Copied code received' : 'No code received'}`);
+        } else {
+          const errorData = await chargeRes.text();
+          console.error(`❌ [Gateway] Charge generation failed: ${chargeRes.status} - ${errorData}`);
+        }
       } catch (e) {
         console.error("❌ [Gateway] Failed to generate charge:", e);
       }
+    }
+
+    if (isGateway && !brCode) {
+      throw new Error("Falha ao gerar cobrança real via Gateway. Verifique suas configurações de Checkout.");
     }
 
     if (brCode) {
