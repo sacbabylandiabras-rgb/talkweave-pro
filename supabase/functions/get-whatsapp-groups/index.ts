@@ -843,9 +843,14 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) throw new Error('Unauthorized: ' + (userError?.message || 'User not found'));
-    const credentials = profileOnly
-      ? { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' }
-      : await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+    let credentials = { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' };
+    if (!profileOnly) {
+      try {
+        credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      } catch (e) {
+        console.log(`ℹ️ No Z-API credentials found, continuing with user ID: ${user.id}`);
+      }
+    }
 
     console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
     if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
