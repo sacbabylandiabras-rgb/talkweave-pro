@@ -1124,6 +1124,10 @@ const Modelos = () => {
       toast({ title: "Erro", description: "Informe o ID do produto", variant: "destructive" });
       return;
     }
+    if (newTemplate.type === "pagamento" && (!newTemplate.paymentTitle || !newTemplate.paymentAmount)) {
+      toast({ title: "Erro", description: "Informe o título e o valor do pagamento", variant: "destructive" });
+      return;
+    }
 
     const validListItems = Array.isArray(newTemplate.listItems)
       ? newTemplate.listItems.filter(item => item.title.trim() !== "")
