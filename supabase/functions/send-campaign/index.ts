@@ -984,6 +984,7 @@ serve(async (req) => {
         .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
+        .or('api_provider.is.null,api_provider.eq.zapi')
         .order('created_at', { ascending: true });
 
       const rawRotatePool: ResolvedInstance[] = (allActiveInstances || [])
@@ -1058,6 +1059,7 @@ serve(async (req) => {
           .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key, is_default')
           .eq('user_id', credentials.userId)
           .eq('is_active', true)
+          .or('api_provider.is.null,api_provider.eq.zapi')
           .order('is_default', { ascending: false })
           .order('updated_at', { ascending: false });
 
