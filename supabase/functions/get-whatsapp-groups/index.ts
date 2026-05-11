@@ -307,32 +307,63 @@ const isOwnerAdminInGroup = (detail: any, group: any, ownerPhone: string, ownerL
 };
 
 const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
-  const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
-  const apiToken = instance.evolution_api_key || '';
+  let apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+  if (apiUrl && !apiUrl.startsWith('http')) apiUrl = `https://${apiUrl}`;
+  const apiToken = instance.evolution_api_key || instance.zapi_token || '';
   if (!apiUrl || !apiToken) return [];
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'token': apiToken,
+    'apikey': apiToken,
+    'Authorization': `Bearer ${apiToken}`
+  };
+
+  // Detectar o nome real da instância via /status se possível
+  let realInstanceName = instance.instance_name;
+  try {
+    const statusRes = await fetch(`${apiUrl}/status?token=${encodeURIComponent(apiToken)}`, { headers });
+    if (statusRes.ok) {
+      const statusData = await statusRes.json().catch(() => ({}));
+      const detectedName = statusData?.status?.checked_instance?.name || statusData?.instance?.name;
+      if (detectedName) {
+        console.log(`🔎 Detected real UAZAPI instance name: ${detectedName}`);
+        realInstanceName = detectedName;
+      }
+    }
+  } catch (e) {
+    console.warn(`⚠️ Failed to detect real instance name from /status:`, e.message);
+  }
 
   const ownerJid = await fetchOwnerJidViaUazapi(apiUrl, apiToken);
   const ownerPhone = normalizePhoneFromJid(ownerJid);
   console.log(`👤 UAZAPI owner phone for ${instance.instance_name}: ${ownerPhone || '(unknown)'}`);
 
-     const headers = {
-       'Content-Type': 'application/json',
-       'token': apiToken,
-       'apikey': apiToken,
-       'Authorization': `Bearer ${apiToken}`
-     };
- 
-     const response = await fetch(`${apiUrl}/group/list`, {
-       method: 'GET',
-       headers,
-     });
+  let payload: any = null;
+  let response: any = null;
+  
+  // Tentar múltiplos endpoints de listagem de grupos
+  const listEndpoints = ['/group/list', `/group/list/${realInstanceName}`, '/group/fetchAllGroups'];
+  
+  for (const ep of listEndpoints) {
+    try {
+      const url = `${apiUrl}${ep}${ep.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
+      console.log(`尝试获取群组列表: ${url}`);
+      response = await fetch(url, { method: 'GET', headers });
+      const resText = await response.text();
+      console.log(`📦 UAZAPI ${ep} response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
+      
+      if (response.ok) {
+        payload = JSON.parse(resText || '{}');
+        if (Array.isArray(payload) || payload?.groups || payload?.data) break;
+      }
+    } catch (e) {
+      console.error(`❌ UAZAPI ${ep} fetch failed:`, e.message);
+    }
+  }
 
-  const resText = await response.text();
-  console.log(`📦 UAZAPI /group/list raw response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
-  const payload = JSON.parse(resText || '{}');
-
-  if (!response.ok) {
-    console.error(`❌ UAZAPI group/list error for ${instance.instance_name}: ${response.status} - ${JSON.stringify(payload)}`);
+  if (!payload) {
+    console.error(`❌ UAZAPI group list failed for all endpoints for ${instance.instance_name}`);
     return [];
   }
   if (isDisconnectedPayload(payload)) {
