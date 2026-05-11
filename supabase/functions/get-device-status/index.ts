@@ -106,6 +106,15 @@ serve(async (req) => {
       const zapiData = await zapiResponse.json();
 
       if (!zapiResponse.ok) {
+        // Treat upstream "Instance not found" / invalid creds as disconnected so the UI
+        // doesn't loop with toast errors for stale or misconfigured instances.
+        const upstreamMsg = String(zapiData?.error || zapiData?.message || '').toLowerCase();
+        if (zapiResponse.status === 400 || zapiResponse.status === 404 || upstreamMsg.includes('not found')) {
+          return new Response(JSON.stringify({
+            success: true,
+            data: { connected: false, session: false, smartphoneConnected: false, status: 'disconnected', raw: zapiData }
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
         return new Response(JSON.stringify({ error: 'Failed to get device status', details: zapiData }),
           { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
