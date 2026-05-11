@@ -578,6 +578,22 @@ const dispatchZapiSpecial = async (
         ...(special.font !== undefined && special.font !== null ? { font: Number(special.font) || 1 } : {}),
       };
     }
+  } else if (type === 'order-status' || type === 'status_pedido' || type === 'order_status') {
+    url = `${baseUrl}/order-status-update`;
+    body = {
+      phone,
+      orderStatus: special.orderStatus || 'PROCESSING',
+      referenceId: special.referenceId || '',
+      order: special.order || {},
+    };
+  } else if (type === 'order-payment' || type === 'pagamento_pedido' || type === 'order_payment') {
+    url = `${baseUrl}/order-status-update`;
+    body = {
+      phone,
+      paymentStatus: special.paymentStatus || 'PAID',
+      referenceId: special.referenceId || '',
+      order: special.order || {},
+    };
   } else if (type === 'copia_cola' || type === 'copy_paste') {
     // Botão "Copiar Código" nativo do WhatsApp via endpoint Z-API /send-button-otp
     const code = String(special.copyText || special.code || '').trim();
