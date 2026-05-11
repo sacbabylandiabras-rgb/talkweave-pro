@@ -528,6 +528,19 @@ const SpecialFieldsEditor = ({
           <CreditCard className="w-5 h-5" /> Solicitação de Pagamento
         </div>
         <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <Label>Origem da Cobrança</Label>
+            <Select 
+              value={data.paymentSource || "manual"} 
+              onValueChange={(v) => onChange({ paymentSource: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Manual (Dados abaixo)</SelectItem>
+                <SelectItem value="gateway">Gateway (Checkout Real)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Título do Pagamento *</Label>
             <Input
