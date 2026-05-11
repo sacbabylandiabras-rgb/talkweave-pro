@@ -3,6 +3,36 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from '../_shared/cors.ts'
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const pickFirstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
+const getQrCodeValue = (payload: any) => {
+  return pickFirstString(
+    payload?.qrcode,
+    payload?.qrCode,
+    payload?.qr,
+    payload?.base64,
+    payload?.instance?.qrcode,
+    payload?.instance?.qrCode,
+    payload?.instance?.qr,
+    payload?.instance?.base64,
+    payload?.data?.qrcode,
+    payload?.data?.qrCode,
+    payload?.data?.qr,
+    payload?.data?.base64,
+    payload?.response?.qrcode,
+    payload?.response?.qrCode,
+    payload?.response?.qr,
+    payload?.response?.base64
+  );
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -50,59 +80,42 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        // Auto-configure webhook to point to our webhook-zapi endpoint
-        try {
-          const webhookUrl = `${supabaseUrl}/functions/v1/webhook-zapi?provider=uazapi&instanceId=${specificInstanceId}`;
-          await fetch(`${apiUrl}/webhook?token=${encodeURIComponent(apiToken)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: apiToken },
-            body: JSON.stringify({
-              url: webhookUrl,
-              enabled: true,
-              events: ['messages', 'messages_update', 'connection', 'history', 'groups', 'contacts', 'chats'],
-              excludeEvents: ['wasSentByApi'],
-              addUrlEvents: false,
-              addUrlTypesMessages: false,
-            }),
-          }).catch((e) => console.error('UAZAPI webhook config failed:', e));
-        } catch (e) {
-          console.error('UAZAPI webhook setup error:', e);
-        }
 
-        // First, try to get status to see if QR is already available
-        const statusRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
-          method: 'GET',
+        const withToken = (path: string) => `${apiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
+
+        // Trigger connect to ensure instance is in QR mode
+        const uazRes = await fetch(withToken('/instance/connect'), {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({}),
         });
         
-        let statusData: any = {};
-        if (statusRes.ok) {
-          try { statusData = await statusRes.json(); } catch { /* ignore */ }
-        }
+        const uazRaw = await uazRes.text();
+        let uazData: any = {};
+        try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
         
-        let qr = statusData?.qrcode || statusData?.qrCode || statusData?.instance?.qrcode || statusData?.instance?.qrCode || statusData?.data?.qrcode || null;
-        
-        // If no QR in status, trigger connect
+        let qr = getQrCodeValue(uazData);
+
+        // If not in response, poll status a few times
         if (!qr) {
-          const uazRes = await fetch(`${apiUrl}/instance/connect?token=${encodeURIComponent(apiToken)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: apiToken },
-            body: JSON.stringify({}),
-          });
-          const uazRaw = await uazRes.text();
-          let uazData: any = {};
-          try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
-          qr = uazData?.qrcode || uazData?.qrCode || uazData?.instance?.qrcode || uazData?.instance?.qrCode || uazData?.data?.qrcode || null;
-          
-          return new Response(JSON.stringify({
-            success: true,
-            data: { value: qr, qrCode: qr, connected: uazData?.connected === true, raw: uazData },
-          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          for (let i = 0; i < 3; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const statusRes = await fetch(withToken('/instance/status'), {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', token: apiToken },
+            });
+            const statusData = await statusRes.json().catch(() => ({}));
+            qr = getQrCodeValue(statusData);
+            if (qr) {
+              uazData = statusData;
+              break;
+            }
+          }
         }
 
         return new Response(JSON.stringify({
           success: true,
-          data: { value: qr, qrCode: qr, connected: statusData?.connected === true, raw: statusData },
+          data: { value: qr, qrCode: qr, connected: uazData?.connected === true, raw: uazData },
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
