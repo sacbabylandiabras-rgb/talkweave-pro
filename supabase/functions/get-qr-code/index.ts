@@ -73,7 +73,7 @@ serve(async (req) => {
       if (instError || !instance) throw new Error('Instance not found');
 
       // UAZAPI provider routing
-      if ((instance as any).api_provider === 'uazapi') {
+      if ((instance as any).api_provider === 'uazapi' || (instance as any).api_provider === 'uazapi_warmup') {
         const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
         const apiToken = (instance as any).evolution_api_key || '';
         if (!apiUrl || !apiToken) {
