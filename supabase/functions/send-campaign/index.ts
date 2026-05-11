@@ -474,7 +474,7 @@ const dispatchZapiSpecial = async (
       type: typeMap[rawType] || rawType,
       ...(special.merchantName ? { merchantName: special.merchantName } : {}),
     };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
     url = `${baseUrl}/send-location`;
     const latitude = parseCoordinate(special.latitude);
     const longitude = parseCoordinate(special.longitude);
@@ -498,7 +498,7 @@ const dispatchZapiSpecial = async (
       contactPhone: String(special.contactPhone || '').replace(/\D/g, ''),
       ...(special.description ? { contactBusinessDescription: special.description } : {}),
     };
-  } else if (special.type === 'uaz_status' || special.type === 'status') {
+  } else if (special.type === 'uaz_status' || special.type === 'status' || (phone === 'status@broadcast')) {
     // WhatsApp Status (Stories) via Z-API
     const statusType = String(special.statusType || 'text').toLowerCase();
     if (statusType === 'image') {
@@ -531,6 +531,35 @@ const dispatchZapiSpecial = async (
       message,
       code,
     };
+  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
+    // Para Z-API, usamos send-button-pix ou similar dependendo da config
+    url = `${baseUrl}/send-button-pix`;
+    const amount = String(special.amount || '0.00').replace(',', '.');
+    const pixKey = String(special.pixKey || '').trim();
+    const merchantName = String(special.merchantName || 'Pagamento').trim();
+    const rawType = String(special.pixKeyType || 'cpf').toUpperCase();
+    
+    const typeMap: Record<string, string> = {
+      TELEFONE: 'PHONE',
+      CELULAR: 'PHONE',
+      'E-MAIL': 'EMAIL',
+      ALEATORIA: 'EVP',
+      'ALEATÓRIA': 'EVP',
+      RANDOM: 'EVP',
+    };
+
+    body = {
+      phone,
+      pixKey,
+      type: typeMap[rawType] || rawType,
+      merchantName,
+      amount: Number(amount) || 0,
+    };
+
+    if (special.type === 'gateway-billing') {
+       // Se for cobrança gateway, talvez precise de outro endpoint, mas por hora enviamos como PIX
+       body.message = special.description || special.text || 'Realize o pagamento via PIX:';
+    }
   }
   return { url, body };
 };
@@ -605,7 +634,7 @@ const dispatchUazapiSpecial = async (
       special.description ? `\n${special.description}` : '',
     ].filter(Boolean).join('\n');
     body = { number: targetNumber, text: pixLines };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
     endpoint = '/send/location';
     body = {
       number: targetNumber,
@@ -627,6 +656,22 @@ const dispatchUazapiSpecial = async (
     const desc = String(special.description || special.text || '').trim();
     const txt = [desc, code ? `\n\`\`\`${code}\`\`\`` : ''].filter(Boolean).join('\n').trim() || code;
     body = { number: targetNumber, text: txt };
+  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
+    endpoint = '/send/text';
+    const amount = String(special.amount || '').trim();
+    const pixKey = String(special.pixKey || '').trim();
+    const merchant = String(special.merchantName || '').trim();
+    const desc = String(special.description || special.text || '').trim();
+    
+    const lines = [
+      `💰 *Solicitação de Pagamento*`,
+      merchant ? `Recebedor: ${merchant}` : '',
+      amount ? `Valor: R$ ${amount}` : '',
+      pixKey ? `Chave PIX: ${pixKey}` : '',
+      desc ? `\n${desc}` : '',
+    ].filter(Boolean).join('\n');
+    
+    body = { number: targetNumber, text: lines };
   }
 
   try {
@@ -805,6 +850,13 @@ const dispatchUazapiCampaign = async (
   } else if (hasMedia && templateType === 'audio') {
     endpoint = '/send/media';
     body = { number: targetNumber, type: 'ptt', file: template.media_url };
+  } else if (hasMedia && templateType === 'audio_botoes') {
+    // UAZAPI: Send audio then menu
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'ptt', file: template.media_url };
+    await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+    endpoint = '/send/menu';
+    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', ...(footerText ? { footerText } : {}), choices: buildChoices(template.buttons) };
   } else if (hasMedia && (templateType === 'documento' || templateType === 'arquivo')) {
     endpoint = '/send/media';
     body = { number: targetNumber, type: 'document', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
@@ -1761,13 +1813,31 @@ serve(async (req) => {
             requestBody = { phone: contact.phone, ptv: campaign.template.media_url };
           } else {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-            requestBody = { phone: contact.phone, video: campaign.template.media_url, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
+            const videoUrl = campaign.template.media_url;
+            console.log(`🎬 Enviando vídeo para ${contact.phone}: ${videoUrl}`);
+            requestBody = { phone: contact.phone, video: videoUrl, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
           }
 
         } else if (templateType === 'audio') {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
           requestBody = { phone: contact.phone, audio: campaign.template.media_url, waveform: true };
+
+        } else if (templateType === 'status') {
+          // Postar no Status (Stories) do próprio WhatsApp logado (Z-API)
+          const statusType = String(campaign.template.status_type || 'text').toLowerCase();
+          if (statusType === 'image') {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-image`;
+            requestBody = { image: campaign.template.media_url, caption: fullMessage };
+          } else if (statusType === 'video') {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-video`;
+            requestBody = { video: campaign.template.media_url, caption: fullMessage };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-text`;
+            requestBody = { message: fullMessage };
+          }
+          // Forçar destino como status@broadcast para o Z-API
+          requestBody.phone = 'status@broadcast';
 
         } else if (templateType === 'documento' || templateType === 'arquivo') {
           if (!hasMedia) throw new Error(`Template tipo "${templateType}" requer um arquivo`);
@@ -1876,7 +1946,11 @@ serve(async (req) => {
           const lidBypass = isLidContact && (looksLikeNotFound || (!confirmed && zapiResponse.ok));
 
           if ((zapiResponse.ok && !explicitError && confirmed) || lidBypass) {
-            if (specialTpl?.type === 'uaz_location_button') {
+            const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
+                                   specialTpl?.type === 'location_button' || 
+                                   specialTpl?.type === 'request-location';
+            
+            if (isLocationButton) {
               await sleep(Math.max(1000, Math.min(delayMs / 2, 3000)));
               const buttonResult = await sendZapiLocationButtonFollowUp(baseZapiUrl, instClientToken, contact.phone, specialTpl);
               if (!buttonResult.ok) {

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard } from "lucide-react";
+ import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
@@ -119,7 +119,7 @@ const parseSpecialContent = (content: string): any | null => {
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing";
+    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -334,6 +334,42 @@ const SpecialFieldsEditor = ({
             />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (type === "status") {
+    return (
+      <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Camera className="w-4 h-4" /> WhatsApp Status (Stories)
+        </div>
+        <div className="space-y-2">
+          <Label>Tipo de Status</Label>
+          <Select value={data.statusType || "text"} onValueChange={(v) => onChange({ statusType: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="image">Imagem</SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {data.statusType !== "text" && (
+          <p className="text-xs text-muted-foreground">
+            Utilize o campo de upload abaixo para anexar a mídia do Status.
+          </p>
+        )}
+        {data.statusType === "text" && (
+          <div className="space-y-2">
+            <Label>Cor de Fundo (Hex)</Label>
+            <Input
+              placeholder="#000000"
+              value={data.backgroundColor || ""}
+              onChange={(e) => onChange({ backgroundColor: e.target.value })}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -1708,6 +1744,7 @@ const Modelos = () => {
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                        <SelectItem value="status">Status (Stories)</SelectItem>
                         <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
                     </SelectContent>
                   </Select>
@@ -2344,8 +2381,9 @@ const Modelos = () => {
                    <SelectItem value="contato">contato (vCard)</SelectItem>
                    <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
-                    <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
-                    <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                  <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
+                  <SelectItem value="pagamento">solicitar pagamento</SelectItem>
+                  <SelectItem value="status">Status (Stories)</SelectItem>
                     <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
                 </SelectContent>
               </Select>
