@@ -25,7 +25,7 @@
          evolution_api_url: data.evolution_api_url,
          evolution_api_key: data.evolution_api_key,
          api_provider: data.api_provider,
-         instance_type: 'web',
+          instance_type: 'web',
          is_default: data.is_default || false,
          // These are nullable now but let's be explicit
           zapi_instance_id: `uazapi_${Date.now()}`,
