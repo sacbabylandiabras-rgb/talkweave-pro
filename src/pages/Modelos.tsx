@@ -1,4 +1,5 @@
-import { useState, useCallback, memo, useEffect, useRef, useMemo } from "react";
+ import { useState, useCallback, memo, useEffect, useRef, useMemo } from "react";
+ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -976,7 +977,8 @@ const getPreviewFileLabel = (template: any) => {
   }
 };
 
-const Modelos = () => {
+ const Modelos = () => {
+   const navigate = useNavigate();
    const { 
      templates, 
      loading: templatesLoading, 
