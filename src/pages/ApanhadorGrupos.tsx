@@ -932,8 +932,7 @@ const ApanhadorGrupos = () => {
                           const lidsCount = numbers.filter(p => p.isLid).length;
                           const lidAdminOverlap = numbers.filter(p => p.isLid && p.isAdmin).length;
                           let exportable = total;
-                          if (excludeAdmins) exportable -= adminsCount;
-                          if (excludeLids) exportable -= (lidsCount - (excludeAdmins ? lidAdminOverlap : 0));
+                           if (excludeAdmins) exportable = numbers.filter(p => !p.isAdmin).length;
                           const allLids = total > 0 && lidsCount === total;
                           return (
                             <>
