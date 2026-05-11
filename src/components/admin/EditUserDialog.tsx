@@ -67,7 +67,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
    } = useAdminWebInstances(user?.id, instances, () => user?.id && fetchUserInstances(user.id));
 
   // Add instance form
-    const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | 'mobile' | null>(null);
+    const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | null>(null);
   const [addingInstance, setAddingInstance] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
@@ -77,7 +77,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
    const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi' | 'uazapi_warmup'>('zapi');
    const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
    const [newEvolutionKey, setNewEvolutionKey] = useState('');
-    const [newInstanceType, setNewInstanceType] = useState<'web' | 'mobile'>('web');
+    const [newInstanceType, setNewInstanceType] = useState<'web'>('web');
 
   useEffect(() => {
     if (user) {
@@ -139,7 +139,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     setNewInstanceType('web');
   };
 
-     const handleAddZapiInstance = async (type: 'web' | 'mobile') => {
+      const handleAddZapiInstance = async (type: 'web') => {
        if (!user) return;
        if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
          toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
@@ -483,135 +483,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </div>
             </div>
 
-            {/* Seção Mobile */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-blue-500 flex items-center gap-2">
-                  <Smartphone className="w-4 h-4" />
-                  Instâncias Mobile (Emulador)
-                </h3>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setNewProvider('zapi');
-                    setShowAddForm(showAddForm === 'mobile' ? null : 'mobile');
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'mobile' ? "Fechar" : "Adicionar Mobile"}
-                </Button>
-              </div>
-
-              {showAddForm === 'mobile' && (
-                <Card className="border-blue-500/40">
-                  <CardContent className="pt-4 pb-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Nome</Label>
-                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Mobile 01" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tipo</Label>
-                        <Input value="Mobile (Emulador)" disabled className="bg-muted" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instance ID</Label>
-                      <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID Z-API" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instance Token</Label>
-                      <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Client Token</Label>
-                      <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                    </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={() => handleAddZapiInstance('mobile')} disabled={instancesLoading}>
-                        {instancesLoading ? "Adicionando..." : "Salvar Mobile"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-
-            {/* Seção Mobile */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-blue-500 flex items-center gap-2">
-                  <Smartphone className="w-4 h-4" />
-                  Instâncias Mobile (Emulador)
-                </h3>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setNewProvider('zapi');
-                    setShowAddForm(showAddForm === 'mobile' ? null : 'mobile');
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'mobile' ? "Fechar" : "Adicionar Mobile"}
-                </Button>
-              </div>
-
-              {showAddForm === 'mobile' && (
-                <Card className="border-blue-500/40">
-                  <CardContent className="pt-4 pb-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Nome</Label>
-                        <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Mobile 01" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tipo</Label>
-                        <Input value="Mobile (Emulador)" disabled className="bg-muted" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instance ID</Label>
-                      <Input value={newInstanceId} onChange={(e) => setNewInstanceId(e.target.value)} placeholder="ID Z-API" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instance Token</Label>
-                      <Input value={newInstanceToken} onChange={(e) => setNewInstanceToken(e.target.value)} placeholder="Token" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Client Token</Label>
-                      <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
-                    </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                      <Button size="sm" onClick={() => handleAddZapiInstance('mobile')} disabled={instancesLoading}>
-                        {instancesLoading ? "Adicionando..." : "Salvar Mobile"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="space-y-2">
-                {instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.instance_type === 'mobile').map((inst) => (
-                  <Card key={inst.id} className="border">
-                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0">
-                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância mobile?')) deleteInstance(inst.id, user.id); }}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

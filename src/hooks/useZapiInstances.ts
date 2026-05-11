@@ -16,7 +16,7 @@ export interface ZapiInstance {
   api_provider: string;
   evolution_api_url?: string | null;
   evolution_api_key?: string | null;
-   instance_type?: 'web' | 'mobile';
+    instance_type?: 'web';
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');
@@ -161,7 +161,7 @@ export const useAdminZapiInstances = (userId?: string) => {
       api_provider?: 'zapi' | 'uazapi' | 'uazapi_warmup';
       evolution_api_url?: string;
       evolution_api_key?: string;
-     instance_type?: 'web' | 'mobile';
+    instance_type?: 'web';
   }) => {
     try {
       // Fetch user's max_instances limit from profile
@@ -198,7 +198,7 @@ export const useAdminZapiInstances = (userId?: string) => {
         evolution_api_key: data.evolution_api_key || null,
         is_default: data.is_default || isFirst,
           api_provider: data.api_provider || 'zapi',
-           instance_type: data.instance_type || 'web',
+         instance_type: 'web',
         });
 
       if (error) throw error;
@@ -216,7 +216,7 @@ export const useAdminZapiInstances = (userId?: string) => {
        api_provider: 'zapi' | 'uazapi' | 'uazapi_warmup';
        evolution_api_url: string;
        evolution_api_key: string;
-        instance_type: 'web' | 'mobile';
+         instance_type: 'web';
      }>) => {
     try {
       if (updates.is_default) { await fromZapiInstances().update({ is_default: false }).eq('user_id', uid); }
