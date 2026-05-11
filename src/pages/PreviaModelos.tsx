@@ -50,6 +50,56 @@ const PreviaModelos = () => {
       content: "Olá! Notamos que o seu pagamento ainda não foi identificado em nosso sistema. Caso já tenha pago, por favor desconsidere esta mensagem.",
       footer: "Dúvidas? Entre em contato.",
       type: "texto"
+    },
+    {
+      name: "Recuperação de Carrinho (Exemplo)",
+      category: "Vendas",
+      content: "Olá {nome}! Vimos que você deixou alguns itens incríveis no seu carrinho. 🛒\n\nPara te ajudar a finalizar sua compra, liberamos um cupom de 10% OFF apenas para você: *VOLTEI10*",
+      footer: "O cupom expira em 2 horas",
+      type: "texto",
+      buttons: [
+        { id: "1", text: "Finalizar Compra", type: "url", value: "https://exemplo.com/carrinho" }
+      ]
+    },
+    {
+      name: "Suporte Técnico (Exemplo)",
+      category: "Suporte",
+      content: "Recebemos sua solicitação de suporte. Nossa equipe técnica já está analisando o caso e retornaremos em breve. ✅",
+      footer: "Protocolo: #12345",
+      type: "texto"
+    },
+    {
+      name: "Aviso de Manutenção (Exemplo)",
+      category: "Aviso",
+      content: "⚠️ AVISO IMPORTANTE\n\nRealizaremos uma manutenção programada em nossos sistemas amanhã, das 02:00 às 04:00. Algumas funcionalidades podem ficar instáveis.",
+      type: "texto"
+    },
+    {
+      name: "Pedido Confirmado (Exemplo)",
+      category: "Vendas",
+      content: "Oba! Seu pedido foi confirmado com sucesso. 🎉\n\nVocê receberá o código de rastreio assim que o produto for postado.",
+      footer: "Obrigado pela preferência!",
+      type: "texto"
+    },
+    {
+      name: "Informativo Semanal (Exemplo)",
+      category: "Informativo",
+      content: "Confira as novidades da semana! 📰\n\nPreparamos conteúdos exclusivos sobre como escalar suas vendas no WhatsApp. Clique no botão abaixo para ler.",
+      type: "texto",
+      buttons: [
+        { id: "1", text: "Ler Agora", type: "url", value: "https://exemplo.com/blog" }
+      ]
+    },
+    {
+      name: "Pesquisa de Satisfação (Exemplo)",
+      category: "Suporte",
+      content: "Como foi sua experiência com nosso atendimento hoje? Sua opinião é muito importante para nós! ⭐",
+      type: "texto",
+      buttons: [
+        { id: "1", text: "Excelente 😍", type: "reply" },
+        { id: "2", text: "Bom 🙂", type: "reply" },
+        { id: "3", text: "Pode melhorar 😐", type: "reply" }
+      ]
     }
   ];
 
