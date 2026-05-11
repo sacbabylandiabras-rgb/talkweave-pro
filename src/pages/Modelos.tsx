@@ -104,9 +104,12 @@ const buildSpecialContent = (type: string, data: any): string => {
       payload.currency = data.paymentCurrency || "BRL";
       payload.referenceId = data.paymentReferenceId || "";
     }
-    return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
-  };
-
+     } else if (type === "envio_massa") {
+       payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
+       payload.description = data.content || "";
+     }
+     return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
+   };
 const parseSpecialContent = (content: string): any | null => {
   if (!content || !content.startsWith(SPECIAL_TEMPLATE_PREFIX)) return null;
   try {
