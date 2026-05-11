@@ -53,26 +53,24 @@ const pickFirstString = (...values: unknown[]) => {
           console.log(`Raw status from ${ep}:`, resText);
           const data = JSON.parse(resText || "{}");
           
-          const status = String(
-            data?.instance?.status || 
-            data?.status || 
-            data?.connectionStatus || 
-            data?.state || 
-            data?.instance?.state || 
-            ""
-          ).toLowerCase();
+          const statusRaw = data?.instance?.status || data?.status || data?.connectionStatus || data?.state || data?.instance?.state || "";
+          const status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : "";
           
           const negativeStates = ["disconnected", "disconnect", "closed", "close", "logout", "logged_out", "loggedout", "offline", "connecting"];
           
           const isDisconnected = 
             data?.connected === false ||
             data?.loggedIn === false ||
+            data?.status?.connected === false ||
+            data?.status?.loggedIn === false ||
             data?.instance?.connected === false ||
             negativeStates.some((s) => status === s || status.includes(s));
           
           const connected = !isDisconnected && (
             data?.connected === true ||
             data?.loggedIn === true ||
+            data?.status?.connected === true ||
+            data?.status?.loggedIn === true ||
             data?.instance?.connected === true ||
             ["connected", "open", "online", "logged_in", "loggedin", "connected_in"].some((s) => status === s)
           );
