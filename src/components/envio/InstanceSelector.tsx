@@ -19,8 +19,11 @@ const STORAGE_KEY = "zaplynx_selected_instances";
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances();
   // Mesma regra da página Dispositivos: ocultar instâncias UAZAPI doadoras (aquecimento)
+  // e instâncias Mobile (devem aparecer apenas na seção Mobile/Emulador).
   const visibleInstances = allInstances.filter(
-    (i: any) => (i.api_provider || "zapi").toLowerCase() !== "uazapi",
+    (i: any) =>
+      (i.api_provider || "zapi").toLowerCase() !== "uazapi" &&
+      (i.instance_type || "web") !== "mobile",
   );
   const instances = providerFilter
     ? allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === providerFilter)
@@ -68,17 +71,27 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
   }, [instances, initialized, useSavedSelection, activeInstance]);
 
   const toggleInstance = (id: string) => {
-    // Clicar em uma instância seleciona APENAS aquela (envio único).
-    // Para revezamento entre várias, use o botão "Todas".
-    const next = new Set<string>([id]);
-    setSelectedIds(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([id]));
-    const inst = instances.find(i => i.id === id);
-    if (inst) {
-      selectInstance(id);
-      onInstanceChange?.(id);
-      onMultiInstanceChange?.([id]);
+    // Toggle multi-seleção: adiciona/remove do conjunto selecionado.
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
     }
+    // Garante pelo menos uma instância selecionada
+    if (next.size === 0) {
+      next.add(id);
+    }
+    setSelectedIds(next);
+    const ids = Array.from(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    if (ids.length === 1) {
+      selectInstance(ids[0]);
+      onInstanceChange?.(ids[0]);
+    } else {
+      onInstanceChange?.(ROTATE_ALL);
+    }
+    onMultiInstanceChange?.(ids);
   };
 
   const selectAll = () => {
