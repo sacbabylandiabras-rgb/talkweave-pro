@@ -25,11 +25,20 @@
            data?.instance?.status || data?.status || data?.connectionStatus || data?.state || ""
          ).toLowerCase();
          
-         const connected =
+         const negativeStates = ["disconnected", "disconnect", "closed", "close", "logout", "logged_out", "loggedout", "offline", "connecting"];
+         
+         const isDisconnected = 
+           data?.connected === false ||
+           data?.loggedIn === false ||
+           data?.instance?.connected === false ||
+           negativeStates.some((s) => status === s || status.includes(s));
+ 
+         const connected = !isDisconnected && (
            data?.connected === true ||
            data?.loggedIn === true ||
            data?.instance?.connected === true ||
-           ["connected", "open", "online", "logged_in", "loggedin"].some((s) => status === s);
+           ["connected", "open", "online", "logged_in", "loggedin", "connected_in"].some((s) => status === s)
+         );
  
          return new Response(JSON.stringify({ connected, status, qrCode: data?.qrCode || data?.qrcode || null }), {
            headers: { ...corsHeaders, "Content-Type": "application/json" },
