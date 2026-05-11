@@ -1,24 +1,76 @@
-import { useState } from "react";
-import { useMessageTemplates } from "@/hooks/useMessageTemplates";
+import { useState, useMemo } from "react";
+import { useMessageTemplates, MessageTemplate } from "@/hooks/useMessageTemplates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, ArrowLeft, LayoutGrid, LayoutList } from "lucide-react";
+import { Loader2, Search, ArrowLeft, LayoutGrid, LayoutList, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 
  import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 const PreviaModelos = () => {
-  const { templates, loading } = useMessageTemplates();
+  const { templates, loading, createTemplate } = useMessageTemplates();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [creatingExamples, setCreatingExamples] = useState(false);
   const navigate = useNavigate();
 
-  const filteredTemplates = templates.filter(t => 
-    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const exampleTemplates: Partial<MessageTemplate>[] = [
+    {
+      name: "Boas-vindas (Exemplo)",
+      category: "Boas-vindas",
+      content: "Olá {nome}, seja muito bem-vindo(a) à nossa empresa! 🚀\n\nEstamos muito felizes em ter você conosco. Como posso te ajudar hoje?",
+      footer: "Equipe de Atendimento",
+      type: "texto"
+    },
+    {
+      name: "Promoção Relâmpago (Exemplo)",
+      category: "Marketing",
+      content: "🔥 OFERTA EXCLUSIVA 🔥\n\nSomente hoje, toda a nossa loja com 50% de DESCONTO! Não perca essa oportunidade única.",
+      footer: "Válido até 23:59",
+      type: "texto",
+      buttons: [
+        { id: "1", text: "Ver Ofertas", type: "url", value: "https://exemplo.com" },
+        { id: "2", text: "Falar com Vendedor", type: "reply" }
+      ]
+    },
+    {
+      name: "Lembrete de Agendamento (Exemplo)",
+      category: "Aviso",
+      content: "Olá! Passando para lembrar do seu agendamento amanhã às 14:00. Podemos confirmar sua presença?",
+      type: "texto",
+      buttons: [
+        { id: "1", text: "Confirmar ✅", type: "reply" },
+        { id: "2", text: "Reagendar 🗓️", type: "reply" }
+      ]
+    },
+    {
+      name: "Cobrança Amigável (Exemplo)",
+      category: "Cobrança",
+      content: "Olá! Notamos que o seu pagamento ainda não foi identificado em nosso sistema. Caso já tenha pago, por favor desconsidere esta mensagem.",
+      footer: "Dúvidas? Entre em contato.",
+      type: "texto"
+    }
+  ];
+
+  const handleCreateExamples = async () => {
+    setCreatingExamples(true);
+    try {
+      for (const example of exampleTemplates) {
+        await createTemplate(example as any);
+      }
+    } finally {
+      setCreatingExamples(false);
+    }
+  };
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => 
+      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.content.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [templates, searchTerm]);
 
   if (loading) {
     return (
@@ -73,8 +125,28 @@ const PreviaModelos = () => {
       </div>
 
       {filteredTemplates.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
-          <p className="text-muted-foreground">Nenhum modelo encontrado.</p>
+        <Card className="p-12 text-center border-dashed bg-muted/5">
+          <div className="max-w-md mx-auto space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <LayoutGrid className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-medium">Nenhum modelo encontrado</h3>
+            <p className="text-muted-foreground">
+              Parece que você ainda não tem modelos criados. Deseja que eu crie alguns exemplos profissionais para você começar?
+            </p>
+            <Button 
+              onClick={handleCreateExamples} 
+              disabled={creatingExamples}
+              className="gap-2"
+            >
+              {creatingExamples ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              {creatingExamples ? "Criando exemplos..." : "Criar modelos de exemplo"}
+            </Button>
+          </div>
         </Card>
       ) : (
         <div className={viewMode === "grid" 
