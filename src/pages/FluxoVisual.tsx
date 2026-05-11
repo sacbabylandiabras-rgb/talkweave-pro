@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -243,7 +243,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances } = useZapiInstances();
+  const { instances: allInstances } = useZapiInstances();
+  const instances = useMemo(() => allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi'), [allInstances]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -2040,7 +2041,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="interactive">Menu Interativo (botões/lista)</SelectItem>
                       <SelectItem value="pix">Botão PIX</SelectItem>
                       <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
-                      <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                       <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                       <SelectItem value="gateway-billing">Cobrança Gateway</SelectItem>
                       <SelectItem value="poll">Enquete / Poll</SelectItem>
                       <SelectItem value="product">Produto</SelectItem>
                       <SelectItem value="location">Localização (Nativa)</SelectItem>
@@ -2370,9 +2372,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.contentType === "request-payment" && (
+                {(selectedNode.data.contentType === "request-payment" || selectedNode.data.contentType === "gateway-billing") && (
                   <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
-                    <Label className="text-sm font-semibold">Solicitar Pagamento</Label>
+                    <Label className="text-sm font-semibold">
+                      {selectedNode.data.contentType === "gateway-billing" ? "Cobrança Gateway" : "Solicitar Pagamento"}
+                    </Label>
                     <Select
                       value={selectedNode.data.paymentSource || "manual"}
                       onValueChange={(v) =>

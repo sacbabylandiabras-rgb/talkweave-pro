@@ -242,16 +242,58 @@ const Etiquetas = () => {
     }
   };
 
-  const handleDeleteTag = async (tagId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
+  const handleDeleteTag = async (tag: WhatsappTag) => {
+    if (!confirm(`Tem certeza que deseja excluir a etiqueta "${tag.name}"?`)) return;
     setLoadingTags(true);
+
+    const targetInstances = applyToAll 
+      ? instances 
+      : [instances.find(i => i.id === selectedInstanceId)].filter(Boolean);
+
+    let successCount = 0;
+    let errorCount = 0;
+
     try {
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: { action: "delete-tag", instanceDbId: selectedInstanceId, payload: { id: tagId } },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(formatErrorMessage(data.error));
-      toast({ title: "Etiqueta excluída" });
+      for (const inst of targetInstances as any[]) {
+        try {
+          let tagIdToDelete = tag.id;
+
+          if (inst.id !== selectedInstanceId) {
+            const { data: remoteTags } = await supabase.functions.invoke("zapi-chat-actions", {
+              body: { action: "list-tags", instanceDbId: inst.id },
+            });
+            const tagsList = remoteTags?.data ?? remoteTags;
+            const found = Array.isArray(tagsList) ? tagsList.find((t: any) => t.name === tag.name) : null;
+            if (found) {
+              tagIdToDelete = found.id;
+            } else {
+              continue; // Skip if tag not found on this instance
+            }
+          }
+
+          const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+            body: { action: "delete-tag", instanceDbId: inst.id, payload: { id: tagIdToDelete } },
+          });
+          if (error || data?.error) {
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({ 
+          title: applyToAll ? "Etiquetas excluídas" : "Etiqueta excluída",
+          description: applyToAll ? `${successCount} instâncias atualizadas.` : undefined
+        });
+      } else if (errorCount > 0) {
+        throw new Error("Falha ao excluir etiqueta nas instâncias selecionadas.");
+      }
+      
+      setApplyToAll(false);
       fetchTags(selectedInstanceId);
     } catch (err: any) {
       toast({ title: "Erro ao excluir etiqueta", description: err.message, variant: "destructive" });
@@ -373,7 +415,7 @@ const Etiquetas = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => handleDeleteTag(tag.id)}
+                        onClick={() => handleDeleteTag(tag)}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive transition-colors" />
                       </Button>
