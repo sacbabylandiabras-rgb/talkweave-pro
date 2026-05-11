@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminUsers";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus, ArrowRightLeft } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, Star, Pencil, Smartphone, Flame, UserPlus, ArrowRightLeft, Gift } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -229,7 +229,44 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 <Calendar mode="single" selected={expiresAt} onSelect={setExpiresAt} locale={ptBR} initialFocus />
               </PopoverContent>
             </Popover>
+            <p className="text-[11px] text-muted-foreground">
+              A assinatura expira automaticamente nesta data — o acesso do usuário será bloqueado.
+            </p>
           </div>
+
+          {/* Teste Grátis */}
+          <Card className="border-emerald-500/30 bg-emerald-500/5">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm flex items-center gap-2 text-emerald-400">
+                    <Gift className="w-4 h-4" />
+                    Teste Grátis
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Libera acesso completo por <strong>2 dias</strong>. Após esse período, a assinatura
+                    expira automaticamente e o acesso é bloqueado.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 shrink-0"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 2);
+                    setSubscriptionStatus('active');
+                    setPlanId('none');
+                    setCustomPlanValue('');
+                    setExpiresAt(d);
+                  }}
+                >
+                  <Gift className="w-3 h-3 mr-1" />
+                  Ativar 2 dias grátis
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="border-t pt-4 mt-4 space-y-6">
             <div className="space-y-2">
