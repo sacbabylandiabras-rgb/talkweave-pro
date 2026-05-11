@@ -386,6 +386,20 @@ const Etiquetas = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="editApplyToAll" 
+                checked={applyToAll} 
+                onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+              />
+              <Label 
+                htmlFor="editApplyToAll" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Aplicar alteração em todas as instâncias (busca pelo mesmo nome)
+              </Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTag(null)} disabled={loadingTags}>Cancelar</Button>
