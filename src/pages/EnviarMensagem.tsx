@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle } from "lucide-react";
+ import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle, LayoutTemplate } from "lucide-react";
+ import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
@@ -1463,9 +1464,26 @@ const EnviarMensagem = () => {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">Enviar Mensagem</h1>
+   const previewTemplateData = useMemo(() => {
+     const modeloData = modeloSelecionado 
+       ? modelosDisponiveis.find(m => m.id === modeloSelecionado) 
+       : null;
+ 
+     if (modeloData) return modeloData;
+ 
+     // Se não tiver modelo, simular um modelo com o conteúdo atual
+     return {
+       content: mensagem,
+       mediaUrl: arquivoMidia ? URL.createObjectURL(arquivoMidia) : undefined,
+       fileType: arquivoMidia?.type,
+       fileName: arquivoMidia?.name,
+       buttons: botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() }))
+     };
+   }, [modeloSelecionado, modelosDisponiveis, mensagem, arquivoMidia, botoesAcao]);
+ 
+   return (
+     <div className="space-y-4">
+       <h1 className="text-lg font-semibold text-foreground">Enviar Mensagem</h1>
 
       <Card>
         <CardContent className="pt-4">
