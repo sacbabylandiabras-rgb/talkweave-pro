@@ -661,9 +661,31 @@ const SpecialFieldsEditor = ({
     );
   }
 
-  return null;
-};
-
+   if (type === "envio_massa") {
+     return (
+       <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
+         <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+           <Users className="w-5 h-5" /> Envio em Massa (Vários Contatos)
+         </div>
+         <div className="space-y-2">
+           <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Lista de Números (DDI+DDD+Número)</Label>
+           <Textarea
+             placeholder="Ex: 5511999999999, 5511888888888 (separados por vírgula ou um por linha)"
+             value={data.massPhones || ""}
+             onChange={(e) => onChange({ massPhones: e.target.value })}
+             rows={4}
+             className="bg-background font-mono text-xs"
+           />
+           <p className="text-[11px] text-muted-foreground leading-relaxed">
+             Informe os números que receberão esta mensagem separando por vírgula ou quebra de linha.
+           </p>
+         </div>
+       </div>
+     );
+   }
+ 
+   return null;
+ };
 
 // Helper para obter o ícone do tipo de template
 const getTemplateIcon = (type?: string) => {
