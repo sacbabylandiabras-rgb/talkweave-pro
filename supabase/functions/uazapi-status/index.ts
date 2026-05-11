@@ -82,7 +82,15 @@ const pickFirstString = (...values: unknown[]) => {
              data?.instance?.qrCode, data?.instance?.qrcode, data?.instance?.base64, data?.instance?.code
            );
            
-           const pairingCode = pickFirstString(data?.pairingCode, data?.pairing_code, data?.data?.pairingCode);
+           const pairingCode = pickFirstString(
+             data?.pairingCode, 
+             data?.pairing_code, 
+             data?.data?.pairingCode,
+             data?.code,
+             data?.data?.code,
+             data?.instance?.pairingCode,
+             data?.instance?.code
+           );
            
            console.log(`Normalized: connected=${connected}, status=${status}, hasQr=${!!qrCode}`);
 
