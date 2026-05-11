@@ -78,7 +78,7 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        const uazRes = await fetch(`${apiUrl}/instance/status`, {
+        const uazRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', token: apiToken },
         });
@@ -159,7 +159,7 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const uazRes = await fetch(`${apiUrl}/instance/status`, {
+      const uazRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', token: apiToken },
       });

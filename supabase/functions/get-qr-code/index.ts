@@ -53,7 +53,7 @@ serve(async (req) => {
         // Auto-configure webhook to point to our webhook-zapi endpoint
         try {
           const webhookUrl = `${supabaseUrl}/functions/v1/webhook-zapi?provider=uazapi&instanceId=${specificInstanceId}`;
-          await fetch(`${apiUrl}/webhook`, {
+          await fetch(`${apiUrl}/webhook?token=${encodeURIComponent(apiToken)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', token: apiToken },
             body: JSON.stringify({
@@ -68,19 +68,41 @@ serve(async (req) => {
         } catch (e) {
           console.error('UAZAPI webhook setup error:', e);
         }
-        // POST /instance/connect generates QR + pairing code
-        const uazRes = await fetch(`${apiUrl}/instance/connect`, {
-          method: 'POST',
+
+        // First, try to get status to see if QR is already available
+        const statusRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
+          method: 'GET',
           headers: { 'Content-Type': 'application/json', token: apiToken },
-          body: JSON.stringify({}),
         });
-        const uazRaw = await uazRes.text();
-        let uazData: any = {};
-        try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
-        const qr = uazData?.qrcode || uazData?.qrCode || uazData?.instance?.qrcode || uazData?.instance?.qrCode || uazData?.data?.qrcode || null;
+        
+        let statusData: any = {};
+        if (statusRes.ok) {
+          try { statusData = await statusRes.json(); } catch { /* ignore */ }
+        }
+        
+        let qr = statusData?.qrcode || statusData?.qrCode || statusData?.instance?.qrcode || statusData?.instance?.qrCode || statusData?.data?.qrcode || null;
+        
+        // If no QR in status, trigger connect
+        if (!qr) {
+          const uazRes = await fetch(`${apiUrl}/instance/connect?token=${encodeURIComponent(apiToken)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: apiToken },
+            body: JSON.stringify({}),
+          });
+          const uazRaw = await uazRes.text();
+          let uazData: any = {};
+          try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
+          qr = uazData?.qrcode || uazData?.qrCode || uazData?.instance?.qrcode || uazData?.instance?.qrCode || uazData?.data?.qrcode || null;
+          
+          return new Response(JSON.stringify({
+            success: true,
+            data: { value: qr, qrCode: qr, connected: uazData?.connected === true, raw: uazData },
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
         return new Response(JSON.stringify({
           success: true,
-          data: { value: qr, qrCode: qr, connected: uazData?.connected === true, raw: uazData },
+          data: { value: qr, qrCode: qr, connected: statusData?.connected === true, raw: statusData },
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
