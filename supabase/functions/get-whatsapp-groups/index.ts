@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
 interface ZapiInstance {
   zapi_instance_id: string;
@@ -828,14 +827,12 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     let providerFilter: string | null = null;
-    let profileOnly = false;
     try {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
         if (body && typeof body.provider === "string") {
           providerFilter = body.provider;
         }
-        profileOnly = body?.source === 'profile' || body?.profileOnly === true;
       }
     } catch (_) { /* ignore */ }
 
@@ -846,28 +843,20 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) throw new Error('Unauthorized: ' + (userError?.message || 'User not found'));
-    let credentials = { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' };
-    if (!profileOnly) {
-      try {
-        credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-      } catch (e) {
-        console.log(`ℹ️ No Z-API credentials found, continuing with user ID: ${user.id}`);
-      }
-    }
 
-    console.log(`📱 Fetching WhatsApp groups for user: ${credentials.userId}`);
+    console.log(`📱 Fetching WhatsApp groups for user: ${user.id}`);
     if (providerFilter) console.log(`🔎 Provider filter: ${providerFilter}`);
 
     const { data: activeInstances, error: activeError } = await adminClient
       .from("zapi_instances")
       .select("zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
-      .eq("user_id", credentials.userId)
+      .eq("user_id", user.id)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: true });
       
     if (activeError) console.error("❌ Error fetching active instances:", activeError);
-    console.log(`🔎 Found ${activeInstances?.length || 0} active instances in DB for user ${credentials.userId}`);
+    console.log(`🔎 Found ${activeInstances?.length || 0} active instances in DB for user ${user.id}`);
 
     const activeList = (activeInstances || []) as ZapiInstance[];
     const wantsUazapi = providerFilter?.toLowerCase() === 'uazapi';
@@ -876,60 +865,7 @@ Deno.serve(async (req) => {
       return provider === 'uazapi' || provider === 'uazapi_warmup';
     });
 
-    const instances: ZapiInstance[] = wantsUazapi && activeUazapiInstances.length > 0
-      ? activeUazapiInstances
-      : profileOnly
-        ? []
-        : activeList.length > 0
-          ? activeList
-          : [
-              {
-                zapi_instance_id: credentials.instanceId,
-                zapi_token: credentials.token,
-                zapi_client_token: credentials.clientToken,
-                instance_name: credentials.instanceName || null,
-              },
-            ];
-
-    // Also include uazapi credentials configured at the profile level (up to 2 instances, separated by '|')
-    try {
-      const shouldLoadProfileUazapi = wantsUazapi && activeUazapiInstances.length === 0;
-      if (shouldLoadProfileUazapi) {
-        const { data: profile } = await adminClient
-          .from("profiles")
-          .select("uazapi_url, uazapi_token")
-          .eq("id", credentials.userId)
-          .maybeSingle();
-
-        if (profile) {
-      const urls = String(profile.uazapi_url || '').split('|').map((v) => v.trim()).filter(Boolean);
-      const tokens = String(profile.uazapi_token || '').split('|').map((v) => v.trim()).filter(Boolean);
-      const pairCount = Math.min(urls.length, tokens.length);
-      for (let i = 0; i < pairCount; i++) {
-        const url = urls[i];
-        const token = tokens[i];
-        // Avoid duplicating if same uazapi already exists in zapi_instances
-        const exists = instances.some(
-          (inst) => inst.api_provider === 'uazapi'
-            && (inst.evolution_api_url || '').replace(/\/+$/, '') === url.replace(/\/+$/, '')
-            && (inst.evolution_api_key || '') === token
-        );
-        if (exists) continue;
-        instances.push({
-          zapi_instance_id: `profile-uazapi-${i + 1}`,
-          zapi_token: token,
-          zapi_client_token: token,
-          instance_name: `uazapi #${i + 1} (perfil)`,
-          api_provider: 'uazapi',
-          evolution_api_url: url,
-          evolution_api_key: token,
-        });
-      }
-        }
-      }
-    } catch (profileError) {
-      console.error("⚠️ Failed to load profile uazapi credentials:", profileError);
-    }
+    const instances: ZapiInstance[] = wantsUazapi ? activeUazapiInstances : activeList;
 
     const normalizedProviderFilter = providerFilter?.toLowerCase() || null;
     const filteredInstances = instances.filter((inst) => {
