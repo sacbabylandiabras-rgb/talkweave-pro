@@ -1368,21 +1368,49 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                await sendWithInstance(body, targetNode.data);
                break;
              }
-             case "request-payment": {
-               const body: Record<string, any> = {
-                 phone: contact,
-                 specialType: 'pix',
-                 specialPayload: {
-                   pixKey: targetNode.data.paymentReceiver || '',
-                   pixKeyType: 'random',
-                   merchantName: targetNode.data.paymentReceiver || '',
-                   amount: targetNode.data.paymentAmount || '',
-                   description: targetNode.data.paymentDescription || content || '',
-                 },
-               };
-               await sendWithInstance(body, targetNode.data);
-               break;
-             }
+              case "request-payment":
+              case "gateway-billing": {
+                const body: Record<string, any> = {
+                  phone: contact,
+                  specialType: targetNode.data.contentType === 'gateway-billing' ? 'gateway-billing' : 'pix',
+                  specialPayload: {
+                    pixKey: targetNode.data.paymentReceiver || '',
+                    pixKeyType: 'random',
+                    merchantName: targetNode.data.paymentReceiver || '',
+                    amount: targetNode.data.paymentAmount || '',
+                    description: targetNode.data.paymentDescription || content || '',
+                    paymentSource: targetNode.data.paymentSource || (targetNode.data.contentType === 'gateway-billing' ? 'gateway' : 'manual'),
+                  },
+                };
+                await sendWithInstance(body, targetNode.data);
+                break;
+              }
+              case "order-status": {
+                const body: Record<string, any> = {
+                  phone: contact,
+                  specialType: 'order-status',
+                  specialPayload: {
+                    orderStatus: targetNode.data.orderStatus || 'PROCESSING',
+                    referenceId: targetNode.data.orderReferenceId || '',
+                    order: targetNode.data.orderJson ? JSON.parse(targetNode.data.orderJson) : {},
+                  },
+                };
+                await sendWithInstance(body, targetNode.data);
+                break;
+              }
+              case "order-payment": {
+                const body: Record<string, any> = {
+                  phone: contact,
+                  specialType: 'order-payment',
+                  specialPayload: {
+                    paymentStatus: targetNode.data.orderPaymentStatus || 'PAID',
+                    referenceId: targetNode.data.orderReferenceId || '',
+                    order: targetNode.data.orderJson ? JSON.parse(targetNode.data.orderJson) : {},
+                  },
+                };
+                await sendWithInstance(body, targetNode.data);
+                break;
+              }
              case "location":
              case "request-location": {
                const body: Record<string, any> = {
