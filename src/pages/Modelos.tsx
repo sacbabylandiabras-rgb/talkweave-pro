@@ -44,8 +44,10 @@ const SPECIAL_FIELD_DEFAULTS = {
     paymentCurrency: "BRL",
      paymentReferenceId: "",
       massPhones: "",
-   };
-
+    };
+ 
+ const PREDEFINED_CATEGORIES = ["Vendas", "Suporte", "Cobrança", "Boas-vindas", "Marketing", "Aviso", "Informativo"];
+ 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
 const buildSpecialContent = (type: string, data: any): string => {
