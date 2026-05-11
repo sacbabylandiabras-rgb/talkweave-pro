@@ -118,7 +118,7 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-    || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto"
+     || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "envio_massa"
     || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
 
 const getDisplayContent = (template: any): string => {
@@ -1757,8 +1757,9 @@ const Modelos = () => {
                        <SelectItem value="pix">PIX (cobrança)</SelectItem>
                        <SelectItem value="produto">produto</SelectItem>
                        <SelectItem value="localizacao">localização</SelectItem>
-                       <SelectItem value="contato">contato (vCard)</SelectItem>
-                       <SelectItem value="evento">evento</SelectItem>
+                    <SelectItem value="contato">contato (vCard)</SelectItem>
+                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
+                    <SelectItem value="evento">evento</SelectItem>
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
@@ -2396,8 +2397,9 @@ const Modelos = () => {
                    <SelectItem value="pix">PIX (cobrança)</SelectItem>
                    <SelectItem value="produto">produto</SelectItem>
                    <SelectItem value="localizacao">localização</SelectItem>
-                   <SelectItem value="contato">contato (vCard)</SelectItem>
-                   <SelectItem value="evento">evento</SelectItem>
+                    <SelectItem value="contato">contato (vCard)</SelectItem>
+                    <SelectItem value="envio_massa">envio em massa (vários contatos)</SelectItem>
+                    <SelectItem value="evento">evento</SelectItem>
                    <SelectItem value="status_pedido">status do pedido</SelectItem>
                   <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                   <SelectItem value="pagamento">solicitar pagamento</SelectItem>
