@@ -160,6 +160,7 @@ const gatewayMenuItems = [
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
+  { id: "admin-aquecimento", label: "Aquecimento Admin", icon: Flame, path: "/admin/aquecimento", adminOnly: true },
 ];
 
 const metaBottomItems = [
