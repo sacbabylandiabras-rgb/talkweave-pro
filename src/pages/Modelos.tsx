@@ -103,7 +103,6 @@ const buildSpecialContent = (type: string, data: any): string => {
       payload.amount = data.paymentAmount ? Number(data.paymentAmount.replace(',', '.')) : 0;
       payload.currency = data.paymentCurrency || "BRL";
       payload.referenceId = data.paymentReferenceId || "";
-    }
      } else if (type === "envio_massa") {
        payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
        payload.description = data.content || "";
