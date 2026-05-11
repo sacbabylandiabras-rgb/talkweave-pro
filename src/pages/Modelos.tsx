@@ -43,9 +43,8 @@ const SPECIAL_FIELD_DEFAULTS = {
     paymentAmount: "",
     paymentCurrency: "BRL",
      paymentReferenceId: "",
-     massPhones: "",
+      massPhones: "",
    };
-  };
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
