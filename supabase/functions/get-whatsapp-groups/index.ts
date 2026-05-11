@@ -338,23 +338,54 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
   let payload: any = null;
   let response: any = null;
   
-  // Tentar múltiplos endpoints de listagem de grupos
-  const listEndpoints = ['/group/list', `/group/list/${realInstanceName}`, '/group/fetchAllGroups'];
+  // Combinations of endpoints, methods and path parameters
+  const combinations = [
+    { ep: '/group/list', method: 'GET' },
+    { ep: `/group/list/${realInstanceName}`, method: 'GET' },
+    { ep: '/group/list', method: 'POST', body: {} },
+    { ep: '/group/fetchAllGroups', method: 'GET' },
+    { ep: `/group/fetchAllGroups/${realInstanceName}`, method: 'GET' },
+    { ep: '/group/listAll', method: 'GET' },
+  ];
   
-  for (const ep of listEndpoints) {
+  for (const combo of combinations) {
     try {
-      const url = `${apiUrl}${ep}${ep.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
-      console.log(`🔎 Fetching groups via UAZAPI: ${url}`);
-      response = await fetch(url, { method: 'GET', headers });
+      const ep = combo.ep;
+      const url = `${apiUrl}${ep}${ep.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      console.log(`🔎 Fetching groups via UAZAPI: ${combo.method} ${url}`);
+      
+      const currentHeaders = { ...headers };
+      if (realInstanceName) {
+        currentHeaders['instance'] = realInstanceName;
+        currentHeaders['instance-name'] = realInstanceName;
+      }
+
+      response = await fetch(url, { 
+        method: combo.method, 
+        headers: currentHeaders,
+        body: combo.method === 'POST' ? JSON.stringify(combo.body || {}) : undefined
+      });
+      
       const resText = await response.text();
-      console.log(`📦 UAZAPI ${ep} response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
+      console.log(`📦 UAZAPI ${combo.method} ${ep} response for ${instance.instance_name}: ${resText.slice(0, 500)}`);
       
       if (response.ok) {
-        payload = JSON.parse(resText || '{}');
-        if (Array.isArray(payload) || payload?.groups || payload?.data) break;
+        const potentialPayload = JSON.parse(resText || '{}');
+        const groups = Array.isArray(potentialPayload)
+          ? potentialPayload
+          : Array.isArray(potentialPayload?.groups)
+            ? potentialPayload.groups
+            : Array.isArray(potentialPayload?.data)
+              ? potentialPayload.data
+              : null;
+              
+        if (groups) {
+          payload = potentialPayload;
+          break;
+        }
       }
     } catch (e) {
-      console.error(`❌ UAZAPI ${ep} fetch failed:`, e.message);
+      console.error(`❌ UAZAPI ${combo.ep} fetch failed:`, e.message);
     }
   }
 
