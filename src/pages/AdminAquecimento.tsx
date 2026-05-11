@@ -402,8 +402,15 @@ export default function AdminAquecimento() {
         setConnStatus("connected");
         return;
       }
+      console.log("Chamando uazapi-connect para:", inst.instance_name);
       const { data, error } = await supabase.functions.invoke("uazapi-connect", {
-        body: { apiUrl: inst.evolution_api_url, apiToken: inst.evolution_api_key || inst.zapi_token, phone: phone || undefined, instanceId: inst.id },
+        body: { 
+          apiUrl: inst.evolution_api_url, 
+          apiToken: inst.evolution_api_key || inst.zapi_token, 
+          phone: phone || undefined, 
+          instanceId: inst.id,
+          instanceName: inst.instance_name 
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
