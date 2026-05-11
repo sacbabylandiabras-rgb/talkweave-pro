@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
 
             // Auto-replace external checkout/payment platform URLs with the linked checkout
             // Detects domains commonly used by Hotmart, Kiwify, Eduzz, Monetizze, Braip,
-            // PerfectPay, Cakto, Yampi, Ticto, Hubla, Greenn, Doppus, Lastlink, Pepper,
+            // Cakto, Yampi, Ticto, Hubla, Greenn, Doppus, Lastlink, Pepper,
             // Adoorei, Payt, Guru/Digital Manager Guru, Voomp, Kirvano, Stripe, etc.
             const externalCheckoutDomains = [
               // Hotmart
@@ -161,8 +161,6 @@ Deno.serve(async (req) => {
               "app\\.monetizze\\.com\\.br/checkout", "monetizze\\.com\\.br/checkout",
               // Braip
               "ev\\.braip\\.com", "checkout\\.braip\\.co", "braip\\.com/checkout",
-              // PerfectPay
-              "go\\.perfectpay\\.com\\.br", "pay\\.perfectpay\\.com\\.br", "checkout\\.perfectpay\\.com\\.br",
               // Cakto
               "pay\\.cakto\\.com\\.br", "checkout\\.cakto\\.com\\.br",
               // Yampi
@@ -204,7 +202,7 @@ Deno.serve(async (req) => {
               return `${attr}=${quote}${checkoutUrl}${quote}`;
             });
 
-            const genericCheckoutUrlRegex = /\b(href|action|data-href|data-url|data-link|data-checkout-url)=(['"])((?:https?:)?\/\/[^'"\s]*(?:checkout|pay|payment|seguro|hotmart|kiwify|eduzz|monetizze|braip|perfectpay|cakto|ticto|lastlink|kirvano|stripe)[^'"\s]*)\2/gi;
+            const genericCheckoutUrlRegex = /\b(href|action|data-href|data-url|data-link|data-checkout-url)=(['"])((?:https?:)?\/\/[^'"\s]*(?:checkout|pay|payment|seguro|hotmart|kiwify|eduzz|monetizze|braip|cakto|ticto|lastlink|kirvano|stripe)[^'"\s]*)\2/gi;
             processed = processed.replace(genericCheckoutUrlRegex, (_m, attr, quote) => `${attr}=${quote}${checkoutUrl}${quote}`);
 
             // Also rewrite inline JS redirects (window.location = "https://pay.hotmart.com/...")

@@ -72,7 +72,6 @@ function detectSource(payload: any, ua: string): string {
   if (u.includes("cakto")) return "cakto";
   if (u.includes("eduzz")) return "eduzz";
   if (u.includes("monetizze")) return "monetizze";
-  if (u.includes("perfectpay")) return "perfectpay";
   return "external";
 }
 

@@ -348,7 +348,7 @@ export default function PayLandingPages() {
           <CardTitle className="text-lg">Suas landing pages</CardTitle>
           <CardDescription>
             Gerencie e acesse os links públicos. Ao vincular um checkout, os botões da landing page que apontam para
-            plataformas externas de pagamento (Hotmart, Kiwify, Eduzz, Monetizze, Braip, PerfectPay, Cakto, Yampi,
+            plataformas externas de pagamento (Hotmart, Kiwify, Eduzz, Monetizze, Braip, Cakto, Yampi,
             Ticto, Hubla, Lastlink, Kirvano, Stripe, entre outras) são <strong>substituídos automaticamente</strong> pelo
             seu checkout. Também funciona com <code className="text-xs">href="#checkout"</code>,{" "}
             <code className="text-xs">data-checkout-link</code> e o placeholder{" "}
