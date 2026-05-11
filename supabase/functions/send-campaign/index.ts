@@ -634,7 +634,7 @@ const dispatchUazapiSpecial = async (
       special.description ? `\n${special.description}` : '',
     ].filter(Boolean).join('\n');
     body = { number: targetNumber, text: pixLines };
-  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button') {
+  } else if (special.type === 'localizacao' || special.type === 'uaz_location_button' || special.type === 'location' || special.type === 'location_button' || special.type === 'request-location') {
     endpoint = '/send/location';
     body = {
       number: targetNumber,
@@ -656,6 +656,22 @@ const dispatchUazapiSpecial = async (
     const desc = String(special.description || special.text || '').trim();
     const txt = [desc, code ? `\n\`\`\`${code}\`\`\`` : ''].filter(Boolean).join('\n').trim() || code;
     body = { number: targetNumber, text: txt };
+  } else if (special.type === 'request-payment' || special.type === 'pagamento' || special.type === 'gateway-billing') {
+    endpoint = '/send/text';
+    const amount = String(special.amount || '').trim();
+    const pixKey = String(special.pixKey || '').trim();
+    const merchant = String(special.merchantName || '').trim();
+    const desc = String(special.description || special.text || '').trim();
+    
+    const lines = [
+      `💰 *Solicitação de Pagamento*`,
+      merchant ? `Recebedor: ${merchant}` : '',
+      amount ? `Valor: R$ ${amount}` : '',
+      pixKey ? `Chave PIX: ${pixKey}` : '',
+      desc ? `\n${desc}` : '',
+    ].filter(Boolean).join('\n');
+    
+    body = { number: targetNumber, text: lines };
   }
 
   try {
@@ -834,6 +850,13 @@ const dispatchUazapiCampaign = async (
   } else if (hasMedia && templateType === 'audio') {
     endpoint = '/send/media';
     body = { number: targetNumber, type: 'ptt', file: template.media_url };
+  } else if (hasMedia && templateType === 'audio_botoes') {
+    // UAZAPI: Send audio then menu
+    endpoint = '/send/media';
+    body = { number: targetNumber, type: 'ptt', file: template.media_url };
+    await fetch(`${baseUrl}${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) }).catch(() => null);
+    endpoint = '/send/menu';
+    body = { number: targetNumber, type: 'button', text: fullMessage || 'Selecione:', ...(footerText ? { footerText } : {}), choices: buildChoices(template.buttons) };
   } else if (hasMedia && (templateType === 'documento' || templateType === 'arquivo')) {
     endpoint = '/send/media';
     body = { number: targetNumber, type: 'document', file: template.media_url, ...(fullMessage ? { text: fullMessage } : {}) };
