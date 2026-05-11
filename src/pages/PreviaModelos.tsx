@@ -143,7 +143,21 @@ const PreviaModelos = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button 
+            onClick={handleCreateExamples} 
+            disabled={creatingExamples}
+            variant="outline"
+            className="gap-2 border-primary/20 hover:bg-primary/5"
+          >
+            {creatingExamples ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            {creatingExamples ? "Criando..." : "Gerar Exemplos"}
+          </Button>
+
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
