@@ -5090,18 +5090,32 @@ async function sendNodeContent(
           );
         } else {
           // Z-API: status broadcast — não usa "phone"
-          if (kind === "image" && mediaUrl) {
+          // Garantindo que a mídia seja passada corretamente
+          const statusMedia = mediaUrl || targetNode.data.mediaUrl;
+          
+          if (kind === "image" && statusMedia) {
             await sendZapi(
               "/send-image-status",
-              { image: mediaUrl, caption: content || "" },
+              { image: statusMedia, caption: content || "" },
               `Bloco ${targetNode.id} (status-image)`,
             );
-          } else if (kind === "video" && mediaUrl) {
+          } else if (kind === "video" && statusMedia) {
             await sendZapi(
               "/send-video-status",
-              { video: mediaUrl, caption: content || "" },
+              { video: statusMedia, caption: content || "" },
               `Bloco ${targetNode.id} (status-video)`,
             );
+          } else if (kind === "audio" && statusMedia) {
+             // Fallback para áudio se necessário, embora Z-API Status seja focado em Imagem/Vídeo/Texto
+             await sendZapi(
+               "/send-audio-status",
+               { audio: statusMedia },
+               `Bloco ${targetNode.id} (status-audio)`,
+             ).catch(async () => {
+               // Fallback se o endpoint de áudio não existir/funcionar como esperado para status
+               console.warn("Status áudio falhou, enviando como texto");
+               await sendZapi("/send-text-status", { message: content || "Status de Áudio" }, `Bloco ${targetNode.id} (status-text-fallback)`);
+             });
           } else {
             await sendZapi(
               "/send-text-status",
