@@ -59,11 +59,20 @@ const Etiquetas = () => {
 
   const fetchTagColors = async (instanceId: string) => {
     try {
+      console.log("Buscando cores para instância:", instanceId);
       const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
         body: { action: "tag-colors", instanceDbId: instanceId },
       });
       if (error) throw error;
-      setTagColors(Array.isArray(data?.data) ? data.data : []);
+      console.log("Resposta cores:", data);
+      
+      // Normalização: Z-API pode retornar data.data ou diretamente data como array
+      const rawColors = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      setTagColors(rawColors);
+      
+      if (rawColors.length === 0) {
+        console.warn("Nenhuma cor retornada pela API.");
+      }
     } catch (err: any) {
       console.error("Erro ao buscar cores de etiquetas:", err);
     }
