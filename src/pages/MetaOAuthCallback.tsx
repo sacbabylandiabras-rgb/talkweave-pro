@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 export default function MetaOAuthCallback() {
   useEffect(() => {
     if (window.opener) {
-      window.opener.postMessage({ type: "META_OAUTH_SUCCESS" }, window.location.origin);
+       window.opener.postMessage({ type: "META_OAUTH_SUCCESS" }, "*");
     }
 
     const timeout = window.setTimeout(() => {
