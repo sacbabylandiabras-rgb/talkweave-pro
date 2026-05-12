@@ -1,11 +1,4 @@
-           // If phone is provided, try both body and query param
-           const params: Record<string, string> = {};
-           if (phone) {
-             params.phone = phone;
-             params.pairingCode = "true";
-             params.paircode = "true";
-           }
- import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const pickFirstString = (...values: unknown[]) => {
   for (const value of values) {
@@ -105,7 +98,11 @@ const normalizeConnectPayload = (data: any) => {
            
            // If phone is provided, try both body and query param
            const params: Record<string, string> = {};
-           if (phone) params.phone = phone;
+           if (phone) {
+             params.phone = phone;
+             params.pairingCode = "true";
+             params.paircode = "true";
+           }
            
            console.log(`Request body: ${JSON.stringify(requestBody)}`);
            const response = await fetch(withToken(ep, params), {
@@ -136,14 +133,14 @@ const normalizeConnectPayload = (data: any) => {
        }
  
  
-       const normalized = normalizeConnectPayload(data);
-       console.log(`Connect Normalized: hasQr=${!!normalized.qrCode}, hasPairing=${!!normalized.pairingCode}`);
-       if (normalized.qrCode) console.log(`QR Code (prefix): ${normalized.qrCode.substring(0, 50)}`);
-       if (normalized.pairingCode) console.log(`Pairing Code: ${normalized.pairingCode}`);
-       
-       return new Response(JSON.stringify(normalized), {
-       headers: { ...corsHeaders, "Content-Type": "application/json" },
-     });
+        const normalized = normalizeConnectPayload(data);
+        console.log(`Connect Normalized: hasQr=${!!normalized.qrCode}, hasPairing=${!!normalized.pairingCode}`);
+        if (normalized.qrCode) console.log(`QR Code (prefix): ${normalized.qrCode.substring(0, 50)}`);
+        if (normalized.pairingCode) console.log(`Pairing Code: ${normalized.pairingCode}`);
+        
+        return new Response(JSON.stringify(normalized), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
    } catch (err) {
      return new Response(JSON.stringify({ error: err.message }), {
        status: 400,
