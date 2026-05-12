@@ -192,36 +192,55 @@ interface Step2Data {
 
       {/* Step 1: WhatsApp */}
       {step === 1 && (
-        <Card className="border-[#2A2A2A]">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Phone className="w-5 h-5 text-[#a78bfa]" />
-              Dados da Conta
-            </CardTitle>
-            <CardDescription>Informe seu WhatsApp para contato</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp (com DDD)</Label>
-              <Input
-                id="whatsapp"
-                placeholder="11999999999"
-                value={step1.whatsapp}
-                onChange={(e) => setStep1({ ...step1, whatsapp: e.target.value.replace(/\D/g, "") })}
-                maxLength={15}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setStep(2)}
-                disabled={!isStep1Valid}
-                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
-              >
-                Próximo <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+       <div className="space-y-4">
+         <div className="flex gap-4 mb-2">
+           <Button 
+             variant={kycType === "pj" ? "default" : "outline"}
+             className={kycType === "pj" ? "bg-[#a78bfa] hover:bg-[#8b5cf6] flex-1" : "flex-1 border-[#2A2A2A]"}
+             onClick={() => setKycType("pj")}
+           >
+             <Building2 className="w-4 h-4 mr-2" /> Pessoa Jurídica
+           </Button>
+           <Button 
+             variant={kycType === "pf" ? "default" : "outline"}
+             className={kycType === "pf" ? "bg-[#a78bfa] hover:bg-[#8b5cf6] flex-1" : "flex-1 border-[#2A2A2A]"}
+             onClick={() => setKycType("pf")}
+           >
+             <User className="w-4 h-4 mr-2" /> Pessoa Física
+           </Button>
+         </div>
+ 
+         <Card className="border-[#2A2A2A]">
+           <CardHeader>
+             <CardTitle className="text-base flex items-center gap-2">
+               <Phone className="w-5 h-5 text-[#a78bfa]" />
+               Dados da Conta
+             </CardTitle>
+             <CardDescription>Informe seu WhatsApp para contato</CardDescription>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             <div className="space-y-2">
+               <Label htmlFor="whatsapp">WhatsApp (com DDD)</Label>
+               <Input
+                 id="whatsapp"
+                 placeholder="11999999999"
+                 value={step1.whatsapp}
+                 onChange={(e) => setStep1({ ...step1, whatsapp: e.target.value.replace(/\D/g, "") })}
+                 maxLength={15}
+               />
+             </div>
+             <div className="flex justify-end">
+               <Button
+                 onClick={() => setStep(2)}
+                 disabled={!isStep1Valid}
+                 className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
+               >
+                 Próximo <ArrowRight className="w-4 h-4 ml-1" />
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
+       </div>
       )}
 
       {/* Step 2: Business Data */}
