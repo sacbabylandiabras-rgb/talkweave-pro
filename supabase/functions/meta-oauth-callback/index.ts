@@ -227,12 +227,12 @@ serve(async (req) => {
       });
     }
 
-    const defaultRedirectUri = "https://zaplynx.com/meta-oauth-callback";
+    const redirectUri = "https://zaplynx.com/meta-oauth-callback";
     const tokenData = await exchangeFacebookCode({
       appId: META_APP_ID,
       appSecret: META_APP_SECRET,
       code,
-      redirectUri: isJsonRequest ? body?.redirectUri ?? defaultRedirectUri : defaultRedirectUri,
+      redirectUri: redirectUri,
     });
 
     if (tokenData.error) {
@@ -424,42 +424,27 @@ async function exchangeFacebookCode(params: {
   appId: string;
   appSecret: string;
   code: string;
-  fallbackRedirectUri?: string | null;
-  redirectUri?: string | null;
+  redirectUri: string;
 }) {
-  const redirectAttempts = [params.redirectUri, params.fallbackRedirectUri].filter(
-    (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index,
-  );
-  const attempts = redirectAttempts.length > 0 ? redirectAttempts : [null];
+  const query = new URLSearchParams({
+    client_id: params.appId,
+    client_secret: params.appSecret,
+    code: params.code,
+    redirect_uri: params.redirectUri,
+  });
 
-  let lastPayload: any = null;
+  const response = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?${query.toString()}`);
+  const payload = await response.json();
 
-  for (const redirectUri of attempts) {
-    const query = new URLSearchParams({
-      client_id: params.appId,
-      client_secret: params.appSecret,
-      code: params.code,
-    });
-
-    if (redirectUri) {
-      query.set("redirect_uri", redirectUri);
-    }
-
-    const response = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?${query.toString()}`);
-    lastPayload = await response.json();
-
-    if (!lastPayload.error) {
-      return lastPayload;
-    }
-
-    console.error("Facebook code exchange attempt failed:", {
-      redirectUri,
+  if (payload.error) {
+    console.error("Facebook code exchange error details:", {
+      redirectUri: params.redirectUri,
       status: response.status,
-      error: lastPayload.error,
+      error: payload.error,
     });
   }
 
-  return lastPayload;
+  return payload;
 }
 
 function parseStatePayload(state: string): ParsedState {
