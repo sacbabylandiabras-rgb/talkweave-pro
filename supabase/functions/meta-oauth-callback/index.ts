@@ -46,7 +46,7 @@ serve(async (req) => {
     });
   }
 
-  const META_APP_ID = Deno.env.get("META_APP_ID");
+  const META_APP_ID = WHATSAPP_META_APP_ID;
   const META_APP_SECRET = Deno.env.get("META_APP_SECRET");
   const INSTAGRAM_APP_SECRET = Deno.env.get("INSTAGRAM_APP_SECRET");
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
