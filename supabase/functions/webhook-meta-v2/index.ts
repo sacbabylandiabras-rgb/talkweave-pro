@@ -70,7 +70,7 @@ serve(async (req) => {
   if (req.method === 'POST') {
     try {
       const body = await req.json()
-      console.log('[webhook-meta] Received event:', JSON.stringify(body).slice(0, 500))
+       console.log('[webhook-meta-v2] Received event:', JSON.stringify(body).slice(0, 500))
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey)
       const entries = body?.entry || []
