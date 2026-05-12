@@ -599,14 +599,14 @@ serve(async (req) => {
         });
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'gateway-billing-otp');
       } else {
-      const pixPayload: any = {
-        phone: resolvedPhone,
-        pixKey: specialPayload.pixKey || specialPayload.paymentReceiver || '',
-        // Ensure type is uppercase and valid (e.g. CPF, CNPJ, EMAIL, PHONE, EVP)
-        type: String(specialPayload.pixKeyType || specialPayload.type || 'cpf').toUpperCase(),
-        merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
-      };
-      if (amountReais) pixPayload.value = amountReais;
+        const pixPayload: any = {
+          phone: resolvedPhone,
+          pixKey: specialPayload.pixKey || specialPayload.paymentReceiver || '',
+          // Ensure type is uppercase and valid (e.g. CPF, CNPJ, EMAIL, PHONE, EVP)
+          type: String(specialPayload.pixKeyType || specialPayload.type || 'cpf').toUpperCase(),
+          merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
+        };
+        if (amountReais) pixPayload.value = amountReais;
       if (specialPayload.city) pixPayload.city = specialPayload.city.slice(0, 15);
         if (description) pixPayload.description = description;
 
