@@ -55,10 +55,16 @@ const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
   }
 };
 
-const normalizeInstances = (items: ZapiInstance[]) => {
+const normalizeInstances = (items: ZapiInstance[], includeWarmup = false) => {
   const dedupedMap = new Map<string, ZapiInstance>();
 
-  for (const instance of items.filter((item) => !isMobileZapiInstance(item))) {
+  for (const instance of items.filter((item) => {
+    const isMobile = isMobileZapiInstance(item);
+    const isWarmup = (item.api_provider || '').toLowerCase().includes('warmup');
+    if (isMobile) return false;
+    if (!includeWarmup && isWarmup) return false;
+    return true;
+  })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
     if (!previous) { dedupedMap.set(key, instance); continue; }
@@ -91,7 +97,7 @@ const fetchInstancesWithRetry = async (userId: string) => {
   throw lastError;
 };
 
-export const useZapiInstances = () => {
+export const useZapiInstances = (options?: { includeWarmup?: boolean }) => {
   const [instances, setInstances] = useState<ZapiInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeInstance, setActiveInstance] = useState<ZapiInstance | null>(null);
@@ -103,15 +109,8 @@ export const useZapiInstances = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const cached = readCachedInstances(user.id);
-      if (cached?.length) {
-        const cachedInstances = normalizeInstances(cached);
-        setInstances((current) => current.length ? current : cachedInstances);
-        setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
-      }
-
       const allInstances = await fetchInstancesWithRetry(user.id);
-      const deduped = normalizeInstances(allInstances);
+      const deduped = normalizeInstances(allInstances, options?.includeWarmup);
 
       setInstances(deduped);
       setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);

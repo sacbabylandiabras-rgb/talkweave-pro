@@ -962,6 +962,42 @@ const ChatView = ({
       };
     }).filter((button) => button.label && (button.type === 'REPLY' || button.url || button.phone));
     
+    // If template has special fields (PIX, location, etc), it contains a JSON payload
+    const SPECIAL_PREFIX = "__SPECIAL_TEMPLATE__:";
+    const isSpec = typeof template.content === 'string' && template.content.startsWith(SPECIAL_PREFIX);
+    
+    if (isSpec) {
+      if (!conversation) return;
+      setSending(true);
+      try {
+        let specialData: any = null;
+        try {
+          specialData = JSON.parse(template.content.slice(SPECIAL_PREFIX.length));
+        } catch (e) {
+          console.error("Erro ao fazer parse de template especial:", e);
+        }
+
+        if (specialData) {
+          const sendOptions: any = {
+            specialType: specialData.type,
+            specialPayload: specialData,
+            preferredInstanceId: conversation.preferredInstanceId,
+            templateId: template.id,
+          };
+
+          await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
+          incrementUsage(template.id);
+          toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+        }
+      } catch (err: any) {
+        console.error("Erro ao enviar template especial:", err);
+        toast({ title: "Erro", description: err.message || "Falha ao enviar modelo.", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     // If template has media, send directly
     if (template.mediaUrl && template.type && template.type !== 'texto') {
       if (!conversation) return;
