@@ -344,7 +344,7 @@ export default function AdminAquecimento() {
           return [
             inst.id,
             {
-              phone: (data as any)?.phoneConnected || null,
+              phone: (data as any)?.phone || (data as any)?.phoneConnected || (data as any)?.owner || null,
               connected: !!(data as any)?.connected,
               name: (data as any)?.profileName || null,
             },
