@@ -232,7 +232,9 @@ export function SelectContactsDialog({
     onOpenChange(false);
   };
 
-  const totalSelected = new Set([...selectedContacts, ...manualPhones]).size;
+   const totalSelected = (activeWorkspace === "meta" && !isGroupsMode) 
+     ? manualPhones.length 
+     : new Set([...selectedContacts, ...manualPhones]).size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
