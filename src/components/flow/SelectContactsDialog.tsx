@@ -110,7 +110,8 @@ export function SelectContactsDialog({
   }, [open, isGroupsMode]);
 
   // Auto-select meta provider when in Meta workspace
-  const effectiveProvider = activeWorkspace === "meta" ? "meta" : sendProvider;
+   // Use activeWorkspace "meta" to force provider to meta, unless in groups mode where only zapi is supported
+   const effectiveProvider = (activeWorkspace === "meta" && !isGroupsMode) ? "meta" : sendProvider;
 
   const fetchMetaPhones = async () => {
     setLoadingMetaPhones(true);
@@ -232,7 +233,9 @@ export function SelectContactsDialog({
     onOpenChange(false);
   };
 
-  const totalSelected = new Set([...selectedContacts, ...manualPhones]).size;
+   const totalSelected = (activeWorkspace === "meta" && !isGroupsMode) 
+     ? manualPhones.length 
+     : new Set([...selectedContacts, ...manualPhones]).size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -249,7 +252,7 @@ export function SelectContactsDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : "grid-cols-2"}`}>
+         <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : activeWorkspace === "meta" ? "grid-cols-1" : "grid-cols-2"}`}>
             {isGroupsMode ? (
               <TabsTrigger value="groups" className="flex items-center gap-2">
                 <UsersRound className="h-4 w-4" />
@@ -260,27 +263,37 @@ export function SelectContactsDialog({
                   </Badge>
                 )}
               </TabsTrigger>
-            ) : (
-              <>
-                <TabsTrigger value="contacts" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Contatos
-                  {selectedContacts.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                      {selectedContacts.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="manual" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Digitar Número
-                  {manualPhones.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                      {manualPhones.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </>
+             ) : activeWorkspace === "meta" ? (
+               <TabsTrigger value="manual" className="flex items-center gap-2">
+                 <Phone className="h-4 w-4" />
+                 Digitar Número
+                 {manualPhones.length > 0 && (
+                   <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                     {manualPhones.length}
+                   </Badge>
+                 )}
+               </TabsTrigger>
+             ) : (
+               <>
+                 <TabsTrigger value="contacts" className="flex items-center gap-2">
+                   <Users className="h-4 w-4" />
+                   Contatos
+                   {selectedContacts.length > 0 && (
+                     <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                       {selectedContacts.length}
+                     </Badge>
+                   )}
+                 </TabsTrigger>
+                 <TabsTrigger value="manual" className="flex items-center gap-2">
+                   <Phone className="h-4 w-4" />
+                   Digitar Número
+                   {manualPhones.length > 0 && (
+                     <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                       {manualPhones.length}
+                     </Badge>
+                   )}
+                 </TabsTrigger>
+               </>
             )}
           </TabsList>
 
