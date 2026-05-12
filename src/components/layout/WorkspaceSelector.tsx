@@ -84,7 +84,7 @@ export function WorkspaceSelector() {
     }
   }, [isPaid, subLoading, activeWorkspace, setActiveWorkspace, navigate]);
 
-  const visibleWorkspaces = workspaces.filter((w) => w.id !== "meta" || isAdmin);
+   const visibleWorkspaces = workspaces;
   const current = visibleWorkspaces.find((w) => w.id === activeWorkspace) || visibleWorkspaces[0];
   const CurrentIcon = current.icon;
 
