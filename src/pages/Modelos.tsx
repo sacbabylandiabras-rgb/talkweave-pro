@@ -767,8 +767,10 @@ const getTemplateIcon = (type?: string) => {
     case "pagamento_pedido":
     case "gateway_billing":
       return <CreditCard className="w-5 h-5 text-primary" />;
-    case "status":
-      return <Camera className="w-5 h-5 text-primary" />;
+     case "status":
+       return <Camera className="w-5 h-5 text-primary" />;
+     case "meta_template":
+       return <FileCheck className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
