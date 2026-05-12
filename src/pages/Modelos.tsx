@@ -1125,9 +1125,11 @@ const getPreviewFileLabel = (template: any) => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-     paymentReferenceId: "",
-     massPhones: "",
-    });
+      paymentReferenceId: "",
+      massPhones: "",
+      metaTemplateName: "",
+      metaLanguage: "pt_BR",
+     });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -1168,8 +1170,10 @@ const getPreviewFileLabel = (template: any) => {
     paymentAmount: "",
     paymentCurrency: "BRL",
      paymentReferenceId: "",
-     massPhones: "",
-    });
+      massPhones: "",
+      metaTemplateName: "",
+      metaLanguage: "pt_BR",
+     });
    const [showCreateDialog, setShowCreateDialog] = useState(false);
    const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
