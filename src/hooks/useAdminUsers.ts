@@ -175,7 +175,34 @@ export const useAdminUsers = () => {
     loading,
     toggleUserStatus,
     toggleAdminRole,
-    deleteUser,
-    refetch: fetchUsers
+     deleteUser,
+     activateUserSubscription: async (userId: string) => {
+       try {
+         const { error } = await supabase
+           .from("profiles")
+           .update({ 
+             is_active: true,
+             subscription_status: 'active',
+             subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+           } as any)
+           .eq("id", userId);
+ 
+         if (error) throw error;
+ 
+         toast({
+           title: "Conta ativada",
+           description: "Assinatura ativada por 30 dias com sucesso"
+         });
+ 
+         await fetchUsers();
+       } catch (error: any) {
+         toast({
+           title: "Erro ao ativar conta",
+           description: error.message,
+           variant: "destructive"
+         });
+       }
+     },
+     refetch: fetchUsers
   };
 };
