@@ -9,6 +9,10 @@ export default function MetaOAuthCallback() {
 
     const timeout = window.setTimeout(() => {
       window.close();
+      // Fallback: if window.close() is blocked (no opener context), redirect
+      if (!window.closed) {
+        window.location.href = "/meta/dashboard?connected=1";
+      }
     }, 2000);
 
     return () => window.clearTimeout(timeout);
