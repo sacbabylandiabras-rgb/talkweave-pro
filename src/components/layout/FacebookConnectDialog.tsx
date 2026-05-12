@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useNavigate } from "react-router-dom";
 import {
   buildLegacyFacebookOAuthUrl,
   createMetaOAuthState,
@@ -29,6 +31,8 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const queryClient = useQueryClient();
   const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials(META_APP_ID);
+  const { setActiveWorkspace } = useWorkspace();
+  const navigate = useNavigate();
 
   const isConnected = metaCreds?.connected === true;
 
@@ -46,6 +50,9 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
         setConnecting(false);
         toast.success("Conta Facebook Business conectada com sucesso!");
         queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        onOpenChange(false);
+        setActiveWorkspace("meta");
+        setTimeout(() => navigate("/meta/dashboard"), 300);
         return;
       }
 
@@ -65,6 +72,9 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
         const url = new URL(window.location.href);
         url.searchParams.delete("connected");
         window.history.replaceState({}, "", url.pathname);
+        onOpenChange(false);
+        setActiveWorkspace("meta");
+        setTimeout(() => navigate("/meta/dashboard"), 300);
       }
     };
     window.addEventListener("focus", focusHandler);
