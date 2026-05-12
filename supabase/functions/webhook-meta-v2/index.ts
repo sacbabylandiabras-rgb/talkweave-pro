@@ -576,7 +576,11 @@ async function processFlowNodeMeta(
   supabase: any,
   visited: Set<string>,
   userId: string,
-  flowName: string
+  flowName: string,
+  options?: {
+    resumeCaptured?: Record<string, string>;
+    flowId?: string;
+  }
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
 
