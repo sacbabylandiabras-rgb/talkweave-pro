@@ -134,7 +134,7 @@ const telegramIntegracoesSubItems = [
 const metaMenuItems = [
   { id: "painel-meta", label: "Painel", icon: LayoutDashboard, path: "/meta/dashboard" },
   { id: "templates-aprovados", label: "Templates", icon: FileCheck, path: "/meta/templates" },
-  { id: "envio-meta", label: "Enviar", icon: Send, path: "/meta/enviar" },
+   { id: "envio-meta", label: "Mensagens", icon: MessageCircle, path: "/meta/enviar" },
   { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
