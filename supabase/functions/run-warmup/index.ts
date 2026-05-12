@@ -99,7 +99,7 @@ serve(async (req: Request) => {
     const { data: donors, error: donorsErr } = await admin
       .from("zapi_instances")
       .select("id, instance_name, evolution_api_url, evolution_api_key, zapi_token, is_active")
-      .ilike("api_provider", "uazapi")
+      .eq("api_provider", "uazapi_warmup")
       .eq("is_active", true);
     if (donorsErr) return json({ success: false, error: donorsErr.message }, 500);
 
