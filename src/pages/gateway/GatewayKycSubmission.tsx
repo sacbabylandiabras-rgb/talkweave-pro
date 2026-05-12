@@ -35,10 +35,6 @@ interface Step2Data {
    const { kyc, loading, submitKyc } = useGatewayKyc();
    const [step, setStep] = useState(1);
    const [kycType, setKycType] = useState<"pf" | "pj">("pj");
- 
-   // Step 1
-  const { kyc, loading, submitKyc } = useGatewayKyc();
-  const [step, setStep] = useState(1);
 
   // Step 1
   const [step1, setStep1] = useState<Step1Data>({ whatsapp: "" });
