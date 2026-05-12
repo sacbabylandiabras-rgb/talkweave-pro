@@ -87,7 +87,7 @@ export default function ConfiguracaoMeta() {
     }
   }, [isConnected, creds?.access_token, creds?.waba_id]);
 
-   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta-v2`;
+    const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-meta-v2`;
   const verifyToken = "zaplynx_whatsapp_verify_2024";
 
   const copyToClipboard = (text: string) => {
