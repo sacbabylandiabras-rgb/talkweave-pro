@@ -532,7 +532,7 @@ export default function AdminAquecimento() {
           user_id: user.id,
           instance_name: name,
           api_provider: "uazapi_warmup",
-          evolution_api_url: "https://uazapi.zaplynx.com.br",
+          evolution_api_url: "https://uazapi01.zaplynx.com.br",
           evolution_api_key: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
           zapi_token: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
           zapi_instance_id: (remoteData as any)?.instance?.instanceId || name,

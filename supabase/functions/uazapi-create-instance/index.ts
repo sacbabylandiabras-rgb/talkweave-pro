@@ -11,7 +11,7 @@ serve(async (req: Request) => {
     // Configurações do servidor UAZAPI (Evolution API)
     // Nota: O domínio evolution-api.com foi descontinuado ou está com problemas de DNS.
     // Usamos o endereço direto para garantir conectividade.
-    const apiUrl = "https://uazapi.zaplynx.com.br";
+    const apiUrl = "https://uazapi01.zaplynx.com.br";
     const apiToken = "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C";
 
     console.log(`UAZAPI Create/Manage: ${action || 'create'} - Instance: ${instanceName}`);
