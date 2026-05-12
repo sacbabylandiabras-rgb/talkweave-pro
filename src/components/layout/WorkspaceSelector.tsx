@@ -76,29 +76,12 @@ export function WorkspaceSelector() {
     }
   }, [isMetaConnected, activeWorkspace, metaCreds, setActiveWorkspace, navigate]);
 
-  // Redirect away from Meta if subscription is not active
-  useEffect(() => {
-    if (activeWorkspace === "meta" && !subLoading && !isPaid) {
-      setActiveWorkspace("zapi");
-      navigate(workspaceDefaultRoutes.zapi);
-    }
-  }, [isPaid, subLoading, activeWorkspace, setActiveWorkspace, navigate]);
 
    const visibleWorkspaces = workspaces;
   const current = visibleWorkspaces.find((w) => w.id === activeWorkspace) || visibleWorkspaces[0];
   const CurrentIcon = current.icon;
 
   const handleSelect = (ws: WorkspaceType) => {
-    // Gate Meta workspace behind paid subscription
-    if (ws === "meta" && !isPaid) {
-      toast({
-        title: "Assinatura necessária",
-        description: "A Meta API está disponível apenas para assinantes com plano ativo.",
-        variant: "destructive",
-      });
-      setOpen(false);
-      return;
-    }
 
     if (ws === "meta") {
       if (isMetaConnected) {
@@ -146,7 +129,7 @@ export function WorkspaceSelector() {
           {visibleWorkspaces.map((ws) => {
             const Icon = ws.icon;
             const isActive = activeWorkspace === ws.id;
-            const isLocked = ws.id === "meta" && !isPaid && !subLoading;
+             const isLocked = false;
             return (
               <button
                 key={ws.id}
