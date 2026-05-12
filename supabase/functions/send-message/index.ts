@@ -343,6 +343,21 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
         body: JSON.stringify(body),
       });
+
+      // Fix: if /send-payment-pix returns 404, Z-API might expect /send-pix or something else
+      // but we should check if the endpoint itself was wrong based on the 404 response
+      if (response.status === 404 && endpoint === '/send-payment-pix') {
+        console.log(`🔄 Retrying with alternative endpoint /send-pix instead of /send-payment-pix`);
+        const retryResp = await fetch(`${baseUrl}/send-pix`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(body),
+        });
+        const data = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
+        zapiResponse = retryResp;
+        return data;
+      }
+
       const data = await parseZapiResponse(response, resolvedPhone, instanceId, label);
       // Update global zapiResponse for logging
       zapiResponse = response;
