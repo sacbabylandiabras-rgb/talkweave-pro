@@ -111,7 +111,7 @@ export function SelectContactsDialog({
 
   // Auto-select meta provider when in Meta workspace
    // Use activeWorkspace "meta" to force provider to meta, unless in groups mode where only zapi is supported
-   const effectiveProvider = (activeWorkspace === "meta" && !isGroupsMode) ? "meta" : sendProvider;
+   const effectiveProvider = (activeWorkspace === "meta" && !isGroupsMode || isMetaMode) ? "meta" : sendProvider;
 
   const fetchMetaPhones = async () => {
     setLoadingMetaPhones(true);
@@ -137,9 +137,9 @@ export function SelectContactsDialog({
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-      setActiveTab(isGroupsMode ? "groups" : "contacts");
+       setActiveTab(isGroupsMode ? "groups" : isMetaMode ? "manual" : "contacts");
       setSendProvider("zapi");
-      if (activeWorkspace === "meta") {
+       if (activeWorkspace === "meta" || isMetaMode) {
         setSendProvider("meta");
       }
       setSelectedMetaPhoneId("");
@@ -223,7 +223,7 @@ export function SelectContactsDialog({
       ? [...new Set(selectedContacts)]
       : [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-    const finalProvider: FlowSendProvider = isGroupsMode ? "zapi" : effectiveProvider;
+     const finalProvider: FlowSendProvider = isGroupsMode ? "zapi" : (isMetaMode ? "meta" : effectiveProvider);
     onConfirm(
       allPhones,
       finalProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
@@ -233,7 +233,7 @@ export function SelectContactsDialog({
     onOpenChange(false);
   };
 
-   const totalSelected = (activeWorkspace === "meta" && !isGroupsMode) 
+    const totalSelected = (activeWorkspace === "meta" && !isGroupsMode || isMetaMode) 
      ? manualPhones.length 
      : new Set([...selectedContacts, ...manualPhones]).size;
 
@@ -252,7 +252,7 @@ export function SelectContactsDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-         <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : activeWorkspace === "meta" ? "grid-cols-1" : "grid-cols-2"}`}>
+          <TabsList className={`grid w-full ${isGroupsMode || isMetaMode || activeWorkspace === "meta" ? "grid-cols-1" : "grid-cols-2"}`}>
             {isGroupsMode ? (
               <TabsTrigger value="groups" className="flex items-center gap-2">
                 <UsersRound className="h-4 w-4" />
@@ -263,7 +263,7 @@ export function SelectContactsDialog({
                   </Badge>
                 )}
               </TabsTrigger>
-             ) : activeWorkspace === "meta" ? (
+              ) : (activeWorkspace === "meta" || isMetaMode) ? (
                <TabsTrigger value="manual" className="flex items-center gap-2">
                  <Phone className="h-4 w-4" />
                  Digitar Número
