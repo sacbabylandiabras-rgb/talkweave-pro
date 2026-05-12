@@ -526,6 +526,11 @@ export default function AdminAquecimento() {
       if (!user) throw new Error("Usuário não autenticado");
 
       // 2. Salvar no banco de dados local
+      const r: any = remoteData || {};
+      const instanceToken = r.token || r.instance?.token || r.hash?.apikey;
+      const instanceId = r.instance?.id || r.instance?.instanceId || r.id || name;
+      if (!instanceToken) throw new Error("Servidor não retornou token da instância");
+
       const { error: dbError } = await supabase
         .from("zapi_instances")
         .insert({
@@ -533,9 +538,9 @@ export default function AdminAquecimento() {
           instance_name: name,
           api_provider: "uazapi_warmup",
           evolution_api_url: "https://paysheinsite.uazapi.com",
-          evolution_api_key: (remoteData as any)?.hash?.apikey || "TN5X3e62kEQnNVpjwuQ0ywIP4Ax5t4LuNClpSKrOqq8zDmbkdY",
-          zapi_token: (remoteData as any)?.hash?.apikey || "TN5X3e62kEQnNVpjwuQ0ywIP4Ax5t4LuNClpSKrOqq8zDmbkdY",
-          zapi_instance_id: (remoteData as any)?.instance?.instanceId || name,
+          evolution_api_key: instanceToken,
+          zapi_token: instanceToken,
+          zapi_instance_id: instanceId,
           zapi_client_token: "zaplynx",
           is_active: true,
           is_default: false
