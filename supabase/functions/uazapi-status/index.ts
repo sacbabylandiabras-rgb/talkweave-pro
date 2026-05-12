@@ -18,8 +18,11 @@ const pickFirstString = (...values: unknown[]) => {
   
       const cleanUrl = apiUrl.replace(/\/+$/, "");
       const withToken = (path: string) => {
-        const separator = path.includes("?") ? "&" : "?";
-        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+        const url = new URL(`${cleanUrl}${path}`);
+        url.searchParams.set("token", apiToken);
+        url.searchParams.set("apikey", apiToken);
+        url.searchParams.set("admintoken", apiToken);
+        return url.toString();
       };
       
       const endpoints = ["/instance/status", "/status", "/instance"];
@@ -28,12 +31,14 @@ const pickFirstString = (...values: unknown[]) => {
         endpoints.unshift(`/instance/connectionStatus/${instanceName}`);
       }
 
-      const headers = { 
+      const headers: Record<string, string> = { 
         "Content-Type": "application/json", 
         "token": apiToken,
         "apikey": apiToken,
         "admintoken": apiToken,
-        "Authorization": `Bearer ${apiToken}`
+        "Authorization": `Bearer ${apiToken}`,
+        "instance": instanceName || "",
+        "instance_name": instanceName || ""
       };
 
       let lastError = null;
