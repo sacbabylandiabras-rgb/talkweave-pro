@@ -63,7 +63,7 @@ const getKycStatusBadge = (status: string) => {
 const AdminZapLynx = () => {
   const navigate = useNavigate();
   const [currentUserId, setCurrentUserId] = useState<string>();
-   const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, refetch } = useAdminUsers();
+    const { users, loading: usersLoading, toggleUserStatus, toggleAdminRole, deleteUser, activateUserSubscription, refetch } = useAdminUsers();
    const [checkingSubscriptions, setCheckingSubscriptions] = useState(false);
    const handleCheckSubscriptions = async () => {
      setCheckingSubscriptions(true);
@@ -406,9 +406,26 @@ const AdminZapLynx = () => {
                         <Button size="sm" variant={user.roles.includes("admin") ? "destructive" : "default"} onClick={() => toggleAdminRole(user.id, user.roles)} disabled={user.id === currentUserId} title={user.roles.includes("admin") ? "Remover Admin" : "Tornar Admin"}>
                           {user.roles.includes("admin") ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => toggleUserStatus(user.id, user.is_active)} disabled={user.id === currentUserId} title={user.is_active ? "Desativar" : "Ativar"}>
-                          {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                        </Button>
+                         {user.subscription_status !== 'active' && (
+                           <Button 
+                             size="sm" 
+                             variant="outline" 
+                             className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
+                             onClick={() => activateUserSubscription(user.id)} 
+                             title="Ativar Assinatura (30 dias)"
+                           >
+                             <UserCheck className="w-4 h-4" />
+                           </Button>
+                         )}
+                         <Button 
+                           size="sm" 
+                           variant="outline" 
+                           onClick={() => toggleUserStatus(user.id, user.is_active)} 
+                           disabled={user.id === currentUserId} 
+                           title={user.is_active ? "Desativar Conta" : "Ativar Conta"}
+                         >
+                           {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => setDeletingUser(user)} disabled={user.id === currentUserId} title="Remover usuário"><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </TableCell>
