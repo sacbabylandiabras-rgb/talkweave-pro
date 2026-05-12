@@ -319,8 +319,8 @@ export default function AdminAquecimento() {
     setLoadingInst(true);
     const { data, error } = await supabase
       .from("zapi_instances")
-        .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,evolution_api_key,created_at,api_provider")
-      .in("api_provider", ["uazapi", "uazapi_warmup"])
+      .select("id,instance_name,zapi_instance_id,zapi_token,evolution_api_url,evolution_api_key,created_at,api_provider")
+      .eq("api_provider", "uazapi_warmup")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
