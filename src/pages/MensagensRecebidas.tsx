@@ -1019,9 +1019,18 @@ const ChatView = ({
             }
             
             const effectiveMessage = specialData.description || specialData.text || template.content;
-            await onSendMessage(conversation.phone, effectiveMessage, sendOptions);
-            incrementUsage(template.id);
-            toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            try {
+              await onSendMessage(conversation.phone, effectiveMessage, sendOptions);
+              incrementUsage(template.id);
+              toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            } catch (err: any) {
+              console.error("Erro no callback onSendMessage:", err);
+              toast({ 
+                title: "Erro no envio", 
+                description: err.message || "Erro desconhecido ao enviar o modelo.", 
+                variant: "destructive" 
+              });
+            }
             setSending(false);
             return;
           }
