@@ -668,7 +668,37 @@ const SpecialFieldsEditor = ({
     );
   }
 
-    if (type === "multiplos_contatos") {
+   if (type === "multiplos_contatos" || type === "meta_template") {
+     if (type === "meta_template") {
+       return (
+         <div className="space-y-4 border rounded-xl p-4 bg-emerald-500/5 border-emerald-500/20">
+           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
+             <FileCheck className="w-5 h-5" /> Modelo da Meta API
+           </div>
+           <div className="space-y-2">
+             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome do Template na Meta *</Label>
+             <Input
+               placeholder="Ex: boas_vindas_v1"
+               value={data.metaTemplateName || ""}
+               onChange={(e) => onChange({ metaTemplateName: e.target.value })}
+               className="bg-background"
+             />
+             <p className="text-[11px] text-muted-foreground leading-relaxed">
+               Informe o nome exato do template aprovado no Gerenciador de WhatsApp da Meta.
+             </p>
+           </div>
+           <div className="space-y-2">
+             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Idioma</Label>
+             <Input
+               placeholder="Ex: pt_BR"
+               value={data.metaLanguage || "pt_BR"}
+               onChange={(e) => onChange({ metaLanguage: e.target.value })}
+               className="bg-background"
+             />
+           </div>
+         </div>
+       );
+     }
       return (
         <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
           <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
