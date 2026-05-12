@@ -1,4 +1,10 @@
 
+ [functions.webhook-meta]
+ verify_jwt = false
+
+ [functions.webhook-meta-v2]
+ verify_jwt = false
+
 [functions.send-period-reports]
 verify_jwt = false
 
