@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate } from "lucide-react";
+  import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate, FileCheck } from "lucide-react";
  import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,8 +39,10 @@ const SPECIAL_FIELD_DEFAULTS = {
    orderStatus: "",
    orderPaymentStatus: "",
    orderReferenceId: "",
-    orderJson: "",
-    paymentTitle: "",
+   orderJson: "",
+   paymentTitle: "",
+   metaTemplateName: "",
+   metaLanguage: "pt_BR",
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
@@ -111,6 +113,10 @@ const buildSpecialContent = (type: string, data: any): string => {
       } else if (type === "multiplos_contatos") {
        payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
        payload.description = data.content || "";
+     } else if (type === "meta_template") {
+       payload.templateName = data.metaTemplateName || "";
+       payload.language = data.metaLanguage || "pt_BR";
+       payload.description = data.content || "";
      }
      return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
    };
@@ -125,8 +131,8 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-      || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "multiplos_contatos"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
+       || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "multiplos_contatos"
+     || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status" || type === "meta_template";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
@@ -668,7 +674,37 @@ const SpecialFieldsEditor = ({
     );
   }
 
-    if (type === "multiplos_contatos") {
+   if (type === "multiplos_contatos" || type === "meta_template") {
+     if (type === "meta_template") {
+       return (
+         <div className="space-y-4 border rounded-xl p-4 bg-emerald-500/5 border-emerald-500/20">
+           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
+             <FileCheck className="w-5 h-5" /> Modelo da Meta API
+           </div>
+           <div className="space-y-2">
+             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome do Template na Meta *</Label>
+             <Input
+               placeholder="Ex: boas_vindas_v1"
+               value={data.metaTemplateName || ""}
+               onChange={(e) => onChange({ metaTemplateName: e.target.value })}
+               className="bg-background"
+             />
+             <p className="text-[11px] text-muted-foreground leading-relaxed">
+               Informe o nome exato do template aprovado no Gerenciador de WhatsApp da Meta.
+             </p>
+           </div>
+           <div className="space-y-2">
+             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Idioma</Label>
+             <Input
+               placeholder="Ex: pt_BR"
+               value={data.metaLanguage || "pt_BR"}
+               onChange={(e) => onChange({ metaLanguage: e.target.value })}
+               className="bg-background"
+             />
+           </div>
+         </div>
+       );
+     }
       return (
         <div className="space-y-4 border rounded-xl p-4 bg-blue-500/5 border-blue-500/20">
           <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
@@ -731,8 +767,10 @@ const getTemplateIcon = (type?: string) => {
     case "pagamento_pedido":
     case "gateway_billing":
       return <CreditCard className="w-5 h-5 text-primary" />;
-    case "status":
-      return <Camera className="w-5 h-5 text-primary" />;
+     case "status":
+       return <Camera className="w-5 h-5 text-primary" />;
+     case "meta_template":
+       return <FileCheck className="w-5 h-5 text-primary" />;
     default:
       return <FileText className="w-5 h-5 text-primary" />;
   }
@@ -1087,9 +1125,11 @@ const getPreviewFileLabel = (template: any) => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-     paymentReferenceId: "",
-     massPhones: "",
-    });
+      paymentReferenceId: "",
+      massPhones: "",
+      metaTemplateName: "",
+      metaLanguage: "pt_BR",
+     });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -1130,8 +1170,10 @@ const getPreviewFileLabel = (template: any) => {
     paymentAmount: "",
     paymentCurrency: "BRL",
      paymentReferenceId: "",
-     massPhones: "",
-    });
+      massPhones: "",
+      metaTemplateName: "",
+      metaLanguage: "pt_BR",
+     });
    const [showCreateDialog, setShowCreateDialog] = useState(false);
    const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -1387,7 +1429,7 @@ const getPreviewFileLabel = (template: any) => {
         carouselCards: newTemplate.carouselCards,
       });
 
-       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
+        setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
        setShowCreateDialog(false);
     } catch (error) {
       console.error('Error creating template:', error);
@@ -1465,8 +1507,10 @@ const getPreviewFileLabel = (template: any) => {
       contactBusinessDescription: special.contactBusinessDescription || "",
       catalogId: special.catalogId || "",
       productId: special.productId || "",
-      contactPhone: special.contactPhone || "",
-      paymentTitle: special.title || "",
+        contactPhone: special.contactPhone || "",
+       metaTemplateName: special.templateName || "",
+       metaLanguage: special.language || "pt_BR",
+       paymentTitle: special.title || "",
       paymentDescription: special.description || "",
       paymentAmount: special.amount ? String(special.amount) : "",
        paymentCurrency: special.currency || "BRL",
@@ -1614,7 +1658,7 @@ const getPreviewFileLabel = (template: any) => {
       });
 
       setEditingTemplate(null);
-        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
+        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
     } catch (error) {
       console.error('Error updating template:', error);
     }
@@ -1649,7 +1693,7 @@ const getPreviewFileLabel = (template: any) => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "" });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -1833,8 +1877,9 @@ const getPreviewFileLabel = (template: any) => {
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
-                        <SelectItem value="status">Status (Stories)</SelectItem>
-                        <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
+                   <SelectItem value="status">Status (Stories)</SelectItem>
+                   <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
+                   <SelectItem value="meta_template">template meta api</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -3219,7 +3264,31 @@ const getPreviewFileLabel = (template: any) => {
                       </div>
                     );
                   })()
-                ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
+                 ) : (previewTemplate.type === 'meta_template' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'meta_template')) ? (
+                   (() => {
+                     const special = parseSpecialContent(previewTemplate.content || '') || {};
+                     return (
+                       <div className="flex justify-end">
+                         <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                           <div className="px-3 py-2 space-y-2">
+                             <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                               <FileCheck className="w-4 h-4 text-emerald-600" />
+                               <p className="text-xs font-semibold text-foreground">Template Meta API</p>
+                             </div>
+                             <p className="text-sm font-bold text-foreground font-mono">{special.templateName || 'Template'}</p>
+                             <Badge variant="outline" className="text-[10px]">{special.language || 'pt_BR'}</Badge>
+                             {special.description && (
+                               <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed border-t border-border/10 pt-2">{special.description}</p>
+                             )}
+                           </div>
+                           <div className="bg-emerald-500/10 text-center py-2 text-[10px] text-emerald-600 font-medium border-t border-border/20">
+                             ENVIADO VIA API OFICIAL
+                           </div>
+                         </div>
+                       </div>
+                     );
+                   })()
+                 ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
                       <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm px-3 py-2">

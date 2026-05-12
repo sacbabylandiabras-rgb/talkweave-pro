@@ -265,90 +265,95 @@ export default function EnvioCloudAPI() {
   };
 
   /* ---------- bulk send ---------- */
-  const handleSendBulk = async () => {
-    if (!contacts.trim() || (!message.trim() && !templateName)) {
-      toast.error("Adicione contatos e uma mensagem ou template");
-      return;
-    }
-
-    const lines = contacts.split("\n").filter((l) => l.trim());
-    const parsed: { name: string; phone: string }[] = [];
-
-    for (const line of lines) {
-      const parts = line.split(/[,;\t]/).map((p) => p.trim());
-      for (const part of parts) {
-        const clean = part.replace(/\D/g, "");
-        if (clean.length >= 10 && clean.length <= 15) {
-          const name = parts.find((p) => p !== part)?.trim() || `Contato`;
-          parsed.push({ name, phone: clean });
-          break;
-        }
-      }
-    }
-
-    if (parsed.length === 0) {
-      toast.error("Nenhum contato válido encontrado");
-      return;
-    }
-
-    cancelRef.current = false;
-    setSendingBulk(true);
-    setBulkProgress({ sent: 0, failed: 0, total: parsed.length });
-
-    let sent = 0;
-    let failed = 0;
-
-    for (let i = 0; i < parsed.length; i++) {
-      if (cancelRef.current) {
-        toast.info(`Envio cancelado. ${sent} enviados, ${failed} erros.`);
-        break;
-      }
-
-      const contact = parsed[i];
-      const personalizedMsg = message
-        .replace(/\{nome\}/g, contact.name)
-        .replace(/\{numero\}/g, contact.phone);
-
-      try {
-        if (templateName) {
-          const selectedTpl = selectedTemplate;
-          if (!selectedTpl) {
-            throw new Error("Template selecionado não é válido para o número remetente escolhido");
-          }
-          await metaInvoke({
-            action: "send_template",
-            phone: contact.phone,
-            template_name: selectedTpl.name,
-            language: selectedTpl.language || "pt_BR",
-            variables: variables.filter(Boolean),
-          });
-        } else {
-          await metaInvoke({
-            action: "send_text",
-            phone: contact.phone,
-            message: personalizedMsg,
-          });
-        }
-        sent++;
-      } catch (err) {
-        failed++;
-        console.error(`Erro para ${contact.phone}:`, err);
-      }
-
-      setBulkProgress({ sent, failed, total: parsed.length });
-
-      if (i < parsed.length - 1) {
-        await new Promise((r) => setTimeout(r, delay * 1000));
-      }
-    }
-
-    if (!cancelRef.current) {
-      toast.success(`Envio concluído! ✅ ${sent} enviados • ❌ ${failed} erros`);
-    }
-
-    setSendingBulk(false);
-    cancelRef.current = false;
-  };
+   const handleSendBulk = async () => {
+     if (!contacts.trim() || (!message.trim() && !templateName)) {
+       toast.error("Adicione contatos e uma mensagem ou template");
+       return;
+     }
+ 
+     const lines = contacts.split("\n").filter((l) => l.trim());
+     const parsed: { name: string; phone: string }[] = [];
+ 
+     for (const line of lines) {
+       const parts = line.split(/[,;\t]/).map((p) => p.trim());
+       for (const part of parts) {
+         const clean = part.replace(/\D/g, "");
+         if (clean.length >= 10 && clean.length <= 15) {
+           const name = parts.find((p) => p !== part)?.trim() || `Contato`;
+           parsed.push({ name, phone: clean });
+           break;
+         }
+       }
+     }
+ 
+     if (parsed.length === 0) {
+       toast.error("Nenhum contato válido encontrado");
+       return;
+     }
+ 
+     cancelRef.current = false;
+     setSendingBulk(true);
+     setBulkProgress({ sent: 0, failed: 0, total: parsed.length });
+ 
+     let sent = 0;
+     let failed = 0;
+ 
+     for (let i = 0; i < parsed.length; i++) {
+       if (cancelRef.current) {
+         toast.info(`Envio cancelado. ${sent} enviados, ${failed} erros.`);
+         break;
+       }
+ 
+       const contact = parsed[i];
+       const personalizedMsg = message
+         .replace(/\{nome\}/g, contact.name)
+         .replace(/\{numero\}/g, contact.phone);
+       
+       const processedVariables = variables.map(v => 
+         v.replace(/\{nome\}/g, contact.name)
+          .replace(/\{numero\}/g, contact.phone)
+       );
+ 
+       try {
+         if (templateName) {
+           const selectedTpl = selectedTemplate;
+           if (!selectedTpl) {
+             throw new Error("Template selecionado não é válido para o número remetente escolhido");
+           }
+           await metaInvoke({
+             action: "send_template",
+             phone: contact.phone,
+             template_name: selectedTpl.name,
+             language: selectedTpl.language || "pt_BR",
+             variables: processedVariables.filter(Boolean),
+           });
+         } else {
+           await metaInvoke({
+             action: "send_text",
+             phone: contact.phone,
+             message: personalizedMsg,
+           });
+         }
+         sent++;
+       } catch (err) {
+         failed++;
+         console.error(`Erro para ${contact.phone}:`, err);
+       }
+ 
+       setBulkProgress({ sent, failed, total: parsed.length });
+ 
+       if (i < parsed.length - 1) {
+         await new Promise((r) => setTimeout(r, delay * 1000));
+       }
+     }
+ 
+     if (!cancelRef.current) {
+       toast.success(`Envio concluído! ✅ ${sent} enviados • ❌ ${failed} erros`);
+     }
+ 
+     setSendingBulk(false);
+     cancelRef.current = false;
+   };
 
   /* ---------- template helpers ---------- */
   const getBodyVarCount = (tpl: MetaTemplate): number => {
@@ -485,14 +490,10 @@ export default function EnvioCloudAPI() {
 
       {/* Tabs */}
       <Tabs defaultValue="texto" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="texto" className="flex items-center gap-1 text-xs">
             <MessageSquare className="w-3.5 h-3.5" />
             Texto
-          </TabsTrigger>
-          <TabsTrigger value="template" className="flex items-center gap-1 text-xs">
-            <FileText className="w-3.5 h-3.5" />
-            Template
           </TabsTrigger>
           <TabsTrigger value="midia" className="flex items-center gap-1 text-xs">
             <Image className="w-3.5 h-3.5" />
