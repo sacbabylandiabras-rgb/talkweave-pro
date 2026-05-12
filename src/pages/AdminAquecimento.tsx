@@ -472,21 +472,22 @@ export default function AdminAquecimento() {
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
     try {
-      // Para instâncias de aquecimento (uazapi_warmup), tentamos desconectar primeiro
-      if (inst.evolution_api_url && (inst.evolution_api_key || inst.zapi_token)) {
+      // Para instâncias de aquecimento, tentamos remover do servidor UAZAPI primeiro
+      if (inst.evolution_api_key || inst.zapi_token) {
         try {
-          await supabase.functions.invoke("uazapi-disconnect", {
+          await supabase.functions.invoke("uazapi-create-instance", {
             body: { 
-              apiUrl: inst.evolution_api_url, 
-              apiToken: inst.evolution_api_key || inst.zapi_token 
+              action: "delete", 
+              instanceName: inst.instance_name,
+              instanceToken: inst.evolution_api_key || inst.zapi_token 
             },
           });
         } catch (e) {
-          console.warn("Falha ao desconectar no servidor UAZAPI antes de excluir (provavelmente já desconectada):", e);
+          console.warn("Falha ao remover no servidor UAZAPI (pode já estar removida):", e);
         }
       }
 
-      // Remove diretamente do banco de dados (o RLS deve permitir para administradores)
+      // Remove do banco de dados
       const { error: dbErr } = await supabase.from("zapi_instances").delete().eq("id", inst.id);
       
       if (dbErr) {
@@ -495,7 +496,7 @@ export default function AdminAquecimento() {
         return;
       }
 
-      toast.success("Instância removida com sucesso");
+      toast.success("Instância removida do servidor e do banco");
       loadInstances();
     } catch (err: any) {
       console.error("Erro ao remover:", err);
@@ -512,29 +513,37 @@ export default function AdminAquecimento() {
     setCreatingInst(true);
     
     try {
+      // 1. Criar a instância no servidor UAZAPI
+      const { data: remoteData, error: remoteError } = await supabase.functions.invoke("uazapi-create-instance", {
+        body: { instanceName: name }
+      });
+
+      if (remoteError || (remoteData as any)?.error) {
+        throw new Error((remoteData as any)?.error || remoteError?.message || "Erro ao criar no servidor UAZAPI");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Para instâncias de aquecimento, criamos o registro diretamente com o provedor correto
-      const { error } = await supabase
+      // 2. Salvar no banco de dados local
+      const { error: dbError } = await supabase
         .from("zapi_instances")
         .insert({
           user_id: user.id,
           instance_name: name,
           api_provider: "uazapi_warmup",
-          // Valores padrão para UAZAPI (zaplynx-uazapi-01)
           evolution_api_url: "https://zaplynx-uazapi-01.evolution-api.com",
-          evolution_api_key: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
-          zapi_token: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C", // Espelhado para compatibilidade
-          zapi_instance_id: name,
+          evolution_api_key: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
+          zapi_token: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
+          zapi_instance_id: (remoteData as any)?.instance?.instanceId || name,
           zapi_client_token: "zaplynx",
           is_active: true,
           is_default: false
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      toast.success("Instância de aquecimento criada com sucesso");
+      toast.success("Instância criada e provisionada no servidor!");
       setInstName("");
       setInstOpen(false);
       loadInstances();
