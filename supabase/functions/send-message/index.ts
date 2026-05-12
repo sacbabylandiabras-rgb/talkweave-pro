@@ -344,21 +344,39 @@ serve(async (req) => {
         body: JSON.stringify(body),
       });
 
-      // Fix: if /send-payment-pix returns 404, Z-API might expect /send-pix or something else
-      // but we should check if the endpoint itself was wrong based on the 404 response
-      if (response.status === 404 && endpoint === '/send-payment-pix') {
-        console.log(`🔄 Retrying with alternative endpoint /send-pix instead of /send-payment-pix`);
+      const data = await response.json().catch(() => ({}));
+      const explicitError = hasExplicitZapiError(data);
+      const confirmed = isZapiSendConfirmed(data);
+
+      // Retentativa automática para PIX caso o endpoint não seja suportado pela instância
+      if ((response.status === 404 || explicitError === "NOT_FOUND") && endpoint === '/send-payment-pix') {
+        console.log(`🔄 Retentativa: endpoint /send-payment-pix não encontrado. Tentando /send-pix...`);
         const retryResp = await fetch(`${baseUrl}/send-pix`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify(body),
         });
-        const data = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
+        
+        const retryData = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
         zapiResponse = retryResp;
-        return data;
+        return retryData;
       }
 
-      const data = await parseZapiResponse(response, resolvedPhone, instanceId, label);
+      // Se chegou aqui, processa a resposta normalmente ou lança erro
+      if (!response.ok || explicitError || !confirmed) {
+        console.log(`📬 Erro Z-API [${label}]: status=${response.status}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
+        throw new Response(
+          JSON.stringify({
+            error: explicitError || `Z-API não confirmou o recebimento da mensagem (${label})`,
+            details: data,
+          }),
+          {
+            status: response.ok ? 502 : response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
       // Update global zapiResponse for logging
       zapiResponse = response;
       return data;
