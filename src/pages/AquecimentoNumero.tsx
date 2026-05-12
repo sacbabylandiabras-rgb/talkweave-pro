@@ -101,20 +101,36 @@ export default function AquecimentoNumero() {
     window.dispatchEvent(new Event(WARMUP_CONFIG_EVENT));
   };
 
-  const syncServerControl = async (nextConfig: WarmupConfig) => {
-    const { data, error } = await supabase.functions.invoke("warmup-control", {
-      body: {
-        active: nextConfig.active,
-        runId: nextConfig.runId,
-        instanceIds: nextConfig.instanceIds,
-        minDelay: nextConfig.minDelay,
-        maxDelay: nextConfig.maxDelay,
-        dailyLimit: nextConfig.dailyLimit,
-      },
-    });
+   const syncServerControl = async (nextConfig: WarmupConfig, triggerRun = false) => {
+     const { data, error } = await supabase.functions.invoke("warmup-control", {
+       body: {
+         active: nextConfig.active,
+         runId: nextConfig.runId,
+         instanceIds: nextConfig.instanceIds,
+         minDelay: nextConfig.minDelay,
+         maxDelay: nextConfig.maxDelay,
+         dailyLimit: nextConfig.dailyLimit,
+       },
+     });
 
-    if (error) throw new Error("Não consegui sincronizar o controle do aquecimento");
-    if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao salvar controle");
+     if (error) throw new Error("Não consegui sincronizar o controle do aquecimento");
+     if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao salvar controle");
+
+     if (triggerRun && nextConfig.active) {
+       // Dispara o primeiro ciclo do motor de aquecimento imediatamente
+       supabase.functions.invoke("run-warmup", {
+         body: {
+           runId: nextConfig.runId,
+           instanceIds: nextConfig.instanceIds,
+           minDelay: nextConfig.minDelay,
+           maxDelay: nextConfig.maxDelay,
+           dailyLimit: nextConfig.dailyLimit,
+           mode: "tick",
+           batchSize: 1,
+         },
+       }).catch(console.error);
+     }
+   };
   };
 
   useEffect(() => {
@@ -180,10 +196,10 @@ export default function AquecimentoNumero() {
     setConfig(updated);
     persistConfig(updated);
 
-    try {
-      await syncServerControl(updated);
-      toast.success(updated.active ? "Aquecimento iniciado em ciclos contínuos" : "Aquecimento pausado");
-    } catch (err) {
+     try {
+       await syncServerControl(updated, true);
+       toast.success(updated.active ? "Aquecimento iniciado em ciclos contínuos" : "Aquecimento pausado");
+     } catch (err) {
       if (!updated.active) {
         toast.warning("Pausado nesta aba; o bloqueio do servidor será aplicado assim que sincronizar.");
         return;
