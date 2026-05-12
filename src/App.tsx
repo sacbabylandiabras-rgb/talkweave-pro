@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { WorkspaceProvider, WorkspaceRouteSync } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
@@ -138,6 +138,7 @@ const App = () => (
           <AppContent />
            <BrowserRouter>
              <Suspense fallback={null}>
+               <WorkspaceRouteSync />
                {isNative ? (
                  <Routes>
                  <Route path="/auth" element={<Auth />} />
