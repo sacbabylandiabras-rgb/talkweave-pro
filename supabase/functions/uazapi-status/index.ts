@@ -116,7 +116,24 @@ const pickFirstString = (...values: unknown[]) => {
            if (qrCode) console.log(`QR Code (prefix): ${qrCode.substring(0, 50)}`);
            if (pairingCode) console.log(`Pairing Code: ${pairingCode}`);
 
-           return new Response(JSON.stringify({ connected, status, qrCode, pairingCode }), {
+           const phone = pickFirstString(
+             data?.instance?.owner,
+             data?.instance?.jid,
+             data?.instance?.phone,
+             data?.status?.jid,
+             data?.jid,
+             data?.owner,
+             data?.phone
+           )?.split(':')[0];
+
+           const profileName = pickFirstString(
+             data?.instance?.profileName,
+             data?.profileName,
+             data?.instance?.name,
+             data?.name
+           );
+
+           return new Response(JSON.stringify({ connected, status, qrCode, pairingCode, phone, profileName }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         } catch (e) {
