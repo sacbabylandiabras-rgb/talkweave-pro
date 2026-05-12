@@ -880,15 +880,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
              )}
  
-           <Button 
-             variant="ghost" 
-             size="icon" 
-             className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto"
-             onClick={() => setShowDelete(true)}
-             title="Apagar Instância"
-           >
-             <Trash2 className="w-3.5 h-3.5" />
-           </Button>
         {/* Collections Dialog */}
         <Dialog open={showCollections} onOpenChange={setShowCollections}>
           <DialogContent className="sm:max-w-md">
