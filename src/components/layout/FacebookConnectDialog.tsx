@@ -137,20 +137,28 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
         origin: window.location.origin,
       });
 
-      const code = await requestWhatsAppEmbeddedSignupCode();
-      const { data, error } = await supabase.functions.invoke("meta-oauth-callback", {
-        body: {
-          code,
-          origin: window.location.origin,
-          state: statePayload,
-        },
-      });
+      if (META_EMBEDDED_SIGNUP_CONFIG_ID) {
+        const code = await requestWhatsAppEmbeddedSignupCode();
+        const { data, error } = await supabase.functions.invoke("meta-oauth-callback", {
+          body: {
+            code,
+            origin: window.location.origin,
+            state: statePayload,
+            redirectUri: `${window.location.origin}/meta-oauth-callback`,
+          },
+        });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
-      toast.success("Conta Facebook Business conectada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        toast.success("Conta Facebook Business conectada com sucesso!");
+        queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        onOpenChange(false);
+        setActiveWorkspace("meta");
+        setTimeout(() => navigate("/meta/dashboard"), 300);
+      } else {
+        await openLegacyFacebookPopup();
+      }
     } catch (err) {
       console.error("Meta embedded signup error:", err);
       toast.error(err instanceof Error ? err.message : "Não foi possível concluir a conexão com a Meta.");
