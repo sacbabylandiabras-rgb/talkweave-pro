@@ -37,7 +37,7 @@ const workspaces = [
   },
   {
     id: "meta" as WorkspaceType,
-    label: "Meta API Oficial",
+    label: "ZapLynx Oficial",
     description: "WhatsApp Business Platform",
     icon: Globe,
     color: "text-[#0668E1]",
