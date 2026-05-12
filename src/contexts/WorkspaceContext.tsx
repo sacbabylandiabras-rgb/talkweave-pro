@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 
 export type WorkspaceType = "zapi" | "meta" | "gateway";
 
@@ -26,6 +27,37 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("active_workspace", activeWorkspace);
   }, [activeWorkspace]);
+
+  // Auto-sync workspace with route so the sidebar matches the page being viewed
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname;
+    let next: WorkspaceType | null = null;
+    if (path.startsWith("/meta")) next = "meta";
+    else if (path.startsWith("/gateway-checkout")) next = "gateway";
+    else if (
+      path.startsWith("/dashboard") ||
+      path.startsWith("/mensagens") ||
+      path.startsWith("/dispositivos") ||
+      path.startsWith("/perfil-empresa") ||
+      path.startsWith("/etiquetas") ||
+      path.startsWith("/modelos") ||
+      path.startsWith("/fluxo-visual") ||
+      path.startsWith("/campanhas") ||
+      path.startsWith("/enviar-mensagem") ||
+      path.startsWith("/contatos") ||
+      path.startsWith("/relatorio") ||
+      path.startsWith("/apanhador-grupos") ||
+      path.startsWith("/criar-grupos") ||
+      path.startsWith("/comunidades") ||
+      path.startsWith("/canais") ||
+      path.startsWith("/campanhas-grupo") ||
+      path.startsWith("/fluxo-grupos") ||
+      path.startsWith("/agente-ia") ||
+      path.startsWith("/aquecimento")
+    ) next = "zapi";
+    if (next && next !== activeWorkspace) setActiveWorkspace(next);
+  }, [location.pathname]);
 
   const workspaceLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API Oficial" : "ZapLynx";
 
