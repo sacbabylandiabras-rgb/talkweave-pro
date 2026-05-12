@@ -3258,7 +3258,31 @@ const getPreviewFileLabel = (template: any) => {
                       </div>
                     );
                   })()
-                ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
+                 ) : (previewTemplate.type === 'meta_template' || (typeof previewTemplate.content === 'string' && previewTemplate.content.startsWith(SPECIAL_TEMPLATE_PREFIX) && parseSpecialContent(previewTemplate.content)?.type === 'meta_template')) ? (
+                   (() => {
+                     const special = parseSpecialContent(previewTemplate.content || '') || {};
+                     return (
+                       <div className="flex justify-end">
+                         <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm overflow-hidden">
+                           <div className="px-3 py-2 space-y-2">
+                             <div className="flex items-center gap-2 pb-1 border-b border-border/30">
+                               <FileCheck className="w-4 h-4 text-emerald-600" />
+                               <p className="text-xs font-semibold text-foreground">Template Meta API</p>
+                             </div>
+                             <p className="text-sm font-bold text-foreground font-mono">{special.templateName || 'Template'}</p>
+                             <Badge variant="outline" className="text-[10px]">{special.language || 'pt_BR'}</Badge>
+                             {special.description && (
+                               <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed border-t border-border/10 pt-2">{special.description}</p>
+                             )}
+                           </div>
+                           <div className="bg-emerald-500/10 text-center py-2 text-[10px] text-emerald-600 font-medium border-t border-border/20">
+                             ENVIADO VIA API OFICIAL
+                           </div>
+                         </div>
+                       </div>
+                     );
+                   })()
+                 ) : previewTemplate.type === 'carrossel' && Array.isArray(previewTemplate.carouselCards) && previewTemplate.carouselCards.length > 0 ? (
                   <div className="flex flex-col gap-2 items-end">
                     {previewTemplate.content && (
                       <div className="bg-[hsl(142,70%,90%)] dark:bg-[hsl(142,30%,25%)] rounded-lg rounded-tr-none max-w-[85%] shadow-sm px-3 py-2">
