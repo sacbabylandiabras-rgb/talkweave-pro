@@ -214,7 +214,7 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups";
+  mode?: "contacts" | "groups" | "meta";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
