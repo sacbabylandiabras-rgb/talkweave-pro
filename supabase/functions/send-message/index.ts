@@ -343,7 +343,40 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
         body: JSON.stringify(body),
       });
-      const data = await parseZapiResponse(response, resolvedPhone, instanceId, label);
+
+      const data = await response.json().catch(() => ({}));
+      const explicitError = hasExplicitZapiError(data);
+      const confirmed = isZapiSendConfirmed(data);
+
+      // Retentativa automática para PIX caso o endpoint não seja suportado pela instância
+      if ((response.status === 404 || explicitError === "NOT_FOUND") && endpoint === '/send-payment-pix') {
+        console.log(`🔄 Retentativa: endpoint /send-payment-pix não encontrado. Tentando /send-pix...`);
+        const retryResp = await fetch(`${baseUrl}/send-pix`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+          body: JSON.stringify(body),
+        });
+        
+        const retryData = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
+        zapiResponse = retryResp;
+        return retryData;
+      }
+
+      // Se chegou aqui, processa a resposta normalmente ou lança erro
+      if (!response.ok || explicitError || !confirmed) {
+        console.log(`📬 Erro Z-API [${label}]: status=${response.status}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`);
+        throw new Response(
+          JSON.stringify({
+            error: explicitError || `Z-API não confirmou o recebimento da mensagem (${label})`,
+            details: data,
+          }),
+          {
+            status: response.ok ? 502 : response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
       // Update global zapiResponse for logging
       zapiResponse = response;
       return data;
@@ -566,12 +599,13 @@ serve(async (req) => {
         });
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'gateway-billing-otp');
       } else {
-      const pixPayload: any = {
-        phone: resolvedPhone,
+        const pixPayload: any = {
+          phone: resolvedPhone,
           pixKey: specialPayload.pixKey || specialPayload.paymentReceiver || '',
-        type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(),
-        merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
-      };
+          // Ensure type is uppercase and valid (e.g. CPF, CNPJ, EMAIL, PHONE, EVP)
+          type: String(specialPayload.pixKeyType || specialPayload.type || 'cpf').toUpperCase(),
+          merchantName: (specialPayload.merchantName || specialPayload.recipientName || '').slice(0, 25),
+        };
         if (amountReais) pixPayload.value = amountReais;
       if (specialPayload.city) pixPayload.city = specialPayload.city.slice(0, 15);
         if (description) pixPayload.description = description;

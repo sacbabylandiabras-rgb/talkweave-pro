@@ -1011,9 +1011,27 @@ const ChatView = ({
           };
 
           if (isPix || isLocation || isContact) {
-            await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
-            incrementUsage(template.id);
-            toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            // Use standard sendMessage to avoid circular reference, 
+            // ensuring we pass the correct payload structure for special types
+            // Special case for PIX: value must be a number
+            if (isPix && (specialData.amount || specialData.pixAmount)) {
+              const amt = specialData.amount || specialData.pixAmount;
+              specialData.amount = Number(String(amt).replace(',', '.'));
+            }
+            
+            const effectiveMessage = specialData.description || specialData.text || template.content;
+            try {
+              await onSendMessage(conversation.phone, effectiveMessage, sendOptions);
+              incrementUsage(template.id);
+              toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            } catch (err: any) {
+              console.error("Erro no callback onSendMessage:", err);
+              toast({ 
+                title: "Erro no envio", 
+                description: err.message || "Erro desconhecido ao enviar o modelo.", 
+                variant: "destructive" 
+              });
+            }
             setSending(false);
             return;
           }
