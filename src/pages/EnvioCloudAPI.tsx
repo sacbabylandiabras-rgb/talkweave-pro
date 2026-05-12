@@ -485,14 +485,10 @@ export default function EnvioCloudAPI() {
 
       {/* Tabs */}
       <Tabs defaultValue="texto" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="texto" className="flex items-center gap-1 text-xs">
             <MessageSquare className="w-3.5 h-3.5" />
             Texto
-          </TabsTrigger>
-          <TabsTrigger value="template" className="flex items-center gap-1 text-xs">
-            <FileText className="w-3.5 h-3.5" />
-            Template
           </TabsTrigger>
           <TabsTrigger value="midia" className="flex items-center gap-1 text-xs">
             <Image className="w-3.5 h-3.5" />
