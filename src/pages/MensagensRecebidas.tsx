@@ -951,33 +951,58 @@ const ChatView = ({
       return;
     }
 
-    const templateButtonActions = (template.buttons || []).map((button, index) => {
-      const rawType = (button.type || 'reply').toString().toLowerCase();
-      return {
-        id: button.id || String(index + 1),
-        label: button.text || `Botão ${index + 1}`,
-        type: (rawType === 'url' ? 'URL' : rawType === 'call' ? 'CALL' : 'REPLY') as 'CALL' | 'URL' | 'REPLY',
-        ...(rawType === 'url' ? { url: button.value } : {}),
-        ...(rawType === 'call' ? { phone: button.value } : {}),
-      };
-    }).filter((button) => button.label && (button.type === 'REPLY' || button.url || button.phone));
-    
     // If template has special fields (PIX, location, etc), it contains a JSON payload
     const SPECIAL_PREFIX = "__SPECIAL_TEMPLATE__:";
     const isSpec = typeof template.content === 'string' && template.content.startsWith(SPECIAL_PREFIX);
-    
+
+    let specialData: any = null;
+    if (isSpec) {
+      try {
+        specialData = JSON.parse(template.content.slice(SPECIAL_PREFIX.length));
+      } catch (e) {}
+    }
+
+    const rawButtons = template.buttons || [];
+    const templateButtonActions = rawButtons.map((button, index) => {
+      const rawType = (button.type || 'reply').toString().toLowerCase();
+      let type: 'REPLY' | 'URL' | 'CALL' | 'COPY' = 'REPLY';
+      if (rawType === 'url') type = 'URL';
+      else if (rawType === 'call') type = 'CALL';
+      else if (rawType === 'copy') type = 'COPY';
+
+      return {
+        id: button.id || String(index + 1),
+        label: button.text || `Botão ${index + 1}`,
+        type,
+        ...(type === 'URL' ? { url: button.value } : {}),
+        ...(type === 'CALL' ? { phone: button.value } : {}),
+        ...(type === 'COPY' ? { copyText: button.value } : {}),
+      };
+    });
+
+    // If it's a copy_paste special template, ensure it has a copy button
+    if (specialData?.type === 'copia_cola' && !templateButtonActions.some(b => b.type === 'COPY')) {
+      templateButtonActions.push({
+        id: 'copy_btn',
+        type: 'COPY' as const,
+        label: specialData.buttonLabel || 'Copiar',
+        copyText: specialData.copyText || specialData.description || '',
+      });
+    }
+
+    const filteredButtonActions = templateButtonActions.filter((button) => 
+      button.label && (button.type === 'REPLY' || button.url || button.phone || (button as any).copyText)
+    );
+
     if (isSpec) {
       if (!conversation) return;
       setSending(true);
       try {
-        let specialData: any = null;
-        try {
-          specialData = JSON.parse(template.content.slice(SPECIAL_PREFIX.length));
-        } catch (e) {
-          console.error("Erro ao fazer parse de template especial:", e);
-        }
-
         if (specialData) {
+          const isPix = specialData.type === 'pix' || specialData.type === 'gateway_billing';
+          const isLocation = specialData.type === 'localizacao';
+          const isContact = specialData.type === 'contato';
+
           const sendOptions: any = {
             specialType: specialData.type,
             specialPayload: specialData,
@@ -985,17 +1010,20 @@ const ChatView = ({
             templateId: template.id,
           };
 
-          await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
-          incrementUsage(template.id);
-          toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+          if (isPix || isLocation || isContact) {
+            await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
+            incrementUsage(template.id);
+            toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            setSending(false);
+            return;
+          }
         }
       } catch (err: any) {
         console.error("Erro ao enviar template especial:", err);
         toast({ title: "Erro", description: err.message || "Falha ao enviar modelo.", variant: "destructive" });
-      } finally {
         setSending(false);
+        return;
       }
-      return;
     }
 
     // If template has media, send directly
@@ -1017,10 +1045,8 @@ const ChatView = ({
           templateId: template.id,
         };
 
-        if (templateButtonActions.length > 0) {
-          // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
-          // together in the same bubble as the text/media.
-          sendOptions.buttonActions = templateButtonActions;
+        if (filteredButtonActions.length > 0) {
+          sendOptions.buttonActions = filteredButtonActions;
         }
 
         await onSendMessage(conversation.phone, template.content, sendOptions);
@@ -1031,17 +1057,15 @@ const ChatView = ({
       } finally {
         setSending(false);
       }
-    } else if (templateButtonActions.length > 0) {
+    } else if (filteredButtonActions.length > 0) {
       if (!conversation) return;
       setSending(true);
       try {
-        // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
-        // together in the same bubble as the text.
         await onSendMessage(conversation.phone, template.content, {
           preferredInstanceId: conversation.preferredInstanceId,
           title: template.header || undefined,
           footer: template.footer || undefined,
-          buttonActions: templateButtonActions,
+          buttonActions: filteredButtonActions,
           templateId: template.id,
         });
         incrementUsage(template.id);
