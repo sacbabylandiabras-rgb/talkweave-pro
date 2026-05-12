@@ -1014,8 +1014,9 @@ const ChatView = ({
             // Use standard sendMessage to avoid circular reference, 
             // ensuring we pass the correct payload structure for special types
             // Special case for PIX: value must be a number
-            if (isPix && specialData.amount) {
-              specialData.amount = Number(String(specialData.amount).replace(',', '.'));
+            if (isPix && (specialData.amount || specialData.pixAmount)) {
+              const amt = specialData.amount || specialData.pixAmount;
+              specialData.amount = Number(String(amt).replace(',', '.'));
             }
             
             const effectiveMessage = specialData.description || specialData.text || template.content;
