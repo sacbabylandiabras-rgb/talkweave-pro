@@ -679,7 +679,7 @@ const SpecialFieldsEditor = ({
        return (
          <div className="space-y-4 border rounded-xl p-4 bg-emerald-500/5 border-emerald-500/20">
            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
-             <FileCheck className="w-5 h-5" /> Modelo da Meta API
+            <FileCheck className="w-5 h-5" /> Modelo Oficial
            </div>
            <div className="space-y-2">
              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome do Template na Meta *</Label>
@@ -3273,7 +3273,7 @@ const getPreviewFileLabel = (template: any) => {
                            <div className="px-3 py-2 space-y-2">
                              <div className="flex items-center gap-2 pb-1 border-b border-border/30">
                                <FileCheck className="w-4 h-4 text-emerald-600" />
-                               <p className="text-xs font-semibold text-foreground">Template Meta API</p>
+                              <p className="text-xs font-semibold text-foreground">Template Oficial</p>
                              </div>
                              <p className="text-sm font-bold text-foreground font-mono">{special.templateName || 'Template'}</p>
                              <Badge variant="outline" className="text-[10px]">{special.language || 'pt_BR'}</Badge>

@@ -201,7 +201,7 @@ export default function ConfiguracaoMeta() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Configuração Meta API</h1>
+        <h1 className="text-2xl font-bold text-foreground">Configuração</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Configure suas credenciais da API oficial do WhatsApp Business
         </p>
