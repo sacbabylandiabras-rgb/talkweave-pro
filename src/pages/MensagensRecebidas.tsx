@@ -1011,7 +1011,10 @@ const ChatView = ({
           };
 
           if (isPix || isLocation || isContact) {
-            await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
+            // Use standard sendMessage to avoid circular reference, 
+            // ensuring we pass the correct payload structure for special types
+            const effectiveMessage = specialData.description || specialData.text || template.content;
+            await onSendMessage(conversation.phone, effectiveMessage, sendOptions);
             incrementUsage(template.id);
             toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
             setSending(false);
