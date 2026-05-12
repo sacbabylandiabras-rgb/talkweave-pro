@@ -350,16 +350,40 @@ serve(async (req) => {
 
       // Retentativa automática para PIX caso o endpoint não seja suportado pela instância
       if ((response.status === 404 || explicitError === "NOT_FOUND") && endpoint === '/send-payment-pix') {
-        console.log(`🔄 Retentativa: endpoint /send-payment-pix não encontrado. Tentando /send-pix...`);
-        const retryResp = await fetch(`${baseUrl}/send-pix`, {
+        const fallbacks = ['/send-payment-pix-key', '/send-pix'];
+        for (const fb of fallbacks) {
+          console.log(`🔄 Retentativa PIX: tentando ${fb}...`);
+          const retryResp = await fetch(`${baseUrl}${fb}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+            body: JSON.stringify(body),
+          });
+          const retryJson = await retryResp.clone().json().catch(() => ({}));
+          const retryErr = hasExplicitZapiError(retryJson);
+          if (retryResp.status === 404 || retryErr === 'NOT_FOUND') {
+            continue;
+          }
+          const retryData = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
+          zapiResponse = retryResp;
+          return retryData;
+        }
+        // Fallback final: enviar como mensagem de texto com a chave PIX
+        console.log(`⚠️ Endpoints PIX indisponíveis. Enviando como texto.`);
+        const pixText = [
+          body.message || body.description || '💰 Pagamento via PIX',
+          '',
+          `Chave PIX (${body.type || ''}): ${body.pixKey || ''}`,
+          body.value ? `Valor: R$ ${Number(body.value).toFixed(2).replace('.', ',')}` : '',
+          body.merchantName ? `Recebedor: ${body.merchantName}` : '',
+        ].filter(Boolean).join('\n');
+        const txtResp = await fetch(`${baseUrl}/send-text`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ phone: resolvedPhone, message: pixText }),
         });
-        
-        const retryData = await parseZapiResponse(retryResp, resolvedPhone, instanceId, label);
-        zapiResponse = retryResp;
-        return retryData;
+        const txtData = await parseZapiResponse(txtResp, resolvedPhone, instanceId, `${label}-text-fallback`);
+        zapiResponse = txtResp;
+        return txtData;
       }
 
       // Se chegou aqui, processa a resposta normalmente ou lança erro
