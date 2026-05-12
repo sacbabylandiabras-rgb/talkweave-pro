@@ -46,6 +46,7 @@ export function SelectContactsDialog({
   mode = "contacts",
 }: SelectContactsDialogProps) {
   const isGroupsMode = mode === "groups";
+  const isMetaMode = mode === "meta";
   const { contacts, loading } = useContacts();
   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups(
     isGroupsMode ? {} : undefined
