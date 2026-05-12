@@ -49,6 +49,7 @@ const PoliticaPrivacidade = lazyWithRecovery(() => import("./pages/PoliticaPriva
 const PreviewApp = lazyWithRecovery(() => import("./pages/PreviewApp"));
 const CustomInputPage = lazyWithRecovery(() => import("./pages/CustomInputPage"));
 const TermosServico = lazyWithRecovery(() => import("./pages/TermosServico"));
+const ExclusaoDados = lazyWithRecovery(() => import("./pages/ExclusaoDados"));
 const MetaOAuthCallback = lazyWithRecovery(() => import("./pages/MetaOAuthCallback"));
 const ShopifyOAuthCallback = lazyWithRecovery(() => import("./pages/ShopifyOAuthCallback"));
 const ShopifyEmbedded = lazyWithRecovery(() => import("./pages/ShopifyEmbedded"));
@@ -143,6 +144,7 @@ const App = () => (
                  <Route path="/login" element={<Auth />} />
                    <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                    <Route path="/termos-servico" element={<TermosServico />} />
+                   <Route path="/exclusao-dados" element={<ExclusaoDados />} />
                    <Route path="*" element={<NativeAppLayout />} />
                  </Routes>
                ) : (
@@ -150,10 +152,11 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/preview-app" element={<PreviewApp />} />
-                 <Route path="/aplicativo" element={<CustomInputPage />} />
-                 <Route path="/aplicativo/index.html" element={<CustomInputPage />} />
-                <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
+                 <Route path="/preview-app" element={<PreviewApp />} />
+                  <Route path="/aplicativo" element={<CustomInputPage />} />
+                  <Route path="/aplicativo/index.html" element={<CustomInputPage />} />
+                 <Route path="/exclusao-dados" element={<ExclusaoDados />} />
+                 <Route path="/meta-oauth-callback" element={<MetaOAuthCallback />} />
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
                 <Route path="/shopify/embedded" element={<ShopifyEmbedded />} />
