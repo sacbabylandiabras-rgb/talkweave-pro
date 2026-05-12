@@ -346,10 +346,17 @@ async function sendNodeContentMeta(
   userId: string,
   flowName: string
 ): Promise<boolean> {
+  if (targetNode.type !== 'blocoConteudo') return false
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  if (targetNode.type !== 'blocoConteudo') return false
+  // Handle delay before sending content
+  const delaySeconds = Number(targetNode.data.delaySeconds || 0)
+  if (delaySeconds > 0) {
+    const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
+    console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
+    await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+  }
 
   const contentType = targetNode.data.contentType || 'text'
   const content = targetNode.data.content || ''
@@ -443,13 +450,30 @@ async function sendNodeContentMeta(
     throw e
   }
 
-  // Check if node has button edges (should pause for user response)
+  // Check if node has button edges or capture (should pause for user response)
   const hasButtonEdges = buttons.some((_btn, idx) => {
-    return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+    const aliases = [
+      `button-${idx}`,
+      `button_${idx}`,
+      `btn-${idx}`,
+      `btn_${idx}`,
+      `button-${idx + 1}`,
+      `button_${idx + 1}`,
+      `btn-${idx + 1}`,
+      `btn_${idx + 1}`,
+    ]
+    return edges.some(e => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")))
   })
 
-  if (hasButtonEdges) {
-    console.log(`[webhook-meta] Node ${targetNode.id} has button edges — waiting for user response`)
+  const hasCapture = Boolean(
+    targetNode.data.collectName ||
+    targetNode.data.collectWhatsapp ||
+    targetNode.data.collectEmail ||
+    edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"))
+  )
+
+  if (hasButtonEdges || hasCapture) {
+    console.log(`[webhook-meta] Node ${targetNode.id} has button edges or capture — waiting for user response`)
     return true
   }
 
@@ -504,9 +528,22 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoAcao') {
+      const isActionDelay = targetNode.type === 'blocoAcao' && targetNode.data.actionType === 'delay'
+      
+      if (isActionDelay) {
+        const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0
+        if (seconds > 0) {
+          const safeSeconds = Math.min(seconds, 50)
+          console.log(`[webhook-meta] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`)
+          await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000))
+        }
+      }
+
+      if (targetNode.type === 'blocoConteudo') {
       const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
       if (shouldStop) continue
+      }
     }
 
     await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName)
