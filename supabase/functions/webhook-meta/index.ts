@@ -127,6 +127,20 @@ serve(async (req) => {
               }
 
                console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId}`)
+ 
+               // Update profile name/contact name if available
+               if (contactName && userId) {
+                 try {
+                   await supabase.from('saved_contacts').upsert({
+                     user_id: userId,
+                     phone: fromPhone,
+                     name: contactName,
+                     updated_at: new Date().toISOString()
+                   }, { onConflict: 'user_id,phone' })
+                 } catch (contactErr) {
+                   console.error('[webhook-meta] Error updating saved_contact:', contactErr)
+                 }
+               }
 
               // Log the received message
               await supabase.from('message_logs').insert({
