@@ -978,6 +978,10 @@ const ChatView = ({
         }
 
         if (specialData) {
+          const isPix = specialData.type === 'pix' || specialData.type === 'gateway_billing';
+          const isLocation = specialData.type === 'localizacao';
+          const isContact = specialData.type === 'contato';
+          
           const sendOptions: any = {
             specialType: specialData.type,
             specialPayload: specialData,
@@ -985,9 +989,15 @@ const ChatView = ({
             templateId: template.id,
           };
 
-          await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
-          incrementUsage(template.id);
-          toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+          // Only use native special sending for truly native types. 
+          // For others (copy_paste, etc), send via buttonActions below.
+          if (isPix || isLocation || isContact) {
+            await onSendMessage(conversation.phone, specialData.description || template.content, sendOptions);
+            incrementUsage(template.id);
+            toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+            setSending(false);
+            return;
+          }
         }
       } catch (err: any) {
         console.error("Erro ao enviar template especial:", err);
