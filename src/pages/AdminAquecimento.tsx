@@ -472,28 +472,34 @@ export default function AdminAquecimento() {
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
     try {
-      const { data: delData, error: delErr } = await supabase.functions.invoke("uazapi-create-instance", {
-        body: { action: "delete", instanceToken: inst.zapi_token },
-      });
-      if (delErr) {
-        console.error("Erro ao remover na UAZAPI:", delErr);
-        toast.error("Falha ao remover no servidor: " + delErr.message);
-        return;
+      // Para instâncias de aquecimento (uazapi_warmup), tentamos desconectar primeiro
+      if (inst.evolution_api_url && (inst.evolution_api_key || inst.zapi_token)) {
+        try {
+          await supabase.functions.invoke("uazapi-disconnect", {
+            body: { 
+              apiUrl: inst.evolution_api_url, 
+              apiToken: inst.evolution_api_key || inst.zapi_token 
+            },
+          });
+        } catch (e) {
+          console.warn("Falha ao desconectar no servidor UAZAPI antes de excluir (provavelmente já desconectada):", e);
+        }
       }
-      if ((delData as any)?.error) {
-        console.error("Erro UAZAPI:", (delData as any).error);
-        toast.error((delData as any).error);
-        return;
-      }
+
+      // Remove diretamente do banco de dados (o RLS deve permitir para administradores)
       const { error: dbErr } = await supabase.from("zapi_instances").delete().eq("id", inst.id);
+      
       if (dbErr) {
-        toast.error("Removida no servidor, mas falhou no banco: " + dbErr.message);
+        console.error("Erro ao remover do banco:", dbErr);
+        toast.error("Erro ao remover do banco: " + dbErr.message);
         return;
       }
-      toast.success("Instância removida do servidor e do banco");
+
+      toast.success("Instância removida com sucesso");
       loadInstances();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao remover");
+      console.error("Erro ao remover:", err);
+      toast.error(err.message || "Erro inesperado ao remover");
     }
   };
 
