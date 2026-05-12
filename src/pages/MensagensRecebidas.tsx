@@ -1045,10 +1045,8 @@ const ChatView = ({
           templateId: template.id,
         };
 
-        if (templateButtonActions.length > 0) {
-          // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
-          // together in the same bubble as the text/media.
-          sendOptions.buttonActions = templateButtonActions;
+        if (filteredButtonActions.length > 0) {
+          sendOptions.buttonActions = filteredButtonActions;
         }
 
         await onSendMessage(conversation.phone, template.content, sendOptions);
@@ -1059,17 +1057,15 @@ const ChatView = ({
       } finally {
         setSending(false);
       }
-    } else if (templateButtonActions.length > 0) {
+    } else if (filteredButtonActions.length > 0) {
       if (!conversation) return;
       setSending(true);
       try {
-        // Always use buttonActions so ALL buttons (REPLY/URL/CALL) render
-        // together in the same bubble as the text.
         await onSendMessage(conversation.phone, template.content, {
           preferredInstanceId: conversation.preferredInstanceId,
           title: template.header || undefined,
           footer: template.footer || undefined,
-          buttonActions: templateButtonActions,
+          buttonActions: filteredButtonActions,
           templateId: template.id,
         });
         incrementUsage(template.id);
