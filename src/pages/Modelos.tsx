@@ -1863,8 +1863,9 @@ const getPreviewFileLabel = (template: any) => {
                        <SelectItem value="status_pedido">status do pedido</SelectItem>
                         <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
                         <SelectItem value="pagamento">solicitar pagamento</SelectItem>
-                        <SelectItem value="status">Status (Stories)</SelectItem>
-                        <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
+                   <SelectItem value="status">Status (Stories)</SelectItem>
+                   <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
+                   <SelectItem value="meta_template">template meta api</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
