@@ -7,8 +7,8 @@ const corsHeaders = {
 };
 
  const DEFAULT_APP_ORIGIN = "https://zaplynx.com";
- const WHATSAPP_META_APP_ID = "26985190684454065";
- const INSTAGRAM_META_APP_ID = "26985190684454065";
+ const WHATSAPP_META_APP_ID = "1476628750280487";
+ const INSTAGRAM_META_APP_ID = "2389544344842071";
 const CALLBACK_PATH = "/functions/v1/meta-oauth-callback";
 
 type OAuthRequestBody = {
