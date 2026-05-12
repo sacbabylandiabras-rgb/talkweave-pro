@@ -38,7 +38,10 @@ export default function MetaOAuthCallback() {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          const functionMessage = await getEdgeFunctionErrorMessage(error);
+          throw new Error(functionMessage || error.message);
+        }
         if (data?.error) throw new Error(data.error);
 
         setStatus("success");
@@ -100,4 +103,17 @@ export default function MetaOAuthCallback() {
       </section>
     </main>
   );
+}
+
+async function getEdgeFunctionErrorMessage(error: unknown) {
+  const context = (error as { context?: Response })?.context;
+
+  if (!context?.clone) return null;
+
+  try {
+    const payload = await context.clone().json();
+    return typeof payload?.error === "string" ? payload.error : null;
+  } catch {
+    return null;
+  }
 }
