@@ -98,6 +98,8 @@ type SendMessageOptions = {
     buttons?: Array<{ id?: string; text?: string; type?: string; value?: string }>;
   }>;
   templateId?: string;
+  specialType?: string;
+  specialPayload?: any;
 };
 
 const isRealInboundKeyword = (keyword?: string | null) => {
@@ -1330,6 +1332,8 @@ export const useMessageLogs = (
     if (options.buttonActions?.length) body.buttonActions = options.buttonActions;
     if (options.carouselCards?.length) body.carouselCards = options.carouselCards;
     if (options.templateId) body.templateId = options.templateId;
+    if (options.specialType) body.specialType = options.specialType;
+    if (options.specialPayload) body.specialPayload = options.specialPayload;
     if (options.preferredInstanceId) {
       body.instanceId = options.preferredInstanceId;
     } else if (filterInstanceId && filterInstanceId !== 'all') {
