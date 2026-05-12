@@ -88,6 +88,12 @@ const AdminZapLynx = () => {
 
   // KYC
   const { queue: kycQueue, loading: kycLoading, approveKyc, rejectKyc, refetch: refetchKyc } = useAdminKycQueue();
+
+  // Account activation
+  const [activationEmail, setActivationEmail] = useState("");
+  const [activationUser, setActivationUser] = useState<UserProfile | null>(null);
+  const [activationLoading, setActivationLoading] = useState(false);
+  const [activationSubmitting, setActivationSubmitting] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [kycProcessing, setKycProcessing] = useState(false);
   const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
