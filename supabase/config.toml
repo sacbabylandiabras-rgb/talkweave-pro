@@ -5,6 +5,9 @@
  [functions.webhook-meta-v2]
  verify_jwt = false
 
+[functions.manage-meta-app]
+verify_jwt = false
+
 [functions.send-period-reports]
 verify_jwt = false
 
