@@ -129,8 +129,8 @@ const parseSpecialContent = (content: string): any | null => {
 
 const isSpecialType = (type?: string): boolean =>
    type === "pix" || type === "localizacao" || type === "contato" || type === "copia_cola"
-      || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "multiplos_contatos"
-    || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status";
+       || type === "poll" || type === "sticker" || type === "gif" || type === "link" || type === "produto" || type === "multiplos_contatos"
+     || type === "evento" || type === "status_pedido" || type === "pagamento_pedido" || type === "pagamento" || type === "gateway_billing" || type === "status" || type === "meta_template";
 
 const getDisplayContent = (template: any): string => {
   const content = template?.content || "";
