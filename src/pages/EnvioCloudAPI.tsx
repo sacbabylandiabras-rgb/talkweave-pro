@@ -398,7 +398,7 @@ export default function EnvioCloudAPI() {
     return (
       <div className="space-y-6 max-w-3xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Enviar via Meta API</h1>
+          <h1 className="text-2xl font-bold text-foreground">Envio Oficial</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Envie mensagens utilizando a API oficial do WhatsApp Business
           </p>
@@ -420,7 +420,7 @@ export default function EnvioCloudAPI() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-foreground">Enviar via Meta API</h1>
+        <h1 className="text-lg font-semibold text-foreground">Envio Oficial</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
           Envie mensagens utilizando a API oficial do WhatsApp Business (Graph API v21.0)
         </p>
