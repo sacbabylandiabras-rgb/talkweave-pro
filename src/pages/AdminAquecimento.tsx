@@ -512,29 +512,37 @@ export default function AdminAquecimento() {
     setCreatingInst(true);
     
     try {
+      // 1. Criar a instância no servidor UAZAPI
+      const { data: remoteData, error: remoteError } = await supabase.functions.invoke("uazapi-create-instance", {
+        body: { instanceName: name }
+      });
+
+      if (remoteError || (remoteData as any)?.error) {
+        throw new Error((remoteData as any)?.error || remoteError?.message || "Erro ao criar no servidor UAZAPI");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Para instâncias de aquecimento, criamos o registro diretamente com o provedor correto
-      const { error } = await supabase
+      // 2. Salvar no banco de dados local
+      const { error: dbError } = await supabase
         .from("zapi_instances")
         .insert({
           user_id: user.id,
           instance_name: name,
           api_provider: "uazapi_warmup",
-          // Valores padrão para UAZAPI (zaplynx-uazapi-01)
           evolution_api_url: "https://zaplynx-uazapi-01.evolution-api.com",
-          evolution_api_key: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
-          zapi_token: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C", // Espelhado para compatibilidade
-          zapi_instance_id: name,
+          evolution_api_key: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
+          zapi_token: (remoteData as any)?.hash?.apikey || "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
+          zapi_instance_id: (remoteData as any)?.instance?.instanceId || name,
           zapi_client_token: "zaplynx",
           is_active: true,
           is_default: false
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      toast.success("Instância de aquecimento criada com sucesso");
+      toast.success("Instância criada e provisionada no servidor!");
       setInstName("");
       setInstOpen(false);
       loadInstances();
