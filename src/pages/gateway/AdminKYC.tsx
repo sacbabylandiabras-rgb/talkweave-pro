@@ -217,15 +217,22 @@ export default function AdminKYC() {
               </CardContent>
             </Card>
 
-            <h3 className="font-semibold text-sm">Documentos Enviados</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url },
-                { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url },
-                { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url },
-                { label: "Cartão CNPJ", icon: Building2, url: (selectedKyc?.business_data as any)?.cnpj_doc_url as string | undefined },
-              ].map((doc) => {
-                const signed = getSignedUrl(doc.url);
+             <div className="flex items-center justify-between">
+               <h3 className="font-semibold text-sm">Documentos Enviados</h3>
+               {(selectedKyc?.business_data as any)?.kyc_type && (
+                 <Badge variant="outline" className="border-[#a78bfa] text-[#a78bfa]">
+                   {(selectedKyc?.business_data as any).kyc_type === "pj" ? "Pessoa Jurídica (PJ)" : "Pessoa Física (PF)"}
+                 </Badge>
+               )}
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               {[
+                 { label: "Selfie com Documento", icon: Camera, url: selectedKyc?.selfie_url, show: true },
+                 { label: "Documento (Frente)", icon: CreditCard, url: selectedKyc?.doc_front_url, show: true },
+                 { label: "Documento (Verso)", icon: CreditCard, url: selectedKyc?.doc_back_url, show: true },
+                 { label: "Cartão CNPJ", icon: Building2, url: (selectedKyc?.business_data as any)?.cnpj_doc_url as string | undefined, show: (selectedKyc?.business_data as any)?.kyc_type !== "pf" },
+               ].filter(d => d.show).map((doc) => {
+                 const signed = getSignedUrl(doc.url);
                 const isPdf = !!doc.url && /\.pdf($|\?)/i.test(doc.url);
                 return (
                   <Card key={doc.label} className="border-[#2A2A2A] overflow-hidden">
