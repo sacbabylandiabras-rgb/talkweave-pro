@@ -23,7 +23,7 @@ interface MetaPhoneNumber {
   code_verification_status?: string;
 }
 
-const WHATSAPP_META_APP_ID = "1629147191696096";
+ const WHATSAPP_META_APP_ID = "26985190684454065";
 
 export default function ConfiguracaoMeta() {
   const { data: creds, isLoading } = useMetaCredentials(WHATSAPP_META_APP_ID);
@@ -87,7 +87,7 @@ export default function ConfiguracaoMeta() {
     }
   }, [isConnected, creds?.access_token, creds?.waba_id]);
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta`;
+   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/webhook-meta-v2`;
   const verifyToken = "zaplynx_whatsapp_verify_2024";
 
   const copyToClipboard = (text: string) => {
@@ -257,7 +257,7 @@ export default function ConfiguracaoMeta() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Cole os dados do painel{" "}
                   <a
-                    href="https://developers.facebook.com/apps/1629147191696096/use_cases/customize/wa-dev-console/"
+                     href="https://developers.facebook.com/apps/26985190684454065/use_cases/customize/wa-dev-console/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline"
