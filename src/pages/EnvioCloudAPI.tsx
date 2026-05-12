@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -598,28 +598,62 @@ export default function EnvioCloudAPI() {
                     <p className="text-xs text-muted-foreground">Nenhum template aprovado encontrado.</p>
                   </div>
                 ) : (
-                  <Select
-                    value={templateName}
-                      onValueChange={(v) => {
-                        setTemplateName(v);
-                        const t = templates.find((tpl) => getTemplateOptionValue(tpl) === v);
-                      if (t) setVariables(Array(getBodyVarCount(t)).fill(""));
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione um template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {templates.map((t) => (
-                        <SelectItem key={`${t.id}-${t.language}`} value={getTemplateOptionValue(t)} className="text-sm">
-                          <div className="flex items-center gap-2">
-                            <span>{t.name}</span>
-                            <Badge variant="outline" className="text-[9px] font-mono">{t.language}</Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1">
+                    {templates.length > 5 ? (
+                      <Select
+                        value={templateName}
+                        onValueChange={(v) => {
+                          setTemplateName(v);
+                          const t = templates.find((tpl) => getTemplateOptionValue(tpl) === v);
+                          if (t) setVariables(Array(getBodyVarCount(t)).fill(""));
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione um template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((t) => (
+                            <SelectItem key={`${t.id}-${t.language}`} value={getTemplateOptionValue(t)} className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <span>{t.name}</span>
+                                <Badge variant="outline" className="text-[9px] font-mono">{t.language}</Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-2">
+                        {templates.map((t) => {
+                          const val = getTemplateOptionValue(t);
+                          const isSelected = templateName === val;
+                          return (
+                            <button
+                              key={`${t.id}-${t.language}`}
+                              type="button"
+                              onClick={() => {
+                                setTemplateName(val);
+                                setVariables(Array(getBodyVarCount(t)).fill(""));
+                              }}
+                              className={`flex items-center justify-between p-3 rounded-lg border text-sm transition-all ${
+                                isSelected 
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                                  : "border-border hover:border-primary/50 bg-background"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <FileText className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                                <span className={isSelected ? "font-medium" : ""}>{t.name}</span>
+                              </div>
+                              <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                                {t.language}
+                              </Badge>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
