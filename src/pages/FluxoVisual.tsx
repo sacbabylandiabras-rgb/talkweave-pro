@@ -214,12 +214,13 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups";
+  mode?: "contacts" | "groups" | "meta";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const isMetaMode = mode === "meta";
+  const pageTitle = isGroupsMode ? "Fluxo Grupos" : isMetaMode ? "Fluxo Meta API" : "Fluxos Visuais";
   const pageSubtitle = isGroupsMode
     ? "Crie automações visuais para grupos do WhatsApp"
     : "Crie automações visuais disparadas por palavra-chave";

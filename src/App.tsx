@@ -199,8 +199,9 @@ const App = () => (
                   />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
-                  <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
-                  <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                   <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
+                   <Route path="/meta/fluxo" element={<FluxoVisual mode="meta" />} />
+                   <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
                   <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
                   <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
                   <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
