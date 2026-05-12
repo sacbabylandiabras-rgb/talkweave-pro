@@ -44,6 +44,9 @@ interface MetaCredentialRow {
   business_account_id?: string | null
 }
 
+const FLOW_CAPTURE_PREFIX = "__flow_capture__:"
+const FLOW_BUTTON_PREFIX = "__flow_button__:"
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
