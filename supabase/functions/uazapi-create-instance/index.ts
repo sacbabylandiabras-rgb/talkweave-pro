@@ -7,50 +7,48 @@ serve(async (req: Request) => {
   try {
     const body = await req.json();
     const { instanceName, action } = body;
-    
-    // Configurações do servidor UAZAPI fornecidas pelo usuário
-    const apiUrl = "https://paysheinsite.uazapi.com";
-    const apiToken = "TN5X3e62kEQnNVpjwuQ0ywIP4Ax5t4LuNClpSKrOqq8zDmbkdY";
 
-    console.log(`UAZAPI Create/Manage: ${action || 'create'} - Instance: ${instanceName}`);
+    const apiUrl = (Deno.env.get("UAZAPI_SERVER_URL") || "").replace(/\/+$/, "");
+    const adminToken = Deno.env.get("UAZAPI_ADMIN_TOKEN") || "";
+    if (!apiUrl || !adminToken) throw new Error("Servidor não configurado");
+
+    console.log(`Provision: ${action || "create"} - ${instanceName}`);
 
     if (action === "delete") {
       const { instanceToken } = body;
-      const response = await fetch(`${apiUrl}/instance/logout?token=${instanceToken}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", "token": apiToken }
+      const response = await fetch(`${apiUrl}/instance/disconnect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "token": instanceToken || adminToken },
       });
       const data = await response.json().catch(() => ({}));
       return new Response(JSON.stringify({ success: response.ok, ...data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Caso padrão: Criar instância
     if (!instanceName) throw new Error("instanceName is required");
 
-    const response = await fetch(`${apiUrl}/instance/create`, {
+    // uazapiGO: /instance/init usa header admintoken
+    const response = await fetch(`${apiUrl}/instance/init`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "token": apiToken
+        "admintoken": adminToken,
       },
-      body: JSON.stringify({
-        instanceName: instanceName,
-        token: apiToken,
-        qrcode: true
-      })
+      body: JSON.stringify({ name: instanceName }),
     });
 
-    const data = await response.json().catch(async () => ({ error: await response.text() }));
-    console.log("UAZAPI Response:", data);
+    const text = await response.text();
+    let data: any = {};
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    console.log("Provision Response:", response.status, data);
 
     if (!response.ok) {
-      throw new Error(data.message || data.error || `Erro ${response.status} ao criar instância`);
+      throw new Error(data.message || data.error || `Erro ${response.status}`);
     }
 
     return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err) {
