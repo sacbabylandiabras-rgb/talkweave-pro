@@ -560,25 +560,6 @@ export default function AdminAquecimento() {
     }
   };
 
-  const migrateLegacyInstances = async () => {
-    const legacy = instances.filter(i => (i as any).api_provider === 'uazapi');
-    if (legacy.length === 0) return;
-    setLoadingInst(true);
-    try {
-      const { error } = await supabase
-        .from('zapi_instances')
-        .update({ api_provider: 'uazapi_warmup' })
-        .in('id', legacy.map(i => i.id));
-      if (error) throw error;
-      toast.success(`${legacy.length} instâncias migradas para o pool de aquecimento`);
-      loadInstances();
-    } catch (e: any) {
-      toast.error('Erro ao migrar instâncias: ' + e.message);
-    } finally {
-      setLoadingInst(false);
-    }
-  };
-
   const load = async () => {
     setLoading(true);
     const { data, error } = await donorTable()
@@ -780,13 +761,7 @@ export default function AdminAquecimento() {
         </p>
       </div>
 
-      <div className="flex justify-end gap-2">
-        {instances.some(i => (i as any).api_provider === 'uazapi') && (
-          <Button size="sm" variant="outline" onClick={migrateLegacyInstances} className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
-            <ArrowRightLeft className="w-4 h-4 mr-1" />
-            Migrar para Aquecimento
-          </Button>
-        )}
+      <div className="flex justify-end">
         <Dialog open={instOpen} onOpenChange={setInstOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
