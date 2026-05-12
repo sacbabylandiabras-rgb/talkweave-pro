@@ -347,7 +347,11 @@ async function sendNodeContentMeta(
   visited: Set<string>,
   supabase: any,
   userId: string,
-  flowName: string
+  flowName: string,
+  options?: {
+    resumeCaptured?: Record<string, string>;
+    flowId?: string;
+  }
 ): Promise<boolean> {
   if (targetNode.type !== 'blocoConteudo') return false
   if (visited.has(targetNode.id)) return false
@@ -362,7 +366,16 @@ async function sendNodeContentMeta(
   }
 
   const contentType = targetNode.data.contentType || 'text'
-  const content = targetNode.data.content || ''
+  const replaceVars = (text: string) => {
+    const captured = options?.resumeCaptured || {}
+    return String(text || '')
+      .replace(/\{\{nome\}\}/gi, captured.nome || '')
+      .replace(/\{\{whatsapp\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{telefone\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{email\}\}/gi, captured.email || '')
+  }
+
+  const content = replaceVars(targetNode.data.content || '')
   const mediaUrl = targetNode.data.mediaUrl || ''
   const buttons: Array<{ text: string; type: string; value: string }> = targetNode.data.buttons || []
 
