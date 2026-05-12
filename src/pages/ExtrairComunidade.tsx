@@ -1227,16 +1227,14 @@ const ExtrairComunidade = () => {
 
           {isAdmin && (
             <details className="mt-2">
-              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                Configuração avançada (Admin)
-              </summary>
+               <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground" />
               <div className="space-y-3 mt-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium">URL da API</label>
+                   <label className="text-xs font-medium">URL</label>
                   <Input placeholder="https://..." value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} className="text-xs h-8" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium">Token da API</label>
+                   <label className="text-xs font-medium">Token</label>
                   <Input placeholder="Token de acesso" value={apiToken} onChange={(e) => setApiToken(e.target.value)} className="text-xs h-8" />
                 </div>
                 <div className="flex gap-2">
