@@ -36,7 +36,7 @@ interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
-  mode?: "contacts" | "groups";
+  mode?: "contacts" | "groups" | "meta";
 }
 
 export function SelectContactsDialog({ 
