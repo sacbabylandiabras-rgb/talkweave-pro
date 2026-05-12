@@ -70,11 +70,7 @@ const readProgress = (): Record<string, number> => {
 };
 
 export default function AquecimentoNumero() {
-  const { instances: allInstances } = useZapiInstances();
-  const instances = useMemo(
-    () => allInstances.filter((i) => (i.api_provider || "zapi") === "zapi"),
-    [allInstances],
-  );
+   const { instances } = useZapiInstances({ includeWarmup: true });
   const [config, setConfig] = useState<WarmupConfig>(DEFAULT_WARMUP_CONFIG);
   const [userId, setUserId] = useState<string>();
   const [saving, setSaving] = useState(false);
