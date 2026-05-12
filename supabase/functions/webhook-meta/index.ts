@@ -126,7 +126,7 @@ serve(async (req) => {
                 msgText = buttonReplyTitle
               }
 
-              console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
+               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId}`)
 
               // Log the received message
               await supabase.from('message_logs').insert({
