@@ -245,67 +245,73 @@ interface Step2Data {
 
       {/* Step 2: Business Data */}
       {step === 2 && (
-        <Card className="border-[#2A2A2A]">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#a78bfa]" />
-              Dados da Empresa (PJ)
-            </CardTitle>
-            <CardDescription>Informe os dados da pessoa jurídica</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Razão Social</Label>
-                <Input
-                  placeholder="Empresa LTDA"
-                  value={step2.company_name}
-                  onChange={(e) => setStep2({ ...step2, company_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
-                <Input
-                  placeholder="00.000.000/0000-00"
-                  value={step2.cnpj}
-                  onChange={(e) => setStep2({ ...step2, cnpj: e.target.value.replace(/[^\d./\-]/g, "") })}
-                  maxLength={18}
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#a78bfa]" /> Responsável Legal
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input
-                    placeholder="Nome do responsável"
-                    value={step2.owner_name}
-                    onChange={(e) => setStep2({ ...step2, owner_name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>CPF</Label>
-                  <Input
-                    placeholder="000.000.000-00"
-                    value={step2.owner_cpf}
-                    onChange={(e) => setStep2({ ...step2, owner_cpf: e.target.value.replace(/[^\d.\-]/g, "") })}
-                    maxLength={14}
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Nome da Mãe</Label>
-                  <Input
-                    placeholder="Nome completo da mãe"
-                    value={step2.mother_name}
-                    onChange={(e) => setStep2({ ...step2, mother_name: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
+       <Card className="border-[#2A2A2A]">
+           <CardHeader>
+             <CardTitle className="text-base flex items-center gap-2">
+               {kycType === "pj" ? <Building2 className="w-5 h-5 text-[#a78bfa]" /> : <User className="w-5 h-5 text-[#a78bfa]" />}
+               {kycType === "pj" ? "Dados da Empresa (PJ)" : "Dados Pessoais (PF)"}
+             </CardTitle>
+             <CardDescription>
+               {kycType === "pj" ? "Informe os dados da pessoa jurídica" : "Informe seus dados de pessoa física"}
+             </CardDescription>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             {kycType === "pj" && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Razão Social</Label>
+                   <Input
+                     placeholder="Empresa LTDA"
+                     value={step2.company_name}
+                     onChange={(e) => setStep2({ ...step2, company_name: e.target.value })}
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>CNPJ</Label>
+                   <Input
+                     placeholder="00.000.000/0000-00"
+                     value={step2.cnpj}
+                     onChange={(e) => setStep2({ ...step2, cnpj: e.target.value.replace(/[^\d./\-]/g, "") })}
+                     maxLength={18}
+                   />
+                 </div>
+               </div>
+             )}
+ 
+             <div className={kycType === "pj" ? "border-t border-border pt-4" : ""}>
+               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                 <User className="w-4 h-4 text-[#a78bfa]" /> {kycType === "pj" ? "Responsável Legal" : "Dados do Titular"}
+               </p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Nome Completo</Label>
+                   <Input
+                     placeholder={kycType === "pj" ? "Nome do responsável" : "Seu nome completo"}
+                     value={step2.owner_name}
+                     onChange={(e) => setStep2({ ...step2, owner_name: e.target.value })}
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>CPF</Label>
+                   <Input
+                     placeholder="000.000.000-00"
+                     value={step2.owner_cpf}
+                     onChange={(e) => setStep2({ ...step2, owner_cpf: e.target.value.replace(/[^\d.\-]/g, "") })}
+                     maxLength={14}
+                   />
+                 </div>
+                 {kycType === "pj" && (
+                   <div className="space-y-2 md:col-span-2">
+                     <Label>Nome da Mãe</Label>
+                     <Input
+                       placeholder="Nome completo da mãe"
+                       value={step2.mother_name}
+                       onChange={(e) => setStep2({ ...step2, mother_name: e.target.value })}
+                     />
+                   </div>
+                 )}
+               </div>
+             </div>
 
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
