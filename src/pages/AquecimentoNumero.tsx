@@ -116,22 +116,21 @@ export default function AquecimentoNumero() {
      if (error) throw new Error("Não consegui sincronizar o controle do aquecimento");
      if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao salvar controle");
 
-     if (triggerRun && nextConfig.active) {
-       // Dispara o primeiro ciclo do motor de aquecimento imediatamente
-       supabase.functions.invoke("run-warmup", {
-         body: {
-           runId: nextConfig.runId,
-           instanceIds: nextConfig.instanceIds,
-           minDelay: nextConfig.minDelay,
-           maxDelay: nextConfig.maxDelay,
-           dailyLimit: nextConfig.dailyLimit,
-           mode: "tick",
-           batchSize: 1,
-         },
-       }).catch(console.error);
-     }
-   };
-  };
+      if (triggerRun && nextConfig.active) {
+        // Dispara o primeiro ciclo do motor de aquecimento imediatamente
+        supabase.functions.invoke("run-warmup", {
+          body: {
+            runId: nextConfig.runId,
+            instanceIds: nextConfig.instanceIds,
+            minDelay: nextConfig.minDelay,
+            maxDelay: nextConfig.maxDelay,
+            dailyLimit: nextConfig.dailyLimit,
+            mode: "tick",
+            batchSize: 1,
+          },
+        }).catch(console.error);
+      }
+    };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
