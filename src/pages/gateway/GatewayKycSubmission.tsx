@@ -21,7 +21,7 @@ interface Step2Data {
   cnpj: string;
   owner_name: string;
   owner_cpf: string;
-  mother_name: string;
+   mother_name?: string;
   address_zip: string;
   address_street: string;
   address_number: string;
@@ -31,9 +31,10 @@ interface Step2Data {
   address_state: string;
 }
 
-export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
-  const { kyc, loading, submitKyc } = useGatewayKyc();
-  const [step, setStep] = useState(1);
+ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
+   const { kyc, loading, submitKyc } = useGatewayKyc();
+   const [step, setStep] = useState(1);
+   const [kycType, setKycType] = useState<"pf" | "pj">("pj");
 
   // Step 1
   const [step1, setStep1] = useState<Step1Data>({ whatsapp: "" });
@@ -67,28 +68,46 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   };
 
   const isStep1Valid = step1.whatsapp.trim().length >= 10;
-  const isStep2Valid =
-    step2.company_name.trim() !== "" &&
-    step2.cnpj.trim().length >= 14 &&
-    step2.owner_name.trim() !== "" &&
-    step2.owner_cpf.trim().length >= 11 &&
-    step2.mother_name.trim() !== "" &&
-    step2.address_zip.trim() !== "" &&
-    step2.address_street.trim() !== "" &&
-    step2.address_number.trim() !== "" &&
-    step2.address_neighborhood.trim() !== "" &&
-    step2.address_city.trim() !== "" &&
-    step2.address_state.trim() !== "";
+   const isStep2Valid = kycType === "pj" 
+     ? (
+       step2.company_name.trim() !== "" &&
+       step2.cnpj.trim().length >= 14 &&
+       step2.owner_name.trim() !== "" &&
+       step2.owner_cpf.trim().length >= 11 &&
+       step2.mother_name?.trim() !== "" &&
+       step2.address_zip.trim() !== "" &&
+       step2.address_street.trim() !== "" &&
+       step2.address_number.trim() !== "" &&
+       step2.address_neighborhood.trim() !== "" &&
+       step2.address_city.trim() !== "" &&
+       step2.address_state.trim() !== ""
+     ) : (
+       step2.owner_name.trim() !== "" &&
+       step2.owner_cpf.trim().length >= 11 &&
+       step2.address_zip.trim() !== "" &&
+       step2.address_street.trim() !== "" &&
+       step2.address_number.trim() !== "" &&
+       step2.address_neighborhood.trim() !== "" &&
+       step2.address_city.trim() !== "" &&
+       step2.address_state.trim() !== ""
+     );
 
-  const handleSubmit = async () => {
-    if (!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file) return;
-    setSubmitting(true);
-    try {
-      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 }, cnpjDoc.file);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+   const handleSubmit = async () => {
+     if (!selfie.file || !docFront.file || !docBack.file || (kycType === "pj" && !cnpjDoc.file)) return;
+     setSubmitting(true);
+     try {
+       await submitKyc(
+         selfie.file, 
+         docFront.file, 
+         docBack.file, 
+         step1.whatsapp, 
+         { ...step2, kyc_type: kycType }, 
+         kycType === "pj" ? cnpjDoc.file || undefined : undefined
+       );
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   if (loading) {
     return (
@@ -173,101 +192,126 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
 
       {/* Step 1: WhatsApp */}
       {step === 1 && (
-        <Card className="border-[#2A2A2A]">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Phone className="w-5 h-5 text-[#a78bfa]" />
-              Dados da Conta
-            </CardTitle>
-            <CardDescription>Informe seu WhatsApp para contato</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp (com DDD)</Label>
-              <Input
-                id="whatsapp"
-                placeholder="11999999999"
-                value={step1.whatsapp}
-                onChange={(e) => setStep1({ ...step1, whatsapp: e.target.value.replace(/\D/g, "") })}
-                maxLength={15}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setStep(2)}
-                disabled={!isStep1Valid}
-                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
-              >
-                Próximo <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+       <div className="space-y-4">
+         <div className="flex gap-4 mb-2">
+           <Button 
+             variant={kycType === "pj" ? "default" : "outline"}
+             className={kycType === "pj" ? "bg-[#a78bfa] hover:bg-[#8b5cf6] flex-1" : "flex-1 border-[#2A2A2A]"}
+             onClick={() => setKycType("pj")}
+           >
+             <Building2 className="w-4 h-4 mr-2" /> Pessoa Jurídica
+           </Button>
+           <Button 
+             variant={kycType === "pf" ? "default" : "outline"}
+             className={kycType === "pf" ? "bg-[#a78bfa] hover:bg-[#8b5cf6] flex-1" : "flex-1 border-[#2A2A2A]"}
+             onClick={() => setKycType("pf")}
+           >
+             <User className="w-4 h-4 mr-2" /> Pessoa Física
+           </Button>
+         </div>
+ 
+         <Card className="border-[#2A2A2A]">
+           <CardHeader>
+             <CardTitle className="text-base flex items-center gap-2">
+               <Phone className="w-5 h-5 text-[#a78bfa]" />
+               Dados da Conta
+             </CardTitle>
+             <CardDescription>Informe seu WhatsApp para contato</CardDescription>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             <div className="space-y-2">
+               <Label htmlFor="whatsapp">WhatsApp (com DDD)</Label>
+               <Input
+                 id="whatsapp"
+                 placeholder="11999999999"
+                 value={step1.whatsapp}
+                 onChange={(e) => setStep1({ ...step1, whatsapp: e.target.value.replace(/\D/g, "") })}
+                 maxLength={15}
+               />
+             </div>
+             <div className="flex justify-end">
+               <Button
+                 onClick={() => setStep(2)}
+                 disabled={!isStep1Valid}
+                 className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white"
+               >
+                 Próximo <ArrowRight className="w-4 h-4 ml-1" />
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
+       </div>
       )}
 
       {/* Step 2: Business Data */}
       {step === 2 && (
-        <Card className="border-[#2A2A2A]">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#a78bfa]" />
-              Dados da Empresa (PJ)
-            </CardTitle>
-            <CardDescription>Informe os dados da pessoa jurídica</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Razão Social</Label>
-                <Input
-                  placeholder="Empresa LTDA"
-                  value={step2.company_name}
-                  onChange={(e) => setStep2({ ...step2, company_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
-                <Input
-                  placeholder="00.000.000/0000-00"
-                  value={step2.cnpj}
-                  onChange={(e) => setStep2({ ...step2, cnpj: e.target.value.replace(/[^\d./\-]/g, "") })}
-                  maxLength={18}
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#a78bfa]" /> Responsável Legal
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input
-                    placeholder="Nome do responsável"
-                    value={step2.owner_name}
-                    onChange={(e) => setStep2({ ...step2, owner_name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>CPF</Label>
-                  <Input
-                    placeholder="000.000.000-00"
-                    value={step2.owner_cpf}
-                    onChange={(e) => setStep2({ ...step2, owner_cpf: e.target.value.replace(/[^\d.\-]/g, "") })}
-                    maxLength={14}
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Nome da Mãe</Label>
-                  <Input
-                    placeholder="Nome completo da mãe"
-                    value={step2.mother_name}
-                    onChange={(e) => setStep2({ ...step2, mother_name: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
+       <Card className="border-[#2A2A2A]">
+           <CardHeader>
+             <CardTitle className="text-base flex items-center gap-2">
+               {kycType === "pj" ? <Building2 className="w-5 h-5 text-[#a78bfa]" /> : <User className="w-5 h-5 text-[#a78bfa]" />}
+               {kycType === "pj" ? "Dados da Empresa (PJ)" : "Dados Pessoais (PF)"}
+             </CardTitle>
+             <CardDescription>
+               {kycType === "pj" ? "Informe os dados da pessoa jurídica" : "Informe seus dados de pessoa física"}
+             </CardDescription>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             {kycType === "pj" && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Razão Social</Label>
+                   <Input
+                     placeholder="Empresa LTDA"
+                     value={step2.company_name}
+                     onChange={(e) => setStep2({ ...step2, company_name: e.target.value })}
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>CNPJ</Label>
+                   <Input
+                     placeholder="00.000.000/0000-00"
+                     value={step2.cnpj}
+                     onChange={(e) => setStep2({ ...step2, cnpj: e.target.value.replace(/[^\d./\-]/g, "") })}
+                     maxLength={18}
+                   />
+                 </div>
+               </div>
+             )}
+ 
+             <div className={kycType === "pj" ? "border-t border-border pt-4" : ""}>
+               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                 <User className="w-4 h-4 text-[#a78bfa]" /> {kycType === "pj" ? "Responsável Legal" : "Dados do Titular"}
+               </p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Nome Completo</Label>
+                   <Input
+                     placeholder={kycType === "pj" ? "Nome do responsável" : "Seu nome completo"}
+                     value={step2.owner_name}
+                     onChange={(e) => setStep2({ ...step2, owner_name: e.target.value })}
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>CPF</Label>
+                   <Input
+                     placeholder="000.000.000-00"
+                     value={step2.owner_cpf}
+                     onChange={(e) => setStep2({ ...step2, owner_cpf: e.target.value.replace(/[^\d.\-]/g, "") })}
+                     maxLength={14}
+                   />
+                 </div>
+                 {kycType === "pj" && (
+                   <div className="space-y-2 md:col-span-2">
+                     <Label>Nome da Mãe</Label>
+                     <Input
+                       placeholder="Nome completo da mãe"
+                       value={step2.mother_name}
+                       onChange={(e) => setStep2({ ...step2, mother_name: e.target.value })}
+                     />
+                   </div>
+                 )}
+               </div>
+             </div>
 
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
@@ -436,51 +480,53 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
               </CardContent>
             </Card>
 
-            {/* Cartão CNPJ */}
-            <Card className="border-[#2A2A2A] overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#a78bfa]" />
-                  Cartão CNPJ
-                </CardTitle>
-                <CardDescription className="text-xs">Foto ou PDF do cartão CNPJ da empresa</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <input ref={cnpjDocRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFile(e.target.files?.[0], setCnpjDoc, true)} />
-                {cnpjDoc.preview ? (
-                  cnpjDoc.preview === "pdf" ? (
-                    <div className="aspect-[4/3] rounded-lg border border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 bg-muted/30">
-                      <Building2 className="w-8 h-8 text-[#a78bfa]/60" />
-                      <span className="text-xs text-muted-foreground font-medium">{cnpjDoc.file?.name}</span>
-                      <Badge variant="secondary" className="text-[10px]">PDF</Badge>
-                    </div>
-                  ) : (
-                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-[#2A2A2A] mb-2">
-                      <img src={cnpjDoc.preview} alt="Cartão CNPJ" className="w-full h-full object-cover" />
-                    </div>
-                  )
-                ) : (
-                  <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
-                    <Building2 className="w-8 h-8 text-muted-foreground/30" />
-                    <span className="text-xs text-muted-foreground">PDF ou Imagem</span>
-                  </div>
-                )}
-                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => cnpjDocRef.current?.click()}>
-                  <Upload className="w-3 h-3 mr-1" /> {cnpjDoc.file ? "Trocar" : "Selecionar"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+           {/* Cartão CNPJ (Only for PJ) */}
+             {kycType === "pj" && (
+               <Card className="border-[#2A2A2A] overflow-hidden">
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm flex items-center gap-2">
+                     <Building2 className="w-4 h-4 text-[#a78bfa]" />
+                     Cartão CNPJ
+                   </CardTitle>
+                   <CardDescription className="text-xs">Foto ou PDF do cartão CNPJ da empresa</CardDescription>
+                 </CardHeader>
+                 <CardContent>
+                   <input ref={cnpjDocRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFile(e.target.files?.[0], setCnpjDoc, true)} />
+                   {cnpjDoc.preview ? (
+                     cnpjDoc.preview === "pdf" ? (
+                       <div className="aspect-[4/3] rounded-lg border border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 bg-muted/30">
+                         <Building2 className="w-8 h-8 text-[#a78bfa]/60" />
+                         <span className="text-xs text-muted-foreground font-medium">{cnpjDoc.file?.name}</span>
+                         <Badge variant="secondary" className="text-[10px]">PDF</Badge>
+                       </div>
+                     ) : (
+                       <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-[#2A2A2A] mb-2">
+                         <img src={cnpjDoc.preview} alt="Cartão CNPJ" className="w-full h-full object-cover" />
+                       </div>
+                     )
+                   ) : (
+                     <div className="aspect-[4/3] rounded-lg border-2 border-dashed border-[#2A2A2A] flex flex-col items-center justify-center gap-2 mb-2 cursor-pointer hover:border-[#a78bfa]/40 transition-colors" onClick={() => cnpjDocRef.current?.click()}>
+                       <Building2 className="w-8 h-8 text-muted-foreground/30" />
+                       <span className="text-xs text-muted-foreground">PDF ou Imagem</span>
+                     </div>
+                   )}
+                   <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => cnpjDocRef.current?.click()}>
+                     <Upload className="w-3 h-3 mr-1" /> {cnpjDoc.file ? "Trocar" : "Selecionar"}
+                   </Button>
+                 </CardContent>
+               </Card>
+             )}
+           </div>
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>
               <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file || submitting}
-              className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white px-8"
-            >
+             <Button
+               onClick={handleSubmit}
+               disabled={!selfie.file || !docFront.file || !docBack.file || (kycType === "pj" && !cnpjDoc.file) || submitting}
+               className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white px-8"
+             >
               {submitting ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
               ) : (
@@ -493,9 +539,9 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
             <CardContent className="pt-4 pb-4">
               <h3 className="text-sm font-medium mb-2">📋 Requisitos dos documentos</h3>
               <ul className="text-xs text-muted-foreground space-y-1.5">
-                <li>• Selfie: Rosto visível segurando o documento ao lado</li>
-                <li>• Documento aceito: RG, CNH ou Passaporte</li>
-                <li>• Cartão CNPJ: Foto ou PDF do cartão CNPJ</li>
+                 <li>• Selfie: Rosto visível segurando o documento (frente) ao lado</li>
+                 <li>• Documento aceito: RG, CNH ou Passaporte (frente e verso)</li>
+                 {kycType === "pj" && <li>• Cartão CNPJ: Foto ou PDF do cartão CNPJ</li>}
                 <li>• As fotos devem estar nítidas e sem cortes</li>
                 <li>• Formato: JPG, PNG ou PDF, máximo 10MB cada</li>
               </ul>
