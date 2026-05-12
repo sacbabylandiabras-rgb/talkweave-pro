@@ -28,7 +28,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("active_workspace", activeWorkspace);
   }, [activeWorkspace]);
 
-  // Auto-sync workspace with route so the sidebar matches the page being viewed
+  const workspaceLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API Oficial" : "ZapLynx";
+
+  return (
+    <WorkspaceContext.Provider value={{ activeWorkspace, setActiveWorkspace, workspaceLabel }}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
+}
+
+/**
+ * Renders inside <Router> to auto-sync workspace with the current route.
+ */
+export function WorkspaceRouteSync() {
+  const { activeWorkspace, setActiveWorkspace } = useWorkspace();
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
@@ -58,12 +71,5 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     ) next = "zapi";
     if (next && next !== activeWorkspace) setActiveWorkspace(next);
   }, [location.pathname]);
-
-  const workspaceLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API Oficial" : "ZapLynx";
-
-  return (
-    <WorkspaceContext.Provider value={{ activeWorkspace, setActiveWorkspace, workspaceLabel }}>
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  return null;
 }
