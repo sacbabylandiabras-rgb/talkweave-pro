@@ -204,8 +204,10 @@ serve(async (req) => {
                         const targetNode = pendingFlow.nodes.find((n: any) => n.id === buttonMatch.targetNodeId)
                         if (targetNode) {
                           const options = { resumeCaptured: pendingState.captured || {}, flowId: pendingFlow.id }
-                          await sendNodeContentMeta(targetNode, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, visited, supabase, userId, pendingFlow.name, options)
-                          await processFlowNodeMeta(targetNode.id, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, supabase, visited, userId, pendingFlow.name, options)
+                          const shouldStop = await sendNodeContentMeta(targetNode, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, visited, supabase, userId, pendingFlow.name, options)
+                          if (!shouldStop) {
+                            await processFlowNodeMeta(targetNode.id, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, supabase, visited, userId, pendingFlow.name, options)
+                          }
                         }
                         continue
                       }
@@ -518,11 +520,28 @@ async function sendNodeContentMeta(
         if (buttonLabels) logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`
 
         if (logContent) {
+          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail);
+          const hasButtons = (targetNode.data.buttons || []).length > 0;
+          
+          let keywordMatched = `__flow_send__:${flowName}`;
+          let responseSent = logContent.trim();
+
+          if (isCapture || hasButtons) {
+            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : `${FLOW_BUTTON_PREFIX}${userId}`;
+            responseSent = JSON.stringify({
+              flowId: options?.flowId,
+              flowName: flowName,
+              nodeId: targetNode.id,
+              field: targetNode.data.collectName ? 'nome' : targetNode.data.collectEmail ? 'email' : 'whatsapp',
+              captured: options?.resumeCaptured || {}
+            });
+          }
+
           await supabase.from('message_logs').insert({
             phone,
             message_received: null,
-            response_sent: logContent.trim(),
-            keyword_matched: `__flow_send__:${flowName}`,
+            response_sent: responseSent,
+            keyword_matched: keywordMatched,
             timestamp: new Date().toISOString(),
             user_id: userId,
             instance_id: `meta:${metaCreds.phone_number_id}`,
