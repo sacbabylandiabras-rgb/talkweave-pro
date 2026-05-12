@@ -7,7 +7,7 @@ const META_SCOPES = [
 ].join(",");
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
 
- export const META_REDIRECT_URI = `https://zaplynx.com/meta-oauth-callback`;
+ export const META_REDIRECT_URI = `${window.location.origin}/meta-oauth-callback`;
 
 export const META_EMBEDDED_SIGNUP_CONFIG_ID = (
   import.meta.env.VITE_META_EMBEDDED_SIGNUP_CONFIG_ID ||
