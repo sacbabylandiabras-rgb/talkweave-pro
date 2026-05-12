@@ -472,21 +472,22 @@ export default function AdminAquecimento() {
   const removeInstance = async (inst: UazInstance) => {
     if (!confirm(`Remover instância "${inst.instance_name}"?`)) return;
     try {
-      // Para instâncias de aquecimento (uazapi_warmup), tentamos desconectar primeiro
-      if (inst.evolution_api_url && (inst.evolution_api_key || inst.zapi_token)) {
+      // Para instâncias de aquecimento, tentamos remover do servidor UAZAPI primeiro
+      if (inst.evolution_api_key || inst.zapi_token) {
         try {
-          await supabase.functions.invoke("uazapi-disconnect", {
+          await supabase.functions.invoke("uazapi-create-instance", {
             body: { 
-              apiUrl: inst.evolution_api_url, 
-              apiToken: inst.evolution_api_key || inst.zapi_token 
+              action: "delete", 
+              instanceName: inst.instance_name,
+              instanceToken: inst.evolution_api_key || inst.zapi_token 
             },
           });
         } catch (e) {
-          console.warn("Falha ao desconectar no servidor UAZAPI antes de excluir (provavelmente já desconectada):", e);
+          console.warn("Falha ao remover no servidor UAZAPI (pode já estar removida):", e);
         }
       }
 
-      // Remove diretamente do banco de dados (o RLS deve permitir para administradores)
+      // Remove do banco de dados
       const { error: dbErr } = await supabase.from("zapi_instances").delete().eq("id", inst.id);
       
       if (dbErr) {
@@ -495,7 +496,7 @@ export default function AdminAquecimento() {
         return;
       }
 
-      toast.success("Instância removida com sucesso");
+      toast.success("Instância removida do servidor e do banco");
       loadInstances();
     } catch (err: any) {
       console.error("Erro ao remover:", err);
