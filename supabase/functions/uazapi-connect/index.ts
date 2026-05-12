@@ -55,53 +55,78 @@ const normalizeConnectPayload = (data: any) => {
  
      const cleanUrl = apiUrl.replace(/\/+$/, "");
      
-      const withToken = (path: string) => {
-        const separator = path.includes("?") ? "&" : "?";
-        return `${cleanUrl}${path}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      const withToken = (path: string, params: Record<string, string> = {}) => {
+        const url = new URL(`${cleanUrl}${path}`);
+        url.searchParams.set("token", apiToken);
+        url.searchParams.set("apikey", apiToken);
+        url.searchParams.set("admintoken", apiToken);
+        for (const [key, val] of Object.entries(params)) {
+          if (val) url.searchParams.set(key, val);
+        }
+        return url.toString();
       };
 
-      const headers = { 
+      const headers: Record<string, string> = { 
         "Content-Type": "application/json", 
         "token": apiToken,
         "apikey": apiToken,
         "admintoken": apiToken,
         "AdminToken": apiToken,
-        "Authorization": `Bearer ${apiToken}`
+        "Authorization": `Bearer ${apiToken}`,
+        "instance": instanceName || "",
+        "instance_name": instanceName || ""
       };
 
-      // Try multiple possible endpoints for connection
-      const connectEndpoints = ["/instance/connect"];
-      if (instanceName) {
-        connectEndpoints.unshift(`/instance/connect/${instanceName}`);
-      }
-
-      let data = {};
-      let success = false;
-
-      for (const ep of connectEndpoints) {
-        try {
-          console.log(`Trying connect endpoint: ${ep}`);
-          const requestBody = phone ? { phone } : {};
-          console.log(`Request body: ${JSON.stringify(requestBody)}`);
-          const response = await fetch(withToken(ep), {
-            method: "POST",
-            headers,
-            body: JSON.stringify(requestBody),
-          });
-          
-          const resText = await response.text();
-          console.log(`Raw response from ${ep}:`, resText);
-          const resData = JSON.parse(resText || "{}");
-          
-          if (response.ok) {
-            data = resData;
-            success = true;
-            break;
-          }
-        } catch (e) {
-          console.error(`Error connecting to ${ep}:`, e.message);
-        }
-      }
+       // Try multiple possible endpoints for connection
+       let connectEndpoints = ["/instance/connect"];
+       if (instanceName) {
+         connectEndpoints = [
+           `/instance/connect/${instanceName}`,
+           `/instance/connect`,
+           `/instance/connect/pairing/${instanceName}`,
+           `/instance/paircode/${instanceName}`
+         ];
+       }
+ 
+       let data: any = {};
+       let success = false;
+ 
+       for (const ep of connectEndpoints) {
+         try {
+           console.log(`Trying connect endpoint: ${ep}`);
+           const requestBody = phone ? { phone } : {};
+           
+           // If phone is provided, try both body and query param
+           const params: Record<string, string> = {};
+           if (phone) params.phone = phone;
+           
+           console.log(`Request body: ${JSON.stringify(requestBody)}`);
+           const response = await fetch(withToken(ep, params), {
+             method: "POST",
+             headers,
+             body: JSON.stringify(requestBody),
+           });
+           
+           const resText = await response.text();
+           console.log(`Raw response from ${ep}:`, resText);
+           
+           if (response.ok) {
+             const resData = JSON.parse(resText || "{}");
+             // Validamos se veio algo útil (QR ou Pairing)
+             const norm = normalizeConnectPayload(resData);
+             if (norm.qrCode || norm.pairingCode || norm.connectionStatus === "connected") {
+               data = resData;
+               success = true;
+               break;
+             } else if (!data.instance) {
+               // Se não tiver nada ainda, guarda o que veio
+               data = resData;
+             }
+           }
+         } catch (e) {
+           console.error(`Error connecting to ${ep}:`, e.message);
+         }
+       }
  
  
        const normalized = normalizeConnectPayload(data);
