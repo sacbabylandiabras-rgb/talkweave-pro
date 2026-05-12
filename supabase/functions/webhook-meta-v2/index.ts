@@ -44,6 +44,9 @@ interface MetaCredentialRow {
   business_account_id?: string | null
 }
 
+const FLOW_CAPTURE_PREFIX = "__flow_capture__:"
+const FLOW_BUTTON_PREFIX = "__flow_button__:"
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -141,6 +144,76 @@ serve(async (req) => {
               if (!msgText || !accessToken) continue
 
               // === CHECK FLOW AUTOMATIONS ===
+
+              // Resume pending capture/button flows first
+              const { data: pendingFlowLog } = await supabase
+                .from('message_logs')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('phone', fromPhone)
+                .in('keyword_matched', [
+                  `${FLOW_CAPTURE_PREFIX}${userId}`,
+                  `${FLOW_BUTTON_PREFIX}${userId}`,
+                ])
+                .order('timestamp', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+              if (pendingFlowLog) {
+                const isCapture = pendingFlowLog.keyword_matched.startsWith(FLOW_CAPTURE_PREFIX)
+                const pendingState = JSON.parse(pendingFlowLog.response_sent || '{}')
+                const flowId = pendingState.flowId
+
+                if (flowId) {
+                  const { data: pendingFlow } = await supabase
+                    .from('flow_automations')
+                    .select('*')
+                    .eq('id', flowId)
+                    .eq('active', true)
+                    .maybeSingle()
+
+                  if (pendingFlow) {
+                    if (isCapture) {
+                      // Resume capture flow
+                      console.log(`[webhook-meta] Resuming capture flow ${pendingFlow.name} for ${fromPhone}`)
+                      const nodes = pendingFlow.nodes || []
+                      const edges = pendingFlow.edges || []
+                      const currentNode = nodes.find((n: any) => n.id === pendingState.nodeId)
+
+                      if (currentNode) {
+                        // Delete the pending log so it doesn't trigger again
+                        await supabase.from('message_logs').delete().eq('id', pendingFlowLog.id)
+                        
+                        const captured = pendingState.captured || {}
+                        captured[pendingState.field] = msgText
+                        
+                        const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                        const options = { resumeCaptured: captured, flowId: pendingFlow.id }
+                        await processFlowNodeMeta(currentNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, pendingFlow.name, options)
+                        continue
+                      }
+                    } else {
+                      // Check for button match in the current flow
+                      const buttonMatch = findButtonEdgeMatch([pendingFlow], normalizeForMatch(msgText), msgText, buttonReplyTitle, buttonReplyId)
+                      if (buttonMatch) {
+                        console.log(`[webhook-meta] Matched pending flow button: ${buttonMatch.buttonText}`)
+                        await supabase.from('message_logs').delete().eq('id', pendingFlowLog.id)
+                        
+                        const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                        const visited = new Set<string>()
+                        const targetNode = pendingFlow.nodes.find((n: any) => n.id === buttonMatch.targetNodeId)
+                        if (targetNode) {
+                          const options = { resumeCaptured: pendingState.captured || {}, flowId: pendingFlow.id }
+                          await sendNodeContentMeta(targetNode, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, visited, supabase, userId, pendingFlow.name, options)
+                          await processFlowNodeMeta(targetNode.id, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, supabase, visited, userId, pendingFlow.name, options)
+                        }
+                        continue
+                      }
+                    }
+                  }
+                }
+              }
+
               const { data: flowAutomations } = await supabase
                 .from('flow_automations')
                 .select('*')
@@ -163,9 +236,10 @@ serve(async (req) => {
                   if (targetNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
                     const visited = new Set<string>()
-                    const shouldStop = await sendNodeContentMeta(targetNode, flowNodes, flowEdges, fromPhone, metaCreds, visited, supabase, userId, flow.name)
+                    const options = { flowId: flow.id }
+                    const shouldStop = await sendNodeContentMeta(targetNode, flowNodes, flowEdges, fromPhone, metaCreds, visited, supabase, userId, flow.name, options)
                     if (!shouldStop) {
-                      await processFlowNodeMeta(targetNode.id, flowNodes, flowEdges, fromPhone, metaCreds, supabase, visited, userId, flow.name)
+                      await processFlowNodeMeta(targetNode.id, flowNodes, flowEdges, fromPhone, metaCreds, supabase, visited, userId, flow.name, options)
                     }
                   }
 
@@ -344,15 +418,35 @@ async function sendNodeContentMeta(
   visited: Set<string>,
   supabase: any,
   userId: string,
-  flowName: string
+  flowName: string,
+  options?: {
+    resumeCaptured?: Record<string, string>;
+    flowId?: string;
+  }
 ): Promise<boolean> {
+  if (targetNode.type !== 'blocoConteudo') return false
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  if (targetNode.type !== 'blocoConteudo') return false
+  // Handle delay before sending content
+  const delaySeconds = Number(targetNode.data.delaySeconds || 0)
+  if (delaySeconds > 0) {
+    const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
+    console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
+    await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+  }
 
   const contentType = targetNode.data.contentType || 'text'
-  const content = targetNode.data.content || ''
+  const replaceVars = (text: string) => {
+    const captured = options?.resumeCaptured || {}
+    return String(text || '')
+      .replace(/\{\{nome\}\}/gi, captured.nome || '')
+      .replace(/\{\{whatsapp\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{telefone\}\}/gi, captured.whatsapp || phone || '')
+      .replace(/\{\{email\}\}/gi, captured.email || '')
+  }
+
+  const content = replaceVars(targetNode.data.content || '')
   const mediaUrl = targetNode.data.mediaUrl || ''
   const buttons: Array<{ text: string; type: string; value: string }> = targetNode.data.buttons || []
 
@@ -443,13 +537,30 @@ async function sendNodeContentMeta(
     throw e
   }
 
-  // Check if node has button edges (should pause for user response)
+  // Check if node has button edges or capture (should pause for user response)
   const hasButtonEdges = buttons.some((_btn, idx) => {
-    return edges.some(e => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
+    const aliases = [
+      `button-${idx}`,
+      `button_${idx}`,
+      `btn-${idx}`,
+      `btn_${idx}`,
+      `button-${idx + 1}`,
+      `button_${idx + 1}`,
+      `btn-${idx + 1}`,
+      `btn_${idx + 1}`,
+    ]
+    return edges.some(e => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")))
   })
 
-  if (hasButtonEdges) {
-    console.log(`[webhook-meta] Node ${targetNode.id} has button edges — waiting for user response`)
+  const hasCapture = Boolean(
+    targetNode.data.collectName ||
+    targetNode.data.collectWhatsapp ||
+    targetNode.data.collectEmail ||
+    edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"))
+  )
+
+  if (hasButtonEdges || hasCapture) {
+    console.log(`[webhook-meta] Node ${targetNode.id} has button edges or capture — waiting for user response`)
     return true
   }
 
@@ -465,7 +576,11 @@ async function processFlowNodeMeta(
   supabase: any,
   visited: Set<string>,
   userId: string,
-  flowName: string
+  flowName: string,
+  options?: {
+    resumeCaptured?: Record<string, string>;
+    flowId?: string;
+  }
 ) {
   const currentNode = nodes.find(n => n.id === nodeId)
 
@@ -504,9 +619,22 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoAcao') {
+      const isActionDelay = targetNode.type === 'blocoAcao' && targetNode.data.actionType === 'delay'
+      
+      if (isActionDelay) {
+        const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0
+        if (seconds > 0) {
+          const safeSeconds = Math.min(seconds, 50)
+          console.log(`[webhook-meta] Aplicando delay de ${safeSeconds}s para o nó ${targetNode.id}`)
+          await new Promise((resolve) => setTimeout(resolve, safeSeconds * 1000))
+        }
+      }
+
+      if (targetNode.type === 'blocoConteudo') {
       const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
       if (shouldStop) continue
+      }
     }
 
     await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName)
