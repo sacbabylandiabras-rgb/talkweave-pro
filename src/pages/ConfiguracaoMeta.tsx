@@ -23,7 +23,7 @@ interface MetaPhoneNumber {
   code_verification_status?: string;
 }
 
-const WHATSAPP_META_APP_ID = "1478628750280487";
+const WHATSAPP_META_APP_ID = "1629147191696096";
 
 export default function ConfiguracaoMeta() {
   const { data: creds, isLoading } = useMetaCredentials(WHATSAPP_META_APP_ID);
@@ -257,7 +257,7 @@ export default function ConfiguracaoMeta() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Cole os dados do painel{" "}
                   <a
-                    href="https://developers.facebook.com/apps/1478628750280487/use_cases/customize/wa-dev-console/"
+                    href="https://developers.facebook.com/apps/1629147191696096/use_cases/customize/wa-dev-console/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline"

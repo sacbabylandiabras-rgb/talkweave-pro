@@ -1,4 +1,4 @@
-const META_APP_ID = "1478628750280487";
+const META_APP_ID = "1629147191696096";
 const META_GRAPH_VERSION = "v21.0";
 const META_SCOPES = [
   "whatsapp_business_management",

@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const API_VERSION = "v21.0";
-const WHATSAPP_META_APP_ID = "1478628750280487";
+const WHATSAPP_META_APP_ID = "1629147191696096";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
