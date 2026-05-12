@@ -111,6 +111,10 @@ const buildSpecialContent = (type: string, data: any): string => {
       } else if (type === "multiplos_contatos") {
        payload.phones = (data.massPhones || "").split(/[\n,]/).map((p: string) => p.trim()).filter(Boolean);
        payload.description = data.content || "";
+     } else if (type === "meta_template") {
+       payload.templateName = data.metaTemplateName || "";
+       payload.language = data.metaLanguage || "pt_BR";
+       payload.description = data.content || "";
      }
      return SPECIAL_TEMPLATE_PREFIX + JSON.stringify(payload);
    };
