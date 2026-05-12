@@ -166,9 +166,10 @@ serve(async (req) => {
                   if (targetNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
                     const visited = new Set<string>()
-                    const shouldStop = await sendNodeContentMeta(targetNode, flowNodes, flowEdges, fromPhone, metaCreds, visited, supabase, userId, flow.name)
+                    const options = { flowId: flow.id }
+                    const shouldStop = await sendNodeContentMeta(targetNode, flowNodes, flowEdges, fromPhone, metaCreds, visited, supabase, userId, flow.name, options)
                     if (!shouldStop) {
-                      await processFlowNodeMeta(targetNode.id, flowNodes, flowEdges, fromPhone, metaCreds, supabase, visited, userId, flow.name)
+                      await processFlowNodeMeta(targetNode.id, flowNodes, flowEdges, fromPhone, metaCreds, supabase, visited, userId, flow.name, options)
                     }
                   }
 
