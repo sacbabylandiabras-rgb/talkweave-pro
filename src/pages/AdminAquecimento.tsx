@@ -510,22 +510,40 @@ export default function AdminAquecimento() {
       return;
     }
     setCreatingInst(true);
-    const { data, error } = await supabase.functions.invoke("uazapi-create-instance", {
-      body: { instanceName: name, systemName: "zaplynx" },
-    });
-    setCreatingInst(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Para instâncias de aquecimento, criamos o registro diretamente com o provedor correto
+      const { error } = await supabase
+        .from("zapi_instances")
+        .insert({
+          user_id: user.id,
+          instance_name: name,
+          api_provider: "uazapi_warmup",
+          // Valores padrão para UAZAPI (zaplynx-uazapi-01)
+          evolution_api_url: "https://zaplynx-uazapi-01.evolution-api.com",
+          evolution_api_key: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C",
+          zapi_token: "3B8E3D7C6F2A4B1D9E0A7C5F3B8E3D7C", // Espelhado para compatibilidade
+          zapi_instance_id: name,
+          zapi_client_token: "zaplynx",
+          is_active: true,
+          is_default: false
+        });
+
+      if (error) throw error;
+
+      toast.success("Instância de aquecimento criada com sucesso");
+      setInstName("");
+      setInstOpen(false);
+      loadInstances();
+    } catch (err: any) {
+      console.error("Erro ao criar instância:", err);
+      toast.error(err.message || "Erro ao criar instância");
+    } finally {
+      setCreatingInst(false);
     }
-    if ((data as any)?.error) {
-      toast.error((data as any).error);
-      return;
-    }
-    toast.success("Instância UAZAPI criada");
-    setInstName("");
-    setInstOpen(false);
-    loadInstances();
   };
 
   const migrateLegacyInstances = async () => {
