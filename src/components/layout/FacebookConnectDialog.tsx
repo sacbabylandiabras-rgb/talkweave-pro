@@ -21,7 +21,7 @@ interface FacebookConnectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const META_APP_ID = "1478628750280487";
+const META_APP_ID = "1629147191696096";
 
 export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
   const [connecting, setConnecting] = useState(false);

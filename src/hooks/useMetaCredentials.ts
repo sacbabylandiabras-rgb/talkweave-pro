@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-const WHATSAPP_META_APP_ID = "1478628750280487";
+const WHATSAPP_META_APP_ID = "1629147191696096";
 
 export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
   return useQuery({
