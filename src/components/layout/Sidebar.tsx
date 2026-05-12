@@ -279,20 +279,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         "flex items-center gap-2.5 px-0 py-1 border-b border-white/10",
         collapsed && "justify-center px-1"
       )}>
-        {activeWorkspace === "gateway" ? (
-          <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
-        ) : activeWorkspace === "meta" ? (
-          <div className="w-8 h-8 rounded-lg bg-[#0668E1]/10 flex items-center justify-center shrink-0">
-            <Globe className="w-4.5 h-4.5 text-[#0668E1]" />
-          </div>
-        ) : (
-          <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
-        )}
-        {!collapsed && activeWorkspace === "meta" && (
-          <span className="font-bebas text-[22px] text-white leading-none">
-            Meta<span className="bg-gradient-to-r from-[#a78bfa] to-[#f472b6] bg-clip-text text-transparent"> API</span>
-          </span>
-        )}
+        <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2" />
       </div>
 
       {/* Collapse toggle */}
