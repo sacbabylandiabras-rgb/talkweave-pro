@@ -29,13 +29,11 @@ export default function MetaOAuthCallback() {
       }
 
       try {
-        const redirectUri = `${window.location.origin}/meta-oauth-callback`;
         const { data, error } = await supabase.functions.invoke("meta-oauth-callback", {
           body: {
             code,
             state,
             origin: window.location.origin,
-            redirectUri,
           },
         });
 
