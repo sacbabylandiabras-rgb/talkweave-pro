@@ -21,7 +21,7 @@ interface Step2Data {
   cnpj: string;
   owner_name: string;
   owner_cpf: string;
-  mother_name: string;
+   mother_name?: string;
   address_zip: string;
   address_street: string;
   address_number: string;
@@ -31,7 +31,12 @@ interface Step2Data {
   address_state: string;
 }
 
-export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
+ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: boolean }) {
+   const { kyc, loading, submitKyc } = useGatewayKyc();
+   const [step, setStep] = useState(1);
+   const [kycType, setKycType] = useState<"pf" | "pj">("pj");
+ 
+   // Step 1
   const { kyc, loading, submitKyc } = useGatewayKyc();
   const [step, setStep] = useState(1);
 
@@ -67,28 +72,46 @@ export default function GatewayKycSubmission({ inDialog = false }: { inDialog?: 
   };
 
   const isStep1Valid = step1.whatsapp.trim().length >= 10;
-  const isStep2Valid =
-    step2.company_name.trim() !== "" &&
-    step2.cnpj.trim().length >= 14 &&
-    step2.owner_name.trim() !== "" &&
-    step2.owner_cpf.trim().length >= 11 &&
-    step2.mother_name.trim() !== "" &&
-    step2.address_zip.trim() !== "" &&
-    step2.address_street.trim() !== "" &&
-    step2.address_number.trim() !== "" &&
-    step2.address_neighborhood.trim() !== "" &&
-    step2.address_city.trim() !== "" &&
-    step2.address_state.trim() !== "";
+   const isStep2Valid = kycType === "pj" 
+     ? (
+       step2.company_name.trim() !== "" &&
+       step2.cnpj.trim().length >= 14 &&
+       step2.owner_name.trim() !== "" &&
+       step2.owner_cpf.trim().length >= 11 &&
+       step2.mother_name?.trim() !== "" &&
+       step2.address_zip.trim() !== "" &&
+       step2.address_street.trim() !== "" &&
+       step2.address_number.trim() !== "" &&
+       step2.address_neighborhood.trim() !== "" &&
+       step2.address_city.trim() !== "" &&
+       step2.address_state.trim() !== ""
+     ) : (
+       step2.owner_name.trim() !== "" &&
+       step2.owner_cpf.trim().length >= 11 &&
+       step2.address_zip.trim() !== "" &&
+       step2.address_street.trim() !== "" &&
+       step2.address_number.trim() !== "" &&
+       step2.address_neighborhood.trim() !== "" &&
+       step2.address_city.trim() !== "" &&
+       step2.address_state.trim() !== ""
+     );
 
-  const handleSubmit = async () => {
-    if (!selfie.file || !docFront.file || !docBack.file || !cnpjDoc.file) return;
-    setSubmitting(true);
-    try {
-      await submitKyc(selfie.file, docFront.file, docBack.file, step1.whatsapp, { ...step2 }, cnpjDoc.file);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+   const handleSubmit = async () => {
+     if (!selfie.file || !docFront.file || !docBack.file || (kycType === "pj" && !cnpjDoc.file)) return;
+     setSubmitting(true);
+     try {
+       await submitKyc(
+         selfie.file, 
+         docFront.file, 
+         docBack.file, 
+         step1.whatsapp, 
+         { ...step2, kyc_type: kycType }, 
+         kycType === "pj" ? cnpjDoc.file || undefined : undefined
+       );
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   if (loading) {
     return (
