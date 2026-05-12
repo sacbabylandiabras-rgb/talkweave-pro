@@ -662,47 +662,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   }, [instance.id, connectedPhone]);
 
   const [showDetails, setShowDetails] = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async (zapiId?: string) => {
-    setDeleting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('cleanup-orphan-data', {
-        body: { 
-          action: 'delete-instance', 
-          instanceId: instance.id,
-          zapiInstanceId: zapiId || instance.zapi_instance_id
-        },
-      });
-      if (error) throw error;
-      if (!data?.success || Number(data?.deleted || 0) === 0) {
-        throw new Error(data?.error || 'A instância não foi removida.');
-      }
-
-      toast({ 
-        title: '🗑️ Instância apagada', 
-        description: 'A instância foi removida com sucesso.' 
-      });
-      setShowDelete(false);
-      
-      // Limpa cache local antes de dar refetch para garantir que não reapareça
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        localStorage.removeItem(`zapi_instances_cache:${user.id}`);
-      }
-      
-      if (onDeleted) onDeleted();
-    } catch (err) {
-      toast({
-        title: '❌ Erro ao apagar',
-        description: err instanceof Error ? err.message : 'Não foi possível apagar a instância.',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   return (
     <>
@@ -1291,31 +1250,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apagar instância?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação remove a instância <strong>{instanceName}</strong> da sua conta.
-              Você precisará criar uma nova e escanear o QR Code novamente para reconectar este número.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? (
-                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Apagando...</>
-              ) : (
-                <><Trash2 className="w-4 h-4 mr-1" /> Apagar</>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
