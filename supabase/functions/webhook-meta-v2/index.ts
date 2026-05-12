@@ -144,6 +144,76 @@ serve(async (req) => {
               if (!msgText || !accessToken) continue
 
               // === CHECK FLOW AUTOMATIONS ===
+
+              // Resume pending capture/button flows first
+              const { data: pendingFlowLog } = await supabase
+                .from('message_logs')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('phone', fromPhone)
+                .in('keyword_matched', [
+                  `${FLOW_CAPTURE_PREFIX}${userId}`,
+                  `${FLOW_BUTTON_PREFIX}${userId}`,
+                ])
+                .order('timestamp', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+              if (pendingFlowLog) {
+                const isCapture = pendingFlowLog.keyword_matched.startsWith(FLOW_CAPTURE_PREFIX)
+                const pendingState = JSON.parse(pendingFlowLog.response_sent || '{}')
+                const flowId = pendingState.flowId
+
+                if (flowId) {
+                  const { data: pendingFlow } = await supabase
+                    .from('flow_automations')
+                    .select('*')
+                    .eq('id', flowId)
+                    .eq('active', true)
+                    .maybeSingle()
+
+                  if (pendingFlow) {
+                    if (isCapture) {
+                      // Resume capture flow
+                      console.log(`[webhook-meta] Resuming capture flow ${pendingFlow.name} for ${fromPhone}`)
+                      const nodes = pendingFlow.nodes || []
+                      const edges = pendingFlow.edges || []
+                      const currentNode = nodes.find((n: any) => n.id === pendingState.nodeId)
+
+                      if (currentNode) {
+                        // Delete the pending log so it doesn't trigger again
+                        await supabase.from('message_logs').delete().eq('id', pendingFlowLog.id)
+                        
+                        const captured = pendingState.captured || {}
+                        captured[pendingState.field] = msgText
+                        
+                        const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                        const options = { resumeCaptured: captured, flowId: pendingFlow.id }
+                        await processFlowNodeMeta(currentNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, pendingFlow.name, options)
+                        continue
+                      }
+                    } else {
+                      // Check for button match in the current flow
+                      const buttonMatch = findButtonEdgeMatch([pendingFlow], normalizeForMatch(msgText), msgText, buttonReplyTitle, buttonReplyId)
+                      if (buttonMatch) {
+                        console.log(`[webhook-meta] Matched pending flow button: ${buttonMatch.buttonText}`)
+                        await supabase.from('message_logs').delete().eq('id', pendingFlowLog.id)
+                        
+                        const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
+                        const visited = new Set<string>()
+                        const targetNode = pendingFlow.nodes.find((n: any) => n.id === buttonMatch.targetNodeId)
+                        if (targetNode) {
+                          const options = { resumeCaptured: pendingState.captured || {}, flowId: pendingFlow.id }
+                          await sendNodeContentMeta(targetNode, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, visited, supabase, userId, pendingFlow.name, options)
+                          await processFlowNodeMeta(targetNode.id, pendingFlow.nodes, pendingFlow.edges, fromPhone, metaCreds, supabase, visited, userId, pendingFlow.name, options)
+                        }
+                        continue
+                      }
+                    }
+                  }
+                }
+              }
+
               const { data: flowAutomations } = await supabase
                 .from('flow_automations')
                 .select('*')
