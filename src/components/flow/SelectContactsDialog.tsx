@@ -110,7 +110,8 @@ export function SelectContactsDialog({
   }, [open, isGroupsMode]);
 
   // Auto-select meta provider when in Meta workspace
-  const effectiveProvider = activeWorkspace === "meta" ? "meta" : sendProvider;
+   // Use activeWorkspace "meta" to force provider to meta, unless in groups mode where only zapi is supported
+   const effectiveProvider = (activeWorkspace === "meta" && !isGroupsMode) ? "meta" : sendProvider;
 
   const fetchMetaPhones = async () => {
     setLoadingMetaPhones(true);
