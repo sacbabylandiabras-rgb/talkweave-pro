@@ -258,7 +258,7 @@ serve(async (req) => {
         let igUserId = "";
         try {
           const profileRes = await fetch(
-            `https://graph.instagram.com/v21.0/me?fields=user_id,username,name&access_token=${encodeURIComponent(body.token)}`
+            `https://graph.facebook.com/v21.0/me?fields=user_id,username,name&access_token=${encodeURIComponent(body.token)}`
           );
           const profileData = await profileRes.json();
           if (profileRes.ok && !profileData.error) {
@@ -440,7 +440,7 @@ serve(async (req) => {
                         try {
                           const replyText = replaceVars(d.message);
                           const res = await fetch(
-                            `https://graph.instagram.com/v21.0/${commentId}/replies`,
+                            `https://graph.facebook.com/v21.0/${commentId}/replies`,
                             {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
@@ -494,7 +494,7 @@ serve(async (req) => {
                           if (messagePayload) {
                             // Strategy: try direct DM first, if "outside window" → open via Private Reply then send buttons
                             const sendDM = async (recipientId: string, payload: any) => {
-                              const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                              const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                 body: JSON.stringify({ recipient: { id: recipientId }, message: payload }),
@@ -514,7 +514,7 @@ serve(async (req) => {
                                 const prPayload = dmButtons.length > 0
                                   ? buildButtonPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
                                   : { text: dmText };
-                                const prRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                const prRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                   body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
@@ -528,7 +528,7 @@ serve(async (req) => {
                                 } else {
                                   console.warn("⚠️ Private Reply with template failed, trying text-only:", JSON.stringify(prData));
                                   // Step 2: Fallback → text-only Private Reply, then send buttons via IGSID
-                                  const textPrRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                  const textPrRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                     body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
@@ -643,7 +643,7 @@ serve(async (req) => {
                         const replyText = auto.reply_comment
                           .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                           .replace(/\{\{comentario\}\}/g, commentText);
-                        const replyRes = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
+                        const replyRes = await fetch(`https://graph.facebook.com/v21.0/${commentId}/replies`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ message: replyText, access_token: accessToken }),
@@ -676,7 +676,7 @@ serve(async (req) => {
                         const messagePayload = dmButtons.length > 0 ? buildBtnPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
                         if (messagePayload) {
-                          const dmRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                          const dmRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                             body: JSON.stringify({ recipient: { id: fromId }, message: messagePayload }),
@@ -692,7 +692,7 @@ serve(async (req) => {
                               const prPayload = dmButtons.length > 0
                                 ? buildBtnPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
                                 : { text: dmText };
-                              const prRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                              const prRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                 body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
@@ -703,7 +703,7 @@ serve(async (req) => {
                                 console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
                               } else {
                                 console.warn("⚠️ Template PR failed, trying text-only:", JSON.stringify(prData));
-                                const textPrRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                const textPrRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                   body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
@@ -716,7 +716,7 @@ serve(async (req) => {
                                     await new Promise(r => setTimeout(r, 1000));
                                     const btnPayload = buildBtnPayload("", dmButtons);
                                     if (btnPayload) {
-                                      const btnRes = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                      const btnRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                         body: JSON.stringify({ recipient: { id: igsid }, message: btnPayload }),
@@ -820,7 +820,7 @@ serve(async (req) => {
                             messagePayload = { text: dmText };
                           }
                           if (messagePayload) {
-                            const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                            const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: messagePayload }),
@@ -933,7 +933,7 @@ serve(async (req) => {
                             mp = { text: dmText };
                           }
                           if (mp) {
-                            const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                            const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
@@ -1011,7 +1011,7 @@ serve(async (req) => {
                           // Send follow-up message if configured
                           const followUp = collectsWa ? node.data?.whatsappFollowUp : node.data?.emailFollowUp;
                           if (followUp) {
-                            await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                            await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
@@ -1065,7 +1065,7 @@ serve(async (req) => {
                                 mp = { text: msg };
                               }
                               if (mp) {
-                                const res = await fetch(`https://graph.instagram.com/v21.0/${igPageId}/messages`, {
+                                const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                   body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
