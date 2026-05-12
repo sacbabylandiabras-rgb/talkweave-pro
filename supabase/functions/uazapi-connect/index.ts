@@ -1,3 +1,10 @@
+           // If phone is provided, try both body and query param
+           const params: Record<string, string> = {};
+           if (phone) {
+             params.phone = phone;
+             params.pairingCode = "true";
+             params.paircode = "true";
+           }
  import { corsHeaders } from "../_shared/cors.ts";
 
 const pickFirstString = (...values: unknown[]) => {
