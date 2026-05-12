@@ -455,15 +455,15 @@ export default function AdminAquecimento() {
           instanceName: connectInst.instance_name
         },
       });
-      if ((data as any)?.connected) {
+      const d = data as any;
+      if (d?.connected) {
         setConnStatus("connected");
         setQrCode(null);
         setPairingCode(null);
         toast.success("Instância conectada!");
-      } else if ((data as any)?.pairingCode && (data as any).pairingCode !== pairingCode) {
-        setPairingCode((data as any).pairingCode);
-      } else if ((data as any)?.qrCode && (data as any).qrCode !== qrCode) {
-        setQrCode((data as any).qrCode);
+      } else {
+        if (d?.pairingCode) setPairingCode(d.pairingCode);
+        if (d?.qrCode) setQrCode(d.qrCode);
       }
     }, 5000);
     return () => clearInterval(interval);
