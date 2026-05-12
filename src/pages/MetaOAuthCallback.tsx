@@ -34,6 +34,7 @@ export default function MetaOAuthCallback() {
             code,
             state,
             origin: window.location.origin,
+            redirectUri: `${window.location.origin}/meta-oauth-callback`,
           },
         });
 
