@@ -144,7 +144,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
             code,
             origin: window.location.origin,
             state: statePayload,
-            redirectUri: `${window.location.origin}/meta-oauth-callback`,
+            redirectUri: `https://zaplynx.com/meta-oauth-callback`,
           },
         });
 
