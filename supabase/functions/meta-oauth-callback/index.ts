@@ -227,13 +227,12 @@ serve(async (req) => {
       });
     }
 
-    const defaultRedirectUri = `${SUPABASE_URL}${CALLBACK_PATH}`;
+    const defaultRedirectUri = "https://zaplynx.com/meta-oauth-callback";
     const tokenData = await exchangeFacebookCode({
       appId: META_APP_ID,
       appSecret: META_APP_SECRET,
       code,
-      fallbackRedirectUri: defaultRedirectUri,
-      redirectUri: isJsonRequest ? body?.redirectUri ?? null : defaultRedirectUri,
+      redirectUri: isJsonRequest ? body?.redirectUri ?? defaultRedirectUri : defaultRedirectUri,
     });
 
     if (tokenData.error) {
