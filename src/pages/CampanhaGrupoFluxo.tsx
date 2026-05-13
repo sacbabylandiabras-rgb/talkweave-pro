@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { setZapiInstanceOverride, setZapiRotateMode, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
+import { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users,
@@ -30,6 +33,8 @@ import {
   Megaphone,
   Info,
   CheckCircle2,
+  Smartphone,
+  RefreshCw,
 } from "lucide-react";
 
 type RotativeLink = {
@@ -43,7 +48,7 @@ const STEPS = [
   { id: 1, title: "Informações", icon: Info, description: "Nome e descrição da campanha" },
   { id: 2, title: "Modelo", icon: MessageSquare, description: "Escolha a mensagem" },
   { id: 3, title: "Grupos", icon: Users, description: "Selecione os destinos" },
-  { id: 4, title: "Agendamento", icon: Calendar, description: "Quando enviar" },
+  { id: 4, title: "Configurações", icon: Calendar, description: "Instância e agendamento" },
   { id: 5, title: "Revisão", icon: CheckCircle2, description: "Confira e crie" },
 ];
 
@@ -52,7 +57,17 @@ export default function CampanhaGrupoFluxo() {
   const { toast } = useToast();
   const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
-  const { groups, loading: loadingGroups } = useWhatsAppGroups();
+  const { groups, loading: loadingGroups } = useWhatsAppGroups({
+    provider: 'zapi_no_warmup_meta'
+  });
+  const { instances: allInstances } = useZapiInstances();
+
+  const instances = useMemo(() => allInstances.filter(i => {
+    const provider = (i.api_provider || 'zapi').toLowerCase();
+    const name = (i.instance_name || '').toLowerCase();
+    if (name.includes('aquecimento') || name.includes('warmup')) return false;
+    return provider !== 'uazapi' && provider !== 'meta';
+  }), [allInstances]);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +82,8 @@ export default function CampanhaGrupoFluxo() {
     delay_seconds: 2,
     schedule_type: "immediate" as "immediate" | "scheduled",
     scheduled_at: "",
+    instance_selection_mode: "default" as "default" | "single" | "rotate",
+    selected_instance_id: "",
   });
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,7 +196,19 @@ export default function CampanhaGrupoFluxo() {
 
       if (formData.schedule_type === 'immediate') {
         console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
-        await sendCampaign(campaign.id, groupContacts);
+        
+        let instanceToUse = null;
+        if (formData.instance_selection_mode === 'rotate') {
+          setZapiRotateMode(instances);
+        } else if (formData.instance_selection_mode === 'single' && formData.selected_instance_id) {
+          const inst = instances.find(i => i.id === formData.selected_instance_id);
+          if (inst) {
+            setZapiInstanceOverride(inst);
+            instanceToUse = formData.selected_instance_id;
+          }
+        }
+        
+        await sendCampaign(campaign.id, groupContacts, instanceToUse);
       }
 
       toast({
@@ -464,7 +493,41 @@ export default function CampanhaGrupoFluxo() {
           )}
 
           {step === 4 && (
-            <>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Instância de Envio
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={formData.instance_selection_mode === 'rotate' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFormData(p => ({ ...p, instance_selection_mode: 'rotate', selected_instance_id: ROTATE_ALL }))}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                    Rodízio (Todas)
+                  </Button>
+                  {instances.map(inst => (
+                    <Button
+                      key={inst.id}
+                      type="button"
+                      variant={formData.instance_selection_mode === 'single' && formData.selected_instance_id === inst.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFormData(p => ({ ...p, instance_selection_mode: 'single', selected_instance_id: inst.id }))}
+                    >
+                      {inst.instance_name}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {formData.instance_selection_mode === 'rotate' 
+                    ? "As mensagens serão distribuídas entre todas as instâncias conectadas."
+                    : "Apenas a instância selecionada será usada para os envios."}
+                </p>
+              </div>
+
               <div className="space-y-3">
                 <Label className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" />
@@ -528,7 +591,7 @@ export default function CampanhaGrupoFluxo() {
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {step === 5 && (
