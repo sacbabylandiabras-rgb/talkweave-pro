@@ -26,7 +26,7 @@ interface MetaPhoneNumber {
  const WHATSAPP_META_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "26985190684454065";
 
 export default function ConfiguracaoMeta() {
-  const { data: creds, isLoading } = useMetaCredentials(WHATSAPP_META_APP_ID);
+   const { data: creds, isLoading, isFetching } = useMetaCredentials(WHATSAPP_META_APP_ID);
   const [fbDialogOpen, setFbDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConfirmDisconnect, setShowConfirmDisconnect] = useState(false);
@@ -190,7 +190,7 @@ export default function ConfiguracaoMeta() {
     ? `${(creds.access_token as string).slice(0, 12)}...${(creds.access_token as string).slice(-6)}`
     : "—";
 
-  if (isLoading) {
+   if (isLoading || isFetching) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
