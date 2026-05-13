@@ -122,9 +122,9 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse) || isGroup) {
-       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE (excluindo respostas de botão)
-       if (isMessage && fromMe && !isButtonResponse && !isGroup) {
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse)) {
+       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
+       if (isMessage && fromMe && !isButtonResponse) {
          await supabase.from("message_logs").insert({
            user_id: userId,
            phone: phone,
@@ -134,10 +134,7 @@ serve(async (req) => {
          });
        }
 
-       if (isMessage) {
-         if (fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
-         if (isGroup) console.log(`Webhook ignored (Group message): phone=${phone}`);
-       }
+       if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
        return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
