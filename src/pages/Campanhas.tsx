@@ -567,14 +567,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Carregando campanhas...</p>
-      </div>
-    );
-  }
-
   const contactCampaigns = useMemo(() => {
     return isGroupsMode
       ? campaigns.filter(c => {
@@ -586,6 +578,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           return audience.type !== 'groups' && !(audience.groupIds && Array.isArray(audience.groupIds));
         });
   }, [campaigns, isGroupsMode]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Carregando campanhas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
