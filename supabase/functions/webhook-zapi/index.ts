@@ -77,7 +77,12 @@ serve(async (req) => {
                       webhook?.buttonReply?.buttonId ||
                       webhook?.buttonsResponseMessage?.selectedButtonId ||
                       webhook?.buttonsResponseMessage?.buttonText ||
+                      webhook?.buttonResponseMessage?.selectedButtonId ||
+                      webhook?.buttonResponseMessage?.buttonText ||
+                      webhook?.listResponseMessage?.title ||
                       webhook?.listResponseMessage?.actionLabel ||
+                      webhook?.listResponseMessage?.description ||
+                      webhook?.interactiveResponseMessage?.body ||
                       "";
     
     // Z-API can send fromMe as boolean or string
