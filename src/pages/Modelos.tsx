@@ -1298,6 +1298,20 @@ const getPreviewFileLabel = (template: any) => {
     }
   }, [createTemplate, toast]);
 
+  const exportSingleTemplateToJson = useCallback((template: any) => {
+    const dataStr = JSON.stringify([template], null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `modelo_${template.name.toLowerCase().replace(/\s+/g, '_')}.json`;
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    toast({
+      title: "Sucesso",
+      description: "Modelo exportado com sucesso!",
+    });
+  }, [toast]);
+
   // Função para fazer upload do arquivo
   const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
     const validListItems = Array.isArray(newTemplate.listItems)
@@ -2560,8 +2574,11 @@ const getPreviewFileLabel = (template: any) => {
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleEditTemplate(template)}>
                   <Edit className="w-3 h-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleDuplicateTemplate(template)}>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleDuplicateTemplate(template)} title="Duplicar">
                   <Copy className="w-3 h-3" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => exportSingleTemplateToJson(template)} title="Baixar JSON">
+                  <Download className="w-4 h-4" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive" onClick={() => handleDeleteTemplate(template.id)}>
                   <Trash2 className="w-3 h-3" />
