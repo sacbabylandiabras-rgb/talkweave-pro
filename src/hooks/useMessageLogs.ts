@@ -496,10 +496,14 @@ export const useMessageLogs = (
     });
 
     // Filter out internal system entries that carry no visible content, 
+    // filter out history imports (mensagens antigas),
     // and filter out locally deleted conversations.
     allData = allData.filter(m => {
       const normalized = normalizeConversationPhone(m.phone);
       if (localDeleted.has(normalized)) return false;
+
+      // Hide history imports as requested
+      if (m.keyword_matched === '__history_import__') return false;
 
       const isInternal = isInternalFlowStateKeyword(m.keyword_matched);
       const hasContent = Boolean(m.message_received || (m.response_sent && m.response_sent !== '__processing__'));
