@@ -70,11 +70,18 @@ const readProgress = (): Record<string, number> => {
 };
 
 export default function AquecimentoNumero() {
-   const { instances: allInstances } = useZapiInstances({ includeWarmup: true });
-   const instances = useMemo(
-     () => allInstances.filter((i) => !i.api_provider?.includes("warmup")),
-     [allInstances]
-   );
+   const { instances: allInstances } = useZapiInstances({ includeWarmup: false });
+   const instances = useMemo(() => {
+     return allInstances.filter((i) => {
+       const provider = (i.api_provider || "").toLowerCase();
+       // Não mostrar Meta, Extrator de Grupo (uazapi) ou doadoras de aquecimento
+       return (
+         provider !== "meta" &&
+         provider !== "uazapi" &&
+         !provider.includes("warmup")
+       );
+     });
+   }, [allInstances]);
   const [config, setConfig] = useState<WarmupConfig>(DEFAULT_WARMUP_CONFIG);
   const [userId, setUserId] = useState<string>();
   const [saving, setSaving] = useState(false);
