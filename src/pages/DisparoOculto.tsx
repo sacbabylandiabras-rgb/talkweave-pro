@@ -78,8 +78,9 @@ export default function DisparoOculto() {
     (async () => {
       setLoadingInstances(true);
       const { data, error } = await (supabase as any)
-        .from("hidden_dispatch_instances")
-        .select("id, name, api_provider")
+        .from("zapi_instances")
+        .select("id, instance_name, api_provider")
+        .eq("api_provider", "zapi")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (!error && data) {

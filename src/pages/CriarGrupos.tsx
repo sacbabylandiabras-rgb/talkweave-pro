@@ -1240,8 +1240,8 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 /* ============= TAB: Links Rotativos ============= */
  function LinksRotativosTab() {
    const { links, loading, createLink, deleteLink, toggleLink, addGroupToLink, removeGroupFromLink, updateGroupInLink, updateLink, refetch } = useRedirectLinks();
-    const { groups } = useWhatsAppGroups({ provider: 'zapi' });
-  const { instances } = useZapiInstances();
+    const { groups } = useWhatsAppGroups({ provider: 'zapi_no_warmup_meta' });
+  const { instances } = useZapiInstances({ provider: 'zapi' });
   const [analyticsLinkId, setAnalyticsLinkId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");

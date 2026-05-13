@@ -253,7 +253,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
        if (isMetaMode) {
          return provider === "meta";
        }
-       return provider === "zapi" && !provider.includes("warmup");
+        return provider === "zapi";
      });
    }, [allInstances, isMetaMode]);
   const { templates: messageTemplates } = useMessageTemplates();
