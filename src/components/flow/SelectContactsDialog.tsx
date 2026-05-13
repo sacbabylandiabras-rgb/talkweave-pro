@@ -240,7 +240,7 @@ export function SelectContactsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col z-[100]">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col z-[100] overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             {isGroupsMode ? "Selecionar Grupos" : "Selecionar Contatos"}
@@ -344,7 +344,7 @@ export function SelectContactsDialog({
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <ScrollArea className="flex-1 min-h-0 h-[400px] border rounded-lg">
+                <ScrollArea className="flex-1 min-h-0 h-[50vh] border rounded-lg">
                   <div className="p-4 space-y-2">
                     {/* Links Rotativos */}
                     {rotativeLinks.map(link => {
@@ -474,7 +474,7 @@ export function SelectContactsDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
-              <ScrollArea className="flex-1 min-h-0 h-[400px] border rounded-lg">
+              <ScrollArea className="flex-1 min-h-0 h-[50vh] border rounded-lg">
                 <div className="p-4 space-y-2">
                   {filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -553,7 +553,7 @@ export function SelectContactsDialog({
               Digite o número com DDD e código do país (ex: 5511999999999) e pressione Enter ou clique em Adicionar.
             </p>
 
-            <ScrollArea className="flex-1 min-h-0 h-[300px] border rounded-lg">
+            <ScrollArea className="flex-1 min-h-0 h-[40vh] border rounded-lg">
               <div className="p-4 space-y-2">
                 {manualPhones.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
