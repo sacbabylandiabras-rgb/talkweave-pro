@@ -73,8 +73,8 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     }
 
     // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos
-    if (!includeWarmup && isWarmup) return false;
-    if (isUazapi && !provider.includes("zapi")) return false; 
+    if (isWarmup) return includeWarmup;
+    if (isUazapi && !provider.includes("zapi")) return false;
     if (isMeta) return false;
 
     return true;

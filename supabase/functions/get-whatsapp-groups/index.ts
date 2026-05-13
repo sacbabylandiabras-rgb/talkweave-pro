@@ -899,18 +899,25 @@ Deno.serve(async (req) => {
     const normalizedProviderFilter = providerFilter?.toLowerCase() || null;
     const filteredInstances = instances.filter((inst) => {
       const provider = (inst.api_provider || 'zapi').toLowerCase();
-      // Se o filtro for UAZAPI (Apanhador de Grupos), retornamos apenas as instâncias de extração.
+      const isWarmup = provider.includes('warmup');
+      const isMeta = provider === 'meta';
+      const isUazapi = provider === 'uazapi';
+
       if (normalizedProviderFilter === 'uazapi') {
-        return provider === 'uazapi' && (inst as any).instance_type !== 'mobile';
+        return isUazapi && (inst as any).instance_type !== 'mobile';
       }
 
-      // Para outros casos, removemos as instâncias UAZAPI de extração do fluxo normal (mensagens/campanhas)
-      // e removemos instâncias Mobile.
-      if (provider === 'uazapi') return false;
-      if ((inst as any).instance_type === 'mobile') return false;
+      if (normalizedProviderFilter === 'zapi_no_warmup_meta') {
+        return provider === 'zapi';
+      }
 
-      if (normalizedProviderFilter === 'zapi' && provider === 'zapi') return true;
-      if (!normalizedProviderFilter) return provider === 'zapi';
+      if (normalizedProviderFilter === 'zapi') {
+        return provider === 'zapi';
+      }
+
+      if (!normalizedProviderFilter) {
+        return provider === 'zapi';
+      }
 
       return provider === normalizedProviderFilter;
     });
