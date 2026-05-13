@@ -1721,8 +1721,7 @@ serve(async (req) => {
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             }
             await persistCampaignSend(campaignSend, reusableSendId);
-            if (i < currentBatch.length - 1) await sleep(delayMs);
-            continue;
+            return { stop: false };
           }
           const uazResult = await dispatchUazapiCampaign(
             currentInstance,
@@ -1767,8 +1766,7 @@ serve(async (req) => {
           }
 
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
         }
         // === END UAZAPI ROUTING ===
 
@@ -1833,8 +1831,7 @@ serve(async (req) => {
             }
             
             await persistCampaignSend(campaignSend, reusableSendId);
-            if (i < currentBatch.length - 1) await sleep(delayMs);
-            continue;
+            return { stop: false };
           }
         } else if (templateType === 'carrossel' && hasCarouselCards) {
           const carouselItems = campaignTemplate.carousel_cards.map((card: any, idx: number) => {
