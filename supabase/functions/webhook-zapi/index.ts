@@ -201,12 +201,13 @@ serve(async (req) => {
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+
               await supabase.from("flow_captured_data").update({
                 last_node_id: null,
                 updated_at: new Date().toISOString()
-              }).eq("id", flowState.id);
-              
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+              }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
           }
