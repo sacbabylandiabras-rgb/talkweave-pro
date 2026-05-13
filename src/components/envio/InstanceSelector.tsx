@@ -19,12 +19,23 @@ const STORAGE_KEY = "zaplynx_selected_instances";
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances();
    // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
-   const visibleInstances = allInstances.filter(
-     (i: any) => (i.api_provider || "zapi").toLowerCase() !== "uazapi",
-   );
-  const instances = providerFilter
-    ? allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === providerFilter)
-    : visibleInstances;
+   const instances = useMemo(() => {
+     const provider = (providerFilter || "zapi").toLowerCase();
+     return allInstances.filter((i: any) => {
+       const iProvider = (i.api_provider || "zapi").toLowerCase();
+       // Se o filtro for Meta, mostra apenas Meta.
+       // Se for Z-API (padrão Zaplynx), mostra apenas Z-API (Web), ocultando Uazapi/Extrator e doadoras de aquecimento.
+       if (provider === "meta") {
+         return iProvider === "meta";
+       }
+       return (
+         iProvider === "zapi" &&
+         !iProvider.includes("warmup") &&
+         iProvider !== "uazapi" &&
+         iProvider !== "meta"
+       );
+     });
+   }, [allInstances, providerFilter]);
   const activeInstance = providerFilter
     ? (instances.find((i: any) => i.id === rawActiveInstance?.id) || instances.find((i: any) => i.is_default) || instances[0] || null)
     : rawActiveInstance;
