@@ -1796,13 +1796,10 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
-  // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
+  const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances();
+  // Mensagens no painel Meta usa exclusivamente instâncias Meta
   const instances = useMemo(() => {
-    return allInstances.filter((i: any) => {
-      const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "meta" || provider === "evolution";
-    });
+    return allInstances.filter((i: any) => (i.api_provider || "").toLowerCase() === "meta");
   }, [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
@@ -1830,17 +1827,6 @@ const MetaMessages = () => {
     () => instances.map((i: any) => i.instance_name).filter(Boolean) as string[],
     [instances],
   );
-  const knownInstanceIds = useMemo(() => {
-    if (connectedInstanceIds === null) return undefined; // ainda verificando
-    if (connectedInstanceIds.length > 0) return connectedInstanceIds; // mostra só as conectadas
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceIds]);
-
-  const knownInstanceNames = useMemo(() => {
-    if (connectedInstanceNames === null) return undefined;
-    if (connectedInstanceNames.length > 0) return connectedInstanceNames;
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceNames]);
   const handleDeleteConversation = async (phone: string) => {
     try {
       await deleteConversation(phone);
@@ -1861,9 +1847,15 @@ const MetaMessages = () => {
     return instances.filter((i: any) => set.has(i.id));
   }, [instances, connectedUiInstanceIds]);
   // Map UI instance id to zapi_instance_id for filtering
-  const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
-  const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
-  const filterInstanceName = selectedInstance?.instance_name;
+  // For Meta API panel, we want ONLY meta instances, so we override the known lists.
+  const metaInstances = useMemo(() => instances.filter(i => i.api_provider === 'meta'), [instances]);
+  const knownInstanceIds = useMemo(() => metaInstances.map(i => i.id), [metaInstances]);
+  const knownInstanceNames = useMemo(() => metaInstances.map(i => i.instance_name), [metaInstances]);
+
+  const selectedInstance = selectedInstanceId === "all" ? undefined : metaInstances.find(i => i.id === selectedInstanceId);
+  const filterZapiInstanceId = selectedInstanceId === "all" ? undefined : selectedInstance?.zapi_instance_id;
+  const filterInstanceName = selectedInstanceId === "all" ? undefined : selectedInstance?.instance_name;
+
   // Auto-sync the chat list from the connected provider (Z-API) so
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
@@ -2193,18 +2185,18 @@ const MetaMessages = () => {
   });
 
   const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
-  const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
+  const selectedConversation = metaConversations.find((c) => c.phone === normalizedSelectedPhone) || null;
 
   // DEBUG: log selection mismatch to help diagnose "messages not appearing"
   useEffect(() => {
     if (!selectedPhone) return;
-    const match = conversations.find((c) => c.phone === normalizedSelectedPhone);
+    const match = metaConversations.find((c) => c.phone === normalizedSelectedPhone);
     if (!match) {
       console.warn('[MensagensRecebidas] selectedPhone has no matching conversation', {
         selectedPhone,
         normalizedSelectedPhone,
-        conversationsCount: conversations.length,
-        samplePhones: conversations.slice(0, 5).map((c) => c.phone),
+        conversationsCount: metaConversations.length,
+        samplePhones: metaConversations.slice(0, 5).map((c) => c.phone),
       });
     } else {
       console.log('[MensagensRecebidas] selected conversation', {
@@ -2279,7 +2271,7 @@ const MetaMessages = () => {
     }
   };
 
-  if (loading) {
+  if (loading || instancesLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -2302,9 +2294,9 @@ const MetaMessages = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={[]} 
-                selectedInstanceId="meta" 
-                onInstanceChange={() => {}} 
+                instances={metaInstances} 
+                selectedInstanceId={selectedInstanceId} 
+                onInstanceChange={setSelectedInstanceId} 
                 syncing={syncing} 
                 onSync={syncHistory} 
                 onFetchPhoto={handleFetchPhoto} 

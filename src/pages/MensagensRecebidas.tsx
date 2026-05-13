@@ -1797,10 +1797,11 @@ const MensagensRecebidas = () => {
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
+  // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API ou Evolution
   const instances = useMemo(() => {
     return allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "meta" || provider === "evolution";
+      return provider === "zapi" || provider === "evolution" || provider === "uazapi";
     });
   }, [allInstances]);
   const activeInstance = useMemo(() => {
@@ -2175,7 +2176,16 @@ const MensagensRecebidas = () => {
     return () => { cancelled = true; };
   }, [conversations, campaignTemplates]);
 
-  const filteredConversations = conversations.filter((conv) => {
+  const zapiConversations = useMemo(() => {
+    return conversations.filter(conv => {
+      // Include if it's NOT a meta instance and doesn't have messages from meta
+      const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
+                   conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
+      return !isMeta;
+    });
+  }, [conversations]);
+
+  const filteredConversations = zapiConversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return conv.phone.includes(term) || (conv.lastMessage || '').toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
