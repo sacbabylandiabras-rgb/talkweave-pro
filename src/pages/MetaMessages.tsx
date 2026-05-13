@@ -943,9 +943,9 @@ const ChatView = ({
           templateId: template.id,
         });
         incrementUsage(template.id);
-        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+        toast({ title: "Template enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
-        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+        toast({ title: "Erro", description: "Falha ao enviar template.", variant: "destructive" });
       } finally {
         setSending(false);
       }
@@ -1024,12 +1024,12 @@ const ChatView = ({
             try {
               await onSendMessage(conversation.phone, effectiveMessage, sendOptions);
               incrementUsage(template.id);
-              toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+              toast({ title: "Template enviado", description: `"${template.name}" enviado com sucesso.` });
             } catch (err: any) {
               console.error("Erro no callback onSendMessage:", err);
               toast({ 
                 title: "Erro no envio", 
-                description: err.message || "Erro desconhecido ao enviar o modelo.", 
+                description: err.message || "Erro desconhecido ao enviar o template.", 
                 variant: "destructive" 
               });
             }
@@ -1070,9 +1070,9 @@ const ChatView = ({
 
         await onSendMessage(conversation.phone, template.content, sendOptions);
         incrementUsage(template.id);
-        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+        toast({ title: "Template enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
-        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+        toast({ title: "Erro", description: "Falha ao enviar template.", variant: "destructive" });
       } finally {
         setSending(false);
       }
@@ -1088,9 +1088,9 @@ const ChatView = ({
           templateId: template.id,
         });
         incrementUsage(template.id);
-        toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
+        toast({ title: "Template enviado", description: `"${template.name}" enviado com sucesso.` });
       } catch {
-        toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
+        toast({ title: "Erro", description: "Falha ao enviar template.", variant: "destructive" });
       } finally {
         setSending(false);
       }
@@ -1699,16 +1699,16 @@ const ChatView = ({
                     size="icon"
                     className="shrink-0 h-10 w-10"
                     disabled={sending}
-                    title="Enviar modelo"
+                    title="Enviar template"
                   >
                     <FileText className="w-4 h-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start" side="top">
                   <div className="p-3 border-b border-border">
-                    <h4 className="text-sm font-semibold mb-2">Modelos de Mensagem</h4>
+                    <h4 className="text-sm font-semibold mb-2">Templates de Mensagem</h4>
                     <Input
-                      placeholder="Buscar modelo..."
+                      placeholder="Buscar template..."
                       value={templateSearch}
                       onChange={(e) => setTemplateSearch(e.target.value)}
                       className="h-8 text-sm"
@@ -1721,7 +1721,7 @@ const ChatView = ({
                       </div>
                     ) : filteredTemplates.length === 0 ? (
                       <div className="text-center py-8 text-sm text-muted-foreground">
-                        Nenhum modelo encontrado
+                        Nenhum template encontrado
                       </div>
                     ) : (
                       <div className="py-1">
