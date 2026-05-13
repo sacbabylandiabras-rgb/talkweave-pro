@@ -1946,7 +1946,7 @@ const MensagensRecebidas = () => {
       if (data?.error === 'disconnected') {
         toast({ 
           title: "⚠️ WhatsApp desconectado", 
-          description: "Reconecte sua instância na página de Dispositivos.", 
+          description: "Reconecte sua conta na página de Configuração Meta.", 
           variant: "destructive" 
         });
       } else if ((data?.importedMessages || data?.importedChats || 0) > 0) {
