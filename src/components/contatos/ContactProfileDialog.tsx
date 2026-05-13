@@ -362,26 +362,26 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
    const getDefaultInstanceId = async (): Promise<string> => {
      if (!contact) return '';
 
-    // 1) Respect explicit preferred instance — already resolved from active instances list
-    if (preferredInstanceId && preferredInstanceId !== 'all' && preferredInstanceId.length > 10) {
-      console.log('🎯 Using preferredInstanceId for flow:', preferredInstanceId);
-      return preferredInstanceId;
-    }
+     // 1) Respect explicit preferred instance if provided and valid
+     if (preferredInstanceId && preferredInstanceId !== 'all' && preferredInstanceId.length > 10) {
+       console.log('🎯 Using preferredInstanceId for flow:', preferredInstanceId);
+       return preferredInstanceId;
+     }
 
-    // Fetch the user's VALID active instances first to cross-check
-    const { data: activeInstances } = await (supabase as any)
-      .from('zapi_instances')
-      .select('zapi_instance_id, is_default, created_at')
-      .eq('is_active', true)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(50);
-
-    const validInstanceIds = new Set(
-      (activeInstances || []).map((i: any) => i.zapi_instance_id)
-    );
-
-    // 2) Try to reuse the last instance used by this contact
+     // Fetch active instances to find default or fallback
+     const { data: activeInstances } = await (supabase as any)
+       .from('zapi_instances')
+       .select('zapi_instance_id, is_default, created_at')
+       .eq('is_active', true)
+       .order('is_default', { ascending: false })
+       .order('created_at', { ascending: true })
+       .limit(50);
+ 
+     const validInstanceIds = new Set(
+       (activeInstances || []).map((i: any) => i.zapi_instance_id)
+     );
+ 
+     // 2) Try to reuse the last instance used by this contact
     const { data: instanceCandidates } = await (supabase as any)
       .from('message_logs')
       .select('instance_id, keyword_matched, message_received, created_at')
