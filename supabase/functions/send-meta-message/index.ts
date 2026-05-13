@@ -62,27 +62,24 @@ serve(async (req) => {
     const effectivePhoneId = override_phone_number_id || creds.phone_number_id;
     console.log(`[send-meta-message] action=${action}, override=${override_phone_number_id || 'none'}, default=${creds.phone_number_id}, effective=${effectivePhoneId}`);
 
+    let result;
     switch (action) {
       case "send_template":
-        if (!effectivePhoneId) {
-          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
-        }
-        return await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
+        result = await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        break;
       case "send_text":
-        if (!effectivePhoneId) {
-          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
-        }
-        return await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
+        result = await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        break;
       case "send_media":
-        if (!effectivePhoneId) {
-          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
-        }
-        return await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
+        result = await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        break;
       case "send_interactive":
-        if (!effectivePhoneId) {
-          return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
-        }
-        return await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
+        result = await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        break;
       case "list_templates":
         return await listTemplates(creds, effectivePhoneId);
       case "create_template":
@@ -104,9 +101,29 @@ serve(async (req) => {
         return await updateProfilePhoto({ access_token: creds.access_token, phone_number_id: creds.phone_number_id }, body);
       case "get_phone_numbers":
         return await getPhoneNumbers(creds);
-      default:
-        return jsonResponse({ error: "Ação inválida" }, 400);
     }
+
+    if (result && result instanceof Response && result.status === 200) {
+      const data = await result.clone().json();
+      if (data?.success) {
+        const { phone, message, media_type } = body;
+        const content = message || (media_type ? `[Mídia: ${media_type}]` : '[mensagem]');
+        
+        console.log(`📝 Logging manual send to message_logs: to=${phone}, content=${content.slice(0, 50)}`);
+        
+        await serviceClient.from('message_logs').insert({
+          user_id: userId,
+          phone: phone,
+          message_received: null,
+          keyword_matched: '__manual_send__',
+          response_sent: content,
+          instance_id: `meta:${effectivePhoneId}`,
+        });
+      }
+    }
+
+    if (result) return result;
+    return jsonResponse({ error: "Ação inválida ou sem resposta" }, 400);
   } catch (err) {
     console.error("send-meta-message error:", err);
     return jsonResponse({ error: (err as Error).message || "Erro interno" }, 500);
