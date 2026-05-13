@@ -287,19 +287,42 @@ export const useCampaigns = () => {
     instanceId?: string
   ) => {
     try {
-      const currentCampaign = campaigns.find(campaign => campaign.id === campaignId);
+      // Tentar encontrar a campanha no estado local ou buscar no banco para evitar condições de corrida
+      let currentCampaign = campaigns.find(campaign => campaign.id === campaignId);
+      
+      if (!currentCampaign) {
+        console.log(`🔍 Campanha ${campaignId} não encontrada no estado local, buscando no banco...`);
+        const { data: dbCampaign } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('id', campaignId)
+          .maybeSingle();
+          
+        if (dbCampaign) {
+          currentCampaign = {
+            ...dbCampaign,
+            target_audience: typeof dbCampaign.target_audience === 'object' && dbCampaign.target_audience !== null 
+              ? dbCampaign.target_audience as Record<string, any>
+              : {}
+          } as any;
+        }
+      }
+
       const sendConfig = {
         instanceId: instanceId && instanceId !== '__rotate_all__' ? instanceId : null,
         rotateAll: instanceId === '__rotate_all__',
       };
 
-      // Persist send mode before invoking edge function so pause/cancel can clear the right queues
+      // Persistir o modo de envio antes de invocar a Edge Function
+      // Garantimos que não perderemos o 'type' ou outros dados do target_audience
+      const updatedTargetAudience = {
+        ...(currentCampaign?.target_audience || {}),
+        __sendConfig: sendConfig,
+      };
+
       await updateCampaign(campaignId, {
         status: 'active',
-        target_audience: {
-          ...(currentCampaign?.target_audience || {}),
-          __sendConfig: sendConfig,
-        },
+        target_audience: updatedTargetAudience,
       });
 
       const { data: sessionData } = await supabase.auth.getSession();
