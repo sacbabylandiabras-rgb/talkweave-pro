@@ -154,12 +154,14 @@ const extractGroupName = (payload: any): string | null => {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey)
      const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey)
  
-     const { phone, instanceId } = await req.json()
+     const body = await req.json().catch(() => ({}))
+     const { phone, instanceId } = body || {}
      if (!phone) {
-       return new Response(JSON.stringify({ error: 'Phone is required' }), {
-         status: 400,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-       })
+       console.warn('📷 get-profile-picture called without phone, returning empty result')
+       return new Response(
+         JSON.stringify({ success: false, data: { link: null, raw: null } }),
+         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+       )
      }
  
      const cacheKey = `${credentials.userId}:${phone}:${instanceId || 'any'}`
