@@ -66,7 +66,9 @@ const parsePhones = (input: string): string[] =>
 
 export default function ComunidadesTab() {
    const { instances, activeInstance } = useZapiInstances({ provider: 'zapi' });
-  const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups();
+   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups({ 
+     provider: 'zapi_no_warmup_meta' 
+   });
   const { links, createLink, updateLink, refetch: refetchLinks } = useRedirectLinks();
 
   const [instanceId, setInstanceId] = useState<string>("");
