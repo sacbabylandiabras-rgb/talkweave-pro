@@ -35,7 +35,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
    
    const instances = useMemo(() => allInstances.filter(i => {
      const provider = (i.api_provider || 'zapi').toLowerCase();
-     const name = (i.name || '').toLowerCase();
+      const name = (i.instance_name || '').toLowerCase();
      if (name.includes('aquecimento') || name.includes('warmup')) return false;
      return provider !== 'uazapi' && provider !== 'meta';
    }), [allInstances]);
