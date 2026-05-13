@@ -140,7 +140,7 @@ serve(async (req) => {
       .not("last_node_id", "is", null)
       .maybeSingle();
 
-    if (flowState && messageRaw) {
+    if (flowState && messageRaw && !fromMe) {
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
 
@@ -231,8 +231,12 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
     for (let i = 0; i < node.data.buttons.length; i++) {
       const btn = node.data.buttons[i];
       const normalizedBtnText = normalizeForMatch(btn.text);
-      if (normalizedBtnText === message || message.includes(normalizedBtnText)) {
-        const edge = edges.find(e => e.source === sourceNodeId && e.sourceHandle === `button-${i}`);
+      // Suporte para matching por ID (enviado via send-button-actions) ou por texto
+      const isIdMatch = webhook?.buttonReply?.buttonId === btn.id || webhook?.buttonsResponseMessage?.selectedButtonId === btn.id;
+      const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
+      
+      if (isIdMatch || isTextMatch) {
+        const edge = edges.find(e => e.source === sourceNodeId && (e.sourceHandle === `button-${i}` || e.sourceHandle === btn.id));
         if (edge) return { targetId: edge.target };
       }
     }
