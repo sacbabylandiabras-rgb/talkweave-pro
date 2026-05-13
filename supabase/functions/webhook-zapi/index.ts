@@ -284,16 +284,36 @@ function replaceVars(text: string, captured: any, phone: string) {
 }
 
 async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[]) {
-  const url = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/send-text`;
+  const zapiId = instance.zapi_instance_id;
+  const zapiToken = instance.zapi_token;
+  const clientToken = instance.zapi_client_token;
+
+  console.log(`📤 Enviando mensagem via Z-API: Instância=${zapiId}, Phone=${phone}`);
+
+  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
   const body: any = { phone, message };
   
-  if (buttons && buttons.length > 0) {
-    // Basic button support for Z-API if needed, otherwise just text
-  }
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "Client-Token": clientToken || "" 
+      },
+      body: JSON.stringify(body)
+    });
 
-  await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Client-Token": instance.zapi_client_token || "" },
-    body: JSON.stringify(body)
-  });
+    const responseData = await response.json().catch(() => ({}));
+    
+    if (!response.ok) {
+      console.error(`❌ Erro Z-API (${response.status}):`, JSON.stringify(responseData));
+      throw new Error(`Z-API error: ${response.status}`);
+    }
+
+    console.log(`✅ Mensagem enviada com sucesso pela instância ${zapiId}`);
+    return responseData;
+  } catch (error) {
+    console.error(`❌ Falha crítica ao enviar via Z-API:`, error);
+    throw error;
+  }
 }
