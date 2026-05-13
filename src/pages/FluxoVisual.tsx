@@ -245,7 +245,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances: allInstances } = useZapiInstances();
-  const instances = useMemo(() => allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi'), [allInstances]);
+  const instances = useMemo(() => {
+    return allInstances.filter(i => {
+      const provider = (i.api_provider || 'zapi').toLowerCase();
+      return provider !== 'uazapi' && provider !== 'meta';
+    });
+  }, [allInstances]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
