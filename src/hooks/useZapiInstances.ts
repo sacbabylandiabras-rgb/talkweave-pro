@@ -86,9 +86,11 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
       return provider === providerFilter.toLowerCase();
     }
 
+    // Removendo suporte para Evolution e Meta, mantendo apenas Z-API e Uazapi (que usam o mesmo backend)
+    if (provider === 'evolution' || provider === 'meta') return false;
+
     // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos específicos
     if (isUazapi && !provider.includes("zapi")) return false;
-    if (isMeta) return false;
 
     return true;
   })) {

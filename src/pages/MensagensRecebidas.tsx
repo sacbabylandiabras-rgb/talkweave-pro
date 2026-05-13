@@ -1797,15 +1797,15 @@ const MensagensRecebidas = () => {
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
-  // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API ou Evolution
+  // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API
   const instances = useMemo(() => 
     allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "evolution" || provider === "uazapi";
+      return provider === "zapi" || provider === "uazapi";
     }), [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
-    const isSupported = provider === "zapi" || provider === "evolution" || provider === "uazapi";
+    const isSupported = provider === "zapi" || provider === "uazapi";
     
     return (rawActiveInstance && isSupported
       ? rawActiveInstance
