@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate, FileCheck } from "lucide-react";
+  import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate, FileCheck, Download } from "lucide-react";
  import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1176,6 +1176,7 @@ const getPreviewFileLabel = (template: any) => {
      });
    const [showCreateDialog, setShowCreateDialog] = useState(false);
    const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [importingJson, setImportingJson] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
@@ -1205,6 +1206,97 @@ const getPreviewFileLabel = (template: any) => {
     audio.pause();
     setIsPreviewAudioPlaying(false);
   }, []);
+
+  const exportToJson = useCallback(() => {
+    if (templates.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Não há modelos para exportar.",
+      });
+      return;
+    }
+    
+    const dataStr = JSON.stringify(templates, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `modelos_mensagens_${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast({
+      title: "Sucesso",
+      description: "Modelos exportados com sucesso!",
+    });
+  }, [templates, toast]);
+
+  const importFromJson = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImportingJson(true);
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          const importedTemplates = JSON.parse(content);
+          
+          if (!Array.isArray(importedTemplates)) {
+            throw new Error("Formato inválido: o arquivo deve conter uma lista de modelos.");
+          }
+
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const temp of importedTemplates) {
+            try {
+              // Sanitizar e criar o template
+              // Removemos o ID original para criar um novo registro
+              const { id, created_at, updated_at, user_id, ...templateData } = temp;
+              
+              if (!templateData.name || !templateData.content) {
+                errorCount++;
+                continue;
+              }
+
+              await createTemplate(templateData);
+              successCount++;
+            } catch (err) {
+              console.error("Erro ao importar modelo individual:", err);
+              errorCount++;
+            }
+          }
+
+          toast({
+            title: "Importação Concluída",
+            description: `${successCount} modelos importados com sucesso. ${errorCount > 0 ? `${errorCount} falhas.` : ""}`,
+          });
+          
+          // Reset input
+          event.target.value = "";
+        } catch (err) {
+          toast({
+            title: "Erro na Importação",
+            description: "O arquivo JSON é inválido ou está corrompido.",
+            variant: "destructive",
+          });
+        } finally {
+          setImportingJson(false);
+        }
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      setImportingJson(false);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao ler o arquivo.",
+        variant: "destructive",
+      });
+    }
+  }, [createTemplate, toast]);
 
   // Função para fazer upload do arquivo
   const handleFileUpload = async (file: File, isEdit: boolean = false): Promise<string | null> => {
