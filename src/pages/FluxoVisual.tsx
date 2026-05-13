@@ -219,11 +219,8 @@ interface FluxoVisualProps {
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const isMetaMode = mode === "meta";
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : isMetaMode ? "Fluxo Oficial" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode
-    ? "Crie automações visuais para grupos do WhatsApp"
-    : "Crie automações visuais disparadas por palavra-chave";
+  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isGroupsMode ? "Crie automações visuais para grupos do WhatsApp" : "Crie automações visuais disparadas por palavra-chave";
   const emptyHelp = isGroupsMode
     ? "Crie seu primeiro fluxo visual para grupos"
     : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
@@ -244,18 +241,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances: allInstances } = useZapiInstances({ provider: isMetaMode ? 'meta' : undefined });
+  const { instances: allInstances } = useZapiInstances();
    const instances = useMemo(() => {
      return allInstances.filter((i) => {
        const provider = (i.api_provider || "zapi").toLowerCase();
-       // Se estiver no modo Meta, mostrar apenas instâncias Meta.
-       // Se estiver no modo Zaplynx (contacts/groups), mostrar apenas instâncias Z-API Web.
-       if (isMetaMode) {
-         return provider === "meta";
-       }
-        return provider === "zapi";
+       return provider === "zapi";
      });
-   }, [allInstances, isMetaMode]);
+   }, [allInstances]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
