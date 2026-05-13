@@ -74,12 +74,14 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   useEffect(() => {
     if (!open || loadingGroups || groups.length === 0) return;
 
-    groups
-      .filter(group => group.membros <= 0)
-      .forEach(group => {
-        void fetchMemberCount(group.id, group.sourceInstanceId || null, group.participantes || []);
-      });
-  }, [open, loadingGroups, groups, fetchMemberCount]);
+    if (groups.length > 0) {
+      groups
+        .filter(group => group.membros <= 0)
+        .forEach(group => {
+          void fetchMemberCount(group.id, group.sourceInstanceId || null, group.participantes || []);
+        });
+    }
+  }, [open, loadingGroups, groups]);
 
   const [formData, setFormData] = useState({
     name: "",

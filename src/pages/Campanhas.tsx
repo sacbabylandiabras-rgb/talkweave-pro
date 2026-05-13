@@ -112,9 +112,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
    const [removedDuplicates, setRemovedDuplicates] = useState<string[]>([]);
 
   // Realtime sends for stats dialog
-  const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
+  const statsDialogSendsRaw = useCampaignSendsRealtime(
     statsDialogOpen ? statsDialogCampaignId : null
   );
+  const statsDialogSends = statsDialogSendsRaw?.sends || [];
+  const statsDialogLoading = statsDialogSendsRaw?.loading || false;
 
    const normalizePhoneKey = (phone?: string | null) => {
      if (!phone) return '';
@@ -985,26 +987,34 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <InstanceSelector
-              useSavedSelection={false}
-              onInstanceChange={(id) => {
-                if (id === ROTATE_ALL) {
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={instanceSelectionMode === 'rotate' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
                   setInstanceSelectionMode('rotate');
-                } else {
-                  const inst = instances.find(i => i.id === id);
-                  if (inst) {
+                  setZapiRotateMode(instances);
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Rodízio (Todas)
+              </Button>
+              {instances.map(inst => (
+                <Button
+                  key={inst.id}
+                  type="button"
+                  variant={instanceSelectionMode === 'single' && getSelectedCampaignInstanceId() === inst.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
                     setInstanceSelectionMode('single');
                     setZapiInstanceOverride(inst);
-                  }
-                }
-              }}
-              onMultiInstanceChange={(ids) => {
-                if (ids.length > 1) {
-                  const selected = instances.filter(i => ids.includes(i.id));
-                  setZapiRotateMode(selected);
-                }
-              }}
-            />
+                  }}
+                >
+                  {inst.instance_name}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50 mt-2">
             <div className="flex items-center gap-2">
@@ -1049,26 +1059,34 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <InstanceSelector
-              useSavedSelection={false}
-              onInstanceChange={(id) => {
-                if (id === ROTATE_ALL) {
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={instanceSelectionMode === 'rotate' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
                   setInstanceSelectionMode('rotate');
-                } else {
-                  const inst = instances.find(i => i.id === id);
-                  if (inst) {
+                  setZapiRotateMode(instances);
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Rodízio (Todas)
+              </Button>
+              {instances.map(inst => (
+                <Button
+                  key={inst.id}
+                  type="button"
+                  variant={instanceSelectionMode === 'single' && getSelectedCampaignInstanceId() === inst.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
                     setInstanceSelectionMode('single');
                     setZapiInstanceOverride(inst);
-                  }
-                }
-              }}
-              onMultiInstanceChange={(ids) => {
-                if (ids.length > 1) {
-                  const selected = instances.filter(i => ids.includes(i.id));
-                  setZapiRotateMode(selected);
-                }
-              }}
-            />
+                  }}
+                >
+                  {inst.instance_name}
+                </Button>
+              ))}
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
