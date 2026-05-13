@@ -6653,7 +6653,7 @@ function getPendingButtonHandleCandidates(
   return Array.from(candidates);
 }
 
-function findButtonEdgeMatch(
+function findButtonEdgeMatchInternal(
   flows: any[],
   normalizedMessage: string,
   rawMessage: string,
