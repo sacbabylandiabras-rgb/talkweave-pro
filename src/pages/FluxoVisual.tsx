@@ -245,12 +245,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances: allInstances } = useZapiInstances();
-  const instances = useMemo(() => {
-    return allInstances.filter(i => {
-      const provider = (i.api_provider || 'zapi').toLowerCase();
-      return provider !== 'uazapi' && provider !== 'meta';
-    });
-  }, [allInstances]);
+   const instances = useMemo(() => {
+     return allInstances.filter((i) => {
+       const provider = (i.api_provider || "zapi").toLowerCase();
+       // Se estiver no modo Meta, mostrar apenas instâncias Meta.
+       // Se estiver no modo Zaplynx (contacts/groups), mostrar apenas instâncias Z-API Web.
+       if (isMetaMode) {
+         return provider === "meta";
+       }
+       return provider === "zapi" && !provider.includes("warmup");
+     });
+   }, [allInstances, isMetaMode]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
