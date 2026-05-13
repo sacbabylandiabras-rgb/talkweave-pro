@@ -60,16 +60,31 @@ serve(async (req) => {
     
     // Ignore status callbacks and other non-message types
     const type = webhook?.type || "";
-    const isMessage = !type || type === "OnMessage" || type === "MessageCallback" || type === "OnText" || type === "ReceivedCallback";
+    const isMessage = !type || 
+                     type === "OnMessage" || 
+                     type === "MessageCallback" || 
+                     type === "OnText" || 
+                     type === "ReceivedCallback" ||
+                     type === "ButtonsResponseMessage" || 
+                     type === "ButtonReply" ||
+                     type === "ListResponseMessage";
     
     // Extract message text and fromMe
-    const messageRaw = webhook?.text?.message || webhook?.message?.text || webhook?.text || 
-                      webhook?.buttonReply?.text || webhook?.buttonsResponseMessage?.selectedButtonId || "";
+    const messageRaw = webhook?.text?.message || 
+                      webhook?.message?.text || 
+                      webhook?.text || 
+                      webhook?.buttonReply?.text || 
+                      webhook?.buttonReply?.buttonId ||
+                      webhook?.buttonsResponseMessage?.selectedButtonId ||
+                      webhook?.buttonsResponseMessage?.buttonText ||
+                      webhook?.listResponseMessage?.actionLabel ||
+                      "";
+    
     const fromMe = webhook?.fromMe === true;
 
     if (!phone || !instanceId || !isMessage || fromMe) {
-       console.log(`Webhook ignored: phone=${phone}, isMessage=${isMessage}, fromMe=${fromMe}`);
-       return new Response("missing_data", { status: 200, headers: corsHeaders });
+       console.log(`Webhook ignored: phone=${phone}, isMessage=${isMessage}, fromMe=${fromMe}, type=${type}`);
+       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
     const { data: instanceData } = await supabase
