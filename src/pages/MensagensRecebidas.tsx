@@ -1797,10 +1797,11 @@ const MensagensRecebidas = () => {
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
+  // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API ou Evolution
   const instances = useMemo(() => {
     return allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "meta" || provider === "evolution";
+      return provider === "zapi" || provider === "evolution" || provider === "uazapi";
     });
   }, [allInstances]);
   const activeInstance = useMemo(() => {
