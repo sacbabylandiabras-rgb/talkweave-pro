@@ -2314,7 +2314,7 @@ const MensagensRecebidas = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={instances} 
+                instances={visibleInstances} 
                 selectedInstanceId={selectedInstanceId} 
                 onInstanceChange={setSelectedInstanceId} 
                 syncing={syncing} 
