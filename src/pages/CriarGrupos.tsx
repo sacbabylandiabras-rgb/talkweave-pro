@@ -87,7 +87,12 @@ const CriarGrupos = () => {
 
       return isManageableType && g.isAdmin;
     });
-  const { instances, activeInstance, selectInstance } = useZapiInstances();
+   const { instances: allInstances, activeInstance, selectInstance } = useZapiInstances();
+ 
+   const instances = useMemo(() => {
+     return allInstances.filter(inst => inst.api_provider === 'zapi');
+   }, [allInstances]);
+ 
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [overrideInstanceId, setOverrideInstanceId] = useState<string>("");
