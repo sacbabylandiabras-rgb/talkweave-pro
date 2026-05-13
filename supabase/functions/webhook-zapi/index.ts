@@ -115,65 +115,16 @@ async function releaseMessageProcessingLock(supabase: any, lockId: string) {
   await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
 }
 
-function findButtonEdgeMatch(
-  flows: any[],
-  normalizedMessage: string,
-  rawMessage: string,
-  webhook?: any,
-  options?: {
-    nodeId?: string | null;
-    pendingState?: PendingButtonState | null;
-  },
-):
-  | { flow: any; targetNodeId: string; buttonText: string; flowName: string }
-  | null {
-  const stripChoicePrefix = (value: string) =>
-    value
-      .replace(/^\s*(?:\d+\s*[.)\-:]+\s*|[\-•]\s*)+/u, "")
-      .trim();
-
-  const explodeChoiceCandidates = (value: string): string[] => {
-    const raw = String(value || "").trim();
-    if (!raw) return [];
-
-    const candidates = new Set<string>([raw]);
-    const flattened = raw.replace(/\r/g, "\n");
-    const lines = flattened
-      .split(/\n+/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    const lastLine = lines.at(-1);
-    if (lastLine) candidates.add(lastLine);
-
-    lines.forEach((part) => candidates.add(part));
-
-    flattened
-      .split(/[|;,]+/)
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .forEach((part) => candidates.add(part));
-
-    const numberedMatches = Array.from(
-      flattened.matchAll(/(?:^|\n)\s*(\d+)\s*[.)\-:]+\s*([^\n]+)/gu),
-    );
-
-    const matchesToUse = numberedMatches.length > 1
-      ? [numberedMatches[numberedMatches.length - 1]]
-      : numberedMatches;
-
-    for (const match of matchesToUse) {
-      const numeric = String(match?.[1] || "").trim();
-      const label = String(match?.[2] || "").trim();
-      if (numeric) candidates.add(numeric);
-      if (label) {
-        candidates.add(label);
-        candidates.add(`${numeric}. ${label}`);
-      }
-    }
-
-    return Array.from(candidates);
-  };
+function sanitizeTechnicalMessageReference(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  const technicalMatch = raw.match(/^\d{10,}:([A-Z0-9]{10,})$/i);
+  if (technicalMatch) {
+    console.log("🧹 Sanitizing technical UAZAPI message reference from outgoing log");
+    return "";
+  }
+  return raw;
+}
 
   const extractExplicitButtonHandle = (value: string): string | null => {
     const trimmed = String(value || "").trim();
