@@ -122,7 +122,7 @@ serve(async (req) => {
       if (manualFlow) {
         const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
         if (initialNode) {
-          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData, chatId);
+          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
           return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -228,7 +228,7 @@ serve(async (req) => {
       if (keywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
         const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
         if (initialNode) {
-          await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId);
+          await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -260,7 +260,7 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
   return null;
 }
 
-async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string) {
+async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string, isGroup?: boolean, webhook?: any) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
   let currentNodeId = nodeId;
