@@ -1797,12 +1797,9 @@ const MetaMessages = () => {
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances();
-  // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
+  // Mensagens no painel Meta usa exclusivamente instâncias Meta
   const instances = useMemo(() => {
-    return allInstances.filter((i: any) => {
-      const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "meta" || provider === "evolution";
-    });
+    return allInstances.filter((i: any) => (i.api_provider || "").toLowerCase() === "meta");
   }, [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
