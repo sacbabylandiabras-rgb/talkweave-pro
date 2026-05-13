@@ -575,9 +575,17 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     );
   }
 
-  const contactCampaigns = isGroupsMode
-    ? campaigns.filter(c => c.target_audience?.type === 'groups')
-    : campaigns.filter(c => c.target_audience?.type !== 'groups');
+  const contactCampaigns = useMemo(() => {
+    return isGroupsMode
+      ? campaigns.filter(c => {
+          const audience = c.target_audience || {};
+          return audience.type === 'groups' || (audience.groupIds && Array.isArray(audience.groupIds));
+        })
+      : campaigns.filter(c => {
+          const audience = c.target_audience || {};
+          return audience.type !== 'groups' && !(audience.groupIds && Array.isArray(audience.groupIds));
+        });
+  }, [campaigns, isGroupsMode]);
 
   return (
     <div className="space-y-4">
