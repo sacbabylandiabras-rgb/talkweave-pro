@@ -2185,18 +2185,18 @@ const MetaMessages = () => {
   });
 
   const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
-  const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
+  const selectedConversation = metaConversations.find((c) => c.phone === normalizedSelectedPhone) || null;
 
   // DEBUG: log selection mismatch to help diagnose "messages not appearing"
   useEffect(() => {
     if (!selectedPhone) return;
-    const match = conversations.find((c) => c.phone === normalizedSelectedPhone);
+    const match = metaConversations.find((c) => c.phone === normalizedSelectedPhone);
     if (!match) {
       console.warn('[MensagensRecebidas] selectedPhone has no matching conversation', {
         selectedPhone,
         normalizedSelectedPhone,
-        conversationsCount: conversations.length,
-        samplePhones: conversations.slice(0, 5).map((c) => c.phone),
+        conversationsCount: metaConversations.length,
+        samplePhones: metaConversations.slice(0, 5).map((c) => c.phone),
       });
     } else {
       console.log('[MensagensRecebidas] selected conversation', {
