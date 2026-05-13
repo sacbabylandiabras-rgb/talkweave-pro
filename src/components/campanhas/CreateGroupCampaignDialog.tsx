@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
  import { useZapiInstances } from "@/hooks/useZapiInstances";
  import { ROTATE_ALL } from "@/components/envio/InstanceSelector";
  import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
- import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar } from "lucide-react";
