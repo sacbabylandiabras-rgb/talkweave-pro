@@ -342,6 +342,13 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       // If we're in a group, we MUST use the group's ID (chatId/phone) as the destination, 
       // not the individual participant's phone number.
       const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+
+      if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
+        const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+        currentNodeId = nextEdge?.target;
+        continue;
+      }
+
       await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl);
 
       if (isCapture || hasButtons) {
