@@ -148,7 +148,12 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       toast({ title: "Erro", description: "Selecione um modelo de mensagem", variant: "destructive" });
       return;
     }
-    if (selectedGroups.length === 0) {
+    // Get all groups that should be included in the campaign
+    // This includes directly selected groups and groups from rotative links
+    const rotativeLinkGroups = rotativeLinks.flatMap(link => link.groups.map(g => g.group_id));
+    const allTargetGroupIds = Array.from(new Set([...selectedGroups, ...rotativeLinkGroups]));
+
+    if (allTargetGroupIds.length === 0) {
       toast({ title: "Erro", description: "Selecione pelo menos um grupo", variant: "destructive" });
       return;
     }
@@ -159,7 +164,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
 
     setSubmitting(true);
     try {
-      const groupContacts = selectedGroups.map(groupId => {
+      const groupContacts = allTargetGroupIds.map(groupId => {
         const group = groups.find(g => g.id === groupId);
         const linkGroup = rotativeLinks.flatMap(link => link.groups).find(g => g.group_id === groupId);
         return {
@@ -172,12 +177,12 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
 
       const campaign = await createCampaign({
         name: formData.name,
-        description: formData.description || `Campanha em ${selectedGroups.length} grupo(s)`,
+        description: formData.description || `Campanha em ${allTargetGroupIds.length} grupo(s)`,
         template_id: formData.template_id,
         target_audience: {
           type: "groups",
           contacts: groupContacts,
-          groupIds: selectedGroups,
+          groupIds: allTargetGroupIds,
         },
         delay_seconds: formData.delay_seconds,
         schedule_type: formData.schedule_type,
@@ -204,7 +209,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
 
       toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 
         ? `Campanha "${formData.name}" agendada para ${new Date(formData.scheduled_at).toLocaleString('pt-BR')}`
-        : `Campanha "${formData.name}" criada com ${selectedGroups.length} grupo(s)` });
+        : `Campanha "${formData.name}" criada com ${allTargetGroupIds.length} grupo(s)` });
       onOpenChange(false);
       setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedGroups([]);
