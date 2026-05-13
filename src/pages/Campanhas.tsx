@@ -84,6 +84,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
+  const [sendDialogRemoveDuplicates, setSendDialogRemoveDuplicates] = useState(true);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
@@ -527,13 +528,33 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       const selectedInstanceId = getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
       
+      // Apply dedup if enabled
+      let contactsToSend = campaign.target_audience?.contacts || [];
+      if (sendDialogRemoveDuplicates) {
+        const seen = new Set<string>();
+        const before = contactsToSend.length;
+        contactsToSend = contactsToSend.filter((c: any) => {
+          const key = String(c?.phone || '').replace(/@lid$/i, '').replace(/\D/g, '') || c?.phone;
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        const removed = before - contactsToSend.length;
+        if (removed > 0) {
+          toast({
+            title: "Duplicados removidos",
+            description: `${removed} número(s) duplicado(s) foram ignorados.`,
+          });
+        }
+      }
+
       // Set up progress dialog
-      setTotalContactsCount(campaign.target_audience?.contacts?.length || 0);
+      setTotalContactsCount(contactsToSend.length);
       setSendingCampaignId(campaign.id);
       setShowProgressDialog(true);
 
       // Start sending (this will update status to 'active' internally)
-      await sendCampaign(campaign.id, campaign.target_audience.contacts, selectedInstanceId);
+      await sendCampaign(campaign.id, contactsToSend, selectedInstanceId);
     } catch (error) {
       console.error('Error sending campaign:', error);
       setShowProgressDialog(false);
@@ -970,6 +991,21 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   setZapiRotateMode(selected);
                 }
               }}
+            />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50 mt-2">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-primary" />
+              <div>
+                <p className="text-sm font-medium">Remover Duplicados</p>
+                <p className="text-[10px] text-muted-foreground">Filtra números repetidos antes de iniciar o envio</p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-primary cursor-pointer"
+              checked={sendDialogRemoveDuplicates}
+              onChange={(e) => setSendDialogRemoveDuplicates(e.target.checked)}
             />
           </div>
           <AlertDialogFooter>
