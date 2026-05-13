@@ -129,35 +129,45 @@ serve(async (req) => {
                 msgText = buttonReplyTitle
               }
 
-              console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
+               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText?.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
 
-              // Log the received message
-              await supabase.from('message_logs').insert({
-                user_id: userId,
-                phone: fromPhone,
-                message_received: msgText,
-                keyword_matched: null,
-                response_sent: null,
-                instance_id: `meta:${phoneNumberId}`,
-              })
+               // Only log if it's NOT a message we just sent (Meta webhooks sometimes echo back)
+               // Actually, Meta normally doesn't echo, but let's log everything for visibility first
+               try {
+                 await supabase.from('message_logs').insert({
+                   user_id: userId,
+                   phone: fromPhone,
+                   message_received: msgText,
+                   keyword_matched: null,
+                   response_sent: null,
+                   instance_id: `meta:${phoneNumberId}`,
+                 })
+               } catch (logErr) {
+                 console.error('[webhook-meta] Error logging received message:', logErr)
+               }
 
               if (!msgText || !accessToken) continue
 
               // === CHECK FLOW AUTOMATIONS ===
 
-              // Resume pending capture/button flows first
-              const { data: pendingFlowLog } = await supabase
-                .from('message_logs')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('phone', fromPhone)
-                .in('keyword_matched', [
-                  `${FLOW_CAPTURE_PREFIX}${userId}`,
-                  `${FLOW_BUTTON_PREFIX}${userId}`,
-                ])
-                .order('timestamp', { ascending: false })
-                .limit(1)
-                .maybeSingle()
+               // Resume pending capture/button flows first - check specifically for meta instance
+               const { data: pendingFlowLog, error: pendingError } = await supabase
+                 .from('message_logs')
+                 .select('*')
+                 .eq('user_id', userId)
+                 .eq('phone', fromPhone)
+                 .eq('instance_id', `meta:${phoneNumberId}`)
+                 .in('keyword_matched', [
+                   `${FLOW_CAPTURE_PREFIX}${userId}`,
+                   `${FLOW_BUTTON_PREFIX}${userId}`,
+                 ])
+                 .order('created_at', { ascending: false })
+                 .limit(1)
+                 .maybeSingle()
+
+               if (pendingError) {
+                 console.error('[webhook-meta] Error fetching pending flow log:', pendingError)
+               }
 
               if (pendingFlowLog) {
                 const isCapture = pendingFlowLog.keyword_matched.startsWith(FLOW_CAPTURE_PREFIX)
