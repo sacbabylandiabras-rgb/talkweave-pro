@@ -141,6 +141,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (flowState && messageRaw && !fromMe) {
+      console.log(`Resuming flow ${flowState.flow_id} for phone ${phone} at node ${flowState.last_node_id}`);
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
 
@@ -176,7 +177,7 @@ serve(async (req) => {
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else {
-            const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage);
+            const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
               await supabase.from("flow_captured_data").update({
                 last_node_id: null,
@@ -224,7 +225,7 @@ serve(async (req) => {
   }
 });
 
-function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: string, message: string) {
+function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: string, message: string, webhook: any) {
   const node = nodes.find(n => n.id === sourceNodeId);
   if (!node || !node.data.buttons) return null;
 
