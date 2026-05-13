@@ -1830,17 +1830,6 @@ const MetaMessages = () => {
     () => instances.map((i: any) => i.instance_name).filter(Boolean) as string[],
     [instances],
   );
-  const knownInstanceIds = useMemo(() => {
-    if (connectedInstanceIds === null) return undefined; // ainda verificando
-    if (connectedInstanceIds.length > 0) return connectedInstanceIds; // mostra só as conectadas
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceIds]);
-
-  const knownInstanceNames = useMemo(() => {
-    if (connectedInstanceNames === null) return undefined;
-    if (connectedInstanceNames.length > 0) return connectedInstanceNames;
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceNames]);
   const handleDeleteConversation = async (phone: string) => {
     try {
       await deleteConversation(phone);
