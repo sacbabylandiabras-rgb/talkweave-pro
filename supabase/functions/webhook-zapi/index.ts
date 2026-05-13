@@ -99,7 +99,7 @@ serve(async (req) => {
     
     // Z-API can send fromMe as boolean or string
     // IMPORTANT: Button clicks often arrive with fromMe: true, so we must check isButtonResponse
-    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
+    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
 
     const { data: instanceData } = await supabase
       .from("zapi_instances")
@@ -128,7 +128,7 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse)) {
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
        if (isMessage && fromMe && !isButtonResponse) {
          await supabase.from("message_logs").insert({
