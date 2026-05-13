@@ -217,29 +217,23 @@ serve(async (req) => {
      try {
        credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
      } catch (err) {
-       // If no Z-API creds, we still need userId to check for Meta creds
-       const authHeader = req.headers.get('authorization');
-       const userClient = createClient(supabaseUrl, supabaseServiceKey, {
-         global: { headers: { Authorization: authHeader || '' } },
-       });
-       const { data: { user } } = await userClient.auth.getUser();
-       if (!user) throw err;
-       credentials = { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' };
+       throw err;
      }
 
       let { instanceId, token, clientToken, userId } = credentials;
 
-      // Se uma instância específica foi solicitada (via requestedInstanceId), 
-      // vamos tentar usá-la ANTES de cair na instância padrão do credentials.
-      if (requestedInstanceId && !requestedInstanceId.startsWith('meta:')) {
+      // Se uma instância específica foi solicitada (via requestedInstanceId),
+      // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
+      if (requestedInstanceId) {
         const requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
         if (requestedInstance) {
-          console.log(`✅ Using explicitly requested instance: ${requestedInstance.zapi_instance_id}`);
+          console.log(`✅ Usando instância solicitada: ${requestedInstance.zapi_instance_id}`);
           instanceId = requestedInstance.zapi_instance_id;
           token = requestedInstance.zapi_token;
           clientToken = requestedInstance.zapi_client_token;
         } else {
-          console.warn(`⚠️ Requested instance ${requestedInstanceId} not found for user ${userId}, falling back to default`);
+          console.error(`❌ Instância solicitada ${requestedInstanceId} não encontrada para o usuário ${userId}`);
+          throw new Error('A conexão selecionada não foi encontrada ou não pertence à sua conta.');
         }
       }
 
