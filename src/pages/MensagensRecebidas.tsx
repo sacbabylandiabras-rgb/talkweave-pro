@@ -1829,17 +1829,13 @@ const MensagensRecebidas = () => {
     () => instances.map((i: any) => i.instance_name).filter(Boolean) as string[],
     [instances],
   );
-  const knownInstanceIds = useMemo(() => {
-    if (connectedInstanceIds === null) return undefined; // ainda verificando
-    if (connectedInstanceIds.length > 0) return connectedInstanceIds; // mostra só as conectadas
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceIds]);
+  const knownInstanceIds = useMemo(() => 
+    instances.map(i => i.id).filter(Boolean)
+  , [instances]);
 
-  const knownInstanceNames = useMemo(() => {
-    if (connectedInstanceNames === null) return undefined;
-    if (connectedInstanceNames.length > 0) return connectedInstanceNames;
-    return []; // nenhuma conectada = lista vazia
-  }, [connectedInstanceNames]);
+  const knownInstanceNames = useMemo(() => 
+    instances.map(i => i.instance_name).filter(Boolean)
+  , [instances]);
   const handleDeleteConversation = async (phone: string) => {
     try {
       await deleteConversation(phone);
