@@ -345,7 +345,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <CardContent className="pt-3 pb-3 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
                       </div>
                        <div className="flex items-center gap-1">
                          <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
@@ -422,7 +422,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     <CardContent className="pt-3 pb-3 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate">{inst.evolution_api_url}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
                       </div>
                        <div className="flex items-center gap-1">
                          <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
