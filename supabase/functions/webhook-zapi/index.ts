@@ -111,10 +111,6 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
   await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
 }
 
-async function releaseMessageProcessingLock(supabase: any, lockId: string) {
-  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
-}
-
 function sanitizeTechnicalMessageReference(text: string): string {
   const raw = String(text || "").trim();
   if (!raw) return "";
