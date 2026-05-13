@@ -17,7 +17,8 @@ import type { Contact } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { useZapi } from "@/hooks/useZapi";
+  import { useZapi } from "@/hooks/useZapi";
+  import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 
 interface ContactProfileDialogProps {
@@ -80,8 +81,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [selectedFlow, setSelectedFlow] = useState("");
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
-  const [sendingFlow, setSendingFlow] = useState(false);
-    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
+   const [sendingFlow, setSendingFlow] = useState(false);
+   const [localPreferredInstance, setLocalPreferredInstance] = useState<string>("");
+   const { instances: zapiInstancesList } = useZapiInstances({ includeWarmup: true });
+   const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
     const [note, setNote] = useState("");
