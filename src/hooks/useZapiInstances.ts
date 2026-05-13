@@ -62,6 +62,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     const isMobile = isMobileZapiInstance(item);
     const provider = (item.api_provider || 'zapi').toLowerCase();
     const isWarmup = provider.includes('warmup') || 
+                    provider === 'uazapi_warmup' ||
                     item.instance_name?.toLowerCase().includes('aquecimento') || 
                     item.instance_name?.toLowerCase().includes('warmup');
     const isUazapi = provider.includes('uazapi');
@@ -70,8 +71,10 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     if (isMobile) return false;
 
     // Filtros de segurança obrigatórios
+    // Removendo instâncias de apanhador de grupo (warmup) de TODAS as listagens, exceto onde explicitamente solicitado
     if (isWarmup && !includeWarmup) return false;
-    if (isMeta && providerFilter !== 'meta') return false;
+    // Filtrar instâncias Meta se um provider específico for solicitado
+    if (isMeta && providerFilter && providerFilter !== 'meta') return false;
     
     // Se um provedor específico for solicitado, filtramos por ele (respeitando warmup acima)
     if (providerFilter) {
