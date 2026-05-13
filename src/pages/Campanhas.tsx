@@ -108,6 +108,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
    const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
    const [showFilterDialog, setShowFilterDialog] = useState(false);
    const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
+   const [removingDuplicates, setRemovingDuplicates] = useState(false);
+   const [removedDuplicates, setRemovedDuplicates] = useState<string[]>([]);
 
   // Realtime sends for stats dialog
   const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
