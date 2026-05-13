@@ -65,12 +65,6 @@ export function SelectContactsDialog({
   const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : "contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
-  const [metaPhoneNumbers, setMetaPhoneNumbers] = useState<MetaPhoneOption[]>([]);
-  const [selectedMetaPhoneId, setSelectedMetaPhoneId] = useState("");
-  const [loadingMetaPhones, setLoadingMetaPhones] = useState(false);
-  const { data: metaCreds } = useMetaCredentials();
-  const isMetaConnected = metaCreds?.connected === true;
-  const { activeWorkspace } = useWorkspace();
 
   const fetchRotativeLinks = async () => {
     setLoadingLinks(true);
