@@ -108,18 +108,36 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       if (formData.contact_selection === "all") {
         targetContacts = contacts.map(c => ({ phone: c.phone, name: c.name || "Cliente" }));
       } else if (formData.contact_selection === "manual") {
-        targetContacts = formData.specific_contacts
+        const lines = formData.specific_contacts
           .split('\n')
           .map(line => line.trim())
-          .filter(line => line)
+          .filter(line => line);
+        
+        targetContacts = lines
           .map(raw => {
-            // Preserva identificadores @lid (canal WhatsApp Business). Para números normais, mantém apenas dígitos.
             const phone = /@lid$/i.test(raw) ? raw.toLowerCase() : raw.replace(/\D/g, '');
             return { phone, name: "Cliente" };
           })
           .filter(c => c.phone);
+
+        if (formData.remove_duplicates) {
+          const uniquePhones = new Set();
+          targetContacts = targetContacts.filter(c => {
+            if (uniquePhones.has(c.phone)) return false;
+            uniquePhones.add(c.phone);
+            return true;
+          });
+        }
       } else if (formData.contact_selection === "import") {
-        targetContacts = importedContacts;
+        targetContacts = [...importedContacts];
+        if (formData.remove_duplicates) {
+          const uniquePhones = new Set();
+          targetContacts = targetContacts.filter(c => {
+            if (uniquePhones.has(c.phone)) return false;
+            uniquePhones.add(c.phone);
+            return true;
+          });
+        }
       }
 
       if (targetContacts.length === 0) {
@@ -168,6 +186,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         specific_contacts: "",
         delay_seconds: 2,
         tag_id: "",
+        remove_duplicates: true,
       });
       setImportedContacts([]);
       setViewOnce(false);
@@ -606,6 +625,22 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.contact_selection !== "all" && (
+              <div className="flex items-center justify-between p-2 bg-accent/30 rounded-lg border border-border/50">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-primary" />
+                  <div>
+                    <Label className="text-sm font-medium">Remover Duplicados</Label>
+                    <p className="text-[10px] text-muted-foreground">Evita enviar a mesma mensagem duas vezes para o mesmo número</p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={formData.remove_duplicates} 
+                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, remove_duplicates: v }))} 
+                />
+              </div>
+            )}
 
             {formData.contact_selection === "manual" && (
               <div>
