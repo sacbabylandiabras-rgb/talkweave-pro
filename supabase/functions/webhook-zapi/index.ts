@@ -250,13 +250,20 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     if (!node) break;
 
     if (node.type === "blocoConteudo") {
-      const content = replaceVars(node.data.content || "", captured, phone);
-      
-      // Send message via Z-API
-      await sendZapiText(instance, phone, content, node.data.buttons);
-
       const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp;
       const hasButtons = node.data.buttons?.length > 0;
+      
+      let content = "";
+      if (isCapture) {
+        content = node.data.collectName ? node.data.namePrompt : (node.data.collectEmail ? node.data.emailPrompt : node.data.whatsappPrompt);
+      } else {
+        content = node.data.content || "";
+      }
+
+      const resolvedContent = replaceVars(content, captured, phone);
+      
+      // Send message via Z-API
+      await sendZapiText(instance, phone, resolvedContent, node.data.buttons);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
