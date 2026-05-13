@@ -375,19 +375,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
  
    useEffect(() => {
      fetchTagsForEditor();
-     const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
-     if (uazapiInstances.length === 0) return;
-
-    try {
-      const flagKey = "uazapi_webhook_synced_flow_v1";
-      if (sessionStorage.getItem(flagKey)) return;
-      sessionStorage.setItem(flagKey, "1");
-      supabase.functions.invoke("uazapi-set-webhook", { body: {} }).catch(() => {
-        /* silent */
-      });
-    } catch {
-      /* ignore */
-    }
   }, [instances]);
 
   const handleNovoFluxo = () => {
