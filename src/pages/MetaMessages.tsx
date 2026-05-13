@@ -2385,4 +2385,4 @@ const MensagensRecebidas = () => {
    );
  };
 
-export default MensagensRecebidas;
+export default MetaMessages;
