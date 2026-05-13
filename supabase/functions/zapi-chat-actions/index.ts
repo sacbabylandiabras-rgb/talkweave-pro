@@ -416,6 +416,16 @@ Deno.serve(async (req) => {
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
+
+    if (creds.apiProvider === 'meta') {
+       // Gracefully return empty data for actions not supported by Meta yet
+       if (action === 'tag-colors') return new Response(JSON.stringify({ data: {} }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       if (action === 'list-tags') return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       if (action === 'status') return new Response(JSON.stringify({ data: { connected: true } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       
+       return new Response(JSON.stringify({ error: 'Ação não suportada para Meta API' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     let finalPayload = payload;
 
