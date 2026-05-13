@@ -2135,7 +2135,6 @@ serve(async (req) => {
 
       return { stop: false };
     }
-    }
 
     // If there are remaining contacts, schedule continuation
     if (remainingContacts.length > 0) {
