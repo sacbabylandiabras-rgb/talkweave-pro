@@ -125,7 +125,6 @@ function sanitizeTechnicalMessageReference(text: string): string {
   }
   return raw;
 }
-}
  async function upsertSavedContact(supabase: any, params: { userId: string; phone: string; name: string; photo?: string }) {
    const { userId, phone, name, photo } = params;
    if (!phone || (!name && !photo)) return;
