@@ -228,13 +228,14 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
   const node = nodes.find(n => n.id === sourceNodeId);
   if (!node || !node.data.buttons) return null;
 
-  for (let i = 0; i < node.data.buttons.length; i++) {
-    const btn = node.data.buttons[i];
-    if (normalizeForMatch(btn.text) === message) {
-      const edge = edges.find(e => e.source === sourceNodeId && e.sourceHandle === `button-${i}`);
-      if (edge) return { targetId: edge.target };
+    for (let i = 0; i < node.data.buttons.length; i++) {
+      const btn = node.data.buttons[i];
+      const normalizedBtnText = normalizeForMatch(btn.text);
+      if (normalizedBtnText === message || message.includes(normalizedBtnText)) {
+        const edge = edges.find(e => e.source === sourceNodeId && e.sourceHandle === `button-${i}`);
+        if (edge) return { targetId: edge.target };
+      }
     }
-  }
   return null;
 }
 

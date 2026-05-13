@@ -1170,22 +1170,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           // Persist pending capture state so webhook-zapi can resume the flow when the user replies
           const pendingFlowId = flowIdForPending || currentFluxoId;
           if (userId && pendingFlowId) {
-            await (supabase as any).from("message_logs").insert({
-              phone: contact,
-              message_received: null,
-              response_sent: JSON.stringify({
-                flowId: pendingFlowId,
-                flowName: nomeFluxo || null,
-                nodeId: targetNode.id,
-                field: captureField,
-                instanceId: instanceId || null,
-                captured: {},
-              }),
-              keyword_matched: `__flow_capture__:${userId}`,
-              timestamp: new Date().toISOString(),
+            await supabase.from("flow_captured_data").upsert({
               user_id: userId,
-              instance_id: instanceId || null,
-            });
+              flow_id: pendingFlowId,
+              phone: contact,
+              last_node_id: targetNode.id,
+              captured_data: {},
+              updated_at: new Date().toISOString()
+            }, { onConflict: "user_id,flow_id,phone" });
           }
 
           // Stop processing — wait for user reply (webhook-zapi handles resume)
@@ -1300,38 +1292,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
           const pendingFlowId = flowIdForPending || currentFluxoId;
           if (hasButtonEdgesForPending && userId && pendingFlowId) {
-            await (supabase as any).from("message_logs").insert({
-              phone: contact,
-              message_received: null,
-              response_sent: JSON.stringify({
-                flowId: pendingFlowId,
-                flowName: nomeFluxo || null,
-                nodeId: targetNode.id,
-                instanceId: instanceId || null,
-                buttons: buttons
-                  .map((btn: any, idx: number) => ({
-                    text: String(btn?.text || `Botão ${idx + 1}`).trim(),
-                    handleAliases: [
-                      `button-${idx}`,
-                      `button_${idx}`,
-                      `btn-${idx}`,
-                      `btn_${idx}`,
-                      `button-${idx + 1}`,
-                      `button_${idx + 1}`,
-                      `btn-${idx + 1}`,
-                      `btn_${idx + 1}`,
-                      btn?.id ? String(btn.id) : "",
-                    ].filter(Boolean),
-                    index: idx,
-                    menuIndex: idx + 1,
-                  })),
-                captured: {},
-              }),
-              keyword_matched: `__flow_button__:${userId}`,
-              timestamp: new Date().toISOString(),
+            await supabase.from("flow_captured_data").upsert({
               user_id: userId,
-              instance_id: instanceId || null,
-            });
+              flow_id: pendingFlowId,
+              phone: contact,
+              last_node_id: targetNode.id,
+              captured_data: {},
+              updated_at: new Date().toISOString()
+            }, { onConflict: "user_id,flow_id,phone" });
           }
         } else {
            switch (contentType) {
