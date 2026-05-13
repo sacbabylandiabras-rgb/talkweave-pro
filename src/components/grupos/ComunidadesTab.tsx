@@ -65,8 +65,10 @@ const parsePhones = (input: string): string[] =>
     .filter((p) => p.length >= 8);
 
 export default function ComunidadesTab() {
-  const { instances, activeInstance } = useZapiInstances();
-  const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups();
+   const { instances, activeInstance } = useZapiInstances({ provider: 'zapi' });
+   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups({ 
+     provider: 'zapi_no_warmup_meta' 
+   });
   const { links, createLink, updateLink, refetch: refetchLinks } = useRedirectLinks();
 
   const [instanceId, setInstanceId] = useState<string>("");
