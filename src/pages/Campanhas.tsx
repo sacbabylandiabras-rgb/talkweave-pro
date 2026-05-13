@@ -1326,6 +1326,87 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
                 {/* Export CSV */}
                 <Button
+                  onClick={async () => {
+                    if (!statsDialogCampaignId || removingDuplicates) return;
+                    setRemovingDuplicates(true);
+                    setRemovedDuplicates([]);
+                    try {
+                      const { data: row } = await supabase
+                        .from('campaigns')
+                        .select('target_audience')
+                        .eq('id', statsDialogCampaignId)
+                        .maybeSingle();
+                      const ta: any = row?.target_audience || {};
+                      const contacts: Array<{ phone: string; name?: string }> = Array.isArray(ta?.contacts) ? ta.contacts : [];
+                      const seen = new Set<string>();
+                      const unique: typeof contacts = [];
+                      const removed: string[] = [];
+                      for (const c of contacts) {
+                        const key = String(c?.phone || '').replace(/@lid$/i, '').replace(/\D/g, '');
+                        if (!key) { unique.push(c); continue; }
+                        if (seen.has(key)) {
+                          removed.push(c.phone);
+                          // stream UI update
+                          setRemovedDuplicates(prev => [...prev, c.phone]);
+                          await new Promise(r => setTimeout(r, 15));
+                        } else {
+                          seen.add(key);
+                          unique.push(c);
+                        }
+                      }
+                      if (removed.length === 0) {
+                        toast({ title: 'Sem duplicados', description: 'Nenhum número duplicado foi encontrado.' });
+                      } else {
+                        const newTa = { ...ta, contacts: unique };
+                        const { error } = await supabase
+                          .from('campaigns')
+                          .update({ target_audience: newTa })
+                          .eq('id', statsDialogCampaignId);
+                        if (error) throw error;
+                        setStatsDialogTargetContacts(unique);
+                        await refetchCampaigns();
+                        toast({ title: 'Duplicados removidos', description: `${removed.length} número(s) duplicado(s) removido(s).` });
+                      }
+                    } catch (e: any) {
+                      toast({ title: 'Erro', description: e?.message || 'Falha ao remover duplicados', variant: 'destructive' });
+                    } finally {
+                      setRemovingDuplicates(false);
+                    }
+                  }}
+                  className="w-full"
+                  variant="outline"
+                  disabled={removingDuplicates}
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  {removingDuplicates ? `Removendo duplicados... (${removedDuplicates.length})` : 'Remover Duplicados'}
+                </Button>
+
+                {(removingDuplicates || removedDuplicates.length > 0) && (
+                  <div className="border rounded-lg p-3 bg-muted/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium">
+                        Números duplicados removidos ({removedDuplicates.length})
+                      </p>
+                      {removingDuplicates && (
+                        <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <ScrollArea className="max-h-32">
+                      <div className="flex flex-wrap gap-1">
+                        {removedDuplicates.map((p, i) => (
+                          <Badge key={`${p}-${i}`} variant="secondary" className="text-[10px] font-mono">
+                            {p}
+                          </Badge>
+                        ))}
+                        {removedDuplicates.length === 0 && (
+                          <span className="text-xs text-muted-foreground">Verificando...</span>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                <Button
                   onClick={() => {
                     const escape = (v: any) => {
                       const s = v == null ? '' : String(v);
