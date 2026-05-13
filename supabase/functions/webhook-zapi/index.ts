@@ -56,7 +56,11 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
-    const phone = webhook?.phone || webhook?.chatPhone || "";
+    const senderPhone = webhook?.participant || webhook?.senderPhone || "";
+    const phone = (isGroup && senderPhone) 
+      ? senderPhone 
+      : (webhook?.phone || webhook?.chatPhone || "");
+    const chatId = webhook?.phone || webhook?.chatPhone || phone;
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
@@ -116,7 +120,7 @@ serve(async (req) => {
       if (manualFlow) {
         const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
         if (initialNode) {
-          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData);
+          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData, chatId);
           return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -183,7 +187,7 @@ serve(async (req) => {
 
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === `collect-${field}`);
             if (edge) {
-              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData);
+              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData, chatId);
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else {
@@ -194,7 +198,7 @@ serve(async (req) => {
                 updated_at: new Date().toISOString()
               }).eq("id", flowState.id);
               
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData);
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId);
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
           }
@@ -222,7 +226,7 @@ serve(async (req) => {
       if (keywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
         const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
         if (initialNode) {
-          await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData);
+          await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -254,7 +258,7 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
   return null;
 }
 
-async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any) {
+async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
   let currentNodeId = nodeId;
@@ -279,7 +283,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const resolvedContent = replaceVars(content, captured, phone);
       
       // Send message via Z-API (with buttons if applicable)
-      await sendZapiText(instance, phone, resolvedContent, node.data.buttons, node.id);
+      await sendZapiText(instance, chatId || phone, resolvedContent, node.data.buttons, node.id);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
