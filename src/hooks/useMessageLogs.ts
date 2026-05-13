@@ -1130,7 +1130,8 @@ export const useMessageLogs = (
 
         const isManual = log.keyword_matched === '__manual_send__';
         const isFlowSend = log.keyword_matched?.startsWith('__flow_send__');
-        const source = isManual ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
+        const isMetaManual = log.instance_id?.startsWith('meta:') && isManual;
+        const source = (isManual || isMetaManual) ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
 
         // Extract flow name from keyword like "__flow_send__:Novo Fluxo"
         let displayKeyword = log.keyword_matched;
