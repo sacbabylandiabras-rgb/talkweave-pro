@@ -110,6 +110,64 @@ async function finalizeMessageLog(supabase: any, lockId: string, params: { keywo
   const { keywordMatched, responseSent } = params;
   await supabase.from("message_logs").update({ keyword_matched: keywordMatched, response_sent: responseSent, timestamp: new Date().toISOString() }).eq("id", lockId);
 }
+
+async function releaseMessageProcessingLock(supabase: any, lockId: string) {
+  await supabase.from("message_logs").update({ keyword_matched: null, response_sent: null, timestamp: new Date().toISOString() }).eq("id", lockId).eq("keyword_matched", "__processing__");
+}
+
+function sanitizeTechnicalMessageReference(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  const technicalMatch = raw.match(/^\d{10,}:([A-Z0-9]{10,})$/i);
+  if (technicalMatch) {
+    console.log("🧹 Sanitizing technical UAZAPI message reference from outgoing log");
+    return "";
+  }
+  return raw;
+}
+
+function getPendingButtonHandleCandidates(
+  pendingState: PendingButtonState | null | undefined,
+  rawMessage: string,
+): string[] {
+  const trimmed = String(rawMessage || "").trim();
+  if (!trimmed || !pendingState?.buttons?.length) return [];
+
+  const technicalMatch = trimmed.match(/^\d{10,}:([A-Z0-9]{10,})$/i);
+  if (!technicalMatch) return [];
+
+  const suffix = technicalMatch[1].trim();
+  const lastByte = suffix.match(/([A-F0-9]{2})$/i);
+  if (!lastByte?.[1]) return [];
+
+  const numericIndex = parseInt(lastByte[1], 16);
+  if (!Number.isFinite(numericIndex) || numericIndex < 1 || numericIndex > 10) {
+    return [];
+  }
+
+  const candidates = new Set<string>();
+  const button = pendingState.buttons.find((entry) =>
+    (entry.menuIndex ?? entry.index + 1) === numericIndex
+  );
+
+  if (!button) return [];
+
+  candidates.add(String(numericIndex));
+  candidates.add(`button-${button.index}`);
+  candidates.add(button.text);
+  for (const alias of button.handleAliases || []) {
+    candidates.add(alias);
+  }
+
+  if (candidates.size > 0) {
+    console.log(
+      "🧭 UAZAPI technical reply mapped to pending button candidates:",
+      Array.from(candidates),
+    );
+  }
+
+  return Array.from(candidates);
+}
 function findButtonEdgeMatch(
   flows: any[],
   normalizedMessage: string,
