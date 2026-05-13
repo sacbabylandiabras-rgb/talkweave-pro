@@ -287,6 +287,31 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
   return null;
 }
 
+function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: string, webhook: any) {
+  const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
+                            webhook?.buttonsResponseMessage?.buttonId ||
+                            webhook?.buttonsResponseMessage?.selectedButtonId ||
+                            webhook?.buttonResponseMessage?.buttonId ||
+                            webhook?.buttonResponseMessage?.selectedButtonId ||
+                            webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                            "");
+
+  for (const edge of edges) {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const buttons = sourceNode?.data?.buttons || [];
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const expectedIds = [btn.id, btn.value, `${sourceNode.id}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
+      const isHandleMatch = edge.sourceHandle === `button-${i}` || edge.sourceHandle === btn.id;
+      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+      const normalizedBtnText = normalizeForMatch(btn.text);
+      const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
+      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target };
+    }
+  }
+  return null;
+}
+
 async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string, isGroup?: boolean, webhook?: any) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
