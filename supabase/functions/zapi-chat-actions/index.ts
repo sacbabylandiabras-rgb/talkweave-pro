@@ -32,10 +32,12 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key';
   const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  let q = admin.from('zapi_instances')
+  let q = admin.from('zapi_instances' as any)
     .select(instanceSelect)
-    .eq('user_id', user.id)
-    .eq('api_provider', 'zapi');
+    .eq('user_id', user.id);
+
+  // Filter by provider if needed, but for list-tags etc we might want to be flexible
+  // For now let's just find any active instance if none specified
   if (instanceDbId) {
     q = uuidLike.test(instanceDbId)
       ? q.eq('id', instanceDbId)
@@ -43,16 +45,35 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   } else {
     q = q.eq('is_default', true);
   }
-  let { data: inst } = await q.maybeSingle();
+  let { data: inst } = await q.or(`api_provider.eq.zapi,api_provider.eq.meta,api_provider.is.null`).maybeSingle();
   if (!inst) {
-    const r = await admin.from('zapi_instances')
+    const r = await admin.from('zapi_instances' as any)
       .select(instanceSelect)
-      .eq('user_id', user.id).eq('api_provider', 'zapi').eq('is_active', true).limit(1).maybeSingle();
+      .eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
     inst = r.data as any;
   }
-  if (!inst?.zapi_instance_id || !inst?.zapi_token || !inst?.zapi_client_token) {
-    throw new Error('Z-API credentials not configured');
+
+  // If it's a Meta instance, the structure is different
+  if (inst?.api_provider === 'meta' || (instanceDbId && instanceDbId.startsWith('meta:'))) {
+     const metaId = instanceDbId ? instanceDbId.replace('meta:', '') : '';
+     const { data: metaCreds } = await admin.from('meta_credentials' as any)
+       .select('*')
+       .eq('user_id', user.id)
+       .or(`phone_number_id.eq.${metaId},waba_id.eq.${metaId}`)
+       .eq('connected', true)
+       .maybeSingle();
+     
+     if (metaCreds) {
+       return {
+         userId: user.id,
+         instanceId: metaCreds.phone_number_id || metaCreds.waba_id,
+         token: metaCreds.access_token,
+         clientToken: '',
+         apiProvider: 'meta',
+       };
+     }
   }
+
   return {
     userId: user.id,
     instanceId: inst.zapi_instance_id,
@@ -395,6 +416,16 @@ Deno.serve(async (req) => {
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
+
+    if (creds.apiProvider === 'meta') {
+       // Gracefully return empty data for actions not supported by Meta yet
+       if (action === 'tag-colors') return new Response(JSON.stringify({ data: {} }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       if (action === 'list-tags') return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       if (action === 'status') return new Response(JSON.stringify({ data: { connected: true } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+       
+       return new Response(JSON.stringify({ error: 'Ação não suportada para Meta API' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     let finalPayload = payload;
 

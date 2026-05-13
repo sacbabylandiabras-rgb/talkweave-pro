@@ -77,7 +77,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false) => {
   });
 };
 
-const fetchInstancesWithRetry = async (userId: string) => {
+const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> => {
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -87,7 +87,40 @@ const fetchInstancesWithRetry = async (userId: string) => {
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 
-    if (!error) return (data || []) as ZapiInstance[];
+    if (!error) {
+      const zapiData = (data || []) as ZapiInstance[];
+      
+      // Also fetch Meta instances
+      try {
+        const { data: metaData } = await supabase
+          .from('meta_credentials' as any)
+          .select('*')
+          .eq('user_id', userId)
+          .eq('connected', true);
+
+        if (metaData && metaData.length > 0) {
+          const metaInstances: ZapiInstance[] = metaData.map((m: any) => ({
+            id: `meta:${m.phone_number_id || m.waba_id}`,
+            user_id: m.user_id,
+            instance_name: m.fb_user_name || 'Meta API',
+            zapi_instance_id: `meta:${m.phone_number_id || m.waba_id}`,
+            zapi_token: m.access_token || '',
+            zapi_client_token: '',
+            is_default: false,
+            is_active: true,
+            created_at: m.created_at || new Date().toISOString(),
+            updated_at: m.updated_at || new Date().toISOString(),
+            api_provider: 'meta',
+            instance_type: 'web'
+          }));
+          return [...zapiData, ...metaInstances];
+        }
+      } catch (err) {
+        console.error('Error fetching meta instances for unified list:', err);
+      }
+
+      return zapiData;
+    }
     lastError = error;
 
     if (error.code !== 'PGRST003') break;

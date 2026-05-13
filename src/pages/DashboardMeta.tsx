@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import {
-  BarChart3, MessageCircle, Send, Clock, TrendingUp, CheckCircle2, XCircle,
-  Phone, User, Image, Loader2, AlertCircle, RefreshCw, Edit2, Camera, Globe, Mail, MapPin, X, Save
+import { 
+  BarChart3, MessageCircle, Send, Clock, TrendingUp, CheckCircle2, XCircle, 
+  Phone, User, Image, Loader2, AlertCircle, RefreshCw, Edit2, Camera, Globe, Mail, MapPin, X, Save,
+  MessagesSquare
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,7 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
 
 export default function DashboardMeta() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
+  const navigate = useNavigate();
   const isConnected = creds?.connected === true;
 
   const [profile, setProfile] = useState<BusinessProfile>({});
@@ -257,10 +260,21 @@ export default function DashboardMeta() {
             Gerencie seu perfil WhatsApp Business e envie mensagens
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchProfile} disabled={loadingProfile}>
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingProfile ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5 text-xs" 
+            onClick={() => navigate("/mensagens")}
+          >
+            <MessagesSquare className="w-3.5 h-3.5" />
+            Ver Conversas
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchProfile} disabled={loadingProfile}>
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingProfile ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Profile Card */}
