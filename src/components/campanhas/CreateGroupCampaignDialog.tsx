@@ -171,7 +171,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
 
       const campaign = await createCampaign({
         name: formData.name,
-        description: formData.description || `Campanha em ${allTargetGroupIds.length} grupo(s)`,
+        description: formData.description || `Campanha em ${selectedGroups.length} grupo(s)`,
         template_id: formData.template_id,
         target_audience: {
           type: "groups",
