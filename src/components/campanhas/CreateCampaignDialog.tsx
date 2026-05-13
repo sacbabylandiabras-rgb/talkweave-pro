@@ -40,6 +40,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     specific_contacts: "",
     delay_seconds: 2,
     tag_id: "",
+    remove_duplicates: true,
   });
 
   const [flows, setFlows] = useState<Array<{ id: string; name: string; keyword: string }>>([]);
