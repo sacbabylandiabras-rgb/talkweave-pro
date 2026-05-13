@@ -1796,7 +1796,7 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
+  const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   const instances = useMemo(() => {
     return allInstances.filter((i: any) => {
