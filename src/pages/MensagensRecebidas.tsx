@@ -1797,17 +1797,20 @@ const MensagensRecebidas = () => {
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
-  const instances = useMemo(
-    () => allInstances.filter((i: any) => (i.api_provider || "zapi").toLowerCase() === "zapi"),
-    [allInstances]
-  );
-  const activeInstance = useMemo(
-    () =>
-      (rawActiveInstance && ((rawActiveInstance as any).api_provider || "zapi").toLowerCase() === "zapi"
-        ? rawActiveInstance
-        : instances.find((i: any) => i.is_default) || instances[0] || null),
-    [rawActiveInstance, instances]
-  );
+  const instances = useMemo(() => {
+    return allInstances.filter((i: any) => {
+      const provider = (i.api_provider || "zapi").toLowerCase();
+      return provider === "zapi" || provider === "meta" || provider === "evolution";
+    });
+  }, [allInstances]);
+  const activeInstance = useMemo(() => {
+    const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
+    const isSupported = provider === "zapi" || provider === "meta" || provider === "evolution";
+    
+    return (rawActiveInstance && isSupported
+      ? rawActiveInstance
+      : instances.find((i: any) => i.is_default) || instances[0] || null);
+  }, [rawActiveInstance, instances]);
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
   const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
