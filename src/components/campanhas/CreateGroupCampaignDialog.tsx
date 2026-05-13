@@ -236,21 +236,44 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
           </div>
 
           {/* Modelo */}
-          <div>
-            <Label>Modelo de Mensagem</Label>
-            <Select
-              value={formData.template_id}
-              onValueChange={val => setFormData(prev => ({ ...prev, template_id: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.filter(t => t.active).map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Modelo de Mensagem</Label>
+              <Select
+                value={formData.template_id}
+                onValueChange={val => setFormData(prev => ({ ...prev, template_id: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.filter(t => t.active).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Instância */}
+            <div>
+              <Label>Instância de Envio</Label>
+              <Select
+                value={selectedInstanceId}
+                onValueChange={setSelectedInstanceId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a instância (ou rodízio)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROTATE_ALL}>Rodízio (Todas as instâncias)</SelectItem>
+                  {instances.map(inst => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Preview do template */}
