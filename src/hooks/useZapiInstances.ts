@@ -72,10 +72,10 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
       return provider === providerFilter.toLowerCase();
     }
 
-    // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos (Uazapi/Extractor, Meta, Warmup)
-    if (providerFilter) return provider === providerFilter.toLowerCase(); if (!includeWarmup && isWarmup) return false; if (isUazapi && !provider.includes("zapi")) return false; if (isMeta) return false;
-    if (isUazapi && !provider.includes('zapi')) return false; // Exclui Uazapi/Extractor
-    if (isMeta) return false; // Exclui Meta da listagem padrão Zaplynx
+    // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos
+    if (!includeWarmup && isWarmup) return false;
+    if (isUazapi && !provider.includes("zapi")) return false; 
+    if (isMeta) return false;
 
     return true;
   })) {
