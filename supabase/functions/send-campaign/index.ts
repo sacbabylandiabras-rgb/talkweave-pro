@@ -1382,8 +1382,10 @@ serve(async (req) => {
       );
     }
 
-    const delayMs = (campaign.delay_seconds || 2) * 1000;
-    const batchSize = getBatchSizeForDelay(delayMs);
+    const isGroupCampaign = campaign.target_audience?.type === 'groups';
+    const delayMs = isGroupCampaign ? 0 : (campaign.delay_seconds || 2) * 1000;
+    // For group campaigns, we allow a much larger batch size and faster processing
+    const batchSize = isGroupCampaign ? 100 : getBatchSizeForDelay(delayMs);
 
     // Split contacts into current batch and remaining
     const currentBatch = executionContacts.slice(0, batchSize);
@@ -1504,8 +1506,55 @@ serve(async (req) => {
     // Process current batch
     const results = [];
     let rateLimitHitsInBatch = 0;
-    for (let i = 0; i < currentBatch.length; i++) {
-      const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+    // Process batch: use parallel execution for groups if requested "at once"
+    if (isGroupCampaign) {
+      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups in semi-parallel`);
+      
+      // We use a small concurrency limit to avoid overwhelming the instance but still feel "at once"
+      const CONCURRENCY = 5;
+      for (let i = 0; i < currentBatch.length; i += CONCURRENCY) {
+        const chunk = currentBatch.slice(i, i + CONCURRENCY);
+        await Promise.all(chunk.map(async (item, chunkIdx) => {
+          const contactIdx = i + chunkIdx;
+          const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
+          
+          const explicitContactInstance = forcedRequestedInstance
+            ? null
+            : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
+            ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+            : null;
+          const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(contactIdx);
+          
+          await processContact(contact, currentInstance, contactIdx, true);
+        }));
+        // Small pause between chunks to be safe
+        if (i + CONCURRENCY < currentBatch.length) await sleep(500);
+      }
+    } else {
+      for (let i = 0; i < currentBatch.length; i++) {
+        const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+        
+        const explicitContactInstance = forcedRequestedInstance
+          ? null
+          : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
+          ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+          : null;
+        const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
+        
+        await processContact(contact, currentInstance, i, false);
+        
+        if (i < currentBatch.length - 1) {
+          await sleep(delayMs);
+        }
+      }
+    }
+
+    // Helper function to encapsulate contact processing logic
+    async function processContact(contact: any, currentInstance: ResolvedInstance, i: number, isParallel: boolean) {
+      let campaignSend: CampaignSendRecord | undefined;
+      let reusableSendId: string | null = null;
 
       // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
       // O destino é enviado tal como informado pelo cliente.
@@ -1513,17 +1562,6 @@ serve(async (req) => {
         console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
       }
 
-      const explicitContactInstance = forcedRequestedInstance
-        ? null
-        : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-      const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
-        ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-        : null;
-      const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
-      let campaignSend: CampaignSendRecord | undefined;
-      let reusableSendId: string | null = null;
-
-      try {
         // Check if paused/cancelled before EACH contact to stop immediately
         const { data: statusCheck } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (statusCheck?.status === 'paused' || statusCheck?.status === 'cancelled' || statusCheck?.status === 'completed') {
