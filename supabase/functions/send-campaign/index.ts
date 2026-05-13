@@ -1338,7 +1338,26 @@ serve(async (req) => {
     const isFlowCampaign = campaign.target_audience?.campaign_type === 'flow' && campaign.target_audience?.flow_id;
     const flowId = campaign.target_audience?.flow_id;
 
-    if (!isFlowCampaign && !campaign.template) throw new Error('Campaign template not found');
+    let campaignTemplate = campaign.template;
+
+    // Fallback for missing template relation - try fetching manually if needed
+    if (!isFlowCampaign && !campaignTemplate && campaign.template_id) {
+      console.log(`🔍 Campaign ${campaignId}: template relation missing, fetching template ${campaign.template_id} manually...`);
+      const { data: manualTpl } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('id', campaign.template_id)
+        .maybeSingle();
+
+      if (manualTpl) {
+        campaignTemplate = manualTpl;
+      }
+    }
+
+    if (!isFlowCampaign && !campaignTemplate) {
+      console.error(`❌ Campaign ${campaignId}: template not found (ID: ${campaign.template_id})`);
+      throw new Error('Campaign template not found');
+    }
 
     const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
       ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
@@ -1601,7 +1620,7 @@ serve(async (req) => {
         }
 
         // === TEMPLATE-BASED CAMPAIGN ===
-        let messageContent = normalizePublicRedirectUrlsInText(campaign.template.content);
+        let messageContent = normalizePublicRedirectUrlsInText(campaignTemplate.content);
         messageContent = messageContent.replace(/{nome}/g, contact.name || 'Cliente');
         messageContent = messageContent.replace(/{empresa}/g, 'Nossa Empresa');
         messageContent = messageContent.replace(/{data}/g, new Date().toLocaleDateString('pt-BR'));
@@ -1614,18 +1633,18 @@ serve(async (req) => {
         }
 
         let fullMessage = '';
-        if (campaign.template.header) fullMessage += normalizePublicRedirectUrlsInText(campaign.template.header) + '\n\n';
+        if (campaignTemplate.header) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
         fullMessage += messageContent;
-        if (campaign.template.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaign.template.footer);
+        if (campaignTemplate.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaignTemplate.footer);
 
         // Construct a "visual" version for the message logs
         let visualContent = fullMessage;
-        if (campaign.template.media_url) {
-          const type = campaign.template.type?.split('_')[0] || 'image';
-          visualContent = `[media:${type}:${campaign.template.media_url}]\n${visualContent}`;
+        if (campaignTemplate.media_url) {
+          const type = campaignTemplate.type?.split('_')[0] || 'image';
+          visualContent = `[media:${type}:${campaignTemplate.media_url}]\n${visualContent}`;
         }
-        if (campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0) {
-          const buttonLabels = campaign.template.buttons.map((b: any) => String(b.text || b.label || '').trim()).filter(Boolean);
+        if (campaignTemplate.buttons && Array.isArray(campaignTemplate.buttons) && campaignTemplate.buttons.length > 0) {
+          const buttonLabels = campaignTemplate.buttons.map((b: any) => String(b.text || b.label || '').trim()).filter(Boolean);
           if (buttonLabels.length > 0) {
             visualContent += `\n\n[Botões: ${buttonLabels.join(' | ')}]`;
           }
@@ -1641,13 +1660,13 @@ serve(async (req) => {
           instance_name: currentInstance.instanceName,
         };
 
-        const templateType = campaign.template.type || 'texto';
-        const hasButtons = campaign.template.buttons && Array.isArray(campaign.template.buttons) && campaign.template.buttons.length > 0;
-        const hasMedia = campaign.template.media_url && campaign.template.media_url.trim() !== '';
-        const hasCarouselCards = campaign.template.carousel_cards && Array.isArray(campaign.template.carousel_cards) && campaign.template.carousel_cards.length > 0;
+        const templateType = campaignTemplate.type || 'texto';
+        const hasButtons = campaignTemplate.buttons && Array.isArray(campaignTemplate.buttons) && campaignTemplate.buttons.length > 0;
+        const hasMedia = campaignTemplate.media_url && campaignTemplate.media_url.trim() !== '';
+        const hasCarouselCards = campaignTemplate.carousel_cards && Array.isArray(campaignTemplate.carousel_cards) && campaignTemplate.carousel_cards.length > 0;
         const campaignViewOnce = campaign.target_audience?.viewOnce === true;
         const campaignIsPtv = campaign.target_audience?.isPtv === true;
-        const specialTpl = parseSpecialTemplate(campaign.template.content);
+        const specialTpl = parseSpecialTemplate(campaignTemplate.content);
 
         const sanitizeCallPhone = (raw: string) => String(raw || '').replace(/\D+/g, '');
 
@@ -1724,7 +1743,7 @@ serve(async (req) => {
           const uazResult = await dispatchUazapiCampaign(
             currentInstance,
             contact.phone,
-            campaign.template,
+            campaignTemplate,
             fullMessage,
             {
               viewOnce: campaignViewOnce,
@@ -1834,7 +1853,7 @@ serve(async (req) => {
             continue;
           }
         } else if (templateType === 'carrossel' && hasCarouselCards) {
-          const carouselItems = campaign.template.carousel_cards.map((card: any, idx: number) => {
+          const carouselItems = campaignTemplate.carousel_cards.map((card: any, idx: number) => {
             const text = [card.title, card.description].filter((s: any) => s && String(s).trim() !== '').join('\n\n') || (card.text || '');
             const item: any = { text };
             if (card.image && String(card.image).trim() !== '') item.image = card.image;
@@ -1889,18 +1908,18 @@ serve(async (req) => {
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
           if (campaignIsPtv) {
             const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
-            const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaign.template.media_url }) });
+            const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaignTemplate.media_url }) });
             if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
           } else {
             const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-            const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaign.template.media_url, ...(campaignViewOnce ? { viewOnce: true } : {}) }) });
+            const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaignTemplate.media_url, ...(campaignViewOnce ? { viewOnce: true } : {}) }) });
             if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
           }
 
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
@@ -1910,34 +1929,34 @@ serve(async (req) => {
           const audioResponse = await fetch(audioUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-            body: JSON.stringify({ phone: contact.phone, audio: campaign.template.media_url, waveform: true }),
+            body: JSON.stringify({ phone: contact.phone, audio: campaignTemplate.media_url, waveform: true }),
           });
           if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
 
           await sleep(Math.max(delayMs / 2, 1000));
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage || ' ', reusableSendId);
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
-          requestBody = { phone: contact.phone, image: campaign.template.media_url, ...buttonPayload };
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
+          requestBody = { phone: contact.phone, image: campaignTemplate.media_url, ...buttonPayload };
 
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
-          requestBody = { phone: contact.phone, image: campaign.template.media_url, caption: fullMessage };
+          requestBody = { phone: contact.phone, image: campaignTemplate.media_url, caption: fullMessage };
 
         } else if (templateType === 'video') {
           if (!hasMedia) throw new Error('Template tipo "video" requer um vídeo');
           if (campaignIsPtv) {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
-            requestBody = { phone: contact.phone, ptv: campaign.template.media_url };
+            requestBody = { phone: contact.phone, ptv: campaignTemplate.media_url };
           } else {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-            const videoUrl = campaign.template.media_url;
+            const videoUrl = campaignTemplate.media_url;
             console.log(`🎬 Enviando vídeo para ${contact.phone}: ${videoUrl}`);
             requestBody = { phone: contact.phone, video: videoUrl, caption: fullMessage, ...(campaignViewOnce ? { viewOnce: true } : {}) };
           }
@@ -1945,17 +1964,17 @@ serve(async (req) => {
         } else if (templateType === 'audio') {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
-          requestBody = { phone: contact.phone, audio: campaign.template.media_url, waveform: true };
+          requestBody = { phone: contact.phone, audio: campaignTemplate.media_url, waveform: true };
 
         } else if (templateType === 'status') {
           // Postar no Status (Stories) do próprio WhatsApp logado (Z-API)
-          const statusType = String(campaign.template.status_type || 'text').toLowerCase();
+          const statusType = String((campaignTemplate as any).status_type || 'text').toLowerCase();
           if (statusType === 'image') {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-image`;
-            requestBody = { image: campaign.template.media_url, caption: fullMessage };
+            requestBody = { image: campaignTemplate.media_url, caption: fullMessage };
           } else if (statusType === 'video') {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-video`;
-            requestBody = { video: campaign.template.media_url, caption: fullMessage };
+            requestBody = { video: campaignTemplate.media_url, caption: fullMessage };
           } else {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-text`;
             requestBody = { message: fullMessage };
@@ -1966,8 +1985,8 @@ serve(async (req) => {
         } else if (templateType === 'documento' || templateType === 'arquivo') {
           if (!hasMedia) throw new Error(`Template tipo "${templateType}" requer um arquivo`);
           // Determinar extensão a partir do file_type (mime) ou da própria URL
-          const mimeExt = campaign.template.file_type?.split('/').pop()?.toLowerCase();
-          const urlExt = String(campaign.template.media_url || '')
+          const mimeExt = campaignTemplate.file_type?.split('/').pop()?.toLowerCase();
+          const urlExt = String(campaignTemplate.media_url || '')
             .split('?')[0]
             .split('#')[0]
             .split('.')
@@ -1977,15 +1996,15 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document/${extension}`;
           requestBody = {
             phone: contact.phone,
-            document: campaign.template.media_url,
-            fileName: campaign.template.file_name || `documento.${extension}`,
+            document: campaignTemplate.media_url,
+            fileName: campaignTemplate.file_name || `documento.${extension}`,
             caption: fullMessage,
           };
 
         } else if (templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção') {
-          const rawItems = Array.isArray(campaign.template.list_items)
-            ? campaign.template.list_items
-            : (Array.isArray((campaign.template as any).listItems) ? (campaign.template as any).listItems : []);
+          const rawItems = Array.isArray(campaignTemplate.list_items)
+            ? campaignTemplate.list_items
+            : (Array.isArray((campaignTemplate as any).listItems) ? (campaignTemplate as any).listItems : []);
           const cleanItems = rawItems
             .filter((it: any) => it && String(it.title || '').trim() !== '')
             .slice(0, 10)
@@ -2001,7 +2020,7 @@ serve(async (req) => {
             phone: contact.phone,
             message: fullMessage || ' ',
             optionList: {
-              title: campaign.template.header || '',
+              title: campaignTemplate.header || '',
               buttonLabel: 'Ver opções',
               options: cleanItems,
             },
@@ -2009,7 +2028,7 @@ serve(async (req) => {
 
         } else if (hasButtons) {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaign.template.buttons, fullMessage, reusableSendId);
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
         } else {
