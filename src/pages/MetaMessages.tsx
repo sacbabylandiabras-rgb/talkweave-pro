@@ -1861,9 +1861,15 @@ const MetaMessages = () => {
     return instances.filter((i: any) => set.has(i.id));
   }, [instances, connectedUiInstanceIds]);
   // Map UI instance id to zapi_instance_id for filtering
-  const selectedInstance = selectedInstanceId === "all" ? undefined : instances.find(i => i.id === selectedInstanceId);
-  const filterZapiInstanceId = selectedInstance?.zapi_instance_id;
-  const filterInstanceName = selectedInstance?.instance_name;
+  // For Meta API panel, we want ONLY meta instances, so we override the known lists.
+  const metaInstances = useMemo(() => instances.filter(i => i.api_provider === 'meta'), [instances]);
+  const knownInstanceIds = useMemo(() => metaInstances.map(i => i.id), [metaInstances]);
+  const knownInstanceNames = useMemo(() => metaInstances.map(i => i.instance_name), [metaInstances]);
+
+  const selectedInstance = selectedInstanceId === "all" ? undefined : metaInstances.find(i => i.id === selectedInstanceId);
+  const filterZapiInstanceId = selectedInstanceId === "all" ? undefined : selectedInstance?.zapi_instance_id;
+  const filterInstanceName = selectedInstanceId === "all" ? undefined : selectedInstance?.instance_name;
+
   // Auto-sync the chat list from the connected provider (Z-API) so
   // we always show the latest live conversations, not only the historic logs
   // stored in the database.
