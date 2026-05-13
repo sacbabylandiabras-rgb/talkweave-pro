@@ -83,24 +83,33 @@ serve(async (req) => {
     // Z-API can send fromMe as boolean or string
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
 
-     const isManualTrigger = webhook?.__manual_flow_trigger__ === true;
- 
-     if (isManualTrigger && webhook.flowId) {
-       const { data: manualFlow } = await supabase
-         .from("flow_automations")
-         .select("*")
-         .eq("id", webhook.flowId)
-         .maybeSingle();
- 
-       if (manualFlow) {
-         const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
-         if (initialNode) {
-           await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData);
-           return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
-         }
-       }
-     }
- 
+    const { data: instanceData } = await supabase
+      .from("zapi_instances")
+      .select("user_id, zapi_instance_id, zapi_token, zapi_client_token")
+      .eq("zapi_instance_id", instanceId)
+      .maybeSingle();
+
+    if (!instanceData) return new Response("instance_not_found", { status: 200, headers: corsHeaders });
+    const userId = instanceData.user_id;
+
+    const isManualTrigger = webhook?.__manual_flow_trigger__ === true;
+    if (isManualTrigger && webhook.flowId) {
+      console.log(`Manual flow trigger for phone ${phone}, flow ${webhook.flowId}`);
+      const { data: manualFlow } = await supabase
+        .from("flow_automations")
+        .select("*")
+        .eq("id", webhook.flowId)
+        .maybeSingle();
+
+      if (manualFlow) {
+        const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
+        if (initialNode) {
+          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData);
+          return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
+        }
+      }
+    }
+
     if (!phone || !instanceId || !isMessage || fromMe) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
        if (isMessage) {
