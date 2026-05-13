@@ -62,6 +62,8 @@ export const useCampaigns = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+    const [lastRefetch, setLastRefetch] = useState(Date.now());
+
    const loadCampaigns = useCallback(async (isSilent = false) => {
      try {
        if (!isSilent) setLoading(true);
@@ -110,7 +112,8 @@ export const useCampaigns = () => {
      } finally {
        if (!isSilent) setLoading(false);
      }
-   }, [toast]);
+      setLastRefetch(Date.now());
+    }, [toast]);
 
   const createCampaign = async (campaignData: {
     name: string;
@@ -287,19 +290,42 @@ export const useCampaigns = () => {
     instanceId?: string
   ) => {
     try {
-      const currentCampaign = campaigns.find(campaign => campaign.id === campaignId);
+      // Tentar encontrar a campanha no estado local ou buscar no banco para evitar condições de corrida
+      let currentCampaign = campaigns.find(campaign => campaign.id === campaignId);
+      
+      if (!currentCampaign) {
+        console.log(`🔍 Campanha ${campaignId} não encontrada no estado local, buscando no banco...`);
+        const { data: dbCampaign } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('id', campaignId)
+          .maybeSingle();
+          
+        if (dbCampaign) {
+          currentCampaign = {
+            ...dbCampaign,
+            target_audience: typeof dbCampaign.target_audience === 'object' && dbCampaign.target_audience !== null 
+              ? dbCampaign.target_audience as Record<string, any>
+              : {}
+          } as any;
+        }
+      }
+
       const sendConfig = {
         instanceId: instanceId && instanceId !== '__rotate_all__' ? instanceId : null,
         rotateAll: instanceId === '__rotate_all__',
       };
 
-      // Persist send mode before invoking edge function so pause/cancel can clear the right queues
+      // Persistir o modo de envio antes de invocar a Edge Function
+      // Garantimos que não perderemos o 'type' ou outros dados do target_audience
+      const updatedTargetAudience = {
+        ...(currentCampaign?.target_audience || {}),
+        __sendConfig: sendConfig,
+      };
+
       await updateCampaign(campaignId, {
         status: 'active',
-        target_audience: {
-          ...(currentCampaign?.target_audience || {}),
-          __sendConfig: sendConfig,
-        },
+        target_audience: updatedTargetAudience,
       });
 
       const { data: sessionData } = await supabase.auth.getSession();
@@ -741,25 +767,38 @@ export const useCampaigns = () => {
     }
   };
 
-   useEffect(() => {
-     loadCampaigns();
- 
-     const channel = supabase
-       .channel('campaigns-local-sync')
-       .on(
-         'postgres_changes',
-         { event: '*', schema: 'public', table: 'campaigns' },
-         () => {
-           // Just refetch all campaigns when anything changes for simplicity and consistency
-           loadCampaigns(true);
-         }
-       )
-       .subscribe();
- 
-     return () => {
-       supabase.removeChannel(channel);
-     };
-   }, [loadCampaigns]);
+    useEffect(() => {
+      loadCampaigns();
+  
+      // Gerar um nome de canal único para evitar colisões
+      const channelName = `campaigns-local-sync-${Math.random().toString(36).substring(2, 9)}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'campaigns' },
+          (payload) => {
+            console.log('🔄 Mudança detectada na tabela campaigns:', payload.eventType);
+            // Recarregar silenciosamente quando houver qualquer mudança
+            loadCampaigns(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log(`📡 Status da inscrição realtime (campaigns): ${status}`);
+        });
+  
+      // Refetch when window gains focus to ensure data is fresh
+      const handleFocus = () => {
+        console.log('🪟 Janela focada, atualizando campanhas...');
+        loadCampaigns(true);
+      };
+      window.addEventListener('focus', handleFocus);
+  
+      return () => {
+        supabase.removeChannel(channel);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }, [loadCampaigns]);
 
   return {
     campaigns,
