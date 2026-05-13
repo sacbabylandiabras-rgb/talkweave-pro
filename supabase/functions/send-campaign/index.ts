@@ -1883,8 +1883,7 @@ serve(async (req) => {
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
 
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
           if (campaignIsPtv) {
@@ -2083,9 +2082,8 @@ serve(async (req) => {
                 results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
                 console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
                 await persistCampaignSend(campaignSend, reusableSendId);
-                if (i < currentBatch.length - 1) await sleep(delayMs);
-                continue;
-              }
+          return { stop: false };
+        }
             }
 
             campaignSend.status = 'pending';
@@ -2138,18 +2136,8 @@ serve(async (req) => {
         await persistCampaignSend(campaignSend, reusableSendId);
       }
 
-      // Delay between contacts (except last)
-      if (i < currentBatch.length - 1) {
-        await sleep(delayMs);
-
-        // Check pause after delay
-        const { data: afterDelayCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
-        if (afterDelayCampaign?.status === 'paused' || afterDelayCampaign?.status === 'cancelled' || afterDelayCampaign?.status === 'completed') {
-          console.log(`🛑 Campaign stopped after delay at contact ${i + 1}/${currentBatch.length}.`);
-          return new Response(JSON.stringify({ success: true, stopped: true, processed: i + 1, message: `Stopped: campaign ${afterDelayCampaign?.status}` }),
-            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-        }
-      }
+      return { stop: false };
+    }
     }
 
     // If there are remaining contacts, schedule continuation
