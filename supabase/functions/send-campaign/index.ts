@@ -1382,8 +1382,10 @@ serve(async (req) => {
       );
     }
 
-    const delayMs = (campaign.delay_seconds || 2) * 1000;
-    const batchSize = getBatchSizeForDelay(delayMs);
+    const isGroupCampaign = campaign.target_audience?.type === 'groups';
+    const delayMs = isGroupCampaign ? 0 : (campaign.delay_seconds || 2) * 1000;
+    // For group campaigns, we allow a much larger batch size and faster processing
+    const batchSize = isGroupCampaign ? 100 : getBatchSizeForDelay(delayMs);
 
     // Split contacts into current batch and remaining
     const currentBatch = executionContacts.slice(0, batchSize);
@@ -1504,119 +1506,98 @@ serve(async (req) => {
     // Process current batch
     const results = [];
     let rateLimitHitsInBatch = 0;
-    for (let i = 0; i < currentBatch.length; i++) {
-      const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+    let shouldStop = false;
+    let stopReason = '';
 
-      // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
-      // O destino é enviado tal como informado pelo cliente.
-      if (isLidIdentifier(contact.phone)) {
-        console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
+    if (isGroupCampaign) {
+      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups in semi-parallel`);
+      const CONCURRENCY = 5;
+      for (let i = 0; i < currentBatch.length; i += CONCURRENCY) {
+        const chunk = currentBatch.slice(i, i + CONCURRENCY);
+        await Promise.all(chunk.map(async (item, chunkIdx) => {
+          const contactIdx = i + chunkIdx;
+          const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
+          const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
+          const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(contactIdx);
+          const res = await processContact(contact, currentInstance, contactIdx, true);
+          if (res?.stop) {
+            shouldStop = true;
+            stopReason = res.status || 'paused';
+          }
+        }));
+        if (shouldStop) break;
+        if (i + CONCURRENCY < currentBatch.length) await sleep(500);
       }
+      if (shouldStop) {
+        return new Response(JSON.stringify({ success: true, stopped: true, message: `Stopped: campaign ${stopReason}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+    } else {
+      for (let i = 0; i < currentBatch.length; i++) {
+        const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
+        const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
+        const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
+        const res = await processContact(contact, currentInstance, i, false);
+        if (res?.stop) {
+          return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${res.status || 'paused'}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
+        if (i < currentBatch.length - 1) {
+          await sleep(delayMs);
+        }
+      }
+    }
 
-      const explicitContactInstance = forcedRequestedInstance
-        ? null
-        : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-      const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
-        ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-        : null;
-      const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
+    // Helper function to encapsulate contact processing logic
+    async function processContact(contact: any, currentInstance: ResolvedInstance, i: number, isParallel: boolean) {
       let campaignSend: CampaignSendRecord | undefined;
       let reusableSendId: string | null = null;
 
       try {
-        // Check if paused/cancelled before EACH contact to stop immediately
         const { data: statusCheck } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (statusCheck?.status === 'paused' || statusCheck?.status === 'cancelled' || statusCheck?.status === 'completed') {
-          console.log(`🛑 Campaign ${campaignId} is ${statusCheck?.status} before contact ${i + 1}/${currentBatch.length}. Stopping immediately.`);
-          return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${statusCheck?.status}` }),
-            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          return { stop: true, status: statusCheck?.status };
         }
 
-        // Check duplicates / progress already persisted
-        const { data: existingSends } = await supabase
-          .from('campaign_sends')
-          .select('id, status, created_at')
-          .eq('campaign_id', campaignId)
-          .eq('phone', contact.phone);
+        const { data: existingSends } = await supabase.from('campaign_sends').select('id, status, created_at').eq('campaign_id', campaignId).eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'delivered').length || 0;
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
-        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: { phone: string }) => c.phone === contact.phone).length;
+        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: any) => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
-          console.log(`⏭️ Skipping ${contact.phone} - already sent`);
           results.push({ phone: contact.phone, success: true, messageId: 'already-sent' });
-          continue;
+          return { stop: false };
         }
-
         if (pendingForPhone > phoneOccurrencesBefore) {
-          console.log(`⏭️ Skipping ${contact.phone} - already accepted/pending callback`);
           results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
-          continue;
+          return { stop: false };
         }
 
-        const failedOnly = [...(existingSends || [])]
-          .filter(s => s.status === 'failed')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
 
-        // Device connectivity is checked once at batch level (above), not per-contact
-        // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
+        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
 
-        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}${isFlowCampaign ? ' [FLOW]' : ''}`);
-
-        // === FLOW-BASED CAMPAIGN ===
         if (isFlowCampaign && flowId) {
-          campaignSend = {
-            campaign_id: campaignId,
-            phone: contact.phone,
-            contact_name: contact.name,
-            message_content: `[Fluxo: ${flowId}]`,
-            status: 'pending',
-            user_id: credentials.userId,
-            instance_name: currentInstance.instanceName,
-          };
-
+          campaignSend = { campaign_id: campaignId, phone: contact.phone, contact_name: contact.name, message_content: `[Fluxo: ${flowId}]`, status: 'pending', user_id: credentials.userId, instance_name: currentInstance.instanceName };
           try {
-            // Trigger flow via webhook-zapi with __manual_flow_trigger__
-            const webhookPayload = {
-              phone: contact.phone,
-              instanceId: currentInstance.zapiInstanceId,
-              __manual_flow_trigger__: true,
-              flowId: flowId,
-              body: { message: { text: { body: `__flow_trigger_${flowId}__` } } },
-              fromMe: false,
-            __tagId__: campaign.target_audience?.tag_id,
-            };
-
-            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseServiceKey}`,
-              },
-              body: JSON.stringify(webhookPayload),
-            });
-
+            const webhookPayload = { phone: contact.phone, instanceId: currentInstance.zapiInstanceId, __manual_flow_trigger__: true, flowId: flowId, body: { message: { text: { body: `__flow_trigger_${flowId}__` } } }, fromMe: false, __tagId__: campaign.target_audience?.tag_id };
+            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` }, body: JSON.stringify(webhookPayload) });
             if (flowResponse.ok) {
               campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: 'flow-triggered' });
-              console.log(`⏳ Flow triggered for ${contact.phone}; waiting real delivery callback`);
             } else {
-              const errorText = await flowResponse.text();
               campaignSend.status = 'failed';
-              campaignSend.error_message = `Flow trigger failed: ${errorText}`;
+              campaignSend.error_message = `Flow trigger failed: ${await flowResponse.text()}`;
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-              console.log(`❌ Flow trigger failed for ${contact.phone}: ${errorText}`);
             }
           } catch (flowError) {
             campaignSend.status = 'failed';
-            campaignSend.error_message = flowError instanceof Error ? flowError.message : 'Unknown flow error';
+            campaignSend.error_message = String(flowError);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
           }
-
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
         }
 
         // === TEMPLATE-BASED CAMPAIGN ===
@@ -1737,8 +1718,7 @@ serve(async (req) => {
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             }
             await persistCampaignSend(campaignSend, reusableSendId);
-            if (i < currentBatch.length - 1) await sleep(delayMs);
-            continue;
+            return { stop: false };
           }
           const uazResult = await dispatchUazapiCampaign(
             currentInstance,
@@ -1783,8 +1763,7 @@ serve(async (req) => {
           }
 
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
         }
         // === END UAZAPI ROUTING ===
 
@@ -1849,8 +1828,7 @@ serve(async (req) => {
             }
             
             await persistCampaignSend(campaignSend, reusableSendId);
-            if (i < currentBatch.length - 1) await sleep(delayMs);
-            continue;
+            return { stop: false };
           }
         } else if (templateType === 'carrossel' && hasCarouselCards) {
           const carouselItems = campaignTemplate.carousel_cards.map((card: any, idx: number) => {
@@ -1902,8 +1880,7 @@ serve(async (req) => {
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
 
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
           if (campaignIsPtv) {
@@ -2102,9 +2079,8 @@ serve(async (req) => {
                 results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
                 console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
                 await persistCampaignSend(campaignSend, reusableSendId);
-                if (i < currentBatch.length - 1) await sleep(delayMs);
-                continue;
-              }
+          return { stop: false };
+        }
             }
 
             campaignSend.status = 'pending';
@@ -2157,18 +2133,7 @@ serve(async (req) => {
         await persistCampaignSend(campaignSend, reusableSendId);
       }
 
-      // Delay between contacts (except last)
-      if (i < currentBatch.length - 1) {
-        await sleep(delayMs);
-
-        // Check pause after delay
-        const { data: afterDelayCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
-        if (afterDelayCampaign?.status === 'paused' || afterDelayCampaign?.status === 'cancelled' || afterDelayCampaign?.status === 'completed') {
-          console.log(`🛑 Campaign stopped after delay at contact ${i + 1}/${currentBatch.length}.`);
-          return new Response(JSON.stringify({ success: true, stopped: true, processed: i + 1, message: `Stopped: campaign ${afterDelayCampaign?.status}` }),
-            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-        }
-      }
+      return { stop: false };
     }
 
     // If there are remaining contacts, schedule continuation
