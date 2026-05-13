@@ -30,7 +30,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
   const [disconnecting, setDisconnecting] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const queryClient = useQueryClient();
-  const { data: metaCreds, isLoading: loadingCreds } = useMetaCredentials(META_APP_ID);
+   const { data: metaCreds, isLoading: loadingCreds, isFetching } = useMetaCredentials(META_APP_ID);
   const { setActiveWorkspace } = useWorkspace();
   const navigate = useNavigate();
 
@@ -223,7 +223,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
           </div>
         </DialogHeader>
 
-        {loadingCreds ? (
+         {(loadingCreds || isFetching) ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
