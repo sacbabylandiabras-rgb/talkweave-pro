@@ -1556,105 +1556,51 @@ serve(async (req) => {
       let campaignSend: CampaignSendRecord | undefined;
       let reusableSendId: string | null = null;
 
-      // Identificadores @lid são preservados COMPLETOS (ex: 12345@lid).
-      // O destino é enviado tal como informado pelo cliente.
-      if (isLidIdentifier(contact.phone)) {
-        console.log(`➡️ @lid preservado para envio: ${contact.phone}`);
-      }
-
-        // Check if paused/cancelled before EACH contact to stop immediately
+      try {
         const { data: statusCheck } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
         if (statusCheck?.status === 'paused' || statusCheck?.status === 'cancelled' || statusCheck?.status === 'completed') {
-          console.log(`🛑 Campaign ${campaignId} is ${statusCheck?.status} before contact ${i + 1}/${currentBatch.length}. Stopping immediately.`);
-          return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${statusCheck?.status}` }),
-            { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          return { stop: true, status: statusCheck?.status };
         }
 
-        // Check duplicates / progress already persisted
-        const { data: existingSends } = await supabase
-          .from('campaign_sends')
-          .select('id, status, created_at')
-          .eq('campaign_id', campaignId)
-          .eq('phone', contact.phone);
+        const { data: existingSends } = await supabase.from('campaign_sends').select('id, status, created_at').eq('campaign_id', campaignId).eq('phone', contact.phone);
         const successfulForPhone = existingSends?.filter(s => s.status === 'delivered').length || 0;
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
-        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: { phone: string }) => c.phone === contact.phone).length;
+        const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: any) => c.phone === contact.phone).length;
 
         if (successfulForPhone > phoneOccurrencesBefore) {
-          console.log(`⏭️ Skipping ${contact.phone} - already sent`);
           results.push({ phone: contact.phone, success: true, messageId: 'already-sent' });
-          continue;
+          return { stop: false };
         }
-
         if (pendingForPhone > phoneOccurrencesBefore) {
-          console.log(`⏭️ Skipping ${contact.phone} - already accepted/pending callback`);
           results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
-          continue;
+          return { stop: false };
         }
 
-        const failedOnly = [...(existingSends || [])]
-          .filter(s => s.status === 'failed')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
 
-        // Device connectivity is checked once at batch level (above), not per-contact
-        // to avoid excessive Z-API calls that cause rate-limiting and silent delivery failures
+        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
 
-        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}${isFlowCampaign ? ' [FLOW]' : ''}`);
-
-        // === FLOW-BASED CAMPAIGN ===
         if (isFlowCampaign && flowId) {
-          campaignSend = {
-            campaign_id: campaignId,
-            phone: contact.phone,
-            contact_name: contact.name,
-            message_content: `[Fluxo: ${flowId}]`,
-            status: 'pending',
-            user_id: credentials.userId,
-            instance_name: currentInstance.instanceName,
-          };
-
+          campaignSend = { campaign_id: campaignId, phone: contact.phone, contact_name: contact.name, message_content: `[Fluxo: ${flowId}]`, status: 'pending', user_id: credentials.userId, instance_name: currentInstance.instanceName };
           try {
-            // Trigger flow via webhook-zapi with __manual_flow_trigger__
-            const webhookPayload = {
-              phone: contact.phone,
-              instanceId: currentInstance.zapiInstanceId,
-              __manual_flow_trigger__: true,
-              flowId: flowId,
-              body: { message: { text: { body: `__flow_trigger_${flowId}__` } } },
-              fromMe: false,
-            __tagId__: campaign.target_audience?.tag_id,
-            };
-
-            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseServiceKey}`,
-              },
-              body: JSON.stringify(webhookPayload),
-            });
-
+            const webhookPayload = { phone: contact.phone, instanceId: currentInstance.zapiInstanceId, __manual_flow_trigger__: true, flowId: flowId, body: { message: { text: { body: `__flow_trigger_${flowId}__` } } }, fromMe: false, __tagId__: campaign.target_audience?.tag_id };
+            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` }, body: JSON.stringify(webhookPayload) });
             if (flowResponse.ok) {
               campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: 'flow-triggered' });
-              console.log(`⏳ Flow triggered for ${contact.phone}; waiting real delivery callback`);
             } else {
-              const errorText = await flowResponse.text();
               campaignSend.status = 'failed';
-              campaignSend.error_message = `Flow trigger failed: ${errorText}`;
+              campaignSend.error_message = `Flow trigger failed: ${await flowResponse.text()}`;
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-              console.log(`❌ Flow trigger failed for ${contact.phone}: ${errorText}`);
             }
           } catch (flowError) {
             campaignSend.status = 'failed';
-            campaignSend.error_message = flowError instanceof Error ? flowError.message : 'Unknown flow error';
+            campaignSend.error_message = String(flowError);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
           }
-
           await persistCampaignSend(campaignSend, reusableSendId);
-          if (i < currentBatch.length - 1) await sleep(delayMs);
-          continue;
+          return { stop: false };
         }
 
         // === TEMPLATE-BASED CAMPAIGN ===
