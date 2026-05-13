@@ -1796,7 +1796,7 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances();
+  const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances({ provider: 'meta' });
   // Mensagens no painel Meta usa exclusivamente instâncias Meta
   const instances = useMemo(() => {
     return allInstances.filter((i: any) => (i.api_provider || "").toLowerCase() === "meta");

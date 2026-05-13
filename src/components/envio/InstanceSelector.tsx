@@ -17,7 +17,7 @@ const ROTATE_ALL = "__rotate_all__";
 const STORAGE_KEY = "zaplynx_selected_instances";
 
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
-  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances();
+  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ provider: providerFilter });
    // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
    const instances = useMemo(() => {
      const provider = (providerFilter || "zapi").toLowerCase();
