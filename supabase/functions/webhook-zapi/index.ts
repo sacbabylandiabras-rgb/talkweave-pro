@@ -297,12 +297,14 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
 
       const resolvedContent = replaceVars(content, captured, phone);
+      const contentType = node.data.contentType || "text";
+      const mediaUrl = node.data.mediaUrl || "";
       
       // Send message via Z-API (with buttons if applicable)
       // If we're in a group, we MUST use the group's ID (chatId/phone) as the destination, 
       // not the individual participant's phone number.
       const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id);
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
