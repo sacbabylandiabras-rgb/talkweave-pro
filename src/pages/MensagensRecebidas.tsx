@@ -1933,11 +1933,21 @@ const MensagensRecebidas = () => {
         return;
       }
 
+      // Para instâncias Meta, não há sincronização de histórico via API de chats.
+      if (targetInstance.api_provider === 'meta') {
+        toast({ 
+          title: "Sincronização automática", 
+          description: "A API da Meta sincroniza mensagens em tempo real via Webhook.",
+        });
+        setSyncing(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('sync-zapi-history', {
         body: { 
           maxChats: 200, 
           amountPerChat: 12, 
-          instanceId: targetInstance.id // só dessa instância
+          instanceId: targetInstance.id
         },
       });
 

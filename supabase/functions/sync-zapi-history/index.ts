@@ -84,6 +84,21 @@ Deno.serve(async (req) => {
     let apiProvider = 'zapi';
     const userId = user.id;
 
+    // If it's a Meta instance, we return success but skipped, as Meta doesn't support chat listing
+    if (body?.instanceId?.startsWith('meta:')) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          skipped: true,
+          message: "A API oficial da Meta sincroniza mensagens automaticamente via webhook.",
+          importedContacts: 0,
+          importedChats: 0,
+          totalChatsRead: 0
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (body?.instanceId) {
       const { data: specificInstance } = await adminClient
         .from("zapi_instances")
