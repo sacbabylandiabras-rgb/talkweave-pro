@@ -331,7 +331,7 @@ function replaceVars(text: string, captured: any, phone: string) {
     .replace(/\{\{email\}\}/gi, captured.email || "");
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string) {
+async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "") {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
@@ -340,6 +340,25 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
 
   let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
   let body: any = { phone, message };
+
+  const normalizedType = String(contentType || "text").toLowerCase();
+  if (mediaUrl && !buttons?.length) {
+    if (normalizedType === "image") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-image`;
+      body = { phone, image: mediaUrl, caption: message || "" };
+    } else if (normalizedType === "video") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-video`;
+      body = { phone, video: mediaUrl, caption: message || "" };
+    } else if (normalizedType === "audio") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-audio`;
+      body = { phone, audio: mediaUrl, waveform: true };
+    } else if (normalizedType === "document") {
+      const cleanUrl = String(mediaUrl).split("?")[0].split("#")[0];
+      const ext = cleanUrl.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-document/${ext}`;
+      body = { phone, document: mediaUrl, fileName: message || `arquivo.${ext}` };
+    }
+  }
 
   if (buttons && buttons.length > 0) {
     // Se houver botões, enviamos via send-button-actions para que fiquem clicáveis
