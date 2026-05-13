@@ -58,15 +58,17 @@ serve(async (req) => {
     const phone = webhook?.phone || webhook?.chatPhone || "";
     const instanceId = webhook?.instanceId || "";
     
-    // Extract message text from various Z-API fields
-    const messageRaw = webhook?.text?.message || 
-                     webhook?.message?.text || 
-                     webhook?.text || 
-                     webhook?.buttonReply?.text ||
-                     webhook?.buttonsResponseMessage?.selectedButtonId ||
-                     "";
+    // Ignore status callbacks and other non-message types
+    const type = webhook?.type || "";
+    const isMessage = !type || type === "OnMessage" || type === "MessageCallback" || type === "OnText" || type === "ReceivedCallback";
+    
+    // Extract message text and fromMe
+    const messageRaw = webhook?.text?.message || webhook?.message?.text || webhook?.text || 
+                      webhook?.buttonReply?.text || webhook?.buttonsResponseMessage?.selectedButtonId || "";
+    const fromMe = webhook?.fromMe === true;
 
-    if (!phone || !instanceId) {
+    if (!phone || !instanceId || !isMessage || fromMe) {
+       console.log(`Webhook ignored: phone=${phone}, isMessage=${isMessage}, fromMe=${fromMe}`);
        return new Response("missing_data", { status: 200, headers: corsHeaders });
     }
 
@@ -81,21 +83,19 @@ serve(async (req) => {
     const userId = instanceData.user_id;
     const normalizedMessage = normalizeForMatch(messageRaw);
 
-    // 1. CHECK FOR PENDING FLOWS (Buttons or Captures)
-    const { data: pendingFlowLog } = await supabase
-      .from("message_logs")
+    // 1. CHECK FOR PENDING FLOWS (Captures or Buttons)
+    // We use a specific table for flow state to be more reliable than logs
+    const { data: flowState } = await supabase
+      .from("flow_captured_data")
       .select("*")
       .eq("user_id", userId)
       .eq("phone", phone)
-      .or(`keyword_matched.eq.${FLOW_CAPTURE_PREFIX}${userId},keyword_matched.like.${FLOW_BUTTON_PREFIX}%`)
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .not("last_node_id", "is", null)
       .maybeSingle();
 
-    if (pendingFlowLog && messageRaw) {
-      const isCapture = pendingFlowLog.keyword_matched.startsWith(FLOW_CAPTURE_PREFIX);
-      const pendingState = JSON.parse(pendingFlowLog.response_sent || "{}");
-      const flowId = pendingState.flowId;
+    if (flowState && messageRaw) {
+      const flowId = flowState.flow_id;
+      const lastNodeId = flowState.last_node_id;
 
       const { data: flow } = await supabase
         .from("flow_automations")
@@ -106,39 +106,43 @@ serve(async (req) => {
       if (flow) {
         const nodes = flow.nodes || [];
         const edges = flow.edges || [];
+        const lastNode = nodes.find((n: any) => n.id === lastNodeId);
 
-        if (isCapture) {
-          // Process capture
-          const captured = pendingState.captured || {};
-          captured[pendingState.field] = messageRaw;
-          
-          await supabase.from("message_logs").delete().eq("id", pendingFlowLog.id);
-          await supabase.from("flow_captured_data").upsert({
-            user_id: userId,
-            flow_id: flowId,
-            phone,
-            [pendingState.field]: messageRaw,
-            updated_at: new Date().toISOString()
-          }, { onConflict: "user_id,flow_id,phone" });
+        if (lastNode) {
+          const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp;
+          const field = lastNode.data.collectName ? "nome" : (lastNode.data.collectEmail ? "email" : (lastNode.data.collectWhatsapp ? "whatsapp" : null));
 
-          // Find next node from capture handle
-          const edge = edges.find((e: any) => e.source === pendingState.nodeId && e.sourceHandle === `collect-${pendingState.field}`);
-          if (edge) {
-            await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData);
-          }
-          return new Response("capture_resumed", { status: 200, headers: corsHeaders });
-        } else {
-          // Process button click
-          const buttonMatch = findButtonMatch(nodes, edges, pendingState.nodeId, normalizedMessage);
-          if (buttonMatch) {
-            await supabase.from("message_logs").delete().eq("id", pendingFlowLog.id);
-            await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, pendingState.captured || {}, instanceData);
-            return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
+          if (isCapture && field) {
+            const captured = flowState.captured_data || {};
+            captured[field] = messageRaw;
+
+            await supabase.from("flow_captured_data").update({
+              captured_data: captured,
+              [field]: messageRaw,
+              last_node_id: null,
+              updated_at: new Date().toISOString()
+            }).eq("id", flowState.id);
+
+            const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === `collect-${field}`);
+            if (edge) {
+              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData);
+            }
+            return new Response("capture_resumed", { status: 200, headers: corsHeaders });
+          } else {
+            const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage);
+            if (buttonMatch) {
+              await supabase.from("flow_captured_data").update({
+                last_node_id: null,
+                updated_at: new Date().toISOString()
+              }).eq("id", flowState.id);
+              
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData);
+              return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
+            }
           }
         }
       }
     }
-
     // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
     const { data: flows } = await supabase
       .from("flow_automations")
@@ -199,22 +203,17 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const hasButtons = node.data.buttons?.length > 0;
 
       if (isCapture || hasButtons) {
-        // Pause and wait for user response
-        const field = node.data.collectName ? "nome" : node.data.collectEmail ? "email" : "whatsapp";
-        const keyword = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : `${FLOW_BUTTON_PREFIX}${userId}:${node.id}`;
-        
-        await supabase.from("message_logs").insert({
+        await supabase.from("flow_captured_data").upsert({
           user_id: userId,
+          flow_id: flow.id,
           phone,
-          message_received: null,
-          response_sent: JSON.stringify({ flowId: flow.id, nodeId: node.id, field, captured }),
-          keyword_matched: keyword,
-          instance_id: instance.zapi_instance_id
-        });
-        return; 
+          last_node_id: node.id,
+          captured_data: captured,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "user_id,flow_id,phone" });
+        return;
       }
     }
-
     // Find next node (default edge)
     const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
     currentNodeId = nextEdge?.target;
