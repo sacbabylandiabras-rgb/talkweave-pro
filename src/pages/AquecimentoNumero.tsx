@@ -70,14 +70,16 @@ const readProgress = (): Record<string, number> => {
 };
 
 export default function AquecimentoNumero() {
-   const { instances: allInstances } = useZapiInstances({ includeWarmup: false });
+   const { instances: allInstances } = useZapiInstances({ includeWarmup: true });
    const instances = useMemo(() => {
      return allInstances.filter((i) => {
        const provider = (i.api_provider || "").toLowerCase();
-       // Não mostrar Meta, Extrator de Grupo (uazapi) ou doadoras de aquecimento
+       // No aquecimento, queremos apenas instâncias normais para serem aquecidas.
+       // Removemos Meta, Uazapi (Extrator) e as Doadoras (uazapi_warmup).
        return (
          provider !== "meta" &&
          provider !== "uazapi" &&
+         provider !== "uazapi_warmup" &&
          !provider.includes("warmup")
        );
      });
