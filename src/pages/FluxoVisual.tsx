@@ -261,7 +261,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
   const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
   const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
-  const [preselectedMetaPhoneId, setPreselectedMetaPhoneId] = useState<string | undefined>(undefined);
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
@@ -387,7 +386,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       setPreselectedGroups([]);
       setPreselectedInstanceIds([]);
       setPreselectedProvider("zapi");
-      setPreselectedMetaPhoneId(undefined);
       setIsSelectingPreGroups(true);
       setShowContactsDialog(true);
     } else {
@@ -977,7 +975,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string, flowIdForPending?: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", flowIdForPending?: string) => {
     if (cancelSendRef.current) return;
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
@@ -1044,58 +1042,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
              finalPayload.mentionAll = true;
            }
  
-          if (provider === "meta") {
-            const overrideHeader = metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {};
-            const invokeMeta = async (body: Record<string, any>) => {
-              const { data, error } = await supabase.functions.invoke('send-meta-message', {
-                body,
-              });
-              if (error) throw error;
-              if (data?.error) throw new Error(data.error);
-              return data;
-            };
-
-            // Interactive buttons via Meta API
-            if (payload.buttonActions && payload.buttonActions.length > 0) {
-              const replyButtons = payload.buttonActions
-                .filter((b: any) => b.type === "REPLY")
-                .slice(0, 3)
-                .map((b: any) => ({ id: b.id, title: b.label.slice(0, 20) }));
-
-              if (replyButtons.length > 0) {
-               await invokeMeta({
-                 action: "send_interactive",
-                 phone: finalPayload.phone,
-                 message: finalPayload.message || "Escolha uma opção:",
-                 buttons: replyButtons,
-                 ...overrideHeader,
-               });
-                return;
-              }
-            }
-
-            // Media via Meta API
-            if (payload.mediaUrl && payload.mediaType) {
-               await invokeMeta({
-                 action: "send_media",
-                 phone: finalPayload.phone,
-                 media_url: finalPayload.mediaUrl,
-                 media_type: finalPayload.mediaType,
-                 ...(finalPayload.mediaType === 'audio' ? { voice: true } : {}),
-                 caption: finalPayload.message || undefined,
-                 ...overrideHeader,
-               });
-              return;
-            }
-
-            // Text via Meta API
-             await invokeMeta({
-               action: "send_text",
-               phone: finalPayload.phone,
-               message: finalPayload.message || "",
-               ...overrideHeader,
-             });
-          } else {
+          {
              const body = instanceId
                ? { ...finalPayload, instanceId, preferStandardConnection: true }
                : { ...finalPayload, preferStandardConnection: true };
