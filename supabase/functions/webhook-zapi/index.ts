@@ -249,7 +249,9 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
       const btn = node.data.buttons[i];
       const normalizedBtnText = normalizeForMatch(btn.text);
       // Suporte para matching por ID (enviado via send-button-actions) ou por texto
-      const isIdMatch = webhook?.buttonReply?.buttonId === btn.id || webhook?.buttonsResponseMessage?.selectedButtonId === btn.id;
+      const isIdMatch = webhook?.buttonReply?.buttonId === btn.id || 
+                       webhook?.buttonsResponseMessage?.selectedButtonId === btn.id ||
+                       webhook?.listResponseMessage?.singleSelectReply?.selectedRowId === btn.id;
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
       
       if (isIdMatch || isTextMatch) {
