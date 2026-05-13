@@ -159,7 +159,8 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", userId)
       .eq("phone", phone)
-      .not("last_node_id", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
@@ -176,7 +177,7 @@ serve(async (req) => {
       if (flow) {
         const nodes = flow.nodes || [];
         const edges = flow.edges || [];
-        const lastNode = nodes.find((n: any) => n.id === lastNodeId);
+        const lastNode = lastNodeId ? nodes.find((n: any) => n.id === lastNodeId) : null;
 
         if (lastNode) {
           const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp;
@@ -201,14 +202,26 @@ serve(async (req) => {
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+
               await supabase.from("flow_captured_data").update({
                 last_node_id: null,
                 updated_at: new Date().toISOString()
-              }).eq("id", flowState.id);
-              
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+              }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
+          }
+
+        } else if (isButtonResponse) {
+          const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
+          if (buttonMatch) {
+            await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+            await supabase.from("flow_captured_data").update({
+              last_node_id: null,
+              updated_at: new Date().toISOString()
+            }).eq("id", flowState.id);
+            return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
           }
         }
       }
@@ -274,6 +287,31 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
   return null;
 }
 
+function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: string, webhook: any) {
+  const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
+                            webhook?.buttonsResponseMessage?.buttonId ||
+                            webhook?.buttonsResponseMessage?.selectedButtonId ||
+                            webhook?.buttonResponseMessage?.buttonId ||
+                            webhook?.buttonResponseMessage?.selectedButtonId ||
+                            webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                            "");
+
+  for (const edge of edges) {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const buttons = sourceNode?.data?.buttons || [];
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const expectedIds = [btn.id, btn.value, `${sourceNode.id}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
+      const isHandleMatch = edge.sourceHandle === `button-${i}` || edge.sourceHandle === btn.id;
+      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+      const normalizedBtnText = normalizeForMatch(btn.text);
+      const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
+      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target };
+    }
+  }
+  return null;
+}
+
 async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string, isGroup?: boolean, webhook?: any) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
@@ -297,12 +335,21 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
 
       const resolvedContent = replaceVars(content, captured, phone);
+      const contentType = node.data.contentType || "text";
+      const mediaUrl = node.data.mediaUrl || "";
       
       // Send message via Z-API (with buttons if applicable)
       // If we're in a group, we MUST use the group's ID (chatId/phone) as the destination, 
       // not the individual participant's phone number.
       const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id);
+
+      if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
+        const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+        currentNodeId = nextEdge?.target;
+        continue;
+      }
+
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
@@ -329,7 +376,7 @@ function replaceVars(text: string, captured: any, phone: string) {
     .replace(/\{\{email\}\}/gi, captured.email || "");
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string) {
+async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "") {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
@@ -338,6 +385,25 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
 
   let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
   let body: any = { phone, message };
+
+  const normalizedType = String(contentType || "text").toLowerCase();
+  if (mediaUrl && !buttons?.length) {
+    if (normalizedType === "image") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-image`;
+      body = { phone, image: mediaUrl, caption: message || "" };
+    } else if (normalizedType === "video") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-video`;
+      body = { phone, video: mediaUrl, caption: message || "" };
+    } else if (normalizedType === "audio") {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-audio`;
+      body = { phone, audio: mediaUrl, waveform: true };
+    } else if (normalizedType === "document") {
+      const cleanUrl = String(mediaUrl).split("?")[0].split("#")[0];
+      const ext = cleanUrl.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-document/${ext}`;
+      body = { phone, document: mediaUrl, fileName: message || `arquivo.${ext}` };
+    }
+  }
 
   if (buttons && buttons.length > 0) {
     // Se houver botões, enviamos via send-button-actions para que fiquem clicáveis
