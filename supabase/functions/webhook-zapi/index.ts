@@ -128,15 +128,6 @@ serve(async (req) => {
        return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    const { data: instanceData } = await supabase
-      .from("zapi_instances")
-      .select("user_id, zapi_token, zapi_client_token")
-      .eq("zapi_instance_id", instanceId)
-      .maybeSingle();
-
-    if (!instanceData) return new Response("instance_not_found", { status: 200, headers: corsHeaders });
-
-    const userId = instanceData.user_id;
     const normalizedMessage = normalizeForMatch(messageRaw);
 
     // 1. CHECK FOR PENDING FLOWS (Captures or Buttons)
