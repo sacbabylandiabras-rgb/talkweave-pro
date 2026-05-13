@@ -62,7 +62,7 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
   if (!instanceRef) return null;
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isUuid = UUID_RE.test(instanceRef);
-  const baseSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default, created_at';
+  const baseSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at';
 
   // Build filter safely: only include id.eq when ref is a valid UUID, otherwise Postgres throws 22P02.
   const orFilter = isUuid
@@ -217,102 +217,26 @@ serve(async (req) => {
      try {
        credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
      } catch (err) {
-       // If no Z-API creds, we still need userId to check for Meta creds
-       const authHeader = req.headers.get('authorization');
-       const userClient = createClient(supabaseUrl, supabaseServiceKey, {
-         global: { headers: { Authorization: authHeader || '' } },
-       });
-       const { data: { user } } = await userClient.auth.getUser();
-       if (!user) throw err;
-       credentials = { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' };
+       throw err;
      }
 
       let { instanceId, token, clientToken, userId } = credentials;
 
-      // Se uma instância específica foi solicitada (via requestedInstanceId), 
-      // vamos tentar usá-la ANTES de cair na instância padrão do credentials.
-      if (requestedInstanceId && !requestedInstanceId.startsWith('meta:')) {
+      // Se uma instância específica foi solicitada (via requestedInstanceId),
+      // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
+      if (requestedInstanceId) {
         const requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
         if (requestedInstance) {
-          console.log(`✅ Using explicitly requested instance: ${requestedInstance.zapi_instance_id}`);
+          console.log(`✅ Usando instância solicitada: ${requestedInstance.zapi_instance_id}`);
           instanceId = requestedInstance.zapi_instance_id;
           token = requestedInstance.zapi_token;
           clientToken = requestedInstance.zapi_client_token;
         } else {
-          console.warn(`⚠️ Requested instance ${requestedInstanceId} not found for user ${userId}, falling back to default`);
+          console.error(`❌ Instância solicitada ${requestedInstanceId} não encontrada para o usuário ${userId}`);
+          throw new Error('A conexão selecionada não foi encontrada ou não pertence à sua conta.');
         }
       }
 
-     // META API SUPPORT - Branch off early
-     if (requestedInstanceId?.startsWith('meta:')) {
-       const metaId = requestedInstanceId.replace('meta:', '');
-       const { data: metaCreds } = await adminClient
-         .from('meta_credentials')
-         .select('*')
-         .eq('user_id', credentials.userId)
-         .or(`phone_number_id.eq.${metaId},waba_id.eq.${metaId}`)
-         .eq('connected', true)
-         .maybeSingle();
-
-       if (!metaCreds) throw new Error('Credenciais Meta não encontradas ou desconectadas');
-
-       const phoneId = metaCreds.phone_number_id || metaId;
-       const accessToken = metaCreds.access_token;
-       const API_VERSION = "v21.0";
-       
-       console.log(`🚀 Sending via Meta API (Phone ID: ${phoneId}) to ${phones[0]}`);
-
-       let response;
-       if (mediaUrl) {
-         const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' };
-         const metaType = typeMap[mediaType || ''] || (mediaUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image' : 'document');
-         
-         const payload: any = {
-           messaging_product: 'whatsapp',
-           to: phones[0].replace(/\D/g, ''),
-           type: metaType,
-           [metaType]: { link: mediaUrl }
-         };
-         if (message && metaType !== 'audio') payload[metaType].caption = message;
-
-         response = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneId}/messages`, {
-           method: 'POST',
-           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-           body: JSON.stringify(payload),
-         });
-       } else {
-         response = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneId}/messages`, {
-           method: 'POST',
-           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             messaging_product: 'whatsapp',
-             to: phones[0].replace(/\D/g, ''),
-             type: 'text',
-             text: { body: message },
-           }),
-         });
-       }
-
-       const result = await response.json();
-       if (!response.ok) {
-         console.error('Meta API error:', result);
-         throw new Error(result.error?.message || 'Erro na API da Meta');
-       }
-
-       // Log to message_logs
-       await adminClient.from('message_logs').insert({
-         user_id: credentials.userId,
-         phone: phones[0],
-         message_received: null,
-         keyword_matched: '__manual_send__',
-         response_sent: message || `[Mídia: ${mediaType}]`,
-         instance_id: requestedInstanceId,
-       });
-
-       return new Response(JSON.stringify({ success: true, data: { messageId: result.messages?.[0]?.id } }), {
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-       });
-     }
  
      // Detect group phones
      const isGroupPhone = (phone.includes('-group') || phone.includes('@g.us') || /^12036\d{13,}$/.test(phone.replace(/\D/g, ''))) && !phone.includes('@newsletter') && !phone.includes('-community');

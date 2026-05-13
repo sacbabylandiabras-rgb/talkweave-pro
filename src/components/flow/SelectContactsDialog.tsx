@@ -21,21 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Globe, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMetaCredentials } from "@/hooks/useMetaCredentials";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-export type FlowSendProvider = "zapi" | "meta";
+export type FlowSendProvider = "zapi";
 
-interface MetaPhoneOption {
-  id: string;
-  display_phone_number: string;
-  verified_name: string;
-}
 
 interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
+  onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider) => void;
   mode?: "contacts" | "groups" | "meta";
 }
 
@@ -65,12 +58,6 @@ export function SelectContactsDialog({
   const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : "contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
-  const [metaPhoneNumbers, setMetaPhoneNumbers] = useState<MetaPhoneOption[]>([]);
-  const [selectedMetaPhoneId, setSelectedMetaPhoneId] = useState("");
-  const [loadingMetaPhones, setLoadingMetaPhones] = useState(false);
-  const { data: metaCreds } = useMetaCredentials();
-  const isMetaConnected = metaCreds?.connected === true;
-  const { activeWorkspace } = useWorkspace();
 
   const fetchRotativeLinks = async () => {
     setLoadingLinks(true);
@@ -110,27 +97,7 @@ export function SelectContactsDialog({
     }
   }, [open, isGroupsMode]);
 
-  // Auto-select meta provider when in Meta workspace
-   // Use activeWorkspace "meta" to force provider to meta, unless in groups mode where only zapi is supported
-   const effectiveProvider = (activeWorkspace === "meta" && !isGroupsMode || isMetaMode) ? "meta" : sendProvider;
-
-  const fetchMetaPhones = async () => {
-    setLoadingMetaPhones(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-meta-message", {
-        body: { action: "get_phone_numbers" },
-      });
-      if (error) throw error;
-      setMetaPhoneNumbers(data?.phone_numbers || []);
-      if (data?.phone_numbers?.length > 0 && !selectedMetaPhoneId) {
-        setSelectedMetaPhoneId(data.phone_numbers[0].id);
-      }
-    } catch {
-      setMetaPhoneNumbers([]);
-    } finally {
-      setLoadingMetaPhones(false);
-    }
-  };
+  const effectiveProvider = "zapi";
 
   useEffect(() => {
     if (open) {
@@ -138,21 +105,11 @@ export function SelectContactsDialog({
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-       setActiveTab(isGroupsMode ? "groups" : isMetaMode ? "manual" : "contacts");
+       setActiveTab(isGroupsMode ? "groups" : "contacts");
       setSendProvider("zapi");
-       if (activeWorkspace === "meta" || isMetaMode) {
-        setSendProvider("meta");
-      }
-      setSelectedMetaPhoneId("");
-      setMetaPhoneNumbers([]);
     }
   }, [open, isGroupsMode]);
 
-  useEffect(() => {
-    if (effectiveProvider === "meta" && isMetaConnected && metaPhoneNumbers.length === 0) {
-      fetchMetaPhones();
-    }
-  }, [effectiveProvider, isMetaConnected]);
 
   const filteredContacts = contacts.filter(contact => {
     const query = searchQuery.toLowerCase();
@@ -224,19 +181,15 @@ export function SelectContactsDialog({
       ? [...new Set(selectedContacts)]
       : [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-     const finalProvider: FlowSendProvider = isGroupsMode ? "zapi" : (isMetaMode ? "meta" : effectiveProvider);
     onConfirm(
       allPhones,
-      finalProvider === "zapi" && selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
-      finalProvider,
-      finalProvider === "meta" ? selectedMetaPhoneId : undefined
+      selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
+      "zapi"
     );
     onOpenChange(false);
   };
 
-    const totalSelected = (activeWorkspace === "meta" && !isGroupsMode || isMetaMode) 
-     ? manualPhones.length 
-     : new Set([...selectedContacts, ...manualPhones]).size;
+    const totalSelected = new Set([...selectedContacts, ...manualPhones]).size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -253,7 +206,7 @@ export function SelectContactsDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 flex-1 flex flex-col min-h-0">
-          <TabsList className={`grid w-full ${isGroupsMode || isMetaMode || activeWorkspace === "meta" ? "grid-cols-1" : "grid-cols-2"}`}>
+          <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : "grid-cols-2"}`}>
             {isGroupsMode ? (
               <TabsTrigger value="groups" className="flex items-center gap-2">
                 <UsersRound className="h-4 w-4" />
@@ -264,17 +217,7 @@ export function SelectContactsDialog({
                   </Badge>
                 )}
               </TabsTrigger>
-              ) : (activeWorkspace === "meta" || isMetaMode) ? (
-               <TabsTrigger value="manual" className="flex items-center gap-2">
-                 <Phone className="h-4 w-4" />
-                 Digitar Número
-                 {manualPhones.length > 0 && (
-                   <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                     {manualPhones.length}
-                   </Badge>
-                 )}
-               </TabsTrigger>
-             ) : (
+              ) : (
                <>
                  <TabsTrigger value="contacts" className="flex items-center gap-2">
                    <Users className="h-4 w-4" />
@@ -593,35 +536,6 @@ export function SelectContactsDialog({
               />
             )}
 
-            {!isGroupsMode && effectiveProvider === "meta" && (
-              <div className="space-y-2">
-                <Label className="text-xs">Número remetente</Label>
-                {loadingMetaPhones ? (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Carregando números...
-                  </div>
-                ) : metaPhoneNumbers.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nenhum número encontrado na conta Meta.</p>
-                ) : (
-                  <Select value={selectedMetaPhoneId} onValueChange={setSelectedMetaPhoneId}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione o número" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]" position="popper" side="top">
-                      {metaPhoneNumbers.map((pn) => (
-                        <SelectItem key={pn.id} value={pn.id}>
-                          {pn.display_phone_number} — {pn.verified_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <p className="text-[10px] text-muted-foreground">
-                  ⚠️ Via Meta API, apenas templates aprovados podem iniciar conversas. Texto livre requer janela de 24h.
-                </p>
-              </div>
-            )}
           </div>
         </div>
 

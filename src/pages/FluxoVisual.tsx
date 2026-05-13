@@ -214,16 +214,13 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups" | "meta";
+  mode?: "contacts" | "groups";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const isMetaMode = mode === "meta";
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : isMetaMode ? "Fluxo Oficial" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode
-    ? "Crie automações visuais para grupos do WhatsApp"
-    : "Crie automações visuais disparadas por palavra-chave";
+  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isGroupsMode ? "Crie automações visuais para grupos do WhatsApp" : "Crie automações visuais disparadas por palavra-chave";
   const emptyHelp = isGroupsMode
     ? "Crie seu primeiro fluxo visual para grupos"
     : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
@@ -244,18 +241,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances: allInstances } = useZapiInstances({ provider: isMetaMode ? 'meta' : undefined });
+  const { instances: allInstances } = useZapiInstances();
    const instances = useMemo(() => {
      return allInstances.filter((i) => {
        const provider = (i.api_provider || "zapi").toLowerCase();
-       // Se estiver no modo Meta, mostrar apenas instâncias Meta.
-       // Se estiver no modo Zaplynx (contacts/groups), mostrar apenas instâncias Z-API Web.
-       if (isMetaMode) {
-         return provider === "meta";
-       }
-        return provider === "zapi";
+       return provider === "zapi";
      });
-   }, [allInstances, isMetaMode]);
+   }, [allInstances]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -269,7 +261,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
   const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
   const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
-  const [preselectedMetaPhoneId, setPreselectedMetaPhoneId] = useState<string | undefined>(undefined);
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
@@ -383,19 +374,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
  
    useEffect(() => {
      fetchTagsForEditor();
-     const uazapiInstances = instances.filter((instance) => (instance.api_provider || "zapi").toLowerCase() === "uazapi");
-     if (uazapiInstances.length === 0) return;
-
-    try {
-      const flagKey = "uazapi_webhook_synced_flow_v1";
-      if (sessionStorage.getItem(flagKey)) return;
-      sessionStorage.setItem(flagKey, "1");
-      supabase.functions.invoke("uazapi-set-webhook", { body: {} }).catch(() => {
-        /* silent */
-      });
-    } catch {
-      /* ignore */
-    }
   }, [instances]);
 
   const handleNovoFluxo = () => {
@@ -408,7 +386,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       setPreselectedGroups([]);
       setPreselectedInstanceIds([]);
       setPreselectedProvider("zapi");
-      setPreselectedMetaPhoneId(undefined);
       setIsSelectingPreGroups(true);
       setShowContactsDialog(true);
     } else {
@@ -911,8 +888,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       handleConfirmSend(
         preselectedGroups,
         preselectedInstanceIds.length > 0 ? preselectedInstanceIds : undefined,
-        preselectedProvider,
-        preselectedMetaPhoneId,
+        preselectedProvider
       );
       return;
     }
@@ -920,13 +896,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setShowContactsDialog(true);
   };
 
-  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
+  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider) => {
     // Se for apenas pré-seleção de grupos antes do editor, não envia: salva e abre editor
     if (isSelectingPreGroups) {
       setPreselectedGroups(selectedContacts);
       setPreselectedInstanceIds(instanceIds || []);
       setPreselectedProvider(provider || "zapi");
-      setPreselectedMetaPhoneId(metaPhoneNumberId);
       setIsSelectingPreGroups(false);
       setShowContactsDialog(false);
       setShowFluxosList(false);
@@ -968,7 +943,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
            : undefined;
 
          try {
-           await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
+            await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
            sendCounter++;
          } catch (err) {
            console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
@@ -998,7 +973,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", metaPhoneNumberId?: string, flowIdForPending?: string) => {
+  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", flowIdForPending?: string) => {
     if (cancelSendRef.current) return;
     if (visitedNodes.has(currentNodeId)) return;
     visitedNodes.add(currentNodeId);
@@ -1065,58 +1040,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
              finalPayload.mentionAll = true;
            }
  
-          if (provider === "meta") {
-            const overrideHeader = metaPhoneNumberId ? { override_phone_number_id: metaPhoneNumberId } : {};
-            const invokeMeta = async (body: Record<string, any>) => {
-              const { data, error } = await supabase.functions.invoke('send-meta-message', {
-                body,
-              });
-              if (error) throw error;
-              if (data?.error) throw new Error(data.error);
-              return data;
-            };
-
-            // Interactive buttons via Meta API
-            if (payload.buttonActions && payload.buttonActions.length > 0) {
-              const replyButtons = payload.buttonActions
-                .filter((b: any) => b.type === "REPLY")
-                .slice(0, 3)
-                .map((b: any) => ({ id: b.id, title: b.label.slice(0, 20) }));
-
-              if (replyButtons.length > 0) {
-               await invokeMeta({
-                 action: "send_interactive",
-                 phone: finalPayload.phone,
-                 message: finalPayload.message || "Escolha uma opção:",
-                 buttons: replyButtons,
-                 ...overrideHeader,
-               });
-                return;
-              }
-            }
-
-            // Media via Meta API
-            if (payload.mediaUrl && payload.mediaType) {
-               await invokeMeta({
-                 action: "send_media",
-                 phone: finalPayload.phone,
-                 media_url: finalPayload.mediaUrl,
-                 media_type: finalPayload.mediaType,
-                 ...(finalPayload.mediaType === 'audio' ? { voice: true } : {}),
-                 caption: finalPayload.message || undefined,
-                 ...overrideHeader,
-               });
-              return;
-            }
-
-            // Text via Meta API
-             await invokeMeta({
-               action: "send_text",
-               phone: finalPayload.phone,
-               message: finalPayload.message || "",
-               ...overrideHeader,
-             });
-          } else {
+          {
              const body = instanceId
                ? { ...finalPayload, instanceId, preferStandardConnection: true }
                : { ...finalPayload, preferStandardConnection: true };
@@ -1482,7 +1406,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
          }
        }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId, flowIdForPending);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, flowIdForPending);
     }
   };
 

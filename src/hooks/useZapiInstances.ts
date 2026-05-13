@@ -14,8 +14,6 @@ export interface ZapiInstance {
   created_at: string;
   updated_at: string;
   api_provider: string;
-  evolution_api_url?: string | null;
-  evolution_api_key?: string | null;
     instance_type?: 'web' | 'mobile' | null;
 }
 
@@ -47,7 +45,6 @@ const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
       ...instance,
       zapi_token: '',
       zapi_client_token: '',
-      evolution_api_key: null,
     }));
     localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ instances: safeInstances, savedAt: Date.now() }));
   } catch {
@@ -66,15 +63,12 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
                     item.instance_name?.toLowerCase().includes('aquecimento') || 
                     item.instance_name?.toLowerCase().includes('warmup');
     const isUazapi = provider.includes('uazapi');
-    const isMeta = provider === 'meta';
 
     if (isMobile) return false;
 
     // Filtros de segurança obrigatórios
     // Removendo instâncias de apanhador de grupo (warmup) de TODAS as listagens, exceto onde explicitamente solicitado
     if (isWarmup && !includeWarmup) return false;
-    // Filtrar instâncias Meta se um provider específico for solicitado
-    if (isMeta && providerFilter && providerFilter !== 'meta') return false;
     
     // Se um provedor específico for solicitado, filtramos por ele (respeitando warmup acima)
     if (providerFilter) {
@@ -85,9 +79,6 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     if (providerFilter) {
       return provider === providerFilter.toLowerCase();
     }
-
-    // Removendo suporte para Evolution e Meta, mantendo apenas Z-API e Uazapi (que usam o mesmo backend)
-    if (provider === 'evolution' || provider === 'meta') return false;
 
     // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos específicos
     if (isUazapi && !provider.includes("zapi")) return false;
@@ -119,34 +110,6 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
     if (!error) {
       const zapiData = (data || []) as ZapiInstance[];
       
-      // Also fetch Meta instances
-      try {
-        const { data: metaData } = await supabase
-          .from('meta_credentials' as any)
-          .select('*')
-          .eq('user_id', userId)
-          .eq('connected', true);
-
-        if (metaData && metaData.length > 0) {
-          const metaInstances: ZapiInstance[] = metaData.map((m: any) => ({
-            id: `meta:${m.phone_number_id || m.waba_id}`,
-            user_id: m.user_id,
-            instance_name: m.fb_user_name || 'Meta API',
-            zapi_instance_id: `meta:${m.phone_number_id || m.waba_id}`,
-            zapi_token: m.access_token || '',
-            zapi_client_token: '',
-            is_default: false,
-            is_active: true,
-            created_at: m.created_at || new Date().toISOString(),
-            updated_at: m.updated_at || new Date().toISOString(),
-            api_provider: 'meta',
-            instance_type: 'web'
-          }));
-          return [...zapiData, ...metaInstances];
-        }
-      } catch (err) {
-        console.error('Error fetching meta instances for unified list:', err);
-      }
 
       return zapiData;
     }
