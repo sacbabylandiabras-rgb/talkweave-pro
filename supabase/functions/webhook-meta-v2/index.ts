@@ -151,19 +151,18 @@ serve(async (req) => {
               // === CHECK FLOW AUTOMATIONS ===
 
                // Resume pending capture/button flows first - check specifically for meta instance
-               const { data: pendingFlowLog, error: pendingError } = await supabase
-                 .from('message_logs')
-                 .select('*')
-                 .eq('user_id', userId)
-                 .eq('phone', fromPhone)
-                 .eq('instance_id', `meta:${phoneNumberId}`)
-                 .in('keyword_matched', [
-                   `${FLOW_CAPTURE_PREFIX}${userId}`,
-                   `${FLOW_BUTTON_PREFIX}${userId}`,
-                 ])
-                 .order('created_at', { ascending: false })
-                 .limit(1)
-                 .maybeSingle()
+                const { data: pendingFlowLog, error: pendingError } = await supabase
+                  .from('message_logs')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .eq('phone', fromPhone)
+                  .in('keyword_matched', [
+                    `${FLOW_CAPTURE_PREFIX}${userId}`,
+                    `${FLOW_BUTTON_PREFIX}${userId}`,
+                  ])
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle()
 
                if (pendingError) {
                  console.error('[webhook-meta] Error fetching pending flow log:', pendingError)
