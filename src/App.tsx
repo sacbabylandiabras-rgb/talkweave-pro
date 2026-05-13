@@ -44,6 +44,7 @@ const InvitePage = lazyWithRecovery(() => import("./pages/InvitePage"));
 const NotFound = lazyWithRecovery(() => import("./pages/NotFound"));
 const TemplatesAprovados = lazyWithRecovery(() => import("./pages/TemplatesAprovados"));
 const EnvioCloudAPI = lazyWithRecovery(() => import("./pages/EnvioCloudAPI"));
+const MetaMessages = lazyWithRecovery(() => import("./pages/MetaMessages"));
 const ConfiguracaoMeta = lazyWithRecovery(() => import("./pages/ConfiguracaoMeta"));
 const PoliticaPrivacidade = lazyWithRecovery(() => import("./pages/PoliticaPrivacidade"));
 const PreviewApp = lazyWithRecovery(() => import("./pages/PreviewApp"));
@@ -198,6 +199,7 @@ const App = () => (
                     }
                   />
                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
+                  <Route path="/meta/mensagens" element={<MetaMessages />} />
                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
                    <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                    <Route path="/meta/fluxo" element={<FluxoVisual mode="meta" />} />
