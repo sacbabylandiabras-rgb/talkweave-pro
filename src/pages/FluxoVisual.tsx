@@ -1123,7 +1123,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
             }
 
-            return { id: String(idx + 1), type: "REPLY" as const, label };
+            return { id: btn.id || String(idx + 1), type: "REPLY" as const, label };
           });
            if (contentType === "image" && mediaUrl) {
              await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' }, targetNode.data);

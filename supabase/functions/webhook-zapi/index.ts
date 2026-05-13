@@ -99,7 +99,7 @@ serve(async (req) => {
     
     // Z-API can send fromMe as boolean or string
     // IMPORTANT: Button clicks often arrive with fromMe: true, so we must check isButtonResponse
-    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
+    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
 
     const { data: instanceData } = await supabase
       .from("zapi_instances")
@@ -128,7 +128,7 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse)) {
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
        if (isMessage && fromMe && !isButtonResponse) {
          await supabase.from("message_logs").insert({
@@ -249,9 +249,11 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
       const btn = node.data.buttons[i];
       const normalizedBtnText = normalizeForMatch(btn.text);
       // Suporte para matching por ID (enviado via send-button-actions) ou por texto
-      const isIdMatch = webhook?.buttonReply?.buttonId === btn.id || 
-                       webhook?.buttonsResponseMessage?.selectedButtonId === btn.id ||
-                       webhook?.listResponseMessage?.singleSelectReply?.selectedRowId === btn.id;
+      const buttonIdFromWebhook = webhook?.buttonReply?.buttonId || 
+                                webhook?.buttonsResponseMessage?.selectedButtonId ||
+                                webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                                webhook?.buttonResponseMessage?.selectedButtonId;
+      const isIdMatch = buttonIdFromWebhook === btn.id || buttonIdFromWebhook === String(i + 1);
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
       
       if (isIdMatch || isTextMatch) {
