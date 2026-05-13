@@ -55,14 +55,28 @@ const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
   }
 };
 
-const normalizeInstances = (items: ZapiInstance[], includeWarmup = false) => {
+const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, providerFilter?: string) => {
   const dedupedMap = new Map<string, ZapiInstance>();
 
   for (const instance of items.filter((item) => {
     const isMobile = isMobileZapiInstance(item);
-    const isWarmup = (item.api_provider || '').toLowerCase().includes('warmup');
+    const provider = (item.api_provider || 'zapi').toLowerCase();
+    const isWarmup = provider.includes('warmup');
+    const isUazapi = provider.includes('uazapi');
+    const isMeta = provider === 'meta';
+
     if (isMobile) return false;
+
+    // Se um provedor específico for solicitado, filtramos apenas por ele
+    if (providerFilter) {
+      return provider === providerFilter.toLowerCase();
+    }
+
+    // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos (Uazapi/Extractor, Meta, Warmup)
     if (!includeWarmup && isWarmup) return false;
+    if (isUazapi && !provider.includes('zapi')) return false; // Exclui Uazapi/Extractor
+    if (isMeta) return false; // Exclui Meta da listagem padrão Zaplynx
+
     return true;
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
