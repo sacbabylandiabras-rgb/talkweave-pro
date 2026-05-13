@@ -2297,9 +2297,9 @@ const MetaMessages = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={[]} 
-                selectedInstanceId="meta" 
-                onInstanceChange={() => {}} 
+                instances={metaInstances} 
+                selectedInstanceId={selectedInstanceId} 
+                onInstanceChange={setSelectedInstanceId} 
                 syncing={syncing} 
                 onSync={syncHistory} 
                 onFetchPhoto={handleFetchPhoto} 
