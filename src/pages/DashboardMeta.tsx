@@ -265,7 +265,7 @@ export default function DashboardMeta() {
             variant="outline" 
             size="sm" 
             className="gap-1.5 text-xs" 
-            onClick={() => navigate("/mensagens")}
+            onClick={() => navigate("/meta/mensagens")}
           >
             <MessagesSquare className="w-3.5 h-3.5" />
             Ver Conversas
