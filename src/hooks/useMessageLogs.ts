@@ -178,7 +178,10 @@ const isRedundantManualFlowEcho = (
   log: Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>,
   logs: Array<Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>>,
 ) => {
+  // Special case: Meta API sends are manual but shouldn't be considered redundant flow echoes
+  // if they don't have a flow send counterpart.
   if (log.keyword_matched !== '__manual_send__' || !log.response_sent) return false;
+  if ((log as any).instance_id?.startsWith('meta:')) return false;
 
   const manualContent = normalizeSentMessageForComparison(log.response_sent);
   if (!manualContent) return false;
@@ -1130,7 +1133,8 @@ export const useMessageLogs = (
 
         const isManual = log.keyword_matched === '__manual_send__';
         const isFlowSend = log.keyword_matched?.startsWith('__flow_send__');
-        const source = isManual ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
+        const isMetaManual = log.instance_id?.startsWith('meta:') && isManual;
+        const source = (isManual || isMetaManual) ? 'manual' as const : isFlowSend ? 'flow' as const : 'flow' as const;
 
         // Extract flow name from keyword like "__flow_send__:Novo Fluxo"
         let displayKeyword = log.keyword_matched;
