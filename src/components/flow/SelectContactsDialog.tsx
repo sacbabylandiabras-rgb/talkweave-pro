@@ -474,7 +474,7 @@ export function SelectContactsDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
-              <ScrollArea className="flex-1 border rounded-lg">
+              <ScrollArea className="flex-1 min-h-0 h-[400px] border rounded-lg">
                 <div className="p-4 space-y-2">
                   {filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
