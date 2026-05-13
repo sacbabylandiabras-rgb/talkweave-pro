@@ -1801,11 +1801,11 @@ const MensagensRecebidas = () => {
   const instances = useMemo(() => 
     allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "evolution" || provider === "uazapi" || provider === "meta";
+      return provider === "zapi" || provider === "evolution" || provider === "uazapi";
     }), [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
-    const isSupported = provider === "zapi" || provider === "meta" || provider === "evolution";
+    const isSupported = provider === "zapi" || provider === "evolution" || provider === "uazapi";
     
     return (rawActiveInstance && isSupported
       ? rawActiveInstance
