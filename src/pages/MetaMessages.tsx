@@ -2175,7 +2175,16 @@ const MensagensRecebidas = () => {
     return () => { cancelled = true; };
   }, [conversations, campaignTemplates]);
 
-  const filteredConversations = conversations.filter((conv) => {
+  const metaConversations = useMemo(() => {
+    return conversations.filter(conv => {
+      // Include if it's explicitly a meta instance or has messages from meta
+      const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
+                   conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
+      return isMeta;
+    });
+  }, [conversations]);
+
+  const filteredConversations = metaConversations.filter((conv) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return conv.phone.includes(term) || (conv.lastMessage || '').toLowerCase().includes(term) || (conv.contactName && conv.contactName.toLowerCase().includes(term));
@@ -2291,9 +2300,9 @@ const MensagensRecebidas = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={visibleInstances} 
-                selectedInstanceId={selectedInstanceId} 
-                onInstanceChange={setSelectedInstanceId} 
+                instances={[]} 
+                selectedInstanceId="meta" 
+                onInstanceChange={() => {}} 
                 syncing={syncing} 
                 onSync={syncHistory} 
                 onFetchPhoto={handleFetchPhoto} 
