@@ -229,34 +229,75 @@ serve(async (req) => {
 
      let { instanceId, token, clientToken } = credentials;
 
-     // META API SUPPORT
+     // META API SUPPORT - Branch off early
      if (requestedInstanceId?.startsWith('meta:')) {
-       const metaPhoneId = requestedInstanceId.replace('meta:', '');
+       const metaId = requestedInstanceId.replace('meta:', '');
        const { data: metaCreds } = await adminClient
          .from('meta_credentials')
          .select('*')
          .eq('user_id', credentials.userId)
-         .eq('phone_number_id', metaPhoneId)
+         .or(`phone_number_id.eq.${metaId},waba_id.eq.${metaId}`)
          .eq('connected', true)
          .maybeSingle();
 
-       if (!metaCreds) {
-          // Try by waba_id if phone_number_id didn't match
-          const { data: metaCredsWaba } = await adminClient
-            .from('meta_credentials')
-            .select('*')
-            .eq('user_id', credentials.userId)
-            .eq('waba_id', metaPhoneId)
-            .eq('connected', true)
-            .maybeSingle();
-          
-          if (!metaCredsWaba) throw new Error('Meta credentials not found or disconnected');
-          
-          // If we matched by WABA but don't have a phone_number_id in creds, we might need one.
-          // But for now let's assume metaPhoneId is what we use in the URL.
+       if (!metaCreds) throw new Error('Credenciais Meta não encontradas ou desconectadas');
+
+       const phoneId = metaCreds.phone_number_id || metaId;
+       const accessToken = metaCreds.access_token;
+       const API_VERSION = "v21.0";
+       
+       console.log(`🚀 Sending via Meta API (Phone ID: ${phoneId}) to ${phones[0]}`);
+
+       let response;
+       if (mediaUrl) {
+         const typeMap: Record<string, string> = { image: 'image', video: 'video', audio: 'audio', document: 'document' };
+         const metaType = typeMap[mediaType || ''] || (mediaUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image' : 'document');
+         
+         const payload: any = {
+           messaging_product: 'whatsapp',
+           to: phones[0].replace(/\D/g, ''),
+           type: metaType,
+           [metaType]: { link: mediaUrl }
+         };
+         if (message && metaType !== 'audio') payload[metaType].caption = message;
+
+         response = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneId}/messages`, {
+           method: 'POST',
+           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+           body: JSON.stringify(payload),
+         });
+       } else {
+         response = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneId}/messages`, {
+           method: 'POST',
+           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             messaging_product: 'whatsapp',
+             to: phones[0].replace(/\D/g, ''),
+             type: 'text',
+             text: { body: message },
+           }),
+         });
        }
 
-       const targetCreds = metaCreds || metaCreds; // wait, logic error here, fixing below
+       const result = await response.json();
+       if (!response.ok) {
+         console.error('Meta API error:', result);
+         throw new Error(result.error?.message || 'Erro na API da Meta');
+       }
+
+       // Log to message_logs
+       await adminClient.from('message_logs').insert({
+         user_id: credentials.userId,
+         phone: phones[0],
+         message_received: null,
+         keyword_matched: '__manual_send__',
+         response_sent: message || `[Mídia: ${mediaType}]`,
+         instance_id: requestedInstanceId,
+       });
+
+       return new Response(JSON.stringify({ success: true, data: { messageId: result.messages?.[0]?.id } }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       });
      }
  
      // Detect group phones
