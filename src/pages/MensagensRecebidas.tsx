@@ -1801,8 +1801,10 @@ const MensagensRecebidas = () => {
   const instances = useMemo(() => 
     allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      // Remove instâncias do tipo apanhador de grupo (warmup)
-      if (i.instance_type === 'warmup') return false;
+      const isWarmup = provider.includes('warmup') || 
+                      i.instance_name?.toLowerCase().includes('aquecimento') || 
+                      i.instance_name?.toLowerCase().includes('warmup');
+      if (isWarmup) return false;
       return provider === "zapi" || provider === "evolution" || provider === "uazapi" || provider === "meta";
     }), [allInstances]);
   const activeInstance = useMemo(() => {
