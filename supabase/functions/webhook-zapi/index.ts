@@ -410,6 +410,5 @@ function extractFlowKeywords(flow: any): string[] {
   return Array.from(keywords);
 }
 
-}
 
 
