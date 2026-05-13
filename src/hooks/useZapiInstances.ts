@@ -61,7 +61,9 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
   for (const instance of items.filter((item) => {
     const isMobile = isMobileZapiInstance(item);
     const provider = (item.api_provider || 'zapi').toLowerCase();
-    const isWarmup = provider.includes('warmup');
+    const isWarmup = provider.includes('warmup') || 
+                    item.instance_name?.toLowerCase().includes('aquecimento') || 
+                    item.instance_name?.toLowerCase().includes('warmup');
     const isUazapi = provider.includes('uazapi');
     const isMeta = provider === 'meta';
 
