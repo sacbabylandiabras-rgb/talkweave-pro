@@ -69,6 +69,11 @@ serve(async (req) => {
                      type === "ButtonReply" ||
                      type === "ListResponseMessage";
     
+    // Determine if it's a button response to handle fromMe correctly
+    const isButtonResponse = type === "ButtonsResponseMessage" || 
+                            type === "ButtonReply" || 
+                            type === "ListResponseMessage";
+
     // Extract message text and fromMe
     const messageRaw = webhook?.text?.message || 
                       webhook?.message?.text || 
@@ -86,6 +91,7 @@ serve(async (req) => {
                       "";
     
     // Z-API can send fromMe as boolean or string
+    // IMPORTANT: Button clicks often arrive with fromMe: true, so we must check isButtonResponse
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
 
     const { data: instanceData } = await supabase
@@ -115,9 +121,9 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || fromMe) {
-       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
-       if (isMessage) {
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse)) {
+       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE (excluindo respostas de botão)
+       if (isMessage && fromMe && !isButtonResponse) {
          await supabase.from("message_logs").insert({
            user_id: userId,
            phone: phone,
