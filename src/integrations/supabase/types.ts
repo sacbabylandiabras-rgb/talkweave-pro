@@ -356,11 +356,13 @@ export type Database = {
       }
       flow_captured_data: {
         Row: {
+          captured_data: Json | null
           created_at: string
           email: string | null
           flow_id: string | null
           flow_name: string | null
           id: string
+          last_node_id: string | null
           nome: string | null
           phone: string
           source: string | null
@@ -369,11 +371,13 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          captured_data?: Json | null
           created_at?: string
           email?: string | null
           flow_id?: string | null
           flow_name?: string | null
           id?: string
+          last_node_id?: string | null
           nome?: string | null
           phone: string
           source?: string | null
@@ -382,11 +386,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          captured_data?: Json | null
           created_at?: string
           email?: string | null
           flow_id?: string | null
           flow_name?: string | null
           id?: string
+          last_node_id?: string | null
           nome?: string | null
           phone?: string
           source?: string | null
