@@ -52,6 +52,7 @@ serve(async (req) => {
 
   try {
     const webhook = await req.json();
+    console.log("WEBHOOK COMPLETO:", JSON.stringify(webhook));
     console.log("Webhook Z-API:", JSON.stringify(webhook).slice(0, 500));
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -89,6 +90,7 @@ serve(async (req) => {
                       webhook?.buttonsResponseMessage?.buttonText ||
                       webhook?.buttonResponseMessage?.selectedButtonId ||
                       webhook?.buttonResponseMessage?.buttonText ||
+                      webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                       webhook?.listResponseMessage?.title ||
                       webhook?.listResponseMessage?.actionLabel ||
                       webhook?.listResponseMessage?.description ||
@@ -187,7 +189,7 @@ serve(async (req) => {
 
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === `collect-${field}`);
             if (edge) {
-              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData, chatId);
+              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData, chatId, isGroup, webhook);
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else {
@@ -198,7 +200,7 @@ serve(async (req) => {
                 updated_at: new Date().toISOString()
               }).eq("id", flowState.id);
               
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId);
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
           }
