@@ -17,6 +17,7 @@ import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useZapi } from "@/hooks/useZapi";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { format, isToday, isYesterday, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -1889,6 +1890,7 @@ const MensagensRecebidas = () => {
   const [syncing, setSyncing] = useState(false);
    const isMobile = useIsMobile();
    const { toast } = useToast();
+   const { data: metaCreds } = useMetaCredentials();
 
    useEffect(() => {
      // Limpa o localStorage de conversas deletadas antigas
@@ -2334,7 +2336,8 @@ const MensagensRecebidas = () => {
             campaignTemplates={campaignTemplates}
             savedContacts={savedContacts}
             onSendMessage={async (phone, message, options) => {
-              await sendMessage(phone, message, options);
+              const metaInstanceId = metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : 'meta:default';
+              await sendMessage(phone, message, { ...options, instanceId: metaInstanceId });
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
             onForwardMessage={async (phone, messageId) => {
