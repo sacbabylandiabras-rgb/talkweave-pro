@@ -250,7 +250,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     const node = nodes.find((n: any) => n.id === currentNodeId);
     if (!node) break;
 
-    if (node.type === "blocoConteudo") {
+    if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp;
       const hasButtons = node.data.buttons?.length > 0;
       
