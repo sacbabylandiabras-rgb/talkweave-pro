@@ -1976,6 +1976,7 @@ const MensagensRecebidas = () => {
 
       const results = await Promise.all(
         instances.map(async (instance) => {
+          if (instance.api_provider === 'meta') return instance;
           try {
             const { data } = await supabase.functions.invoke('get-device-status', {
               body: { instanceId: instance.id },
