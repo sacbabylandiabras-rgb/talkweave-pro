@@ -866,7 +866,6 @@ async function resolveMetaCredentialByPhoneNumber(
   const { data: candidates, error: candidatesError } = await supabase
     .from('meta_credentials')
     .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
-    .eq('app_id', WHATSAPP_META_APP_ID)
     .eq('connected', true)
     .not('access_token', 'is', null)
 
