@@ -17,7 +17,8 @@ import type { Contact } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { useZapi } from "@/hooks/useZapi";
+  import { useZapi } from "@/hooks/useZapi";
+  import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 
 interface ContactProfileDialogProps {
