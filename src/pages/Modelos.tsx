@@ -1885,13 +1885,46 @@ const getPreviewFileLabel = (template: any) => {
              </Button>
            )}
  
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Novo Modelo
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={exportToJson}
+                disabled={templates.length === 0}
+              >
+                <Download className="w-4 h-4" />
+                Exportar JSON
               </Button>
-            </DialogTrigger>
+              
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept=".json"
+                  onChange={importFromJson}
+                  className="hidden"
+                  id="import-json-input"
+                  disabled={importingJson}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                  onClick={() => document.getElementById('import-json-input')?.click()}
+                  disabled={importingJson}
+                >
+                  <Upload className="w-4 h-4" />
+                  {importingJson ? "Importando..." : "Importar JSON"}
+                </Button>
+              </div>
+
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Novo Modelo
+                  </Button>
+                </DialogTrigger>
              <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
