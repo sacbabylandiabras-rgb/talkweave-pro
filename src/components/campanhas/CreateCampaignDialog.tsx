@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useContacts } from "@/hooks/useContacts";
-import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow, Tag } from "lucide-react";
+import { Calendar, Clock, Users, Upload, UserPlus, Eye, Video, Workflow, Tag, Filter } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { CarouselPreview } from "./CarouselPreview";
