@@ -362,13 +362,6 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
    const getDefaultInstanceId = async (): Promise<string> => {
      if (!contact) return '';
 
-    // 1) Respect explicit preferred instance — already resolved from active instances list
-    if (preferredInstanceId && preferredInstanceId !== 'all' && preferredInstanceId.length > 10) {
-      console.log('🎯 Using preferredInstanceId for flow:', preferredInstanceId);
-      return preferredInstanceId;
-    }
-
-    // Fetch the user's VALID active instances first to cross-check
     const { data: activeInstances } = await (supabase as any)
       .from('zapi_instances')
       .select('zapi_instance_id, is_default, created_at')
