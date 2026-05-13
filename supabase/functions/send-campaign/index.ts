@@ -1385,7 +1385,9 @@ serve(async (req) => {
     const isGroupCampaign = campaign.target_audience?.type === 'groups';
     const delayMs = isGroupCampaign ? 0 : (campaign.delay_seconds || 2) * 1000;
     // For group campaigns, we allow a much larger batch size and faster processing
-    const batchSize = isGroupCampaign ? 100 : getBatchSizeForDelay(delayMs);
+    // For group campaigns, we allow a larger batch size to process more groups before re-invocation.
+    // Since group sends typically have 0 delay, we can process many in one execution.
+    const batchSize = isGroupCampaign ? 200 : getBatchSizeForDelay(delayMs);
 
     // Split contacts into current batch and remaining
     const currentBatch = executionContacts.slice(0, batchSize);
