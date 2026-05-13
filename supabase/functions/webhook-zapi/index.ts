@@ -263,8 +263,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
 
       const resolvedContent = replaceVars(content, captured, phone);
       
-      // Send message via Z-API
-      await sendZapiText(instance, phone, resolvedContent, node.data.buttons);
+      // Send message via Z-API (with buttons if applicable)
+      await sendZapiText(instance, phone, resolvedContent, node.data.buttons, node.id);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
@@ -291,16 +291,32 @@ function replaceVars(text: string, captured: any, phone: string) {
     .replace(/\{\{email\}\}/gi, captured.email || "");
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[]) {
+async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string) {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
 
   console.log(`📤 Enviando mensagem via Z-API: Instância=${zapiId}, Phone=${phone}`);
 
-  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
-  const body: any = { phone, message };
-  
+  let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
+  let body: any = { phone, message };
+
+  if (buttons && buttons.length > 0) {
+    // Se houver botões, enviamos via send-button-actions para que fiquem clicáveis
+    url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-button-actions`;
+    body = {
+      phone,
+      message,
+      buttonActions: buttons.map((btn, idx) => ({
+        id: btn.id || `${nodeId}-btn-${idx}`,
+        type: btn.type === "url" ? "URL" : (btn.type === "call" ? "CALL" : "REPLY"),
+        label: btn.text,
+        url: btn.type === "url" ? btn.value : undefined,
+        phone: btn.type === "call" ? btn.value : undefined
+      }))
+    };
+  }
+
   try {
     const response = await fetch(url, {
       method: "POST",
