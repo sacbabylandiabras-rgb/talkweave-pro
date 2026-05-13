@@ -1120,12 +1120,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
              const body = instanceId
                ? { ...finalPayload, instanceId, preferStandardConnection: true }
                : { ...finalPayload, preferStandardConnection: true };
-             const { data, error } = await supabase.functions.invoke('send-message', { body });
-            console.log("[FluxoVisual] send-message result", { body, data, error });
-            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
-            if (failureMessage) {
-              console.error("[FluxoVisual] Falha real no envio", { body, data, error, failureMessage });
-              throw new Error(failureMessage);
+            try {
+              const { data, error } = await supabase.functions.invoke('send-message', { body });
+              console.log("[FluxoVisual] send-message result", { body, data, error });
+              const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+              if (failureMessage) {
+                console.error("[FluxoVisual] Falha real no envio", { body, data, error, failureMessage });
+                throw new Error(failureMessage);
+              }
+            } catch (invokeErr) {
+              console.error("[FluxoVisual] Edge function invocation error", invokeErr);
+              throw invokeErr;
             }
           }
         };
