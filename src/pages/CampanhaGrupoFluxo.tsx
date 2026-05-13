@@ -33,6 +33,8 @@ import {
   Megaphone,
   Info,
   CheckCircle2,
+  Smartphone,
+  RefreshCw,
 } from "lucide-react";
 
 type RotativeLink = {
