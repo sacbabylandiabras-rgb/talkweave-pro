@@ -433,7 +433,7 @@ const ConversationList = ({
           )}
         </div>
       </div>
-      {instances.length > 1 && (
+      {instances.length > 0 && (
         <select
           className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
           value={selectedInstanceId}
@@ -2312,7 +2312,7 @@ const MensagensRecebidas = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={visibleInstances} 
+                instances={instances} 
                 selectedInstanceId={selectedInstanceId} 
                 onInstanceChange={setSelectedInstanceId} 
                 syncing={syncing} 
@@ -2388,7 +2388,7 @@ const MensagensRecebidas = () => {
           open={profileOpen}
           onOpenChange={setProfileOpen}
           onUpdate={refetch}
-          preferredInstanceId={selectedInstanceId === 'all' ? undefined : selectedInstanceId}
+          preferredInstanceId={selectedInstanceId === 'all' ? undefined : filterZapiInstanceId}
         />
       </>
    );
