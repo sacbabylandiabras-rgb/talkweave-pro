@@ -55,14 +55,28 @@ const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
   }
 };
 
-const normalizeInstances = (items: ZapiInstance[], includeWarmup = false) => {
+const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, providerFilter?: string) => {
   const dedupedMap = new Map<string, ZapiInstance>();
 
   for (const instance of items.filter((item) => {
     const isMobile = isMobileZapiInstance(item);
-    const isWarmup = (item.api_provider || '').toLowerCase().includes('warmup');
+    const provider = (item.api_provider || 'zapi').toLowerCase();
+    const isWarmup = provider.includes('warmup');
+    const isUazapi = provider.includes('uazapi');
+    const isMeta = provider === 'meta';
+
     if (isMobile) return false;
+
+    // Se um provedor específico for solicitado, filtramos apenas por ele
+    if (providerFilter) {
+      return provider === providerFilter.toLowerCase();
+    }
+
+    // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos
     if (!includeWarmup && isWarmup) return false;
+    if (isUazapi && !provider.includes("zapi")) return false; 
+    if (isMeta) return false;
+
     return true;
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
@@ -130,7 +144,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
   throw lastError;
 };
 
-export const useZapiInstances = (options?: { includeWarmup?: boolean }) => {
+export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?: string }) => {
   const [instances, setInstances] = useState<ZapiInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeInstance, setActiveInstance] = useState<ZapiInstance | null>(null);
@@ -143,7 +157,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean }) => {
       if (!user) throw new Error('Usuário não autenticado');
 
       const allInstances = await fetchInstancesWithRetry(user.id);
-      const deduped = normalizeInstances(allInstances, options?.includeWarmup);
+      const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
 
       setInstances(deduped);
       setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
@@ -153,7 +167,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const cached = user ? readCachedInstances(user.id) : null;
       if (cached?.length) {
-        const cachedInstances = normalizeInstances(cached);
+        const cachedInstances = normalizeInstances(cached, options?.includeWarmup, options?.provider);
         setInstances((current) => current.length ? current : cachedInstances);
         setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
       }
