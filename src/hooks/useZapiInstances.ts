@@ -70,8 +70,10 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     if (isMobile) return false;
 
     // Filtros de segurança obrigatórios
+    // Nunca retornar instâncias warmup na lista geral, a menos que explicitamente solicitado
     if (isWarmup && !includeWarmup) return false;
-    if (isMeta && providerFilter !== 'meta') return false;
+    // Filtrar instâncias Meta se um provider específico for solicitado
+    if (isMeta && providerFilter && providerFilter !== 'meta') return false;
     
     // Se um provedor específico for solicitado, filtramos por ele (respeitando warmup acima)
     if (providerFilter) {
