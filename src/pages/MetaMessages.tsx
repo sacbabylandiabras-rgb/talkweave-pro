@@ -1784,7 +1784,7 @@ const ChatView = ({
   );
 };
 
-const MensagensRecebidas = () => {
+const MetaMessages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
