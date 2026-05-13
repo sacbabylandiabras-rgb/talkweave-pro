@@ -1925,6 +1925,8 @@ const getPreviewFileLabel = (template: any) => {
                     Novo Modelo
                   </Button>
                 </DialogTrigger>
+              </Dialog>
+            </div>
              <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
