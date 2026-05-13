@@ -850,8 +850,8 @@ async function resolveMetaCredentialByPhoneNumber(
     .from('meta_credentials')
     .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
     .eq('phone_number_id', phoneNumberId)
-    .eq('app_id', WHATSAPP_META_APP_ID)
     .eq('connected', true)
+    .not('access_token', 'is', null)
     .maybeSingle()
 
   if (directError) {
