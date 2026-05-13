@@ -1334,14 +1334,10 @@ serve(async (req) => {
       await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
     }
 
-    // Determine if this is a flow-based campaign
-    const isFlowCampaign = campaign.target_audience?.campaign_type === 'flow' && campaign.target_audience?.flow_id;
-    const flowId = campaign.target_audience?.flow_id;
-
     let campaignTemplate = campaign.template;
 
     // Fallback for missing template relation - try fetching manually if needed
-    if (!isFlowCampaign && !campaignTemplate && campaign.template_id) {
+    if (!campaignTemplate && campaign.template_id) {
       console.log(`🔍 Campaign ${campaignId}: template relation missing, fetching template ${campaign.template_id} manually...`);
       const { data: manualTpl } = await supabase
         .from('message_templates')
@@ -1352,11 +1348,6 @@ serve(async (req) => {
       if (manualTpl) {
         campaignTemplate = manualTpl;
       }
-    }
-
-    if (!isFlowCampaign && !campaignTemplate) {
-      console.error(`❌ Campaign ${campaignId}: template not found (ID: ${campaign.template_id})`);
-      throw new Error('Campaign template not found');
     }
 
     const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
@@ -1380,6 +1371,15 @@ serve(async (req) => {
       console.log(
         `⚠️ Campaign ${campaignId}: request had ${requestedContacts.length} contacts, but campaign audience has ${campaignTargetContacts.length}. Using campaign audience as source of truth.`,
       );
+    }
+
+    // Determine if this is a flow-based campaign
+    const isFlowCampaign = campaign.target_audience?.campaign_type === 'flow' && campaign.target_audience?.flow_id;
+    const flowId = campaign.target_audience?.flow_id;
+
+    if (!isFlowCampaign && !campaignTemplate) {
+      console.error(`❌ Campaign ${campaignId}: template not found (ID: ${campaign.template_id})`);
+      throw new Error('Campaign template not found');
     }
 
     const isGroupCampaign = campaign.target_audience?.type === 'groups';
