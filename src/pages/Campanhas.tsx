@@ -64,8 +64,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   } = useCampaigns();
   
   const { toast } = useToast();
-  const { instances: allInstances, activeInstance } = useZapiInstances();
-  const instances = useMemo(() => allInstances.filter(i => (i.api_provider || 'zapi').toLowerCase() !== 'uazapi'), [allInstances]);
+   const { instances: allInstances, activeInstance } = useZapiInstances();
+   const instances = useMemo(() => allInstances.filter(i => {
+     const provider = (i.api_provider || 'zapi').toLowerCase();
+     return provider !== 'uazapi' && provider !== 'meta';
+   }), [allInstances]);
   
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
