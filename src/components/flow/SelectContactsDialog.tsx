@@ -21,21 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Globe, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMetaCredentials } from "@/hooks/useMetaCredentials";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-export type FlowSendProvider = "zapi" | "meta";
+export type FlowSendProvider = "zapi";
 
-interface MetaPhoneOption {
-  id: string;
-  display_phone_number: string;
-  verified_name: string;
-}
 
 interface SelectContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => void;
+  onConfirm: (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider) => void;
   mode?: "contacts" | "groups" | "meta";
 }
 
