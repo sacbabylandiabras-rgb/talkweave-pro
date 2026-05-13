@@ -55,6 +55,7 @@ serve(async (req) => {
     console.log("Webhook Z-API:", JSON.stringify(webhook).slice(0, 500));
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
     const phone = webhook?.phone || webhook?.chatPhone || "";
     const instanceId = webhook?.instanceId || "";
     
@@ -121,9 +122,9 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse)) {
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse) || isGroup) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE (excluindo respostas de botão)
-       if (isMessage && fromMe && !isButtonResponse) {
+       if (isMessage && fromMe && !isButtonResponse && !isGroup) {
          await supabase.from("message_logs").insert({
            user_id: userId,
            phone: phone,
@@ -133,8 +134,9 @@ serve(async (req) => {
          });
        }
 
-       if (isMessage && fromMe) {
-         console.log(`Webhook ignored (Self-message): phone=${phone}, fromMe=${fromMe}, type=${type}`);
+       if (isMessage) {
+         if (fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
+         if (isGroup) console.log(`Webhook ignored (Group message): phone=${phone}`);
        }
        return new Response("ok", { status: 200, headers: corsHeaders });
     }
