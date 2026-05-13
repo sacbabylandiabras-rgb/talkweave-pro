@@ -62,6 +62,8 @@ export const useCampaigns = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+    const [lastRefetch, setLastRefetch] = useState(Date.now());
+
    const loadCampaigns = useCallback(async (isSilent = false) => {
      try {
        if (!isSilent) setLoading(true);
@@ -110,7 +112,8 @@ export const useCampaigns = () => {
      } finally {
        if (!isSilent) setLoading(false);
      }
-   }, [toast]);
+      setLastRefetch(Date.now());
+    }, [toast]);
 
   const createCampaign = async (campaignData: {
     name: string;
@@ -764,25 +767,38 @@ export const useCampaigns = () => {
     }
   };
 
-   useEffect(() => {
-     loadCampaigns();
- 
-     const channel = supabase
-       .channel('campaigns-local-sync')
-       .on(
-         'postgres_changes',
-         { event: '*', schema: 'public', table: 'campaigns' },
-         () => {
-           // Just refetch all campaigns when anything changes for simplicity and consistency
-           loadCampaigns(true);
-         }
-       )
-       .subscribe();
- 
-     return () => {
-       supabase.removeChannel(channel);
-     };
-   }, [loadCampaigns]);
+    useEffect(() => {
+      loadCampaigns();
+  
+      // Gerar um nome de canal único para evitar colisões
+      const channelName = `campaigns-local-sync-${Math.random().toString(36).substring(2, 9)}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'campaigns' },
+          (payload) => {
+            console.log('🔄 Mudança detectada na tabela campaigns:', payload.eventType);
+            // Recarregar silenciosamente quando houver qualquer mudança
+            loadCampaigns(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log(`📡 Status da inscrição realtime (campaigns): ${status}`);
+        });
+  
+      // Refetch when window gains focus to ensure data is fresh
+      const handleFocus = () => {
+        console.log('🪟 Janela focada, atualizando campanhas...');
+        loadCampaigns(true);
+      };
+      window.addEventListener('focus', handleFocus);
+  
+      return () => {
+        supabase.removeChannel(channel);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }, [loadCampaigns]);
 
   return {
     campaigns,
