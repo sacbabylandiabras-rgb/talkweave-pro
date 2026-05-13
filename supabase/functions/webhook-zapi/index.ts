@@ -60,7 +60,7 @@ serve(async (req) => {
     const phone = (isGroup && senderPhone) 
       ? senderPhone 
       : (webhook?.phone || webhook?.chatPhone || "");
-    const chatId = webhook?.phone || webhook?.chatPhone || phone;
+    const chatId = webhook?.phone || webhook?.chatPhone || "";
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
@@ -283,7 +283,10 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const resolvedContent = replaceVars(content, captured, phone);
       
       // Send message via Z-API (with buttons if applicable)
-      await sendZapiText(instance, chatId || phone, resolvedContent, node.data.buttons, node.id);
+      // If we're in a group, we MUST use the group's ID (chatId/phone) as the destination, 
+      // not the individual participant's phone number.
+      const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
