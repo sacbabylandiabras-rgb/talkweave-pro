@@ -178,7 +178,10 @@ const isRedundantManualFlowEcho = (
   log: Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>,
   logs: Array<Pick<MessageLog, 'id' | 'phone' | 'response_sent' | 'keyword_matched' | 'timestamp' | 'created_at'>>,
 ) => {
+  // Special case: Meta API sends are manual but shouldn't be considered redundant flow echoes
+  // if they don't have a flow send counterpart.
   if (log.keyword_matched !== '__manual_send__' || !log.response_sent) return false;
+  if ((log as any).instance_id?.startsWith('meta:')) return false;
 
   const manualContent = normalizeSentMessageForComparison(log.response_sent);
   if (!manualContent) return false;
