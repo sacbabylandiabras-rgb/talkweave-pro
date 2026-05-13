@@ -33,17 +33,17 @@ interface Props {
     setResult(null);
   };
 
-  // Extrai apenas valores que parecem números de telefone (8+ dígitos)
-  const extractPhones = (values: any[]): string[] => {
-    const out: string[] = [];
-    for (const v of values) {
-      const s = String(v ?? "").trim().replace(/^["']+|["']+$/g, "");
-      if (!s) continue;
-      const digits = s.replace(/\D+/g, "");
-      if (digits.length >= 8 && digits.length <= 15) out.push(digits);
-    }
-    return Array.from(new Set(out));
-  };
+   // Extrai apenas valores que parecem números de telefone (8+ dígitos)
+   const extractPhones = (values: any[], shouldRemoveDuplicates = false): string[] => {
+     const out: string[] = [];
+     for (const v of values) {
+       const s = String(v ?? "").trim().replace(/^["']+|["']+$/g, "");
+       if (!s) continue;
+       const digits = s.replace(/\D+/g, "");
+       if (digits.length >= 8 && digits.length <= 15) out.push(digits);
+     }
+     return shouldRemoveDuplicates ? Array.from(new Set(out)) : out;
+   };
 
   const handleFile = async (file: File) => {
     try {
@@ -63,20 +63,16 @@ interface Props {
         toast({ title: "Formato não suportado", description: "Use CSV, XLSX ou TXT", variant: "destructive" });
         return;
       }
-      const phones = extractPhones(raw);
-      setText(phones.join("\n"));
+       const phones = extractPhones(raw, removeDuplicates);
+       setText(phones.join("\n"));
       toast({ title: "Planilha carregada", description: `${phones.length} número(s) detectado(s)` });
     } catch (e: any) {
       toast({ title: "Erro ao ler arquivo", description: e.message, variant: "destructive" });
     }
   };
 
-   const validate = async () => {
-     let phones = extractPhones(text.split(/[\s,;\n\r\t]+/));
-     
-     if (removeDuplicates) {
-       phones = Array.from(new Set(phones));
-     }
+    const validate = async () => {
+      const phones = extractPhones(text.split(/[\s,;\n\r\t]+/), removeDuplicates);
     if (!phones.length) {
       toast({ title: "Adicione números", description: "Cole ou importe ao menos 1 número.", variant: "destructive" });
       return;
