@@ -1506,45 +1506,42 @@ serve(async (req) => {
     // Process current batch
     const results = [];
     let rateLimitHitsInBatch = 0;
-    // Process batch: use parallel execution for groups if requested "at once"
+    let shouldStop = false;
+    let stopReason = '';
+
     if (isGroupCampaign) {
       console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups in semi-parallel`);
-      
-      // We use a small concurrency limit to avoid overwhelming the instance but still feel "at once"
       const CONCURRENCY = 5;
       for (let i = 0; i < currentBatch.length; i += CONCURRENCY) {
         const chunk = currentBatch.slice(i, i + CONCURRENCY);
         await Promise.all(chunk.map(async (item, chunkIdx) => {
           const contactIdx = i + chunkIdx;
           const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
-          
-          const explicitContactInstance = forcedRequestedInstance
-            ? null
-            : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
-          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
-            ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-            : null;
+          const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
           const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(contactIdx);
-          
-          await processContact(contact, currentInstance, contactIdx, true);
+          const res = await processContact(contact, currentInstance, contactIdx, true);
+          if (res?.stop) {
+            shouldStop = true;
+            stopReason = res.status || 'paused';
+          }
         }));
-        // Small pause between chunks to be safe
+        if (shouldStop) break;
         if (i + CONCURRENCY < currentBatch.length) await sleep(500);
+      }
+      if (shouldStop) {
+        return new Response(JSON.stringify({ success: true, stopped: true, message: `Stopped: campaign ${stopReason}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
     } else {
       for (let i = 0; i < currentBatch.length; i++) {
         const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-        
-        const explicitContactInstance = forcedRequestedInstance
-          ? null
-          : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance
-          ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-          : null;
+        const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
         const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
-        
-        await processContact(contact, currentInstance, i, false);
-        
+        const res = await processContact(contact, currentInstance, i, false);
+        if (res?.stop) {
+          return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${res.status || 'paused'}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
         if (i < currentBatch.length - 1) {
           await sleep(delayMs);
         }
