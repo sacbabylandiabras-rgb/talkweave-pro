@@ -21,7 +21,7 @@ interface Newsletter {
 }
 
 export default function CanaisTab() {
-  const { instances, activeInstance, selectInstance } = useZapiInstances();
+   const { instances, activeInstance, selectInstance } = useZapiInstances({ provider: 'zapi' });
   const [instanceId, setInstanceId] = useState<string>("");
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,15 +48,6 @@ export default function CanaisTab() {
   const [createPhotoUrl, setCreatePhotoUrl] = useState("");
   const createPhotoFileRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
-  // Efeito para garantir que uma instância oficial Z-API esteja selecionada para canais
-  useEffect(() => {
-    const zapiOfficial = instances.find(i => (i.api_provider || '').toLowerCase() === 'zapi');
-    if (zapiOfficial && activeInstance?.id !== zapiOfficial.id) {
-      console.log("🔄 Canais: Forçando instância Z-API oficial para gerenciamento");
-      selectInstance(zapiOfficial.id);
-    }
-  }, [instances, activeInstance]);
 
   useEffect(() => {
     if (!instanceId && activeInstance?.id) setInstanceId(activeInstance.id);
@@ -228,8 +219,8 @@ export default function CanaisTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
+       <Card className="border-none shadow-none bg-transparent">
+         <CardHeader className="px-0 pt-0">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -285,7 +276,32 @@ export default function CanaisTab() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+         <CardContent className="px-0">
+           {/* Seletor de Instância */}
+           <div className="mb-6 p-4 bg-card border rounded-xl flex items-center justify-between gap-4">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                 <Settings className="w-5 h-5 text-primary" />
+               </div>
+               <div>
+                 <p className="text-sm font-medium">Instância Ativa</p>
+                 <p className="text-xs text-muted-foreground">Selecione a instância para gerenciar canais</p>
+               </div>
+             </div>
+             <select 
+               value={instanceId} 
+               onChange={(e) => {
+                 setInstanceId(e.target.value);
+                 selectInstance(e.target.value);
+               }}
+               className="bg-background border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none min-w-[200px]"
+             >
+               {instances.map(inst => (
+                 <option key={inst.id} value={inst.id}>{inst.instance_name}</option>
+               ))}
+             </select>
+           </div>
+
           <div className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2 border-r pr-4">
               <div className="flex items-center gap-2 mb-4">
