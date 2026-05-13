@@ -462,41 +462,44 @@ const CriarGrupos = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {(() => {
-            const zapiInstances = instances.filter(
-              (i) => (i.api_provider || "zapi").toLowerCase() === "zapi"
-            );
-            if (zapiInstances.length <= 1) return null;
-            return (
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" />
-                Instância
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={!overrideInstanceId ? "default" : "outline"}
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setOverrideInstanceId("")}
-                >
-                  Todos
-                </Button>
-                {zapiInstances.map((inst) => (
-                  <Button
-                    key={inst.id}
-                    variant={overrideInstanceId === inst.id ? "default" : "outline"}
-                    size="sm"
-                    className="h-8"
-                    onClick={() => setOverrideInstanceId(inst.id)}
-                  >
-                    {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            );
-          })()}
+           {(() => {
+             const zapiInstances = instances.filter(
+               (i) => {
+                 const provider = (i.api_provider || "zapi").toLowerCase();
+                 return provider === "zapi" && !i.instance_name?.toLowerCase().includes('aquec');
+               }
+             );
+             if (zapiInstances.length <= 1) return null;
+             return (
+             <div className="space-y-1">
+               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                 <Phone className="w-3.5 h-3.5" />
+                 Instância
+               </label>
+               <div className="flex flex-wrap gap-2">
+                 <Button
+                   variant={!overrideInstanceId ? "default" : "outline"}
+                   size="sm"
+                   className="h-8"
+                   onClick={() => setOverrideInstanceId("")}
+                 >
+                   Todos
+                 </Button>
+                 {zapiInstances.map((inst) => (
+                   <Button
+                     key={inst.id}
+                     variant={overrideInstanceId === inst.id ? "default" : "outline"}
+                     size="sm"
+                     className="h-8"
+                     onClick={() => setOverrideInstanceId(inst.id)}
+                   >
+                     {inst.instance_name} {inst.is_default ? "(Padrão)" : ""}
+                   </Button>
+                 ))}
+               </div>
+             </div>
+             );
+           })()}
 
           {selectedGroup && (
             <div className="flex gap-6 pt-2">
