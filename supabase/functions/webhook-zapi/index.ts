@@ -80,10 +80,14 @@ serve(async (req) => {
                       webhook?.listResponseMessage?.actionLabel ||
                       "";
     
-    const fromMe = webhook?.fromMe === true;
+    // Z-API can send fromMe as boolean or string
+    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
 
     if (!phone || !instanceId || !isMessage || fromMe) {
-       console.log(`Webhook ignored: phone=${phone}, isMessage=${isMessage}, fromMe=${fromMe}, type=${type}`);
+       // Only log if it's not a status/presence callback to keep logs clean
+       if (isMessage && fromMe) {
+         console.log(`Webhook ignored (Self-message): phone=${phone}, fromMe=${fromMe}, type=${type}`);
+       }
        return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
