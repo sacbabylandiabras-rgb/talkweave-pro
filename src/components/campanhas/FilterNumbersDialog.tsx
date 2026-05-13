@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, XCircle, Upload, Loader2, Download, Copy, FileSpreadsheet, Smartphone } from "lucide-react";
+ import { CheckCircle2, XCircle, Upload, Loader2, Download, Copy, FileSpreadsheet, Smartphone, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
@@ -19,7 +19,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export function FilterNumbersDialog({ open, onOpenChange }: Props) {
+ export function FilterNumbersDialog({ open, onOpenChange, removeDuplicates, onRemoveDuplicatesChange }: Props & { removeDuplicates?: boolean; onRemoveDuplicatesChange?: (v: boolean) => void }) {
   const { toast } = useToast();
   const [tab, setTab] = useState("manual");
   const [text, setText] = useState("");
@@ -71,8 +71,12 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const validate = async () => {
-    const phones = extractPhones(text.split(/[\s,;\n\r\t]+/));
+   const validate = async () => {
+     let phones = extractPhones(text.split(/[\s,;\n\r\t]+/));
+     
+     if (removeDuplicates) {
+       phones = Array.from(new Set(phones));
+     }
     if (!phones.length) {
       toast({ title: "Adicione números", description: "Cole ou importe ao menos 1 número.", variant: "destructive" });
       return;
@@ -191,10 +195,28 @@ export function FilterNumbersDialog({ open, onOpenChange }: Props) {
             </div>
           )}
 
-          <div className="flex gap-2">
-          <Button onClick={validate} disabled={loading || !text.trim()} className="flex-1">
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Validando...</> : "Validar Números"}
-          </Button>
+           {onRemoveDuplicatesChange && (
+             <div className="flex items-center justify-between p-2 bg-accent/30 rounded-lg border border-border/50 mb-2">
+               <div className="flex items-center gap-2">
+                 <Filter className="w-4 h-4 text-primary" />
+                 <div>
+                   <p className="text-xs font-medium">Remover Duplicados</p>
+                   <p className="text-[10px] text-muted-foreground">Filtra números repetidos antes da validação</p>
+                 </div>
+               </div>
+               <input 
+                 type="checkbox"
+                 className="w-4 h-4 accent-primary cursor-pointer"
+                 checked={removeDuplicates} 
+                 onChange={(e) => onRemoveDuplicatesChange(e.target.checked)} 
+               />
+             </div>
+           )}
+
+           <div className="flex gap-2">
+           <Button onClick={validate} disabled={loading || !text.trim()} className="flex-1">
+             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Validando...</> : "Validar Números"}
+           </Button>
             {(text || result) && (
               <Button variant="outline" onClick={reset} disabled={loading}>Limpar</Button>
             )}
