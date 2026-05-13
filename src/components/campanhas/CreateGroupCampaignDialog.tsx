@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
-import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+ import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
+ import { useZapiInstances } from "@/hooks/useZapiInstances";
+ import { ROTATE_ALL } from "@/components/envio/InstanceSelector";
+ import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar } from "lucide-react";
@@ -25,7 +28,19 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const { toast } = useToast();
   const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
-  const { groups, loading: loadingGroups } = useWhatsAppGroups();
+   const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups({
+     provider: 'zapi_no_warmup_meta'
+   });
+   const { instances: allInstances, activeInstance } = useZapiInstances();
+   
+   const instances = useMemo(() => allInstances.filter(i => {
+     const provider = (i.api_provider || 'zapi').toLowerCase();
+      const name = (i.instance_name || '').toLowerCase();
+     if (name.includes('aquecimento') || name.includes('warmup')) return false;
+     return provider !== 'uazapi' && provider !== 'meta';
+   }), [allInstances]);
+ 
+   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
 
   // Fetch rotative links with their groups
@@ -93,9 +108,18 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
 
   const selectedTemplate = templates.find(t => t.id === formData.template_id);
 
-  const filteredGroups = groups.filter(g =>
-    g.nome.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+   const filteredGroups = useMemo(() => {
+     let filtered = groups;
+     
+     // Se uma instância específica for selecionada, filtrar grupos dela
+     if (selectedInstanceId && selectedInstanceId !== ROTATE_ALL) {
+       filtered = filtered.filter(g => g.sourceInstanceId === selectedInstanceId);
+     }
+     
+     return filtered.filter(g =>
+       g.nome.toLowerCase().includes(searchQuery.toLowerCase())
+     );
+   }, [groups, selectedInstanceId, searchQuery]);
 
   const toggleGroup = (groupId: string) => {
     setSelectedGroups(prev =>
@@ -113,7 +137,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     }
   };
 
-  const handleSubmit = async () => {
+   const handleSubmit = async () => {
     if (!formData.name) {
       toast({ title: "Erro", description: "Nome da campanha é obrigatório", variant: "destructive" });
       return;
@@ -158,10 +182,23 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         scheduled_at: formData.schedule_type === 'scheduled' ? formData.scheduled_at : undefined,
       });
 
-      if (formData.schedule_type === 'immediate') {
-        console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
-        await sendCampaign(campaign.id, groupContacts);
-      }
+       if (formData.schedule_type === 'immediate') {
+         console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
+         
+         // Determinar instância de envio
+         let instanceToUse = null;
+         if (selectedInstanceId === ROTATE_ALL) {
+           setZapiRotateMode(instances);
+         } else if (selectedInstanceId) {
+           const inst = instances.find(i => i.id === selectedInstanceId);
+           if (inst) {
+             setZapiInstanceOverride(inst);
+             instanceToUse = selectedInstanceId;
+           }
+         }
+         
+         await sendCampaign(campaign.id, groupContacts, instanceToUse);
+       }
 
       toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 
         ? `Campanha "${formData.name}" agendada para ${new Date(formData.scheduled_at).toLocaleString('pt-BR')}`
@@ -199,21 +236,44 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
           </div>
 
           {/* Modelo */}
-          <div>
-            <Label>Modelo de Mensagem</Label>
-            <Select
-              value={formData.template_id}
-              onValueChange={val => setFormData(prev => ({ ...prev, template_id: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.filter(t => t.active).map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Modelo de Mensagem</Label>
+              <Select
+                value={formData.template_id}
+                onValueChange={val => setFormData(prev => ({ ...prev, template_id: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.filter(t => t.active).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Instância */}
+            <div>
+              <Label>Instância de Envio</Label>
+              <Select
+                value={selectedInstanceId}
+                onValueChange={setSelectedInstanceId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a instância (ou rodízio)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROTATE_ALL}>Rodízio (Todas as instâncias)</SelectItem>
+                  {instances.map(inst => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.instance_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Preview do template */}
