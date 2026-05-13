@@ -213,16 +213,15 @@ serve(async (req) => {
             }
           }
 
-          if (!lastNode && isButtonResponse) {
-            const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
-            if (buttonMatch) {
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
-              await supabase.from("flow_captured_data").update({
-                last_node_id: null,
-                updated_at: new Date().toISOString()
-              }).eq("id", flowState.id);
-              return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
-            }
+        } else if (isButtonResponse) {
+          const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
+          if (buttonMatch) {
+            await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+            await supabase.from("flow_captured_data").update({
+              last_node_id: null,
+              updated_at: new Date().toISOString()
+            }).eq("id", flowState.id);
+            return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
           }
         }
       }
