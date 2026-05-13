@@ -380,7 +380,7 @@ export const useMessageLogs = (
   // State to track locally deleted conversations to prevent them from reappearing
   const [deletedPhones, setDeletedPhones] = useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem('deletedConversations');
+      const saved = localStorage.getItem('talkweave_deleted_conversations');
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch { return new Set(); }
   });
@@ -409,7 +409,7 @@ export const useMessageLogs = (
   }, [campaignSends]);
 
   useEffect(() => {
-    localStorage.setItem('deletedConversations', JSON.stringify(Array.from(deletedPhones)));
+    localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedPhones)));
   }, [deletedPhones]);
 
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
@@ -1504,7 +1504,7 @@ export const useMessageLogs = (
         const next = new Set(prev);
         next.add(phone);
         next.add(zapiPhone);
-        localStorage.setItem('deletedConversations', JSON.stringify([...next]));
+        localStorage.setItem('talkweave_deleted_conversations', JSON.stringify([...next]));
         return next;
       });
     }, []),
