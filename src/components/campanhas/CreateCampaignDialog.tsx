@@ -598,63 +598,65 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             </div>
             
              <div className="flex flex-col gap-4">
-               <div className="flex-1">
-                 <Label htmlFor="contact_selection">Selecionar Contatos</Label>
-                 <Select
-                   value={formData.contact_selection}
-                   onValueChange={(value) => {
-                     setFormData(prev => ({ ...prev, contact_selection: value }));
-                     if (value !== "import") {
-                       setImportedContacts([]);
-                     }
-                   }}
-                 >
-                   <SelectTrigger>
-                     <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">
-                       <div className="flex items-center gap-2">
-                         <Users className="w-4 h-4" />
-                         Todos os Contatos ({contacts.length})
-                       </div>
-                     </SelectItem>
-                     <SelectItem value="manual">
-                       <div className="flex items-center gap-2">
-                         <UserPlus className="w-4 h-4" />
-                         Adicionar Manualmente
-                       </div>
-                     </SelectItem>
-                     <SelectItem value="import">
-                       <div className="flex items-center gap-2">
-                         <Upload className="w-4 h-4" />
-                         Importar Planilha (CSV/XLSX)
-                       </div>
-                     </SelectItem>
-                   </SelectContent>
-                 </Select>
-               </div>
- 
-               <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50">
-                 <div className="flex items-center gap-3">
-                   <div className="bg-primary/10 p-2 rounded-full">
-                     <Filter className="w-4 h-4 text-primary" />
-                   </div>
-                   <div className="flex flex-col">
-                     <Label className="text-sm font-semibold cursor-pointer" htmlFor="remove_duplicates">
-                       Remover Duplicados
-                     </Label>
-                     <span className="text-[10px] text-muted-foreground leading-tight">
-                       Evita envios repetidos para o mesmo número
-                     </span>
-                   </div>
-                 </div>
-                 <Switch 
-                   id="remove_duplicates"
-                   checked={formData.remove_duplicates} 
-                   onCheckedChange={(v) => setFormData(prev => ({ ...prev, remove_duplicates: v }))} 
-                 />
-               </div>
+              <div className="flex-1">
+                <Label htmlFor="contact_selection">Selecionar Contatos</Label>
+                <Select
+                  value={formData.contact_selection}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, contact_selection: value }));
+                    if (value !== "import") {
+                      setImportedContacts([]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Todos os Contatos ({contacts.length})
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="manual">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" />
+                        Adicionar Manualmente
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="import">
+                      <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Importar Planilha (CSV/XLSX)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.contact_selection !== "all" && (
+                <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Filter className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-semibold cursor-pointer" htmlFor="remove_duplicates">
+                        Remover Duplicados
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground leading-tight">
+                        Evita envios repetidos para o mesmo número
+                      </span>
+                    </div>
+                  </div>
+                  <Switch 
+                    id="remove_duplicates"
+                    checked={formData.remove_duplicates} 
+                    onCheckedChange={(v) => setFormData(prev => ({ ...prev, remove_duplicates: v }))} 
+                  />
+                </div>
+              )}
              </div>
 
             {formData.contact_selection === "manual" && (
