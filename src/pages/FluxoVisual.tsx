@@ -888,8 +888,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       handleConfirmSend(
         preselectedGroups,
         preselectedInstanceIds.length > 0 ? preselectedInstanceIds : undefined,
-        preselectedProvider,
-        preselectedMetaPhoneId,
+        preselectedProvider
       );
       return;
     }
@@ -897,13 +896,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setShowContactsDialog(true);
   };
 
-  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider, metaPhoneNumberId?: string) => {
+  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider) => {
     // Se for apenas pré-seleção de grupos antes do editor, não envia: salva e abre editor
     if (isSelectingPreGroups) {
       setPreselectedGroups(selectedContacts);
       setPreselectedInstanceIds(instanceIds || []);
       setPreselectedProvider(provider || "zapi");
-      setPreselectedMetaPhoneId(metaPhoneNumberId);
       setIsSelectingPreGroups(false);
       setShowContactsDialog(false);
       setShowFluxosList(false);
@@ -945,7 +943,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
            : undefined;
 
          try {
-           await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", metaPhoneNumberId, savedFlowId);
+            await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
            sendCounter++;
          } catch (err) {
            console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
@@ -1408,7 +1406,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
          }
        }
 
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, metaPhoneNumberId, flowIdForPending);
+      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, flowIdForPending);
     }
   };
 
