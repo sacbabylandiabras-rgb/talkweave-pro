@@ -390,11 +390,14 @@ const CriarGrupos = () => {
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Selecione a instância" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {instances.map((inst) => (
-                          <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
-                        ))}
-                      </SelectContent>
+                       <SelectContent className="max-h-80">
+                         {instances
+                           .filter(inst => inst.api_provider === 'zapi')
+                           .map((inst) => (
+                             <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
+                           ))
+                         }
+                       </SelectContent>
                     </Select>
                   </div>
                   <div>
