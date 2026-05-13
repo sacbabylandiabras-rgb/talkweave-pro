@@ -105,9 +105,17 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     try {
       // Prepare contacts based on selection
       let targetContacts = [];
-      if (formData.contact_selection === "all") {
-        targetContacts = contacts.map(c => ({ phone: c.phone, name: c.name || "Cliente" }));
-      } else if (formData.contact_selection === "manual") {
+       if (formData.contact_selection === "all") {
+         targetContacts = contacts.map(c => ({ phone: c.phone, name: c.name || "Cliente" }));
+         if (formData.remove_duplicates) {
+           const uniquePhones = new Set();
+           targetContacts = targetContacts.filter(c => {
+             if (!c.phone || uniquePhones.has(c.phone)) return false;
+             uniquePhones.add(c.phone);
+             return true;
+           });
+         }
+       } else if (formData.contact_selection === "manual") {
         const lines = formData.specific_contacts
           .split('\n')
           .map(line => line.trim())
@@ -123,22 +131,22 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
         if (formData.remove_duplicates) {
           const uniquePhones = new Set();
           targetContacts = targetContacts.filter(c => {
-            if (uniquePhones.has(c.phone)) return false;
-            uniquePhones.add(c.phone);
-            return true;
-          });
-        }
-      } else if (formData.contact_selection === "import") {
+             if (!c.phone || uniquePhones.has(c.phone)) return false;
+             uniquePhones.add(c.phone);
+             return true;
+           });
+         }
+       } else if (formData.contact_selection === "import") {
         targetContacts = [...importedContacts];
         if (formData.remove_duplicates) {
           const uniquePhones = new Set();
           targetContacts = targetContacts.filter(c => {
-            if (uniquePhones.has(c.phone)) return false;
-            uniquePhones.add(c.phone);
-            return true;
-          });
-        }
-      }
+             if (!c.phone || uniquePhones.has(c.phone)) return false;
+             uniquePhones.add(c.phone);
+             return true;
+           });
+         }
+       }
 
       if (targetContacts.length === 0) {
         toast({
@@ -589,58 +597,56 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
               <h3 className="text-sm font-semibold">Público-Alvo</h3>
             </div>
             
-            <div>
-              <Label htmlFor="contact_selection">Selecionar Contatos</Label>
-              <Select
-                value={formData.contact_selection}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, contact_selection: value }));
-                  if (value !== "import") {
-                    setImportedContacts([]);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Todos os Contatos ({contacts.length})
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="manual">
-                    <div className="flex items-center gap-2">
-                      <UserPlus className="w-4 h-4" />
-                      Adicionar Manualmente
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="import">
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Importar Planilha (CSV/XLSX)
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.contact_selection !== "all" && (
-              <div className="flex items-center justify-between p-2 bg-accent/30 rounded-lg border border-border/50">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-primary" />
-                  <div>
-                    <Label className="text-sm font-medium">Remover Duplicados</Label>
-                    <p className="text-[10px] text-muted-foreground">Evita enviar a mesma mensagem duas vezes para o mesmo número</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={formData.remove_duplicates} 
-                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, remove_duplicates: v }))} 
-                />
-              </div>
-            )}
+             <div>
+               <Label htmlFor="contact_selection">Selecionar Contatos</Label>
+               <Select
+                 value={formData.contact_selection}
+                 onValueChange={(value) => {
+                   setFormData(prev => ({ ...prev, contact_selection: value }));
+                   if (value !== "import") {
+                     setImportedContacts([]);
+                   }
+                 }}
+               >
+                 <SelectTrigger>
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">
+                     <div className="flex items-center gap-2">
+                       <Users className="w-4 h-4" />
+                       Todos os Contatos ({contacts.length})
+                     </div>
+                   </SelectItem>
+                   <SelectItem value="manual">
+                     <div className="flex items-center gap-2">
+                       <UserPlus className="w-4 h-4" />
+                       Adicionar Manualmente
+                     </div>
+                   </SelectItem>
+                   <SelectItem value="import">
+                     <div className="flex items-center gap-2">
+                       <Upload className="w-4 h-4" />
+                       Importar Planilha (CSV/XLSX)
+                     </div>
+                   </SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+ 
+             <div className="flex items-center justify-between p-2 bg-accent/30 rounded-lg border border-border/50">
+               <div className="flex items-center gap-2">
+                 <Filter className="w-4 h-4 text-primary" />
+                 <div>
+                   <Label className="text-sm font-medium">Remover Duplicados</Label>
+                   <p className="text-[10px] text-muted-foreground">Evita enviar a mesma mensagem duas vezes para o mesmo número</p>
+                 </div>
+               </div>
+               <Switch 
+                 checked={formData.remove_duplicates} 
+                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, remove_duplicates: v }))} 
+               />
+             </div>
 
             {formData.contact_selection === "manual" && (
               <div>
