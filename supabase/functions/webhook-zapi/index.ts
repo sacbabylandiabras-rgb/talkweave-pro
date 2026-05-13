@@ -4168,15 +4168,7 @@ serve(async (req) => {
       // Só faz match global quando o payload traz um callback interativo real.
       // Isso evita que textos comuns como "outro" ou ecos técnicos da UAZAPI
       // disparem ramos de botão de fluxos não pendentes.
-      const hasInteractiveReplySignal = Boolean(
-        webhook?.hasInteractiveSelection === true ||
-          webhook?.buttonReply?.selectedRowId || webhook?.buttonReply?.selectedButtonId ||
-          webhook?.text?.selectedRowId || webhook?.text?.selectedButtonId ||
-          webhook?.buttonsResponseMessage?.selectedButtonId ||
-          webhook?.listResponseMessage?.singleSelectReply?.selectedRowId,
-      );
-
-      if (!hasPendingButtonContext && hasInteractiveReplySignal) {
+      if (!hasPendingButtonContext) {
         const buttonMatch = findButtonEdgeMatch(
           flowAutomations,
           normalizedMessage,
