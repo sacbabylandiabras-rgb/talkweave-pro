@@ -438,7 +438,7 @@ export function SelectContactsDialog({
                       ))
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               )}
             </TabsContent>
           )}
@@ -526,8 +526,8 @@ export function SelectContactsDialog({
                       </div>
                     ))
                   )}
+                  </div>
                 </div>
-              </ScrollArea>
             )}
           </TabsContent>
 
@@ -580,8 +580,8 @@ export function SelectContactsDialog({
                     </div>
                   ))
                 )}
-              </div>
-            </ScrollArea>
+                  </div>
+                </div>
           </TabsContent>
         </Tabs>
 
