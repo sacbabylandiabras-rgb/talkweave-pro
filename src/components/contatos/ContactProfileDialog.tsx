@@ -371,8 +371,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     // Fetch the user's VALID active instances first to cross-check
     const { data: activeInstances } = await (supabase as any)
       .from('zapi_instances')
-      .select('zapi_instance_id')
+      .select('zapi_instance_id, is_default, created_at')
       .eq('is_active', true)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true })
       .limit(50);
 
     const validInstanceIds = new Set(
@@ -414,11 +416,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     });
     if (anyValid?.instance_id) return anyValid.instance_id;
 
-    // 3) Fallback: single active instance or error
-    if (validInstanceIds.size > 1) {
-      throw new Error('Selecione a instância correta no topo da tela antes de disparar o fluxo.');
-    }
-
+    // 3) Fallback: default instance, or first active instance
+    const defaultInstance = (activeInstances || []).find((i: any) => i.is_default);
+    if (defaultInstance?.zapi_instance_id) return defaultInstance.zapi_instance_id;
     return activeInstances?.[0]?.zapi_instance_id || '';
   };
 
