@@ -34,7 +34,7 @@ const ApanhadorGrupos = () => {
   const [busca, setBusca] = useState("");
   const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
   const { configs: welcomeConfigs, saveConfig, refetch: refetchWelcome } = useGroupWelcome();
-   const { instances: uazapiInstances } = useZapiInstances({ provider: 'uazapi' });
+   const { instances: uazapiInstances } = useZapiInstances({ provider: 'uazapi' } as any);
   const apanhadorInstances = uazapiInstances;
   const [extracting, setExtracting] = useState<string | null>(null);
   type ExtractedParticipant = { phone: string; isAdmin: boolean; isLid: boolean };
