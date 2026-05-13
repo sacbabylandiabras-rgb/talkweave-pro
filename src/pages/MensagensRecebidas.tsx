@@ -1798,13 +1798,13 @@ const MensagensRecebidas = () => {
   const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API ou Evolution
-  const instances = useMemo(() => {
-    // Na aba de Mensagens, aceitamos Z-API, Evolution, UAZAPI e META (para visualização unificada)
-    return allInstances.filter((i: any) => {
+  const instances = useMemo(() => 
+    allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
+      // Remove instâncias do tipo apanhador de grupo (warmup)
+      if (i.instance_type === 'warmup') return false;
       return provider === "zapi" || provider === "evolution" || provider === "uazapi" || provider === "meta";
-    });
-  }, [allInstances]);
+    }), [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
     const isSupported = provider === "zapi" || provider === "meta" || provider === "evolution";
