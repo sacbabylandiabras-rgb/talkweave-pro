@@ -84,7 +84,17 @@ serve(async (req) => {
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
 
     if (!phone || !instanceId || !isMessage || fromMe) {
-       // Only log if it's not a status/presence callback to keep logs clean
+       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
+       if (isMessage) {
+         await supabase.from("message_logs").insert({
+           user_id: userId,
+           phone: phone,
+           message_received: messageRaw,
+           instance_id: instanceId,
+           timestamp: new Date().toISOString()
+         });
+       }
+
        if (isMessage && fromMe) {
          console.log(`Webhook ignored (Self-message): phone=${phone}, fromMe=${fromMe}, type=${type}`);
        }
@@ -168,6 +178,15 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", userId)
       .eq("active", true);
+
+    // REGISTRA MENSAGEM NO LOG
+    await supabase.from("message_logs").insert({
+      user_id: userId,
+      phone: phone,
+      message_received: messageRaw,
+      instance_id: instanceId,
+      timestamp: new Date().toISOString()
+    });
 
     for (const flow of (flows || [])) {
       const keywords = (flow.keyword || "").split(",").map((k: string) => k.trim());
