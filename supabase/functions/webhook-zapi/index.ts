@@ -159,7 +159,8 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", userId)
       .eq("phone", phone)
-      .not("last_node_id", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
@@ -176,7 +177,7 @@ serve(async (req) => {
       if (flow) {
         const nodes = flow.nodes || [];
         const edges = flow.edges || [];
-        const lastNode = nodes.find((n: any) => n.id === lastNodeId);
+        const lastNode = lastNodeId ? nodes.find((n: any) => n.id === lastNodeId) : null;
 
         if (lastNode) {
           const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp;
@@ -209,6 +210,18 @@ serve(async (req) => {
               }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
 
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
+            }
+          }
+
+          if (!lastNode && isButtonResponse) {
+            const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
+            if (buttonMatch) {
+              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+              await supabase.from("flow_captured_data").update({
+                last_node_id: null,
+                updated_at: new Date().toISOString()
+              }).eq("id", flowState.id);
+              return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
             }
           }
         }
