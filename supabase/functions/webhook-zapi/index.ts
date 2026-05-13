@@ -263,8 +263,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
 
       const resolvedContent = replaceVars(content, captured, phone);
       
-      // Send message via Z-API
-      await sendZapiText(instance, phone, resolvedContent, node.data.buttons);
+      // Send message via Z-API (with buttons if applicable)
+      await sendZapiText(instance, phone, resolvedContent, node.data.buttons, node.id);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
