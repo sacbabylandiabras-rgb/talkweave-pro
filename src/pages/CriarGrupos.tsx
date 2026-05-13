@@ -392,7 +392,10 @@ const CriarGrupos = () => {
                       </SelectTrigger>
                        <SelectContent className="max-h-80">
                          {instances
-                           .filter(inst => inst.api_provider === 'zapi')
+                           .filter(inst => {
+                             const provider = (inst.api_provider || 'zapi').toLowerCase();
+                             return provider === 'zapi' && !inst.instance_name?.toLowerCase().includes('aquec');
+                           })
                            .map((inst) => (
                              <SelectItem key={inst.id} value={inst.id}>{inst.instance_name}</SelectItem>
                            ))
