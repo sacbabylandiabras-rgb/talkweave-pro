@@ -78,22 +78,28 @@ serve(async (req) => {
     // Determine if it's a button response to handle fromMe correctly
     const isButtonResponse = type === "ButtonsResponseMessage" || 
                             type === "ButtonReply" || 
-                            type === "ListResponseMessage";
+                            type === "ListResponseMessage" ||
+                            !!webhook?.buttonsResponseMessage ||
+                            !!webhook?.buttonResponseMessage ||
+                            !!webhook?.buttonReply ||
+                            !!webhook?.listResponseMessage;
 
     // Extract message text and fromMe
-    const messageRaw = webhook?.text?.message || 
-                      webhook?.message?.text || 
-                      webhook?.text || 
-                      webhook?.buttonReply?.text || 
-                      webhook?.buttonReply?.buttonId ||
-                      webhook?.buttonsResponseMessage?.selectedButtonId ||
+    const messageRaw = webhook?.buttonsResponseMessage?.message ||
                       webhook?.buttonsResponseMessage?.buttonText ||
-                      webhook?.buttonResponseMessage?.selectedButtonId ||
+                      webhook?.buttonsResponseMessage?.buttonId ||
+                      webhook?.buttonResponseMessage?.message ||
                       webhook?.buttonResponseMessage?.buttonText ||
+                      webhook?.buttonResponseMessage?.selectedButtonId ||
+                      webhook?.buttonReply?.text ||
+                      webhook?.buttonReply?.buttonId ||
                       webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                       webhook?.listResponseMessage?.title ||
                       webhook?.listResponseMessage?.actionLabel ||
                       webhook?.listResponseMessage?.description ||
+                      webhook?.text?.message || 
+                      webhook?.message?.text || 
+                      webhook?.text || 
                       webhook?.interactiveResponseMessage?.body ||
                       "";
     
@@ -156,7 +162,7 @@ serve(async (req) => {
       .not("last_node_id", "is", null)
       .maybeSingle();
 
-    if (flowState && messageRaw && !fromMe) {
+    if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
       console.log(`Resuming flow ${flowState.flow_id} for phone ${phone} at node ${flowState.last_node_id}`);
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
@@ -249,11 +255,15 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
       const btn = node.data.buttons[i];
       const normalizedBtnText = normalizeForMatch(btn.text);
       // Suporte para matching por ID (enviado via send-button-actions) ou por texto
-      const buttonIdFromWebhook = webhook?.buttonReply?.buttonId || 
+      const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
+                                webhook?.buttonsResponseMessage?.buttonId ||
                                 webhook?.buttonsResponseMessage?.selectedButtonId ||
+                                webhook?.buttonResponseMessage?.buttonId ||
+                                webhook?.buttonResponseMessage?.selectedButtonId ||
                                 webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                                webhook?.buttonResponseMessage?.selectedButtonId;
-      const isIdMatch = buttonIdFromWebhook === btn.id || buttonIdFromWebhook === String(i + 1);
+                                "");
+      const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
+      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
       
       if (isIdMatch || isTextMatch) {
