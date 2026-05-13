@@ -3609,11 +3609,9 @@ serve(async (req) => {
     }
   }
 
-      try {
-        await makeMessageVisibleInInbox(supabase, lockId);
-      } catch (inboxErr) {
+      await releaseMessageProcessingLock(supabase, lockId).catch(inboxErr => {
         console.error("❌ Erro ao tornar mensagem visível no inbox:", inboxErr);
-      }
+      });
  
      // Upsert into saved_contacts to keep name and photo updated in real-time
      if (userId && phone) {
@@ -6203,18 +6201,6 @@ async function setVisibleIncomingMessage(
     .eq("id", lockId);
 }
 
-async function releaseMessageProcessingLock(supabase: any, lockId: string) {
-  // Instead of deleting, finalize the log so the received message appears in chat
-  await supabase
-    .from("message_logs")
-    .update({
-      keyword_matched: null,
-      response_sent: null,
-      timestamp: new Date().toISOString(),
-    })
-    .eq("id", lockId)
-    .eq("keyword_matched", "__processing__");
-}
 
 async function stableUuidFromText(value: string): Promise<string> {
   const encoded = new TextEncoder().encode(value);
