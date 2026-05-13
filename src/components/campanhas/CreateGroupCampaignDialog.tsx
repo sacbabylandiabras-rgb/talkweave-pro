@@ -1,27 +1,3 @@
-           {/* Instância */}
-           <div>
-             <Label>Instância de Envio</Label>
-             <Select
-               value={selectedInstanceId}
-               onValueChange={setSelectedInstanceId}
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Selecione a instância (ou rodízio)" />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value={ROTATE_ALL}>Rodízio (Todas as instâncias)</SelectItem>
-                 {instances.map(inst => (
-                   <SelectItem key={inst.id} value={inst.id}>
-                     {inst.instance_name}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-             <p className="text-[10px] text-muted-foreground mt-1">
-               Selecione uma instância para filtrar os grupos dela ou escolha Rodízio para enviar de todas.
-             </p>
-           </div>
- 
  import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
