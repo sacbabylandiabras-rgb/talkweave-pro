@@ -252,7 +252,7 @@ export function SelectContactsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 flex-1 flex flex-col min-h-0">
           <TabsList className={`grid w-full ${isGroupsMode || isMetaMode || activeWorkspace === "meta" ? "grid-cols-1" : "grid-cols-2"}`}>
             {isGroupsMode ? (
               <TabsTrigger value="groups" className="flex items-center gap-2">
@@ -299,7 +299,7 @@ export function SelectContactsDialog({
           </TabsList>
 
           {isGroupsMode && (
-            <TabsContent value="groups" className="mt-4 space-y-4">
+            <TabsContent value="groups" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -344,7 +344,7 @@ export function SelectContactsDialog({
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="border rounded-lg max-h-[50vh] overflow-y-auto">
+                <div className="flex-1 min-h-[300px] border rounded-lg overflow-y-auto">
                   <div className="p-4 space-y-2">
                     {/* Links Rotativos */}
                     {rotativeLinks.map(link => {
@@ -443,7 +443,7 @@ export function SelectContactsDialog({
             </TabsContent>
           )}
 
-          <TabsContent value="contacts" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
+            <TabsContent value="contacts" className="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -474,7 +474,7 @@ export function SelectContactsDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
-                <div className="border rounded-lg max-h-[50vh] overflow-y-auto">
+                <div className="flex-1 min-h-[300px] border rounded-lg overflow-y-auto">
                 <div className="p-4 space-y-2">
                   {filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -553,7 +553,7 @@ export function SelectContactsDialog({
               Digite o número com DDD e código do país (ex: 5511999999999) e pressione Enter ou clique em Adicionar.
             </p>
 
-            <div className="border rounded-lg max-h-[40vh] overflow-y-auto">
+            <div className="flex-1 min-h-[200px] border rounded-lg overflow-y-auto">
               <div className="p-4 space-y-2">
                 {manualPhones.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
