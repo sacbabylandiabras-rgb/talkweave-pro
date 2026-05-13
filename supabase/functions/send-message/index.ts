@@ -227,7 +227,21 @@ serve(async (req) => {
        credentials = { userId: user.id, instanceId: '', token: '', clientToken: '', instanceName: '' };
      }
 
-     let { instanceId, token, clientToken } = credentials;
+      let { instanceId, token, clientToken, userId } = credentials;
+
+      // Se uma instância específica foi solicitada (via requestedInstanceId), 
+      // vamos tentar usá-la ANTES de cair na instância padrão do credentials.
+      if (requestedInstanceId && !requestedInstanceId.startsWith('meta:')) {
+        const requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
+        if (requestedInstance) {
+          console.log(`✅ Using explicitly requested instance: ${requestedInstance.zapi_instance_id}`);
+          instanceId = requestedInstance.zapi_instance_id;
+          token = requestedInstance.zapi_token;
+          clientToken = requestedInstance.zapi_client_token;
+        } else {
+          console.warn(`⚠️ Requested instance ${requestedInstanceId} not found for user ${userId}, falling back to default`);
+        }
+      }
 
      // META API SUPPORT - Branch off early
      if (requestedInstanceId?.startsWith('meta:')) {
