@@ -83,6 +83,24 @@ serve(async (req) => {
     // Z-API can send fromMe as boolean or string
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true";
 
+     const isManualTrigger = webhook?.__manual_flow_trigger__ === true;
+ 
+     if (isManualTrigger && webhook.flowId) {
+       const { data: manualFlow } = await supabase
+         .from("flow_automations")
+         .select("*")
+         .eq("id", webhook.flowId)
+         .maybeSingle();
+ 
+       if (manualFlow) {
+         const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
+         if (initialNode) {
+           await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData);
+           return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
+         }
+       }
+     }
+ 
     if (!phone || !instanceId || !isMessage || fromMe) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
        if (isMessage) {
