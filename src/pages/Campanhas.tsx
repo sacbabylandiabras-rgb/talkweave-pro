@@ -101,8 +101,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     phone: string | null;
     btn_text: string | null;
   }>>([]);
-  const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
-  const [showFilterDialog, setShowFilterDialog] = useState(false);
+   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
+   const [showFilterDialog, setShowFilterDialog] = useState(false);
+   const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
 
   // Realtime sends for stats dialog
   const { sends: statsDialogSends, loading: statsDialogLoading } = useCampaignSendsRealtime(
@@ -569,10 +570,25 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               Apagar todas
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => setShowFilterDialog(true)}>
-            <Filter className="w-4 h-4 mr-1" />
-            Filtrar Números
-          </Button>
+           <div className="flex items-center bg-accent/30 rounded-lg border border-border/50 px-2 py-1 mr-2">
+             <label htmlFor="remove-duplicates-global" className="flex items-center gap-2 cursor-pointer">
+               <div className="flex flex-col items-end mr-1">
+                 <span className="text-[10px] font-semibold text-foreground leading-none">Remover</span>
+                 <span className="text-[9px] text-muted-foreground leading-none">Duplicados</span>
+               </div>
+               <input 
+                 id="remove-duplicates-global"
+                 type="checkbox"
+                 className="w-3.5 h-3.5 accent-primary cursor-pointer"
+                 checked={removeDuplicatesGlobal}
+                 onChange={(e) => setRemoveDuplicatesGlobal(e.target.checked)}
+               />
+             </label>
+           </div>
+           <Button size="sm" variant="outline" onClick={() => setShowFilterDialog(true)}>
+             <Filter className="w-4 h-4 mr-1" />
+             Filtrar Números
+           </Button>
           <Button size="sm" onClick={() => isGroupsMode ? navigate('/campanhas-grupo/nova') : setShowCreateDialog(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Nova
@@ -580,7 +596,12 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </div>
       </div>
 
-      <FilterNumbersDialog open={showFilterDialog} onOpenChange={setShowFilterDialog} />
+       <FilterNumbersDialog 
+         open={showFilterDialog} 
+         onOpenChange={setShowFilterDialog} 
+         removeDuplicates={removeDuplicatesGlobal}
+         onRemoveDuplicatesChange={setRemoveDuplicatesGlobal}
+       />
 
       <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
         <AlertDialogContent>
