@@ -526,7 +526,7 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial') {
       const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
       if (shouldStop) continue
     }
