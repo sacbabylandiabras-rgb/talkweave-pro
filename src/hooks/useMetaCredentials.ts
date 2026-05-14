@@ -7,13 +7,13 @@ export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
   return useQuery({
     queryKey: ["meta-credentials", appId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
 
       const { data, error } = await supabase
         .from("meta_credentials" as any)
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .eq("app_id", appId)
         .maybeSingle();
 
@@ -23,5 +23,7 @@ export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
       }
       return data as any;
     },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
