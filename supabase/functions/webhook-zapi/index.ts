@@ -187,6 +187,7 @@ serve(async (req) => {
           const field = lastNode.data.collectName ? "nome" : (lastNode.data.collectEmail ? "email" : (lastNode.data.collectWhatsapp ? "whatsapp" : null));
 
           if (isCapture && field) {
+            flowStateHandled = true;
             const captured = flowState.captured_data || {};
             captured[field] = messageRaw;
 
