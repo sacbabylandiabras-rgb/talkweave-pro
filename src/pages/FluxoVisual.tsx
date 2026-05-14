@@ -967,14 +967,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               ? instanceIds[index % instanceIds.length]
               : undefined;
             
-            // Se estiver no modo Meta e não tiver uma instância selecionada, tenta usar a da Meta detectada
-            if (isMetaMode && !currentInstanceId && metaCreds?.phone_number_id) {
-              currentInstanceId = `meta:${metaCreds.phone_number_id}`;
-              console.log("[FluxoVisual] Usando instância Meta detectada automaticamente:", currentInstanceId);
-            }
-
             try {
-              await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
+        const effectiveInstanceId = currentInstanceId || (isMetaMode && metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : undefined);
+        if (isMetaMode && effectiveInstanceId) {
+          console.log("[FluxoVisual] Envio Meta detectado:", effectiveInstanceId);
+        }
+        await processFlow(initialNode.id, contact, visitedNodes, effectiveInstanceId, currentUserId, provider || (isMetaMode ? "meta" : "zapi"), savedFlowId);
               sendCounter++;
             } catch (err) {
               console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
@@ -1037,64 +1035,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         return ax - bx;
       });
 
-    if (outgoingEdges.length === 0) return;
-
-    for (const edge of outgoingEdges) {
-      const targetNode = runtimeNodes.find(n => n.id === edge.target);
-      if (!targetNode) continue;
-
-      if (targetNode.type === "blocoConteudo" || targetNode.type === "blocoInicial") {
-        const delayMs = (targetNode.data.delaySeconds || 0) * 1000;
+    // Process source node if it has content (BlocoInicial or other message nodes)
+    const currentNode = nodeMap.get(currentNodeId);
+    const processNode = async (node: any) => {
+      if (!node) return;
+      
+      if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
+        const delayMs = (node.data.delaySeconds || 0) * 1000;
         if (delayMs > 0) {
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
 
-        const contentType = targetNode.data.contentType || "text";
-        const content = targetNode.data.content || "";
-        const mediaUrl = targetNode.data.mediaUrl || "";
+        const contentType = node.data.contentType || "text";
+        const content = node.data.content || "";
+        const mediaUrl = node.data.mediaUrl || "";
 
-        const buttons = Array.isArray(targetNode.data.buttons) ? targetNode.data.buttons : [];
-
-        // "flow" buttons are sent as REPLY so the user can click them
+        if (!content && !mediaUrl && node.type !== "blocoInicial") return;
+        
+        const buttons = Array.isArray(node.data.buttons) ? node.data.buttons : [];
         const sendableButtons = buttons.filter((btn: any) => btn?.type && btn.type !== "flow");
         const flowButtons = buttons.filter((btn: any) => btn?.type === "flow");
         const allSendButtons = [
           ...sendableButtons,
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
-
-         const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
-           const finalPayload = { ...payload };
-           
-   // Normaliza o destino para grupos se necessário
-    const isGroup = contact.includes('@g.us') || contact.includes('-group');
-    if (isGroup) {
-      const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-      finalPayload.phone = numericId ? `${numericId}-group` : contact;
-      // Adiciona opção de marcar todos se estiver em modo grupo
-      if (nodeData?.mentionAll) {
-        finalPayload.mentionAll = true;
-      }
-    }
-   
-          {
-             const body = instanceId
-               ? { ...finalPayload, instanceId, preferStandardConnection: true }
-               : { ...finalPayload, preferStandardConnection: true };
-            try {
-              const { data, error } = await supabase.functions.invoke('send-message', { body });
-              console.log("[FluxoVisual] send-message result", { body, data, error });
-              const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
-              if (failureMessage) {
-                console.error("[FluxoVisual] Falha real no envio", { body, data, error, failureMessage });
-                throw new Error(failureMessage);
-              }
-            } catch (invokeErr) {
-              console.error("[FluxoVisual] Edge function invocation error", invokeErr);
-              throw invokeErr;
-            }
-          }
-        };
 
         const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
           const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
@@ -1108,313 +1072,110 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           return `https://go.zaplynxpro.online/r?${params.toString()}`;
         };
 
-        // === CAPTURE BLOCK: send only the prompt and pause until user replies ===
-        const collectName = !!targetNode.data.collectName;
-        const collectWhatsapp = !!targetNode.data.collectWhatsapp;
-        const collectEmail = !!targetNode.data.collectEmail;
-
-         const collectCPF = !!targetNode.data.collectCPF;
-
-         if (collectName || collectWhatsapp || collectEmail || collectCPF) {
-           const captureField: "name" | "whatsapp" | "email" | "cpf" = collectName
-            ? "name"
-            : collectWhatsapp
-            ? "whatsapp"
-            : collectEmail
-            ? "email"
-            : "cpf";
-
-           const promptMap: Record<string, string> = {
-             name: targetNode.data.namePrompt || targetNode.data.content || "Qual o seu nome?",
-             whatsapp: targetNode.data.whatsappPrompt || targetNode.data.content || "Qual seu WhatsApp?",
-             email: targetNode.data.emailPrompt || targetNode.data.content || "Qual seu melhor email?",
-             cpf: targetNode.data.cpfPrompt || targetNode.data.content || "Qual o seu CPF?",
-           };
-
-           await sendWithInstance({ phone: contact, message: promptMap[captureField] }, targetNode.data);
-
-          // Persist pending capture state so webhook-zapi can resume the flow when the user replies
-          const pendingFlowId = flowIdForPending || currentFluxoId;
-          if (userId && pendingFlowId) {
-            await supabase.from("flow_captured_data").upsert({
-              user_id: userId,
-              flow_id: pendingFlowId,
-              phone: contact,
-              last_node_id: targetNode.id,
-              captured_data: {},
-              updated_at: new Date().toISOString()
-            }, { onConflict: "user_id,flow_id,phone" });
+        const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
+          const finalPayload = { ...payload };
+          const isGroup = contact.includes('@g.us') || contact.includes('-group');
+          if (isGroup) {
+            const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+            finalPayload.phone = numericId ? `${numericId}-group` : contact;
+            if (nodeData?.mentionAll) finalPayload.mentionAll = true;
           }
 
-          // Stop processing — wait for user reply (webhook-zapi handles resume)
-          return;
-        }
+          const body = instanceId
+            ? { ...finalPayload, instanceId, preferStandardConnection: true }
+            : { ...finalPayload, preferStandardConnection: true };
+          
+          try {
+            const { data, error } = await supabase.functions.invoke('send-message', { body });
+            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+            if (failureMessage) throw new Error(failureMessage);
+          } catch (invokeErr) {
+            console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
+            throw invokeErr;
+          }
+        };
 
         if (allSendButtons.length > 0) {
           const mappedButtons = allSendButtons.map((btn: any, idx: number) => {
             const type = (btn?.type || "reply").toString().toLowerCase();
             const value = (btn?.value || "").toString().trim();
             const label = (btn?.text || `Botão ${idx + 1}`).toString();
-
-            if (type === "url") {
-              const url = wrapUrlWithTracking(value, label, contact);
-              return { id: String(idx + 1), type: "URL" as const, label, url };
-            }
-
-            if (type === "call") {
-              return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
-            }
-
+            if (type === "url") return { id: String(idx + 1), type: "URL" as const, label, url: wrapUrlWithTracking(value, label, contact) };
+            if (type === "call") return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
             return { id: btn.id || String(idx + 1), type: "REPLY" as const, label };
           });
-           if (contentType === "image" && mediaUrl) {
-             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-           } else if (contentType === "video" && mediaUrl) {
-             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-           } else if (contentType === "audio" && mediaUrl) {
-             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-           } else if (contentType === "document" && mediaUrl) {
-             await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-           } else if (contentType === "contact") {
-             await sendWithInstance({
-               phone: contact,
-               specialType: 'contato',
-               specialPayload: {
-                 contactName: targetNode.data.contactName || '',
-                 contactPhone: targetNode.data.contactPhone || '',
-                 contactOrg: targetNode.data.contactOrg || '',
-               },
-             }, targetNode.data);
-             await new Promise(resolve => setTimeout(resolve, 1000));
-            } else if (contentType === "location" || contentType === "request-location") {
-              await sendWithInstance({
-                phone: contact,
-                specialType: 'localizacao',
-                specialPayload: {
-                  latitude: targetNode.data.locationLat || 0,
-                  longitude: targetNode.data.locationLng || 0,
-                  title: targetNode.data.locationName || '',
-                  address: targetNode.data.locationAddress || '',
-                },
-              }, targetNode.data);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else if (contentType === "media-carousel") {
-              let cards = [];
-              try {
-                cards = JSON.parse(targetNode.data.carouselCardsJson || '[]');
-              } catch (e) {
-                console.error("Erro ao parsear cards do carrossel:", e);
-              }
-              if (cards.length > 0) {
-                await sendWithInstance({
-                  phone: contact,
-                  message: content || '',
-                  carouselCards: cards
-                }, targetNode.data);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            }
+
+          if (contentType === "image" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "video" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(node.data.viewOnce ? { viewOnce: true } : {}), ...(node.data.isPtv ? { isPtv: true } : {}) }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "audio" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "document" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
 
           const hasUrlButtons = mappedButtons.some(b => b.type === "URL");
           const hasCallButtons = mappedButtons.some(b => b.type === "CALL");
-          
           if (hasUrlButtons || hasCallButtons) {
-            // Use send-button-actions for templates with URL or CALL buttons
-             await sendWithInstance({
-               phone: contact,
-               message: content || "Escolha uma opção:",
-               buttonActions: mappedButtons.slice(0, 3),
-             }, targetNode.data);
+            await sendWithInstance({ phone: contact, message: content || "Escolha uma opção:", buttonActions: mappedButtons.slice(0, 3) }, node.data);
           } else {
-            // Use standard button-list for REPLY only buttons (better compatibility)
-             await sendWithInstance({
-               phone: contact,
-               message: content || "Escolha uma opção:",
-               buttonList: {
-                 buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label }))
-               },
-             }, targetNode.data);
+            await sendWithInstance({ phone: contact, message: content || "Escolha uma opção:", buttonList: { buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label })) } }, node.data);
           }
-
-          const hasButtonEdgesForPending = buttons.some((btn: any, idx: number) => {
-            if (btn?.type !== "flow" && btn?.type !== "reply") return false;
-            const aliases = [
-              `button-${idx}`,
-              `button_${idx}`,
-              `btn-${idx}`,
-              `btn_${idx}`,
-              `button-${idx + 1}`,
-              `button_${idx + 1}`,
-              `btn-${idx + 1}`,
-              `btn_${idx + 1}`,
-              btn?.id ? String(btn.id) : "",
-            ].filter(Boolean);
-            return runtimeEdges.some((e) => e.source === targetNode.id && aliases.includes(String(e.sourceHandle || "")));
-          });
-
-          const pendingFlowId = flowIdForPending || currentFluxoId;
-          if (hasButtonEdgesForPending && userId && pendingFlowId) {
-            await supabase.from("flow_captured_data").upsert({
-              user_id: userId,
-              flow_id: pendingFlowId,
-              phone: contact,
-              last_node_id: targetNode.id,
-              captured_data: {},
-              updated_at: new Date().toISOString()
-            }, { onConflict: "user_id,flow_id,phone" });
+        } else if (content || mediaUrl) {
+          switch (contentType) {
+            case "text": if (content) await sendWithInstance({ phone: contact, message: content }, node.data); break;
+            case "image": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' }, node.data); break;
+            case "video": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(node.data.viewOnce ? { viewOnce: true } : {}), ...(node.data.isPtv ? { isPtv: true } : {}) }, node.data); break;
+            case "audio": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' }, node.data); break;
+            case "document": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' }, node.data); break;
           }
-        } else {
-           switch (contentType) {
-              case "text": {
-                if (!content) continue;
-                await sendWithInstance({ phone: contact, message: content }, targetNode.data);
-                break;
-              }
-              case "product": {
-                if (!targetNode.data.productId) continue;
-                await sendWithInstance({
-                  phone: contact,
-                  message: content || '',
-                  mediaType: 'product',
-                  specialPayload: { productId: targetNode.data.productId }
-                }, targetNode.data);
-                break;
-              }
-             case "image":
-               if (!mediaUrl) continue;
-               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' }, targetNode.data);
-               break;
-             case "video":
-               if (!mediaUrl) continue;
-               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(targetNode.data.viewOnce ? { viewOnce: true } : {}), ...(targetNode.data.isPtv ? { isPtv: true } : {}) }, targetNode.data);
-               break;
-             case "audio":
-               if (!mediaUrl) continue;
-               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' }, targetNode.data);
-               break;
-             case "document":
-               if (!mediaUrl) continue;
-               await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' }, targetNode.data);
-               break;
-             case "pix": {
-               const body: Record<string, any> = {
-                 phone: contact,
-                 specialType: 'pix',
-                 specialPayload: {
-                   pixKey: targetNode.data.pixKey || '',
-                   pixKeyType: targetNode.data.pixKeyType || 'cpf',
-                   merchantName: targetNode.data.pixReceiver || '',
-                   amount: targetNode.data.pixAmount || '',
-                   description: targetNode.data.pixDescription || content || '',
-                 },
-               };
-               await sendWithInstance(body, targetNode.data);
-               break;
-             }
-              case "request-payment":
-              case "gateway-billing": {
-                const body: Record<string, any> = {
-                  phone: contact,
-                  specialType: targetNode.data.contentType === 'gateway-billing' ? 'gateway-billing' : 'pix',
-                  specialPayload: {
-                    pixKey: targetNode.data.paymentReceiver || '',
-                    pixKeyType: 'random',
-                    merchantName: targetNode.data.paymentReceiver || '',
-                    amount: targetNode.data.paymentAmount || '',
-                    description: targetNode.data.paymentDescription || content || '',
-                    paymentSource: targetNode.data.paymentSource || (targetNode.data.contentType === 'gateway-billing' ? 'gateway' : 'manual'),
-                  },
-                };
-                await sendWithInstance(body, targetNode.data);
-                break;
-              }
-              case "order-status": {
-                const body: Record<string, any> = {
-                  phone: contact,
-                  specialType: 'order-status',
-                  specialPayload: {
-                    orderStatus: targetNode.data.orderStatus || 'PROCESSING',
-                    referenceId: targetNode.data.orderReferenceId || '',
-                    order: targetNode.data.orderJson ? JSON.parse(targetNode.data.orderJson) : {},
-                  },
-                };
-                await sendWithInstance(body, targetNode.data);
-                break;
-              }
-              case "order-payment": {
-                const body: Record<string, any> = {
-                  phone: contact,
-                  specialType: 'order-payment',
-                  specialPayload: {
-                    paymentStatus: targetNode.data.orderPaymentStatus || 'PAID',
-                    referenceId: targetNode.data.orderReferenceId || '',
-                    order: targetNode.data.orderJson ? JSON.parse(targetNode.data.orderJson) : {},
-                  },
-                };
-                await sendWithInstance(body, targetNode.data);
-                break;
-              }
-             case "location":
-             case "request-location": {
-               const body: Record<string, any> = {
-                 phone: contact,
-                 specialType: 'localizacao',
-                 specialPayload: {
-                   latitude: targetNode.data.locationLat || 0,
-                   longitude: targetNode.data.locationLng || 0,
-                   title: targetNode.data.locationName || '',
-                   address: targetNode.data.locationAddress || '',
-                 },
-               };
-               await sendWithInstance(body, targetNode.data);
-               break;
-             }
-              case "contact": {
-                const body: Record<string, any> = {
-                  phone: contact,
-                  specialType: 'contato',
-                  specialPayload: {
-                    contactName: targetNode.data.contactName || '',
-                    contactPhone: targetNode.data.contactPhone || '',
-                    contactOrg: targetNode.data.contactOrg || '',
-                  },
-                };
-                await sendWithInstance(body, targetNode.data);
-                break;
-              }
-              case "media-carousel": {
-                let cards = [];
-                try {
-                  cards = JSON.parse(targetNode.data.carouselCardsJson || "[]");
-                } catch (e) {
-                  console.error("Erro ao parsear carrossel:", e);
-                }
-                if (cards.length > 0) {
-                  await sendWithInstance({
-                    phone: contact,
-                    message: content || '',
-                    carouselCards: cards
-                  }, targetNode.data);
-                }
-                break;
-              }
-           }
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    };
 
-        const hasButtonEdges = buttons.some((_: any, idx: number) =>
-          runtimeEdges.some((e) => e.source === targetNode.id && e.sourceHandle === `button-${idx}`)
-        );
+    // Process the current node content
+    await processNode(currentNode);
 
-        if (hasButtonEdges) {
-          continue;
+    if (outgoingEdges.length === 0) return;
+
+    for (const edge of outgoingEdges) {
+      const targetNode = runtimeNodes.find(n => n.id === edge.target);
+      if (!targetNode) continue;
+
+      // Check if current handle has been "sent" via buttons that stop flow
+      const buttons = Array.isArray(currentNode?.data?.buttons) ? currentNode.data.buttons : [];
+      const hasButtonEdgesFromHandle = buttons.some((_: any, idx: number) => 
+        edge.sourceHandle === `button-${idx}` || edge.sourceHandle === `button_${idx}`
+      );
+      
+      if (hasButtonEdgesFromHandle) {
+        const pendingFlowId = flowIdForPending || currentFluxoId;
+        if (userId && pendingFlowId) {
+          await supabase.from("flow_captured_data").upsert({
+            user_id: userId,
+            flow_id: pendingFlowId,
+            phone: contact,
+            last_node_id: currentNodeId,
+            captured_data: {},
+            updated_at: new Date().toISOString()
+          }, { onConflict: "user_id,flow_id,phone" });
         }
+        // Pause this path — webhook will resume when user clicks button
+        continue;
       }
 
+      // Check for data collection prompts that pause flow
+      const collectAny = currentNode?.data?.collectName || currentNode?.data?.collectWhatsapp || currentNode?.data?.collectEmail || currentNode?.data?.collectCPF;
+      if (collectAny) {
+        // Flow is already paused by processNode for this node
+        return;
+      }
        // Bloco de ação ou agendamento: aplica delay/agendamento antes de continuar o fluxo
        if (targetNode.type === "blocoAcao" || targetNode.type === "blocoAgendamento") {
          const actionType = targetNode.data.actionType;
