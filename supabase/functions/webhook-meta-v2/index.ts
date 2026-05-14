@@ -662,7 +662,7 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoAcao') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial' || targetNode.type === 'blocoAcao') {
       const isActionDelay = targetNode.type === 'blocoAcao' && targetNode.data.actionType === 'delay'
       
       if (isActionDelay) {
@@ -674,13 +674,13 @@ async function processFlowNodeMeta(
         }
       }
 
-      if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
-      if (shouldStop) continue
+      if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial') {
+        const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName, options)
+        if (shouldStop) continue
       }
     }
 
-    await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName)
+    await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName, options)
   }
 }
 
