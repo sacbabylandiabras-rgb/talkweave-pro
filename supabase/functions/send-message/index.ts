@@ -343,11 +343,13 @@ serve(async (req) => {
         if (mapping.instance_id) {
             const lidInstance = await findUserInstance(adminClient, credentials.userId, mapping.instance_id);
 
-            if (lidInstance) {
+            if (lidInstance && !lockedToRequestedInstance) {
               console.log(`✅ Using mapped instance ${lidInstance.zapi_instance_id} for resolved LID`);
               instanceId = lidInstance.zapi_instance_id;
               token = lidInstance.zapi_token;
               clientToken = lidInstance.zapi_client_token;
+            } else if (lidInstance && lockedToRequestedInstance) {
+              console.log(`🔒 LID mapped to instance ${lidInstance.zapi_instance_id}, but keeping user-selected instance ${instanceId}.`);
           }
         }
       } else {
