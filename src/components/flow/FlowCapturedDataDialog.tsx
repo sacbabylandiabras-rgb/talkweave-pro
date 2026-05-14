@@ -30,6 +30,7 @@ interface CapturedRow {
   nome: string | null;
   whatsapp: string | null;
   email: string | null;
+  cpf: string | null;
   source: string | null;
   created_at: string;
   updated_at: string;
@@ -78,7 +79,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter(r =>
-      [r.nome, r.whatsapp, r.email, r.phone, r.flow_name].some(
+      [r.nome, r.whatsapp, r.email, r.cpf, r.phone, r.flow_name].some(
         v => (v || "").toLowerCase().includes(q)
       )
     );
@@ -89,7 +90,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
       toast.info("Nenhum dado para exportar");
       return;
     }
-    const header = ["Fluxo", "Nome", "WhatsApp", "Email", "Telefone Origem", "Data", "Hora"];
+    const header = ["Fluxo", "Nome", "WhatsApp", "Email", "CPF", "Telefone Origem", "Data", "Hora"];
     const lines = [header.join(",")];
     filtered.forEach(r => {
       const dt = new Date(r.updated_at);
@@ -100,6 +101,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
         r.nome || "",
         r.whatsapp || "",
         r.email || "",
+        r.cpf || "",
         r.phone || "",
         data,
         hora,
@@ -171,6 +173,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
                 <TableHead>Nome</TableHead>
                 <TableHead>WhatsApp</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>CPF</TableHead>
                 <TableHead>Telefone Origem</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -192,6 +195,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
                     <TableCell className="font-medium">{r.nome || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{r.whatsapp || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{r.email || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{r.cpf || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.phone}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(r.updated_at).toLocaleString("pt-BR")}

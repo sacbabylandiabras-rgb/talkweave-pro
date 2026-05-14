@@ -439,7 +439,10 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       
       let content = "";
       if (isCapture) {
-        content = node.data.collectName ? node.data.namePrompt : (node.data.collectEmail ? node.data.emailPrompt : node.data.whatsappPrompt);
+        if (node.data.collectName) content = node.data.namePrompt;
+        else if (node.data.collectEmail) content = node.data.emailPrompt;
+        else if (node.data.collectWhatsapp) content = node.data.whatsappPrompt;
+        else if (node.data.collectCPF) content = node.data.cpfPrompt;
       } else {
         content = node.data.content || "";
       }
