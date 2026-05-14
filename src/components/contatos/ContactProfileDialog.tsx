@@ -160,14 +160,15 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       // Also fetch from flow_captured_data if available
       const { data: capturedData } = await supabase
         .from('flow_captured_data')
-        .select('email, cpf')
+        .select('*')
         .eq('phone', contact.phone)
         .limit(1)
         .maybeSingle();
 
       if (capturedData) {
-        setCapturedEmail(capturedData.email);
-        setCapturedCPF(capturedData.cpf);
+        const data = capturedData as any;
+        setCapturedEmail(data.email);
+        setCapturedCPF(data.cpf);
       }
     } catch (e) {
       console.error('Error fetching contact metadata:', e);
