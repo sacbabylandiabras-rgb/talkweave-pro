@@ -60,9 +60,9 @@ export default function ConfiguracaoMeta() {
     }
   }, [searchParams, setSearchParams, queryClient]);
 
-  const fetchPhoneNumbers = async (showError = false) => {
-    if (!isConnected) {
-      setPhoneNumbers([]);
+  const fetchPhoneNumbers = async (showError = false, force = false) => {
+    if (!isConnected || (loadingPhones && !force)) {
+      if (!isConnected) setPhoneNumbers([]);
       return;
     }
 
@@ -88,9 +88,9 @@ export default function ConfiguracaoMeta() {
   };
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && creds?.access_token) {
       void fetchPhoneNumbers();
-    } else {
+    } else if (!isConnected) {
       setPhoneNumbers([]);
     }
   }, [isConnected, creds?.access_token, creds?.waba_id]);
