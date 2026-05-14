@@ -94,20 +94,22 @@ export default function TemplatesAprovados() {
 
   const fetchTemplates = async (force = false) => {
     const cacheKey = `meta_templates_${creds?.phone_number_id || 'default'}`;
-    if (!force) {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          const { data, ts } = JSON.parse(cached);
-          if (Date.now() - ts < 1000 * 60 * 30) { // 30 min cache
-            setTemplates(data);
-            return;
-          }
-        } catch (e) {
-          localStorage.removeItem(cacheKey);
+    const cached = localStorage.getItem(cacheKey);
+    let hasValidCache = false;
+
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached);
+        setTemplates(data);
+        if (!force && Date.now() - ts < 1000 * 60 * 60) { // 1 hour cache
+          hasValidCache = true;
         }
+      } catch (e) {
+        localStorage.removeItem(cacheKey);
       }
     }
+
+    if (hasValidCache && !force) return;
 
     setLoading(true);
     try {
