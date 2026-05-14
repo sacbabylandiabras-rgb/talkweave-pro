@@ -172,7 +172,7 @@ serve(async (req) => {
 
     let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
 
-    if (!flowState && isGroup && chatId && chatId !== phone) {
+    if (!participantFlowState && !flowState && isGroup && chatId && chatId !== phone) {
       const { data: sharedGroupFlowState } = await supabase
         .from("flow_captured_data")
         .select("*")
