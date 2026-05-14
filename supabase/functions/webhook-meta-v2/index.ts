@@ -448,16 +448,18 @@ async function sendNodeContentMeta(
     flowId?: string;
   }
 ): Promise<boolean> {
-  if (targetNode.type !== 'blocoConteudo') return false
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial') return false
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  // Handle delay before sending content
-  const delaySeconds = Number(targetNode.data.delaySeconds || 0)
-  if (delaySeconds > 0) {
-    const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
-    console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
-    await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+  if (targetNode.type === 'blocoConteudo') {
+    // Handle delay before sending content
+    const delaySeconds = Number(targetNode.data.delaySeconds || 0)
+    if (delaySeconds > 0) {
+      const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
+      console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
+      await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+    }
   }
 
   const contentType = targetNode.data.contentType || 'text'
