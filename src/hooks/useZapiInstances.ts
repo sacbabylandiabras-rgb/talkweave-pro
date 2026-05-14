@@ -82,6 +82,9 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos específicos
     if (isUazapi && !provider.includes("zapi")) return false;
 
+    // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
+    if (provider === 'meta') return true;
+
     return true;
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
