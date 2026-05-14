@@ -88,6 +88,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
     const [note, setNote] = useState("");
+    const [capturedEmail, setCapturedEmail] = useState<string | null>(null);
+    const [capturedCPF, setCapturedCPF] = useState<string | null>(null);
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [loadingTags, setLoadingTags] = useState(false);
 
@@ -153,6 +155,19 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (data.notes) {
           setNote(data.notes.content || "");
         }
+      }
+
+      // Also fetch from flow_captured_data if available
+      const { data: capturedData } = await supabase
+        .from('flow_captured_data')
+        .select('email, cpf')
+        .eq('phone', contact.phone)
+        .limit(1)
+        .maybeSingle();
+
+      if (capturedData) {
+        setCapturedEmail(capturedData.email);
+        setCapturedCPF(capturedData.cpf);
       }
     } catch (e) {
       console.error('Error fetching contact metadata:', e);
