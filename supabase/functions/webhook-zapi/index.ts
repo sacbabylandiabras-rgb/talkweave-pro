@@ -434,6 +434,13 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
+      // Aplicar delay do bloco de conteúdo se existir
+      const delaySeconds = Number(node.data.delaySeconds || 0);
+      if (delaySeconds > 0) {
+        console.log(`⏳ Aguardando delay de ${delaySeconds}s para o bloco ${node.id}`);
+        await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+      }
+
       const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp || node.data.collectCPF;
       const hasButtons = node.data.buttons?.length > 0;
       
@@ -481,7 +488,38 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         return;
       }
     } else if (node.type === "agenteIA") {
+      // Agente IA também pode ter delay
+      const delaySeconds = Number(node.data.delaySeconds || 0);
+      if (delaySeconds > 0) {
+        await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+      }
+
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
+    } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
+      // Suporte para blocos de agendamento e delay de ação
+      const actionType = node.data.actionType;
+      const isDelay = actionType === "delay" || node.type === "blocoAgendamento" && !node.data.scheduleType || node.data.scheduleType === "once";
+      
+      if (actionType === "delay" || node.type === "blocoAcao" && actionType === "delay") {
+        const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
+        if (seconds > 0) {
+          console.log(`⏳ Aguardando delay de ação de ${seconds}s`);
+          await new Promise(resolve => setTimeout(resolve, Math.min(seconds, 25) * 1000));
+        }
+      } else if (node.type === "blocoAgendamento" || (node.type === "blocoAcao" && actionType === "schedule")) {
+        const scheduledAt = node.data.scheduledAt || node.data.actionConfig;
+        if (scheduledAt) {
+          const targetDate = new Date(scheduledAt);
+          const diffMs = targetDate.getTime() - Date.now();
+          if (diffMs > 0) {
+            // No Edge Function, limitamos o wait para não dar timeout (max 25s)
+            const waitTime = Math.min(diffMs, 25000);
+            console.log(`⏳ Aguardando agendamento até ${targetDate.toISOString()} (limitado a 25s)`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
+      }
+    }
       const model = "anthropic/claude-3-5-sonnet";
       
       const userMessage = webhook?.buttonsResponseMessage?.message ||
