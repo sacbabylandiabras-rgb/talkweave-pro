@@ -98,6 +98,8 @@ export function SelectContactsDialog({
     }
   }, [open, isGroupsMode]);
 
+  const effectiveProvider = isMetaMode ? "meta" : "zapi";
+
   useEffect(() => {
     if (open) {
       setSelectedContacts([]);
