@@ -2994,11 +2994,44 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                    Prompt de Sistema / Instruções
-                  </Label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-purple-500" />
+                      Prompt de Sistema / Instruções
+                    </Label>
+                    <Select
+                      onValueChange={(val) => {
+                        const templates: Record<string, string> = {
+                          clinica: "Você é um assistente virtual de uma clínica médica. Seu objetivo é ser empático, profissional e ajudar pacientes com informações sobre especialidades e convênios. Peça o nome do paciente caso ainda não saiba.",
+                          agendamento: "Você é um assistente focado em agendamento. Seu objetivo é identificar o serviço desejado, verificar a disponibilidade (simulada) e coletar os dados necessários para confirmar o horário. Seja direto e organizado.",
+                          oficina: "Você é um consultor técnico de uma oficina mecânica. Use um tom prestativo e confiável. Ajude o cliente a descrever o problema do veículo e explique a importância da manutenção preventiva.",
+                          restaurante: "Você é o atendente de um restaurante. Seu tom deve ser receptivo e entusiasmado. Ajude com dúvidas sobre o cardápio, horários e reservas de mesa.",
+                          estetica: "Você é um consultor de uma clínica de estética. Use um tom sofisticado e acolhedor. Foque nos benefícios dos tratamentos de beleza e bem-estar para elevar a autoestima da cliente.",
+                          qualificacao: "Você é um especialista em qualificação de leads para o produto X. Seu objetivo é fazer perguntas estratégicas para entender se o cliente tem o perfil ideal para a compra antes de passar para um vendedor humano."
+                        };
+                        if (templates[val]) {
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, prompt: templates[val] },
+                          });
+                          toast.success("Modelo de prompt carregado!");
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px] h-7 text-[10px] bg-purple-50 dark:bg-purple-900/20 border-purple-200">
+                        <SelectValue placeholder="Modelos prontos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="clinica">Clínica Médica</SelectItem>
+                        <SelectItem value="agendamento">Agendar Consulta</SelectItem>
+                        <SelectItem value="oficina">Oficina Mecânica</SelectItem>
+                        <SelectItem value="restaurante">Restaurante</SelectItem>
+                        <SelectItem value="estetica">Clínica de Estética</SelectItem>
+                        <SelectItem value="qualificacao">Qualificação de Lead</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Textarea
                     value={selectedNode.data.prompt || ""}
                     onChange={(e) =>
@@ -3011,8 +3044,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     rows={8}
                     className="text-sm italic"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Defina o comportamento, tom de voz e as regras que a IA deve seguir para responder.
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Defina o comportamento, tom de voz e as regras que a IA deve seguir para responder. Você pode editar totalmente os modelos acima.
                   </p>
                 </div>
 
