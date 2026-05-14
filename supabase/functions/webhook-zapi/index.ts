@@ -163,6 +163,9 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // Se encontrarmos um estado de fluxo, tentamos processar antes de verificar gatilhos globais
+    let flowStateHandled = false;
+
     if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
       console.log(`Resuming flow ${flowState.flow_id} for phone ${phone} at node ${flowState.last_node_id}`);
       const flowId = flowState.flow_id;
@@ -202,6 +205,7 @@ serve(async (req) => {
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
+              flowStateHandled = true;
               // REGISTRA CLIQUE DE BOTAO NAS METRICAS
               await supabase.from("message_logs").insert({
                 user_id: userId,
@@ -227,6 +231,7 @@ serve(async (req) => {
         } else if (isButtonResponse) {
           const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
           if (buttonMatch) {
+            flowStateHandled = true;
             // REGISTRA CLIQUE DE BOTAO NAS METRICAS (RECUPERADO)
             await supabase.from("message_logs").insert({
               user_id: userId,
@@ -264,13 +269,15 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    for (const flow of (flows || [])) {
-      const keywords = (flow.keyword || "").split(",").map((k: string) => k.trim());
-      if (keywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
-        const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
-        if (initialNode) {
-          await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
-          return new Response("flow_triggered", { status: 200, headers: corsHeaders });
+    if (!flowStateHandled) {
+      for (const flow of (flows || [])) {
+        const keywords = (flow.keyword || "").split(",").map((k: string) => k.trim());
+        if (keywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+          const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
+          if (initialNode) {
+            await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
+            return new Response("flow_triggered", { status: 200, headers: corsHeaders });
+          }
         }
       }
     }
