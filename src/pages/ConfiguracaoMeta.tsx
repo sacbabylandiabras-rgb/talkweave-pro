@@ -47,12 +47,13 @@ export default function ConfiguracaoMeta() {
     
     if (connected === "1") {
       toast.success("Conta Meta conectada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] }).then(() => {
-        // Remove params without triggering a full re-render loop if possible
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("connected");
-        setSearchParams(newParams, { replace: true });
-      });
+      // Invalidate query and update workspace context to ensure immediate UI update
+      queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      
+      // Remove params without triggering a full re-render loop
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("connected");
+      setSearchParams(newParams, { replace: true });
     } else if (error === "1") {
       toast.error("Erro ao conectar conta Meta. Tente novamente.");
       const newParams = new URLSearchParams(searchParams);
