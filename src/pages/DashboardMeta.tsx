@@ -98,8 +98,6 @@ export default function DashboardMeta() {
   useEffect(() => {
     if (isConnected) {
       void fetchProfile();
-      setPhoneNumbers([]);
-      setHasLoadedPhoneNumbers(false);
       return;
     }
 
