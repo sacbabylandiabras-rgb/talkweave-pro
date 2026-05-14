@@ -476,7 +476,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
     } else if (node.type === "agenteIA") {
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
-      const model = node.data.aiModel || "google/gemini-2.0-flash-001";
+      const model = "anthropic/claude-3-5-sonnet";
       
       const userMessage = webhook?.buttonsResponseMessage?.message ||
                         webhook?.buttonResponseMessage?.message ||

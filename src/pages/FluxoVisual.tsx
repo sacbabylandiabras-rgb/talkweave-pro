@@ -3018,24 +3018,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Modelo de IA</Label>
-                  <Select
-                    value={selectedNode.data.aiModel || "google/gemini-2.0-flash-001"}
-                    onValueChange={(value) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, aiModel: value },
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o modelo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Mais rápido)</SelectItem>
-                      <SelectItem value="anthropic/claude-3-5-sonnet">Claude 3.5 Sonnet (Mais inteligente)</SelectItem>
-                      <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2 p-2 rounded border border-purple-200 bg-purple-50 dark:bg-purple-900/10 dark:border-purple-900/30 text-[11px] font-medium text-purple-700 dark:text-purple-400">
+                    <Sparkles className="w-3 h-3" />
+                    Modelo: Claude 3.5 Sonnet (Anthropic)
+                  </div>
                 </div>
 
                 <div className="p-3 rounded-lg border border-purple-100 bg-purple-50/50 dark:bg-purple-900/5 dark:border-purple-900/20">
