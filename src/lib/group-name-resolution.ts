@@ -74,12 +74,11 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
      return rawId ? `${rawId}-group` : phone;
    }
  
-   // Handle regular phones - strip common suffixes and standardize to digits@c.us
+  // Handle regular phones - strip common suffixes and standardize to digits
    const digits = phone.replace(/\D/g, '');
    if (!digits) return phone;
    
-   // Normalizing to digits@c.us ensures consistent keys while staying compatible with expectations
-   return `${digits}@c.us`;
+  return digits;
  };
 
 export const rememberGroupDisplayName = (
