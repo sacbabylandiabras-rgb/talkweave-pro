@@ -57,9 +57,7 @@ export default function CampanhaGrupoFluxo() {
   const { toast } = useToast();
   const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
-  const { groups, loading: loadingGroups } = useWhatsAppGroups({
-    provider: 'zapi_no_warmup_meta'
-  });
+  const { groups, loading: loadingGroups } = useWhatsAppGroups({ provider: 'zapi' });
   const { instances: allInstances } = useZapiInstances();
 
   const instances = useMemo(() => allInstances.filter(i => {
