@@ -282,7 +282,20 @@ serve(async (req) => {
 
                   if (initialNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
-                    await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, matchedFlow.name)
+                    const options = { flowId: matchedFlow.id }
+                    const visited = new Set<string>()
+                    
+                    const shouldStop = await sendNodeContentMeta(
+                      initialNode, nodes, edges, fromPhone, metaCreds,
+                      visited, supabase, userId, matchedFlow.name, options
+                    )
+                    
+                    if (!shouldStop) {
+                      await processFlowNodeMeta(
+                        initialNode.id, nodes, edges, fromPhone, metaCreds,
+                        supabase, visited, userId, matchedFlow.name, options
+                      )
+                    }
 
                     await supabase.from('message_logs').insert({
                       user_id: userId,
