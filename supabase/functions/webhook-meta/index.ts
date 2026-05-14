@@ -371,7 +371,7 @@ async function sendNodeContentMeta(
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  if (targetNode.type !== 'blocoConteudo') return false
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial') return false
 
   const contentType = targetNode.data.contentType || 'text'
   const content = targetNode.data.content || ''
