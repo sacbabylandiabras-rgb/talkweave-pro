@@ -1341,12 +1341,12 @@ export default function FluxoMeta() {
           if (!o) setIsSelectingPreGroups(false);
         }}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode="meta"
       />
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode="meta"
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
@@ -1739,13 +1739,13 @@ export default function FluxoMeta() {
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode="meta"
       />
 
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode="meta"
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
