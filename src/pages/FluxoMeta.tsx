@@ -1088,8 +1088,8 @@ export default function FluxoMeta() {
           const body = { 
             ...finalPayload, 
             preferStandardConnection: true,
-            ...(instanceId ? { instanceId } : {}),
-            ...(isMetaMode ? { phone_number_id: (instanceId || '').split(':')[1] || metaCreds?.phone_number_id } : {})
+            ...(instanceId ? { instanceId, phone_number_id: (instanceId || '').split(':')[1] } : {}),
+            ...(isMetaMode && !instanceId ? { phone_number_id: metaCreds?.phone_number_id } : {})
           };
           
           try {
