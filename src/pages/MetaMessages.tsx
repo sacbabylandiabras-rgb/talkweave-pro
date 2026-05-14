@@ -1796,19 +1796,23 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { instances: allInstances, activeInstance: rawActiveInstance, loading: instancesLoading } = useZapiInstances({ provider: 'meta' });
-  // Mensagens no painel Meta usa exclusivamente instâncias Meta
+  const { data: metaCreds, isLoading: loadingMetaCreds } = useMetaCredentials();
+
   const instances = useMemo(() => {
-    return allInstances.filter((i: any) => (i.api_provider || "").toLowerCase() === "meta");
-  }, [allInstances]);
-  const activeInstance = useMemo(() => {
-    const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
-    const isSupported = provider === "zapi" || provider === "meta" || provider === "evolution";
+    if (!metaCreds?.connected || !metaCreds?.phone_number_id) return [];
     
-    return (rawActiveInstance && isSupported
-      ? rawActiveInstance
-      : instances.find((i: any) => i.is_default) || instances[0] || null);
-  }, [rawActiveInstance, instances]);
+    return [{
+      id: `meta:${metaCreds.phone_number_id}`,
+      instance_name: metaCreds.fb_user_name || "Meta API",
+      zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
+      is_default: true,
+      api_provider: "meta"
+    }];
+  }, [metaCreds]);
+
+  const instancesLoading = loadingMetaCreds;
+
+  const activeInstance = useMemo(() => instances[0] || null, [instances]);
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
   const [connectedInstanceNames, setConnectedInstanceNames] = useState<string[] | null>(null);
   const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
@@ -1885,8 +1889,6 @@ const MetaMessages = () => {
   const [syncing, setSyncing] = useState(false);
    const isMobile = useIsMobile();
    const { toast } = useToast();
-   const { data: metaCreds } = useMetaCredentials();
-
    useEffect(() => {
      // Limpa o localStorage de conversas deletadas antigas
      localStorage.removeItem('deletedConversations');
