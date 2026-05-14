@@ -66,7 +66,9 @@ export default function EnvioCloudAPI() {
   // shared
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
-  const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState("");
+  const [selectedPhoneNumberId, setSelectedPhoneNumberId] = useState(() => {
+    return localStorage.getItem("meta_selected_phone_number_id") || "";
+  });
   const [sending, setSending] = useState(false);
 
   // phone numbers
@@ -489,7 +491,12 @@ export default function EnvioCloudAPI() {
               <button
                 key={pn.id}
                 type="button"
-                onClick={() => setSelectedPhoneNumberId(pn.id === selectedPhoneNumberId ? "" : pn.id)}
+                onClick={() => {
+                  const nextId = pn.id === selectedPhoneNumberId ? "" : pn.id;
+                  setSelectedPhoneNumberId(nextId);
+                  if (nextId) localStorage.setItem("meta_selected_phone_number_id", nextId);
+                  else localStorage.removeItem("meta_selected_phone_number_id");
+                }}
                 className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors text-left ${
                   selectedPhoneNumberId === pn.id
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
