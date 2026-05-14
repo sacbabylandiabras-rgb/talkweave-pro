@@ -137,10 +137,10 @@ const metaMenuItems = [
   { id: "templates-aprovados", label: "Templates", icon: FileCheck, path: "/meta/templates" },
    { id: "envio-meta", label: "Enviar", icon: Send, path: "/meta/enviar" },
    { id: "fluxo-meta", label: "Fluxo Visual", icon: Workflow, path: "/meta/fluxo" },
-  { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
-  { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
-  { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
-  { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
+  { id: "campanhas-meta", label: "Campanhas", icon: Megaphone, path: "/meta/campanhas" },
+  { id: "contatos-meta", label: "Contatos", icon: Users, path: "/meta/contatos" },
+  { id: "relatorio-meta", label: "Relatório", icon: BarChart3, path: "/meta/relatorio" },
+  { id: "gateway-meta", label: "Integração", icon: Webhook, path: "/meta/gateway" },
 ];
 
 const gatewayMenuItems = [
