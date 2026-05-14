@@ -154,7 +154,9 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
       allInstances = [...zapiData];
       
-      if (options?.includeMeta) {
+      const hasConnectedMeta = options?.includeMeta && Array.isArray(metaResponse?.data) && metaResponse.data.length > 0;
+
+      if (hasConnectedMeta) {
         try {
           const { data: phoneData, error: phoneError } = await supabase.functions.invoke("send-meta-message", {
             body: { action: "get_phone_numbers" },
