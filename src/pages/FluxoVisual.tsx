@@ -1045,15 +1045,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
            const finalPayload = { ...payload };
            
    // Normaliza o destino para grupos se necessário
-   const isGroup = contact.includes('@g.us') || contact.includes('-group');
-   if (isGroup) {
-     const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-     finalPayload.phone = numericId ? `${numericId}-group` : contact;
-     // Adiciona opção de marcar todos se estiver em modo grupo
-     if (nodeData?.mentionAll) {
-       finalPayload.mentionAll = true;
-     }
-   }
+    const isGroup = contact.includes('@g.us') || contact.includes('-group');
+    if (isGroup) {
+      const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+      finalPayload.phone = numericId ? `${numericId}-group` : contact;
+      // Adiciona opção de marcar todos se estiver em modo grupo
+      if (nodeData?.mentionAll) {
+        finalPayload.mentionAll = true;
+      }
+    }
    
           {
              const body = instanceId
