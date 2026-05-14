@@ -158,19 +158,32 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         }
       }
 
-      // Also fetch from flow_captured_data if available
-      const { data: capturedData } = await supabase
+      // Also fetch from flow_captured_data — pega a linha mais recente que tenha email/cpf
+      const cleanPhone = String(contact.phone || '').replace(/-group$/, '').replace(/@.+$/, '');
+      const { data: capturedRows } = await supabase
         .from('flow_captured_data')
-        .select('*')
-        .eq('phone', contact.phone)
-        .limit(1)
-        .maybeSingle();
+        .select('email, captured_data, updated_at')
+        .or(`phone.eq.${contact.phone},phone.eq.${cleanPhone}`)
+        .order('updated_at', { ascending: false })
+        .limit(20);
 
-      if (capturedData) {
-        const data = capturedData as any;
-        setCapturedEmail(data.email);
-        setCapturedCPF(data.cpf);
+      if (Array.isArray(capturedRows) && capturedRows.length > 0) {
+        const emailRow = capturedRows.find((r: any) => r.email) as any;
+        if (emailRow?.email) setCapturedEmail(emailRow.email);
+        const cpfRow = capturedRows.find((r: any) => (r.captured_data as any)?.cpf) as any;
+        if (cpfRow) setCapturedCPF((cpfRow.captured_data as any).cpf);
       }
+
+      // Restaurar tags do localStorage caso a API não retorne
+      try {
+        const cached = localStorage.getItem(`contact_tags:${contact.phone}`);
+        if (cached) {
+          const cachedTags = JSON.parse(cached);
+          if (Array.isArray(cachedTags) && cachedTags.length > 0) {
+            setLocalTags((prev) => prev.length > 0 ? prev : cachedTags);
+          }
+        }
+      } catch {}
     } catch (e) {
       console.error('Error fetching contact metadata:', e);
     }
@@ -241,14 +254,20 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     onUpdate?.();
   };
 
+  const persistTagsLocal = (tags: string[]) => {
+    if (!contact) return;
+    try {
+      localStorage.setItem(`contact_tags:${contact.phone}`, JSON.stringify(tags));
+    } catch {}
+  };
+
   const handleAddTag = async (tagId: string, tagName: string) => {
     if (!contact) return;
     try {
-      const res = await addTagChat(contact.phone, tagId);
-      console.log('[ContactProfileDialog] Tag added:', res);
-      if (!localTags.includes(tagName)) {
-        setLocalTags([...localTags, tagName]);
-      }
+      await addTagChat(contact.phone, tagId);
+      const next = localTags.includes(tagName) ? localTags : [...localTags, tagName];
+      setLocalTags(next);
+      persistTagsLocal(next);
       setAddingTag(false);
       onUpdate?.();
     } catch (e) {
@@ -266,7 +285,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
 
     try {
       await removeTagChat(contact.phone, tagObj.id);
-      setLocalTags(localTags.filter(t => t !== tagName));
+      const next = localTags.filter(t => t !== tagName);
+      setLocalTags(next);
+      persistTagsLocal(next);
       onUpdate?.();
     } catch (e) {
       console.error('handleRemoveTag error:', e);
