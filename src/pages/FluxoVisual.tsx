@@ -323,10 +323,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const fetchFluxos = async () => {
     try {
       setLoading(true);
+      const category = isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts');
       const { data, error } = await (supabase as any)
         .from('flow_automations')
         .select('*')
-        .eq('category', isGroupsMode ? 'groups' : 'contacts')
+        .eq('category', category)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -459,7 +460,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           nodes: fluxo.nodes,
           edges: fluxo.edges,
           active: false,
-          category: isGroupsMode ? 'groups' : 'contacts',
+          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
         });
 
       if (error) throw error;
@@ -648,7 +649,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
-        category: isGroupsMode ? 'groups' : 'contacts',
+          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
       };
 
       if (currentFluxoId) {
