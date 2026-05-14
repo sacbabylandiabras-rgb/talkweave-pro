@@ -42,19 +42,27 @@ export default function ConfiguracaoMeta() {
   const isConnected = creds?.connected === true;
 
   useEffect(() => {
-    if (searchParams.get("connected") === "1") {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    
+    if (connected === "1") {
       toast.success("Conta Meta conectada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
-      setSearchParams({}, { replace: true });
-    } else if (searchParams.get("error") === "1") {
+      // Remove params without triggering a full re-render loop if possible
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("connected");
+      setSearchParams(newParams, { replace: true });
+    } else if (error === "1") {
       toast.error("Erro ao conectar conta Meta. Tente novamente.");
-      setSearchParams({}, { replace: true });
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("error");
+      setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams, queryClient]);
 
-  const fetchPhoneNumbers = async (showError = false) => {
-    if (!isConnected) {
-      setPhoneNumbers([]);
+  const fetchPhoneNumbers = async (showError = false, force = false) => {
+    if (!isConnected || (loadingPhones && !force)) {
+      if (!isConnected) setPhoneNumbers([]);
       return;
     }
 
@@ -80,9 +88,9 @@ export default function ConfiguracaoMeta() {
   };
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && creds?.access_token) {
       void fetchPhoneNumbers();
-    } else {
+    } else if (!isConnected) {
       setPhoneNumbers([]);
     }
   }, [isConnected, creds?.access_token, creds?.waba_id]);
@@ -190,7 +198,7 @@ export default function ConfiguracaoMeta() {
     ? `${(creds.access_token as string).slice(0, 12)}...${(creds.access_token as string).slice(-6)}`
     : "—";
 
-   if (isLoading || isFetching) {
+   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
