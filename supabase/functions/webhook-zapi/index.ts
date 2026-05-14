@@ -47,6 +47,13 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   return normalizedMessage.includes(normalizedKeyword);
 }
 
+function getCaptureHandle(field: string) {
+  if (field === "nome") return "collect-name";
+  if (field === "email") return "collect-email";
+  if (field === "whatsapp") return "collect-whatsapp";
+  return `collect-${field}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -198,7 +205,8 @@ serve(async (req) => {
               updated_at: new Date().toISOString()
             }).eq("id", flowState.id);
 
-            const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === `collect-${field}`);
+            const captureHandle = getCaptureHandle(field);
+            const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
             if (edge) {
               await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData, chatId, isGroup, webhook);
             }
