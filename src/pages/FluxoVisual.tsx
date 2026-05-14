@@ -1950,13 +1950,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
-        mode={isGroupsMode ? "groups" : "contacts"}
+        mode={mode}
       />
 
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={isGroupsMode ? "groups" : "contacts"}
+        mode={mode}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
