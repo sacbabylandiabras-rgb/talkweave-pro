@@ -1060,6 +1060,18 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
 
+        const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
+          const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
+          const params = new URLSearchParams({
+            url: finalUrl,
+            flow: nomeFluxo,
+            btn: btnText,
+            uid: userId || '',
+            ph: phone,
+          });
+          return `https://go.zaplynxpro.online/r?${params.toString()}`;
+        };
+
         const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
           const finalPayload = { ...payload };
           const isGroup = contact.includes('@g.us') || contact.includes('-group');
