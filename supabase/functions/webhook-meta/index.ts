@@ -286,12 +286,13 @@ serve(async (req) => {
 // =================== META API SEND HELPERS ===================
 
 async function metaSendText(accessToken: string, phoneNumberId: string, to: string, message: string) {
+  const cleanTo = to.replace(/\D/g, '')
   const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: 'text',
       text: { body: message },
     }),
@@ -308,12 +309,13 @@ async function metaSendMedia(accessToken: string, phoneNumberId: string, to: str
   if (caption && metaType !== 'audio') mediaPayload.caption = caption
   if (metaType === 'document') mediaPayload.filename = mediaUrl.split('/').pop() || 'file'
 
+  const cleanTo = to.replace(/\D/g, '')
   const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: metaType,
       [metaType]: mediaPayload,
     }),
@@ -329,12 +331,13 @@ async function metaSendInteractive(accessToken: string, phoneNumberId: string, t
     reply: { id: btn.id, title: btn.title.slice(0, 20) },
   }))
 
+  const cleanTo = to.replace(/\D/g, '')
   const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: 'interactive',
       interactive: {
         type: 'button',
