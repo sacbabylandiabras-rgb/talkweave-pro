@@ -1085,9 +1085,12 @@ export default function FluxoMeta() {
             if (nodeData?.mentionAll) finalPayload.mentionAll = true;
           }
 
-          const body = instanceId
-            ? { ...finalPayload, instanceId, preferStandardConnection: true }
-            : { ...finalPayload, preferStandardConnection: true };
+          const body = { 
+            ...finalPayload, 
+            preferStandardConnection: true,
+            ...(instanceId ? { instanceId } : {}),
+            ...(isMetaMode ? { phone_number_id: (instanceId || '').split(':')[1] || metaCreds?.phone_number_id } : {})
+          };
           
           try {
             const { data, error } = await supabase.functions.invoke('send-message', { body });
