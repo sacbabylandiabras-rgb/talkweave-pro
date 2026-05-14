@@ -78,7 +78,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter(r =>
-      [r.nome, r.whatsapp, r.email, r.phone, r.flow_name].some(
+      [r.nome, r.whatsapp, r.email, r.cpf, r.phone, r.flow_name].some(
         v => (v || "").toLowerCase().includes(q)
       )
     );
