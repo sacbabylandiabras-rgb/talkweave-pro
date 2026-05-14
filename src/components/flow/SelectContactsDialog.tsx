@@ -538,7 +538,7 @@ export function SelectContactsDialog({
         <div className="border-t pt-4">
           <div className="space-y-3">
             <InstanceSelector
-              providerFilter={isMetaMode ? "meta" : undefined}
+              providerFilter={isMetaMode ? "meta" : "zapi"}
               onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
             />
             {isMetaMode && selectedInstanceIds.length === 0 && (
