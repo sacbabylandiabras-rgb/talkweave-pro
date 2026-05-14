@@ -126,7 +126,7 @@ serve(async (req) => {
                 msgText = buttonReplyTitle
               }
 
-               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId}`)
+               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" replyId="${buttonReplyId}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId}`)
  
                // Update profile name/contact name if available
                if (contactName && userId) {
