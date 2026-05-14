@@ -1432,7 +1432,7 @@ const getZAPIConfig = async () => {
   const addTagChat = async (phone: string, tagId: string) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('add-tag-chat', phone, { tagId });
+      const data = await invokeZapiAction('add-tag-chat', phone, { tagId, add: true });
       toast({ title: "Etiqueta adicionada", description: "O contato foi marcado com sucesso." });
       return data;
     } catch (error) {
@@ -1447,7 +1447,7 @@ const getZAPIConfig = async () => {
   const removeTagChat = async (phone: string, tagId: string) => {
     setLoading(true);
     try {
-      const data = await invokeZapiAction('remove-tag-chat', phone, { tagId });
+      const data = await invokeZapiAction('remove-tag-chat', phone, { tagId, add: false });
       toast({ title: "Etiqueta removida", description: "A marcação foi removida com sucesso." });
       return data;
     } catch (error) {

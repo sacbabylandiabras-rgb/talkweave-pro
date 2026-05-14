@@ -331,10 +331,14 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'DELETE', path: `/business/tag/${payload?.id}` };
     case 'edit-tag':
       return { method: 'POST', path: `/business/edit-tag/${payload?.id}`, body: { name: payload?.name, color: payload?.color } };
-    case 'add-tag-chat':
-      return { method: 'PUT', path: `/chats/${phone}/tags/${payload?.tagId}/add` };
-    case 'remove-tag-chat':
-      return { method: 'PUT', path: `/chats/${phone}/tags/${payload?.tagId}/remove` };
+    case 'add-tag-chat': {
+      const target = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
+      return { method: 'PUT', path: `/chats/${target}/tags/${payload?.tagId}/add` };
+    }
+    case 'remove-tag-chat': {
+      const target = phone.includes('-group') ? phone.replace(/-group$/i, '@g.us') : phone;
+      return { method: 'PUT', path: `/chats/${target}/tags/${payload?.tagId}/remove` };
+    }
     case 'search-tags':
       return { method: 'GET', path: `/tags/search?tagId=${payload?.tagId}` };
     case 'tag-colors':
