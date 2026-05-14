@@ -1,7 +1,8 @@
  import { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Smartphone, RefreshCw, Check } from "lucide-react";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapiInstances, type ZapiInstance } from "@/hooks/useZapiInstances";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { cn } from "@/lib/utils";
 
 interface InstanceSelectorProps {
