@@ -972,7 +972,11 @@ export default function FluxoMeta() {
               : undefined;
             
             try {
-        const effectiveInstanceId = currentInstanceId || (isMetaMode && metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : undefined);
+        let effectiveInstanceId = currentInstanceId;
+        if (isMetaMode && !effectiveInstanceId) {
+          const activeMetaPhone = zapiInstances.find(i => i.api_provider === 'meta' && i.is_active);
+          effectiveInstanceId = activeMetaPhone ? activeMetaPhone.id : (metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : undefined);
+        }
         if (isMetaMode && effectiveInstanceId) {
           console.log("[FluxoVisual] Envio Meta detectado:", effectiveInstanceId);
         }
@@ -1088,8 +1092,8 @@ export default function FluxoMeta() {
           const body = { 
             ...finalPayload, 
             preferStandardConnection: true,
-            ...(instanceId ? { instanceId, phone_number_id: (instanceId || '').split(':')[1] } : {}),
-            ...(isMetaMode && !instanceId ? { phone_number_id: metaCreds?.phone_number_id } : {})
+            ...(instanceId ? { instanceId, override_phone_number_id: (instanceId || '').split(':')[1] } : {}),
+            ...(isMetaMode && !instanceId ? { override_phone_number_id: metaCreds?.phone_number_id } : {})
           };
           
           try {

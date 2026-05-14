@@ -127,7 +127,7 @@ serve(async (req) => {
                 msgText = buttonReplyTitle
               }
 
-               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" replyId="${buttonReplyId}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId}`)
+               console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText.slice(0, 100)}" buttonReply="${buttonReplyTitle}" replyId="${buttonReplyId}" | contact: ${contactName} | phoneNumberId: ${phoneNumberId} | userId: ${userId}`)
  
                // Update profile name/contact name if available
                if (contactName && userId) {
@@ -212,7 +212,11 @@ serve(async (req) => {
 
                   if (initialNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
-                    await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, matchedFlow.name)
+                    const visited = new Set<string>()
+                    const shouldStop = await sendNodeContentMeta(initialNode, nodes, edges, fromPhone, metaCreds, visited, supabase, userId, matchedFlow.name)
+                    if (!shouldStop) {
+                      await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, visited, userId, matchedFlow.name)
+                    }
 
                     await supabase.from('message_logs').insert({
                       user_id: userId,
@@ -286,12 +290,14 @@ serve(async (req) => {
 // =================== META API SEND HELPERS ===================
 
 async function metaSendText(accessToken: string, phoneNumberId: string, to: string, message: string) {
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const cleanTo = to.replace(/\D/g, '')
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: 'text',
       text: { body: message },
     }),
@@ -308,12 +314,14 @@ async function metaSendMedia(accessToken: string, phoneNumberId: string, to: str
   if (caption && metaType !== 'audio') mediaPayload.caption = caption
   if (metaType === 'document') mediaPayload.filename = mediaUrl.split('/').pop() || 'file'
 
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const cleanTo = to.replace(/\D/g, '')
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: metaType,
       [metaType]: mediaPayload,
     }),
@@ -329,12 +337,14 @@ async function metaSendInteractive(accessToken: string, phoneNumberId: string, t
     reply: { id: btn.id, title: btn.title.slice(0, 20) },
   }))
 
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const cleanTo = to.replace(/\D/g, '')
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: to.replace(/\D/g, ''),
+      to: cleanTo,
       type: 'interactive',
       interactive: {
         type: 'button',
@@ -364,7 +374,7 @@ async function sendNodeContentMeta(
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  if (targetNode.type !== 'blocoConteudo') return false
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial') return false
 
   const contentType = targetNode.data.contentType || 'text'
   const content = targetNode.data.content || ''
@@ -519,7 +529,7 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial') {
       const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
       if (shouldStop) continue
     }
