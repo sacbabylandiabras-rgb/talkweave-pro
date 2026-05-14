@@ -394,6 +394,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   },
 ];
 
-export function getTemplatesForMode(mode: "contacts" | "groups"): FlowTemplate[] {
-  return FLOW_TEMPLATES.filter((t) => t.mode === mode || t.mode === "both");
+export function getTemplatesForMode(mode: "contacts" | "groups" | "meta"): FlowTemplate[] {
+  const effectiveMode = mode === "meta" ? "contacts" : mode;
+  return FLOW_TEMPLATES.filter((t) => t.mode === effectiveMode || t.mode === "both");
 }

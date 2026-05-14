@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Globe, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type FlowSendProvider = "zapi";
+export type FlowSendProvider = "zapi" | "meta";
 
 
 interface SelectContactsDialogProps {
@@ -97,7 +97,7 @@ export function SelectContactsDialog({
     }
   }, [open, isGroupsMode]);
 
-  const effectiveProvider = "zapi";
+  const effectiveProvider = isMetaMode ? "meta" : "zapi";
 
   useEffect(() => {
     if (open) {
@@ -106,7 +106,7 @@ export function SelectContactsDialog({
       setManualPhone("");
       setManualPhones([]);
        setActiveTab(isGroupsMode ? "groups" : "contacts");
-      setSendProvider("zapi");
+      setSendProvider(isMetaMode ? "meta" : "zapi");
     }
   }, [open, isGroupsMode]);
 
@@ -181,11 +181,7 @@ export function SelectContactsDialog({
       ? [...new Set(selectedContacts)]
       : [...new Set([...selectedContacts, ...manualPhones])];
     if (allPhones.length === 0) return;
-    onConfirm(
-      allPhones,
-      selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined,
-      "zapi"
-    );
+    onConfirm(allPhones, selectedInstanceIds.length > 0 ? selectedInstanceIds : undefined, sendProvider);
     onOpenChange(false);
   };
 
@@ -530,8 +526,9 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            {(isGroupsMode || effectiveProvider === "zapi") && (
+            {(isGroupsMode || isMetaMode || effectiveProvider === "zapi" || effectiveProvider === "meta") && (
               <InstanceSelector
+                providerFilter={isMetaMode ? "meta" : (effectiveProvider === "zapi" ? "zapi" : undefined)}
                 onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
               />
             )}

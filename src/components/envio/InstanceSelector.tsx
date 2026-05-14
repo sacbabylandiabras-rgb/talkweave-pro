@@ -10,7 +10,7 @@ interface InstanceSelectorProps {
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
   /** Restrict to instances of a specific api_provider (e.g. "uazapi"). */
-  providerFilter?: "zapi";
+  providerFilter?: "zapi" | "meta";
 }
 
 const ROTATE_ALL = "__rotate_all__";
