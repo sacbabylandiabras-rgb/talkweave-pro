@@ -2208,14 +2208,12 @@ const MetaMessages = () => {
       
       if (hasMetaMarker) return true;
       
-      // 3. Fallback: Se não houver instâncias Z-API configuradas e for uma conversa 1:1,
-      // assumimos que pode ser Meta (ajuda em contas novas ou migrações).
-      const hasZapiInstances = allInstances.some(i => (i.api_provider || 'zapi') !== 'meta');
-      if (!hasZapiInstances) return true;
+      // 3. Fallback: assume que pode ser Meta para conversas 1:1
+      return true;
 
       return false;
     });
-  }, [conversations, selectedInstanceId, allInstances]);
+  }, [conversations, selectedInstanceId]);
 
   const filteredConversations = metaConversations.filter((conv) => {
     if (!searchTerm) return true;
