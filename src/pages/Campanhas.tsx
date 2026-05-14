@@ -64,7 +64,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   } = useCampaigns();
   
   const { toast } = useToast();
-  const { instances, activeInstance } = useZapiInstances();
+  const { instances, activeInstance } = useZapiInstances({ provider: 'zapi' });
   
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -985,7 +985,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           <div className="py-2">
             <div className="flex flex-wrap gap-2">
               <InstanceSelector
-                providerFilter="all"
+                providerFilter="zapi"
                 onMultiInstanceChange={(ids) => {
                   if (ids.length > 1) {
                     setInstanceSelectionMode('rotate');
@@ -1045,7 +1045,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           </AlertDialogHeader>
           <div className="py-2 space-y-4">
              <InstanceSelector
-                providerFilter="all"
+                providerFilter="zapi"
                 onMultiInstanceChange={(ids) => {
                   if (ids.length > 1) {
                     setInstanceSelectionMode('rotate');
