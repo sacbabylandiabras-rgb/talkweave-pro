@@ -202,6 +202,17 @@ serve(async (req) => {
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
+              // REGISTRA CLIQUE DE BOTAO NAS METRICAS
+              await supabase.from("message_logs").insert({
+                user_id: userId,
+                phone: phone,
+                message_received: messageRaw,
+                instance_id: instanceId,
+                keyword_matched: `[Botão: ${buttonMatch.text}]`,
+                response_sent: `[Fluxo: ${flow.name}]`,
+                timestamp: new Date().toISOString()
+              });
+
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
 
               await supabase.from("flow_captured_data").update({
@@ -216,6 +227,17 @@ serve(async (req) => {
         } else if (isButtonResponse) {
           const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
           if (buttonMatch) {
+            // REGISTRA CLIQUE DE BOTAO NAS METRICAS (RECUPERADO)
+            await supabase.from("message_logs").insert({
+              user_id: userId,
+              phone: phone,
+              message_received: messageRaw,
+              instance_id: instanceId,
+              keyword_matched: `[Botão: ${buttonMatch.text}]`,
+              response_sent: `[Fluxo: ${flow.name}]`,
+              timestamp: new Date().toISOString()
+            });
+
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
             await supabase.from("flow_captured_data").update({
               last_node_id: null,
@@ -281,7 +303,7 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
       
       if (isIdMatch || isTextMatch) {
         const edge = edges.find(e => e.source === sourceNodeId && (e.sourceHandle === `button-${i}` || e.sourceHandle === btn.id));
-        if (edge) return { targetId: edge.target };
+        if (edge) return { targetId: edge.target, text: btn.text };
       }
     }
   return null;
@@ -306,7 +328,7 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
       const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
       const normalizedBtnText = normalizeForMatch(btn.text);
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
-      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target };
+      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target, text: btn.text };
     }
   }
   return null;
