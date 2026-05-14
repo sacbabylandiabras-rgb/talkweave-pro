@@ -87,7 +87,8 @@ import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
 import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { useZapi } from "@/hooks/useZapi";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapiInstances, type ZapiInstance } from "@/hooks/useZapiInstances";
+import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -250,13 +251,31 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances: allInstances } = useZapiInstances();
-   const instances = useMemo(() => {
-     return allInstances.filter((i) => {
-       const provider = (i.api_provider || "zapi").toLowerCase();
-       return provider === "zapi";
-     });
-   }, [allInstances]);
+  const { instances: zapiInstances } = useZapiInstances();
+  const { data: metaCreds } = useMetaCredentials();
+
+  const instances = useMemo(() => {
+    const list = [...zapiInstances];
+    
+    // If Meta credentials exist, add a virtual Meta instance
+    if (metaCreds?.connected && metaCreds?.phone_number_id) {
+      list.push({
+        id: `meta:${metaCreds.phone_number_id}`,
+        instance_name: metaCreds.fb_user_name || "Meta API",
+        zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
+        is_default: list.length === 0,
+        api_provider: "meta",
+        is_active: true,
+        user_id: metaCreds.user_id,
+        zapi_token: "",
+        zapi_client_token: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+    
+    return list;
+  }, [zapiInstances, metaCreds]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
