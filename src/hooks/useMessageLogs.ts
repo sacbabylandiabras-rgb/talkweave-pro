@@ -895,7 +895,17 @@ export const useMessageLogs = (
                 return;
               }
 
-              setMessageLogs(prev => {
+               setMessageLogs(prev => {
+                 // Som de notificação para novas mensagens recebidas
+                 if (payload.eventType === 'INSERT' && record.message_received && !record.keyword_matched?.startsWith('__')) {
+                   try {
+                     const audio = new Audio('/sounds/notificacao_custom.mp3');
+                     audio.play().catch(e => console.warn('Erro ao reproduzir som de notificação:', e));
+                   } catch (err) {
+                     console.warn('Erro ao inicializar áudio de notificação:', err);
+                   }
+                 }
+
                 const exists = prev.some(m => m.id === record.id);
                 let next;
                 if (exists) {
