@@ -111,7 +111,21 @@ export default function EnvioCloudAPI() {
   }, [isConnected, selectedPhoneNumberId]);
 
   /* ---------- fetchers ---------- */
-  const fetchPhoneNumbers = async () => {
+  const fetchPhoneNumbers = async (force = false) => {
+    const cacheKey = `meta_phones_${creds?.user_id || 'default'}`;
+    if (!force) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < 1000 * 60 * 60) { // 1 hour cache
+            setPhoneNumbers(data);
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+
     setLoadingPhones(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-meta-message", {
@@ -119,7 +133,9 @@ export default function EnvioCloudAPI() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setPhoneNumbers(data.phone_numbers || []);
+      const phones = data.phone_numbers || [];
+      setPhoneNumbers(phones);
+      localStorage.setItem(cacheKey, JSON.stringify({ data: phones, ts: Date.now() }));
     } catch (err) {
       console.error("Error fetching phone numbers:", err);
     } finally {
@@ -127,7 +143,21 @@ export default function EnvioCloudAPI() {
     }
   };
 
-  const fetchTemplates = async (phoneNumberId?: string) => {
+  const fetchTemplates = async (phoneNumberId?: string, force = false) => {
+    const cacheKey = `meta_templates_${phoneNumberId || 'default'}`;
+    if (!force) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < 1000 * 60 * 15) { // 15 min cache
+            setTemplates(data.filter((t: MetaTemplate) => t.status === "APPROVED"));
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+
     setLoadingTemplates(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-meta-message", {
@@ -138,7 +168,9 @@ export default function EnvioCloudAPI() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setTemplates((data.templates || []).filter((t: MetaTemplate) => t.status === "APPROVED"));
+      const tpls = data.templates || [];
+      localStorage.setItem(cacheKey, JSON.stringify({ data: tpls, ts: Date.now() }));
+      setTemplates(tpls.filter((t: MetaTemplate) => t.status === "APPROVED"));
     } catch (err) {
       console.error("Error fetching templates:", err);
       const msg = await getInvokeErrorMessage(err, "Erro desconhecido");
