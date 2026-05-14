@@ -224,13 +224,18 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups";
+  mode?: "contacts" | "groups" | "meta";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode ? "Crie automações visuais para grupos do WhatsApp" : "Crie automações visuais disparadas por palavra-chave";
+  const isMetaMode = mode === "meta";
+  const pageTitle = isMetaMode ? "Fluxo Meta" : isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isMetaMode 
+    ? "Crie automações visuais para sua conta da Meta API"
+    : isGroupsMode 
+      ? "Crie automações visuais para grupos do WhatsApp" 
+      : "Crie automações visuais disparadas por palavra-chave";
   const emptyHelp = isGroupsMode
     ? "Crie seu primeiro fluxo visual para grupos"
     : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
@@ -1560,12 +1565,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           if (!o) setIsSelectingPreGroups(false);
         }}
         onConfirm={handleConfirmSend}
-        mode={isGroupsMode ? "groups" : "contacts"}
+        mode={mode}
       />
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={isGroupsMode ? "groups" : "contacts"}
+        mode={mode}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
