@@ -1837,7 +1837,10 @@ const MetaMessages = () => {
     }
   };
 
-  const [selectedInstanceId, setSelectedInstanceId] = useState("all");
+  const [selectedInstanceId, setSelectedInstanceId] = useState(() => {
+    // If we have Meta instances, default to the first one or 'all'
+    return "all";
+  });
   // Only show connected instances in the picker. While we're still checking
   // connection status, fall back to all registered instances to avoid an empty UI.
   const visibleInstances = useMemo(() => {
@@ -2182,12 +2185,35 @@ const MetaMessages = () => {
 
   const metaConversations = useMemo(() => {
     return conversations.filter(conv => {
-      // Include if it's explicitly a meta instance or has messages from meta
-      const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
-                   conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
-      return isMeta;
+      // Skip groups as Meta API doesn't support them natively yet
+      if (isGroupPhone(conv.phone)) return false;
+
+      // 1. Se estiver filtrando por uma instância específica da Meta
+      if (selectedInstanceId !== 'all' && selectedInstanceId.startsWith('meta:')) {
+        // Verifica se a conversa pertence a essa instância
+        const belongsToSelected = conv.preferredInstanceId === selectedInstanceId || 
+                                 conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
+        if (belongsToSelected) return true;
+      }
+
+      // 2. Se for "todas", verifica se tem QUALQUER marcador de Meta
+      const hasMetaMarker = conv.preferredInstanceId?.startsWith('meta:') || 
+                           conv.messages.some(m => 
+                             m.externalMessageId?.startsWith('meta:') || 
+                             m.content.includes('[sender:meta:') ||
+                             ((m as any).instance_id && String((m as any).instance_id).startsWith('meta:'))
+                           );
+      
+      if (hasMetaMarker) return true;
+      
+      // 3. Fallback: Se não houver instâncias Z-API configuradas e for uma conversa 1:1,
+      // assumimos que pode ser Meta (ajuda em contas novas ou migrações).
+      const hasZapiInstances = allInstances.some(i => (i.api_provider || 'zapi') !== 'meta');
+      if (!hasZapiInstances) return true;
+
+      return false;
     });
-  }, [conversations]);
+  }, [conversations, selectedInstanceId, allInstances]);
 
   const filteredConversations = metaConversations.filter((conv) => {
     if (!searchTerm) return true;
