@@ -942,27 +942,33 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       // Round-robin counter for instance rotation
       let sendCounter = 0;
 
-       for (let index = 0; index < selectedContacts.length; index++) {
-         if (cancelSendRef.current) break;
+        const sendToContacts = async () => {
+          const promises = selectedContacts.map(async (contact, index) => {
+            if (cancelSendRef.current) return;
 
-         const contact = selectedContacts[index];
-         const visitedNodes = new Set<string>();
-         const currentInstanceId = instanceIds && instanceIds.length > 0
-           ? instanceIds[index % instanceIds.length]
-           : undefined;
+            // Pequeno escalonamento para não disparar todos exatamente no mesmo milisegundo
+            // mas permitir que os delays e agendamentos internos de cada fluxo rodem em paralelo
+            await new Promise(resolve => setTimeout(resolve, index * 200));
+            
+            if (cancelSendRef.current) return;
 
-         try {
-            await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
-           sendCounter++;
-         } catch (err) {
-           console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
-         }
+            const visitedNodes = new Set<string>();
+            const currentInstanceId = instanceIds && instanceIds.length > 0
+              ? instanceIds[index % instanceIds.length]
+              : undefined;
 
-         // Small delay between contacts to avoid rate limits
-         if (index < selectedContacts.length - 1) {
-           await new Promise(resolve => setTimeout(resolve, 500));
-         }
-       }
+            try {
+              await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
+              sendCounter++;
+            } catch (err) {
+              console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
+            }
+          });
+
+          await Promise.all(promises);
+        };
+
+        await sendToContacts();
 
       if (cancelSendRef.current) {
         toast.info("Envio cancelado", {

@@ -1386,8 +1386,9 @@ serve(async (req) => {
       throw new Error('Campaign template not found');
     }
 
-    const isGroupCampaign = campaign.target_audience?.type === 'groups';
-    const delayMs = isGroupCampaign ? 0 : (campaign.delay_seconds || 2) * 1000;
+    const isGroupCampaign = campaign.target_audience?.type === 'groups' || campaign.target_audience?.mode === 'groups';
+    // Respeita o delay configurado na campanha mesmo para grupos, se houver
+    const delayMs = (campaign.delay_seconds || (isGroupCampaign ? 0 : 2)) * 1000;
     // For group campaigns, we allow a much larger batch size and faster processing
     // For group campaigns, we allow a larger batch size to process more groups before re-invocation.
     // Since group sends typically have 0 delay, we can process many in one execution.
