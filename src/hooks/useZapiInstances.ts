@@ -144,18 +144,19 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
           .eq("connected", true)
           .maybeSingle();
 
-        if (metaCreds?.phone_number_id) {
+        const creds = metaCreds as any;
+        if (creds?.phone_number_id) {
           const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
           const info = cachedInfo ? JSON.parse(cachedInfo) : {};
           const displayName = info.display_phone_number 
-            ? `${metaCreds.fb_user_name || "Meta API"} (${info.display_phone_number})`
-            : metaCreds.fb_user_name || "Meta API";
+            ? `${creds.fb_user_name || "Meta API"} (${info.display_phone_number})`
+            : creds.fb_user_name || "Meta API";
 
           allInstances.push({
-            id: `meta:${metaCreds.phone_number_id}`,
+            id: `meta:${creds.phone_number_id}`,
             user_id: user.id,
             instance_name: displayName,
-            zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
+            zapi_instance_id: `meta:${creds.phone_number_id}`,
             zapi_token: "",
             zapi_client_token: "",
             is_default: allInstances.length === 0,
