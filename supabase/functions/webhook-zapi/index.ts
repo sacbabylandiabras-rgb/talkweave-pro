@@ -386,6 +386,42 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
   return null;
 }
 
+async function callAI(systemPrompt: string, userMessage: string, model: string) {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    console.error("LOVABLE_API_KEY not found");
+    return "Desculpe, estou com problemas técnicos agora (API Key ausente).";
+  }
+
+  try {
+    console.log(`🤖 Chamando IA Gateway: Modelo=${model}`);
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage || "Olá" }
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      console.error("Erro na IA:", data.error);
+      return "Desculpe, tive um erro ao processar sua resposta com IA.";
+    }
+    return data.choices?.[0]?.message?.content || "Não consegui gerar uma resposta.";
+  } catch (error) {
+    console.error("Error calling AI Gateway:", error);
+    return "Erro ao processar sua solicitação com IA.";
+  }
+}
+
 async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string, isGroup?: boolean, webhook?: any) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
@@ -438,6 +474,23 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         }, { onConflict: "user_id,flow_id,phone" });
         return;
       }
+    } else if (node.type === "agenteIA") {
+      const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
+      const model = node.data.aiModel || "google/gemini-2.0-flash-001";
+      
+      const userMessage = webhook?.buttonsResponseMessage?.message ||
+                        webhook?.buttonResponseMessage?.message ||
+                        webhook?.buttonReply?.text ||
+                        webhook?.text?.message || 
+                        webhook?.message?.text || 
+                        webhook?.text || 
+                        "";
+
+      const resolvedPrompt = replaceVars(prompt, captured, phone);
+      const aiResponse = await callAI(resolvedPrompt, userMessage, model);
+      
+      const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+      await sendZapiText(instance, destination, aiResponse, [], node.id);
     }
     // Find next node (default edge)
     const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
