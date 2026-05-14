@@ -967,14 +967,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               ? instanceIds[index % instanceIds.length]
               : undefined;
             
-            // Se estiver no modo Meta e não tiver uma instância selecionada, tenta usar a da Meta detectada
-            if (isMetaMode && !currentInstanceId && metaCreds?.phone_number_id) {
-              currentInstanceId = `meta:${metaCreds.phone_number_id}`;
-              console.log("[FluxoVisual] Usando instância Meta detectada automaticamente:", currentInstanceId);
-            }
-
             try {
-              await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
+        const effectiveInstanceId = currentInstanceId || (isMetaMode && metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : undefined);
+        if (isMetaMode && effectiveInstanceId) {
+          console.log("[FluxoVisual] Envio Meta detectado:", effectiveInstanceId);
+        }
+        await processFlow(initialNode.id, contact, visitedNodes, effectiveInstanceId, currentUserId, provider || (isMetaMode ? "meta" : "zapi"), savedFlowId);
               sendCounter++;
             } catch (err) {
               console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
@@ -1036,6 +1034,101 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         const bx = bTarget?.position?.x ?? 0;
         return ax - bx;
       });
+
+    // Process source node if it has content (BlocoInicial or other message nodes)
+    const currentNode = nodeMap.get(currentNodeId);
+    const processNode = async (node: any) => {
+      if (!node) return;
+      
+      if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
+        const delayMs = (node.data.delaySeconds || 0) * 1000;
+        if (delayMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
+        const contentType = node.data.contentType || "text";
+        const content = node.data.content || "";
+        const mediaUrl = node.data.mediaUrl || "";
+
+        if (!content && !mediaUrl && node.type !== "blocoInicial") return;
+        
+        const buttons = Array.isArray(node.data.buttons) ? node.data.buttons : [];
+        const sendableButtons = buttons.filter((btn: any) => btn?.type && btn.type !== "flow");
+        const flowButtons = buttons.filter((btn: any) => btn?.type === "flow");
+        const allSendButtons = [
+          ...sendableButtons,
+          ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
+        ];
+
+        const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
+          const finalPayload = { ...payload };
+          const isGroup = contact.includes('@g.us') || contact.includes('-group');
+          if (isGroup) {
+            const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+            finalPayload.phone = numericId ? `${numericId}-group` : contact;
+            if (nodeData?.mentionAll) finalPayload.mentionAll = true;
+          }
+
+          const body = instanceId
+            ? { ...finalPayload, instanceId, preferStandardConnection: true }
+            : { ...finalPayload, preferStandardConnection: true };
+          
+          try {
+            const { data, error } = await supabase.functions.invoke('send-message', { body });
+            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+            if (failureMessage) throw new Error(failureMessage);
+          } catch (invokeErr) {
+            console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
+            throw invokeErr;
+          }
+        };
+
+        if (allSendButtons.length > 0) {
+          const mappedButtons = allSendButtons.map((btn: any, idx: number) => {
+            const type = (btn?.type || "reply").toString().toLowerCase();
+            const value = (btn?.value || "").toString().trim();
+            const label = (btn?.text || `Botão ${idx + 1}`).toString();
+            if (type === "url") return { id: String(idx + 1), type: "URL" as const, label, url: wrapUrlWithTracking(value, label, contact) };
+            if (type === "call") return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
+            return { id: btn.id || String(idx + 1), type: "REPLY" as const, label };
+          });
+
+          if (contentType === "image" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: '' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "video" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: '', ...(node.data.viewOnce ? { viewOnce: true } : {}), ...(node.data.isPtv ? { isPtv: true } : {}) }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "audio" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: '' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else if (contentType === "document" && mediaUrl) {
+            await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: 'document' }, node.data);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          const hasUrlButtons = mappedButtons.some(b => b.type === "URL");
+          const hasCallButtons = mappedButtons.some(b => b.type === "CALL");
+          if (hasUrlButtons || hasCallButtons) {
+            await sendWithInstance({ phone: contact, message: content || "Escolha uma opção:", buttonActions: mappedButtons.slice(0, 3) }, node.data);
+          } else {
+            await sendWithInstance({ phone: contact, message: content || "Escolha uma opção:", buttonList: { buttons: mappedButtons.slice(0, 3).map(b => ({ id: b.id, label: b.label })) } }, node.data);
+          }
+        } else if (content || mediaUrl) {
+          switch (contentType) {
+            case "text": if (content) await sendWithInstance({ phone: contact, message: content }, node.data); break;
+            case "image": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'image', message: content || '' }, node.data); break;
+            case "video": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'video', message: content || '', ...(node.data.viewOnce ? { viewOnce: true } : {}), ...(node.data.isPtv ? { isPtv: true } : {}) }, node.data); break;
+            case "audio": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'audio', message: content || '' }, node.data); break;
+            case "document": if (mediaUrl) await sendWithInstance({ phone: contact, mediaUrl, mediaType: 'document', message: content || 'document' }, node.data); break;
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    };
+
+    // Process the current node content
+    await processNode(currentNode);
 
     if (outgoingEdges.length === 0) return;
 
