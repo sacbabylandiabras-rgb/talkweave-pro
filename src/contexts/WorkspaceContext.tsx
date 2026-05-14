@@ -46,9 +46,11 @@ export function WorkspaceRouteSync() {
   useEffect(() => {
     const path = location.pathname;
     let next: WorkspaceType | null = null;
-    if (path.startsWith("/meta")) next = "meta";
-    else if (path.startsWith("/gateway-checkout")) next = "gateway";
-    else if (
+    if (path.startsWith("/meta")) {
+      next = "meta";
+    } else if (path.startsWith("/gateway-checkout")) {
+      next = "gateway";
+    } else if (
       path.startsWith("/dashboard") ||
       path.startsWith("/mensagens") ||
       path.startsWith("/dispositivos") ||
@@ -67,8 +69,18 @@ export function WorkspaceRouteSync() {
       path.startsWith("/campanhas-grupo") ||
       path.startsWith("/fluxo-grupos") ||
       path.startsWith("/agente-ia") ||
-      path.startsWith("/aquecimento")
-    ) next = "zapi";
+      path.startsWith("/aquecimento") ||
+      path.startsWith("/gateway")
+    ) {
+      // Se já estivermos no workspace meta e acessarmos uma rota "comum" (como /campanhas),
+      // devemos PERMANECER no workspace meta. Só mudamos para zapi se não houver workspace definido
+      // ou se viermos de outro workspace que não o meta.
+      if (activeWorkspace !== "meta") {
+        next = "zapi";
+      } else {
+        next = "meta";
+      }
+    }
     if (next && next !== activeWorkspace) setActiveWorkspace(next);
   }, [location.pathname]);
   return null;

@@ -469,7 +469,7 @@ export default function EnvioCloudAPI() {
             variant="ghost"
             size="sm"
             className="h-6 text-[10px] gap-1 px-2"
-            onClick={fetchPhoneNumbers}
+            onClick={() => fetchPhoneNumbers(true)}
             disabled={loadingPhones}
           >
             <RefreshCw className={`w-3 h-3 ${loadingPhones ? "animate-spin" : ""}`} />
