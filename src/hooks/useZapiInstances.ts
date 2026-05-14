@@ -132,15 +132,17 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       let allInstances = await fetchInstancesWithRetry(user.id);
       
       if (options?.includeMeta) {
-        const { data: metaCreds } = await supabase
+        const { data: metaRows } = await supabase
           .from("meta_credentials" as any)
           .select("*")
           .eq("user_id", user.id)
           .eq("connected", true)
-          .maybeSingle();
+          .not("phone_number_id", "is", null)
+          .order("updated_at", { ascending: false })
+          .limit(1);
 
-        const creds = metaCreds as any;
-        if (creds?.phone_number_id) {
+        if (metaRows && metaRows.length > 0) {
+          const creds = metaRows[0] as any;
           const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
           const info = cachedInfo ? JSON.parse(cachedInfo) : {};
           const displayName = info.display_phone_number 
@@ -187,7 +189,10 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
     if (inst) setActiveInstance(inst);
   };
 
-  useEffect(() => { fetchInstances(); }, []);
+  const optionsKey = JSON.stringify(options || {});
+  useEffect(() => {
+    fetchInstances();
+  }, [optionsKey]);
 
   return { instances, activeInstance, selectInstance, loading, refetch: fetchInstances };
 };
