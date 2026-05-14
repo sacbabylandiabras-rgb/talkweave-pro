@@ -172,7 +172,7 @@ serve(async (req) => {
 
     let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
 
-    if (!participantFlowState && !flowState && isGroup && chatId && chatId !== phone) {
+    if (!flowState && isGroup && chatId && chatId !== phone) {
       const { data: sharedGroupFlowState } = await supabase
         .from("flow_captured_data")
         .select("*")
@@ -182,7 +182,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      flowState = sharedGroupFlowState;
+      flowState = sharedGroupFlowState?.last_node_id ? sharedGroupFlowState : null;
     }
 
     // Se encontrarmos um estado de fluxo, tentamos processar antes de verificar gatilhos globais
