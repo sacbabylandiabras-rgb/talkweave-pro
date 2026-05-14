@@ -33,7 +33,7 @@ const formatErrorMessage = (value: unknown, fallback = "Não foi possível concl
 };
 
 const Etiquetas = () => {
-  const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
+  const { instances: allInstances, loading: loadingInstances } = useZapiInstances({ provider: 'zapi' });
    const instances = useMemo(
      () => allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)),
      [allInstances],
