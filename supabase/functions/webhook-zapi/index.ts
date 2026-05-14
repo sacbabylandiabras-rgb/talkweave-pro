@@ -171,6 +171,7 @@ serve(async (req) => {
       .maybeSingle();
 
     let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
+    let flowStateIsSharedGroup = false;
 
     if (!participantFlowState && !flowState && isGroup && chatId && chatId !== phone) {
       const { data: sharedGroupFlowState } = await supabase
@@ -183,6 +184,7 @@ serve(async (req) => {
         .maybeSingle();
 
       flowState = sharedGroupFlowState?.last_node_id ? sharedGroupFlowState : null;
+      flowStateIsSharedGroup = !!flowState;
     }
 
     // Se encontrarmos um estado de fluxo, tentamos processar antes de verificar gatilhos globais
@@ -248,10 +250,12 @@ serve(async (req) => {
 
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
 
-              await supabase.from("flow_captured_data").update({
-                last_node_id: null,
-                updated_at: new Date().toISOString()
-              }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+              if (!flowStateIsSharedGroup) {
+                await supabase.from("flow_captured_data").update({
+                  last_node_id: null,
+                  updated_at: new Date().toISOString()
+                }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+              }
 
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
@@ -273,10 +277,12 @@ serve(async (req) => {
             });
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
-            await supabase.from("flow_captured_data").update({
-              last_node_id: null,
-              updated_at: new Date().toISOString()
-            }).eq("id", flowState.id);
+            if (!flowStateIsSharedGroup) {
+              await supabase.from("flow_captured_data").update({
+                last_node_id: null,
+                updated_at: new Date().toISOString()
+              }).eq("id", flowState.id);
+            }
             return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
           }
         }
