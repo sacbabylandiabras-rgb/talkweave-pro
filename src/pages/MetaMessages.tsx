@@ -2182,12 +2182,28 @@ const MetaMessages = () => {
 
   const metaConversations = useMemo(() => {
     return conversations.filter(conv => {
-      // Include if it's explicitly a meta instance or has messages from meta
-      const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
-                   conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
-      return isMeta;
+      // Include if:
+      // 1. Preferred instance is meta
+      // 2. Any message has a meta external ID
+      // 3. Any message has meta sender prefix
+      // 4. Any message is from source 'message_log' and the phone is not a group phone (Meta currently doesn't support groups natively)
+      //    This is a safe fallback for personal chats that might be missing explicit provider markers.
+      const hasMetaMarker = conv.preferredInstanceId?.startsWith('meta:') || 
+                           conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
+      
+      if (hasMetaMarker) return true;
+      
+      // If we have no marker, check if there's any evidence this ISN'T a Z-API chat.
+      // If the selected instance is "all" or specifically a Meta instance, we should be inclusive.
+      if (selectedInstanceId !== 'all' && !selectedInstanceId.startsWith('meta:')) {
+        return false;
+      }
+
+      // Final fallback: if it's not a group, show it in Meta Messages if it's a recent conversation
+      // since Meta API doesn't support groups yet.
+      return !isGroupPhone(conv.phone);
     });
-  }, [conversations]);
+  }, [conversations, selectedInstanceId]);
 
   const filteredConversations = metaConversations.filter((conv) => {
     if (!searchTerm) return true;
