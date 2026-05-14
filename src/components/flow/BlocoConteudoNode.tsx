@@ -225,6 +225,7 @@ export function BlocoConteudoNode({ data }: any) {
   const collectName = data.collectName || false;
   const collectWhatsapp = data.collectWhatsapp || false;
   const collectEmail = data.collectEmail || false;
+  const collectCPF = data.collectCPF || false;
 
   return (
     <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px]">
@@ -290,6 +291,18 @@ export function BlocoConteudoNode({ data }: any) {
                 position={Position.Right}
                 id="collect-email"
                 className="!w-3 !h-3 !bg-blue-500 !border-2 !border-background"
+                style={{ right: -22, top: "50%" }}
+              />
+            </div>
+          )}
+          {collectCPF && (
+            <div className="relative flex items-center gap-1 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md text-[10px] text-red-600 font-medium">
+              <FileText className="w-3 h-3" /> Captura CPF
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="collect-cpf"
+                className="!w-3 !h-3 !bg-red-500 !border-2 !border-background"
                 style={{ right: -22, top: "50%" }}
               />
             </div>
