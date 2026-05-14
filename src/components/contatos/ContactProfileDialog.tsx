@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-   Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
-    Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image, RefreshCw
+    Phone, MessageSquare, Tag, Plus, X, Bot, Calendar, 
+    Hash, Clock, Pencil, Check, Send, ShieldAlert, Ban, UserCheck, Image, RefreshCw,
+    Mail, FileText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Contact } from "@/hooks/useContacts";
@@ -88,6 +89,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
     const [note, setNote] = useState("");
+    const [capturedEmail, setCapturedEmail] = useState<string | null>(null);
+    const [capturedCPF, setCapturedCPF] = useState<string | null>(null);
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [loadingTags, setLoadingTags] = useState(false);
 
@@ -153,6 +156,20 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (data.notes) {
           setNote(data.notes.content || "");
         }
+      }
+
+      // Also fetch from flow_captured_data if available
+      const { data: capturedData } = await supabase
+        .from('flow_captured_data')
+        .select('*')
+        .eq('phone', contact.phone)
+        .limit(1)
+        .maybeSingle();
+
+      if (capturedData) {
+        const data = capturedData as any;
+        setCapturedEmail(data.email);
+        setCapturedCPF(data.cpf);
       }
     } catch (e) {
       console.error('Error fetching contact metadata:', e);
@@ -507,6 +524,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <div className="flex items-center gap-3 text-sm">
                     <Clock className="w-4 h-4 text-muted-foreground" />
                     <span>Última msg: {new Date(contact.lastMessageDate).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                )}
+                {capturedEmail && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span>{capturedEmail}</span>
+                  </div>
+                )}
+                {capturedCPF && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span>CPF: {capturedCPF}</span>
                   </div>
                 )}
               </div>
