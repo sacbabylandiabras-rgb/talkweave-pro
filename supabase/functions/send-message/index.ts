@@ -224,6 +224,7 @@ serve(async (req) => {
 
       // Se uma instância específica foi solicitada (via requestedInstanceId),
       // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
+      let lockedToRequestedInstance = false;
       if (requestedInstanceId) {
         const requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
         if (requestedInstance) {
@@ -231,6 +232,7 @@ serve(async (req) => {
           instanceId = requestedInstance.zapi_instance_id;
           token = requestedInstance.zapi_token;
           clientToken = requestedInstance.zapi_client_token;
+          lockedToRequestedInstance = true;
         } else {
           console.error(`❌ Instância solicitada ${requestedInstanceId} não encontrada para o usuário ${userId}`);
           throw new Error('A conexão selecionada não foi encontrada ou não pertence à sua conta.');
@@ -247,7 +249,7 @@ serve(async (req) => {
     // For group phones, verify the correct instance by checking which instance
     // actually receives messages from this group. Z-API returns 200 even when
     // sending from an instance that doesn't have the group, causing silent failures.
-    if (isGroupPhone) {
+    if (isGroupPhone && !lockedToRequestedInstance) {
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       // Normalize group ID to find matches in message_logs
       const numericGroupId = phone.replace(/[@\-].*$/, '').replace(/\D/g, '');
