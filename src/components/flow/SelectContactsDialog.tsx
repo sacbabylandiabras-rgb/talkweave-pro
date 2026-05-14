@@ -55,7 +55,7 @@ export function SelectContactsDialog({
   const [searchQuery, setSearchQuery] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [manualPhones, setManualPhones] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : "contacts");
+  const [activeTab, setActiveTab] = useState(isGroupsMode ? "groups" : isMetaMode ? "contacts" : "contacts");
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [sendProvider, setSendProvider] = useState<FlowSendProvider>("zapi");
 
@@ -111,7 +111,7 @@ export function SelectContactsDialog({
   }, [open, isGroupsMode]);
 
 
-  const filteredContacts = contacts.filter(contact => {
+  const filteredContacts = (isMetaMode ? contacts.filter(c => !isGroupPhone(c.phone)) : contacts).filter(contact => {
     const query = searchQuery.toLowerCase();
     return (
       contact.phone.includes(query) ||
@@ -202,7 +202,7 @@ export function SelectContactsDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 flex-1 flex flex-col min-h-0">
-          <TabsList className={`grid w-full ${isGroupsMode ? "grid-cols-1" : "grid-cols-2"}`}>
+          <TabsList className={`grid w-full ${isGroupsMode || isMetaMode ? "grid-cols-1" : "grid-cols-2"}`}>
             {isGroupsMode ? (
               <TabsTrigger value="groups" className="flex items-center gap-2">
                 <UsersRound className="h-4 w-4" />
@@ -213,9 +213,19 @@ export function SelectContactsDialog({
                   </Badge>
                 )}
               </TabsTrigger>
-              ) : (
+            ) : isMetaMode ? (
+              <TabsTrigger value="contacts" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Contatos Meta
+                {selectedContacts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                    {selectedContacts.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ) : (
                <>
-                 <TabsTrigger value="contacts" className="flex items-center gap-2">
+                  <TabsTrigger value="contacts" className="flex items-center gap-2">
                    <Users className="h-4 w-4" />
                    Contatos
                    {selectedContacts.length > 0 && (
