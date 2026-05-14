@@ -154,30 +154,55 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
       allInstances = [...zapiData];
       
-      if (options?.includeMeta && metaResponse?.data) {
-        const metaRows = metaResponse.data;
-
-        metaRows?.forEach((creds: any) => {
-          const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
-          const info = cachedInfo ? JSON.parse(cachedInfo) : {};
-          const displayName = creds.fb_user_name || (info.display_phone_number 
-            ? `Meta API (${info.display_phone_number})`
-            : `Meta API (${creds.phone_number_id})`);
-
-          allInstances.push({
-            id: `meta:${creds.phone_number_id}`,
-            user_id: user.id,
-            instance_name: displayName,
-            zapi_instance_id: `meta:${creds.phone_number_id}`,
-            zapi_token: "",
-            zapi_client_token: "",
-            is_default: allInstances.length === 0,
-            is_active: true,
-            created_at: creds.created_at || new Date().toISOString(),
-            updated_at: creds.updated_at || new Date().toISOString(),
-            api_provider: "meta"
+      if (options?.includeMeta) {
+        try {
+          const { data: phoneData, error: phoneError } = await supabase.functions.invoke("send-meta-message", {
+            body: { action: "get_phone_numbers" },
           });
-        });
+
+          if (!phoneError && Array.isArray(phoneData?.phone_numbers)) {
+            phoneData.phone_numbers.forEach((phone: any) => {
+              allInstances.push({
+                id: `meta:${phone.id}`,
+                user_id: user.id,
+                instance_name: phone.display_phone_number || phone.verified_name || `Meta API (${phone.id})`,
+                zapi_instance_id: `meta:${phone.id}`,
+                zapi_token: "",
+                zapi_client_token: "",
+                is_default: allInstances.length === 0,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                api_provider: "meta"
+              });
+            });
+          } else if (metaResponse?.data) {
+            // Fallback para as credenciais básicas se a listagem de números falhar
+            metaResponse.data.forEach((creds: any) => {
+              const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
+              const info = cachedInfo ? JSON.parse(cachedInfo) : {};
+              const displayName = creds.fb_user_name || (info.display_phone_number 
+                ? `Meta API (${info.display_phone_number})`
+                : `Meta API (${creds.phone_number_id})`);
+
+              allInstances.push({
+                id: `meta:${creds.phone_number_id}`,
+                user_id: user.id,
+                instance_name: displayName,
+                zapi_instance_id: `meta:${creds.phone_number_id}`,
+                zapi_token: "",
+                zapi_client_token: "",
+                is_default: allInstances.length === 0,
+                is_active: true,
+                created_at: creds.created_at || new Date().toISOString(),
+                updated_at: creds.updated_at || new Date().toISOString(),
+                api_provider: "meta"
+              });
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching Meta phone numbers in hook:", err);
+        }
       }
 
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
