@@ -165,16 +165,19 @@ serve(async (req) => {
 
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
-       if (isMessage && fromMe && !isButtonResponse) {
-          // Para o log de mensagens, usamos o chatId para agrupar conversas corretamente
+        // Self-messages should be registered as response_sent instead of message_received
+        if (isMessage && fromMe && !isButtonResponse) {
+          console.log(`Registering self-message for ${chatId}`);
           await supabase.from("message_logs").insert({
             user_id: userId,
-            phone: chatId, // <-- Use chatId here to group by conversation
-            message_received: messageRaw,
+            phone: chatId,
+            message_received: null,
+            response_sent: messageRaw,
             instance_id: instanceId,
+            keyword_matched: "__manual_send__",
             timestamp: new Date().toISOString()
           });
-       }
+        }
 
        if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
        return new Response("ok", { status: 200, headers: corsHeaders });
