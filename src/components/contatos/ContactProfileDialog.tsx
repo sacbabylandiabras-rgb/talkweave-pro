@@ -525,6 +525,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                     <span>Última msg: {new Date(contact.lastMessageDate).toLocaleDateString('pt-BR')}</span>
                   </div>
                 )}
+                {capturedEmail && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span>{capturedEmail}</span>
+                  </div>
+                )}
+                {capturedCPF && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span>CPF: {capturedCPF}</span>
+                  </div>
+                )}
               </div>
             </div>
 
