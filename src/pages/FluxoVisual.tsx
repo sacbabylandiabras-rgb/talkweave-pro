@@ -80,6 +80,7 @@ import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
+import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
@@ -154,6 +155,7 @@ const nodeTypes: NodeTypes = {
   blocoAcao: BlocoAcaoNode,
   blocoGatilho: BlocoGatilhoNode,
   blocoAgendamento: BlocoAgendamentoNode,
+  agenteIA: BlocoAgenteIANode,
 };
 
 const initialNodes: Node[] = [
@@ -197,6 +199,12 @@ const blocosDisponiveis = [
     label: "Agendamento",
     icon: CalendarClock,
     description: "Agendar envio para data/hora específica",
+  },
+  {
+    type: "agenteIA",
+    label: "Agente IA",
+    icon: Bot,
+    description: "Responder usando Inteligência Artificial",
   },
 ];
 
