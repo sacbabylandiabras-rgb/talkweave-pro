@@ -452,9 +452,12 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const mediaUrl = node.data.mediaUrl || "";
       
       // Send message via Z-API (with buttons if applicable)
-      // If we're in a group, we MUST use the group's ID (chatId/phone) as the destination, 
-      // not the individual participant's phone number.
-      const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+   // Normaliza destino Z-API para grupos
+   let destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+   if (isGroup || destination.includes('@g.us')) {
+     const numericId = destination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+     destination = numericId ? `${numericId}-group` : destination;
+   }
 
       if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
         const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
@@ -492,8 +495,12 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const resolvedPrompt = replaceVars(prompt, captured, phone);
       const aiResponse = await callAI(resolvedPrompt, userMessage, model);
       
-      const destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-      await sendZapiText(instance, destination, aiResponse, [], node.id);
+   let aiDestination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+   if (isGroup || aiDestination.includes('@g.us')) {
+     const numericId = aiDestination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+     aiDestination = numericId ? `${numericId}-group` : aiDestination;
+   }
+   await sendZapiText(instance, aiDestination, aiResponse, [], node.id);
     }
     // Find next node (default edge)
     const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
