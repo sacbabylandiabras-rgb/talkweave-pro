@@ -1802,7 +1802,7 @@ const MensagensRecebidas = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances();
+  const { instances: allInstances, activeInstance: rawActiveInstance } = useZapiInstances({ provider: 'zapi' });
   // Mensagens usa exclusivamente Z-API: filtra todas as instâncias por provider
   // Mensagens no painel ZapLynx usa exclusivamente instâncias Z-API
   const instances = useMemo(() => 
