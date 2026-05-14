@@ -72,6 +72,7 @@ import {
   Database,
   Users,
   Sparkles,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -80,6 +81,7 @@ import { BlocoCondicaoNode } from "@/components/flow/BlocoCondicaoNode";
 import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
+import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
@@ -154,6 +156,7 @@ const nodeTypes: NodeTypes = {
   blocoAcao: BlocoAcaoNode,
   blocoGatilho: BlocoGatilhoNode,
   blocoAgendamento: BlocoAgendamentoNode,
+  agenteIA: BlocoAgenteIANode,
 };
 
 const initialNodes: Node[] = [
@@ -197,6 +200,12 @@ const blocosDisponiveis = [
     label: "Agendamento",
     icon: CalendarClock,
     description: "Agendar envio para data/hora específica",
+  },
+  {
+    type: "agenteIA",
+    label: "Agente IA",
+    icon: Bot,
+    description: "Responder usando Inteligência Artificial",
   },
 ];
 
@@ -541,7 +550,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : "Ação"}`,
           content: "",
         },
       };
@@ -2971,6 +2980,70 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </p>
                 </div>
               </>
+            )}
+
+            {selectedNode?.type === "agenteIA" && (
+              <div className="space-y-4">
+                <div className="p-3 bg-purple-500/5 border border-purple-500/10 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-purple-500" />
+                    <Label className="text-base font-bold text-purple-600">Configuração do Agente IA</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Este bloco utiliza Inteligência Artificial para processar a mensagem do usuário e gerar uma resposta inteligente.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    Prompt de Sistema / Instruções
+                  </Label>
+                  <Textarea
+                    value={selectedNode.data.prompt || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, prompt: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: Você é um assistente de vendas da empresa X. Seja gentil e ajude o cliente com suas dúvidas..."
+                    rows={8}
+                    className="text-sm italic"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Defina o comportamento, tom de voz e as regras que a IA deve seguir para responder.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Modelo de IA</Label>
+                  <Select
+                    value={selectedNode.data.aiModel || "google/gemini-2.0-flash-001"}
+                    onValueChange={(value) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, aiModel: value },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o modelo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Mais rápido)</SelectItem>
+                      <SelectItem value="anthropic/claude-3-5-sonnet">Claude 3.5 Sonnet (Mais inteligente)</SelectItem>
+                      <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-3 rounded-lg border border-purple-100 bg-purple-50/50 dark:bg-purple-900/5 dark:border-purple-900/20">
+                   <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">
+                     Dica: Você pode usar variáveis como {"{{nome}}"} no prompt para que a IA saiba o nome do cliente.
+                   </p>
+                </div>
+              </div>
             )}
 
             {selectedNode?.type === "blocoCondicao" && (
