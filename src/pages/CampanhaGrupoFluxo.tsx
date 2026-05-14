@@ -145,13 +145,22 @@ export default function CampanhaGrupoFluxo() {
   const normalizeGroupTargetPhone = (groupId: string) => {
     const trimmed = groupId.trim();
     if (!trimmed) return trimmed;
-    if (trimmed.includes('@')) return trimmed;
-    if (trimmed.includes('-group') || trimmed.includes('-community')) return trimmed;
+    
+    // Se já contém @g.us ou @c.us, mantém como está
+    if (trimmed.includes('@g.us') || trimmed.includes('@c.us')) return trimmed;
+    
+    // Se termina com -group (formato interno), converte para o formato que o Z-API espera no envio direto
+    if (trimmed.endsWith('-group')) {
+      const numericId = trimmed.replace(/-group$/i, '');
+      return `${numericId}-group`;
+    }
 
-    if (trimmed.includes("-group@g.us")) return trimmed.replace("-group@g.us", "@g.us");
-    if (trimmed.endsWith("-group")) return trimmed.replace(/-group$/i, "@g.us");
-    if (trimmed.includes("@g.us")) return trimmed;
-    return `${trimmed}@g.us`;
+    // Se for apenas o ID numérico, adiciona -group
+    if (/^\d+$/.test(trimmed)) {
+      return `${trimmed}-group`;
+    }
+
+    return trimmed;
   };
 
   const canAdvance = () => {

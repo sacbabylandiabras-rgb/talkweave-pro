@@ -366,7 +366,11 @@ const getUazapiTargetNumber = (phone: string) => {
 // porque o usuário quer que o provedor receba o destino tal como está.
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
-  if (isGroupDestination(phone)) return phone;
+  if (isGroupDestination(phone)) {
+    // Garante formato 12345-group exigido pelo Z-API
+    const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+    return numericId ? `${numericId}-group` : phone;
+  }
   if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
   if (phone.includes('@lid')) return phone;
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
