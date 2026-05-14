@@ -77,7 +77,18 @@ export default function ConfiguracaoMeta() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
+      const phones = Array.isArray(data?.phone_numbers) ? data.phone_numbers : [];
+      setPhoneNumbers(phones);
+
+      // Save the first phone info to local cache for display in other pages
+      if (phones.length > 0 && creds?.user_id) {
+        const firstPhone = phones[0];
+        localStorage.setItem(`meta_info_${creds.user_id}`, JSON.stringify({
+          display_phone_number: firstPhone.display_phone_number,
+          verified_name: firstPhone.verified_name
+        }));
+        queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+      }
     } catch (err) {
       console.error("Error fetching Meta phone numbers:", err);
       setPhoneNumbers([]);
