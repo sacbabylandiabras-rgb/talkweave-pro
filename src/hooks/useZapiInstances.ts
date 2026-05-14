@@ -145,8 +145,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
           .eq("user_id", user.id)
           .eq("connected", true)
           .not("phone_number_id", "is", null)
-          .order("updated_at", { ascending: false })
-          .limit(1);
+          .order("updated_at", { ascending: false });
       }
 
       const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
@@ -155,13 +154,12 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       if (options?.includeMeta && metaResponse?.data) {
         const metaRows = metaResponse.data;
 
-        if (metaRows && metaRows.length > 0) {
-          const creds = metaRows[0] as any;
+        metaRows?.forEach((creds: any) => {
           const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
           const info = cachedInfo ? JSON.parse(cachedInfo) : {};
-          const displayName = info.display_phone_number 
-            ? `${creds.fb_user_name || "Meta API"} (${info.display_phone_number})`
-            : creds.fb_user_name || "Meta API";
+          const displayName = creds.fb_user_name || (info.display_phone_number 
+            ? `Meta API (${info.display_phone_number})`
+            : `Meta API (${creds.phone_number_id})`);
 
           allInstances.push({
             id: `meta:${creds.phone_number_id}`,
@@ -172,11 +170,11 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
             zapi_client_token: "",
             is_default: allInstances.length === 0,
             is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            created_at: creds.created_at || new Date().toISOString(),
+            updated_at: creds.updated_at || new Date().toISOString(),
             api_provider: "meta"
           });
-        }
+        });
       }
 
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
