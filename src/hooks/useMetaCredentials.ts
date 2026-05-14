@@ -17,10 +17,20 @@ export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
         .eq("app_id", appId)
         .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching meta credentials:", error);
+      if (error || !data) {
+        if (error) console.error("Error fetching meta credentials:", error);
         return null;
       }
+
+      // Enrich with cached display info
+      const cachedInfo = localStorage.getItem(`meta_info_${session.user.id}`);
+      if (cachedInfo) {
+        try {
+          const info = JSON.parse(cachedInfo);
+          return { ...data, ...info } as any;
+        } catch (e) {}
+      }
+
       return data as any;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
