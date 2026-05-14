@@ -217,8 +217,8 @@ serve(async (req) => {
         const lastNode = lastNodeId ? nodes.find((n: any) => n.id === lastNodeId) : null;
 
         if (lastNode) {
-          const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp;
-          const field = lastNode.data.collectName ? "nome" : (lastNode.data.collectEmail ? "email" : (lastNode.data.collectWhatsapp ? "whatsapp" : null));
+          const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp || lastNode.data.collectCPF;
+          const field = lastNode.data.collectName ? "nome" : (lastNode.data.collectEmail ? "email" : (lastNode.data.collectWhatsapp ? "whatsapp" : (lastNode.data.collectCPF ? "cpf" : null)));
 
           if (isCapture && field) {
             flowStateHandled = true;
@@ -434,7 +434,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
-      const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp;
+      const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp || node.data.collectCPF;
       const hasButtons = node.data.buttons?.length > 0;
       
       let content = "";
