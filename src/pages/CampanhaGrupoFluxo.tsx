@@ -60,7 +60,14 @@ export default function CampanhaGrupoFluxo() {
   const { groups, loading: loadingGroups } = useWhatsAppGroups({
     provider: 'zapi_no_warmup_meta'
   });
-  const { instances } = useZapiInstances();
+  const { instances: allInstances } = useZapiInstances();
+
+  const instances = useMemo(() => allInstances.filter(i => {
+    const provider = (i.api_provider || 'zapi').toLowerCase();
+    const name = (i.instance_name || '').toLowerCase();
+    if (name.includes('aquecimento') || name.includes('warmup')) return false;
+    return provider !== 'uazapi' && provider !== 'meta';
+  }), [allInstances]);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -496,16 +503,34 @@ export default function CampanhaGrupoFluxo() {
 
           {step === 4 && (
             <div className="space-y-6">
-              <InstanceSelector
-                providerFilter="all"
-                onMultiInstanceChange={(ids) => {
-                  if (ids.length > 1) {
-                    setFormData(p => ({ ...p, instance_selection_mode: 'rotate', selected_instance_id: ROTATE_ALL }));
-                  } else if (ids.length === 1) {
-                    setFormData(p => ({ ...p, instance_selection_mode: 'single', selected_instance_id: ids[0] }));
-                  }
-                }}
-              />
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Instância de Envio
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={formData.instance_selection_mode === 'rotate' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFormData(p => ({ ...p, instance_selection_mode: 'rotate', selected_instance_id: ROTATE_ALL }))}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                    Rodízio (Todas)
+                  </Button>
+                  {instances.map(inst => (
+                    <Button
+                      key={inst.id}
+                      type="button"
+                      variant={formData.instance_selection_mode === 'single' && formData.selected_instance_id === inst.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFormData(p => ({ ...p, instance_selection_mode: 'single', selected_instance_id: inst.id }))}
+                    >
+                      {inst.instance_name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
               <div className="space-y-3">
                 <Label className="text-sm font-semibold flex items-center gap-2">
