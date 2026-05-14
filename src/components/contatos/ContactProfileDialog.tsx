@@ -227,7 +227,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const handleAddTag = async (tagId: string, tagName: string) => {
     if (!contact) return;
     try {
-      await addTagChat(contact.phone, tagId);
+      const res = await addTagChat(contact.phone, tagId);
+      console.log('[ContactProfileDialog] Tag added:', res);
       if (!localTags.includes(tagName)) {
         setLocalTags([...localTags, tagName]);
       }
