@@ -495,10 +495,28 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
 
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
+      const model = "anthropic/claude-3-5-sonnet";
+      
+      const userMessage = webhook?.buttonsResponseMessage?.message ||
+                        webhook?.buttonResponseMessage?.message ||
+                        webhook?.buttonReply?.text ||
+                        webhook?.text?.message || 
+                        webhook?.message?.text || 
+                        webhook?.text || 
+                        "";
+
+      const resolvedPrompt = replaceVars(prompt, captured, phone);
+      const aiResponse = await callAI(resolvedPrompt, userMessage, model);
+      
+      let aiDestination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+      if (isGroup || aiDestination.includes('@g.us')) {
+        const numericId = aiDestination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+        aiDestination = numericId ? `${numericId}-group` : aiDestination;
+      }
+      await sendZapiText(instance, aiDestination, aiResponse, [], node.id);
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       // Suporte para blocos de agendamento e delay de ação
       const actionType = node.data.actionType;
-      const isDelay = actionType === "delay" || node.type === "blocoAgendamento" && !node.data.scheduleType || node.data.scheduleType === "once";
       
       if (actionType === "delay" || node.type === "blocoAcao" && actionType === "delay") {
         const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
@@ -519,26 +537,6 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
         }
       }
-    }
-      const model = "anthropic/claude-3-5-sonnet";
-      
-      const userMessage = webhook?.buttonsResponseMessage?.message ||
-                        webhook?.buttonResponseMessage?.message ||
-                        webhook?.buttonReply?.text ||
-                        webhook?.text?.message || 
-                        webhook?.message?.text || 
-                        webhook?.text || 
-                        "";
-
-      const resolvedPrompt = replaceVars(prompt, captured, phone);
-      const aiResponse = await callAI(resolvedPrompt, userMessage, model);
-      
-   let aiDestination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-   if (isGroup || aiDestination.includes('@g.us')) {
-     const numericId = aiDestination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-     aiDestination = numericId ? `${numericId}-group` : aiDestination;
-   }
-   await sendZapiText(instance, aiDestination, aiResponse, [], node.id);
     }
     // Find next node (default edge)
     const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
