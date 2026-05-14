@@ -58,27 +58,27 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, override_phone_number_id, phone_number_id } = body;
+    const { action, override_phone_number_id, phone_number_id, phone: directPhone } = body;
     const effectivePhoneId = override_phone_number_id || phone_number_id || creds.phone_number_id;
-    console.log(`[send-meta-message] action=${action}, override=${override_phone_number_id || 'none'}, default=${creds.phone_number_id}, effective=${effectivePhoneId}`);
+    console.log(`[send-meta-message] action=${action}, override=${override_phone_number_id || 'none'}, default=${creds.phone_number_id}, effective=${effectivePhoneId}, to=${directPhone || 'none'}`);
 
     let result;
     switch (action) {
       case "send_template":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "send_text":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendTextMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "send_media":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "send_interactive":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "list_templates":
         return await listTemplates(creds, effectivePhoneId);
