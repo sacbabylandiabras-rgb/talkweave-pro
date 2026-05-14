@@ -228,13 +228,15 @@ interface FluxoVisualProps {
   mode?: "contacts" | "groups" | "meta";
 }
 
-export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
-  const isGroupsMode = mode === "groups";
-  const isMetaMode = false;
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode 
-    ? "Crie automações visuais para grupos do WhatsApp" 
-    : "Crie automações visuais disparadas por palavra-chave";
+export default function FluxoMeta() {
+  const isGroupsMode = false;
+  const isMetaMode = true;
+  const pageTitle = isMetaMode ? "Fluxo Meta" : isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
+  const pageSubtitle = isMetaMode 
+    ? "Crie automações visuais para sua conta da Meta API"
+    : isGroupsMode 
+      ? "Crie automações visuais para grupos do WhatsApp" 
+      : "Crie automações visuais disparadas por palavra-chave";
   const emptyHelp = isGroupsMode
     ? "Crie seu primeiro fluxo visual para grupos"
     : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
@@ -256,8 +258,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances: zapiInstances } = useZapiInstances({
-    includeMeta: false,
-    provider: "zapi",
+    includeMeta: isMetaMode,
+    provider: isMetaMode ? "meta" : "zapi",
   });
   const { data: metaCreds } = useMetaCredentials();
 
@@ -1339,12 +1341,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           if (!o) setIsSelectingPreGroups(false);
         }}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode="meta"
       />
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode="meta"
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
@@ -1376,6 +1378,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
                 </div>
 
+                {isMetaMode && (
+                  <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/5 border border-primary/10">
+                    <Globe className="w-3.5 h-3.5 text-primary" />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-semibold leading-none text-primary">Número Meta</span>
+                      <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
+                        {metaCreds?.display_phone_number || "Não configurado"}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1726,13 +1739,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode="meta"
       />
 
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode="meta"
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />

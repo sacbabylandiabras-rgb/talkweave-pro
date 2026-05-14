@@ -31,6 +31,7 @@ const Contatos = lazyWithRecovery(() => import("./pages/Contatos"));
 const EnviarMensagem = lazyWithRecovery(() => import("./pages/EnviarMensagem"));
 const Relatorio = lazyWithRecovery(() => import("./pages/Relatorio"));
 const FluxoVisual = lazyWithRecovery(() => import("./pages/FluxoVisual"));
+const FluxoMeta = lazyWithRecovery(() => import("./pages/FluxoMeta"));
 const FluxoGrupos = lazyWithRecovery(() => import("./pages/FluxoGrupos"));
 const GatewayIntegracoes = lazyWithRecovery(() => import("./pages/GatewayIntegracoes"));
 const MensagensRecebidas = lazyWithRecovery(() => import("./pages/MensagensRecebidas"));
@@ -202,7 +203,7 @@ const App = () => (
                    <Route path="/meta/mensagens" element={<MetaMessages />} />
                    <Route path="/meta/templates" element={<TemplatesAprovados />} />
                    <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
-                   <Route path="/meta/fluxo" element={<FluxoVisual mode="meta" />} />
+                   <Route path="/meta/fluxo" element={<FluxoMeta />} />
                    <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
                    <Route path="/meta/campanhas" element={<Campanhas mode="contacts" />} />
                    <Route path="/meta/contatos" element={<Contatos />} />
