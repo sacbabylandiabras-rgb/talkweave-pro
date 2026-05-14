@@ -22,7 +22,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
   
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ 
     provider: zapiFilter,
-    includeMeta: true 
+    includeMeta: providerFilter === "all" || providerFilter === "meta"
   });
    // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
     const { data: metaCreds } = useMetaCredentials();
