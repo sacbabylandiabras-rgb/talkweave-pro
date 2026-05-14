@@ -291,7 +291,8 @@ serve(async (req) => {
 
 async function metaSendText(accessToken: string, phoneNumberId: string, to: string, message: string) {
   const cleanTo = to.replace(/\D/g, '')
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -314,7 +315,8 @@ async function metaSendMedia(accessToken: string, phoneNumberId: string, to: str
   if (metaType === 'document') mediaPayload.filename = mediaUrl.split('/').pop() || 'file'
 
   const cleanTo = to.replace(/\D/g, '')
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -336,7 +338,8 @@ async function metaSendInteractive(accessToken: string, phoneNumberId: string, t
   }))
 
   const cleanTo = to.replace(/\D/g, '')
-  const res = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
+  const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
