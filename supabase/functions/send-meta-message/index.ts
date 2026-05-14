@@ -66,7 +66,7 @@ serve(async (req) => {
     switch (action) {
       case "send_template":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendTemplateMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "send_text":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
@@ -74,11 +74,11 @@ serve(async (req) => {
         break;
       case "send_media":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendMediaMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "send_interactive":
         if (!effectivePhoneId) return jsonResponse({ error: "Phone ID não detectado" }, 400);
-        result = await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, body);
+        result = await sendInteractiveMessage({ access_token: creds.access_token, phone_number_id: effectivePhoneId }, { ...body, phone: directPhone || body.phone });
         break;
       case "list_templates":
         return await listTemplates(creds, effectivePhoneId);
