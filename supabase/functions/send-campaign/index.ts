@@ -1174,84 +1174,54 @@ serve(async (req) => {
     } else if (requestedInstanceId) {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
-      // Se a instância configurada existe, valida se está conectada;
-      // caso contrário, troca por outra conectada do mesmo usuário.
-      let resolvedInstance: ResolvedInstance | null = specificInstance;
-      if (resolvedInstance) {
-        const status = await fetchDeviceStatusSnapshot(resolvedInstance);
-        if (!status.connected) {
-          console.log(`⚠️ Configured instance ${resolvedInstance.instanceName} is offline. Searching for any connected instance.`);
-          resolvedInstance = null;
-        }
+      // Modo instância única: usa EXCLUSIVAMENTE a instância selecionada.
+      // Se ela não existir mais ou estiver desconectada, pausa a campanha
+      // — nunca faz fallback para outra instância.
+      if (!specificInstance) {
+        console.log(`⏸️ Requested instance ${requestedInstanceId} not found. Pausing campaign (no fallback).`);
+        await supabase
+          .from('campaigns')
+          .update({ status: 'paused', updated_at: new Date().toISOString() })
+          .eq('id', campaignId)
+          .eq('user_id', credentials.userId);
+        return new Response(JSON.stringify({
+          error: 'A conexão selecionada não foi encontrada. A campanha foi pausada. Reconecte o número selecionado e retome.',
+          stopped: true,
+          paused: true,
+          reason: 'instance_not_found',
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
       }
 
-      if (resolvedInstance) {
-        const specificInstance = resolvedInstance;
-        forcedRequestedInstance = specificInstance;
-        zapiInstanceId = specificInstance.zapiInstanceId;
-        zapiToken = specificInstance.zapiToken;
-        zapiClientToken = specificInstance.zapiClientToken;
-        credentials.apiProvider = specificInstance.apiProvider || 'zapi';
-        credentials.uazapiUrl = specificInstance.uazapiUrl || '';
-        credentials.uazapiToken = specificInstance.uazapiToken || '';
-        credentials.instanceName = specificInstance.instanceName;
-      } else {
-        // Fallback: instância requisitada não existe mais (provavelmente foi reconectada
-        // e ganhou novo UUID). Procura qualquer instância ativa E conectada do usuário.
-        console.log(`⚠️ Requested instance ${requestedInstanceId} not found. Searching for any connected instance for user ${credentials.userId}.`);
-        const { data: activeInstances } = await supabase
-          .from('zapi_instances')
-          .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key, is_default')
-          .eq('user_id', credentials.userId)
-          .eq('is_active', true)
-          .or('api_provider.is.null,api_provider.eq.zapi')
-          .order('is_default', { ascending: false })
-          .order('updated_at', { ascending: false });
-
-        let fallbackInstance: ResolvedInstance | null = null;
-        for (const row of (activeInstances || [])) {
-          const candidate = mapResolvedInstance(row);
-          if (!candidate) continue;
-          const status = await fetchDeviceStatusSnapshot(candidate);
-          if (status.connected) {
-            fallbackInstance = candidate;
-            console.log(`✅ Using connected instance ${candidate.instanceName} as fallback.`);
-            break;
-          }
-        }
-
-        // Se nenhuma estava conectada, ainda usa a primeira ativa para que o check de
-        // device do batch decida (com retry) se realmente pausa.
-        if (!fallbackInstance && activeInstances && activeInstances.length > 0) {
-          fallbackInstance = mapResolvedInstance(activeInstances[0]);
-          console.log(`⚠️ No connected instance found. Trying first active: ${fallbackInstance?.instanceName}`);
-        }
-
-        if (!fallbackInstance) {
-          await supabase
-            .from('campaigns')
-            .update({ status: 'paused', updated_at: new Date().toISOString() })
-            .eq('id', campaignId)
-            .eq('user_id', credentials.userId);
-
-          return new Response(JSON.stringify({
-            error: 'Nenhuma conexão WhatsApp ativa encontrada. Conecte um número e retome a campanha.',
-            stopped: true,
-            paused: true,
-          }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          });
-        }
-        forcedRequestedInstance = fallbackInstance;
-        zapiInstanceId = fallbackInstance.zapiInstanceId;
-        zapiToken = fallbackInstance.zapiToken;
-        zapiClientToken = fallbackInstance.zapiClientToken;
-        credentials.apiProvider = fallbackInstance.apiProvider || 'zapi';
-        credentials.uazapiUrl = fallbackInstance.uazapiUrl || '';
-        credentials.uazapiToken = fallbackInstance.uazapiToken || '';
-        credentials.instanceName = fallbackInstance.instanceName;
+      const status = await fetchDeviceStatusSnapshot(specificInstance);
+      if (!status.connected) {
+        console.log(`⏸️ Selected instance ${specificInstance.instanceName} is offline. Pausing campaign (no fallback).`);
+        await supabase
+          .from('campaigns')
+          .update({ status: 'paused', updated_at: new Date().toISOString() })
+          .eq('id', campaignId)
+          .eq('user_id', credentials.userId);
+        return new Response(JSON.stringify({
+          error: 'A conexão selecionada está desconectada. A campanha foi pausada. Reconecte o número e retome de onde parou.',
+          stopped: true,
+          paused: true,
+          reason: 'device_disconnected',
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
       }
+
+      forcedRequestedInstance = specificInstance;
+      zapiInstanceId = specificInstance.zapiInstanceId;
+      zapiToken = specificInstance.zapiToken;
+      zapiClientToken = specificInstance.zapiClientToken;
+      credentials.apiProvider = specificInstance.apiProvider || 'zapi';
+      credentials.uazapiUrl = specificInstance.uazapiUrl || '';
+      credentials.uazapiToken = specificInstance.uazapiToken || '';
+      credentials.instanceName = specificInstance.instanceName;
     }
 
     const getInstanceForIndex = (index: number): ResolvedInstance => {
