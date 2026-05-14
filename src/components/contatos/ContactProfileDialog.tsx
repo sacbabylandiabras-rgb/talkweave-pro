@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   import { useZapi } from "@/hooks/useZapi";
   import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface ContactProfileDialogProps {
   contact: Contact | null;
@@ -73,6 +74,7 @@ const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
 
 const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferredInstanceId }: ContactProfileDialogProps) => {
   const navigate = useNavigate();
+  const { activeWorkspace } = useWorkspace();
   const { toast } = useToast();
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -713,7 +715,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <Button 
                   variant="outline" 
                   className="justify-start gap-2"
-                  onClick={() => { onOpenChange(false); navigate(`/mensagens?phone=${encodeURIComponent(contact.phone)}`); }}
+                  onClick={() => { 
+                    onOpenChange(false); 
+                    const path = activeWorkspace === "meta" ? "/meta/mensagens" : "/mensagens";
+                    navigate(`${path}?phone=${encodeURIComponent(contact.phone)}`); 
+                  }}
                 >
                   <MessageSquare className="w-4 h-4" />
                   Abrir Conversa
@@ -721,10 +727,14 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                  <Button 
                    variant="outline" 
                    className="justify-start gap-2"
-                   onClick={() => { onOpenChange(false); navigate(`/enviar?phone=${encodeURIComponent(contact.phone)}`); }}
+                   onClick={() => { 
+                     onOpenChange(false); 
+                     const path = activeWorkspace === "meta" ? "/meta/enviar" : "/enviar";
+                     navigate(`${path}?phone=${encodeURIComponent(contact.phone)}`); 
+                   }}
                  >
                    <Send className="w-4 h-4" />
-                   Enviar Mensagem Manual
+                   {activeWorkspace === "meta" ? "Enviar Mensagem Oficial" : "Enviar Mensagem Manual"}
                  </Button>
                  <Button 
                    variant="outline" 
