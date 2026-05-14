@@ -29,8 +29,8 @@ export const isGroupPhone = (phone: string): boolean => {
   // @g.us é sempre grupo
   if (phone.includes('@g.us')) return true;
   
-  // Começa com 120363 = grupo real do WhatsApp
-  if (/^12036/.test(clean)) return true;
+  // Começa com 12036 = grupo real do WhatsApp (comprimento típico 18+)
+  if (/^12036/.test(clean) && clean.length >= 15) return true;
   
   // -group com menos de 20 dígitos = grupo real
   // -group com 21+ dígitos = número brasileiro salvo errado
@@ -74,12 +74,11 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
      return rawId ? `${rawId}-group` : phone;
    }
  
-   // Handle regular phones - strip common suffixes and standardize to digits@c.us
+  // Handle regular phones - strip common suffixes and standardize to digits
    const digits = phone.replace(/\D/g, '');
    if (!digits) return phone;
    
-   // Normalizing to digits@c.us ensures consistent keys while staying compatible with expectations
-   return `${digits}@c.us`;
+  return digits;
  };
 
 export const rememberGroupDisplayName = (

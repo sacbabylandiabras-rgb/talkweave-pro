@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
- import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera } from "lucide-react";
+import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera, Globe } from "lucide-react";
 import { useContacts } from "@/hooks/useContacts";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import type { Contact } from "@/hooks/useContacts";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const Contatos = () => {
+  const { activeWorkspace } = useWorkspace();
   const [searchTerm, setSearchTerm] = useState("");
    const { contacts, stats, loading, refetch, refreshProfilePicture, forceUpdateAllPhotos } = useContacts();
   const navigate = useNavigate();
@@ -165,12 +167,21 @@ const Contatos = () => {
                   ))}
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 flex items-center gap-1" onClick={(e) => { e.stopPropagation(); navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`); }}>
-                    <MessageSquare className="w-4 h-4" />
-                    Mensagem
-                  </Button>
-                </div>
+                {activeWorkspace === "meta" ? (
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" className="flex-1 flex items-center gap-1" onClick={(e) => { e.stopPropagation(); navigate(`/meta/mensagens?phone=${encodeURIComponent(contato.phone)}`); }}>
+                      <Globe className="w-4 h-4" />
+                      Conversa Oficial
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" className="flex-1 flex items-center gap-1" onClick={(e) => { e.stopPropagation(); navigate(`/mensagens?phone=${encodeURIComponent(contato.phone)}`); }}>
+                      <MessageSquare className="w-4 h-4" />
+                      Mensagem
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
