@@ -172,7 +172,7 @@ serve(async (req) => {
 
     let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
 
-    if (!flowState && isGroup && chatId && chatId !== phone) {
+    if (!participantFlowState && !flowState && isGroup && chatId && chatId !== phone) {
       const { data: sharedGroupFlowState } = await supabase
         .from("flow_captured_data")
         .select("*")
@@ -413,9 +413,11 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         await supabase.from("flow_captured_data").upsert({
           user_id: userId,
           flow_id: flow.id,
+          flow_name: flow.name,
           phone,
           last_node_id: node.id,
           captured_data: captured,
+          source: isGroup ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
         return;
