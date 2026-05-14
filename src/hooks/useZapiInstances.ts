@@ -39,14 +39,18 @@ const readCachedInstances = (userId: string): ZapiInstance[] | null => {
   }
 };
 
-const writeCachedInstances = (userId: string, instances: ZapiInstance[]) => {
+const writeCachedInstances = (userId: string, instances: ZapiInstance[], includeMeta = false) => {
   try {
     const safeInstances = instances.map((instance) => ({
       ...instance,
       zapi_token: '',
       zapi_client_token: '',
     }));
-    localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ instances: safeInstances, savedAt: Date.now() }));
+    localStorage.setItem(`${INSTANCES_CACHE_PREFIX}${userId}`, JSON.stringify({ 
+      instances: safeInstances, 
+      savedAt: Date.now(),
+      cachedWithMeta: includeMeta 
+    }));
   } catch {
     // cache is best-effort only
   }
@@ -129,10 +133,13 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      let allInstances = await fetchInstancesWithRetry(user.id);
+      let allInstances: ZapiInstance[] = [];
+      
+      const fetchZapiPromise = fetchInstancesWithRetry(user.id);
+      let metaPromise: any = Promise.resolve({ data: [] });
       
       if (options?.includeMeta) {
-        const { data: metaRows } = await supabase
+        metaPromise = supabase
           .from("meta_credentials" as any)
           .select("*")
           .eq("user_id", user.id)
@@ -140,6 +147,13 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
           .not("phone_number_id", "is", null)
           .order("updated_at", { ascending: false })
           .limit(1);
+      }
+
+      const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
+      allInstances = [...zapiData];
+      
+      if (options?.includeMeta && metaResponse?.data) {
+        const metaRows = metaResponse.data;
 
         if (metaRows && metaRows.length > 0) {
           const creds = metaRows[0] as any;
@@ -169,15 +183,27 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
 
       setInstances(deduped);
       setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
-      writeCachedInstances(user.id, deduped);
+      writeCachedInstances(user.id, deduped, options?.includeMeta);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);
       const { data: { user } } = await supabase.auth.getUser();
-      const cached = user ? readCachedInstances(user.id) : null;
-      if (cached?.length) {
-        const cachedInstances = normalizeInstances(cached, options?.includeWarmup, options?.provider);
-        setInstances((current) => current.length ? current : cachedInstances);
-        setActiveInstance((current) => current || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
+      const raw = user ? localStorage.getItem(`${INSTANCES_CACHE_PREFIX}${user.id}`) : null;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const cached = Array.isArray(parsed?.instances) ? parsed.instances : [];
+          const cachedWithMeta = !!parsed?.cachedWithMeta;
+          
+          if (cached.length > 0) {
+            // Only use cache if it matches the current request's meta preference
+            // or if we really have no other choice.
+            if (cachedWithMeta === !!options?.includeMeta || !options?.includeMeta) {
+              const cachedInstances = normalizeInstances(cached, options?.includeWarmup, options?.provider);
+              setInstances((current) => current.length ? current : cachedInstances);
+              setActiveInstance((current) => current || cachedInstances.find(i => i.id === current?.id) || cachedInstances.find(i => i.is_default) || cachedInstances[0] || null);
+            }
+          }
+        } catch {}
       }
     } finally {
       setLoading(false);
