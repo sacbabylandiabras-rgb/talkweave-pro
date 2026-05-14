@@ -257,9 +257,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
-  const { instances: zapiInstances } = useZapiInstances({ 
-    includeMeta: true,
-    provider: isMetaMode ? 'meta' : 'zapi'
+  const { instances: zapiInstances } = useZapiInstances({
+    includeMeta: isMetaMode,
+    provider: isMetaMode ? "meta" : "zapi",
   });
   const { data: metaCreds } = useMetaCredentials();
 
