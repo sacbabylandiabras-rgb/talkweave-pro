@@ -537,18 +537,16 @@ export function SelectContactsDialog({
 
         <div className="border-t pt-4">
           <div className="space-y-3">
-            {(isGroupsMode || isMetaMode || effectiveProvider === "zapi" || effectiveProvider === "meta") && (
-              <InstanceSelector
-                providerFilter={isMetaMode ? "meta" : (effectiveProvider === "zapi" ? "zapi" : undefined)}
-        onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
-      />
-    )}
-    {isMetaMode && selectedInstanceIds.length === 0 && (
-      <p className="text-[10px] text-amber-500 mt-1">
-        Nenhuma conta Meta selecionada. O sistema tentará usar sua conta conectada automaticamente.
-      </p>
-    )}
-  </div>
+            <InstanceSelector
+              providerFilter={isMetaMode ? "meta" : undefined}
+              onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
+            />
+            {isMetaMode && selectedInstanceIds.length === 0 && (
+              <p className="text-[10px] text-amber-500 mt-1">
+                Nenhuma conta Meta selecionada. O sistema tentará usar sua conta conectada automaticamente.
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter>
