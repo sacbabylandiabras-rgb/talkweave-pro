@@ -148,6 +148,74 @@ const logProviderSend = async (
   }
 };
 
+ async function getMetaCredentials(adminClient: any, userId: string, phoneId?: string) {
+   const query = adminClient
+     .from("meta_credentials")
+     .select("access_token, phone_number_id, waba_id")
+     .eq("user_id", userId)
+     .eq("connected", true);
+ 
+   if (phoneId) {
+     query.eq("phone_number_id", phoneId);
+   }
+ 
+   const { data, error } = await query.maybeSingle();
+   if (error || !data) return null;
+   return data;
+ }
+ 
+ async function sendMetaMessage(creds: { access_token: string; phone_number_id: string }, body: any, resolvedPhone: string) {
+   const { message, mediaUrl, mediaType, buttonActions, buttonList } = body;
+   const to = resolvedPhone.replace(/\D/g, "");
+   const baseUrl = `https://graph.facebook.com/v21.0/${creds.phone_number_id}/messages`;
+   const headers = {
+     Authorization: `Bearer ${creds.access_token}`,
+     "Content-Type": "application/json",
+   };
+ 
+   let payload: any = { messaging_product: "whatsapp", to };
+ 
+   const buttons = [
+     ...(buttonActions || []),
+     ...(buttonList?.buttons || []).map((b: any) => ({ ...b, type: "REPLY" })),
+   ].slice(0, 3);
+ 
+   if (buttons.length > 0) {
+     payload.type = "interactive";
+     const metaButtons = buttons.map((btn, idx) => ({
+       type: "reply",
+       reply: { id: btn.id || String(idx), title: (btn.label || btn.text || "Botão").slice(0, 20) },
+     }));
+ 
+     payload.interactive = {
+       type: "button",
+       body: { text: message || "Escolha uma opção:" },
+       action: { buttons: metaButtons },
+     };
+ 
+     if (mediaUrl && mediaType === "image") {
+       payload.interactive.header = { type: "image", image: { link: mediaUrl } };
+     }
+   } else if (mediaUrl && mediaType) {
+     const typeMap: Record<string, string> = { image: "image", video: "video", audio: "audio", document: "document" };
+     const metaType = typeMap[mediaType] || "document";
+     payload.type = metaType;
+     payload[metaType] = { link: mediaUrl };
+     if (message && metaType !== "audio") payload[metaType].caption = message;
+   } else {
+     payload.type = "text";
+     payload.text = { body: message };
+   }
+ 
+   const res = await fetch(baseUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+   const data = await res.json();
+   if (!res.ok) {
+     console.error("Meta API error:", data);
+     throw new Error(data?.error?.message || "Erro na Meta API");
+   }
+   return data;
+ }
+ 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -212,6 +280,42 @@ serve(async (req) => {
       )
     }
 
+     // 1. Detect if it's a Meta instance
+     if (requestedInstanceId?.startsWith("meta:")) {
+       const metaPhoneId = requestedInstanceId.split(":")[1];
+       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+       const auth = req.headers.get("Authorization")?.replace("Bearer ", "");
+       let userId;
+       if (auth) {
+         const { data: { user } } = await adminClient.auth.getUser(auth);
+         userId = user?.id;
+       }
+       
+       if (!userId) throw new Error("Não autorizado");
+ 
+       const metaCreds = await getMetaCredentials(adminClient, userId, metaPhoneId);
+       if (!metaCreds || !metaCreds.access_token || !metaCreds.phone_number_id) {
+         throw new Error("Credenciais Meta não encontradas ou desconectadas.");
+       }
+ 
+       console.log(`🚀 Routing to Meta API for phoneId ${metaCreds.phone_number_id}`);
+       const metaResult = await sendMetaMessage(metaCreds as any, payloadRaw, phones[0]);
+       
+       // Log Meta send
+       await adminClient.from("message_logs").insert({
+         user_id: userId,
+         phone: phones[0],
+         message_received: null,
+         response_sent: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         keyword_matched: "__manual_send__",
+         instance_id: requestedInstanceId,
+       });
+ 
+       return new Response(JSON.stringify({ success: true, data: metaResult }), {
+         headers: { ...corsHeaders, "Content-Type": "application/json" },
+       });
+     }
+ 
      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
      let credentials;
      try {

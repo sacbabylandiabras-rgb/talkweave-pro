@@ -253,16 +253,22 @@ export default function TemplatesAprovados() {
       </div>
 
       {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-8 gap-2">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Buscando templates da Meta...</span>
+      {/* Loading Overlay or inline indicator */}
+      {loading && templates.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 border border-dashed rounded-xl bg-muted/20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Buscando seus templates na Meta...</p>
         </div>
       )}
 
-      {/* Template List */}
-      {!loading && (
-        <div className="space-y-3">
+      {/* Template List - Show even while loading if we have cached data */}
+      {(templates.length > 0 || !loading) && (
+        <div className={`space-y-3 ${loading ? "opacity-60 pointer-events-none" : ""}`}>
+          {loading && templates.length > 0 && (
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2 animate-pulse">
+              <RefreshCw className="w-3 h-3 animate-spin" /> Sincronizando com a Meta...
+            </div>
+          )}
           {filtered.map((template) => {
             const status = statusConfig[template.status] || statusConfig.PENDING;
             const StatusIcon = status.icon;

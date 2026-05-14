@@ -18,35 +18,16 @@ const ROTATE_ALL = "__rotate_all__";
 const STORAGE_KEY = "zaplynx_selected_instances";
 
 const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
-  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ provider: providerFilter });
+  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ 
+    provider: providerFilter,
+    includeMeta: true 
+  });
    // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
     const { data: metaCreds } = useMetaCredentials();
     
     const instances = useMemo(() => {
-      const list = allInstances.filter((i: any) => {
-        const iProvider = (i.api_provider || "zapi").toLowerCase();
-        return iProvider === "zapi";
-      });
-
-      // Add virtual Meta instance if available
-      if (metaCreds?.connected && metaCreds?.phone_number_id) {
-        list.push({
-          id: `meta:${metaCreds.phone_number_id}`,
-          instance_name: metaCreds.fb_user_name || "Meta API",
-          zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
-          is_default: list.length === 0,
-          api_provider: "meta",
-          is_active: true,
-          user_id: metaCreds.user_id,
-          zapi_token: "",
-          zapi_client_token: "",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as any);
-      }
-      
-      return list;
-    }, [allInstances, providerFilter, metaCreds]);
+      return allInstances;
+    }, [allInstances]);
   const activeInstance = providerFilter
     ? (instances.find((i: any) => i.id === rawActiveInstance?.id) || instances.find((i: any) => i.is_default) || instances[0] || null)
     : rawActiveInstance;

@@ -114,7 +114,7 @@ export default function EnvioCloudAPI() {
 
   /* ---------- fetchers ---------- */
   const fetchPhoneNumbers = async (force = false) => {
-    const cacheKey = `meta_phones_${creds?.user_id || 'default'}`;
+    const cacheKey = `meta_phones_global`; // Use global cache to prevent flicker on mount
     if (!force) {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {

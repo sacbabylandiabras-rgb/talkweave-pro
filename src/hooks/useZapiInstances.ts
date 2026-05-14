@@ -122,7 +122,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
   throw lastError;
 };
 
-export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?: string }) => {
+export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?: string, includeMeta?: boolean }) => {
   const [instances, setInstances] = useState<ZapiInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeInstance, setActiveInstance] = useState<ZapiInstance | null>(null);
@@ -134,7 +134,40 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const allInstances = await fetchInstancesWithRetry(user.id);
+      let allInstances = await fetchInstancesWithRetry(user.id);
+      
+      if (options?.includeMeta) {
+        const { data: metaCreds } = await supabase
+          .from("meta_credentials" as any)
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("connected", true)
+          .maybeSingle();
+
+        const creds = metaCreds as any;
+        if (creds?.phone_number_id) {
+          const cachedInfo = localStorage.getItem(`meta_info_${user.id}`);
+          const info = cachedInfo ? JSON.parse(cachedInfo) : {};
+          const displayName = info.display_phone_number 
+            ? `${creds.fb_user_name || "Meta API"} (${info.display_phone_number})`
+            : creds.fb_user_name || "Meta API";
+
+          allInstances.push({
+            id: `meta:${creds.phone_number_id}`,
+            user_id: user.id,
+            instance_name: displayName,
+            zapi_instance_id: `meta:${creds.phone_number_id}`,
+            zapi_token: "",
+            zapi_client_token: "",
+            is_default: allInstances.length === 0,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            api_provider: "meta"
+          });
+        }
+      }
+
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
 
       setInstances(deduped);
