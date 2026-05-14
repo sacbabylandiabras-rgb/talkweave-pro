@@ -25,7 +25,7 @@ interface Props {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ valid: string[]; invalid: string[]; total: number; checked: number } | null>(null);
-  const { instances, activeInstance, selectInstance } = useZapiInstances();
+  const { instances, activeInstance, selectInstance } = useZapiInstances({ provider: 'zapi' });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
