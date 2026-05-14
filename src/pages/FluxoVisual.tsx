@@ -1,3 +1,49 @@
+              case "media-carousel": {
+                let cards = [];
+                try {
+                  cards = JSON.parse(targetNode.data.carouselCardsJson || '[]');
+                } catch (e) {
+                  console.error("Erro ao parsear cards do carrossel:", e);
+                }
+                if (cards.length > 0) {
+                  await sendWithInstance({
+                    phone: contact,
+                    message: content || '',
+                    carouselCards: cards
+                  }, targetNode.data);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                break;
+              }
+           }
+        } else if (targetNode.type === "agenteIA") {
+          const delayMs = (targetNode.data.delaySeconds || 0) * 1000;
+          if (delayMs > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+
+          const prompt = targetNode.data.prompt || "Você é um assistente virtual prestativo.";
+          // Para envios manuais, não temos uma mensagem do usuário, então usamos um Olá genérico
+          // ou o conteúdo do bloco se preenchido.
+          const userMessage = "Olá"; 
+          
+          try {
+            const { data, error } = await supabase.functions.invoke('webhook-zapi', {
+              body: {
+                __manual_flow_trigger__: true,
+                action: "ai-reply",
+                prompt,
+                message: userMessage,
+                phone: contact,
+                instanceId: instanceId || instances.find(i => i.is_default)?.id
+              }
+            });
+            console.log("[FluxoVisual] AI reply result", { data, error });
+          } catch (err) {
+            console.error("[FluxoVisual] Error calling AI", err);
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import ReactFlow, {
   Node,
