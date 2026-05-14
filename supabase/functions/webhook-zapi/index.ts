@@ -64,9 +64,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
-    const senderPhone = webhook?.participant || webhook?.senderPhone || "";
-    const phone = (isGroup && senderPhone) 
-      ? senderPhone 
+    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
+    const phone = (isGroup && participantPhone) 
+      ? participantPhone 
       : (webhook?.phone || webhook?.chatPhone || "");
     const chatId = webhook?.phone || webhook?.chatPhone || "";
     const instanceId = webhook?.instanceId || "";
@@ -161,7 +161,7 @@ serve(async (req) => {
 
     // 1. CHECK FOR PENDING FLOWS (Captures or Buttons)
     // We use a specific table for flow state to be more reliable than logs
-    const { data: flowState } = await supabase
+    const { data: participantFlowState } = await supabase
       .from("flow_captured_data")
       .select("*")
       .eq("user_id", userId)
@@ -169,6 +169,33 @@ serve(async (req) => {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
+    let flowStateIsSharedGroup = false;
+
+    if (!flowState && isGroup && chatId && chatId !== phone) {
+      const { data: sharedGroupFlowState } = await supabase
+        .from("flow_captured_data")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("phone", chatId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (sharedGroupFlowState?.last_node_id) {
+        const { data: existingParticipantState } = await supabase
+          .from("flow_captured_data")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("flow_id", sharedGroupFlowState.flow_id)
+          .eq("phone", phone)
+          .maybeSingle();
+
+        flowState = existingParticipantState ? null : sharedGroupFlowState;
+        flowStateIsSharedGroup = !!flowState;
+      }
+    }
 
     // Se encontrarmos um estado de fluxo, tentamos processar antes de verificar gatilhos globais
     let flowStateHandled = false;
@@ -195,15 +222,20 @@ serve(async (req) => {
 
           if (isCapture && field) {
             flowStateHandled = true;
-            const captured = flowState.captured_data || {};
+            const captured = { ...(flowState.captured_data || {}) };
             captured[field] = messageRaw;
 
-            await supabase.from("flow_captured_data").update({
+            await supabase.from("flow_captured_data").upsert({
+              user_id: userId,
+              flow_id: flowId,
+              flow_name: flow.name,
+              phone,
               captured_data: captured,
               [field]: messageRaw,
               last_node_id: null,
+              source: isGroup ? "whatsapp_group" : "whatsapp",
               updated_at: new Date().toISOString()
-            }).eq("id", flowState.id);
+            }, { onConflict: "user_id,flow_id,phone" });
 
             const captureHandle = getCaptureHandle(field);
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
@@ -228,10 +260,12 @@ serve(async (req) => {
 
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
 
-              await supabase.from("flow_captured_data").update({
-                last_node_id: null,
-                updated_at: new Date().toISOString()
-              }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+              if (!flowStateIsSharedGroup) {
+                await supabase.from("flow_captured_data").update({
+                  last_node_id: null,
+                  updated_at: new Date().toISOString()
+                }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+              }
 
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
@@ -253,10 +287,12 @@ serve(async (req) => {
             });
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
-            await supabase.from("flow_captured_data").update({
-              last_node_id: null,
-              updated_at: new Date().toISOString()
-            }).eq("id", flowState.id);
+            if (!flowStateIsSharedGroup) {
+              await supabase.from("flow_captured_data").update({
+                last_node_id: null,
+                updated_at: new Date().toISOString()
+              }).eq("id", flowState.id);
+            }
             return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
           }
         }
@@ -393,9 +429,11 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         await supabase.from("flow_captured_data").upsert({
           user_id: userId,
           flow_id: flow.id,
+          flow_name: flow.name,
           phone,
           last_node_id: node.id,
           captured_data: captured,
+          source: isGroup ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
         return;
