@@ -228,9 +228,9 @@ interface FluxoVisualProps {
   mode?: "contacts" | "groups" | "meta";
 }
 
-export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
-  const isGroupsMode = mode === "groups";
-  const isMetaMode = mode === "meta";
+export default function FluxoMeta() {
+  const isGroupsMode = false;
+  const isMetaMode = true;
   const pageTitle = isMetaMode ? "Fluxo Meta" : isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
   const pageSubtitle = isMetaMode 
     ? "Crie automações visuais para sua conta da Meta API"
