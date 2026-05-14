@@ -65,10 +65,10 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
     const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
+    const chatId = webhook?.phone || webhook?.chatPhone || "";
     const phone = (isGroup && participantPhone) 
       ? participantPhone 
-      : (webhook?.phone || webhook?.chatPhone || "");
-    const chatId = webhook?.phone || webhook?.chatPhone || "";
+      : chatId;
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
@@ -91,8 +91,13 @@ serve(async (req) => {
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
 
+    // Extract sender info for group prefixing
+    const senderName = webhook?.senderName || webhook?.sender?.name || "";
+    const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
+    const senderPhone = participantPhone;
+
     // Extract message text and fromMe
-    const messageRaw = webhook?.buttonsResponseMessage?.message ||
+    let messageRaw = webhook?.buttonsResponseMessage?.message ||
                       webhook?.buttonsResponseMessage?.buttonText ||
                       webhook?.buttonsResponseMessage?.buttonId ||
                       webhook?.buttonResponseMessage?.message ||
@@ -141,16 +146,25 @@ serve(async (req) => {
       }
     }
 
+    // If it's a group message from someone else, prefix it with sender info for the UI
+    if (isGroup && !fromMe && messageRaw) {
+      const senderPrefix = `[sender:${senderName}|${senderPhone}|${senderPhoto}] `;
+      if (!messageRaw.startsWith('[sender:')) {
+        messageRaw = senderPrefix + messageRaw;
+      }
+    }
+
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
        if (isMessage && fromMe && !isButtonResponse) {
-         await supabase.from("message_logs").insert({
-           user_id: userId,
-           phone: phone,
-           message_received: messageRaw,
-           instance_id: instanceId,
-           timestamp: new Date().toISOString()
-         });
+          // Para o log de mensagens, usamos o chatId para agrupar conversas corretamente
+          await supabase.from("message_logs").insert({
+            user_id: userId,
+            phone: chatId, // <-- Use chatId here to group by conversation
+            message_received: messageRaw,
+            instance_id: instanceId,
+            timestamp: new Date().toISOString()
+          });
        }
 
        if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
@@ -250,7 +264,7 @@ serve(async (req) => {
               // REGISTRA CLIQUE DE BOTAO NAS METRICAS
               await supabase.from("message_logs").insert({
                 user_id: userId,
-                phone: phone,
+                phone: chatId, // <-- Use chatId here
                 message_received: messageRaw,
                 instance_id: instanceId,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
@@ -278,7 +292,7 @@ serve(async (req) => {
             // REGISTRA CLIQUE DE BOTAO NAS METRICAS (RECUPERADO)
             await supabase.from("message_logs").insert({
               user_id: userId,
-              phone: phone,
+              phone: chatId, // <-- Use chatId here
               message_received: messageRaw,
               instance_id: instanceId,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
@@ -308,7 +322,7 @@ serve(async (req) => {
     // REGISTRA MENSAGEM NO LOG
     await supabase.from("message_logs").insert({
       user_id: userId,
-      phone: phone,
+      phone: chatId, // <-- Use chatId here
       message_received: messageRaw,
       instance_id: instanceId,
       timestamp: new Date().toISOString()
