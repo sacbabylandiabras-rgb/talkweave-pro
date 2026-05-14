@@ -65,7 +65,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
     const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
-    const chatId = webhook?.phone || webhook?.chatPhone || "";
+    let chatId = webhook?.phone || webhook?.chatPhone || "";
+
+    // Normalize chatId for groups to match frontend expectations (suffix -group)
+    if (isGroup || chatId.includes('@g.us')) {
+      const rawId = chatId.replace(/@g\.us$/i, '').replace(/-group$/i, '');
+      if (rawId) {
+        chatId = `${rawId}-group`;
+      }
+    }
+
     const phone = (isGroup && participantPhone) 
       ? participantPhone 
       : chatId;
