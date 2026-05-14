@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useContacts } from "@/hooks/useContacts";
+import { isGroupPhone } from "@/lib/group-name-resolution";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { Search, Users, Loader2, Plus, X, Phone, UsersRound, RefreshCw, Link2, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
