@@ -98,15 +98,16 @@ export function SelectContactsDialog({
     }
   }, [open, isGroupsMode]);
 
+  useEffect(() => {
     if (open) {
       setSelectedContacts([]);
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-       setActiveTab(isGroupsMode ? "groups" : "contacts");
+      setActiveTab(isGroupsMode ? "groups" : "contacts");
       setSendProvider(isMetaMode ? "meta" : "zapi");
     }
-  }, [open, isGroupsMode]);
+  }, [open, isGroupsMode, isMetaMode]);
 
 
   const filteredContacts = (isMetaMode ? contacts.filter(c => !isGroupPhone(c.phone)) : contacts).filter(contact => {
