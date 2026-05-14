@@ -64,11 +64,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   } = useCampaigns();
   
   const { toast } = useToast();
-   const { instances: allInstances, activeInstance } = useZapiInstances();
-   const instances = useMemo(() => allInstances.filter(i => {
-     const provider = (i.api_provider || 'zapi').toLowerCase();
-     return provider !== 'uazapi' && provider !== 'meta';
-   }), [allInstances]);
+  const { instances, activeInstance } = useZapiInstances();
   
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -988,32 +984,21 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           </AlertDialogHeader>
           <div className="py-2">
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant={instanceSelectionMode === 'rotate' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setInstanceSelectionMode('rotate');
-                  setZapiRotateMode(instances);
+              <InstanceSelector
+                providerFilter="all"
+                onMultiInstanceChange={(ids) => {
+                  if (ids.length > 1) {
+                    setInstanceSelectionMode('rotate');
+                    setZapiRotateMode(instances.filter(i => ids.includes(i.id)));
+                  } else if (ids.length === 1) {
+                    const inst = instances.find(i => i.id === ids[0]);
+                    if (inst) {
+                      setInstanceSelectionMode('single');
+                      setZapiInstanceOverride(inst);
+                    }
+                  }
                 }}
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                Rodízio (Todas)
-              </Button>
-              {instances.map(inst => (
-                <Button
-                  key={inst.id}
-                  type="button"
-                  variant={instanceSelectionMode === 'single' && getSelectedCampaignInstanceId() === inst.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setInstanceSelectionMode('single');
-                    setZapiInstanceOverride(inst);
-                  }}
-                >
-                  {inst.instance_name}
-                </Button>
-              ))}
+              />
             </div>
           </div>
           <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50 mt-2">
@@ -1058,35 +1043,22 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant={instanceSelectionMode === 'rotate' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setInstanceSelectionMode('rotate');
-                  setZapiRotateMode(instances);
+          <div className="py-2 space-y-4">
+             <InstanceSelector
+                providerFilter="all"
+                onMultiInstanceChange={(ids) => {
+                  if (ids.length > 1) {
+                    setInstanceSelectionMode('rotate');
+                    setZapiRotateMode(instances.filter(i => ids.includes(i.id)));
+                  } else if (ids.length === 1) {
+                    const inst = instances.find(i => i.id === ids[0]);
+                    if (inst) {
+                      setInstanceSelectionMode('single');
+                      setZapiInstanceOverride(inst);
+                    }
+                  }
                 }}
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                Rodízio (Todas)
-              </Button>
-              {instances.map(inst => (
-                <Button
-                  key={inst.id}
-                  type="button"
-                  variant={instanceSelectionMode === 'single' && getSelectedCampaignInstanceId() === inst.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setInstanceSelectionMode('single');
-                    setZapiInstanceOverride(inst);
-                  }}
-                >
-                  {inst.instance_name}
-                </Button>
-              ))}
-            </div>
+              />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

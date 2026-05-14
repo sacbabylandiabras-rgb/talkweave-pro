@@ -10,16 +10,18 @@ interface InstanceSelectorProps {
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
   /** Restrict to instances of a specific api_provider (e.g. "uazapi"). */
-  providerFilter?: "zapi" | "meta";
+  providerFilter?: "zapi" | "meta" | "all";
 }
 
 const ROTATE_ALL = "__rotate_all__";
 
 const STORAGE_KEY = "zaplynx_selected_instances";
 
-const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter }: InstanceSelectorProps) => {
+const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter = "all" }: InstanceSelectorProps) => {
+  const zapiFilter = providerFilter === "all" ? undefined : providerFilter;
+  
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ 
-    provider: providerFilter,
+    provider: zapiFilter,
     includeMeta: true 
   });
    // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
