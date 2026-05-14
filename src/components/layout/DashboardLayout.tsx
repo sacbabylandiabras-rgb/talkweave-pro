@@ -348,6 +348,12 @@ export function DashboardLayout() {
       "/meta/templates": "templates-aprovados",
       "/meta/enviar": "envio-cloud",
       "/meta/configuracao": "configuracao-meta",
+      "/meta/mensagens": "mensagens-meta",
+      "/meta/fluxo": "fluxo-meta",
+      "/meta/campanhas": "campanhas-meta",
+      "/meta/contatos": "contatos-meta",
+      "/meta/relatorio": "relatorio-meta",
+      "/meta/gateway": "gateway-meta",
     };
     return map[path] || "painel";
   };

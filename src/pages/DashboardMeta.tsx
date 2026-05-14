@@ -66,12 +66,23 @@ export default function DashboardMeta() {
   const navigate = useNavigate();
   const isConnected = creds?.connected === true;
 
-  const [profile, setProfile] = useState<BusinessProfile>({});
-  const [phoneInfo, setPhoneInfo] = useState<PhoneInfo>({});
-  const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>([]);
+  const [profile, setProfile] = useState<BusinessProfile>(() => {
+    const cached = localStorage.getItem("meta_dashboard_profile");
+    return cached ? JSON.parse(cached) : {};
+  });
+  const [phoneInfo, setPhoneInfo] = useState<PhoneInfo>(() => {
+    const cached = localStorage.getItem("meta_dashboard_phone_info");
+    return cached ? JSON.parse(cached) : {};
+  });
+  const [phoneNumbers, setPhoneNumbers] = useState<MetaPhoneNumber[]>(() => {
+    const cached = localStorage.getItem("meta_dashboard_phone_numbers");
+    return cached ? JSON.parse(cached) : [];
+  });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPhones, setLoadingPhones] = useState(false);
-  const [hasLoadedPhoneNumbers, setHasLoadedPhoneNumbers] = useState(false);
+  const [hasLoadedPhoneNumbers, setHasLoadedPhoneNumbers] = useState(() => {
+    return phoneNumbers.length > 0;
+  });
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editForm, setEditForm] = useState({ about: "", description: "", address: "", email: "" });
@@ -104,8 +115,12 @@ export default function DashboardMeta() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setProfile(data.profile || {});
-      setPhoneInfo(data.phone_info || {});
+      const newProfile = data.profile || {};
+      const newPhoneInfo = data.phone_info || {};
+      setProfile(newProfile);
+      setPhoneInfo(newPhoneInfo);
+      localStorage.setItem("meta_dashboard_profile", JSON.stringify(newProfile));
+      localStorage.setItem("meta_dashboard_phone_info", JSON.stringify(newPhoneInfo));
       setEditForm({
         about: data.profile?.about || "",
         description: data.profile?.description || "",
@@ -130,7 +145,9 @@ export default function DashboardMeta() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setPhoneNumbers(Array.isArray(data?.phone_numbers) ? data.phone_numbers : []);
+      const phones = Array.isArray(data?.phone_numbers) ? data.phone_numbers : [];
+      setPhoneNumbers(phones);
+      localStorage.setItem("meta_dashboard_phone_numbers", JSON.stringify(phones));
       setHasLoadedPhoneNumbers(true);
     } catch (err) {
       setPhoneNumbers([]);

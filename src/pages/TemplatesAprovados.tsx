@@ -92,7 +92,23 @@ export default function TemplatesAprovados() {
     if (isConnected) fetchTemplates();
   }, [isConnected]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (force = false) => {
+    const cacheKey = `meta_templates_${creds?.phone_number_id || 'default'}`;
+    if (!force) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < 1000 * 60 * 30) { // 30 min cache
+            setTemplates(data);
+            return;
+          }
+        } catch (e) {
+          localStorage.removeItem(cacheKey);
+        }
+      }
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-meta-message", {
@@ -100,7 +116,9 @@ export default function TemplatesAprovados() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setTemplates(data.templates || []);
+      const tpls = data.templates || [];
+      setTemplates(tpls);
+      localStorage.setItem(cacheKey, JSON.stringify({ data: tpls, ts: Date.now() }));
     } catch (err) {
       const msg = await getInvokeErrorMessage(err, "Erro ao buscar templates");
       toast.error(msg);
@@ -187,7 +205,7 @@ export default function TemplatesAprovados() {
             <Plus className="w-3.5 h-3.5" />
             Criar Template
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={fetchTemplates} disabled={loading}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fetchTemplates(true)} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Sincronizar
           </Button>

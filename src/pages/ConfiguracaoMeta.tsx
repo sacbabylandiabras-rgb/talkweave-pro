@@ -47,8 +47,10 @@ export default function ConfiguracaoMeta() {
     
     if (connected === "1") {
       toast.success("Conta Meta conectada com sucesso!");
+      // Invalidate query and update workspace context to ensure immediate UI update
       queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
-      // Remove params without triggering a full re-render loop if possible
+      
+      // Remove params without triggering a full re-render loop
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("connected");
       setSearchParams(newParams, { replace: true });

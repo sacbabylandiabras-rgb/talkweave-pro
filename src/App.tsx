@@ -198,12 +198,16 @@ const App = () => (
                       </AdminRouteGuard>
                     }
                   />
-                  <Route path="/meta/dashboard" element={<DashboardMeta />} />
-                  <Route path="/meta/mensagens" element={<MetaMessages />} />
-                  <Route path="/meta/templates" element={<TemplatesAprovados />} />
+                   <Route path="/meta/dashboard" element={<DashboardMeta />} />
+                   <Route path="/meta/mensagens" element={<MetaMessages />} />
+                   <Route path="/meta/templates" element={<TemplatesAprovados />} />
                    <Route path="/meta/enviar" element={<EnvioCloudAPI />} />
                    <Route path="/meta/fluxo" element={<FluxoVisual mode="meta" />} />
                    <Route path="/meta/configuracao" element={<ConfiguracaoMeta />} />
+                   <Route path="/meta/campanhas" element={<Campanhas mode="contacts" />} />
+                   <Route path="/meta/contatos" element={<Contatos />} />
+                   <Route path="/meta/relatorio" element={<Relatorio />} />
+                   <Route path="/meta/gateway" element={<GatewayIntegracoes />} />
                   <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
                   <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
                   <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
