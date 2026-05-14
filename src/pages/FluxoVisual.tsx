@@ -1044,11 +1044,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
          const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
            const finalPayload = { ...payload };
            
-           // Adiciona opção de marcar todos se estiver em modo grupo
-           if (isGroupsMode && nodeData?.mentionAll) {
-             finalPayload.mentionAll = true;
-           }
- 
+   // Normaliza o destino para grupos se necessário
+   const isGroup = contact.includes('@g.us') || contact.includes('-group');
+   if (isGroup) {
+     const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+     finalPayload.phone = numericId ? `${numericId}-group` : contact;
+     // Adiciona opção de marcar todos se estiver em modo grupo
+     if (nodeData?.mentionAll) {
+       finalPayload.mentionAll = true;
+     }
+   }
+   
           {
              const body = instanceId
                ? { ...finalPayload, instanceId, preferStandardConnection: true }
@@ -1085,18 +1091,23 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         const collectWhatsapp = !!targetNode.data.collectWhatsapp;
         const collectEmail = !!targetNode.data.collectEmail;
 
-        if (collectName || collectWhatsapp || collectEmail) {
-          const captureField: "name" | "whatsapp" | "email" = collectName
+         const collectCPF = !!targetNode.data.collectCPF;
+
+         if (collectName || collectWhatsapp || collectEmail || collectCPF) {
+           const captureField: "name" | "whatsapp" | "email" | "cpf" = collectName
             ? "name"
             : collectWhatsapp
             ? "whatsapp"
-            : "email";
+            : collectEmail
+            ? "email"
+            : "cpf";
 
-          const promptMap: Record<typeof captureField, string> = {
-            name: targetNode.data.content || targetNode.data.namePrompt || "Qual o seu nome?",
-            whatsapp: targetNode.data.content || targetNode.data.whatsappPrompt || "Qual seu WhatsApp?",
-            email: targetNode.data.content || targetNode.data.emailPrompt || "Qual seu melhor email?",
-          };
+           const promptMap: Record<string, string> = {
+             name: targetNode.data.namePrompt || targetNode.data.content || "Qual o seu nome?",
+             whatsapp: targetNode.data.whatsappPrompt || targetNode.data.content || "Qual seu WhatsApp?",
+             email: targetNode.data.emailPrompt || targetNode.data.content || "Qual seu melhor email?",
+             cpf: targetNode.data.cpfPrompt || targetNode.data.content || "Qual o seu CPF?",
+           };
 
            await sendWithInstance({ phone: contact, message: promptMap[captureField] }, targetNode.data);
 
