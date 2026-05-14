@@ -72,6 +72,7 @@ import {
   Database,
   Users,
   Sparkles,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
