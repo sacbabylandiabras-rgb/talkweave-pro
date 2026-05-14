@@ -106,10 +106,10 @@ export function SelectContactsDialog({
       setSearchQuery("");
       setManualPhone("");
       setManualPhones([]);
-       setActiveTab(isGroupsMode ? "groups" : "contacts");
+      setActiveTab(isGroupsMode ? "groups" : "contacts");
       setSendProvider(isMetaMode ? "meta" : "zapi");
     }
-  }, [open, isGroupsMode]);
+  }, [open, isGroupsMode, isMetaMode]);
 
 
   const filteredContacts = (isMetaMode ? contacts.filter(c => !isGroupPhone(c.phone)) : contacts).filter(contact => {
@@ -540,11 +540,15 @@ export function SelectContactsDialog({
             {(isGroupsMode || isMetaMode || effectiveProvider === "zapi" || effectiveProvider === "meta") && (
               <InstanceSelector
                 providerFilter={isMetaMode ? "meta" : (effectiveProvider === "zapi" ? "zapi" : undefined)}
-                onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
-              />
-            )}
-
-          </div>
+        onMultiInstanceChange={(ids) => setSelectedInstanceIds(ids)}
+      />
+    )}
+    {isMetaMode && selectedInstanceIds.length === 0 && (
+      <p className="text-[10px] text-amber-500 mt-1">
+        Nenhuma conta Meta selecionada. O sistema tentará usar sua conta conectada automaticamente.
+      </p>
+    )}
+  </div>
         </div>
 
         <DialogFooter>
