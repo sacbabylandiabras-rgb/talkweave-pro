@@ -31,6 +31,7 @@ const Contatos = lazyWithRecovery(() => import("./pages/Contatos"));
 const EnviarMensagem = lazyWithRecovery(() => import("./pages/EnviarMensagem"));
 const Relatorio = lazyWithRecovery(() => import("./pages/Relatorio"));
 const FluxoVisual = lazyWithRecovery(() => import("./pages/FluxoVisual"));
+const FluxoMeta = lazyWithRecovery(() => import("./pages/FluxoMeta"));
 const FluxoGrupos = lazyWithRecovery(() => import("./pages/FluxoGrupos"));
 const GatewayIntegracoes = lazyWithRecovery(() => import("./pages/GatewayIntegracoes"));
 const MensagensRecebidas = lazyWithRecovery(() => import("./pages/MensagensRecebidas"));
