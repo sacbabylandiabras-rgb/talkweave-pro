@@ -260,8 +260,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const { data: metaCreds } = useMetaCredentials();
 
   const instances = useMemo(() => {
+    // Se estivermos no modo Meta, priorizar a instância Meta na lista se ela existir
+    if (isMetaMode) {
+      return zapiInstances;
+    }
     return zapiInstances;
-  }, [zapiInstances]);
+  }, [zapiInstances, isMetaMode]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -959,9 +963,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             if (cancelSendRef.current) return;
 
             const visitedNodes = new Set<string>();
-            const currentInstanceId = instanceIds && instanceIds.length > 0
+            let currentInstanceId = instanceIds && instanceIds.length > 0
               ? instanceIds[index % instanceIds.length]
               : undefined;
+            
+            // Se estiver no modo Meta e não tiver uma instância selecionada, tenta usar a da Meta detectada
+            if (isMetaMode && !currentInstanceId && metaCreds?.phone_number_id) {
+              currentInstanceId = `meta:${metaCreds.phone_number_id}`;
+              console.log("[FluxoVisual] Usando instância Meta detectada automaticamente:", currentInstanceId);
+            }
 
             try {
               await processFlow(initialNode.id, contact, visitedNodes, currentInstanceId, currentUserId, provider || "zapi", savedFlowId);
