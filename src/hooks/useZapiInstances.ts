@@ -133,10 +133,13 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      let allInstances = await fetchInstancesWithRetry(user.id);
+      let allInstances: ZapiInstance[] = [];
+      
+      const fetchZapiPromise = fetchInstancesWithRetry(user.id);
+      let metaPromise: Promise<any> = Promise.resolve([]);
       
       if (options?.includeMeta) {
-        const { data: metaRows } = await supabase
+        metaPromise = supabase
           .from("meta_credentials" as any)
           .select("*")
           .eq("user_id", user.id)
@@ -144,6 +147,13 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
           .not("phone_number_id", "is", null)
           .order("updated_at", { ascending: false })
           .limit(1);
+      }
+
+      const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
+      allInstances = [...zapiData];
+      
+      if (options?.includeMeta && metaResponse?.data) {
+        const metaRows = metaResponse.data;
 
         if (metaRows && metaRows.length > 0) {
           const creds = metaRows[0] as any;
