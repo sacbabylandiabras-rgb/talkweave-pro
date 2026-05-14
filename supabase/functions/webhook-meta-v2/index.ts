@@ -846,10 +846,11 @@ async function resolveMetaCredentialByPhoneNumber(
     return cache.get(phoneNumberId) ?? null
   }
 
-  const { data: directMatch, error: directError } = await supabase
+  const { data: directMatch, error: directError } = await (supabase as any)
     .from('meta_credentials')
     .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
     .eq('phone_number_id', phoneNumberId)
+    .eq('app_id', WHATSAPP_META_APP_ID)
     .eq('connected', true)
     .not('access_token', 'is', null)
     .maybeSingle()
@@ -863,9 +864,10 @@ async function resolveMetaCredentialByPhoneNumber(
     return directMatch
   }
 
-  const { data: candidates, error: candidatesError } = await supabase
+  const { data: candidates, error: candidatesError } = await (supabase as any)
     .from('meta_credentials')
     .select('user_id, access_token, phone_number_id, waba_id, business_account_id')
+    .eq('app_id', WHATSAPP_META_APP_ID)
     .eq('connected', true)
     .not('access_token', 'is', null)
 

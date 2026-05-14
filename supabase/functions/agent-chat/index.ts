@@ -205,6 +205,9 @@ const TOOL_DEFS: Record<string, any> = {
   },
 }
 
+const WHATSAPP_META_APP_ID = '26985190684454065'
+const INSTAGRAM_META_APP_ID = '2389544344842071'
+
 // ============ UAZAPI HELPERS ============
 async function getUserUazapiCreds(supabase: any, userId: string): Promise<{ apiUrl: string; apiToken: string } | null> {
   const { data: instance } = await supabase
@@ -245,6 +248,7 @@ async function getMetaCreds(supabase: any, userId: string): Promise<{ access_tok
     .from('meta_credentials')
     .select('access_token, phone_number_id, connected')
     .eq('user_id', userId)
+    .eq('app_id', WHATSAPP_META_APP_ID)
     .eq('connected', true)
     .order('updated_at', { ascending: false })
     .limit(1)
@@ -258,6 +262,7 @@ async function getInstagramToken(supabase: any, userId: string): Promise<string 
     .from('meta_credentials')
     .select('access_token, connected')
     .eq('user_id', userId)
+    .eq('app_id', INSTAGRAM_META_APP_ID)
     .eq('connected', true)
     .order('updated_at', { ascending: false })
     .limit(5)
