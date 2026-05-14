@@ -282,7 +282,20 @@ serve(async (req) => {
 
                   if (initialNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
-                    await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, new Set<string>(), userId, matchedFlow.name)
+                    const options = { flowId: matchedFlow.id }
+                    const visited = new Set<string>()
+                    
+                    const shouldStop = await sendNodeContentMeta(
+                      initialNode, nodes, edges, fromPhone, metaCreds,
+                      visited, supabase, userId, matchedFlow.name, options
+                    )
+                    
+                    if (!shouldStop) {
+                      await processFlowNodeMeta(
+                        initialNode.id, nodes, edges, fromPhone, metaCreds,
+                        supabase, visited, userId, matchedFlow.name, options
+                      )
+                    }
 
                     await supabase.from('message_logs').insert({
                       user_id: userId,
@@ -435,16 +448,18 @@ async function sendNodeContentMeta(
     flowId?: string;
   }
 ): Promise<boolean> {
-  if (targetNode.type !== 'blocoConteudo') return false
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial') return false
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  // Handle delay before sending content
-  const delaySeconds = Number(targetNode.data.delaySeconds || 0)
-  if (delaySeconds > 0) {
-    const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
-    console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
-    await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+  if (targetNode.type === 'blocoConteudo') {
+    // Handle delay before sending content
+    const delaySeconds = Number(targetNode.data.delaySeconds || 0)
+    if (delaySeconds > 0) {
+      const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
+      console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
+      await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+    }
   }
 
   const contentType = targetNode.data.contentType || 'text'
@@ -647,7 +662,7 @@ async function processFlowNodeMeta(
     const targetNode = nodes.find(n => n.id === edge.target)
     if (!targetNode) continue
 
-    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoAcao') {
+    if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial' || targetNode.type === 'blocoAcao') {
       const isActionDelay = targetNode.type === 'blocoAcao' && targetNode.data.actionType === 'delay'
       
       if (isActionDelay) {
@@ -659,13 +674,13 @@ async function processFlowNodeMeta(
         }
       }
 
-      if (targetNode.type === 'blocoConteudo') {
-      const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName)
-      if (shouldStop) continue
+      if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial') {
+        const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName, options)
+        if (shouldStop) continue
       }
     }
 
-    await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName)
+    await processFlowNodeMeta(targetNode.id, nodes, edges, phone, metaCreds, supabase, visited, userId, flowName, options)
   }
 }
 
