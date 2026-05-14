@@ -148,11 +148,14 @@ const logProviderSend = async (
   }
 };
 
+ const WHATSAPP_META_APP_ID = "26985190684454065";
+
  async function getMetaCredentials(adminClient: any, userId: string, phoneId?: string) {
    const query = adminClient
      .from("meta_credentials")
      .select("access_token, phone_number_id, waba_id")
      .eq("user_id", userId)
+     .eq("app_id", WHATSAPP_META_APP_ID)
      .eq("connected", true);
  
    if (phoneId) {
