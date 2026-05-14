@@ -27,7 +27,7 @@ export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
       if (cachedInfo) {
         try {
           const info = JSON.parse(cachedInfo);
-          return { ...data, ...info } as any;
+          return { ...(data as Record<string, any>), ...info } as any;
         } catch (e) {}
       }
 
