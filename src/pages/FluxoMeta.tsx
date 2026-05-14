@@ -1106,7 +1106,7 @@ export default function FluxoMeta() {
             const label = (btn?.text || `Botão ${idx + 1}`).toString();
             if (type === "url") return { id: String(idx + 1), type: "URL" as const, label, url: wrapUrlWithTracking(value, label, contact) };
             if (type === "call") return { id: String(idx + 1), type: "CALL" as const, label, phone: value };
-            return { id: btn.id || String(idx + 1), type: "REPLY" as const, label };
+            return { id: `node:${node.id}:button:${idx}`, type: "REPLY" as const, label };
           });
 
           if (contentType === "image" && mediaUrl) {
