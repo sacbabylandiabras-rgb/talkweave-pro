@@ -14,7 +14,7 @@ import { getTemplatesForMode, type FlowTemplate } from "./flowTemplates";
 interface FlowTemplatesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mode: "contacts" | "groups";
+  mode: "contacts" | "groups" | "meta";
   onSelect: (template: FlowTemplate) => void;
   onStartBlank: () => void;
 }
