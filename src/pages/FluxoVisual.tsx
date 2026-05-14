@@ -1376,17 +1376,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
                 </div>
 
-                {isMetaMode && (
-                  <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/5 border border-primary/10">
-                    <Globe className="w-3.5 h-3.5 text-primary" />
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-semibold leading-none text-primary">Número Meta</span>
-                      <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
-                        {metaCreds?.display_phone_number || "Não configurado"}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
