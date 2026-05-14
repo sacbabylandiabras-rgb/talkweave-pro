@@ -136,7 +136,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       let allInstances: ZapiInstance[] = [];
       
       const fetchZapiPromise = fetchInstancesWithRetry(user.id);
-      let metaPromise: Promise<any> = Promise.resolve([]);
+      let metaPromise: any = Promise.resolve({ data: [] });
       
       if (options?.includeMeta) {
         metaPromise = supabase
