@@ -1226,7 +1226,7 @@ const ChatView = ({
               {msgs.map((msg) => {
                  const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
                  const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
-                 const senderPhoto = msg.sender_photo || senderContact?.profile_picture_url;
+                 const senderPhoto = msg.sender_photo || senderContact?.profile_picture_url || (isGroupPhone(conversation.phone) ? null : conversation.profilePictureUrl);
 
                 return (
                   <div key={msg.id} className="mb-2">
