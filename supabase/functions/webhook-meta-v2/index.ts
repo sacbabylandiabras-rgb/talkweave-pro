@@ -76,7 +76,45 @@ serve(async (req) => {
        console.log('[webhook-meta-v2] Received event:', JSON.stringify(body).slice(0, 500))
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey)
-      const entries = body?.entry || []
+      const entries = body?.entry || [];
+
+      // Handle manual trigger from frontend
+      if (body?.__manual_flow_trigger__ && body.flowId && body.phone && body.instanceId?.startsWith("meta:")) {
+        const phoneNumberId = body.instanceId.split(":")[1];
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        const { data: flow } = await supabase
+          .from("flow_automations")
+          .select("*")
+          .eq("id", body.flowId)
+          .maybeSingle();
+
+        if (flow) {
+          const { data: cred } = await supabase
+            .from("meta_credentials")
+            .select("access_token, user_id")
+            .eq("phone_number_id", phoneNumberId)
+            .maybeSingle();
+
+          if (cred?.access_token) {
+            const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
+            if (initialNode) {
+              const metaCreds = { access_token: cred.access_token, phone_number_id: phoneNumberId };
+              const options = { flowId: flow.id };
+              const visited = new Set<string>();
+              
+              const shouldStop = await sendNodeContentMeta(initialNode, flow.nodes, flow.edges, body.phone, metaCreds, visited, supabase, cred.user_id, flow.name, options);
+              if (!shouldStop) {
+                await processFlowNodeMeta(initialNode.id, flow.nodes, flow.edges, body.phone, metaCreds, supabase, visited, cred.user_id, flow.name, options);
+              }
+              return new Response(JSON.stringify({ success: true, message: 'Flow triggered manually' }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+          }
+        }
+      }
       const credentialCache = new Map<string, MetaCredentialRow | null>()
 
       for (const entry of entries) {
@@ -544,14 +582,16 @@ async function sendNodeContentMeta(
         if (buttonLabels) logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`
 
         if (logContent) {
-          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail);
-          const hasButtons = (targetNode.data.buttons || []).length > 0;
+          const hasCaptureEdge = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"));
+          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail || hasCaptureEdge);
+          const nodeButtons = targetNode.data.buttons || [];
+          const hasButtons = nodeButtons.length > 0 || edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("button-"));
           
           let keywordMatched = `__flow_send__:${flowName}`;
           let responseSent = logContent.trim();
 
-          if (isCapture || hasButtons) {
-            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : `${FLOW_BUTTON_PREFIX}${userId}`;
+          if (isCapture || hasButtons || (nodeButtons.length > 0)) {
+            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : (hasButtons ? `${FLOW_BUTTON_PREFIX}${userId}` : keywordMatched);
             responseSent = JSON.stringify({
               flowId: options?.flowId,
               flowName: flowName,
