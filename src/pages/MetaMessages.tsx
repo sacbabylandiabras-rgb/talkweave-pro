@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -607,6 +607,8 @@ const ChatView = ({
    const [newTagColor, setNewTagColor] = useState(0);
    const [addingTag, setAddingTag] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -716,13 +718,33 @@ const ChatView = ({
      }
    };
 
-   useEffect(() => {
-     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-     if (conversation) {
-       loadAvailableTags();
-       fetchTagColors();
-     }
-   }, [conversation?.messages.length, conversation?.phone]);
+    useLayoutEffect(() => {
+      if (!conversation?.messages.length) return;
+      
+      const messages = conversation.messages;
+      const lastMessage = messages[messages.length - 1];
+      
+      if (lastMessage.id !== lastMessageIdRef.current) {
+        const isNearBottom = (() => {
+          const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+          if (!viewport) return true;
+          const threshold = 150;
+          return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold;
+        })();
+
+        if (isNearBottom || !lastMessageIdRef.current) {
+          messagesEndRef.current?.scrollIntoView({ behavior: lastMessageIdRef.current ? "smooth" : "auto" });
+        }
+        lastMessageIdRef.current = lastMessage.id;
+      }
+    }, [conversation?.messages.length, conversation?.phone]);
+
+    useEffect(() => {
+      if (conversation) {
+        loadAvailableTags();
+        fetchTagColors();
+      }
+    }, [conversation?.phone]);
 
    useEffect(() => {
      if (conversation) {
@@ -1215,7 +1237,10 @@ const ChatView = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-3 bg-background">
+      <ScrollArea 
+        className="flex-1 px-4 py-3 bg-background" 
+        ref={scrollAreaRef}
+      >
         <div className="max-w-3xl mx-auto space-y-1">
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
