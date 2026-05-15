@@ -1148,10 +1148,15 @@ export default function AutomacaoComentarios() {
             )}
           </Button>
 
-          <Button onClick={handleSaveFlow} disabled={saving} size="sm" className="gap-1.5 ml-2">
-            <Save className="w-3.5 h-3.5" />
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
+           <Button 
+             onClick={handleSaveFlow} 
+             disabled={saving} 
+             size="sm" 
+             className="gap-1.5 ml-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20"
+           >
+             <Save className="w-3.5 h-3.5" />
+             {saving ? "Publicando..." : "Publicar Fluxo"}
+           </Button>
         </div>
       </div>
 
