@@ -164,11 +164,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
-        if (send?.status === 'delivered' || send?.status === 'sent') {
+        if (send?.status === 'delivered' || send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
           delivered += 1;
-          sent += 1;
-        } else if (send?.status === 'pending' && Boolean(send.message_id || send.sent_at)) {
-          sending += 1;
           sent += 1;
         } else if (send?.status === 'pending') {
           pending += 1;
