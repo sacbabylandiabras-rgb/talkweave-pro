@@ -10,6 +10,7 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [mediaUrl, setMediaUrl] = useState("");
   const [sku, setSku] = useState("");
   const [currency, setCurrency] = useState("BRL");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
@@ -80,6 +81,39 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
       setDescription("");
       setMediaUrl("");
       setSku("");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setMediaUrl(publicUrl);
+      toast({ title: "Imagem enviada com sucesso!" });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no upload", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
