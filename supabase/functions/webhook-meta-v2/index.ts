@@ -544,14 +544,16 @@ async function sendNodeContentMeta(
         if (buttonLabels) logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`
 
         if (logContent) {
-          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail);
-          const hasButtons = (targetNode.data.buttons || []).length > 0;
+          const hasCaptureEdge = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"));
+          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail || hasCaptureEdge);
+          const nodeButtons = targetNode.data.buttons || [];
+          const hasButtons = nodeButtons.length > 0 || edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("button-"));
           
           let keywordMatched = `__flow_send__:${flowName}`;
           let responseSent = logContent.trim();
 
-          if (isCapture || hasButtons) {
-            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : `${FLOW_BUTTON_PREFIX}${userId}`;
+          if (isCapture || hasButtons || (nodeButtons.length > 0)) {
+            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : (hasButtons ? `${FLOW_BUTTON_PREFIX}${userId}` : keywordMatched);
             responseSent = JSON.stringify({
               flowId: options?.flowId,
               flowName: flowName,
