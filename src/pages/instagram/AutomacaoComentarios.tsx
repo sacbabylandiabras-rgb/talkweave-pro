@@ -274,9 +274,8 @@ export default function AutomacaoComentarios() {
         if (parsed.__flow__) flowData = parsed;
       } catch {}
 
-      if (flowData && flowData.nodes?.length > 0) {
-        // Strip cached dimensions so React Flow recalculates node sizes
-        const cleanNodes = flowData.nodes.map((n: any) => {
+       if (flowData && flowData.nodes?.length > 0) {
+         // Strip cached dimensions so React Flow recalculates node sizes
          const cleanNodes = flowData.nodes.map((n: any) => {
            const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
            return {
@@ -289,7 +288,7 @@ export default function AutomacaoComentarios() {
            };
          });
          setNodes(cleanNodes);
-        setEdges(flowData.edges || []);
+         setEdges(flowData.edges || []);
       } else {
         // Legacy: convert old format to flow nodes
         let dmText = existing.dm_message || "";
