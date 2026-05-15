@@ -1798,8 +1798,9 @@ serve(async (req) => {
             console.log(`📬 [Special] Campaign Z-API response for ${contact.phone}: status=${zapiResponse.status}, confirmed=${confirmed}`);
 
             if ((zapiResponse.ok && !explicitError && confirmed) || (isLidIdentifier(contact.phone) && zapiResponse.ok)) {
-              campaignSend.status = 'sent';
+              campaignSend.status = 'delivered';
               campaignSend.sent_at = new Date().toISOString();
+              campaignSend.delivered_at = campaignSend.sent_at;
               const ackId = getZapiAckId(zapiResult);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -1858,8 +1859,9 @@ serve(async (req) => {
           console.log('[send-campaign] Resposta carrossel Z-API:', carouselResponse.status, carouselText);
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
-          campaignSend.status = 'sent';
+          campaignSend.status = 'delivered';
           campaignSend.sent_at = new Date().toISOString();
+          campaignSend.delivered_at = campaignSend.sent_at;
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
