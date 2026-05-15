@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus, Trash2, Link, Phone as PhoneIcon, MessageSquare } from "lucide-react";
+import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus, Trash2, Link, Phone as PhoneIcon, MessageSquare, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,15 @@ interface MetaTemplate {
   category: string;
   components: any[];
   quality_score?: any;
+}
+
+interface PhoneNumber {
+  display_phone_number: string;
+  verified_name: string;
+  quality_rating: string;
+  name_status: string;
+  id: string;
+  waba_id?: string;
 }
 
 const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
@@ -77,6 +86,9 @@ export default function TemplatesAprovados() {
   const [activeTab, setActiveTab] = useState("all");
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [loadingPhones, setLoadingPhones] = useState(false);
+  const [selectedPhoneId, setSelectedPhoneId] = useState("");
   const [previewTpl, setPreviewTpl] = useState<MetaTemplate | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -91,8 +103,31 @@ export default function TemplatesAprovados() {
   });
 
   useEffect(() => {
-    if (isConnected) fetchTemplates();
+    if (isConnected) {
+      fetchTemplates();
+      fetchPhoneNumbers();
+    }
   }, [isConnected]);
+
+  const fetchPhoneNumbers = async () => {
+    setLoadingPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-meta-message", {
+        body: { action: "get_phone_numbers" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const phones = data.phone_numbers || [];
+      setPhoneNumbers(phones);
+      if (phones.length > 0 && !selectedPhoneId) {
+        setSelectedPhoneId(phones[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching phone numbers:", err);
+    } finally {
+      setLoadingPhones(false);
+    }
+  };
 
   const fetchTemplates = async (force = false) => {
     const cacheKey = `meta_templates_${creds?.phone_number_id || 'default'}`;
