@@ -325,7 +325,8 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
            name: payload?.name,
            price: payload?.price,
            description: payload?.description,
-           image: payload?.mediaUrl || payload?.image,
+           image: payload?.mediaUrl || payload?.image || payload?.imageUrl,
+           images: payload?.images || (payload?.mediaUrl || payload?.image || payload?.imageUrl ? [payload.mediaUrl || payload.image || payload.imageUrl] : []),
            sku: payload?.sku,
            currency: payload?.currency || 'BRL',
            isHidden: payload?.isHidden ?? false
