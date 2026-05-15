@@ -546,8 +546,8 @@ export default function EnvioCloudAPI() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="texto" className="w-full">
-         <TabsList className="grid w-full grid-cols-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="texto" className="flex items-center gap-1 text-xs">
             <MessageSquare className="w-3.5 h-3.5" />
             Texto
