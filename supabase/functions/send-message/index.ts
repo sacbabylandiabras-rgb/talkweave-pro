@@ -1006,25 +1006,7 @@ serve(async (req) => {
       }
     }
 
-    const { data: logData, error: logError } = await supabase.from('message_logs').insert({
-    }).select('id').single();
-
-    // Se o envio foi confirmado, marcamos como entregue imediatamente se for uma campanha
-    // para contornar problemas de latência/perda de webhooks de entrega
-    if (zapiData && (zapiData.messageId || zapiData.zaapId)) {
-      const ackId = zapiData.messageId || zapiData.zaapId;
-      await supabase
-        .from('campaign_sends')
-        .update({
-          status: 'delivered',
-          delivered_at: new Date().toISOString(),
-          message_id: ackId
-        })
-        .eq('phone', resolvedPhone)
-        .is('message_id', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
-    }
+    await supabase.from('message_logs').insert({
       phone: resolvedPhone,
       message_received: null,
       response_sent: logContent,
@@ -1033,6 +1015,32 @@ serve(async (req) => {
       user_id: credentials.userId,
       instance_id: instanceId,
     });
+
+    // Se o envio foi confirmado, marcamos como entregue imediatamente se for uma campanha
+    // para contornar problemas de latência/perda de webhooks de entrega
+    if (zapiData && (zapiData.messageId || zapiData.zaapId)) {
+      const ackId = zapiData.messageId || zapiData.zaapId;
+      const originalPhone = Array.isArray(phone) ? phone[0] : phone;
+      
+      // Tenta marcar como entregue usando o telefone original (pode ser LID) ou o resolvido
+      console.log(`📍 Tentando marcar como entregue: phone=${originalPhone} ou ${resolvedPhone}, ack=${ackId}`);
+      const { data: updated, error: updateErr } = await supabase
+        .from('campaign_sends')
+        .update({
+          status: 'delivered',
+          delivered_at: new Date().toISOString(),
+          message_id: ackId
+        })
+        .or(`phone.eq."${originalPhone}",phone.eq."${resolvedPhone}"`)
+        .is('message_id', null)
+        .order('created_at', { ascending: false })
+        .select('id')
+        .limit(1);
+
+      if (updateErr) console.error(`❌ Erro ao marcar como entregue:`, updateErr);
+      if (updated && updated.length > 0) console.log(`✅ Marcado como entregue: campaign_send_id=${updated[0].id}`);
+      else console.log(`⚠️ Nenhum registro de campanha encontrado para marcar como entregue.`);
+    }
 
     await logProviderSend(adminClient, {
       userId: credentials.userId,

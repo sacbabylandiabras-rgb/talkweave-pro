@@ -2147,13 +2147,13 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                   className="w-full" 
                   onClick={() => {
                     const modeMap: Record<string, string> = {
-                      open_24h: 'OPEN_24H',
-                      appointment_only: 'APPOINTMENT_ONLY',
-                      specific_hours: 'SPECIFIC_HOURS',
+                      open_24h: 'open24h',
+                      appointment_only: 'appointmentOnly',
+                      specific_hours: 'specificHours',
                     };
                     const payload: any = {
                       timezone: "America/Sao_Paulo",
-                      mode: modeMap[businessHoursType] || 'OPEN_24H',
+                      mode: modeMap[businessHoursType] || 'open24h',
                     };
                     if (businessHoursType === 'specific_hours') {
                       payload.days = Object.entries(days)
