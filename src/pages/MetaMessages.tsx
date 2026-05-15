@@ -183,7 +183,7 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 };
 
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates, originalContent }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string>; originalContent?: string | null }) => {
   const augmentedContent = useMemo(() => {
     // If it's a campaign message and missing interactive markers, enrich it using the template.
     // This handles messages sent before the logger was updated to include markers.
@@ -262,6 +262,8 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   }
 
   const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
+  const displayContent = originalContent || resolvedContent;
+  const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(displayContent);
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
