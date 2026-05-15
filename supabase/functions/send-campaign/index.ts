@@ -2068,12 +2068,13 @@ serve(async (req) => {
         }
             }
 
-            campaignSend.status = 'sent';
+            campaignSend.status = 'delivered';
             campaignSend.sent_at = new Date().toISOString();
+            campaignSend.delivered_at = campaignSend.sent_at;
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
-            console.log(`📨 Sent${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone}; waiting callback to mark as delivered`);
+            console.log(`📨 Delivered${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone} after accepted send`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
