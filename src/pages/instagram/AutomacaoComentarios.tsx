@@ -1108,23 +1108,25 @@ export default function AutomacaoComentarios() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Block toolbar */}
-          {blocosDisponiveis.map((bloco) => {
-            const Icon = bloco.icon;
-            return (
-              <div
-                key={bloco.type}
-                draggable
-                onDragStart={(e) => onDragStart(e, bloco.type)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-md cursor-grab bg-card hover:bg-muted/50 transition-colors"
-                title={bloco.description}
-              >
-                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium">{bloco.label}</span>
-              </div>
-            );
-          })}
+         <div className="flex items-center gap-2 pr-2 border-r border-border/40 mr-2">
+           {/* Floating style toolbar */}
+           <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
+             {blocosDisponiveis.map((bloco) => {
+               const Icon = bloco.icon;
+               return (
+                 <div
+                   key={bloco.type}
+                   draggable
+                   onDragStart={(e) => onDragStart(e, bloco.type)}
+                   className="flex flex-col items-center justify-center w-12 h-12 rounded-md cursor-grab bg-card border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all shadow-sm group"
+                   title={bloco.description}
+                 >
+                   <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mb-0.5" />
+                   <span className="text-[9px] font-bold text-muted-foreground group-hover:text-primary uppercase tracking-tighter">{bloco.label}</span>
+                 </div>
+               );
+             })}
+           </div>
 
           <Button
             variant="outline"
