@@ -103,7 +103,7 @@ export default function EnvioCloudAPI() {
 
   useEffect(() => {
     if (isConnected) {
-      fetchPhoneNumbers();
+      void fetchPhoneNumbers();
     }
   }, [isConnected]);
 
