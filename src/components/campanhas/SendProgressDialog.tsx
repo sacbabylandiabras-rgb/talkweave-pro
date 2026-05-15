@@ -28,6 +28,7 @@ interface CampaignSendRow {
   sent_at: string | null;
   delivered_at: string | null;
   created_at: string;
+  message_id?: string | null;
 }
 
 const normalizePhoneKey = (phone?: string | null) => {
@@ -167,7 +168,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         if (send?.status === 'delivered') {
           delivered += 1;
           sent += 1;
-        } else if (send?.status === 'sent') {
+        } else if (send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
           sending += 1;
           sent += 1;
         } else if (send?.status === 'pending') {
