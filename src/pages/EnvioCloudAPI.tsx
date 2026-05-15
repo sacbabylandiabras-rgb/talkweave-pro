@@ -178,9 +178,19 @@ export default function EnvioCloudAPI() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const tpls = data.templates || [];
+      const tpls = (data.templates || []).filter((t: MetaTemplate) => t.status === "APPROVED");
       localStorage.setItem(cacheKey, JSON.stringify({ data: tpls, ts: Date.now() }));
-      setTemplates(tpls.filter((t: MetaTemplate) => t.status === "APPROVED"));
+      setTemplates(tpls);
+
+      const tplFromQuery = searchParams.get("template");
+      if (tplFromQuery) {
+        const found = tpls.find((t: MetaTemplate) => t.name === tplFromQuery);
+        if (found) {
+          const val = getTemplateOptionValue(found);
+          setTemplateName(val);
+          setVariables(Array(getBodyVarCount(found)).fill(""));
+        }
+      }
     } catch (err) {
       console.error("Error fetching templates:", err);
       const msg = await getInvokeErrorMessage(err, "Erro desconhecido");
