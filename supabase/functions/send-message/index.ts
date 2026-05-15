@@ -1006,7 +1006,25 @@ serve(async (req) => {
       }
     }
 
-    await supabase.from('message_logs').insert({
+    const { data: logData, error: logError } = await supabase.from('message_logs').insert({
+    }).select('id').single();
+
+    // Se o envio foi confirmado, marcamos como entregue imediatamente se for uma campanha
+    // para contornar problemas de latência/perda de webhooks de entrega
+    if (zapiData && (zapiData.messageId || zapiData.zaapId)) {
+      const ackId = zapiData.messageId || zapiData.zaapId;
+      await supabase
+        .from('campaign_sends')
+        .update({
+          status: 'delivered',
+          delivered_at: new Date().toISOString(),
+          message_id: ackId
+        })
+        .eq('phone', resolvedPhone)
+        .is('message_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+    }
       phone: resolvedPhone,
       message_received: null,
       response_sent: logContent,
