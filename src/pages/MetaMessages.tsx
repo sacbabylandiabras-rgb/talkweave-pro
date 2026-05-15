@@ -264,7 +264,6 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
   const displayContent = originalContent || resolvedContent;
   const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(displayContent);
-  const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
