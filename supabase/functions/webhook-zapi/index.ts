@@ -176,8 +176,8 @@ serve(async (req) => {
       
       console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
       
-      // Only mark as delivered if status is RECEIVED (delivered) or READ
-      if (messageIds.length > 0 && (status === "RECEIVED" || status === "READ" || status === "delivered")) {
+      // Mark as delivered as soon as the provider accepts/sends the message.
+      if (messageIds.length > 0 && ["SENT", "RECEIVED", "READ", "READ_BY_ME", "PLAYED", "sent", "delivered"].includes(status)) {
         for (const msgId of messageIds) {
           const { data: campaignSend } = await supabase
             .from("campaign_sends")
