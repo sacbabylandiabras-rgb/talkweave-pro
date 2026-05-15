@@ -1,4 +1,4 @@
- import { Plus, Instagram, Trash2, Pencil, Power, MessageSquare, Heart, Share2, PlayCircle, Star, Settings2, HelpCircle } from "lucide-react";
+ import { Plus, Instagram, Trash2, Pencil, Power, MessageSquare, Heart, Share2, PlayCircle, Star, Settings2, HelpCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useInstagramAutomations } from "@/hooks/useInstagramAutomations";
