@@ -2360,7 +2360,7 @@ const MetaMessages = () => {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm} 
                 readPhones={readPhones} 
-                instances={metaInstances} 
+                instances={instances} 
                 selectedInstanceId={selectedInstanceId} 
                 onInstanceChange={setSelectedInstanceId} 
                 syncing={syncing} 
