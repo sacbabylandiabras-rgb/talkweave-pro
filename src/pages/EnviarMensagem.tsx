@@ -92,13 +92,14 @@ const EnviarMensagem = () => {
 
   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading } = useZapi();
   const { toast } = useToast();
-  const { instances: allInstances, activeInstance } = useZapiInstances();
-  const instances = useMemo(() => {
-    return allInstances.filter(i => {
-      const provider = (i.api_provider || 'zapi').toLowerCase();
-      return provider !== 'uazapi' && provider !== 'meta';
-    });
-  }, [allInstances]);
+   const { instances: allInstances, activeInstance } = useZapiInstances({ includeMeta: true });
+   const instances = useMemo(() => {
+     return allInstances.filter(i => {
+       const provider = (i.api_provider || 'zapi').toLowerCase();
+       // Allow uazapi and meta instances to be selected
+       return true;
+     });
+   }, [allInstances]);
   const { templates: modelosDisponiveis, loading: loadingTemplates } = useMessageTemplates();
 
   // Subset de instâncias efetivamente escolhidas pelo usuário no seletor (modo revezamento)
