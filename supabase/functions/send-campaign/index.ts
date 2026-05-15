@@ -2163,12 +2163,12 @@ serve(async (req) => {
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .in('status', ['pending', 'sent']),
+          .eq('status', 'pending'),
         supabase
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .eq('status', 'delivered'),
+          .in('status', ['delivered', 'sent']),
       ]);
 
       const totalProcessed = processedRes.count ?? 0;
