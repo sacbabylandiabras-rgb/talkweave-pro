@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FileCheck, Search, Eye, Copy, MoreHorizontal, CheckCircle2, Clock, XCircle, Send, RefreshCw, Loader2, AlertCircle, Plus, Trash2, Link, Phone as PhoneIcon, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,7 @@ function getTemplateFooter(tpl: MetaTemplate): string {
 }
 
 export default function TemplatesAprovados() {
+  const navigate = useNavigate();
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
   const isConnected = creds?.connected === true;
 
@@ -313,7 +315,7 @@ export default function TemplatesAprovados() {
                         variant="outline"
                         size="sm"
                         className="h-8 text-xs gap-1.5"
-                        onClick={() => window.location.href = `/meta/enviar?template=${template.name}`}
+                        onClick={() => navigate(`/meta/enviar?template=${template.name}`)}
                       >
                         <Send className="w-3.5 h-3.5" />
                         Enviar
