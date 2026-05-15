@@ -363,12 +363,12 @@ export const useCampaigns = () => {
         } catch {}
         console.error('❌ Detailed error:', errorMessage);
 
-        // Check if messages were already sent before rolling back
+        // Check if messages were already sent or delivered before rolling back
         const { count: sentCount } = await supabase
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .eq('status', 'delivered');
+          .in('status', ['sent', 'delivered']);
 
         if ((sentCount ?? 0) > 0) {
           // Messages were already delivered — pause instead of reverting to draft
@@ -396,7 +396,7 @@ export const useCampaigns = () => {
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .eq('status', 'delivered');
+          .in('status', ['sent', 'delivered']);
 
         if ((sentCount ?? 0) > 0) {
           console.log(`⚠️ Campaign has ${sentCount} delivered messages, pausing instead of reverting to draft`);
