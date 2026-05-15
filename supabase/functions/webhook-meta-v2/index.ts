@@ -641,6 +641,7 @@ async function processFlowNodeMeta(
     if (!handle) return true
     if (handle === 'default') return true
     if (handle.startsWith('source-') || handle.startsWith('target-')) return true
+    if (handle.startsWith('collect-')) return true
     if (['right', 'bottom', 'left', 'top', 'a', 'b'].includes(handle)) return true
     return false
   }
@@ -676,7 +677,7 @@ async function processFlowNodeMeta(
 
       if (targetNode.type === 'blocoConteudo' || targetNode.type === 'blocoInicial') {
         const shouldStop = await sendNodeContentMeta(targetNode, nodes, edges, phone, metaCreds, visited, supabase, userId, flowName, options)
-        if (shouldStop) continue
+        if (shouldStop) return
       }
     }
 
