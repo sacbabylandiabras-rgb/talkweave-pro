@@ -451,7 +451,27 @@ export default function TemplatesAprovados() {
           <DialogHeader>
             <DialogTitle className="text-sm">Criar Novo Template</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-2">
+                <Smartphone className="w-3.5 h-3.5" />
+                Conta/Número de destino
+              </Label>
+              <Select value={selectedPhoneId} onValueChange={setSelectedPhoneId}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {phoneNumbers.map((pn) => (
+                    <SelectItem key={pn.id} value={pn.id}>
+                      {pn.display_phone_number} ({pn.verified_name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">O template será criado na WABA associada a este número</p>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs">Nome do template</Label>
               <Input
