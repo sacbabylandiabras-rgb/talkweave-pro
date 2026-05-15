@@ -60,7 +60,12 @@ import {
   ChevronDown,
   TableIcon,
   MessageSquare,
-  Download,
+   Download,
+   Heart,
+   Share2,
+   PlayCircle,
+   Star,
+   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
