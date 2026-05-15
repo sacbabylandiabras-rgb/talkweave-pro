@@ -2214,6 +2214,7 @@ const Dispositivos = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -2233,6 +2234,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
               <LayoutGrid className="w-4 h-4 mr-1" />
               Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)}>
+              <Package className="w-4 h-4 mr-1" />
+              Criar Produto
             </Button>
           )}
           {instances.length > 0 && (
@@ -2271,6 +2278,9 @@ const Dispositivos = () => {
 
       {/* Bulk Create Collection Dialog */}
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
+
+      {/* Bulk Create Product Dialog */}
+      <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
 
       {/* Bulk Business Info Dialog */}
       <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
