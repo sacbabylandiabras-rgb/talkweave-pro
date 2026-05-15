@@ -1,4 +1,4 @@
-import { MessageCircle, ArrowRightLeft, Users, TrendingUp, Heart, Eye, Instagram } from "lucide-react";
+ import { MessageCircle, ArrowRightLeft, Users, TrendingUp, Heart, Eye, Instagram, Share2, PlayCircle, Star, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useInstagramEvents } from "@/hooks/useInstagramEvents";
@@ -20,14 +20,17 @@ export default function DashboardInstagram() {
     ? ((dmEvents.length / commentEvents.length) * 100).toFixed(1)
     : "0";
 
-  const metrics = [
-    { label: "Comentários Detectados", value: String(commentEvents.length), icon: MessageCircle, color: "text-pink-400" },
-    { label: "Conversão → DM", value: `${conversionRate}%`, icon: ArrowRightLeft, color: "text-emerald-400" },
-    { label: "Contatos Capturados", value: String(contacts.length), icon: Users, color: "text-blue-400" },
-    { label: "DMs Enviados", value: String(dmEvents.length), icon: Heart, color: "text-red-400" },
-    { label: "Fluxos Ativos", value: String(activeFlows), icon: Eye, color: "text-purple-400" },
-    { label: "Total Fluxos", value: String(automations.length), icon: TrendingUp, color: "text-emerald-400" },
-  ];
+   const storyEvents = useMemo(() => events.filter(e => e.event_type === "story_reply"), [events]);
+   const shareEvents = useMemo(() => events.filter(e => e.event_type === "share"), [events]);
+ 
+   const metrics = [
+     { label: "Comentários", value: String(commentEvents.length), icon: MessageCircle, color: "text-pink-400" },
+     { label: "Story Replies", value: String(storyEvents.length), icon: Share2, color: "text-orange-400" },
+     { label: "Contatos", value: String(contacts.length), icon: Users, color: "text-blue-400" },
+     { label: "Conversão", value: `${conversionRate}%`, icon: ArrowRightLeft, color: "text-emerald-400" },
+     { label: "DMs Enviados", value: String(dmEvents.length), icon: Heart, color: "text-red-400" },
+     { label: "Compartilhados", value: String(shareEvents.length), icon: Zap, color: "text-purple-400" },
+   ];
 
   const chartData = useMemo(() => {
     const days: { date: string; comments: number; dms: number }[] = [];
