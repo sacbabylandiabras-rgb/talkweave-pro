@@ -345,7 +345,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         }
       }
 
-      const { data, error } = await supabase.functions.invoke('webhook-zapi', {
+      const functionName = instanceId.startsWith('meta:') ? 'webhook-meta-v2' : 'webhook-zapi';
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           phone: targetPhone,
           message: { text: flow.keyword || flow.name, fromMe: false },
