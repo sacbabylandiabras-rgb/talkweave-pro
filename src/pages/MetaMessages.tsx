@@ -1295,7 +1295,7 @@ const ChatView = ({
                             templates={templates} 
                             campaignId={msg.campaign_id} 
                             campaignTemplates={campaignTemplates}
-                            originalContent={(msg as any).original_content}
+                            originalContent={msg.original_content}
                           />
                           <p className="text-[10px] text-right mt-1 opacity-70">
                             {formatMessageTime(msg.timestamp)}
@@ -1397,7 +1397,7 @@ const ChatView = ({
                           templates={templates} 
                           campaignId={msg.campaign_id} 
                           campaignTemplates={campaignTemplates}
-                          originalContent={(msg as any).original_content}
+                          originalContent={msg.original_content}
                         />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
