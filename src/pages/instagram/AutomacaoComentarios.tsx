@@ -392,8 +392,9 @@ export default function AutomacaoComentarios() {
           message: "",
           keywords: "",
           buttons: [],
-          delayValue: 5,
-          delayUnit: "seconds",
+           triggerType: type === 'igGatilho' ? 'comment' : undefined,
+           delayValue: 5,
+           delayUnit: "seconds",
         },
       };
 
