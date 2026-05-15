@@ -139,7 +139,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
         const existing = sendsByPhone.get(phoneKey);
         const nextPriority = send.status === 'pending' && Boolean(send.message_id || send.sent_at) ? 3 : getSendPriority(send.status);
-        const currentPriority = getSendPriority(existing?.status);
+        const currentPriority = existing?.status === 'pending' && Boolean(existing.message_id || existing.sent_at) ? 3 : getSendPriority(existing?.status);
 
         if (
           !existing ||
