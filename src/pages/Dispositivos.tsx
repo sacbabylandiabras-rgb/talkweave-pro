@@ -2047,6 +2047,28 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
              </div>
            </div>
         </div>
+
+        {/* Preview do Perfil */}
+        <div className="hidden md:block">
+          <div className="sticky top-0">
+            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Building2 className="w-3 h-3" /> Pré-visualização
+            </p>
+            <BusinessProfilePreview
+              description={description}
+              email={email}
+              address={address}
+              websites={websites.split('\n').map(s => s.trim()).filter(Boolean)}
+              categories={selectedCategories
+                .map((id) => availableCategories.find((c) => c.id === id))
+                .filter(Boolean)
+                .map((c: any) => c.displayName || c.label || '')}
+              businessHoursType={businessHoursType}
+              days={days}
+            />
+          </div>
+        </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
