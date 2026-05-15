@@ -83,7 +83,7 @@ serve(async (req) => {
       case "list_templates":
         return await listTemplates(creds, effectivePhoneId);
       case "create_template":
-        return await createTemplate(creds, body);
+        return await createTemplate(creds, body, effectivePhoneId);
       case "get_profile":
         if (!creds.phone_number_id) {
           return jsonResponse({ error: "Credenciais incompletas. Phone Number ID não detectado. Reconecte sua conta." }, 400);
@@ -248,11 +248,14 @@ async function listTemplates(
 }
 
 async function createTemplate(
-  creds: { access_token: string; waba_id?: string | null },
-  body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string; buttons?: { type: string; text: string; url?: string; phone_number?: string }[] }
+  creds: { access_token: string; waba_id?: string | null; business_account_id?: string | null; phone_number_id?: string | null },
+  body: { name: string; category: string; language?: string; header_text?: string; body_text: string; footer_text?: string; buttons?: { type: string; text: string; url?: string; phone_number?: string }[] },
+  phoneNumberId?: string | null
 ) {
-  if (!creds.waba_id) {
-    return jsonResponse({ error: "WABA ID não configurado. Reconecte sua conta." }, 400);
+  const resolvedWabaId = await resolveWabaIdForPhoneNumber(creds, phoneNumberId);
+
+  if (!resolvedWabaId) {
+    return jsonResponse({ error: "WABA ID não configurado para o número remetente selecionado." }, 400);
   }
   if (!body.name || !body.body_text) {
     return jsonResponse({ error: "Nome e corpo do template são obrigatórios" }, 400);
@@ -292,7 +295,7 @@ async function createTemplate(
   };
 
   const result = await metaFetch(
-    `https://graph.facebook.com/${API_VERSION}/${creds.waba_id}/message_templates`,
+    `https://graph.facebook.com/${API_VERSION}/${resolvedWabaId}/message_templates`,
     creds.access_token,
     {
       method: "POST",
