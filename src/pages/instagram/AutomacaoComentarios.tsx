@@ -93,7 +93,7 @@ const defaultNodes: Node[] = [
     id: "1",
     type: "igGatilho",
     position: { x: 50, y: 200 },
-    data: { label: "Gatilho", keywords: "" },
+     data: { label: "Gatilho", keywords: "", triggerType: "comment" },
   },
   {
     id: "2",
