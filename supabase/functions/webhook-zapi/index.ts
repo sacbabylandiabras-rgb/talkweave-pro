@@ -168,45 +168,47 @@ serve(async (req) => {
                            type === "MessageStatus" ||
                            !!webhook?.status;
 
-    if (!phone || !instanceId || (!isMessage && !isStatusCallback) || (fromMe && !isButtonResponse && !isManualTrigger && !isStatusCallback)) {
-        // Handle delivery/status callbacks (entregue)
-        if (isStatusCallback) {
-          const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
-          const status = webhook?.status || "";
-          const error = webhook?.error;
+    // 1. Handle delivery/status callbacks first (entregue)
+    if (isStatusCallback) {
+      const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
+      const status = webhook?.status || "";
+      const error = webhook?.error;
+      
+      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
+      
+      // Only mark as delivered if status is RECEIVED (delivered) or READ
+      if (messageIds.length > 0 && (status === "RECEIVED" || status === "READ" || status === "delivered")) {
+        for (const msgId of messageIds) {
+          const { data: campaignSend } = await supabase
+            .from("campaign_sends")
+            .update({
+              status: 'delivered',
+              delivered_at: new Date().toISOString()
+            })
+            .eq("message_id", msgId)
+            .select('id')
+            .maybeSingle();
           
-          console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
-          
-          // Only mark as delivered if status is RECEIVED (delivered) or READ
-          if (messageIds.length > 0 && (status === "RECEIVED" || status === "READ" || status === "delivered")) {
-            for (const msgId of messageIds) {
-              const { data: campaignSend } = await supabase
-                .from("campaign_sends")
-                .update({
-                  status: 'delivered',
-                  delivered_at: new Date().toISOString()
-                })
-                .eq("message_id", msgId)
-                .select('id')
-                .maybeSingle();
-              
-              if (campaignSend) {
-                console.log(`Updated campaign_send ${campaignSend.id} to delivered via message_id ${msgId}`);
-              }
-            }
-          } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
-            for (const msgId of messageIds) {
-              await supabase
-                .from("campaign_sends")
-                .update({
-                  status: 'failed',
-                  error_message: error || status
-                })
-                .eq("message_id", msgId);
-            }
+          if (campaignSend) {
+            console.log(`Updated campaign_send ${campaignSend.id} to delivered via message_id ${msgId}`);
           }
         }
+      } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
+        for (const msgId of messageIds) {
+          await supabase
+            .from("campaign_sends")
+            .update({
+              status: 'failed',
+              error_message: error || status
+            })
+            .eq("message_id", msgId);
+        }
+      }
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
 
+    // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
         // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
         if (isMessage && fromMe && !isButtonResponse) {
           console.log(`Registering self-message for ${chatId}`);
@@ -223,7 +225,7 @@ serve(async (req) => {
 
         if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
         return new Response("ok", { status: 200, headers: corsHeaders });
-     }
+    }
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
