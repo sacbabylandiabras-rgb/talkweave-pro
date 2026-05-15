@@ -875,10 +875,7 @@ const EnviarMensagem = () => {
       const errosDetalhados: string[] = [];
 
        for (let i = 0; i < contatosProcessados.length; i++) {
-         // Se o envio terminou ou foi interrompido anteriormente, sair do loop
-         if (!enviandoEmMassa) break;
-
-        // Verificar se o envio foi cancelado localmente
+         // Verificar se o envio foi cancelado localmente (via ref, não state)
         if (cancelarEnvioRef.current) {
           await supabase
             .from('campaigns')
