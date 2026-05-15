@@ -260,8 +260,45 @@ export default function AutomacaoComentarios() {
   }, []);
 
   // Load existing automation
-  useEffect(() => {
-    if (editId && automations.length > 0) {
+   useEffect(() => {
+     const params = new URLSearchParams(window.location.search);
+     const templateId = params.get("template");
+ 
+     if (templateId && nodes.length === defaultNodes.length) {
+       const template = {
+         "venda-comentarios-reels": {
+           name: "Venda pelos comentários de Reels",
+           nodes: [
+             { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Comentário no Reel", triggerType: "comment", postScope: "any", matchType: "any" } },
+             { id: "2", type: "igResposta", position: { x: 350, y: 100 }, data: { label: "Resposta", message: "Te enviei os detalhes no Direct! 😉" } },
+             { id: "3", type: "igDM", position: { x: 350, y: 300 }, data: { label: "Enviar Oferta", message: "Olá! Vi seu comentário no nosso Reel. Aqui está o link da oferta: {{link}}", buttons: [{ title: "Ver Oferta", url: "https://", type: "url" }] } },
+           ],
+           edges: [
+             { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+             { id: "e1-3", source: "1", target: "3", sourceHandle: "source-bottom", targetHandle: "target-top", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+           ]
+         },
+         "cupons-stories": {
+           name: "Cupom via Story",
+           nodes: [
+             { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Resposta Story", triggerType: "story_reply", storyScope: "all", matchType: "any" } },
+             { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Enviar Cupom", message: "Obrigado por acompanhar nossos Stories! Aqui está seu cupom de 10% OFF: VIP10", buttons: [{ title: "Usar Cupom", url: "https://", type: "url" }] } },
+           ],
+           edges: [
+             { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+           ]
+         }
+       }[templateId as keyof typeof template];
+ 
+       if (template) {
+         setFlowName(template.name);
+         setNodes(template.nodes as Node[]);
+         setEdges(template.edges as Edge[]);
+         toast.success("Modelo carregado com sucesso!");
+       }
+     }
+ 
+     if (editId && automations.length > 0) {
       const existing = automations.find((a) => a.id === editId);
       if (!existing) return;
 
