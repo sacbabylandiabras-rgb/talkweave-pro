@@ -1167,13 +1167,14 @@ export default function AutomacaoComentarios() {
           fitView
           className="bg-background"
         >
-          <Controls className="!bg-card !border-border !shadow-md" />
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} className="!bg-background" />
-          <MiniMap
-            className="!bg-card !border-border"
-            nodeColor={() => "hsl(var(--primary))"}
-            maskColor="hsl(var(--background) / 0.7)"
-          />
+           <Controls className="!bg-card !border-border/50 !shadow-xl !rounded-lg !overflow-hidden" />
+           <Background variant={BackgroundVariant.Lines} gap={40} size={1} color="rgba(255,255,255,0.03)" className="!bg-[#0f1115]" />
+           <MiniMap
+             className="!bg-card/80 !border-border/50 !rounded-xl !shadow-2xl backdrop-blur-md"
+             nodeColor={() => "hsl(var(--primary))"}
+             maskColor="rgba(0,0,0,0.5)"
+             style={{ right: 20, bottom: 20 }}
+           />
         </ReactFlow>
       </div>
 
