@@ -2396,8 +2396,7 @@ const MetaMessages = () => {
             campaignTemplates={campaignTemplates}
             savedContacts={savedContacts}
             onSendMessage={async (phone, message, options) => {
-              const metaInstanceId = metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : 'meta:default';
-              await sendMessage(phone, message, { ...options, instanceId: metaInstanceId });
+              await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
             onForwardMessage={async (phone, messageId) => {
