@@ -37,8 +37,7 @@ const normalizePhoneKey = (phone?: string | null) => {
 };
 
 const getSendPriority = (status?: string | null) => {
-  if (status === 'delivered') return 3;
-  if (status === 'sent') return 2;
+  if (status === 'delivered' || status === 'sent') return 3;
   if (status === 'failed') return 1;
   return 0;
 };
@@ -139,8 +138,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         if (!phoneKey) return;
 
         const existing = sendsByPhone.get(phoneKey);
-        const nextPriority = getSendPriority(send.status);
-        const currentPriority = getSendPriority(existing?.status);
+        const nextPriority = send.status === 'pending' && Boolean(send.message_id || send.sent_at) ? 3 : getSendPriority(send.status);
+        const currentPriority = existing?.status === 'pending' && Boolean(existing.message_id || existing.sent_at) ? 3 : getSendPriority(existing?.status);
 
         if (
           !existing ||
@@ -165,11 +164,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
-        if (send?.status === 'delivered') {
+        if (send?.status === 'delivered' || send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
           delivered += 1;
-          sent += 1;
-        } else if (send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
-          sending += 1;
           sent += 1;
         } else if (send?.status === 'pending') {
           pending += 1;
