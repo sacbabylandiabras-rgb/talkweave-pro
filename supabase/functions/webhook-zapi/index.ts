@@ -163,9 +163,35 @@ serve(async (req) => {
       }
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
-       // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
-        // Self-messages should be registered as response_sent instead of message_received
+     if (!phone || !instanceId || (!isMessage && type !== "DeliveryCallback") || (fromMe && !isButtonResponse && !isManualTrigger)) {
+        // Handle delivery callbacks (entregue)
+        if (type === "DeliveryCallback") {
+          const messageId = webhook?.messageId;
+          const deliveryStatus = webhook?.status || "delivered";
+          const error = webhook?.error;
+          
+          console.log(`Processing DeliveryCallback for message ${messageId}: status=${deliveryStatus}`);
+          
+          if (messageId) {
+            // Update campaign_sends if this matches a campaign message
+            const { data: campaignSend, error: updateError } = await supabase
+              .from("campaign_sends")
+              .update({
+                status: error ? 'failed' : 'delivered',
+                delivered_at: error ? null : new Date().toISOString(),
+                error_message: error || null
+              })
+              .eq("message_id", messageId)
+              .select('id')
+              .maybeSingle();
+            
+            if (campaignSend) {
+              console.log(`Updated campaign_send ${campaignSend.id} to delivered`);
+            }
+          }
+        }
+
+        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
         if (isMessage && fromMe && !isButtonResponse) {
           console.log(`Registering self-message for ${chatId}`);
           await supabase.from("message_logs").insert({
@@ -179,9 +205,9 @@ serve(async (req) => {
           });
         }
 
-       if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
-       return new Response("ok", { status: 200, headers: corsHeaders });
-    }
+        if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
+        return new Response("ok", { status: 200, headers: corsHeaders });
+     }
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
