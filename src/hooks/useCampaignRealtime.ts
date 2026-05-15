@@ -174,8 +174,8 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
 
   const stats = {
     total: sends.length,
-    sent: sends.filter(s => s.status === 'delivered').length,
-    pending: sends.filter(s => s.status === 'pending' || s.status === 'sent').length,
+    sent: sends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    pending: sends.filter(s => s.status === 'pending').length,
     failed: sends.filter(s => s.status === 'failed').length,
     delivered: sends.filter(s => s.status === 'delivered').length,
   };

@@ -333,10 +333,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'error' || status === 'rejected';
 
   const statsDialogStats = {
-    // "Entregue" só com confirmação real via callback (status delivered).
-    sent: statsDialogSends.filter(s => s.status === 'delivered').length,
+    // "Enviado" agora inclui tanto "sent" (pela API) quanto "delivered" (pelo webhook)
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
-    // "sent" é só enviando; "pending" continua pendente.
+    // "Enviando" agora é apenas o que ainda está em trânsito/pendente na API
     sending: statsDialogSends.filter(s => s.status === 'sent').length,
     pending: statsDialogSends.filter(s => s.status === 'pending').length,
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
