@@ -89,13 +89,14 @@ const zapiMenuItems = [
   { id: "aquecimento", label: "Aquecimento de Número", icon: Flame, path: "/aquecimento" },
  ];
 
-const instagramMenuItems = [
-  { id: "ig-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/instagram/dashboard" },
-  { id: "ig-campanhas", label: "Campanhas", icon: Megaphone, path: "/instagram/campanhas" },
-  { id: "ig-automacao", label: "Automação", icon: Workflow, path: "/instagram/automacao" },
-  { id: "ig-contatos", label: "Contatos", icon: Users, path: "/instagram/contatos" },
-  { id: "ig-configuracao", label: "Configuração", icon: Settings, path: "/instagram/configuracao" },
-];
+ const instagramMenuItems = [
+   { id: "ig-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/instagram/dashboard" },
+   { id: "ig-campanhas", label: "Campanhas", icon: Megaphone, path: "/instagram/campanhas" },
+   { id: "ig-modelos", label: "Modelos", icon: LayoutTemplate, path: "/instagram/modelos" },
+   { id: "ig-automacao", label: "Automação", icon: Workflow, path: "/instagram/automacao" },
+   { id: "ig-contatos", label: "Contatos", icon: Users, path: "/instagram/contatos" },
+   { id: "ig-configuracao", label: "Configuração", icon: Settings, path: "/instagram/configuracao" },
+ ];
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },

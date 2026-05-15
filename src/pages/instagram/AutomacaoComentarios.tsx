@@ -29,11 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+   Dialog,
+   DialogContent,
+   DialogHeader,
+   DialogTitle,
+   DialogFooter,
+ } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -43,7 +44,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Save,
-  Plus,
+   Plus,
+   Pencil,
   ArrowLeft,
   Trash2,
   MessageCircle,
@@ -58,9 +60,15 @@ import {
   User,
   ChevronUp,
   ChevronDown,
-  TableIcon,
-  MessageSquare,
-  Download,
+   TableIcon,
+   MessageSquare,
+   Download,
+   Heart,
+   Settings2,
+   Share2,
+   PlayCircle,
+   Star,
+   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -85,7 +93,7 @@ const defaultNodes: Node[] = [
     id: "1",
     type: "igGatilho",
     position: { x: 50, y: 200 },
-    data: { label: "Gatilho", keywords: "" },
+     data: { label: "Gatilho", keywords: "", triggerType: "comment" },
   },
   {
     id: "2",
@@ -125,11 +133,11 @@ const defaultEdges: Edge[] = [
 ];
 
 const blocosDisponiveis = [
-  { type: "igGatilho", label: "Gatilho", icon: MessageCircle, description: "Palavra-chave no comentário" },
-  { type: "igResposta", label: "Resposta", icon: Reply, description: "Responder comentário publicamente" },
-  { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta com botões" },
-  { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar antes do próximo passo" },
-  { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar mensagem no WhatsApp" },
+   { type: "igGatilho", label: "Gatilho", icon: Zap, description: "O que inicia seu fluxo" },
+   { type: "igResposta", label: "Resposta", icon: MessageCircle, description: "Responder comentário no IG" },
+   { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta no Instagram" },
+   { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar um tempo" },
+   { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar para o WhatsApp" },
 ];
 
 export default function AutomacaoComentarios() {
@@ -142,7 +150,7 @@ export default function AutomacaoComentarios() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [flowName, setFlowName] = useState("Novo Fluxo");
+   const [flowName, setFlowName] = useState("Novo Fluxo Instagram");
   const [isActive, setIsActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -252,8 +260,45 @@ export default function AutomacaoComentarios() {
   }, []);
 
   // Load existing automation
-  useEffect(() => {
-    if (editId && automations.length > 0) {
+   useEffect(() => {
+     const params = new URLSearchParams(window.location.search);
+     const templateId = params.get("template");
+ 
+     if (templateId && nodes.length === defaultNodes.length) {
+       const template = {
+         "venda-comentarios-reels": {
+           name: "Venda pelos comentários de Reels",
+           nodes: [
+             { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Comentário no Reel", triggerType: "comment", postScope: "any", matchType: "any" } },
+             { id: "2", type: "igResposta", position: { x: 350, y: 100 }, data: { label: "Resposta", message: "Te enviei os detalhes no Direct! 😉" } },
+             { id: "3", type: "igDM", position: { x: 350, y: 300 }, data: { label: "Enviar Oferta", message: "Olá! Vi seu comentário no nosso Reel. Aqui está o link da oferta: {{link}}", buttons: [{ title: "Ver Oferta", url: "https://", type: "url" }] } },
+           ],
+           edges: [
+             { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+             { id: "e1-3", source: "1", target: "3", sourceHandle: "source-bottom", targetHandle: "target-top", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+           ]
+         },
+         "cupons-stories": {
+           name: "Cupom via Story",
+           nodes: [
+             { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Resposta Story", triggerType: "story_reply", storyScope: "all", matchType: "any" } },
+             { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Enviar Cupom", message: "Obrigado por acompanhar nossos Stories! Aqui está seu cupom de 10% OFF: VIP10", buttons: [{ title: "Usar Cupom", url: "https://", type: "url" }] } },
+           ],
+           edges: [
+             { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+           ]
+         }
+       }[templateId as keyof typeof template];
+ 
+       if (template) {
+         setFlowName(template.name);
+         setNodes(template.nodes as Node[]);
+         setEdges(template.edges as Edge[]);
+         toast.success("Modelo carregado com sucesso!");
+       }
+     }
+ 
+     if (editId && automations.length > 0) {
       const existing = automations.find((a) => a.id === editId);
       if (!existing) return;
 
@@ -269,14 +314,21 @@ export default function AutomacaoComentarios() {
         if (parsed.__flow__) flowData = parsed;
       } catch {}
 
-      if (flowData && flowData.nodes?.length > 0) {
-        // Strip cached dimensions so React Flow recalculates node sizes
-        const cleanNodes = flowData.nodes.map((n: any) => {
-          const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
-          return rest;
-        });
-        setNodes(cleanNodes);
-        setEdges(flowData.edges || []);
+       if (flowData && flowData.nodes?.length > 0) {
+         // Strip cached dimensions so React Flow recalculates node sizes
+         const cleanNodes = flowData.nodes.map((n: any) => {
+           const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
+           return {
+             ...rest,
+             // Fix for old triggers
+             data: {
+               ...rest.data,
+               triggerType: rest.data.triggerType || (rest.type === 'igGatilho' ? 'comment' : undefined)
+             }
+           };
+         });
+         setNodes(cleanNodes);
+         setEdges(flowData.edges || []);
       } else {
         // Legacy: convert old format to flow nodes
         let dmText = existing.dm_message || "";
@@ -377,8 +429,9 @@ export default function AutomacaoComentarios() {
           message: "",
           keywords: "",
           buttons: [],
-          delayValue: 5,
-          delayUnit: "seconds",
+           triggerType: type === 'igGatilho' ? 'comment' : undefined,
+           delayValue: 5,
+           delayUnit: "seconds",
         },
       };
 
@@ -463,55 +516,146 @@ export default function AutomacaoComentarios() {
     if (!selectedNode) return null;
     const { type } = selectedNode;
 
-    if (type === "igGatilho") {
-      const shortcode = (() => {
-        const url = selectedNode.data.postUrl || "";
-        const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
-        return match ? match[1] : null;
-      })();
-
-      return (
-        <div className="space-y-4">
-          <div>
-            <Label>Link do Post / Reel</Label>
-            <Input
-              value={selectedNode.data.postUrl || ""}
-              onChange={(e) =>
-                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postUrl: e.target.value } })
-              }
-              placeholder="https://www.instagram.com/p/ABC123..."
-            />
-            <p className="text-xs text-muted-foreground mt-1">Cole o link do post que receberá os comentários</p>
-          </div>
-
-          {shortcode && (
-            <div className="rounded overflow-hidden border border-border">
-              <iframe
-                src={`https://www.instagram.com/p/${shortcode}/embed/`}
-                width="100%"
-                height="400"
-                frameBorder="0"
-                scrolling="no"
-                allowTransparency
-                style={{ border: "none" }}
-              />
-            </div>
-          )}
-
-          <div>
-            <Label>Palavras-chave (separadas por vírgula)</Label>
-            <Input
-              value={selectedNode.data.keywords || ""}
-              onChange={(e) =>
-                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
-              }
-              placeholder="eu quero, me manda, info"
-            />
-            <p className="text-xs text-muted-foreground mt-1">Deixe vazio para disparar em qualquer comentário</p>
-          </div>
-        </div>
-      );
-    }
+     if (type === "igGatilho") {
+       const triggerType = selectedNode.data.triggerType || "comment";
+       const shortcode = (() => {
+         const url = selectedNode.data.postUrl || "";
+         const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+         return match ? match[1] : null;
+       })();
+ 
+       return (
+         <div className="space-y-5 animate-in slide-in-from-right-2 duration-300">
+           <div>
+             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Tipo de Gatilho</Label>
+             <div className="grid grid-cols-2 gap-2">
+               {[
+                 { id: "comment", label: "Comentário", icon: MessageCircle },
+                 { id: "story_reply", label: "Story Reply", icon: Share2 },
+                 { id: "dm", label: "Mensagem Direta", icon: Heart },
+                 { id: "share", label: "Compartilhar", icon: Zap },
+                 { id: "live", label: "Live Comment", icon: PlayCircle },
+                 { id: "ads", label: "Anúncios", icon: Star },
+               ].map((t) => (
+                 <Button
+                   key={t.id}
+                   variant={triggerType === t.id ? "default" : "outline"}
+                   size="sm"
+                   className="h-9 gap-2 justify-start font-semibold text-xs"
+                   onClick={() => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, triggerType: t.id } })}
+                 >
+                   <t.icon className="w-3.5 h-3.5" />
+                   {t.label}
+                 </Button>
+               ))}
+             </div>
+           </div>
+ 
+           {triggerType === "comment" && (
+             <div className="space-y-3 animate-in fade-in duration-300">
+               <div>
+                 <Label className="text-xs font-bold text-muted-foreground mb-1 block">Configuração do Post</Label>
+                 <Select 
+                   value={selectedNode.data.postScope || "any"} 
+                   onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postScope: v } })}
+                 >
+                   <SelectTrigger className="h-9 text-xs">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="any">Qualquer Post ou Reel</SelectItem>
+                     <SelectItem value="specific">Post/Reel Específico</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+ 
+               {selectedNode.data.postScope === "specific" && (
+                 <div className="space-y-2">
+                   <Label className="text-xs font-bold text-muted-foreground mb-1 block">Link do Post / Reel</Label>
+                   <Input
+                     value={selectedNode.data.postUrl || ""}
+                     onChange={(e) =>
+                       setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postUrl: e.target.value } })
+                     }
+                     placeholder="https://www.instagram.com/p/ABC123..."
+                     className="h-9 text-xs"
+                   />
+                   {shortcode && (
+                     <div className="rounded-xl overflow-hidden border border-border shadow-inner bg-black/5 mt-2">
+                       <iframe
+                         src={`https://www.instagram.com/p/${shortcode}/embed/`}
+                         width="100%"
+                         height="320"
+                         frameBorder="0"
+                         scrolling="no"
+                         allowTransparency
+                         style={{ border: "none" }}
+                       />
+                     </div>
+                   )}
+                 </div>
+               )}
+             </div>
+           )}
+ 
+           {triggerType === "story_reply" && (
+             <div className="space-y-3 animate-in fade-in duration-300">
+               <div>
+                 <Label className="text-xs font-bold text-muted-foreground mb-1 block">Configuração do Story</Label>
+                 <Select 
+                   value={selectedNode.data.storyScope || "all"} 
+                   onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, storyScope: v } })}
+                 >
+                   <SelectTrigger className="h-9 text-xs">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">Todos os Stories</SelectItem>
+                     <SelectItem value="specific">Apenas Story Específico</SelectItem>
+                   </SelectContent>
+                 </Select>
+                 <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed bg-pink-500/5 p-2 rounded-lg border border-pink-500/10 italic">
+                   Nota: Para Stories específicos, você precisará capturar o ID do story após publicá-lo.
+                 </p>
+               </div>
+             </div>
+           )}
+ 
+           <div className="pt-2 border-t border-border/40">
+             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Regras de Ativação</Label>
+             <div className="space-y-3">
+               <Select 
+                 value={selectedNode.data.matchType || "contains"} 
+                 onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, matchType: v } })}
+               >
+                 <SelectTrigger className="h-9 text-xs">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="contains">Mensagem contém palavras-chave</SelectItem>
+                   <SelectItem value="exact">Mensagem é exatamente a palavra-chave</SelectItem>
+                   <SelectItem value="any">Qualquer mensagem/comentário</SelectItem>
+                 </SelectContent>
+               </Select>
+               
+               {selectedNode.data.matchType !== "any" && (
+                 <div>
+                   <Label className="text-[11px] font-semibold text-muted-foreground mb-1.5 block">Palavras-chave (separadas por vírgula)</Label>
+                   <Input
+                     value={selectedNode.data.keywords || ""}
+                     onChange={(e) =>
+                       setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
+                     }
+                     placeholder="eu quero, me manda, info"
+                     className="h-9 text-xs"
+                   />
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       );
+     }
 
     if (type === "igResposta") {
       return (
@@ -987,39 +1131,45 @@ export default function AutomacaoComentarios() {
   return (
     <div className="w-full h-[calc(100vh-80px)] flex flex-col">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
+       <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/60 backdrop-blur-md shrink-0 shadow-sm">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/instagram/campanhas")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <Input
-            value={flowName}
-            onChange={(e) => setFlowName(e.target.value)}
-            className="h-8 w-48 text-sm font-medium"
-          />
+           <div className="relative group">
+             <Input
+               value={flowName}
+               onChange={(e) => setFlowName(e.target.value)}
+               className="h-9 w-64 text-sm font-bold bg-transparent border-transparent hover:border-border/40 focus:bg-background/50 transition-all pl-2 pr-8"
+               placeholder="Nome do Fluxo"
+             />
+             <Pencil className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isActive} onCheckedChange={setIsActive} />
             <span className="text-xs text-muted-foreground">{isActive ? "Ativo" : "Inativo"}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Block toolbar */}
-          {blocosDisponiveis.map((bloco) => {
-            const Icon = bloco.icon;
-            return (
-              <div
-                key={bloco.type}
-                draggable
-                onDragStart={(e) => onDragStart(e, bloco.type)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 border border-border rounded-md cursor-grab bg-card hover:bg-muted/50 transition-colors"
-                title={bloco.description}
-              >
-                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium">{bloco.label}</span>
-              </div>
-            );
-          })}
+         <div className="flex items-center gap-2 pr-2 border-r border-border/40 mr-2">
+           {/* Floating style toolbar */}
+           <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border/40">
+             {blocosDisponiveis.map((bloco) => {
+               const Icon = bloco.icon;
+               return (
+                 <div
+                   key={bloco.type}
+                   draggable
+                   onDragStart={(e) => onDragStart(e, bloco.type)}
+                   className="flex flex-col items-center justify-center w-12 h-12 rounded-md cursor-grab bg-card border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all shadow-sm group"
+                   title={bloco.description}
+                 >
+                   <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mb-0.5" />
+                   <span className="text-[9px] font-bold text-muted-foreground group-hover:text-primary uppercase tracking-tighter">{bloco.label}</span>
+                 </div>
+               );
+             })}
+           </div>
 
           <Button
             variant="outline"
@@ -1036,17 +1186,27 @@ export default function AutomacaoComentarios() {
             )}
           </Button>
 
-          <Button onClick={handleSaveFlow} disabled={saving} size="sm" className="gap-1.5 ml-2">
-            <Save className="w-3.5 h-3.5" />
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
+           <Button 
+             onClick={handleSaveFlow} 
+             disabled={saving} 
+             size="sm" 
+             className="gap-1.5 ml-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20"
+           >
+             <Save className="w-3.5 h-3.5" />
+             {saving ? "Publicando..." : "Publicar Fluxo"}
+           </Button>
         </div>
       </div>
 
       {/* Canvas */}
       <div ref={reactFlowWrapper} className="flex-1">
         <ReactFlow
-          nodes={nodes.map(n => n.type === 'igDM' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
+           nodes={nodes.map(n => {
+             if (n.type === 'igDM') return { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } };
+             // Ensure triggerType is present for rendering
+             if (n.type === 'igGatilho' && !n.data.triggerType) return { ...n, data: { ...n.data, triggerType: 'comment' } };
+             return n;
+           })}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -1060,13 +1220,14 @@ export default function AutomacaoComentarios() {
           fitView
           className="bg-background"
         >
-          <Controls className="!bg-card !border-border !shadow-md" />
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} className="!bg-background" />
-          <MiniMap
-            className="!bg-card !border-border"
-            nodeColor={() => "hsl(var(--primary))"}
-            maskColor="hsl(var(--background) / 0.7)"
-          />
+           <Controls className="!bg-card !border-border/50 !shadow-xl !rounded-lg !overflow-hidden" />
+           <Background variant={BackgroundVariant.Lines} gap={40} size={1} color="rgba(255,255,255,0.03)" className="!bg-[#0f1115]" />
+           <MiniMap
+             className="!bg-card/80 !border-border/50 !rounded-xl !shadow-2xl backdrop-blur-md"
+             nodeColor={() => "hsl(var(--primary))"}
+             maskColor="rgba(0,0,0,0.5)"
+             style={{ right: 20, bottom: 20 }}
+           />
         </ReactFlow>
       </div>
 
@@ -1212,35 +1373,42 @@ export default function AutomacaoComentarios() {
         </SheetContent>
       </Sheet>
 
-      {/* Edit Node Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Editar: {selectedNode?.data.label}</span>
-              {selectedNode && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => handleDeleteNode(selectedNode.id)}
-                >
-                  <Trash2 className="w-3 h-3" /> Excluir
-                </Button>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            {renderEditPanel()}
-          </ScrollArea>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveNode}>Salvar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+       {/* Edit Node Panel - ManyChat Style (Sheet or Right Sidebar) */}
+       <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+         <SheetContent side="right" className="sm:max-w-md p-0 overflow-hidden flex flex-col border-l border-border/40">
+           <SheetHeader className="p-4 border-b border-border/40 bg-muted/20">
+             <SheetTitle className="flex items-center justify-between text-base font-bold">
+               <div className="flex items-center gap-2">
+                 <div className="p-1.5 rounded bg-primary/10">
+                   <Settings2 className="w-4 h-4 text-primary" />
+                 </div>
+                 <span>Configurar Bloco</span>
+               </div>
+               {selectedNode && (
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                   onClick={() => handleDeleteNode(selectedNode.id)}
+                 >
+                   <Trash2 className="w-3.5 h-3.5" />
+                 </Button>
+               )}
+             </SheetTitle>
+           </SheetHeader>
+           <ScrollArea className="flex-1 p-6">
+             {renderEditPanel()}
+           </ScrollArea>
+           <div className="p-4 border-t border-border/40 bg-muted/20 flex gap-3">
+             <Button variant="outline" className="flex-1 font-semibold" onClick={() => setIsEditDialogOpen(false)}>
+               Cancelar
+             </Button>
+             <Button className="flex-1 font-semibold" onClick={handleSaveNode}>
+               Aplicar Alterações
+             </Button>
+           </div>
+         </SheetContent>
+       </Sheet>
     </div>
   );
 }

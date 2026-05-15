@@ -1,21 +1,33 @@
-Implement delay and scheduling support for flows, and optimize parallel processing for group flows.
+I will implement several new features and layout adjustments for the Instagram section of Zaplynx based on the provided images.
 
-### Frontend Changes
+### Features to Add:
+1.  **New Flow Triggers**: Add support for new automation triggers in `AutomacaoComentarios.tsx`:
+    *   **Story Reply**: Automation starts when a user replies to a story.
+    *   **Direct Message**: Automation starts when a user sends a first message.
+    *   **Post/Reel Share**: Automation starts when a user shares content in their story.
+    *   **Instagram Ads**: Trigger from ad clicks.
+    *   **Live Comments**: Trigger from comments during a live stream.
+2.  **Expanded Node Options**: Update the trigger node data to support these new trigger types and subtypes (e.g., specific words vs. any reaction for story replies).
+3.  **Automation Templates (Modelos)**: Create a new page `src/pages/instagram/ModelosInstagram.tsx` based on images 6, 7, and 9, featuring:
+    *   Categorization by objective (Grow followers, Engagement, Traffic).
+    *   Categorization by trigger (Comment, DM, Story Reply, Live).
+    *   Pre-defined flows like "Venda pelos comentários de Reels", "Envie cupons nos stories", etc.
+4.  **Quick Automations (Iniciadores)**: Implement a "Quick Automation" or "Básico" section in `CampanhasInstagram.tsx` for common tasks like:
+    *   Conversation Starters (FAQs).
+    *   Story Mention replies.
+    *   Default Reply (when no keyword matches).
+    *   Main Menu (Persistent menu in DMs).
 
-1. **Update `FluxoVisual.tsx`**:
-   - Refactor `handleConfirmSend` to process contacts in parallel rather than sequentially, using a staggered delay (500ms) between starts to avoid spam detection.
-   - Enhance `processFlow` to support `blocoAgendamento` and `blocoAcao` with scheduling.
-   - Improve the Action block editing UI to show a proper date/time picker when "Schedule" is selected.
-   - Ensure the "Delay" input in Action blocks correctly updates the underlying data.
+### Layout Adjustments:
+1.  **Sidebar Update**: Add "Modelos" to the Instagram section in the sidebar.
+2.  **Flow Builder UI**: Enhance the `AutomacaoComentarios.tsx` to match the "ManyChat-style" look from images:
+    *   Improve block styling (borders, shadows, icons).
+    *   Add a cleaner "Step-by-step" editing experience.
+3.  **Dashboard/Campaign List**: Improve the visual hierarchy and cards in `CampanhasInstagram.tsx`.
 
-### Backend Changes
-
-1. **Update `webhook-zapi` Edge Function**:
-   - Add support for the `delay` action type in `processFlowNode` using `setTimeout` (for delays up to 60 seconds).
-   - Ensure outgoing edges from action blocks are correctly followed after the delay.
-
-### Technical Details
-
-- Parallel processing in the frontend will use `Promise.all` with a map over `selectedContacts`.
-- Scheduling in the browser will use `setTimeout` based on the difference between the scheduled time and now.
-- Backend delays will be limited to 60s to prevent function timeouts; for longer delays, a future implementation using a persistent queue would be ideal.
+### Technical Details:
+*   **Database**: Ensure the `instagram_automations` table (or similar) can store the new trigger types.
+*   **Components**: Create `src/pages/instagram/ModelosInstagram.tsx`.
+*   **Routing**: Add `/instagram/modelos` to `App.tsx`.
+*   **Navigation**: Update `src/components/layout/Sidebar.tsx`.
+*   **Flow Logic**: Update `src/components/flow/ig/IGGatilhoNode.tsx` and its edit panel in `AutomacaoComentarios.tsx` to handle the new trigger categories.
