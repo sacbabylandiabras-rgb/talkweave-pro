@@ -134,12 +134,12 @@ const Landing = () => {
       <div className="lp-section lp-section-surface">
         <div>
           <div className="lp-section-tag lp-ig">Novo — Instagram</div>
-          <div className="lp-section-title">Automação de Comentários no Instagram</div>
-          <div className="lp-section-desc">Quando alguém comenta em seu post, o sistema detecta a palavra-chave e envia um DM automático com o link de checkout — convertendo engajamento em venda.</div>
+           <div className="lp-section-title">Automação Completa no Instagram</div>
+           <div className="lp-section-desc">Transforme seu Instagram em uma máquina de vendas. Automatize comentários, respostas a stories, DMs e até interações durante Lives — convertendo cada interação em uma oportunidade de negócio.</div>
           <CheckList ig items={[
-            "Detecta comentários por palavra-chave",
-            "Envia DM automático com link de checkout",
-            "Responde comentários publicamente",
+             "Gatilhos: Comentários, Stories, DMs e Lives",
+             "Respostas automáticas inteligentes com IA",
+             "Coleta de leads (WhatsApp/Email) via DM",
             "Dashboard com métricas de conversão",
             "Integrado à API oficial do Instagram (Meta)",
           ]} />
