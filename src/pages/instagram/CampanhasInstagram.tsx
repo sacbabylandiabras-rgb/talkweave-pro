@@ -49,34 +49,38 @@ export default function CampanhasInstagram() {
          </div>
        </div>
  
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-         <QuickActionCard 
-           title="Iniciadores" 
-           description="Perguntas frequentes (FAQs) no início do chat" 
-           icon={MessageSquare} 
-           color="text-blue-500"
-           badge="Novo"
-         />
-         <QuickActionCard 
-           title="Story Mentions" 
-           description="Responda automaticamente a menções em stories" 
-           icon={Share2} 
-           color="text-pink-500"
-         />
-         <QuickActionCard 
-           title="Resposta Padrão" 
-           description="Mensagem quando nenhuma palavra-chave coincide" 
-           icon={Heart} 
-           color="text-red-500"
-         />
-         <QuickActionCard 
-           title="Menu Principal" 
-           description="Acesso rápido a informações nas DMs" 
-           icon={Settings2} 
-           color="text-purple-500"
-           isPro
-         />
-       </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionCard 
+            title="Iniciadores" 
+            description="Perguntas frequentes (FAQs) no início do chat" 
+            icon={MessageSquare} 
+            color="text-blue-500"
+            badge="Novo"
+            onClick={() => navigate("/instagram/automacao?template=iniciadores")}
+          />
+          <QuickActionCard 
+            title="Story Mentions" 
+            description="Responda automaticamente a menções em stories" 
+            icon={Share2} 
+            color="text-pink-500"
+            onClick={() => navigate("/instagram/automacao?template=story-mentions")}
+          />
+          <QuickActionCard 
+            title="Resposta Padrão" 
+            description="Mensagem quando nenhuma palavra-chave coincide" 
+            icon={Heart} 
+            color="text-red-500"
+            onClick={() => navigate("/instagram/automacao?template=resposta-padrao")}
+          />
+          <QuickActionCard 
+            title="Menu Principal" 
+            description="Acesso rápido a informações nas DMs" 
+            icon={Settings2} 
+            color="text-purple-500"
+            isPro
+            onClick={() => navigate("/instagram/automacao?template=menu-principal")}
+          />
+        </div>
  
        <div className="pt-2">
          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -171,10 +175,13 @@ export default function CampanhasInstagram() {
    );
  }
  
- function QuickActionCard({ title, description, icon: Icon, color, badge, isPro }: any) {
-   return (
-     <Card className="border-border hover:border-primary/30 transition-all duration-300 bg-card/40 backdrop-blur-sm cursor-pointer group">
-       <CardContent className="p-4 pt-5">
+  function QuickActionCard({ title, description, icon: Icon, color, badge, isPro, onClick }: any) {
+    return (
+      <Card 
+        onClick={onClick}
+        className="border-border hover:border-primary/30 transition-all duration-300 bg-card/40 backdrop-blur-sm cursor-pointer group"
+      >
+        <CardContent className="p-4 pt-5">
          <div className="flex justify-between items-start mb-3">
            <div className={`p-2 rounded-lg bg-muted/40 group-hover:bg-primary/10 transition-colors`}>
              <Icon className={`w-5 h-5 ${color}`} />
