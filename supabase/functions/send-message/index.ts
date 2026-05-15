@@ -1006,8 +1006,15 @@ serve(async (req) => {
       }
     }
 
-    const { data: logData, error: logError } = await supabase.from('message_logs').insert({
-    }).select('id').single();
+    await supabase.from('message_logs').insert({
+      phone: resolvedPhone,
+      message_received: null,
+      response_sent: logContent,
+      keyword_matched: '__manual_send__',
+      timestamp: new Date().toISOString(),
+      user_id: credentials.userId,
+      instance_id: instanceId,
+    });
 
     // Se o envio foi confirmado, marcamos como entregue imediatamente se for uma campanha
     // para contornar problemas de latência/perda de webhooks de entrega
@@ -1028,14 +1035,6 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(1);
     }
-      phone: resolvedPhone,
-      message_received: null,
-      response_sent: logContent,
-      keyword_matched: '__manual_send__',
-      timestamp: new Date().toISOString(),
-      user_id: credentials.userId,
-      instance_id: instanceId,
-    });
 
     await logProviderSend(adminClient, {
       userId: credentials.userId,
