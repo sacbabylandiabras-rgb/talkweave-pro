@@ -278,17 +278,57 @@ export default function AutomacaoComentarios() {
              { id: "e1-3", source: "1", target: "3", sourceHandle: "source-bottom", targetHandle: "target-top", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
            ]
          },
-         "cupons-stories": {
-           name: "Cupom via Story",
-           nodes: [
-             { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Resposta Story", triggerType: "story_reply", storyScope: "all", matchType: "any" } },
-             { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Enviar Cupom", message: "Obrigado por acompanhar nossos Stories! Aqui está seu cupom de 10% OFF: VIP10", buttons: [{ title: "Usar Cupom", url: "https://", type: "url" }] } },
-           ],
-           edges: [
-             { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
-           ]
-         }
-       }[templateId as keyof typeof template];
+          "cupons-stories": {
+            name: "Cupom via Story",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Resposta Story", triggerType: "story_reply", storyScope: "all", matchType: "any" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Enviar Cupom", message: "Obrigado por acompanhar nossos Stories! Aqui está seu cupom de 10% OFF: VIP10", buttons: [{ title: "Usar Cupom", url: "https://", type: "url" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          },
+          "iniciadores": {
+            name: "Iniciadores de Conversa (FAQ)",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "FAQ / Início", triggerType: "dm", matchType: "any" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Resposta FAQ", message: "Olá! Como posso te ajudar hoje?", buttons: [{ title: "Preços", type: "text" }, { title: "Horários", type: "text" }, { title: "Falar com Humano", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          },
+          "story-mentions": {
+            name: "Menção em Stories",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Menção em Story", triggerType: "story_reply", storyScope: "all", matchType: "any" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Agradecimento", message: "Uau! Obrigado por nos marcar no seu Story! 😍 Preparamos um presente especial para você...", buttons: [{ title: "Resgatar Presente", url: "https://", type: "url" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          },
+          "resposta-padrao": {
+            name: "Resposta Padrão (Fallback)",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Qualquer Mensagem", triggerType: "dm", matchType: "any", keywords: "" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Fallback", message: "Recebemos sua mensagem! No momento nossos atendentes estão ocupados, mas logo te responderemos. Enquanto isso, escolha uma opção abaixo:", buttons: [{ title: "Ver Site", url: "https://", type: "url" }, { title: "Suporte", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          },
+          "menu-principal": {
+            name: "Menu Principal nas DMs",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Palavra 'Menu'", triggerType: "dm", keywords: "menu,ajuda,oi,ola", matchType: "any" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Menu Principal", message: "Seja bem-vindo ao nosso canal de atendimento! Como podemos ser úteis hoje?", buttons: [{ title: "Nossos Produtos", type: "text" }, { title: "Rastrear Pedido", url: "https://", type: "url" }, { title: "Falar com Consultor", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          }
+        }[templateId as keyof any];
  
        if (template) {
          setFlowName(template.name);
