@@ -10,6 +10,7 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [mediaUrl, setMediaUrl] = useState("");
   const [sku, setSku] = useState("");
   const [currency, setCurrency] = useState("BRL");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
@@ -83,6 +84,39 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setMediaUrl(publicUrl);
+      toast({ title: "Imagem enviada com sucesso!" });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no upload", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -127,10 +161,50 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
             <Textarea placeholder="Detalhes do produto..." value={description} onChange={(e) => setDescription(e.target.value)} disabled={submitting} rows={3} />
           </div>
 
-          <div className="space-y-2">
-            <Label>URL da Imagem</Label>
-            <Input placeholder="https://exemplo.com/imagem.jpg" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} disabled={submitting} />
-            <p className="text-[10px] text-muted-foreground">A imagem deve ser pública e acessível via URL.</p>
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" /> Imagem do Produto
+            </Label>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="https://exemplo.com/imagem.jpg" 
+                value={mediaUrl} 
+                onChange={(e) => setMediaUrl(e.target.value)} 
+                disabled={submitting || uploading} 
+                className="flex-1"
+              />
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={submitting || uploading}
+                  className="hidden"
+                  id="product-image-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={submitting || uploading}
+                  onClick={() => document.getElementById('product-image-upload')?.click()}
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                  {uploading ? "Enviando..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+            {mediaUrl && (
+              <div className="mt-2 relative w-20 h-20 border rounded-md overflow-hidden bg-muted">
+                <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => setMediaUrl("")}
+                  className="absolute top-0 right-0 bg-destructive text-white p-0.5 rounded-bl-md hover:bg-destructive/80"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">Insira uma URL ou faça o upload de uma imagem.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
