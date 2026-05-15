@@ -138,10 +138,10 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
 
 // Parse media tag from message content like "[media:video:https://...]"
 const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string; transcription: string | null } => {
-    const mediaRegex = /^\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha|gif):(.+?)\]\n?/i;
+    const mediaRegex = /\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha|gif):(.+?)\]/i;
     const match = content.match(mediaRegex);
   if (match) {
-    const remaining = content.replace(mediaRegex, '').trim();
+    const remaining = content.replace(mediaRegex, '').replace(/\n+$/, '').trim();
     const rawType = match[1].toLowerCase();
     const typeMap: Record<string, string> = {
       imagem: 'image',
@@ -1295,7 +1295,7 @@ const ChatView = ({
                             templates={templates} 
                             campaignId={msg.campaign_id} 
                             campaignTemplates={campaignTemplates}
-                            originalContent={(msg as any).original_content}
+                            originalContent={msg.original_content}
                           />
                           <p className="text-[10px] text-right mt-1 opacity-70">
                             {formatMessageTime(msg.timestamp)}
@@ -1397,7 +1397,7 @@ const ChatView = ({
                           templates={templates} 
                           campaignId={msg.campaign_id} 
                           campaignTemplates={campaignTemplates}
-                          originalContent={(msg as any).original_content}
+                          originalContent={msg.original_content}
                         />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
