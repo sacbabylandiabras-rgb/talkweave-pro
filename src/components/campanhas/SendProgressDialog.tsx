@@ -37,8 +37,7 @@ const normalizePhoneKey = (phone?: string | null) => {
 };
 
 const getSendPriority = (status?: string | null) => {
-  if (status === 'delivered') return 3;
-  if (status === 'sent') return 2;
+  if (status === 'delivered' || status === 'sent') return 3;
   if (status === 'failed') return 1;
   return 0;
 };
@@ -165,10 +164,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
-        if (send?.status === 'delivered') {
+        if (send?.status === 'delivered' || send?.status === 'sent') {
           delivered += 1;
           sent += 1;
-        } else if (send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
+        } else if (send?.status === 'pending' && Boolean(send.message_id || send.sent_at)) {
           sending += 1;
           sent += 1;
         } else if (send?.status === 'pending') {
