@@ -1159,7 +1159,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 if (send.status === 'delivered') {
                   status = 'entregue';
                   sentAt = send.delivered_at || send.sent_at || null;
-                } else if (send.status === 'sent') {
+                } else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
@@ -1201,7 +1201,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               if (!existsInTarget) {
                 let status: CampaignContactStatus = 'pendente';
                 if (send.status === 'delivered') status = 'entregue';
-                else if (send.status === 'sent') status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
+                else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
                 else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
