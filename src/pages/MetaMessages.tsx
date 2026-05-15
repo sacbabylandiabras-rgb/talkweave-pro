@@ -2221,26 +2221,11 @@ const MetaMessages = () => {
       // Skip groups as Meta API doesn't support them natively yet
       if (isGroupPhone(conv.phone)) return false;
 
-      // 1. Strict filter if a specific Meta instance is selected
-      if (selectedInstanceId !== 'all' && selectedInstanceId.startsWith('meta:')) {
-        return conv.preferredInstanceId === selectedInstanceId || 
-               conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
-      }
-
-      // 2. If "all", check for ANY Meta marker
-      const hasMetaMarker = conv.preferredInstanceId?.startsWith('meta:') || 
-                           conv.messages.some(m => 
-                             m.externalMessageId?.startsWith('meta:') || 
-                             m.content.includes('[sender:meta:') ||
-                             ((m as any).instance_id && String((m as any).instance_id).startsWith('meta:'))
-                           );
+      // If "all", show everything. If a specific instance is selected, filter strictly.
+      if (selectedInstanceId === 'all') return true;
       
-      if (hasMetaMarker) return true;
-      
-      // 3. Fallback: assume que pode ser Meta para conversas 1:1
-      return true;
-
-      return false;
+      return conv.preferredInstanceId === selectedInstanceId || 
+             conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
     });
   }, [conversations, selectedInstanceId]);
 
