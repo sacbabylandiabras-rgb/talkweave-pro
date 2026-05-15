@@ -1013,6 +1013,9 @@ serve(async (req) => {
     // para contornar problemas de latência/perda de webhooks de entrega
     if (zapiData && (zapiData.messageId || zapiData.zaapId)) {
       const ackId = zapiData.messageId || zapiData.zaapId;
+      const originalPhone = Array.isArray(phone) ? phone[0] : phone;
+      
+      // Tenta marcar como entregue usando o telefone original (pode ser LID) ou o resolvido
       await supabase
         .from('campaign_sends')
         .update({
@@ -1020,7 +1023,7 @@ serve(async (req) => {
           delivered_at: new Date().toISOString(),
           message_id: ackId
         })
-        .eq('phone', resolvedPhone)
+        .or(`phone.eq.${originalPhone},phone.eq.${resolvedPhone}`)
         .is('message_id', null)
         .order('created_at', { ascending: false })
         .limit(1);
