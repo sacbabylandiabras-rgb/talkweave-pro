@@ -130,11 +130,11 @@ const defaultEdges: Edge[] = [
 ];
 
 const blocosDisponiveis = [
-  { type: "igGatilho", label: "Gatilho", icon: MessageCircle, description: "Palavra-chave no comentário" },
-  { type: "igResposta", label: "Resposta", icon: Reply, description: "Responder comentário publicamente" },
-  { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta com botões" },
-  { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar antes do próximo passo" },
-  { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar mensagem no WhatsApp" },
+   { type: "igGatilho", label: "Gatilho", icon: Zap, description: "O que inicia seu fluxo" },
+   { type: "igResposta", label: "Resposta", icon: MessageCircle, description: "Responder comentário no IG" },
+   { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta no Instagram" },
+   { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar um tempo" },
+   { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar para o WhatsApp" },
 ];
 
 export default function AutomacaoComentarios() {
