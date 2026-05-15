@@ -1830,12 +1830,13 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
           <p className="text-sm text-muted-foreground">Atualize as informações comerciais nas instâncias selecionadas.</p>
         </DialogHeader>
-        <div className="space-y-5 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6 pt-2">
+        <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
