@@ -16,6 +16,7 @@ interface CampaignSendRecord {
   created_at: string;
   user_id: string | null;
   instance_name: string | null;
+  message_id?: string | null;
 }
 
 interface CampaignRecord {
@@ -172,10 +173,13 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
     };
   }, [campaignId, fetchSends, sessionReady]);
 
+  const isAcceptedSend = (send: CampaignSendRecord) =>
+    send.status === 'sent' || send.status === 'delivered' || (send.status === 'pending' && Boolean(send.message_id || send.sent_at));
+
   const stats = {
     total: sends.length,
-    sent: sends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
-    pending: sends.filter(s => s.status === 'pending').length,
+    sent: sends.filter(isAcceptedSend).length,
+    pending: sends.filter(s => s.status === 'pending' && !Boolean(s.message_id || s.sent_at)).length,
     failed: sends.filter(s => s.status === 'failed').length,
     delivered: sends.filter(s => s.status === 'delivered').length,
   };
