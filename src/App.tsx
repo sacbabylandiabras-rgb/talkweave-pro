@@ -113,6 +113,7 @@ const TelegramLinksTraqueamento = lazyWithRecovery(() => import("./pages/telegra
 const TelegramLinksUtm = lazyWithRecovery(() => import("./pages/telegram/TelegramLinksUtm"));
  const DashboardInstagram = lazyWithRecovery(() => import("./pages/instagram/DashboardInstagram"));
  const ModelosInstagram = lazyWithRecovery(() => import("./pages/instagram/ModelosInstagram"));
+const EnviarInstagram = lazyWithRecovery(() => import("./pages/instagram/EnviarInstagram"));
 const ExtrairComunidade = lazyWithRecovery(() => import("./pages/ExtrairComunidade"));
 const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
@@ -211,6 +212,7 @@ const App = () => (
                    <Route path="/meta/relatorio" element={<Relatorio />} />
                    <Route path="/meta/gateway" element={<GatewayIntegracoes />} />
                    <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
+                   <Route path="/instagram/enviar" element={<EnviarInstagram />} />
                    <Route path="/instagram/modelos" element={<ModelosInstagram />} />
                    <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />
                   <Route path="/instagram/campanhas" element={<CampanhasInstagram />} />
