@@ -317,6 +317,21 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       case 'get-product':
         return { method: 'GET', path: `/products/${payload?.id}` };
 
+     case 'create-product-v2':
+       return { 
+         method: 'POST', 
+         path: "/products", 
+         body: {
+           name: payload?.name,
+           price: payload?.price,
+           description: payload?.description,
+           image: payload?.mediaUrl || payload?.image,
+           sku: payload?.sku,
+           currency: payload?.currency || 'BRL',
+           isHidden: payload?.isHidden ?? false
+         } 
+       };
+
     // Tag Actions (WhatsApp Business)
     case 'list-tags':
       return { method: 'GET', path: "/tags" };

@@ -42,13 +42,13 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
       try {
         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
           body: {
-            action: "create-product",
+            action: "create-product-v2",
             instanceDbId: inst.id,
             payload: {
               name: productName.trim(),
               price: Number(price) || 0,
               description: description.trim(),
-              image: mediaUrl.trim(),
+              mediaUrl: mediaUrl.trim(),
               sku: sku.trim(),
               currency,
               isHidden: false
