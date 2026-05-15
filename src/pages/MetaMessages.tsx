@@ -435,7 +435,7 @@ const ConversationList = ({
           )}
         </div>
       </div>
-      {instances.length > 1 && (
+      {instances.length > 0 && (
         <select
           className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
           value={selectedInstanceId}
@@ -1836,21 +1836,12 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { data: metaCreds, isLoading: loadingMetaCreds } = useMetaCredentials();
+  const { instances: allInstances, loading: instancesLoading } = useZapiInstances({ 
+    includeMeta: true, 
+    provider: 'meta' 
+  });
 
-  const instances = useMemo(() => {
-    if (!metaCreds?.connected || !metaCreds?.phone_number_id) return [];
-    
-    return [{
-      id: `meta:${metaCreds.phone_number_id}`,
-      instance_name: metaCreds.fb_user_name || "Meta API",
-      zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
-      is_default: true,
-      api_provider: "meta"
-    }];
-  }, [metaCreds]);
-
-  const instancesLoading = loadingMetaCreds;
+  const instances = useMemo(() => allInstances, [allInstances]);
 
   const activeInstance = useMemo(() => instances[0] || null, [instances]);
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
