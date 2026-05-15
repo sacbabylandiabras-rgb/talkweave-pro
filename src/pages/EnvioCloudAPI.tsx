@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Send, Users, FileText, Plus, Loader2, Phone, MessageSquare,
   AlertCircle, RefreshCw, Smartphone, Trash2, Image, Video,
@@ -62,6 +63,7 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
 /* ========== COMPONENT ========== */
 export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
+  const [searchParams] = useSearchParams();
 
   // shared
   const [phone, setPhone] = useState("");
@@ -79,6 +81,7 @@ export default function EnvioCloudAPI() {
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [activeTab, setActiveTab] = useState("texto");
   const [variables, setVariables] = useState<string[]>([]);
 
   // interactive buttons (max 3 reply buttons for Meta API)
@@ -107,10 +110,15 @@ export default function EnvioCloudAPI() {
   useEffect(() => {
     if (!isConnected) return;
 
+    const tplFromQuery = searchParams.get("template");
+    if (tplFromQuery) {
+      setActiveTab("template");
+    }
+
     setTemplateName("");
     setVariables([]);
     void fetchTemplates(selectedPhoneNumberId || undefined);
-  }, [isConnected, selectedPhoneNumberId]);
+  }, [isConnected, selectedPhoneNumberId, searchParams]);
 
   /* ---------- fetchers ---------- */
   const fetchPhoneNumbers = async (force = false) => {
