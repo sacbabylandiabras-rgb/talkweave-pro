@@ -138,10 +138,10 @@ const parseMessageWithButtons = (content: string): { text: string; buttons: stri
 
 // Parse media tag from message content like "[media:video:https://...]"
 const parseMediaFromContent = (content: string): { mediaType: string | null; mediaUrl: string | null; text: string; transcription: string | null } => {
-    const mediaRegex = /^\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha|gif):(.+?)\]\n?/i;
+    const mediaRegex = /\[media:(image|imagem|video|video|audio|document|documento|arquivo|sticker|figurinha|gif):(.+?)\]/i;
     const match = content.match(mediaRegex);
   if (match) {
-    const remaining = content.replace(mediaRegex, '').trim();
+    const remaining = content.replace(mediaRegex, '').replace(/\n+$/, '').trim();
     const rawType = match[1].toLowerCase();
     const typeMap: Record<string, string> = {
       imagem: 'image',
