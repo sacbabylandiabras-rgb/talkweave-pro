@@ -44,6 +44,7 @@ export interface UnifiedMessage {
   timestamp: string;
   source: 'message_log' | 'campaign' | 'flow' | 'manual';
   keyword_matched?: string | null;
+  original_content?: string | null;
   campaign_id?: string | null;
    sender_name?: string | null;
    sender_phone?: string | null;
@@ -1114,12 +1115,13 @@ export const useMessageLogs = (
           phone: normalizeConversationPhone(log.phone),
           type: 'received',
           content: displayContent,
+          original_content: log.message_received,
           timestamp: getInboundMessageTimestamp(log),
           source: 'message_log',
           keyword_matched: log.keyword_matched,
           sender_name: senderName,
-           sender_phone: senderPhone,
-           sender_photo: senderPhoto,
+          sender_phone: senderPhone,
+          sender_photo: senderPhoto,
         });
       }
       if (log.response_sent && log.response_sent !== '__processing__') {
@@ -1169,6 +1171,7 @@ export const useMessageLogs = (
           phone: normalizeConversationPhone(log.phone),
           type: 'sent',
           content: sentMessage.rest,
+          original_content: log.response_sent,
           timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,
