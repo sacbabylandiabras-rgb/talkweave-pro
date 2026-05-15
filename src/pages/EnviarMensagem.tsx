@@ -90,7 +90,7 @@ const EnviarMensagem = () => {
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
-  const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading } = useZapi();
+   const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading, setOverride } = useZapi();
   const { toast } = useToast();
    const { instances: allInstances, activeInstance } = useZapiInstances({ includeMeta: true });
    const instances = useMemo(() => {
@@ -1496,19 +1496,20 @@ const EnviarMensagem = () => {
         <CardContent className="pt-4">
           <InstanceSelector
             providerFilter="zapi"
-            onInstanceChange={(id) => {
-              if (id === ROTATE_ALL) {
-                setInstanceSelectionMode('rotate');
-                setSelectedInstanceId(null);
-              } else {
-                const inst = instances.find(i => i.id === id);
-                if (inst) {
-                  setInstanceSelectionMode('single');
-                  setZapiInstanceOverride(inst);
-                  setSelectedInstanceId(id);
-                }
-              }
-            }}
+             onInstanceChange={(id) => {
+               if (id === ROTATE_ALL) {
+                 setInstanceSelectionMode('rotate');
+                 setSelectedInstanceId(null);
+                 setZapiRotateMode(instances);
+               } else {
+                 const inst = instances.find(i => i.id === id);
+                 if (inst) {
+                   setInstanceSelectionMode('single');
+                   setOverride(inst);
+                   setSelectedInstanceId(id);
+                 }
+               }
+             }}
             onMultiInstanceChange={(ids) => {
               if (ids.length > 1) {
                 const selected = instances.filter(i => ids.includes(i.id));
