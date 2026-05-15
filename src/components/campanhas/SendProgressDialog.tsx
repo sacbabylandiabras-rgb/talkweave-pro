@@ -160,22 +160,30 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       let failed = 0;
       let sending = 0;
       let pending = 0;
+      let sent = 0;
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
-        // Apenas callback delivered conta como entregue.
-        if (send?.status === 'delivered') delivered += 1;
-        else if (send?.status === 'sent') sending += 1;
-        else if (send?.status === 'pending') pending += 1;
-        else if (send?.status === 'failed') failed += 1;
-        else pending += 1;
+        if (send?.status === 'delivered') {
+          delivered += 1;
+          sent += 1;
+        } else if (send?.status === 'sent') {
+          sending += 1;
+          sent += 1;
+        } else if (send?.status === 'pending') {
+          pending += 1;
+        } else if (send?.status === 'failed') {
+          failed += 1;
+        } else {
+          pending += 1;
+        }
       });
 
       const newStats = {
         total: effectiveTotal,
         sending,
         pending,
-        sent: sending,
+        sent,
         delivered,
         failed,
       };
