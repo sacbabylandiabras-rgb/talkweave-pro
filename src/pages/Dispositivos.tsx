@@ -1728,6 +1728,117 @@ const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: Za
   );
 };
 
+const BusinessProfilePreview = ({
+  description,
+  email,
+  address,
+  websites,
+  categories,
+  businessHoursType,
+  days,
+}: {
+  description: string;
+  email: string;
+  address: string;
+  websites: string[];
+  categories: string[];
+  businessHoursType: string;
+  days: any;
+}) => {
+  const dayLabels: Record<string, string> = {
+    monday: 'Seg', tuesday: 'Ter', wednesday: 'Qua', thursday: 'Qui',
+    friday: 'Sex', saturday: 'Sáb', sunday: 'Dom',
+  };
+  const hoursLabel =
+    businessHoursType === 'open_24h' ? 'Aberto 24 horas' :
+    businessHoursType === 'appointment_only' ? 'Apenas com hora marcada' : null;
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-border bg-[#0b141a] shadow-xl">
+      {/* Header */}
+      <div className="bg-[#202c33] px-3 py-2.5 flex items-center gap-2">
+        <span className="text-[#aebac1] text-sm">←</span>
+        <p className="text-[13px] font-medium text-[#e9edef]">Perfil comercial</p>
+      </div>
+
+      {/* Avatar + nome */}
+      <div className="bg-[#202c33] flex flex-col items-center pt-5 pb-4 px-4 border-b border-[#0b141a]">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#00a884] to-[#005c4b] flex items-center justify-center mb-2.5">
+          <Building2 className="w-9 h-9 text-white/90" />
+        </div>
+        <p className="text-[14px] font-semibold text-[#e9edef]">Sua Empresa</p>
+        <p className="text-[10px] text-[#8696a0] mt-0.5">Conta comercial</p>
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-1 justify-center mt-2">
+            {categories.map((c, i) => (
+              <span key={i} className="text-[9px] px-2 py-0.5 rounded-full bg-[#00a884]/15 text-[#00a884] border border-[#00a884]/30">
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Descrição */}
+      <div className="bg-[#202c33] px-4 py-3 mt-1.5">
+        <p className="text-[10px] text-[#8696a0] mb-1">Sobre</p>
+        <p className="text-[11.5px] text-[#e9edef] leading-snug whitespace-pre-wrap break-words min-h-[16px]">
+          {description || <span className="text-[#8696a0] italic">Adicione uma descrição</span>}
+        </p>
+      </div>
+
+      {/* Endereço */}
+      <div className="bg-[#202c33] px-4 py-3 mt-1.5">
+        <p className="text-[10px] text-[#8696a0] mb-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Endereço</p>
+        <p className="text-[11.5px] text-[#e9edef] break-words min-h-[16px]">
+          {address || <span className="text-[#8696a0] italic">—</span>}
+        </p>
+      </div>
+
+      {/* Horário */}
+      <div className="bg-[#202c33] px-4 py-3 mt-1.5">
+        <p className="text-[10px] text-[#8696a0] mb-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Horário</p>
+        {hoursLabel ? (
+          <p className="text-[11.5px] text-[#00a884]">{hoursLabel}</p>
+        ) : (
+          <div className="space-y-0.5">
+            {Object.entries(days).map(([d, cfg]: [string, any]) => (
+              <div key={d} className="flex justify-between text-[11px]">
+                <span className="text-[#aebac1]">{dayLabels[d]}</span>
+                <span className={cfg.open ? 'text-[#e9edef]' : 'text-[#8696a0]'}>
+                  {cfg.open ? `${cfg.start} – ${cfg.end}` : 'Fechado'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Email */}
+      <div className="bg-[#202c33] px-4 py-3 mt-1.5">
+        <p className="text-[10px] text-[#8696a0] mb-1 flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail</p>
+        <p className="text-[11.5px] text-[#e9edef] break-all min-h-[16px]">
+          {email || <span className="text-[#8696a0] italic">—</span>}
+        </p>
+      </div>
+
+      {/* Websites */}
+      <div className="bg-[#202c33] px-4 py-3 mt-1.5 mb-1.5">
+        <p className="text-[10px] text-[#8696a0] mb-1 flex items-center gap-1"><Globe className="w-3 h-3" /> Websites</p>
+        {websites.length === 0 ? (
+          <p className="text-[11.5px] text-[#8696a0] italic">—</p>
+        ) : (
+          <div className="space-y-0.5">
+            {websites.map((w, i) => (
+              <p key={i} className="text-[11.5px] text-[#53bdeb] break-all">{w}</p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -1830,12 +1941,13 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Perfil da Empresa</DialogTitle>
           <p className="text-sm text-muted-foreground">Atualize as informações comerciais nas instâncias selecionadas.</p>
         </DialogHeader>
-        <div className="space-y-5 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6 pt-2">
+        <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
@@ -2045,6 +2157,28 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                </Button>
              </div>
            </div>
+        </div>
+
+        {/* Preview do Perfil */}
+        <div className="hidden md:block">
+          <div className="sticky top-0">
+            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Building2 className="w-3 h-3" /> Pré-visualização
+            </p>
+            <BusinessProfilePreview
+              description={description}
+              email={email}
+              address={address}
+              websites={websites.split('\n').map(s => s.trim()).filter(Boolean)}
+              categories={selectedCategories
+                .map((id) => availableCategories.find((c) => c.id === id))
+                .filter(Boolean)
+                .map((c: any) => c.displayName || c.label || '')}
+              businessHoursType={businessHoursType}
+              days={days}
+            />
+          </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
