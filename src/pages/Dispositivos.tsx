@@ -1,3 +1,169 @@
+const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Product data
+  const [productName, setProductName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [sku, setSku] = useState("");
+  const [currency, setCurrency] = useState("BRL");
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const handleSubmit = async () => {
+    if (!productName.trim() || !mediaUrl.trim()) {
+      toast({ title: "Nome e URL da Imagem são obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    if (targets.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const inst of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: {
+            action: "create-product",
+            instanceDbId: inst.id,
+            payload: {
+              name: productName.trim(),
+              price: Number(price) || 0,
+              description: description.trim(),
+              mediaUrl: mediaUrl.trim(),
+              sku: sku.trim(),
+              currency,
+              isHidden: false
+            },
+          },
+        });
+
+        if (error) throw error;
+        if ((data as any)?.error) throw new Error((data as any).error?.message || (data as any).error);
+        success++;
+      } catch (err: any) {
+        failed++;
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${err.message || "Erro"}`);
+      }
+    }
+
+    setSubmitting(false);
+    toast({
+      title: success > 0 ? "✅ Produto criado" : "❌ Erro",
+      description: failed > 0
+        ? `${success} de ${targets.length} criado(s). Erros:\n${errors.slice(0, 3).join("\n")}`
+        : `Produto criado em ${success} instância(s)`,
+      variant: failed === targets.length ? "destructive" : "default",
+    });
+
+    if (success > 0) {
+      onOpenChange(false);
+      setProductName("");
+      setPrice("");
+      setDescription("");
+      setMediaUrl("");
+      setSku("");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" /> Criar Produto em Massa
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">Adicione um novo produto ao catálogo das instâncias selecionadas.</p>
+        </DialogHeader>
+
+        <div className="space-y-6 pt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={submitting}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => (
+                <label key={inst.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={selectedIds.includes(inst.id)} onChange={() => toggleOne(inst.id)} disabled={submitting} className="accent-primary" />
+                  <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nome do Produto</Label>
+              <Input placeholder="Ex: Camiseta Branca" value={productName} onChange={(e) => setProductName(e.target.value)} disabled={submitting} />
+            </div>
+            <div className="space-y-2">
+              <Label>Preço</Label>
+              <Input type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} disabled={submitting} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Textarea placeholder="Detalhes do produto..." value={description} onChange={(e) => setDescription(e.target.value)} disabled={submitting} rows={3} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>URL da Imagem</Label>
+            <Input placeholder="https://exemplo.com/imagem.jpg" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} disabled={submitting} />
+            <p className="text-[10px] text-muted-foreground">A imagem deve ser pública e acessível via URL.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>SKU (Opcional)</Label>
+              <Input placeholder="REF-001" value={sku} onChange={(e) => setSku(e.target.value)} disabled={submitting} />
+            </div>
+            <div className="space-y-2">
+              <Label>Moeda</Label>
+              <Select value={currency} onValueChange={setCurrency} disabled={submitting}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BRL">Real (BRL)</SelectItem>
+                  <SelectItem value="USD">Dólar (USD)</SelectItem>
+                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button onClick={handleSubmit} disabled={submitting || selectedIds.length === 0} className="w-full">
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <PlusCircle className="w-4 h-4 mr-2" />}
+            Criar Produto nas {selectedIds.length} instância(s)
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -2214,6 +2380,7 @@ const Dispositivos = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -2233,6 +2400,12 @@ const Dispositivos = () => {
             <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
               <LayoutGrid className="w-4 h-4 mr-1" />
               Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)}>
+              <Package className="w-4 h-4 mr-1" />
+              Criar Produto
             </Button>
           )}
           {instances.length > 0 && (
@@ -2271,6 +2444,9 @@ const Dispositivos = () => {
 
       {/* Bulk Create Collection Dialog */}
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
+
+      {/* Bulk Create Product Dialog */}
+      <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
 
       {/* Bulk Business Info Dialog */}
       <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
