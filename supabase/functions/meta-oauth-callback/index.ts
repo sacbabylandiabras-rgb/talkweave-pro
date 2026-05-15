@@ -358,6 +358,23 @@ serve(async (req) => {
       ? await supabase.from("meta_credentials").update(credData).eq("id", existing.id)
       : await supabase.from("meta_credentials").insert(credData);
 
+    if (wabaId && !dbError) {
+      try {
+        console.log(`Subscribing app to WABA: ${wabaId}`);
+        const subRes = await fetch(
+          `https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${finalToken}` }
+          }
+        );
+        const subData = await subRes.json();
+        console.log("Subscription response:", subData);
+      } catch (subErr) {
+        console.error("Error subscribing app to WABA:", subErr);
+      }
+    }
+
     if (dbError) {
       console.error("WhatsApp DB error:", dbError);
       return respondError({
