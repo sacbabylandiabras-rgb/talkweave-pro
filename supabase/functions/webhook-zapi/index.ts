@@ -81,7 +81,7 @@ serve(async (req) => {
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
-    const type = webhook?.type || "";
+    const type = webhook?.type || webhook?.notification || "";
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
@@ -163,30 +163,46 @@ serve(async (req) => {
       }
     }
 
-     if (!phone || !instanceId || (!isMessage && type !== "DeliveryCallback") || (fromMe && !isButtonResponse && !isManualTrigger)) {
-        // Handle delivery callbacks (entregue)
-        if (type === "DeliveryCallback") {
-          const messageId = webhook?.messageId;
-          const deliveryStatus = webhook?.status || "delivered";
+    const isStatusCallback = type === "DeliveryCallback" || 
+                           type === "MessageStatusCallback" || 
+                           type === "MessageStatus" ||
+                           !!webhook?.status;
+
+    if (!phone || !instanceId || (!isMessage && !isStatusCallback) || (fromMe && !isButtonResponse && !isManualTrigger && !isStatusCallback)) {
+        // Handle delivery/status callbacks (entregue)
+        if (isStatusCallback) {
+          const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
+          const status = webhook?.status || "";
           const error = webhook?.error;
           
-          console.log(`Processing DeliveryCallback for message ${messageId}: status=${deliveryStatus}`);
+          console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
           
-          if (messageId) {
-            // Update campaign_sends if this matches a campaign message
-            const { data: campaignSend, error: updateError } = await supabase
-              .from("campaign_sends")
-              .update({
-                status: error ? 'failed' : 'delivered',
-                delivered_at: error ? null : new Date().toISOString(),
-                error_message: error || null
-              })
-              .eq("message_id", messageId)
-              .select('id')
-              .maybeSingle();
-            
-            if (campaignSend) {
-              console.log(`Updated campaign_send ${campaignSend.id} to delivered`);
+          // Only mark as delivered if status is RECEIVED (delivered) or READ
+          if (messageIds.length > 0 && (status === "RECEIVED" || status === "READ" || status === "delivered")) {
+            for (const msgId of messageIds) {
+              const { data: campaignSend } = await supabase
+                .from("campaign_sends")
+                .update({
+                  status: 'delivered',
+                  delivered_at: new Date().toISOString()
+                })
+                .eq("message_id", msgId)
+                .select('id')
+                .maybeSingle();
+              
+              if (campaignSend) {
+                console.log(`Updated campaign_send ${campaignSend.id} to delivered via message_id ${msgId}`);
+              }
+            }
+          } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
+            for (const msgId of messageIds) {
+              await supabase
+                .from("campaign_sends")
+                .update({
+                  status: 'failed',
+                  error_message: error || status
+                })
+                .eq("message_id", msgId);
             }
           }
         }
