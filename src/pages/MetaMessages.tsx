@@ -435,7 +435,7 @@ const ConversationList = ({
           )}
         </div>
       </div>
-      {instances.length > 1 && (
+      {instances.length > 0 && (
         <select
           className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
           value={selectedInstanceId}
@@ -1836,21 +1836,12 @@ const MetaMessages = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [manualProfilePic, setManualProfilePic] = useState<string | null>(null);
   const [campaignTemplates, setCampaignTemplates] = useState<Map<string, string>>(new Map());
-  const { data: metaCreds, isLoading: loadingMetaCreds } = useMetaCredentials();
+  const { instances: allInstances, loading: instancesLoading } = useZapiInstances({ 
+    includeMeta: true, 
+    provider: 'meta' 
+  });
 
-  const instances = useMemo(() => {
-    if (!metaCreds?.connected || !metaCreds?.phone_number_id) return [];
-    
-    return [{
-      id: `meta:${metaCreds.phone_number_id}`,
-      instance_name: metaCreds.fb_user_name || "Meta API",
-      zapi_instance_id: `meta:${metaCreds.phone_number_id}`,
-      is_default: true,
-      api_provider: "meta"
-    }];
-  }, [metaCreds]);
-
-  const instancesLoading = loadingMetaCreds;
+  const instances = useMemo(() => allInstances, [allInstances]);
 
   const activeInstance = useMemo(() => instances[0] || null, [instances]);
   const [connectedInstanceIds, setConnectedInstanceIds] = useState<string[] | null>(null);
@@ -2230,15 +2221,13 @@ const MetaMessages = () => {
       // Skip groups as Meta API doesn't support them natively yet
       if (isGroupPhone(conv.phone)) return false;
 
-      // 1. Se estiver filtrando por uma instância específica da Meta
+      // 1. Strict filter if a specific Meta instance is selected
       if (selectedInstanceId !== 'all' && selectedInstanceId.startsWith('meta:')) {
-        // Verifica se a conversa pertence a essa instância
-        const belongsToSelected = conv.preferredInstanceId === selectedInstanceId || 
-                                 conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
-        if (belongsToSelected) return true;
+        return conv.preferredInstanceId === selectedInstanceId || 
+               conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
       }
 
-      // 2. Se for "todas", verifica se tem QUALQUER marcador de Meta
+      // 2. If "all", check for ANY Meta marker
       const hasMetaMarker = conv.preferredInstanceId?.startsWith('meta:') || 
                            conv.messages.some(m => 
                              m.externalMessageId?.startsWith('meta:') || 
@@ -2405,8 +2394,7 @@ const MetaMessages = () => {
             campaignTemplates={campaignTemplates}
             savedContacts={savedContacts}
             onSendMessage={async (phone, message, options) => {
-              const metaInstanceId = metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : 'meta:default';
-              await sendMessage(phone, message, { ...options, instanceId: metaInstanceId });
+              await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
             onForwardMessage={async (phone, messageId) => {
