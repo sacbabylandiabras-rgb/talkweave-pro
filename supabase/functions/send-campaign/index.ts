@@ -1686,10 +1686,11 @@ serve(async (req) => {
           if (specialTpl) {
           const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl, supabase, credentials.userId);
             if (uazSpecial.ok) {
-              campaignSend.status = 'sent';
+              campaignSend.status = 'delivered';
               campaignSend.sent_at = new Date().toISOString();
+              campaignSend.delivered_at = campaignSend.sent_at;
               results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
-              console.log(`📨 [UAZAPI] Sent ${contact.phone} via ${currentInstance.instanceName}; waiting delivery callback`);
+              console.log(`📨 [UAZAPI] Delivered ${contact.phone} via ${currentInstance.instanceName} after accepted send`);
             } else {
               campaignSend.status = 'failed';
               campaignSend.error_message = uazSpecial.error || 'UAZAPI special envio falhou';
@@ -1719,10 +1720,11 @@ serve(async (req) => {
           })();
 
           if (uazResult.ok || uazLidBypass) {
-            campaignSend.status = 'sent';
+            campaignSend.status = 'delivered';
             campaignSend.sent_at = new Date().toISOString();
+            campaignSend.delivered_at = campaignSend.sent_at;
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
-            console.log(`📨 Sent${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}); waiting delivery callback`);
+            console.log(`📨 Delivered${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}) after accepted send`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
