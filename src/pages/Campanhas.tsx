@@ -340,9 +340,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const statsDialogStats = {
     // Envios aceitos pela API são exibidos como entregues imediatamente.
     sent: statsDialogSends.filter(s => isAcceptedSend(s)).length,
-    delivered: statsDialogSends.filter(s => s.status === 'delivered' || s.status === 'sent').length,
+    delivered: statsDialogSends.filter(s => isAcceptedSend(s)).length,
     // "Enviando" é apenas o que ainda está em trânsito/pendente na API.
-    sending: statsDialogSends.filter(s => s.status === 'pending' && Boolean((s as any).message_id || s.sent_at)).length,
+    sending: 0,
     pending: statsDialogSends.filter(s => s.status === 'pending' && !Boolean((s as any).message_id || s.sent_at)).length,
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
     total: statsDialogSends.length,
@@ -1156,17 +1156,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               let errorMessage: string | null = null;
 
               if (send) {
-                if (send.status === 'delivered' || send.status === 'sent') {
+                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
                   status = 'entregue';
                   sentAt = send.delivered_at || send.sent_at || null;
-                } else if (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at)) {
-                  if (canTreatPendingAsCancelled) {
-                    status = 'cancelado';
-                    errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
-                  } else {
-                    status = 'enviando';
-                    sentAt = send.sent_at || null;
-                  }
                 } else if (send.status === 'pending') {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
@@ -1200,8 +1192,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
               if (!existsInTarget) {
                 let status: CampaignContactStatus = 'pendente';
-                if (send.status === 'delivered' || send.status === 'sent') status = 'entregue';
-                else if (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at)) status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
+                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = 'entregue';
                 else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
