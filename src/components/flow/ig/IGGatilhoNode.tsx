@@ -1,5 +1,6 @@
 import { Handle, Position } from "reactflow";
  import { MessageCircle, Image, Share2, Heart, PlayCircle, Star, Zap } from "lucide-react";
+ import { Badge } from "@/components/ui/badge";
 
 export function IGGatilhoNode({ data }: any) {
   // Extract Instagram post ID from URL for embed
