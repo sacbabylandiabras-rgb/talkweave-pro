@@ -338,11 +338,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     (send?.status === 'pending' && Boolean(send?.message_id || send?.sent_at));
 
   const statsDialogStats = {
-    // "Enviado" agora inclui tanto "sent" (pela API) quanto "delivered" (pelo webhook)
+    // Envios aceitos pela API são exibidos como entregues imediatamente.
     sent: statsDialogSends.filter(s => isAcceptedSend(s)).length,
-    delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
-    // "Enviando" agora é apenas o que ainda está em trânsito/pendente na API
-    sending: statsDialogSends.filter(s => s.status === 'sent' || (s.status === 'pending' && Boolean((s as any).message_id || s.sent_at))).length,
+    delivered: statsDialogSends.filter(s => s.status === 'delivered' || s.status === 'sent').length,
+    // "Enviando" é apenas o que ainda está em trânsito/pendente na API.
+    sending: statsDialogSends.filter(s => s.status === 'pending' && Boolean((s as any).message_id || s.sent_at)).length,
     pending: statsDialogSends.filter(s => s.status === 'pending' && !Boolean((s as any).message_id || s.sent_at)).length,
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
     total: statsDialogSends.length,
