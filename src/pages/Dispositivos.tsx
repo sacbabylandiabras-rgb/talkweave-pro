@@ -2000,8 +2000,24 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
               <Globe className="w-3 h-3" /> Websites (um por linha, máx. 2)
             </Label>
             <div className="flex gap-2 items-start">
-              <Textarea placeholder="https://empresa.com" value={websites} onChange={(e) => setWebsites(e.target.value)} disabled={!!submitting} rows={3} />
-               <Button size="sm" onClick={() => applyToAll('company-websites', { websites: websites.split('\n').map(s => s.trim()).filter(Boolean) }, 'Websites')} disabled={!!submitting || !websites.trim() || selectedIds.length === 0}>
+               <Textarea 
+                 placeholder="Ex:&#10;https://loja.com&#10;https://instagram.com/loja" 
+                 value={websites} 
+                 onChange={(e) => setWebsites(e.target.value)} 
+                 disabled={!!submitting} 
+                 rows={3} 
+               />
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    const urls = websites.split('\n')
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                      .slice(0, 2);
+                    applyToAll('company-websites', { websites: urls }, 'Websites');
+                  }} 
+                  disabled={!!submitting || !websites.trim() || selectedIds.length === 0}
+                >
                  {submitting === 'company-websites' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                </Button>
              </div>
@@ -2127,17 +2143,17 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                  </div>
                )}
  
-               <Button 
-                 className="w-full" 
-                 onClick={() => {
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
                     const modeMap: Record<string, string> = {
-                      open_24h: 'open24h',
-                      appointment_only: 'appointmentOnly',
-                      specific_hours: 'specificHours',
+                      open_24h: 'OPEN_24H',
+                      appointment_only: 'APPOINTMENT_ONLY',
+                      specific_hours: 'SPECIFIC_HOURS',
                     };
                     const payload: any = {
                       timezone: "America/Sao_Paulo",
-                      mode: modeMap[businessHoursType] || 'open24h',
+                      mode: modeMap[businessHoursType] || 'OPEN_24H',
                     };
                     if (businessHoursType === 'specific_hours') {
                       payload.days = Object.entries(days)
@@ -2148,10 +2164,10 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                           closeTime: cfg.end,
                         }));
                     }
-                   applyToAll('business-hours', payload, 'Horário de Funcionamento');
-                 }} 
-                 disabled={!!submitting || selectedIds.length === 0}
-               >
+                    applyToAll('business-hours', payload, 'Horário de Funcionamento');
+                  }} 
+                  disabled={!!submitting || selectedIds.length === 0}
+                >
                  {submitting === 'business-hours' ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Clock className="w-4 h-4 mr-2" />}
                  Aplicar Horário às Selecionadas
                </Button>
