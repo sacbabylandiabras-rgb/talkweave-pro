@@ -1092,16 +1092,20 @@ export default function AutomacaoComentarios() {
   return (
     <div className="w-full h-[calc(100vh-80px)] flex flex-col">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
+       <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/60 backdrop-blur-md shrink-0 shadow-sm">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/instagram/campanhas")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <Input
-            value={flowName}
-            onChange={(e) => setFlowName(e.target.value)}
-            className="h-8 w-48 text-sm font-medium"
-          />
+           <div className="relative group">
+             <Input
+               value={flowName}
+               onChange={(e) => setFlowName(e.target.value)}
+               className="h-9 w-64 text-sm font-bold bg-transparent border-transparent hover:border-border/40 focus:bg-background/50 transition-all pl-2 pr-8"
+               placeholder="Nome do Fluxo"
+             />
+             <Pencil className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isActive} onCheckedChange={setIsActive} />
             <span className="text-xs text-muted-foreground">{isActive ? "Ativo" : "Inativo"}</span>
