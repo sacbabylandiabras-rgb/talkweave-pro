@@ -147,7 +147,7 @@ export default function AutomacaoComentarios() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [flowName, setFlowName] = useState("Novo Fluxo");
+   const [flowName, setFlowName] = useState("Novo Fluxo Instagram");
   const [isActive, setIsActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -277,10 +277,18 @@ export default function AutomacaoComentarios() {
       if (flowData && flowData.nodes?.length > 0) {
         // Strip cached dimensions so React Flow recalculates node sizes
         const cleanNodes = flowData.nodes.map((n: any) => {
-          const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
-          return rest;
-        });
-        setNodes(cleanNodes);
+         const cleanNodes = flowData.nodes.map((n: any) => {
+           const { width, height, positionAbsolute, selected, dragging, ...rest } = n;
+           return {
+             ...rest,
+             // Fix for old triggers
+             data: {
+               ...rest.data,
+               triggerType: rest.data.triggerType || (rest.type === 'igGatilho' ? 'comment' : undefined)
+             }
+           };
+         });
+         setNodes(cleanNodes);
         setEdges(flowData.edges || []);
       } else {
         // Legacy: convert old format to flow nodes
