@@ -1023,17 +1023,23 @@ serve(async (req) => {
       const originalPhone = Array.isArray(phone) ? phone[0] : phone;
       
       // Tenta marcar como entregue usando o telefone original (pode ser LID) ou o resolvido
-      await supabase
+      console.log(`📍 Tentando marcar como entregue: phone=${originalPhone} ou ${resolvedPhone}, ack=${ackId}`);
+      const { data: updated, error: updateErr } = await supabase
         .from('campaign_sends')
         .update({
           status: 'delivered',
           delivered_at: new Date().toISOString(),
           message_id: ackId
         })
-        .or(`phone.eq.${originalPhone},phone.eq.${resolvedPhone}`)
+        .or(`phone.eq."${originalPhone}",phone.eq."${resolvedPhone}"`)
         .is('message_id', null)
         .order('created_at', { ascending: false })
+        .select('id')
         .limit(1);
+
+      if (updateErr) console.error(`❌ Erro ao marcar como entregue:`, updateErr);
+      if (updated && updated.length > 0) console.log(`✅ Marcado como entregue: campaign_send_id=${updated[0].id}`);
+      else console.log(`⚠️ Nenhum registro de campanha encontrado para marcar como entregue.`);
     }
 
     await logProviderSend(adminClient, {
