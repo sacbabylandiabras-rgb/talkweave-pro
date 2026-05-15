@@ -1163,7 +1163,12 @@ export default function AutomacaoComentarios() {
       {/* Canvas */}
       <div ref={reactFlowWrapper} className="flex-1">
         <ReactFlow
-          nodes={nodes.map(n => n.type === 'igDM' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
+           nodes={nodes.map(n => {
+             if (n.type === 'igDM') return { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } };
+             // Ensure triggerType is present for rendering
+             if (n.type === 'igGatilho' && !n.data.triggerType) return { ...n, data: { ...n.data, triggerType: 'comment' } };
+             return n;
+           })}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
