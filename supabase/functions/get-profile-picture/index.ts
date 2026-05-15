@@ -181,10 +181,10 @@ const extractGroupName = (payload: any): string | null => {
      const numericId = isGroup ? groupIdRaw : rawPhone.replace(/\D/g, '')
  
      if (!numericId) {
-       return new Response(JSON.stringify({ error: 'Invalid phone' }), {
-         status: 400,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-       })
+      return new Response(
+        JSON.stringify({ success: false, data: { link: null, raw: null } }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
      }
  
      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; uazapiUrl: string }
