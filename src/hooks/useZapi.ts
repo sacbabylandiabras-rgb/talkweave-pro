@@ -1801,6 +1801,7 @@ const getZAPIConfig = async () => {
       sendEventResponse,
       sendOrderStatusUpdate,
       sendOrderPaymentUpdate,
+      setOverride,
       loading,
     };
   };
