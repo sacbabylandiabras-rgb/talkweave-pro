@@ -48,7 +48,7 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
               name: productName.trim(),
               price: Number(price) || 0,
               description: description.trim(),
-              image: mediaUrl.trim(),
+              mediaUrl: mediaUrl.trim(),
               sku: sku.trim(),
               currency,
               isHidden: false
