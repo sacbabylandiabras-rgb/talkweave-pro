@@ -183,6 +183,7 @@ export default function TemplatesAprovados() {
       const { data, error } = await supabase.functions.invoke("send-meta-message", {
         body: {
           action: "create_template",
+          override_phone_number_id: selectedPhoneId,
           name: newTemplate.name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
           category: newTemplate.category,
           language: newTemplate.language,
