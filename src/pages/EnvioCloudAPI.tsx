@@ -542,6 +542,10 @@ export default function EnvioCloudAPI() {
             <MousePointer className="w-3.5 h-3.5" />
             Botões
           </TabsTrigger>
+          <TabsTrigger value="template" className="flex items-center gap-1 text-xs">
+            <FileText className="w-3.5 h-3.5" />
+            Template
+          </TabsTrigger>
           <TabsTrigger value="massa" className="flex items-center gap-1 text-xs">
             <Users className="w-3.5 h-3.5" />
             Em Massa
