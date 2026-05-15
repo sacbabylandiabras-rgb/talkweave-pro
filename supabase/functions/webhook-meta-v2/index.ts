@@ -198,6 +198,7 @@ serve(async (req) => {
                     `${FLOW_CAPTURE_PREFIX}${userId}`,
                     `${FLOW_BUTTON_PREFIX}${userId}`,
                   ])
+                  .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
                   .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle()
