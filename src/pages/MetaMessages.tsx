@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -183,7 +183,7 @@ const resolveTemplateRef = (content: string, templates: MessageTemplate[]): stri
 };
 
 // Render message content with visual buttons and media
-const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string> }) => {
+const MessageContent = ({ content, isSent, templates, campaignId, campaignTemplates, originalContent }: { content: string; isSent: boolean; templates?: MessageTemplate[]; campaignId?: string | null; campaignTemplates?: Map<string, string>; originalContent?: string | null }) => {
   const augmentedContent = useMemo(() => {
     // If it's a campaign message and missing interactive markers, enrich it using the template.
     // This handles messages sent before the logger was updated to include markers.
@@ -262,7 +262,8 @@ const MessageContent = ({ content, isSent, templates, campaignId, campaignTempla
   }
 
   const resolvedContent = templates ? resolveTemplateRef(augmentedContent, templates) : augmentedContent;
-  const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(resolvedContent);
+  const displayContent = originalContent || resolvedContent;
+  const { mediaType, mediaUrl, text: textAfterMedia, transcription } = parseMediaFromContent(displayContent);
   const { text, buttons } = parseMessageWithButtons(textAfterMedia);
   return (
     <>
@@ -607,6 +608,8 @@ const ChatView = ({
    const [newTagColor, setNewTagColor] = useState(0);
    const [addingTag, setAddingTag] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -716,13 +719,33 @@ const ChatView = ({
      }
    };
 
-   useEffect(() => {
-     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-     if (conversation) {
-       loadAvailableTags();
-       fetchTagColors();
-     }
-   }, [conversation?.messages.length, conversation?.phone]);
+    useLayoutEffect(() => {
+      if (!conversation?.messages.length) return;
+      
+      const messages = conversation.messages;
+      const lastMessage = messages[messages.length - 1];
+      
+      if (lastMessage.id !== lastMessageIdRef.current) {
+        const isNearBottom = (() => {
+          const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+          if (!viewport) return true;
+          const threshold = 150;
+          return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold;
+        })();
+
+        if (isNearBottom || !lastMessageIdRef.current) {
+          messagesEndRef.current?.scrollIntoView({ behavior: lastMessageIdRef.current ? "smooth" : "auto" });
+        }
+        lastMessageIdRef.current = lastMessage.id;
+      }
+    }, [conversation?.messages.length, conversation?.phone]);
+
+    useEffect(() => {
+      if (conversation) {
+        loadAvailableTags();
+        fetchTagColors();
+      }
+    }, [conversation?.phone]);
 
    useEffect(() => {
      if (conversation) {
@@ -1215,7 +1238,10 @@ const ChatView = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-3 bg-background">
+      <ScrollArea 
+        className="flex-1 px-4 py-3 bg-background" 
+        ref={scrollAreaRef}
+      >
         <div className="max-w-3xl mx-auto space-y-1">
           {Array.from(messagesByDate.entries()).map(([dateKey, msgs]) => (
             <div key={dateKey}>
@@ -1263,7 +1289,14 @@ const ChatView = ({
                           </div>
                         )}
                         <div className="relative group/msg">
-                          <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                          <MessageContent 
+                            content={msg.content} 
+                            isSent={false} 
+                            templates={templates} 
+                            campaignId={msg.campaign_id} 
+                            campaignTemplates={campaignTemplates}
+                            originalContent={(msg as any).original_content}
+                          />
                           <p className="text-[10px] text-right mt-1 opacity-70">
                             {formatMessageTime(msg.timestamp)}
                           </p>
@@ -1358,7 +1391,14 @@ const ChatView = ({
                             </PopoverContent>
                           </Popover>
                         </div>
-                        <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                        <MessageContent 
+                          content={msg.content} 
+                          isSent={true} 
+                          templates={templates} 
+                          campaignId={msg.campaign_id} 
+                          campaignTemplates={campaignTemplates}
+                          originalContent={(msg as any).original_content}
+                        />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] flex items-center gap-0.5">
