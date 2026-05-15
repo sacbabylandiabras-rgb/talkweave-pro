@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Send, Users, FileText, Plus, Loader2, Phone, MessageSquare,
   AlertCircle, RefreshCw, Smartphone, Trash2, Image, Video,
@@ -62,6 +63,7 @@ async function getInvokeErrorMessage(error: unknown, fallback: string) {
 /* ========== COMPONENT ========== */
 export default function EnvioCloudAPI() {
   const { data: creds, isLoading: loadingCreds } = useMetaCredentials();
+  const [searchParams] = useSearchParams();
 
   // shared
   const [phone, setPhone] = useState("");
@@ -79,6 +81,7 @@ export default function EnvioCloudAPI() {
   const [templates, setTemplates] = useState<MetaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [activeTab, setActiveTab] = useState("texto");
   const [variables, setVariables] = useState<string[]>([]);
 
   // interactive buttons (max 3 reply buttons for Meta API)
@@ -100,17 +103,22 @@ export default function EnvioCloudAPI() {
 
   useEffect(() => {
     if (isConnected) {
-      fetchPhoneNumbers();
+      void fetchPhoneNumbers();
     }
   }, [isConnected]);
 
   useEffect(() => {
     if (!isConnected) return;
 
+    const tplFromQuery = searchParams.get("template");
+    if (tplFromQuery) {
+      setActiveTab("template");
+    }
+
     setTemplateName("");
     setVariables([]);
     void fetchTemplates(selectedPhoneNumberId || undefined);
-  }, [isConnected, selectedPhoneNumberId]);
+  }, [isConnected, selectedPhoneNumberId, searchParams]);
 
   /* ---------- fetchers ---------- */
   const fetchPhoneNumbers = async (force = false) => {
@@ -153,7 +161,18 @@ export default function EnvioCloudAPI() {
         try {
           const { data, ts } = JSON.parse(cached);
           if (Date.now() - ts < 1000 * 60 * 15) { // 15 min cache
-            setTemplates(data.filter((t: MetaTemplate) => t.status === "APPROVED"));
+            const tpls = data.filter((t: MetaTemplate) => t.status === "APPROVED");
+            setTemplates(tpls);
+
+            const tplFromQuery = searchParams.get("template");
+            if (tplFromQuery) {
+              const found = tpls.find((t: MetaTemplate) => t.name === tplFromQuery);
+              if (found) {
+                const val = getTemplateOptionValue(found);
+                setTemplateName(val);
+                setVariables(Array(getBodyVarCount(found)).fill(""));
+              }
+            }
             return;
           }
         } catch (e) {}
@@ -170,9 +189,19 @@ export default function EnvioCloudAPI() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const tpls = data.templates || [];
+      const tpls = (data.templates || []).filter((t: MetaTemplate) => t.status === "APPROVED");
       localStorage.setItem(cacheKey, JSON.stringify({ data: tpls, ts: Date.now() }));
-      setTemplates(tpls.filter((t: MetaTemplate) => t.status === "APPROVED"));
+      setTemplates(tpls);
+
+      const tplFromQuery = searchParams.get("template");
+      if (tplFromQuery) {
+        const found = tpls.find((t: MetaTemplate) => t.name === tplFromQuery);
+        if (found) {
+          const val = getTemplateOptionValue(found);
+          setTemplateName(val);
+          setVariables(Array(getBodyVarCount(found)).fill(""));
+        }
+      }
     } catch (err) {
       console.error("Error fetching templates:", err);
       const msg = await getInvokeErrorMessage(err, "Erro desconhecido");
@@ -528,8 +557,8 @@ export default function EnvioCloudAPI() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="texto" className="w-full">
-         <TabsList className="grid w-full grid-cols-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="texto" className="flex items-center gap-1 text-xs">
             <MessageSquare className="w-3.5 h-3.5" />
             Texto
@@ -541,6 +570,10 @@ export default function EnvioCloudAPI() {
           <TabsTrigger value="botoes" className="flex items-center gap-1 text-xs">
             <MousePointer className="w-3.5 h-3.5" />
             Botões
+          </TabsTrigger>
+          <TabsTrigger value="template" className="flex items-center gap-1 text-xs">
+            <FileText className="w-3.5 h-3.5" />
+            Template
           </TabsTrigger>
           <TabsTrigger value="massa" className="flex items-center gap-1 text-xs">
             <Users className="w-3.5 h-3.5" />
