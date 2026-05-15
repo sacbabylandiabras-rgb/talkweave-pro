@@ -161,7 +161,18 @@ export default function EnvioCloudAPI() {
         try {
           const { data, ts } = JSON.parse(cached);
           if (Date.now() - ts < 1000 * 60 * 15) { // 15 min cache
-            setTemplates(data.filter((t: MetaTemplate) => t.status === "APPROVED"));
+            const tpls = data.filter((t: MetaTemplate) => t.status === "APPROVED");
+            setTemplates(tpls);
+
+            const tplFromQuery = searchParams.get("template");
+            if (tplFromQuery) {
+              const found = tpls.find((t: MetaTemplate) => t.name === tplFromQuery);
+              if (found) {
+                const val = getTemplateOptionValue(found);
+                setTemplateName(val);
+                setVariables(Array(getBodyVarCount(found)).fill(""));
+              }
+            }
             return;
           }
         } catch (e) {}
