@@ -1796,7 +1796,8 @@ serve(async (req) => {
             console.log(`📬 [Special] Campaign Z-API response for ${contact.phone}: status=${zapiResponse.status}, confirmed=${confirmed}`);
 
             if ((zapiResponse.ok && !explicitError && confirmed) || (isLidIdentifier(contact.phone) && zapiResponse.ok)) {
-              campaignSend.status = 'pending';
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
               const ackId = getZapiAckId(zapiResult);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -1855,7 +1856,8 @@ serve(async (req) => {
           console.log('[send-campaign] Resposta carrossel Z-API:', carouselResponse.status, carouselText);
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
-          campaignSend.status = 'pending';
+          campaignSend.status = 'sent';
+          campaignSend.sent_at = new Date().toISOString();
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
@@ -2062,11 +2064,12 @@ serve(async (req) => {
         }
             }
 
-            campaignSend.status = 'pending';
+            campaignSend.status = 'sent';
+            campaignSend.sent_at = new Date().toISOString();
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
-            console.log(`⏳ Accepted${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone}; waiting callback to mark as sent/delivered`);
+            console.log(`📨 Sent${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone}; waiting callback to mark as delivered`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
