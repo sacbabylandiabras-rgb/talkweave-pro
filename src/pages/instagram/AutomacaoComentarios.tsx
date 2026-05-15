@@ -463,55 +463,146 @@ export default function AutomacaoComentarios() {
     if (!selectedNode) return null;
     const { type } = selectedNode;
 
-    if (type === "igGatilho") {
-      const shortcode = (() => {
-        const url = selectedNode.data.postUrl || "";
-        const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
-        return match ? match[1] : null;
-      })();
-
-      return (
-        <div className="space-y-4">
-          <div>
-            <Label>Link do Post / Reel</Label>
-            <Input
-              value={selectedNode.data.postUrl || ""}
-              onChange={(e) =>
-                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postUrl: e.target.value } })
-              }
-              placeholder="https://www.instagram.com/p/ABC123..."
-            />
-            <p className="text-xs text-muted-foreground mt-1">Cole o link do post que receberá os comentários</p>
-          </div>
-
-          {shortcode && (
-            <div className="rounded overflow-hidden border border-border">
-              <iframe
-                src={`https://www.instagram.com/p/${shortcode}/embed/`}
-                width="100%"
-                height="400"
-                frameBorder="0"
-                scrolling="no"
-                allowTransparency
-                style={{ border: "none" }}
-              />
-            </div>
-          )}
-
-          <div>
-            <Label>Palavras-chave (separadas por vírgula)</Label>
-            <Input
-              value={selectedNode.data.keywords || ""}
-              onChange={(e) =>
-                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
-              }
-              placeholder="eu quero, me manda, info"
-            />
-            <p className="text-xs text-muted-foreground mt-1">Deixe vazio para disparar em qualquer comentário</p>
-          </div>
-        </div>
-      );
-    }
+     if (type === "igGatilho") {
+       const triggerType = selectedNode.data.triggerType || "comment";
+       const shortcode = (() => {
+         const url = selectedNode.data.postUrl || "";
+         const match = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+         return match ? match[1] : null;
+       })();
+ 
+       return (
+         <div className="space-y-5 animate-in slide-in-from-right-2 duration-300">
+           <div>
+             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Tipo de Gatilho</Label>
+             <div className="grid grid-cols-2 gap-2">
+               {[
+                 { id: "comment", label: "Comentário", icon: MessageCircle },
+                 { id: "story_reply", label: "Story Reply", icon: Share2 },
+                 { id: "dm", label: "Mensagem Direta", icon: Heart },
+                 { id: "share", label: "Compartilhar", icon: Zap },
+                 { id: "live", label: "Live Comment", icon: PlayCircle },
+                 { id: "ads", label: "Anúncios", icon: Star },
+               ].map((t) => (
+                 <Button
+                   key={t.id}
+                   variant={triggerType === t.id ? "default" : "outline"}
+                   size="sm"
+                   className="h-9 gap-2 justify-start font-semibold text-xs"
+                   onClick={() => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, triggerType: t.id } })}
+                 >
+                   <t.icon className="w-3.5 h-3.5" />
+                   {t.label}
+                 </Button>
+               ))}
+             </div>
+           </div>
+ 
+           {triggerType === "comment" && (
+             <div className="space-y-3 animate-in fade-in duration-300">
+               <div>
+                 <Label className="text-xs font-bold text-muted-foreground mb-1 block">Configuração do Post</Label>
+                 <Select 
+                   value={selectedNode.data.postScope || "any"} 
+                   onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postScope: v } })}
+                 >
+                   <SelectTrigger className="h-9 text-xs">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="any">Qualquer Post ou Reel</SelectItem>
+                     <SelectItem value="specific">Post/Reel Específico</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+ 
+               {selectedNode.data.postScope === "specific" && (
+                 <div className="space-y-2">
+                   <Label className="text-xs font-bold text-muted-foreground mb-1 block">Link do Post / Reel</Label>
+                   <Input
+                     value={selectedNode.data.postUrl || ""}
+                     onChange={(e) =>
+                       setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, postUrl: e.target.value } })
+                     }
+                     placeholder="https://www.instagram.com/p/ABC123..."
+                     className="h-9 text-xs"
+                   />
+                   {shortcode && (
+                     <div className="rounded-xl overflow-hidden border border-border shadow-inner bg-black/5 mt-2">
+                       <iframe
+                         src={`https://www.instagram.com/p/${shortcode}/embed/`}
+                         width="100%"
+                         height="320"
+                         frameBorder="0"
+                         scrolling="no"
+                         allowTransparency
+                         style={{ border: "none" }}
+                       />
+                     </div>
+                   )}
+                 </div>
+               )}
+             </div>
+           )}
+ 
+           {triggerType === "story_reply" && (
+             <div className="space-y-3 animate-in fade-in duration-300">
+               <div>
+                 <Label className="text-xs font-bold text-muted-foreground mb-1 block">Configuração do Story</Label>
+                 <Select 
+                   value={selectedNode.data.storyScope || "all"} 
+                   onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, storyScope: v } })}
+                 >
+                   <SelectTrigger className="h-9 text-xs">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">Todos os Stories</SelectItem>
+                     <SelectItem value="specific">Apenas Story Específico</SelectItem>
+                   </SelectContent>
+                 </Select>
+                 <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed bg-pink-500/5 p-2 rounded-lg border border-pink-500/10 italic">
+                   Nota: Para Stories específicos, você precisará capturar o ID do story após publicá-lo.
+                 </p>
+               </div>
+             </div>
+           )}
+ 
+           <div className="pt-2 border-t border-border/40">
+             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Regras de Ativação</Label>
+             <div className="space-y-3">
+               <Select 
+                 value={selectedNode.data.matchType || "contains"} 
+                 onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, matchType: v } })}
+               >
+                 <SelectTrigger className="h-9 text-xs">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="contains">Mensagem contém palavras-chave</SelectItem>
+                   <SelectItem value="exact">Mensagem é exatamente a palavra-chave</SelectItem>
+                   <SelectItem value="any">Qualquer mensagem/comentário</SelectItem>
+                 </SelectContent>
+               </Select>
+               
+               {selectedNode.data.matchType !== "any" && (
+                 <div>
+                   <Label className="text-[11px] font-semibold text-muted-foreground mb-1.5 block">Palavras-chave (separadas por vírgula)</Label>
+                   <Input
+                     value={selectedNode.data.keywords || ""}
+                     onChange={(e) =>
+                       setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
+                     }
+                     placeholder="eu quero, me manda, info"
+                     className="h-9 text-xs"
+                   />
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       );
+     }
 
     if (type === "igResposta") {
       return (
