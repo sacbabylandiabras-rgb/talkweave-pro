@@ -1201,7 +1201,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               if (!existsInTarget) {
                 let status: CampaignContactStatus = 'pendente';
                 if (send.status === 'delivered' || send.status === 'sent') status = 'entregue';
-                else if (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
+                else if (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at)) status = canTreatPendingAsCancelled ? 'cancelado' : 'enviando';
                 else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
