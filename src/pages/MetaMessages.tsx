@@ -2221,15 +2221,13 @@ const MetaMessages = () => {
       // Skip groups as Meta API doesn't support them natively yet
       if (isGroupPhone(conv.phone)) return false;
 
-      // 1. Se estiver filtrando por uma instância específica da Meta
+      // 1. Strict filter if a specific Meta instance is selected
       if (selectedInstanceId !== 'all' && selectedInstanceId.startsWith('meta:')) {
-        // Verifica se a conversa pertence a essa instância
-        const belongsToSelected = conv.preferredInstanceId === selectedInstanceId || 
-                                 conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
-        if (belongsToSelected) return true;
+        return conv.preferredInstanceId === selectedInstanceId || 
+               conv.messages.some(m => (m as any).instance_id === selectedInstanceId);
       }
 
-      // 2. Se for "todas", verifica se tem QUALQUER marcador de Meta
+      // 2. If "all", check for ANY Meta marker
       const hasMetaMarker = conv.preferredInstanceId?.startsWith('meta:') || 
                            conv.messages.some(m => 
                              m.externalMessageId?.startsWith('meta:') || 
