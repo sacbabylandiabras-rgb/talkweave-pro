@@ -1289,7 +1289,14 @@ const ChatView = ({
                           </div>
                         )}
                         <div className="relative group/msg">
-                          <MessageContent content={msg.content} isSent={false} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                          <MessageContent 
+                            content={msg.content} 
+                            isSent={false} 
+                            templates={templates} 
+                            campaignId={msg.campaign_id} 
+                            campaignTemplates={campaignTemplates}
+                            originalContent={(msg as any).original_content}
+                          />
                           <p className="text-[10px] text-right mt-1 opacity-70">
                             {formatMessageTime(msg.timestamp)}
                           </p>
@@ -1384,7 +1391,14 @@ const ChatView = ({
                             </PopoverContent>
                           </Popover>
                         </div>
-                        <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
+                        <MessageContent 
+                          content={msg.content} 
+                          isSent={true} 
+                          templates={templates} 
+                          campaignId={msg.campaign_id} 
+                          campaignTemplates={campaignTemplates}
+                          originalContent={(msg as any).original_content}
+                        />
                         <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] flex items-center gap-0.5">
