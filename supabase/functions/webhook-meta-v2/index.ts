@@ -581,17 +581,17 @@ async function sendNodeContentMeta(
         if (mediaUrl && contentType !== 'text') logContent = `[media:${contentType}:${mediaUrl}]\n${logContent}`
         if (buttonLabels) logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`
 
-        if (logContent) {
-          const hasCaptureEdge = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"));
-          const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail || hasCaptureEdge);
-          const nodeButtons = targetNode.data.buttons || [];
-          const hasButtons = nodeButtons.length > 0 || edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("button-"));
-          
-          let keywordMatched = `__flow_send__:${flowName}`;
-          let responseSent = logContent.trim();
+        const hasCaptureEdge = edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("collect-"));
+        const isCapture = Boolean(targetNode.data.collectName || targetNode.data.collectWhatsapp || targetNode.data.collectEmail || hasCaptureEdge);
+        const nodeButtons = targetNode.data.buttons || [];
+        const hasButtons = nodeButtons.length > 0 || edges.some(e => e.source === targetNode.id && String(e.sourceHandle || "").startsWith("button-"));
 
-          if (isCapture || hasButtons || (nodeButtons.length > 0)) {
-            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : (hasButtons ? `${FLOW_BUTTON_PREFIX}${userId}` : keywordMatched);
+        if (logContent || isCapture || hasButtons) {
+          let keywordMatched = `__flow_send__:${flowName}`;
+          let responseSent = logContent.trim() || '[sem conteúdo]';
+
+          if (isCapture || hasButtons) {
+            keywordMatched = isCapture ? `${FLOW_CAPTURE_PREFIX}${userId}` : `${FLOW_BUTTON_PREFIX}${userId}`;
             responseSent = JSON.stringify({
               flowId: options?.flowId,
               flowName: flowName,
