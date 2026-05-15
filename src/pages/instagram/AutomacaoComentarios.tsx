@@ -44,7 +44,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Save,
-  Plus,
+   Plus,
+   Pencil,
   ArrowLeft,
   Trash2,
   MessageCircle,
