@@ -435,7 +435,7 @@ const ConversationList = ({
           )}
         </div>
       </div>
-      {instances.length > 0 && (
+      {(instances.length > 1 || (instances.length === 1 && selectedInstanceId !== 'all')) && (
         <select
           className="w-full h-8 text-xs rounded-md border border-border bg-background px-2 text-foreground"
           value={selectedInstanceId}
