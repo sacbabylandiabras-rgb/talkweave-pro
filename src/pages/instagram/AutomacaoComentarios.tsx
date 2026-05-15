@@ -29,11 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+   Dialog,
+   DialogContent,
+   DialogHeader,
+   DialogTitle,
+   DialogFooter,
+ } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -1315,35 +1316,42 @@ export default function AutomacaoComentarios() {
         </SheetContent>
       </Sheet>
 
-      {/* Edit Node Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Editar: {selectedNode?.data.label}</span>
-              {selectedNode && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => handleDeleteNode(selectedNode.id)}
-                >
-                  <Trash2 className="w-3 h-3" /> Excluir
-                </Button>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            {renderEditPanel()}
-          </ScrollArea>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveNode}>Salvar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+       {/* Edit Node Panel - ManyChat Style (Sheet or Right Sidebar) */}
+       <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+         <SheetContent side="right" className="sm:max-w-md p-0 overflow-hidden flex flex-col border-l border-border/40">
+           <SheetHeader className="p-4 border-b border-border/40 bg-muted/20">
+             <SheetTitle className="flex items-center justify-between text-base font-bold">
+               <div className="flex items-center gap-2">
+                 <div className="p-1.5 rounded bg-primary/10">
+                   <Settings2 className="w-4 h-4 text-primary" />
+                 </div>
+                 <span>Configurar Bloco</span>
+               </div>
+               {selectedNode && (
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                   onClick={() => handleDeleteNode(selectedNode.id)}
+                 >
+                   <Trash2 className="w-3.5 h-3.5" />
+                 </Button>
+               )}
+             </SheetTitle>
+           </SheetHeader>
+           <ScrollArea className="flex-1 p-6">
+             {renderEditPanel()}
+           </ScrollArea>
+           <div className="p-4 border-t border-border/40 bg-muted/20 flex gap-3">
+             <Button variant="outline" className="flex-1 font-semibold" onClick={() => setIsEditDialogOpen(false)}>
+               Cancelar
+             </Button>
+             <Button className="flex-1 font-semibold" onClick={handleSaveNode}>
+               Aplicar Alterações
+             </Button>
+           </div>
+         </SheetContent>
+       </Sheet>
     </div>
   );
 }
