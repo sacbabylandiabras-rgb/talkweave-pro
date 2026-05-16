@@ -80,8 +80,22 @@ serve(async (req) => {
       : chatId;
     const instanceId = webhook?.instanceId || "";
     
-    // Ignore status callbacks and other non-message types
+    // ✅ CORREÇÃO 1: Ignorar webhooks de presença ANTES de qualquer processamento
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+    if (
+      type === "PresenceChatCallback" ||
+      type === "PresenceCallback" ||
+      type === "ChatPresenceCallback" ||
+      webhook?.status === "AVAILABLE" ||
+      webhook?.status === "UNAVAILABLE" ||
+      webhook?.status === "COMPOSING" ||
+      webhook?.status === "RECORDING"
+    ) {
+      console.log(`Ignorando webhook de presença: type=${type}, status=${webhook?.status}`);
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
+    // Ignore status callbacks and other non-message types
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
@@ -94,7 +108,7 @@ serve(async (req) => {
     // Determine if it's a button response to handle fromMe correctly
     const isButtonResponse = type === "ButtonsResponseMessage" || 
                             type === "ButtonReply" || 
-                            type === "ListResponseMessage" ||
+                            type === "ListResponseMessage" || 
                             !!webhook?.buttonsResponseMessage ||
                             !!webhook?.buttonResponseMessage ||
                             !!webhook?.buttonReply ||
@@ -167,10 +181,11 @@ serve(async (req) => {
       ? messageRaw.replace(/^\[sender:[^\]]*\]\s*/, '')
       : messageRaw;
 
+    // ✅ CORREÇÃO 3: isStatusCallback sem o !!webhook?.status genérico que capturava presença
     const isStatusCallback = type === "DeliveryCallback" || 
                            type === "MessageStatusCallback" || 
                            type === "MessageStatus" ||
-                           !!webhook?.status;
+                           (!!webhook?.status && !webhook?.text && !webhook?.buttonsResponseMessage && !webhook?.buttonReply && !webhook?.listResponseMessage);
 
     // 1. Handle delivery/status callbacks first (entregue)
     if (isStatusCallback) {
