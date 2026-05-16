@@ -1046,13 +1046,16 @@ export const useMessageLogs = (
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
     
-    const filteredLogs = filterInstanceId && filterInstanceId !== 'all'
-      ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : hasKnownInstanceFilter
-        ? (knownInstanceIds!.length === 0
-          ? [] // ← nenhuma instância conhecida = sem mensagens
-          : messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id)))
-        : messageLogs;
+    const filteredLogs = useMemo(() => {
+      if (filterInstanceId && filterInstanceId !== 'all') {
+        return messageLogs.filter(m => m.instance_id === filterInstanceId);
+      }
+      if (hasKnownInstanceFilter) {
+        if (knownInstanceIds!.length === 0) return [];
+        return messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id));
+      }
+      return messageLogs;
+    }, [messageLogs, filterInstanceId, hasKnownInstanceFilter, knownInstanceIds, knownIdSet]);
 
     // From message_logs
     filteredLogs.forEach(log => {
@@ -1163,11 +1166,16 @@ export const useMessageLogs = (
     // Otherwise, restrict to known instance names so old campaign data from removed instances is hidden.
     const hasKnownInstanceNameFilter = Array.isArray(knownInstanceNames);
     const knownNameSet = hasKnownInstanceNameFilter ? new Set(knownInstanceNames) : null;
-    const filteredCampaignSends = filterInstanceName
-      ? campaignSends.filter(s => s.instance_name === filterInstanceName)
-      : hasKnownInstanceNameFilter
-        ? campaignSends.filter(s => !!s.instance_name && knownNameSet!.has(s.instance_name))
-        : campaignSends;
+    const filteredCampaignSends = useMemo(() => {
+      if (filterInstanceName) {
+        return campaignSends.filter(s => s.instance_name === filterInstanceName);
+      }
+      if (hasKnownInstanceNameFilter) {
+        if (knownInstanceNames!.length === 0) return [];
+        return campaignSends.filter(s => !!s.instance_name && knownNameSet!.has(s.instance_name));
+      }
+      return campaignSends;
+    }, [campaignSends, filterInstanceName, hasKnownInstanceNameFilter, knownInstanceNames, knownNameSet]);
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
