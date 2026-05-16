@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
- const DEFAULT_APP_ORIGIN = "https://zaplynx.com";
+ const DEFAULT_APP_ORIGIN = "https://talkweave-pro.lovable.app";
   const WHATSAPP_META_APP_ID = "1476628750280487";
  const INSTAGRAM_META_APP_ID = "1629147191696096";
 const CALLBACK_PATH = "/functions/v1/meta-oauth-callback";
