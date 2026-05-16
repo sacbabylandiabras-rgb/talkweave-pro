@@ -186,6 +186,18 @@ serve(async (req) => {
                            type === "MessageStatus" ||
                            (!!webhook?.status && !webhook?.text && !webhook?.buttonsResponseMessage && !webhook?.buttonReply && !webhook?.listResponseMessage);
 
+    // Deduplication check
+    const { data: existingMessage } = await supabase
+      .from("message_logs")
+      .select("id")
+      .eq("message_id", messageId)
+      .maybeSingle();
+
+    if (existingMessage && messageId) {
+      console.log(`Duplicate message ignored: ${messageId}`);
+      return new Response("duplicate", { status: 200, headers: corsHeaders });
+    }
+
     // 1. Handle delivery/status callbacks first (entregue)
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
@@ -568,10 +580,17 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
   let currentNodeId = nodeId;
   const visited = new Set();
 
-  while (currentNodeId && !visited.has(currentNodeId)) {
-    visited.add(currentNodeId);
+  console.log(`🚀 Iniciando executeFlow: node=${nodeId}, phone=${phone}, nodesCount=${nodes.length}`);
+
+  while (currentNodeId && !visited.has(String(currentNodeId))) {
+    visited.add(String(currentNodeId));
     const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
-    if (!node) break;
+    console.log(`📍 Processando nó: id=${currentNodeId}, type=${node?.type}`);
+    
+    if (!node) {
+      console.log(`❌ Nó ${currentNodeId} não encontrado no fluxo ${flow.id}`);
+      break;
+    }
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       // Aplicar delay do bloco de conteúdo se existir
@@ -606,8 +625,9 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
      destination = numericId ? `${numericId}-group` : destination;
    }
 
-      if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
-        const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
+      if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture && node.type === "blocoInicial") {
+        const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId));
+        console.log(`➡️ Bloco inicial sem conteúdo, pulando para o próximo nó: ${nextEdge?.target}`);
         currentNodeId = nextEdge?.target;
         continue;
       }
@@ -678,10 +698,20 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         }
       }
     }
-    // Find next node (default edge)
-    const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
+    // Find next node (default edge) - be more flexible with handle names
+    const nextEdge = edges.find((e: any) => 
+      String(e.source) === String(currentNodeId) && 
+      (!e.sourceHandle || e.sourceHandle === "default" || e.sourceHandle === "output" || e.sourceHandle.includes("source"))
+    );
+    
+    if (nextEdge) {
+      console.log(`➡️ Seguindo para o próximo nó: ${nextEdge.target}`);
+    } else {
+      console.log(`⏹️ Fim do fluxo ou sem saída padrão para o nó ${currentNodeId}`);
+    }
     currentNodeId = nextEdge?.target;
   }
+  console.log(`✅ executeFlow finalizado para o nó ${nodeId}`);
 }
 
 function replaceVars(text: string, captured: any, phone: string) {
