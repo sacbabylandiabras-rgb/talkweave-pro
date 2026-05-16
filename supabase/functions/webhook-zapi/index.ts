@@ -81,7 +81,7 @@ serve(async (req) => {
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
-    const type = webhook?.type || webhook?.notification || "";
+    const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
@@ -475,7 +475,7 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
                                 "");
       const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
       const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
-      const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
+      const isTextMatch = (normalizedBtnText && message) && (normalizedBtnText === message || message.includes(normalizedBtnText));
       
       if (isIdMatch || isTextMatch) {
         const edge = edges.find(e => e.source === sourceNodeId && (e.sourceHandle === `button-${i}` || e.sourceHandle === btn.id));
