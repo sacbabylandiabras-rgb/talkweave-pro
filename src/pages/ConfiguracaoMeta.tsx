@@ -23,7 +23,7 @@ interface MetaPhoneNumber {
   code_verification_status?: string;
 }
 
- const WHATSAPP_META_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "26985190684454065";
+  const WHATSAPP_META_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "1478628750280487";
 
 export default function ConfiguracaoMeta() {
    const { data: creds, isLoading, isFetching } = useMetaCredentials(WHATSAPP_META_APP_ID);
