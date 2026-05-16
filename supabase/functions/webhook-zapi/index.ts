@@ -367,6 +367,16 @@ serve(async (req) => {
           }
         }
       }
+
+      // Se tinha estado de fluxo mas não foi processado (não bateu botão nem captura),
+      // limpamos o estado para permitir que caia na verificação de palavras-chave
+      if (!flowStateHandled) {
+        console.log(`No match for flowState, clearing stuck state for ${phone}`);
+        await supabase
+          .from("flow_captured_data")
+          .update({ last_node_id: null, updated_at: new Date().toISOString() })
+          .eq("id", flowState.id);
+      }
     }
     // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
     const { data: flows } = await supabase
