@@ -925,7 +925,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                     <p className="text-sm opacity-60">Sua compra foi processada com sucesso.</p>
                   </div>
                 ) : null}
-            </div>
+              </div>
+            )}
 
             {/* How to pay */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
