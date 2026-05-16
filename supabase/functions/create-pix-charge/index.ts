@@ -287,7 +287,7 @@ serve(async (req) => {
   }
 
   try {
-    const { slug, amount, customerName, customerEmail, customerPhone, customerCpf } = await req.json()
+    const { slug, amount, customerName, customerEmail, customerPhone, customerCpf, paymentMethod, cardInfo } = await req.json()
 
     if (!slug || !amount) {
       return new Response(JSON.stringify({ error: 'Missing slug or amount' }), {
@@ -353,13 +353,18 @@ serve(async (req) => {
       }
     }
 
-    // Calculate platform fees: PIX = 6.99% + R$ 1.99 (199 centavos)
-    const feePercent = 6.99
+    // Calculate platform fees: PIX = 6.99% + R$ 1.99, Card = 9.99% + R$ 1.99
+    const feePercent = paymentMethod === 'credit_card' ? 9.99 : 6.99
     const feeFixed = 199
     const feeCents = Math.round((amountCents * feePercent) / 100) + feeFixed
     const netCents = amountCents - feeCents
 
-     // Route to the correct acquirer
+     // Specialized logic for Credit Card via Pagar.me
+     if (paymentMethod === 'credit_card') {
+       return await processPagarMeCard(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf, cardInfo)
+     }
+ 
+     // Route to the correct acquirer for PIX
      if (activeAcquirer === 'cartwave') {
        return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
      } else if (activeAcquirer === 'hubpague') {
