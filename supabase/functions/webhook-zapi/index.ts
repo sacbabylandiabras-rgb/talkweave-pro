@@ -80,8 +80,10 @@ serve(async (req) => {
       : chatId;
     const instanceId = webhook?.instanceId || "";
     
-    // ✅ CORREÇÃO 1: Ignorar webhooks de presença ANTES de qualquer processamento
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+    const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
+
+    // Ignore presence webhooks
     if (
       type === "PresenceChatCallback" ||
       type === "PresenceCallback" ||
@@ -91,11 +93,9 @@ serve(async (req) => {
       webhook?.status === "COMPOSING" ||
       webhook?.status === "RECORDING"
     ) {
-      console.log(`Ignorando webhook de presença: type=${type}, status=${webhook?.status}`);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // Ignore status callbacks and other non-message types
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
@@ -105,7 +105,6 @@ serve(async (req) => {
                      type === "ButtonReply" ||
                      type === "ListResponseMessage";
     
-    // Determine if it's a button response to handle fromMe correctly
     const isButtonResponse = type === "ButtonsResponseMessage" || 
                             type === "ButtonReply" || 
                             type === "ListResponseMessage" || 
@@ -113,6 +112,20 @@ serve(async (req) => {
                             !!webhook?.buttonResponseMessage ||
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
+
+    // Deduplication check
+    if (messageId) {
+      const { data: existingLog } = await supabase
+        .from("message_logs")
+        .select("id")
+        .eq("message_id", messageId)
+        .maybeSingle();
+
+      if (existingLog) {
+        console.log(`Ignoring duplicate message: ${messageId}`);
+        return new Response("duplicate", { status: 200, headers: corsHeaders });
+      }
+    }
 
     // Extract sender info for group prefixing
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
@@ -226,22 +239,25 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
+    const logEntryBase = {
+      user_id: userId,
+      phone: chatId,
+      message_id: messageId,
+      instance_id: instanceId,
+      timestamp: new Date().toISOString()
+    };
+
     // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
-        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
         if (isMessage && fromMe && !isButtonResponse) {
           console.log(`Registering self-message for ${chatId}`);
           await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId,
+            ...logEntryBase,
             message_received: null,
             response_sent: messageRaw,
-            instance_id: instanceId,
             keyword_matched: "__manual_send__",
-            timestamp: new Date().toISOString()
           });
         }
-
         if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
         return new Response("ok", { status: 200, headers: corsHeaders });
     }
@@ -314,7 +330,7 @@ serve(async (req) => {
             const captured = { ...(flowState.captured_data || {}) };
             captured[field] = messageRaw;
 
-            await supabase.from("flow_captured_data").upsert({
+            const { error: upsertError } = await supabase.from("flow_captured_data").upsert({
               user_id: userId,
               flow_id: flowId,
               flow_name: flow.name,
@@ -326,6 +342,8 @@ serve(async (req) => {
               updated_at: new Date().toISOString()
             }, { onConflict: "user_id,flow_id,phone" });
 
+            if (upsertError) console.error("Error upserting flow_captured_data:", upsertError);
+
             const captureHandle = getCaptureHandle(field);
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
             if (edge) {
@@ -336,15 +354,11 @@ serve(async (req) => {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
               flowStateHandled = true;
-              // REGISTRA CLIQUE DE BOTAO NAS METRICAS
               await supabase.from("message_logs").insert({
-                user_id: userId,
-                phone: chatId, // <-- Use chatId here
+                ...logEntryBase,
                 message_received: messageRaw,
-                instance_id: instanceId,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
                 response_sent: `[Fluxo: ${flow.name}]`,
-                timestamp: new Date().toISOString()
               });
 
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
@@ -364,15 +378,11 @@ serve(async (req) => {
           const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
           if (buttonMatch) {
             flowStateHandled = true;
-            // REGISTRA CLIQUE DE BOTAO NAS METRICAS (RECUPERADO)
             await supabase.from("message_logs").insert({
-              user_id: userId,
-              phone: chatId, // <-- Use chatId here
+              ...logEntryBase,
               message_received: messageRaw,
-              instance_id: instanceId,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
-              timestamp: new Date().toISOString()
             });
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
@@ -404,13 +414,9 @@ serve(async (req) => {
       .eq("user_id", userId)
       .eq("active", true);
 
-    // REGISTRA MENSAGEM NO LOG
     await supabase.from("message_logs").insert({
-      user_id: userId,
-      phone: chatId, // <-- Use chatId here
+      ...logEntryBase,
       message_received: messageRaw,
-      instance_id: instanceId,
-      timestamp: new Date().toISOString()
     });
 
     if (!flowStateHandled) {
@@ -449,15 +455,11 @@ serve(async (req) => {
           triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
-          // Register the interaction before executing
           await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId || phone,
+            ...logEntryBase,
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
-            instance_id: instanceId,
             keyword_matched: `__flow_trigger__:${flow.name}`,
-            timestamp: new Date().toISOString()
           });
 
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
