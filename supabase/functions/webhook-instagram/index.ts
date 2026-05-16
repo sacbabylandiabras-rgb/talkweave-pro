@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
 const IG_APP_ID = "1629147191696096";
+const META_API_VERSION = "v21.0";
 
 // Helper: extract variables from text
 const replaceVars = (txt: string, vars: Record<string, string>) => {
@@ -58,7 +59,7 @@ const executeFlow = async (params: {
     if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
       try {
         const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
-        const res = await fetch(`https://graph.facebook.com/v21.0/${context.commentId}/replies`, {
+        const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.commentId}/replies`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
@@ -89,7 +90,7 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
         if (payload) {
-          const res = await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+          const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
             body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
@@ -101,7 +102,7 @@ const executeFlow = async (params: {
             const isWindowError = errCode === 2534022 || (rd.error?.message || "").includes("outside of allowed window");
             if (isWindowError && context.commentId) {
                // Attempt Private Reply if direct DM fails due to window
-               await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+                await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages`, {
                  method: "POST",
                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
                  body: JSON.stringify({ recipient: { comment_id: context.commentId }, message: payload }),
@@ -426,9 +427,8 @@ serve(async (req) => {
         let username = "Instagram conectado";
         let igUserId = "";
         try {
-          const profileRes = await fetch(
-            `https://graph.facebook.com/v21.0/me?fields=user_id,username,name&access_token=${encodeURIComponent(body.token)}`
-          );
+          // Instagram tokens don't work with /me on the Graph API sometimes, use user_id if possible
+          const profileRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/me?fields=id,username,name&access_token=${encodeURIComponent(body.token)}`);
           const profileData = await profileRes.json();
           if (profileRes.ok && !profileData.error) {
             username = profileData.username || profileData.name || username;
@@ -492,8 +492,9 @@ serve(async (req) => {
           }
 
           const userId = cred.user_id;
-          const accessToken = (cred.access_token || "").trim().replace(/^"|"$/g, "");
-          const cleanAccessToken = accessToken;
+          const accessTokenRaw = (cred.access_token || "").trim();
+          // Deep cleaning of token: remove quotes and any potential whitespace/garbage
+          const cleanAccessToken = accessTokenRaw.replace(/^["']|["']$/g, "").trim();
 
           // Handle comment events
           if (entry.changes) {
@@ -590,237 +591,13 @@ serve(async (req) => {
                       supabase
                     });
                   } else {
-                    const replaceVars = (txt: string) =>
-                      txt.replace(/\{\{nome_usuario\}\}/g, fromUsername)
-                         .replace(/\{\{comentario\}\}/g, commentText);
-
-                    // Get outgoing edges, optionally filtering by source handle
-                    const getOutgoing = (nodeId: string, handleFilter?: string) =>
-                      flowEdges
-                        .filter((e: any) => {
-                          if (e.source !== nodeId) return false;
-                          if (handleFilter !== undefined) {
-                            return e.sourceHandle === handleFilter;
-                          }
-                          return true;
-                        })
-                        .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
-                        .filter(Boolean);
-
-                    const executeNode = async (node: any) => {
-                      if (visited.has(node.id)) return;
-                      visited.add(node.id);
-
-                      const d = node.data || {};
-
-                      if (node.type === "igResposta" && d.message && commentId && accessToken) {
-                        try {
-                          const replyText = replaceVars(d.message);
-                          const res = await fetch(
-                            `https://graph.facebook.com/v21.0/${commentId}/replies`,
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ message: replyText, access_token: accessToken }),
-                            }
-                          );
-                          const rd = await res.json();
-                          if (res.ok && !rd.error) console.log(`✅ Reply sent to comment ${commentId}`);
-                          else console.error("❌ Reply error:", JSON.stringify(rd));
-                        } catch (e) { console.error("❌ Reply failed:", e); }
-                      }
-
-                      if (node.type === "igDM" && fromId && accessToken) {
-                        try {
-                          const dmText = replaceVars(d.message || "");
-                          const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-
-                          // Wrap URL buttons with click tracker
-                          const wrapUrl = (originalUrl: string, btnTitle: string) => {
-                            const trackBase = "https://go.zaplynxpro.online/r";
-                            const params = new URLSearchParams({
-                              url: originalUrl,
-                              flow: auto.name,
-                              btn: btnTitle,
-                              uid: userId,
-                              ph: fromUsername,
-                              src: "ig",
-                            });
-                            return `${trackBase}?${params.toString()}`;
-                          };
-
-                          // Build Button Template payload (postback + web_url, max 3)
-                          const buildButtonPayload = (text: string, buttons: any[]) => {
-                            const templateBtns = buttons.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") {
-                                return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              }
-                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
-                            });
-                            if (templateBtns.length > 0) {
-                              return { attachment: { type: "template", payload: { template_type: "button", text: text || "Selecione uma opção:", buttons: templateBtns } } };
-                            }
-                            return text ? { text } : null;
-                          };
-
-                          const messagePayload = dmButtons.length > 0
-                            ? buildButtonPayload(dmText, dmButtons)
-                            : (dmText ? { text: dmText } : null);
-
-                          if (messagePayload) {
-                            // Strategy: try direct DM first, if "outside window" → open via Private Reply then send buttons
-                            const sendDM = async (recipientId: string, payload: any) => {
-                              const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                body: JSON.stringify({ recipient: { id: recipientId }, message: payload }),
-                              });
-                              return { res, data: await res.json() };
-                            };
-
-                            let { res: dmRes, data: dmData } = await sendDM(fromId, messagePayload);
-
-                            if (!dmRes.ok || dmData.error) {
-                              const errCode = dmData.error?.error_subcode || dmData.error?.code;
-                              const isWindowError = errCode === 2534022 || (dmData.error?.message || "").includes("outside of allowed window");
-                              console.error(`❌ DM error (code=${errCode}):`, JSON.stringify(dmData));
-
-                              if (isWindowError && commentId) {
-                                // Step 1: Try Private Reply WITH button template
-                                const prPayload = dmButtons.length > 0
-                                  ? buildButtonPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
-                                  : { text: dmText };
-                                const prRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                  body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
-                                });
-                                const prData = await prRes.json();
-
-                                if (prRes.ok && !prData.error) {
-                                  const igsid = prData.recipient_id;
-                                  console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
-                                  dmData = prData;
-                                } else {
-                                  console.warn("⚠️ Private Reply with template failed, trying text-only:", JSON.stringify(prData));
-                                  // Step 2: Fallback → text-only Private Reply, then send buttons via IGSID
-                                  const textPrRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                    body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
-                                  });
-                                  const textPrData = await textPrRes.json();
-
-                                  if (textPrRes.ok && !textPrData.error) {
-                                    const igsid = textPrData.recipient_id;
-                                    console.log(`✅ Text Private Reply sent → IGSID: ${igsid}`);
-                                    if (dmButtons.length > 0 && igsid) {
-                                      await new Promise(r => setTimeout(r, 1000));
-                                      const btnPayload = buildButtonPayload("", dmButtons);
-                                      if (btnPayload) {
-                                        const { res: btnRes, data: btnData } = await sendDM(igsid, btnPayload);
-                                        if (btnRes.ok && !btnData.error) {
-                                          console.log(`✅ Buttons sent to @${fromUsername} via IGSID ${igsid}`);
-                                          dmData = btnData;
-                                        } else {
-                                          console.error("❌ Button send error:", JSON.stringify(btnData));
-                                        }
-                                      }
-                                    }
-                                  } else {
-                                    console.error("❌ Text Private Reply also failed:", JSON.stringify(textPrData));
-                                  }
-                                }
-                              }
-                            } else {
-                              console.log(`✅ DM sent to @${fromUsername}${dmButtons.length > 0 ? ` (${dmButtons.length} btn)` : ""}`);
-                            }
-
-                            await supabase.from("instagram_events").insert({
-                              user_id: userId, event_type: "dm_sent", ig_user_id: fromId,
-                              username: fromUsername, media_id: mediaId, comment_text: dmText,
-                              payload: dmData, processed: true,
-                            });
-
-                            // Log flow send for metrics tracking
-                            await supabase.from("message_logs").insert({
-                              user_id: userId,
-                              phone: fromUsername,
-                              message_received: `[IG DM] ${dmText.slice(0, 100)}`,
-                              keyword_matched: `__ig_flow_send__:${auto.name}`,
-                              response_sent: `[IG-Fluxo: ${auto.name}]`,
-                              timestamp: new Date().toISOString(),
-                            });
-                            console.log(`📊 IG flow send logged for "${auto.name}" → @${fromUsername}`);
-                          }
-                        } catch (e) { console.error("❌ DM failed:", e); }
-                      }
-
-                      if (node.type === "igDelay") {
-                        const val = parseInt(d.delayValue) || 0;
-                        const unit = d.delayUnit || "seconds";
-                        const ms = val * (unit === "hours" ? 3600000 : unit === "minutes" ? 60000 : 1000);
-                        if (ms > 0 && ms <= 30000) {
-                          console.log(`⏱ Waiting ${val} ${unit}...`);
-                          await new Promise(r => setTimeout(r, ms));
-                        } else if (ms > 30000) {
-                          console.log(`⏱ Delay ${val} ${unit} too long for sync execution, skipping`);
-                        }
-                      }
-
-                      if (node.type === "igWhatsApp") {
-                        await executeIgWhatsAppNode(d, null, userId, fromId, fromUsername, supabase);
-                      }
-
-                      // Traverse children — if DM has buttons or collection, STOP (don't follow those paths)
-                      // Button paths (btn-0, btn-1...) are only followed when user clicks a button
-                      // Collection paths (collect-whatsapp, collect-email) are only followed when user responds
-                      const allButtons = (node.data?.buttons || []);
-                      const hasButtons = node.type === "igDM" && allButtons.length > 0;
-                      const hasCollection = node.type === "igDM" && (node.data?.collectName || node.data?.collectWhatsapp || node.data?.collectEmail);
-                      if (hasCollection) {
-                        // STOP completely — must wait for user response before proceeding
-                        console.log(`⏹ DM node "${node.data?.label}" collecting data — STOPPING flow until user responds`);
-                      } else if (hasButtons) {
-                        // Only follow the default bottom handle, not button-specific handles
-                        const defaultChildren = getOutgoing(node.id, "source-bottom");
-                        for (const child of defaultChildren) {
-                          await executeNode(child);
-                        }
-                        console.log(`⏹ DM node "${node.data?.label}" has ${allButtons.length} buttons — waiting for user response to branch`);
-                      } else {
-                        // For non-button/non-collection nodes, exclude special handles
-                        const children = flowEdges
-                          .filter((e: any) => {
-                            if (e.source !== node.id) return false;
-                            const h = e.sourceHandle || "";
-                            return !h.startsWith("btn-") && !h.startsWith("collect-");
-                          })
-                          .map((e: any) => flowNodes.find((n: any) => n.id === e.target))
-                          .filter(Boolean);
-                        for (const child of children) {
-                          await executeNode(child);
-                        }
-                      }
-                    };
-
-                    // Start from trigger nodes
-                    const triggerNodes = flowNodes.filter((n: any) => n.type === "igGatilho");
-                    for (const trigger of triggerNodes) {
-                      const children = getOutgoing(trigger.id);
-                      for (const child of children) {
-                        await executeNode(child);
-                      }
-                    }
-                  } else {
                     // === LEGACY MODE: use flat fields ===
                     if (auto.reply_comment && commentId && accessToken) {
                       try {
                         const replyText = auto.reply_comment
                           .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                           .replace(/\{\{comentario\}\}/g, commentText);
-                        const replyRes = await fetch(`https://graph.facebook.com/v21.0/${commentId}/replies`, {
+                        const replyRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${commentId}/replies`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ message: replyText, access_token: accessToken }),
@@ -853,7 +630,7 @@ serve(async (req) => {
                         const messagePayload = dmButtons.length > 0 ? buildBtnPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
                         if (messagePayload) {
-                          const dmRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                          const dmRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                             body: JSON.stringify({ recipient: { id: fromId }, message: messagePayload }),
@@ -869,7 +646,7 @@ serve(async (req) => {
                               const prPayload = dmButtons.length > 0
                                 ? buildBtnPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
                                 : { text: dmText };
-                              const prRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                              const prRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                 body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
@@ -880,7 +657,7 @@ serve(async (req) => {
                                 console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
                               } else {
                                 console.warn("⚠️ Template PR failed, trying text-only:", JSON.stringify(prData));
-                                const textPrRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                                const textPrRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                   body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
@@ -893,7 +670,7 @@ serve(async (req) => {
                                     await new Promise(r => setTimeout(r, 1000));
                                     const btnPayload = buildBtnPayload("", dmButtons);
                                     if (btnPayload) {
-                                      const btnRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                                      const btnRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                         body: JSON.stringify({ recipient: { id: igsid }, message: btnPayload }),
@@ -1169,7 +946,7 @@ serve(async (req) => {
                           // Send follow-up message if configured
                           const followUp = collectsWa ? node.data?.whatsappFollowUp : node.data?.emailFollowUp;
                           if (followUp) {
-                            await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                            await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
