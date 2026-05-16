@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const INSTAGRAM_APP_ID = "2389544344842071";
+const INSTAGRAM_APP_ID = "1629147191696096";
 const REDIRECT_URI = "https://zaplynx.com/meta-oauth-callback";
 
 export default function ConfiguracaoInstagram() {
