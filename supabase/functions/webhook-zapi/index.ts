@@ -408,7 +408,7 @@ serve(async (req) => {
         
         // Check main flow keywords
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-        if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+        if (mainKeywords.some((k: string) => isKeywordMatch(cleanMessageForMatch, k))) {
           shouldTrigger = true;
           const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           startNodeId = initialNode?.id;
@@ -418,7 +418,7 @@ serve(async (req) => {
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
             const nodeKeyword = tNode.data?.keyword;
-            if (nodeKeyword && isKeywordMatch(messageRaw, nodeKeyword)) {
+            if (nodeKeyword && isKeywordMatch(cleanMessageForMatch, nodeKeyword)) {
               shouldTrigger = true;
               // When triggered by a specific trigger node, we start from the NEXT node connected to it
               const edge = (flow.edges || []).find((e: any) => e.source === tNode.id);
