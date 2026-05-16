@@ -32,7 +32,7 @@ const executeFlow = async (params: {
     accessToken: string;
     commentId?: string;
     inputText?: string;
-    triggerType: "comment" | "dm" | "story_reply";
+    triggerType: "comment" | "dm" | "story_reply" | "follow";
   };
   supabase: any;
 }) => {

@@ -6,7 +6,16 @@
  import { Input } from "@/components/ui/input";
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  
- const modelos = [
+  const modelos = [
+    {
+      id: "saudacao-novo-seguidor",
+      title: "Saudação para novos seguidores",
+      description: "Dê as boas-vindas automaticamente por DM assim que alguém começar a te seguir",
+      category: "gatilho",
+      tag: "Boas-vindas",
+      trigger: "Seguidor",
+      pro: true,
+    },
    {
      id: "venda-comentarios-reels",
      title: "Venda pelos comentários de Reels",
