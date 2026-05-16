@@ -466,10 +466,50 @@ serve(async (req) => {
           });
         }
 
-        return new Response(JSON.stringify({ success: true, username }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+         return new Response(JSON.stringify({ success: true, username }), {
+           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
+ 
+       // Action to test the follower flow manually
+       if (body.action === "test_follow_flow" && body.user_id && body.ig_user_id) {
+         console.log("🧪 Testing follower flow for user:", body.user_id);
+         const { data: cred } = await supabase
+           .from("meta_credentials")
+           .select("access_token, fb_user_id, fb_user_name")
+           .eq("user_id", body.user_id)
+           .eq("app_id", IG_APP_ID)
+           .maybeSingle();
+ 
+         if (!cred) return new Response("Credentials not found", { status: 404 });
+ 
+         const { data: automations } = await supabase
+           .from("instagram_automations")
+           .select("*")
+           .eq("user_id", body.user_id)
+           .eq("active", true);
+ 
+         const username = body.username || "Usuario Teste";
+         const senderId = body.ig_user_id;
+ 
+         for (const auto of (automations || [])) {
+           try {
+             const parsed = JSON.parse(auto.dm_message || "");
+             if (parsed.__flow__ && parsed.nodes?.length > 0) {
+               await executeFlow({
+                 auto, nodes: parsed.nodes, edges: parsed.edges || [],
+                 context: {
+                   userId: body.user_id, igPageId: cred.fb_user_id, senderId, senderUsername: username,
+                   accessToken: cred.access_token.replace(/^["']|["']$/g, "").trim(),
+                   inputText: "Teste Seguidor", triggerType: "follow",
+                 },
+                 supabase
+               });
+             }
+           } catch (e) { console.error("Test flow error:", e); }
+         }
+         return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+       }
 
       console.log("📩 Instagram webhook:", JSON.stringify(body).slice(0, 500));
 
