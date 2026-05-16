@@ -239,9 +239,7 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
-    const logEntry = {
+    const logEntryBase = {
       user_id: userId,
       phone: chatId,
       message_id: messageId,
@@ -249,6 +247,17 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     };
 
+    // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
+        if (isMessage && fromMe && !isButtonResponse) {
+          console.log(`Registering self-message for ${chatId}`);
+          await supabase.from("message_logs").insert({
+            ...logEntryBase,
+            message_received: null,
+            response_sent: messageRaw,
+            keyword_matched: "__manual_send__",
+          });
+        }
         if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
         return new Response("ok", { status: 200, headers: corsHeaders });
     }
@@ -321,7 +330,7 @@ serve(async (req) => {
             const captured = { ...(flowState.captured_data || {}) };
             captured[field] = messageRaw;
 
-            await supabase.from("flow_captured_data").upsert({
+            const { error: upsertError } = await supabase.from("flow_captured_data").upsert({
               user_id: userId,
               flow_id: flowId,
               flow_name: flow.name,
@@ -333,6 +342,8 @@ serve(async (req) => {
               updated_at: new Date().toISOString()
             }, { onConflict: "user_id,flow_id,phone" });
 
+            if (upsertError) console.error("Error upserting flow_captured_data:", upsertError);
+
             const captureHandle = getCaptureHandle(field);
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
             if (edge) {
@@ -343,15 +354,11 @@ serve(async (req) => {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             if (buttonMatch) {
               flowStateHandled = true;
-              // REGISTRA CLIQUE DE BOTAO NAS METRICAS
               await supabase.from("message_logs").insert({
-                user_id: userId,
-                phone: chatId, // <-- Use chatId here
+                ...logEntryBase,
                 message_received: messageRaw,
-                instance_id: instanceId,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
                 response_sent: `[Fluxo: ${flow.name}]`,
-                timestamp: new Date().toISOString()
               });
 
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
