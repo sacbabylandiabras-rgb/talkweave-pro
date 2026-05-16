@@ -98,9 +98,11 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   const isMobile = useIsMobile();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [quantity, setQuantity] = useState(1);
-  const [pixLoading, setPixLoading] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
-  const [pixError, setPixError] = useState<string | null>(null);
+   const [pixLoading, setPixLoading] = useState(false);
+   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
+   const [pixError, setPixError] = useState<string | null>(null);
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
+   const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
   const [showAllBanks, setShowAllBanks] = useState(false);
@@ -202,35 +204,55 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     };
   }, [pixData?.correlationID, paymentApproved]);
 
-  const handleGeneratePix = async () => {
-    setPixLoading(true);
-    setPixError(null);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const slug = window.location.pathname.split('/pay/')[1];
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug, amount: pixPrice,
-          customerName: formName || undefined, customerEmail: formEmail || undefined,
-          customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const detailedMessage = data?.message || data?.error || 'Erro ao gerar cobrança';
-        const suffix = data?.attempt ? ` (tentativa: ${data.attempt})` : '';
-        throw new Error(`${detailedMessage}${suffix}`);
-      }
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
-    } catch (e: any) {
-      setPixError(e.message || 'Erro ao gerar PIX');
-    } finally {
-      setPixLoading(false);
-    }
-  };
+   const handleGeneratePix = async () => {
+     setPixLoading(true);
+     setPixError(null);
+     try {
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+       const slug = window.location.pathname.split('/pay/')[1];
+       
+       // Use specialized Pagar.me function if credit card or fallback to pix-charge
+       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+       const body: any = {
+         slug, amount: pixPrice,
+         customerName: formName || undefined, customerEmail: formEmail || undefined,
+         customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
+       };
+ 
+       if (paymentMethod === 'credit_card') {
+         const [month, year] = cardData.expiry.split('/');
+         body.paymentMethod = 'credit_card';
+         body.cardInfo = {
+           number: cardData.number,
+           holder_name: cardData.holder,
+           exp_month: parseInt(month),
+           exp_year: 2000 + parseInt(year),
+           cvv: cardData.cvv,
+           installments: parseInt(cardData.installments)
+         };
+       }
+ 
+       const res = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+         method: 'POST',
+         headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
+         body: JSON.stringify(body),
+       });
+       const data = await res.json();
+       if (!res.ok) {
+         throw new Error(data?.error || 'Erro ao processar pagamento');
+       }
+       if (data.status === 'approved') {
+         setPaymentApproved(true);
+       } else {
+         setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
+       }
+     } catch (e: any) {
+       setPixError(e.message || 'Erro ao processar');
+     } finally {
+       setPixLoading(false);
+     }
+   };
 
   const handleCopyPix = () => {
     if (pixData?.brCode) {
