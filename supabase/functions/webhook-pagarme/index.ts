@@ -19,10 +19,10 @@
      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
      const supabase = createClient(supabaseUrl, supabaseKey)
  
-     const event = payload.event
-     const order = payload.data
-     const externalId = order.code // We use this to match our correlationID/external_id
-     const pagarmeId = order.id
+      const event = payload.event || (payload.type === 'order.paid' ? 'order.paid' : null)
+      const order = payload.data || payload.order
+      const externalId = order?.code || order?.metadata?.code
+      const pagarmeId = order?.id
  
      if (!externalId) {
        return new Response(JSON.stringify({ error: 'Missing external_id (code)' }), { status: 400 })
