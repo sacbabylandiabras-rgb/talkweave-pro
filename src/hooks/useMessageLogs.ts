@@ -1037,7 +1037,7 @@ export const useMessageLogs = (
    }, [loading, messageLogs.length, autoFetchPhotos]);
 
   // Build unified messages
-  const conversations: Conversation[] = (() => {
+  const conversations: Conversation[] = useMemo(() => {
     const allMessages: UnifiedMessage[] = [];
 
     // When a specific instance is selected, filter to that one.
@@ -1275,7 +1275,7 @@ export const useMessageLogs = (
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
-  })();
+  }, [messageLogs, campaignSends, filterInstanceId, filterInstanceName, knownInstanceIds, knownInstanceNames, savedContacts, groupNames, groupPhotos, groupSourceInstances, localManualPhotos, deletedPhones]);
 
   const unresolvedGroupKey = conversations
     .filter((c) => isGroupPhone(c.phone) && (!c.contactName || c.contactName === 'Grupo' || c.contactName === 'Comunidade' || c.contactName === 'Canal'))
