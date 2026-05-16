@@ -101,7 +101,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
    const [pixLoading, setPixLoading] = useState(false);
    const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
    const [pixError, setPixError] = useState<string | null>(null);
-   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
+    const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">(config.pix !== false ? "pix" : "credit_card");
    const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });

@@ -28,7 +28,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const s = getCheckoutStyles(config);
   const isPreview = isPreviewProp ?? !window.location.pathname.includes('/pay/');
    const [pixLoading, setPixLoading] = useState(false);
-   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">(config.pix !== false ? "pix" : "credit_card");
    const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
