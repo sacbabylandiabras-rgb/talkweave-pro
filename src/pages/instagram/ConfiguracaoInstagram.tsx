@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const INSTAGRAM_APP_ID = "1629147191696096";
-const REDIRECT_URI = "https://talkweave-pro.lovable.app/meta-oauth-callback";
+const REDIRECT_URI = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback";
 
 export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
