@@ -211,21 +211,35 @@ serve(async (req) => {
       
       console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
       
-      // Mark as delivered as soon as the provider accepts/sends the message.
-      if (messageIds.length > 0 && ["SENT", "RECEIVED", "READ", "READ_BY_ME", "PLAYED", "sent", "delivered"].includes(status)) {
+      // Mark as delivered/sent based on status.
+      // SENT: Message reached Z-API/WhatsApp servers.
+      // RECEIVED: Message delivered to the recipient's phone.
+      // READ: Recipient read the message.
+      const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED", "delivered"].includes(status);
+      const isSentStatus = ["SENT", "sent"].includes(status);
+
+      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
+          const updateData: any = {
+            status: isDeliveredStatus ? 'delivered' : 'sent',
+            updated_at: new Date().toISOString()
+          };
+          
+          if (isDeliveredStatus) {
+            updateData.delivered_at = new Date().toISOString();
+          } else {
+            updateData.sent_at = new Date().toISOString();
+          }
+
           const { data: campaignSend } = await supabase
             .from("campaign_sends")
-            .update({
-              status: 'delivered',
-              delivered_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq("message_id", msgId)
             .select('id')
             .maybeSingle();
           
           if (campaignSend) {
-            console.log(`Updated campaign_send ${campaignSend.id} to delivered via message_id ${msgId}`);
+            console.log(`Updated campaign_send ${campaignSend.id} to ${updateData.status} via message_id ${msgId}`);
           }
         }
       } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
