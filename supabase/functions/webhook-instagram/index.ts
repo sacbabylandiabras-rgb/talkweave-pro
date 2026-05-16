@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
 const IG_APP_ID = "1629147191696096";
+const META_API_VERSION = "v21.0";
 
 // Helper: extract variables from text
 const replaceVars = (txt: string, vars: Record<string, string>) => {
@@ -58,7 +59,7 @@ const executeFlow = async (params: {
     if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
       try {
         const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
-        const res = await fetch(`https://graph.facebook.com/v21.0/${context.commentId}/replies`, {
+        const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.commentId}/replies`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
@@ -89,7 +90,7 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
         if (payload) {
-          const res = await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+          const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
             body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
@@ -101,7 +102,7 @@ const executeFlow = async (params: {
             const isWindowError = errCode === 2534022 || (rd.error?.message || "").includes("outside of allowed window");
             if (isWindowError && context.commentId) {
                // Attempt Private Reply if direct DM fails due to window
-               await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+                await fetch(`https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages`, {
                  method: "POST",
                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
                  body: JSON.stringify({ recipient: { comment_id: context.commentId }, message: payload }),
@@ -426,9 +427,8 @@ serve(async (req) => {
         let username = "Instagram conectado";
         let igUserId = "";
         try {
-          const profileRes = await fetch(
-            `https://graph.facebook.com/v21.0/me?fields=user_id,username,name&access_token=${encodeURIComponent(body.token)}`
-          );
+          // Instagram tokens don't work with /me on the Graph API sometimes, use user_id if possible
+          const profileRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/me?fields=id,username,name&access_token=${encodeURIComponent(body.token)}`);
           const profileData = await profileRes.json();
           if (profileRes.ok && !profileData.error) {
             username = profileData.username || profileData.name || username;
@@ -492,8 +492,9 @@ serve(async (req) => {
           }
 
           const userId = cred.user_id;
-          const accessToken = (cred.access_token || "").trim().replace(/^"|"$/g, "");
-          const cleanAccessToken = accessToken;
+          const accessTokenRaw = (cred.access_token || "").trim();
+          // Deep cleaning of token: remove quotes and any potential whitespace/garbage
+          const cleanAccessToken = accessTokenRaw.replace(/^["']|["']$/g, "").trim();
 
           // Handle comment events
           if (entry.changes) {
@@ -820,7 +821,7 @@ serve(async (req) => {
                         const replyText = auto.reply_comment
                           .replace(/\{\{nome_usuario\}\}/g, fromUsername)
                           .replace(/\{\{comentario\}\}/g, commentText);
-                        const replyRes = await fetch(`https://graph.facebook.com/v21.0/${commentId}/replies`, {
+                        const replyRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${commentId}/replies`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ message: replyText, access_token: accessToken }),
@@ -853,7 +854,7 @@ serve(async (req) => {
                         const messagePayload = dmButtons.length > 0 ? buildBtnPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
                         if (messagePayload) {
-                          const dmRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                          const dmRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                             body: JSON.stringify({ recipient: { id: fromId }, message: messagePayload }),
@@ -869,7 +870,7 @@ serve(async (req) => {
                               const prPayload = dmButtons.length > 0
                                 ? buildBtnPayload(dmText || "Olá! Confira as opções abaixo:", dmButtons)
                                 : { text: dmText };
-                              const prRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                              const prRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                 body: JSON.stringify({ recipient: { comment_id: commentId }, message: prPayload }),
@@ -880,7 +881,7 @@ serve(async (req) => {
                                 console.log(`✅ Private Reply sent (with template) → IGSID: ${igsid}`);
                               } else {
                                 console.warn("⚠️ Template PR failed, trying text-only:", JSON.stringify(prData));
-                                const textPrRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                                const textPrRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                   body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: dmText || "Olá!" } }),
@@ -893,7 +894,7 @@ serve(async (req) => {
                                     await new Promise(r => setTimeout(r, 1000));
                                     const btnPayload = buildBtnPayload("", dmButtons);
                                     if (btnPayload) {
-                                      const btnRes = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                                      const btnRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                                         body: JSON.stringify({ recipient: { id: igsid }, message: btnPayload }),
@@ -1169,7 +1170,7 @@ serve(async (req) => {
                           // Send follow-up message if configured
                           const followUp = collectsWa ? node.data?.whatsappFollowUp : node.data?.emailFollowUp;
                           if (followUp) {
-                            await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
+                            await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
