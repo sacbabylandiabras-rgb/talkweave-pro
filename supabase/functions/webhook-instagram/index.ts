@@ -952,10 +952,6 @@ serve(async (req) => {
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cleanAccessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
                             });
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                              body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
-                            });
                             console.log(`✅ Follow-up sent for ${handleId}`);
                           }
 
