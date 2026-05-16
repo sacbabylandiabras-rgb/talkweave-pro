@@ -15,9 +15,17 @@ import "./Landing.css";
 const screens = [screen0, screen1, screen2];
 
 const Landing = () => {
-  const navigate = useNavigate();
+   const navigate = useNavigate();
    const goSignup = () => navigate("/auth?signup=true");
-    const goLogin = () => navigate("/auth");
+   const goLogin = () => navigate("/auth");
+ 
+   const SpinningButton = ({ className, children, onClick }: { className: string, children: React.ReactNode, onClick: () => void }) => (
+     <div className="spinning-border-wrapper">
+       <button className={className} onClick={onClick}>
+         {children}
+       </button>
+     </div>
+   );
 
   return (
     <div className="lp-root">
@@ -39,7 +47,7 @@ const Landing = () => {
         <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão {" "}<br />WhatsApp &amp; Instagram</h1>
         <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
          <div className="lp-hero-ctas">
-           <button className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</button>
+           <SpinningButton className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</SpinningButton>
            <div className="lp-hero-trial-tag">2 dias de teste gratuito • Sem cartão de crédito</div>
          </div>
       </div>
@@ -154,7 +162,7 @@ const Landing = () => {
       <div className="lp-cta-final">
         <h2>Venda mais com Gateway + WhatsApp + Instagram</h2>
         <p>Receba pagamentos e automatize toda sua comunicação em uma única plataforma.</p>
-         <button className="lp-btn-cta" onClick={goSignup}>Começar Teste Grátis →</button>
+         <SpinningButton className="lp-btn-cta" onClick={goSignup}>Começar Teste Grátis →</SpinningButton>
       </div>
 
       {/* FOOTER */}
