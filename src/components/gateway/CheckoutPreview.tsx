@@ -213,7 +213,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
        const slug = window.location.pathname.split('/pay/')[1];
        
        // Use specialized Pagar.me function if credit card or fallback to pix-charge
-       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+        const endpoint = 'create-pix-charge';
        const body: any = {
          slug, amount: pixPrice,
          customerName: formName || undefined, customerEmail: formEmail || undefined,
