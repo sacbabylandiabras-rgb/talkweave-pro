@@ -1,33 +1,11 @@
-I will implement several new features and layout adjustments for the Instagram section of Zaplynx based on the provided images.
+I will update the Instagram webhook to correctly handle story replies and mentions, which are currently not triggering the automation flows.
 
-### Features to Add:
-1.  **New Flow Triggers**: Add support for new automation triggers in `AutomacaoComentarios.tsx`:
-    *   **Story Reply**: Automation starts when a user replies to a story.
-    *   **Direct Message**: Automation starts when a user sends a first message.
-    *   **Post/Reel Share**: Automation starts when a user shares content in their story.
-    *   **Instagram Ads**: Trigger from ad clicks.
-    *   **Live Comments**: Trigger from comments during a live stream.
-2.  **Expanded Node Options**: Update the trigger node data to support these new trigger types and subtypes (e.g., specific words vs. any reaction for story replies).
-3.  **Automation Templates (Modelos)**: Create a new page `src/pages/instagram/ModelosInstagram.tsx` based on images 6, 7, and 9, featuring:
-    *   Categorization by objective (Grow followers, Engagement, Traffic).
-    *   Categorization by trigger (Comment, DM, Story Reply, Live).
-    *   Pre-defined flows like "Venda pelos comentários de Reels", "Envie cupons nos stories", etc.
-4.  **Quick Automations (Iniciadores)**: Implement a "Quick Automation" or "Básico" section in `CampanhasInstagram.tsx` for common tasks like:
-    *   Conversation Starters (FAQs).
-    *   Story Mention replies.
-    *   Default Reply (when no keyword matches).
-    *   Main Menu (Persistent menu in DMs).
+### Technical Details
+1.  **Refactor Flow Execution**: Create a centralized `executeFlow` function in `webhook-instagram/index.ts` to handle traversing and executing nodes (DM, Response, WhatsApp, Delay).
+2.  **Handle Story Replies**: Update the `messaging` event handler to detect when a message is a reply to a story or a story mention (via attachments) and trigger automations with `triggerType: "story_reply"`.
+3.  **Handle DM Keywords**: Add logic to trigger flows when a regular DM matches keywords (currently only comments trigger flows).
+4.  **Handle Story Mentions (Field)**: Update the `mentions` change handler to trigger the appropriate flows.
+5.  **Trigger Type Filtering**: Ensure that only trigger nodes matching the current event type (comment, dm, story_reply) are activated.
 
-### Layout Adjustments:
-1.  **Sidebar Update**: Add "Modelos" to the Instagram section in the sidebar.
-2.  **Flow Builder UI**: Enhance the `AutomacaoComentarios.tsx` to match the "ManyChat-style" look from images:
-    *   Improve block styling (borders, shadows, icons).
-    *   Add a cleaner "Step-by-step" editing experience.
-3.  **Dashboard/Campaign List**: Improve the visual hierarchy and cards in `CampanhasInstagram.tsx`.
-
-### Technical Details:
-*   **Database**: Ensure the `instagram_automations` table (or similar) can store the new trigger types.
-*   **Components**: Create `src/pages/instagram/ModelosInstagram.tsx`.
-*   **Routing**: Add `/instagram/modelos` to `App.tsx`.
-*   **Navigation**: Update `src/components/layout/Sidebar.tsx`.
-*   **Flow Logic**: Update `src/components/flow/ig/IGGatilhoNode.tsx` and its edit panel in `AutomacaoComentarios.tsx` to handle the new trigger categories.
+### User Impact
+This will enable the "Story Reply" and "Story Mention" automation templates to work as expected, allowing users to automate responses when someone interacts with their Instagram Stories.
