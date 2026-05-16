@@ -186,16 +186,21 @@ serve(async (req) => {
                            type === "MessageStatus" ||
                            (!!webhook?.status && !webhook?.text && !webhook?.buttonsResponseMessage && !webhook?.buttonReply && !webhook?.listResponseMessage);
 
-    // Deduplication check
-    const { data: existingMessage } = await supabase
-      .from("message_logs")
-      .select("id")
-      .eq("message_id", messageId)
-      .maybeSingle();
-
-    if (existingMessage && messageId) {
-      console.log(`Duplicate message ignored: ${messageId}`);
-      return new Response("duplicate", { status: 200, headers: corsHeaders });
+    // Deduplication check (tolerant - won't break if column missing)
+    if (messageId) {
+      try {
+        const { data: existingMessage, error: dedupErr } = await supabase
+          .from("message_logs")
+          .select("id")
+          .eq("message_id", messageId)
+          .maybeSingle();
+        if (!dedupErr && existingMessage) {
+          console.log(`Duplicate message ignored: ${messageId}`);
+          return new Response("duplicate", { status: 200, headers: corsHeaders });
+        }
+      } catch (e) {
+        console.warn("Dedup check skipped:", e);
+      }
     }
 
     // 1. Handle delivery/status callbacks first (entregue)
