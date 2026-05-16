@@ -1053,12 +1053,40 @@ serve(async (req) => {
                 const dmText = (event.message.text || "").trim();
                 console.log(`📨 DM from ${senderId}: ${dmText || "(media)"}`);
 
-                // 1. Detect Story Reply or Mention
                 const isStoryReply = !!event.message.reply_to?.story || !!event.message.story;
                 const isStoryMention = !!event.message.attachments?.some((a: any) => a.type === "story_mention");
+                const fromUsername = event.sender?.username || "";
 
-                // 2. Check for new flow triggers (DM keywords or Story interactions)
                 if (senderId && accessToken) {
+                  // Log the event
+                  await supabase.from("instagram_events").insert({
+                    user_id: userId,
+                    event_type: isStoryReply ? "story_reply" : "dm",
+                    ig_user_id: senderId,
+                    username: fromUsername,
+                    comment_text: dmText,
+                    payload: event,
+                    processed: false,
+                  });
+
+                  // Save/update contact
+                  const { data: existingContact } = await supabase
+                    .from("instagram_contacts")
+                    .select("id")
+                    .eq("user_id", userId)
+                    .eq("ig_user_id", senderId)
+                    .maybeSingle();
+
+                  if (!existingContact) {
+                    await supabase.from("instagram_contacts").insert({
+                      user_id: userId,
+                      ig_user_id: senderId,
+                      username: fromUsername,
+                      source: isStoryReply ? "story_reply" : "dm",
+                    });
+                  }
+
+                  // 2. Check for new flow triggers (DM keywords or Story interactions)
                   const { data: triggerAutos } = await supabase
                     .from("instagram_automations")
                     .select("*")
