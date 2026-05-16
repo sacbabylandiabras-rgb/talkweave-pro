@@ -1,3 +1,137 @@
+ async function processPagarMe(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string) {
+   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+   const pagarmeKey = Deno.env.get('PAGARME_API_KEY')
+   if (!pagarmeKey) {
+     return new Response(JSON.stringify({ error: 'Pagar.me not configured (API Key missing)' }), {
+       status: 500,
+       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+     })
+   }
+ 
+   const externalId = `zlp_${checkout.id}_${Date.now()}`
+   const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
+   const cleanPhone = (customerPhone && customerPhone.replace(/\D/g, '').length >= 10) ? customerPhone.replace(/\D/g, '') : '11999999999'
+   const areaCode = cleanPhone.substring(0, 2)
+   const phoneNumber = cleanPhone.substring(2)
+ 
+   const productName = (checkout.config as any)?.productName || checkout.name || 'Produto'
+ 
+   const pagarmeBody = {
+     code: externalId,
+     customer: {
+       name: customerName || 'Cliente',
+       email: customerEmail || 'cliente@email.com',
+       type: cleanCpf.length > 11 ? 'corporation' : 'individual',
+       document: cleanCpf,
+       phones: {
+         mobile_phone: {
+           country_code: '55',
+           area_code: areaCode,
+           number: phoneNumber,
+         }
+       }
+     },
+     items: [
+       {
+         amount: amountCents,
+         description: productName,
+         quantity: 1,
+         code: checkout.product_id || 'prod_1'
+       }
+     ],
+     payments: [
+       {
+         payment_method: 'pix',
+         pix: {
+           expires_in: 3600 // 1 hour
+         }
+       }
+     ]
+   }
+ 
+   console.log('Pagar.me request:', JSON.stringify(pagarmeBody))
+ 
+   const authHeader = `Basic ${btoa(pagarmeKey + ':')}`
+ 
+   const pagarmeRes = await fetch('https://api.pagar.me/core/v5/orders', {
+     method: 'POST',
+     headers: {
+       'Authorization': authHeader,
+       'Content-Type': 'application/json',
+     },
+     body: JSON.stringify(pagarmeBody),
+   })
+ 
+   const pagarmeData = await pagarmeRes.json()
+   console.log('Pagar.me response:', JSON.stringify(pagarmeData))
+ 
+   if (!pagarmeRes.ok) {
+     console.error('Pagar.me error:', pagarmeData)
+     return new Response(JSON.stringify({ error: 'Failed to create PIX charge via Pagar.me', details: pagarmeData }), {
+       status: 500,
+       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+     })
+   }
+ 
+   const pixInfo = pagarmeData.charges?.[0]?.last_transaction || {}
+   const brCode = pixInfo.qr_code || ''
+   const qrCodeImage = pixInfo.qr_code_url || ''
+ 
+   const { data: txRecord } = await supabase.from('gateway_transactions').insert({
+     user_id: checkout.user_id,
+     checkout_id: checkout.id,
+     product_id: checkout.product_id,
+     amount: amountCents,
+     fee: feeCents,
+     net: netCents,
+     payment_method: 'pix',
+     status: 'pending',
+     external_id: externalId,
+     customer_name: customerName || null,
+     customer_email: customerEmail || null,
+     customer_phone: customerPhone || null,
+     metadata: { provider: 'pagarme', pagarme_order_id: pagarmeData.id, brCode, document: customerCpf || null },
+   }).select('id').single()
+ 
+   // Push Notification
+   try {
+     const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+       body: JSON.stringify({
+         user_id: checkout.user_id,
+         title: '⚡ PIX Gerado!',
+         body: `${customerName || 'Um cliente'} gerou um PIX de ${amountFormatted}`,
+         data: { transaction_id: txRecord?.id, type: 'pix_generated', url: 'https://zaplynx.com/aplicativo' },
+         url: 'https://zaplynx.com/aplicativo',
+         event_type: 'pix_or_boleto_issued',
+         checkout_id: checkout.id,
+       }),
+     })
+   } catch (err) {
+     console.error('Push notification error:', err)
+   }
+ 
+   // Conversion tracking
+   try {
+     await supabase
+       .from('gateway_checkouts')
+       .update({ conversions: (checkout as any).conversions ? (checkout as any).conversions + 1 : 1 })
+       .eq('id', checkout.id)
+   } catch {}
+ 
+   return new Response(JSON.stringify({
+     qrCodeImage,
+     brCode,
+     correlationID: externalId,
+     value: amountCents,
+     provider: 'pagarme',
+   }), {
+     status: 200,
+     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+   })
+ }
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -225,14 +359,16 @@ serve(async (req) => {
     const feeCents = Math.round((amountCents * feePercent) / 100) + feeFixed
     const netCents = amountCents - feeCents
 
-    // Route to the correct acquirer
-    if (activeAcquirer === 'cartwave') {
-      return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    } else if (activeAcquirer === 'hubpague') {
-      return await processHubPague(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    } else {
-      return await processOpenPix(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    }
+     // Route to the correct acquirer
+     if (activeAcquirer === 'cartwave') {
+       return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else if (activeAcquirer === 'hubpague') {
+       return await processHubPague(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else if (activeAcquirer === 'pagarme') {
+       return await processPagarMe(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else {
+       return await processOpenPix(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     }
 
   } catch (error) {
     console.error('PIX charge error:', error)

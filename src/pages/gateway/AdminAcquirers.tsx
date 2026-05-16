@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrencyReais } from "./mock-data";
 import { toast } from "sonner";
 
-type Acquirer = "openpix" | "hubpague" | "cartwave";
+ type Acquirer = "openpix" | "hubpague" | "cartwave" | "pagarme";
 
 interface UserAcquirer {
   id: string;
@@ -25,7 +25,8 @@ export default function AdminAcquirers() {
   const [loading, setLoading] = useState(true);
   const [testingWoovi, setTestingWoovi] = useState(false);
   const [testingHubpague, setTestingHubpague] = useState(false);
-  const [testingCartwave, setTestingCartwave] = useState(false);
+   const [testingCartwave, setTestingCartwave] = useState(false);
+   const [testingPagarme, setTestingPagarme] = useState(false);
   const [activeAcquirer, setActiveAcquirer] = useState<Acquirer>("openpix");
   const [switching, setSwitching] = useState(false);
 
@@ -118,12 +119,45 @@ export default function AdminAcquirers() {
     fetchUsers();
   }, []);
 
-  const acquirerLabel = (acq: string) => {
-    if (acq === 'openpix') return 'Woovi (OpenPix)';
-    if (acq === 'hubpague') return 'HubPague';
-    if (acq === 'cartwave') return 'CartWave';
-    return acq;
-  };
+   const acquirerLabel = (acq: string) => {
+     if (acq === 'openpix') return 'Woovi (OpenPix)';
+     if (acq === 'hubpague') return 'HubPague';
+     if (acq === 'cartwave') return 'CartWave';
+     if (acq === 'pagarme') return 'Pagar.me';
+     return acq;
+   };
+   const handleTestPagarme = async () => {
+     setTestingPagarme(true);
+     try {
+       const { data: { session } } = await supabase.auth.getSession();
+       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pix-charge`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+         },
+         body: JSON.stringify({ slug: "__test_pagarme__", amount: 100 }),
+       });
+       const rawBody = await response.text();
+       let data: any = null;
+       try { data = rawBody ? JSON.parse(rawBody) : null; } catch { data = { error: rawBody }; }
+ 
+       if (response.status === 404 && data?.error === "Checkout not found") {
+         toast.success("Conexão com Pagar.me está respondendo corretamente.");
+       } else if (response.ok && data?.brCode) {
+         toast.success("Conexão com Pagar.me está funcionando!");
+       } else if (data?.error?.includes("Pagar.me not configured")) {
+         toast.error("PAGARME_API_KEY não está configurado nos secrets.");
+       } else {
+         toast.error(`Erro ao testar: ${data?.error || `status ${response.status}`}`);
+       }
+     } catch (e: any) {
+       toast.error("Falha no teste: " + (e.message || "erro desconhecido"));
+     } finally {
+       setTestingPagarme(false);
+     }
+   };
 
   const handleSwitchAcquirer = async (acquirer: Acquirer) => {
     if (acquirer === activeAcquirer || switching) return;
@@ -276,7 +310,56 @@ export default function AdminAcquirers() {
 
   const isWooviActive = activeAcquirer === "openpix";
   const isHubActive = activeAcquirer === "hubpague";
-  const isCartwaveActive = activeAcquirer === "cartwave";
+   const isCartwaveActive = activeAcquirer === "cartwave";
+   const isPagarmeActive = activeAcquirer === "pagarme";
+         {/* Pagar.me Card */}
+         <Card className={`border transition-colors ${isPagarmeActive ? 'border-orange-500/50 shadow-orange-500/10 shadow-lg' : 'border-[#2A2A2A] opacity-60'}`}>
+           <CardContent className="p-5 space-y-4">
+             <div className="flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                 <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                   <CreditCard className="w-6 h-6 text-orange-500" />
+                 </div>
+                 <div>
+                   <h3 className="font-semibold">Pagar.me</h3>
+                   <span className={`px-2 py-0.5 rounded-full text-[10px] ${isPagarmeActive ? 'text-orange-400 bg-orange-500/10' : 'text-muted-foreground bg-muted'}`}>
+                     {isPagarmeActive ? 'Padrão' : 'Inativa'}
+                   </span>
+                 </div>
+               </div>
+               <Switch
+                 checked={isPagarmeActive}
+                 onCheckedChange={() => handleSwitchAcquirer('pagarme')}
+                 disabled={switching || isPagarmeActive}
+               />
+             </div>
+ 
+             <div className="grid grid-cols-3 gap-3">
+               <div>
+                 <p className="text-[10px] text-muted-foreground">Volume Mês</p>
+                 <p className="font-bold text-sm">R$ 0,00</p>
+               </div>
+               <div>
+                 <p className="text-[10px] text-muted-foreground">Transações</p>
+                 <p className="font-bold text-sm">0</p>
+               </div>
+               <div>
+                 <p className="text-[10px] text-muted-foreground">Aprovação</p>
+                 <p className="font-bold text-sm text-orange-400">-%</p>
+               </div>
+             </div>
+ 
+             <div className="flex gap-2">
+               <Button variant="outline" size="sm" className="flex-1 text-xs rounded-full" onClick={() => window.open("https://dashboard.pagar.me", "_blank")}>
+                 <Settings className="w-3 h-3 mr-1" /> Configurar
+               </Button>
+               <Button variant="outline" size="sm" className="flex-1 text-xs rounded-full" onClick={handleTestPagarme} disabled={testingPagarme}>
+                 {testingPagarme ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <TestTube className="w-3 h-3 mr-1" />}
+                 Testar
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
 
   const filteredUsers = users.filter(u => {
     if (!searchTerm) return true;
@@ -506,8 +589,18 @@ export default function AdminAcquirers() {
                                 🔄 Padrão ({acquirerLabel(activeAcquirer)})
                               </SelectItem>
                               <SelectItem value="openpix">🟢 Woovi (OpenPix)</SelectItem>
-                              <SelectItem value="hubpague">🔵 HubPague</SelectItem>
-                              <SelectItem value="cartwave">🟣 CartWave</SelectItem>
+                               <SelectItem value="hubpague">🔵 HubPague</SelectItem>
+                               <SelectItem value="cartwave">🟣 CartWave</SelectItem>
+                               <SelectItem value="pagarme">🟠 Pagar.me</SelectItem>
+         <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
+           <h3 className="text-sm font-semibold mb-2">📌 Webhook do Pagar.me</h3>
+           <p className="text-xs text-muted-foreground mb-2">
+             Configure a URL abaixo como webhook no painel do Pagar.me:
+           </p>
+           <code className="text-xs bg-background px-3 py-2 rounded border border-[#2A2A2A] block break-all">
+             {import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-pagarme
+           </code>
+         </div>
                             </SelectContent>
                           </Select>
                           {savingUser === user.id && <Loader2 className="w-3 h-3 animate-spin" />}
