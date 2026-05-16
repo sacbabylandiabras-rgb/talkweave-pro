@@ -113,20 +113,6 @@ serve(async (req) => {
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
 
-    // Deduplication check
-    if (messageId) {
-      const { data: existingLog } = await supabase
-        .from("message_logs")
-        .select("id")
-        .eq("message_id", messageId)
-        .maybeSingle();
-
-      if (existingLog) {
-        console.log(`Ignoring duplicate message: ${messageId}`);
-        return new Response("duplicate", { status: 200, headers: corsHeaders });
-      }
-    }
-
     // Extract sender info for group prefixing
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
     const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
@@ -242,7 +228,6 @@ serve(async (req) => {
     const logEntryBase = {
       user_id: userId,
       phone: chatId,
-      message_id: messageId,
       instance_id: instanceId,
       timestamp: new Date().toISOString()
     };
@@ -407,19 +392,19 @@ serve(async (req) => {
           .eq("id", flowState.id);
       }
     }
-    // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
-    const { data: flows } = await supabase
-      .from("flow_automations")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("active", true);
+    console.log(`Processing message from ${phone} (chatId: ${chatId}): "${messageRaw}"`);
+    console.log(`cleanMessageForMatch: "${cleanMessageForMatch}"`);
+    
+    if (!flowStateHandled && (!fromMe || isButtonResponse)) {
+      // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
+      const { data: flows } = await supabase
+        .from("flow_automations")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("active", true);
 
-    await supabase.from("message_logs").insert({
-      ...logEntryBase,
-      message_received: messageRaw,
-    });
-
-    if (!flowStateHandled) {
+      console.log(`Found ${flows?.length || 0} active flows for user ${userId}`);
+      
       let triggerFound = false;
       for (const flow of (flows || [])) {
         if (triggerFound) break;
@@ -455,19 +440,33 @@ serve(async (req) => {
           triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
-          await supabase.from("message_logs").insert({
-            ...logEntryBase,
-            message_received: messageRaw,
-            response_sent: `[Fluxo: ${flow.name}]`,
-            keyword_matched: `__flow_trigger__:${flow.name}`,
-          });
+      try {
+        // Log the trigger and the response
+        await supabase.from("message_logs").insert({
+          ...logEntryBase,
+          message_received: messageRaw,
+          response_sent: `[Fluxo: ${flow.name}]`,
+          keyword_matched: `__flow_trigger__:${flow.name}`,
+        });
+      } catch (logErr) {
+        console.error("Error logging flow trigger:", logErr);
+      }
 
-          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+      await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
+      
+      try {
+        // If no trigger found, log the message anyway
+        await supabase.from("message_logs").insert({
+          ...logEntryBase,
+          message_received: messageRaw,
+        });
+      } catch (logErr) {
+        console.error("Error logging message receipt:", logErr);
+      }
     }
-
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
     console.error("Erro no webhook:", err);
@@ -476,7 +475,7 @@ serve(async (req) => {
 });
 
 function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: string, message: string, webhook: any) {
-  const node = nodes.find(n => n.id === sourceNodeId);
+  const node = nodes.find(n => String(n.id) === String(sourceNodeId));
   if (!node || !node.data.buttons) return null;
 
     for (let i = 0; i < node.data.buttons.length; i++) {
@@ -491,11 +490,11 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
                                 webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                                 "");
       const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+    const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const isTextMatch = (normalizedBtnText && message) && (normalizedBtnText === message || message.includes(normalizedBtnText));
       
       if (isIdMatch || isTextMatch) {
-        const edge = edges.find(e => e.source === sourceNodeId && (e.sourceHandle === `button-${i}` || e.sourceHandle === btn.id));
+        const edge = edges.find(e => String(e.source) === String(sourceNodeId) && (String(e.sourceHandle) === `button-${i}` || String(e.sourceHandle) === String(btn.id)));
         if (edge) return { targetId: edge.target, text: btn.text };
       }
     }
@@ -512,13 +511,13 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
                             "");
 
   for (const edge of edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source);
+    const sourceNode = nodes.find(n => String(n.id) === String(edge.source));
     const buttons = sourceNode?.data?.buttons || [];
     for (let i = 0; i < buttons.length; i++) {
       const btn = buttons[i];
       const expectedIds = [btn.id, btn.value, `${sourceNode.id}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-      const isHandleMatch = edge.sourceHandle === `button-${i}` || edge.sourceHandle === btn.id;
-      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+      const isHandleMatch = String(edge.sourceHandle) === `button-${i}` || String(edge.sourceHandle) === String(btn.id);
+      const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const normalizedBtnText = normalizeForMatch(btn.text);
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
       if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target, text: btn.text };
@@ -571,7 +570,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
 
   while (currentNodeId && !visited.has(currentNodeId)) {
     visited.add(currentNodeId);
-    const node = nodes.find((n: any) => n.id === currentNodeId);
+    const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
     if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
@@ -608,7 +607,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
    }
 
       if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
-        const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+        const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
         currentNodeId = nextEdge?.target;
         continue;
       }
@@ -680,7 +679,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
     }
     // Find next node (default edge)
-    const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+    const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
     currentNodeId = nextEdge?.target;
   }
 }
