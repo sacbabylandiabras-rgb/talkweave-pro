@@ -81,7 +81,7 @@ serve(async (req) => {
     const instanceId = webhook?.instanceId || "";
     
     // Ignore status callbacks and other non-message types
-    const type = webhook?.type || webhook?.notification || "";
+    const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage ? "ButtonsResponseMessage" : "");
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
