@@ -589,8 +589,18 @@ export default function AdminAcquirers() {
                                 🔄 Padrão ({acquirerLabel(activeAcquirer)})
                               </SelectItem>
                               <SelectItem value="openpix">🟢 Woovi (OpenPix)</SelectItem>
-                              <SelectItem value="hubpague">🔵 HubPague</SelectItem>
-                              <SelectItem value="cartwave">🟣 CartWave</SelectItem>
+                               <SelectItem value="hubpague">🔵 HubPague</SelectItem>
+                               <SelectItem value="cartwave">🟣 CartWave</SelectItem>
+                               <SelectItem value="pagarme">🟠 Pagar.me</SelectItem>
+         <div className="p-4 rounded-lg border border-[#2A2A2A] bg-muted/30">
+           <h3 className="text-sm font-semibold mb-2">📌 Webhook do Pagar.me</h3>
+           <p className="text-xs text-muted-foreground mb-2">
+             Configure a URL abaixo como webhook no painel do Pagar.me:
+           </p>
+           <code className="text-xs bg-background px-3 py-2 rounded border border-[#2A2A2A] block break-all">
+             {import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-pagarme
+           </code>
+         </div>
                             </SelectContent>
                           </Select>
                           {savingUser === user.id && <Loader2 className="w-3 h-3 animate-spin" />}
