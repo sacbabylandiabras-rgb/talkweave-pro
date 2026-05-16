@@ -99,7 +99,14 @@ serve(async (req) => {
         });
       }
 
-      const redirectUri = `${SUPABASE_URL}${CALLBACK_PATH}`;
+      // IMPORTANT: o redirect_uri enviado na troca de token DEVE ser idêntico
+      // ao redirect_uri usado no diálogo OAuth. Em GET callbacks usamos a URL
+      // exata que a Meta chamou (sem query string). Em POST (popup -> frontend),
+      // confiamos no redirectUri enviado pelo cliente.
+      const redirectUri = isJsonRequest && body?.redirectUri
+        ? body.redirectUri
+        : `${url.origin}${url.pathname}`;
+      console.log("Instagram token exchange redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
         client_secret: igAppSecret,
