@@ -83,9 +83,11 @@ export function IGGatilhoNode({ data }: any) {
              <span className="text-primary font-bold">{data.keywords}</span>
            </div>
          ) : (
-           <div className="text-xs text-muted-foreground/60 italic font-medium">
-             Qualquer {data.triggerType === "story_reply" ? "resposta ou reação" : "comentário"}
-           </div>
+            <div className="text-xs text-muted-foreground/60 italic font-medium">
+              {data.triggerType === "story_reply" ? "Qualquer resposta ou reação" : 
+               data.triggerType === "follow" ? "Qualquer nova seguição" :
+               "Qualquer comentário ou mensagem"}
+            </div>
          )}
        </div>
  
