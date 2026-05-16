@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertTriangle, Copy, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image } from "lucide-react";
+ import { AlertTriangle, Copy, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image, CreditCard } from "lucide-react";
+ import { PixIcon } from "./PaymentIcons";
 import nubankLogo from "@/assets/banks/nubank.png";
 import interLogo from "@/assets/banks/inter.png";
 import bradescoLogo from "@/assets/banks/bradesco.png";
@@ -26,7 +27,9 @@ interface Props {
 export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr, isPreview: isPreviewProp }: Props) {
   const s = getCheckoutStyles(config);
   const isPreview = isPreviewProp ?? !window.location.pathname.includes('/pay/');
-  const [pixLoading, setPixLoading] = useState(false);
+   const [pixLoading, setPixLoading] = useState(false);
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">(config.pix !== false ? "pix" : "credit_card");
+   const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -44,12 +47,12 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [paymentApproved, setPaymentApproved] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-generate PIX when step 3 mounts (only on public checkout, not preview)
-  useEffect(() => {
-    if (!isPreview && !pixData && !pixLoading && !pixError) {
-      handleGeneratePix();
-    }
-  }, []);
+   // Auto-generate PIX when step 3 mounts if it's the selected method
+   useEffect(() => {
+     if (!isPreview && paymentMethod === 'pix' && !pixData && !pixLoading && !pixError) {
+       handleGeneratePix();
+     }
+   }, [paymentMethod]);
 
   // Poll for payment status once we have a correlationID
   useEffect(() => {
@@ -101,35 +104,65 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
     };
   }, [pixData?.correlationID, isPreview, paymentApproved]);
 
-  const handleGeneratePix = async () => {
-    setPixLoading(true);
-    setPixError(null);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const slug = window.location.pathname.split('/pay/')[1];
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug, amount: pixPrice,
-          customerName: formName || undefined, customerEmail: formEmail || undefined,
-          customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const detailedMessage = data?.message || data?.error || 'Erro ao gerar cobrança';
-        const suffix = data?.attempt ? ` (tentativa: ${data.attempt})` : '';
-        throw new Error(`${detailedMessage}${suffix}`);
-      }
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
-    } catch (e: any) {
-      setPixError(e.message || 'Erro ao gerar PIX');
-    } finally {
-      setPixLoading(false);
-    }
-  };
+   const handleGeneratePix = async () => {
+     setPixLoading(true);
+     setPixError(null);
+     try {
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+       const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
+       
+       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+       const body: any = {
+         slug, amount: pixPrice,
+         customerName: formName || undefined, customerEmail: formEmail || undefined,
+         customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
+       };
+ 
+       if (paymentMethod === 'credit_card') {
+         const [month, year] = cardData.expiry.split('/');
+         body.paymentMethod = 'credit_card';
+         body.cardInfo = {
+           number: cardData.number,
+           holder_name: cardData.holder,
+           exp_month: parseInt(month),
+           exp_year: 2000 + parseInt(year),
+           cvv: cardData.cvv,
+           installments: parseInt(cardData.installments)
+         };
+       }
+ 
+       const res = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+         method: 'POST',
+         headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
+         body: JSON.stringify(body),
+       });
+       const data = await res.json();
+       if (!res.ok) {
+         throw new Error(data?.error || data?.message || 'Erro ao processar pagamento');
+       }
+       if (data.status === 'approved' || data.status === 'paid') {
+         setPaymentApproved(true);
+         const thankYouType = config.thankYouType || 'default';
+         if (thankYouType === 'custom_url' && config.thankYouUrl) {
+           window.location.href = config.thankYouUrl;
+         } else {
+           const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+           const params = new URLSearchParams();
+           if (formName) params.set('name', formName);
+           if (data.correlationID) params.set('tid', data.correlationID);
+           if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+           window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+         }
+       } else {
+         setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
+       }
+     } catch (e: any) {
+       setPixError(e.message || 'Erro ao processar');
+     } finally {
+       setPixLoading(false);
+     }
+   };
 
   const handleCopyPix = () => {
     if (pixData?.brCode) {
@@ -198,26 +231,114 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
     setReceiptError(null);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
-        <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>Já é quase seu...</h3>
-        <p className="text-sm" style={{ color: s.cardDesc }}>
-          Pague seu pix dentro de{" "}
-          <span className="font-bold" style={{ color: s.primary }}>{timerStr || "15:00"}</span>{" "}
-          para garantir sua compra
-        </p>
-        <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-          <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
-          <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
-        </div>
-      </div>
-
-
-      {/* QR Code */}
-      <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
-        {(pixData || isPreview) ? (
+   return (
+     <div className="space-y-4">
+       {/* Payment Method Selection */}
+       {!pixData && !paymentApproved && (
+         <div className="rounded-xl border p-2 flex gap-1 mb-4" style={cardStyle(s)}>
+           {(config.pix !== false) && (
+             <button 
+               onClick={() => setPaymentMethod("pix")}
+               className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "pix" ? "shadow-sm border" : "opacity-60"}`}
+               style={paymentMethod === "pix" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+             >
+               <PixIcon size={16} /> PIX
+             </button>
+           )}
+           {(config.creditCard !== false) && (
+             <button 
+               onClick={() => setPaymentMethod("credit_card")}
+               className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "credit_card" ? "shadow-sm border" : "opacity-60"}`}
+               style={paymentMethod === "credit_card" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+             >
+               <CreditCard className="w-4 h-4" /> Cartão
+             </button>
+           )}
+         </div>
+       )}
+ 
+       {/* Header */}
+       <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+         <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>
+           {paymentMethod === 'pix' ? 'Já é quase seu...' : 'Finalize sua compra'}
+         </h3>
+         {paymentMethod === 'pix' && (
+           <p className="text-sm" style={{ color: s.cardDesc }}>
+             Pague seu pix dentro de <span className="font-bold" style={{ color: s.primary }}>{timerStr || "15:00"}</span> para garantir sua compra
+           </p>
+         )}
+         <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+           <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
+           <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+         </div>
+       </div>
+ 
+       {/* Credit Card Section */}
+       {paymentMethod === 'credit_card' && !paymentApproved ? (
+         <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+           <div className="space-y-3">
+             <div>
+               <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Número do cartão</label>
+               <input 
+                 className="w-full px-3 py-2.5 text-sm border outline-none" style={{ background: s.isDark ? "#111" : "#F9FAFB", borderColor: s.cardBorder, borderRadius: s.fieldRadius }} 
+                 placeholder="0000 0000 0000 0000"
+                 value={cardData.number} onChange={e => setCardInfo({...cardData, number: e.target.value})}
+               />
+             </div>
+             <div>
+               <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Nome no cartão</label>
+               <input 
+                 className="w-full px-3 py-2.5 text-sm border outline-none" style={{ background: s.isDark ? "#111" : "#F9FAFB", borderColor: s.cardBorder, borderRadius: s.fieldRadius }} 
+                 placeholder="NOME DO TITULAR"
+                 value={cardData.holder} onChange={e => setCardInfo({...cardData, holder: e.target.value.toUpperCase()})}
+               />
+             </div>
+             <div className="grid grid-cols-2 gap-3">
+               <div>
+                 <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Validade</label>
+                 <input 
+                   className="w-full px-3 py-2.5 text-sm border outline-none" style={{ background: s.isDark ? "#111" : "#F9FAFB", borderColor: s.cardBorder, borderRadius: s.fieldRadius }} 
+                   placeholder="MM/AA"
+                   value={cardData.expiry} onChange={e => setCardInfo({...cardData, expiry: e.target.value})}
+                 />
+               </div>
+               <div>
+                 <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">CVV</label>
+                 <input 
+                   className="w-full px-3 py-2.5 text-sm border outline-none" style={{ background: s.isDark ? "#111" : "#F9FAFB", borderColor: s.cardBorder, borderRadius: s.fieldRadius }} 
+                   placeholder="000"
+                   value={cardData.cvv} onChange={e => setCardInfo({...cardData, cvv: e.target.value})}
+                 />
+               </div>
+             </div>
+             <div>
+               <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Parcelas</label>
+               <select 
+                 className="w-full px-3 py-2.5 text-sm border outline-none" 
+                 style={{ background: s.isDark ? "#111" : "#F9FAFB", borderColor: s.cardBorder, borderRadius: s.fieldRadius }} 
+                 value={cardData.installments} onChange={e => setCardInfo({...cardData, installments: e.target.value})}
+               >
+                 {[1,2,3,4,5,6,10,12].map(n => (
+                   <option key={n} value={n}>{n}x de {formatCurrency(pixPrice / n)}</option>
+                 ))}
+               </select>
+             </div>
+             {pixError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg">{pixError}</div>}
+             <button 
+               onClick={handleGeneratePix} disabled={pixLoading}
+               className="w-full py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+               style={buttonStyle(s)}
+             >
+               {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+               {pixLoading ? 'Processando...' : 'Finalizar Pagamento'}
+             </button>
+           </div>
+         </div>
+       ) : paymentMethod === 'pix' ? (
+         <>
+           {/* QR Code */}
+           <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+             {(pixData || isPreview) ? (
           <div className="space-y-4">
             <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
               <Smartphone className="w-4 h-4 inline mr-1" />
@@ -427,11 +548,13 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         </button>
       </div>
 
-      {/* Waiting indicator */}
-      <div className="flex items-center justify-center gap-2 py-3">
-        <Loader2 className="w-4 h-4 animate-spin" style={{ color: s.primary }} />
-        <span className="text-xs font-medium" style={{ color: s.cardDesc }}>aguardando pagamento...</span>
-      </div>
+       {/* Waiting indicator */}
+       <div className="flex items-center justify-center gap-2 py-3">
+         <Loader2 className="w-4 h-4 animate-spin" style={{ color: s.primary }} />
+         <span className="text-xs font-medium" style={{ color: s.cardDesc }}>aguardando pagamento...</span>
+       </div>
+      </>
+     ) : null}
     </div>
-  );
-}
+   );
+ }
