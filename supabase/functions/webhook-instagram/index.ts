@@ -916,8 +916,40 @@ serve(async (req) => {
                 }
               }
 
-              if (change.field === "mentions") {
-                console.log("📢 Mention:", JSON.stringify(change.value));
+              if (change.field === "mentions" && change.value) {
+                const mention = change.value;
+                const fromId = mention.from?.id || "";
+                const fromUsername = mention.from?.username || "";
+                const mediaId = mention.media_id || "";
+                console.log(`📢 Story Mention from @${fromUsername} (Media: ${mediaId})`);
+
+                const { data: automations } = await supabase
+                  .from("instagram_automations")
+                  .select("*")
+                  .eq("user_id", userId)
+                  .eq("active", true);
+
+                for (const auto of (automations || [])) {
+                  let flowNodes: any[] = [];
+                  let flowEdges: any[] = [];
+                  try {
+                    const parsed = JSON.parse(auto.dm_message || "");
+                    if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                      flowNodes = parsed.nodes;
+                      flowEdges = parsed.edges || [];
+                    }
+                  } catch { continue; }
+
+                  // For mentions, we use triggerType: "story_reply"
+                  await executeFlow({
+                    auto, nodes: flowNodes, edges: flowEdges,
+                    context: {
+                      userId, igPageId, senderId: fromId, senderUsername: fromUsername,
+                      accessToken, inputText: "Menção em Story", triggerType: "story_reply",
+                    },
+                    supabase
+                  });
+                }
               }
             }
           }
