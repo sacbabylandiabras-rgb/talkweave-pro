@@ -1026,8 +1026,10 @@ export const useMessageLogs = (
         return messageLogs.filter(m => m.instance_id === filterInstanceId);
       }
       if (hasKnownInstanceFilter) {
-        if (knownInstanceIds!.length === 0) return [];
-        return messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id));
+        // Se não houver instâncias conhecidas, não filtramos por ID de instância para permitir ver mensagens antigas
+        // ou mensagens de instâncias que ainda não foram carregadas no UI
+        if (knownInstanceIds!.length === 0) return messageLogs;
+        return messageLogs.filter(m => !m.instance_id || knownIdSet!.has(m.instance_id));
       }
       return messageLogs;
     })();
