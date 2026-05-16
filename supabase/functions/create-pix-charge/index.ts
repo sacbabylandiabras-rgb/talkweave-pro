@@ -51,7 +51,7 @@
  
    console.log('Pagar.me request:', JSON.stringify(pagarmeBody))
  
-   const authHeader = `Basic ${btoa(pagarmeKey + ':')}`
+  const authHeader = `Basic ${btoa(pagarmeKey.trim() + ':')}`
  
    const pagarmeRes = await fetch('https://api.pagar.me/core/v5/orders', {
      method: 'POST',
@@ -212,9 +212,18 @@ async function processPagarMeCard(supabase: any, checkout: any, amountCents: num
   const pagarmeData = await pagarmeRes.json()
   
   if (!pagarmeRes.ok) {
-    console.error('Pagar.me Card error:', pagarmeData)
-    return new Response(JSON.stringify({ error: 'Pagamento recusado ou erro no Pagar.me', details: pagarmeData }), {
-      status: 500,
+    console.error('Pagar.me Card error:', JSON.stringify(pagarmeData))
+    let errorMessage = 'Pagamento recusado ou erro no Pagar.me';
+    if (pagarmeData.message === "Authorization has been denied for this request.") {
+      errorMessage = "Erro de Autenticação: Sua chave da Pagar.me parece estar incorreta. Verifique se você usou a 'Secret Key' (sk_...) e não a 'Public Key'.";
+    } else if (pagarmeData.errors) {
+      // Extract specific validation errors if available
+      const firstError = Object.values(pagarmeData.errors)[0];
+      if (Array.isArray(firstError)) errorMessage = `Erro Pagar.me: ${firstError[0]}`;
+    }
+    
+    return new Response(JSON.stringify({ error: errorMessage, details: pagarmeData }), {
+      status: 401, // 401 if auth, but using a generic error response for the frontend
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
