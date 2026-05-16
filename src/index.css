@@ -4,7 +4,33 @@
 @tailwind utilities;
 
 /* ZapLynx - Design System Limpo sem amarelos */
-
+ @property --angle {
+   syntax: '<angle>';
+   initial-value: 0deg;
+   inherits: false;
+ }
+ 
+ @keyframes spin {
+   to {
+     --angle: 360deg;
+   }
+ }
+ 
+ .spinning-border-wrapper {
+   position: relative;
+   padding: 3px;
+   border-radius: 50px;
+   background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
+   animation: spin 2s linear infinite;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+ }
+ 
+ .spinning-border-wrapper > button {
+   background-clip: padding-box;
+ }
+ 
 @layer base {
   :root {
     --background: 255 255 255;

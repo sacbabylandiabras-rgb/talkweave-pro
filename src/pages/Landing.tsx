@@ -15,9 +15,17 @@ import "./Landing.css";
 const screens = [screen0, screen1, screen2];
 
 const Landing = () => {
-  const navigate = useNavigate();
+   const navigate = useNavigate();
    const goSignup = () => navigate("/auth?signup=true");
-    const goLogin = () => navigate("/auth");
+   const goLogin = () => navigate("/auth");
+ 
+   const SpinningButton = ({ className, children, onClick }: { className: string, children: React.ReactNode, onClick: () => void }) => (
+     <div className="spinning-border-wrapper">
+       <button className={className} onClick={onClick}>
+         {children}
+       </button>
+     </div>
+   );
 
   return (
     <div className="lp-root">
@@ -26,7 +34,7 @@ const Landing = () => {
         <div className="lp-logo">Zap<span>Lynx</span></div>
         <div className="lp-nav-right">
           <button className="lp-btn-ghost" onClick={goLogin}>Entrar</button>
-          <button className="lp-btn-accent" onClick={goSignup}>Começar Agora</button>
+           <SpinningButton className="lp-btn-accent" onClick={goSignup}>Começar Agora</SpinningButton>
         </div>
       </nav>
 
@@ -39,7 +47,7 @@ const Landing = () => {
         <h1><em>Gateway de Pagamentos</em> + Sistema de Gestão {" "}<br />WhatsApp &amp; Instagram</h1>
         <p className="lp-hero-sub">Receba pagamentos via Pix, automatize WhatsApp e responda comentários do Instagram com IA — tudo em uma única plataforma.</p>
          <div className="lp-hero-ctas">
-           <button className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</button>
+           <SpinningButton className="lp-btn-cta" onClick={goSignup}>Experimentar Grátis →</SpinningButton>
            <div className="lp-hero-trial-tag">2 dias de teste gratuito • Sem cartão de crédito</div>
          </div>
       </div>
@@ -67,7 +75,7 @@ const Landing = () => {
             "Condições e ramificações inteligentes",
             "Integração com webhooks e APIs",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</SpinningButton>
         </div>
         <FlowMock />
       </div>
@@ -86,7 +94,7 @@ const Landing = () => {
             "Funciona 24 horas por dia, 7 dias por semana",
             "Integrado ao gateway de pagamentos",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</SpinningButton>
         </div>
         <AgentChatMockup />
       </div>
@@ -105,7 +113,7 @@ const Landing = () => {
             "Painel de transações com filtros avançados",
             "Pixels de rastreamento (Facebook, Google, TikTok)",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Criar Meu Checkout →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Criar Meu Checkout →</SpinningButton>
         </div>
         <GatewayMock />
       </div>
@@ -125,7 +133,7 @@ const Landing = () => {
             "Validação de CPF/CNPJ em tempo real",
             "Integração com pixels e UTM tracking",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Montar Meu Checkout →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Montar Meu Checkout →</SpinningButton>
         </div>
         <CheckoutMock />
       </div>
@@ -143,7 +151,7 @@ const Landing = () => {
             "Dashboard com métricas de conversão",
             "Integrado à API oficial do Instagram (Meta)",
           ]} />
-          <button className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</button>
+           <SpinningButton className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</SpinningButton>
         </div>
         <InstagramMock />
       </div>
@@ -154,7 +162,7 @@ const Landing = () => {
       <div className="lp-cta-final">
         <h2>Venda mais com Gateway + WhatsApp + Instagram</h2>
         <p>Receba pagamentos e automatize toda sua comunicação em uma única plataforma.</p>
-         <button className="lp-btn-cta" onClick={goSignup}>Começar Teste Grátis →</button>
+         <SpinningButton className="lp-btn-cta" onClick={goSignup}>Começar Teste Grátis →</SpinningButton>
       </div>
 
       {/* FOOTER */}
