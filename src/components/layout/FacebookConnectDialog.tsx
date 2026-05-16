@@ -144,7 +144,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
             code,
             origin: window.location.origin,
             state: statePayload,
-            redirectUri: `https://zaplynx.com/meta-oauth-callback`,
+            redirectUri: `https://talkweave-pro.lovable.app/meta-oauth-callback`,
           },
         });
 
