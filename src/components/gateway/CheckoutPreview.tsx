@@ -916,7 +916,8 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                       </button>
                     </div>
                   )
-                ) : paymentApproved ? (
+                ) : null}
+                {paymentApproved ? (
                   <div className="py-8 text-center space-y-3">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                       <Check className="w-8 h-8 text-green-500" />
