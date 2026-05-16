@@ -100,7 +100,7 @@ serve(async (req) => {
       }
 
       // A Meta/Instagram exige que o redirect_uri na troca do token seja EXATAMENTE igual ao usado no diálogo.
-      const redirectUri = "https://talkweave-pro.lovable.app/meta-oauth-callback";
+      const redirectUri = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback";
       console.log("Instagram token exchange using FIXED redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
@@ -229,7 +229,7 @@ serve(async (req) => {
       });
     }
 
-    const redirectUri = "https://talkweave-pro.lovable.app/meta-oauth-callback";
+    const redirectUri = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback";
     const tokenData = await exchangeFacebookCode({
       appId: META_APP_ID,
       appSecret: META_APP_SECRET,

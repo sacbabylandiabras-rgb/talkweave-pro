@@ -144,7 +144,7 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
             code,
             origin: window.location.origin,
             state: statePayload,
-            redirectUri: `https://talkweave-pro.lovable.app/meta-oauth-callback`,
+            redirectUri: `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback`,
           },
         });
 
