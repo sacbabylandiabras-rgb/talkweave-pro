@@ -378,15 +378,11 @@ serve(async (req) => {
           const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
           if (buttonMatch) {
             flowStateHandled = true;
-            // REGISTRA CLIQUE DE BOTAO NAS METRICAS (RECUPERADO)
             await supabase.from("message_logs").insert({
-              user_id: userId,
-              phone: chatId, // <-- Use chatId here
+              ...logEntryBase,
               message_received: messageRaw,
-              instance_id: instanceId,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
-              timestamp: new Date().toISOString()
             });
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
@@ -418,13 +414,9 @@ serve(async (req) => {
       .eq("user_id", userId)
       .eq("active", true);
 
-    // REGISTRA MENSAGEM NO LOG
     await supabase.from("message_logs").insert({
-      user_id: userId,
-      phone: chatId, // <-- Use chatId here
+      ...logEntryBase,
       message_received: messageRaw,
-      instance_id: instanceId,
-      timestamp: new Date().toISOString()
     });
 
     if (!flowStateHandled) {
@@ -463,15 +455,11 @@ serve(async (req) => {
           triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
-          // Register the interaction before executing
           await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId || phone,
+            ...logEntryBase,
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
-            instance_id: instanceId,
             keyword_matched: `__flow_trigger__:${flow.name}`,
-            timestamp: new Date().toISOString()
           });
 
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
