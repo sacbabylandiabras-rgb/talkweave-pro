@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const INSTAGRAM_APP_ID = "2389544344842071";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co";
-const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
+const REDIRECT_URI = "https://zaplynx.com/meta-oauth-callback";
 
 export default function ConfiguracaoInstagram() {
   const [isConnected, setIsConnected] = useState(false);
