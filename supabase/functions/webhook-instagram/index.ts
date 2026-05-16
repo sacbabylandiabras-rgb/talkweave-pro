@@ -952,7 +952,7 @@ serve(async (req) => {
                     auto, nodes: flowNodes, edges: flowEdges,
                     context: {
                       userId, igPageId, senderId: fromId, senderUsername: fromUsername,
-                      accessToken, inputText: "Menção em Story", triggerType: "story_reply",
+                      accessToken: cleanAccessToken, inputText: "Menção em Story", triggerType: "story_reply",
                     },
                     supabase
                   });
@@ -1003,7 +1003,7 @@ serve(async (req) => {
                       for (const edge of branchEdges) {
                         await executeFlow({
                           auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
-                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: title, triggerType: "dm" },
+                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken: cleanAccessToken, inputText: title, triggerType: "dm" },
                           supabase
                         });
                       }
@@ -1048,7 +1048,7 @@ serve(async (req) => {
                       for (const edge of branchEdges) {
                         await executeFlow({
                           auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
-                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: title, triggerType: "dm" },
+                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken: cleanAccessToken, inputText: title, triggerType: "dm" },
                           supabase
                         });
                       }
@@ -1128,7 +1128,7 @@ serve(async (req) => {
                       auto, nodes: fNodes, edges: fEdges,
                       context: {
                         userId, igPageId, senderId, senderUsername: event.sender?.username || senderId,
-                        accessToken, inputText: dmText, triggerType: eventTriggerType,
+                        accessToken: cleanAccessToken, inputText: dmText, triggerType: eventTriggerType,
                       },
                       supabase
                     });
@@ -1197,7 +1197,7 @@ serve(async (req) => {
                           for (const edge of branchEdges) {
                             await executeFlow({
                               auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
-                              context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: dmText, triggerType: "dm" },
+                              context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken: cleanAccessToken, inputText: dmText, triggerType: "dm" },
                               supabase
                             });
                           }
