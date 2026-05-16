@@ -756,20 +756,24 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
              {/* Payment Method Selection */}
              {!pixData && !paymentApproved && (
                <div className="rounded-xl border p-2 flex gap-1 mb-4" style={cardStyle(s)}>
-                 <button 
-                   onClick={() => setPaymentMethod("pix")}
-                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "pix" ? "shadow-sm border" : "opacity-60"}`}
-                   style={paymentMethod === "pix" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
-                 >
-                   <PixIcon size={16} /> PIX
-                 </button>
-                 <button 
-                   onClick={() => setPaymentMethod("credit_card")}
-                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "credit_card" ? "shadow-sm border" : "opacity-60"}`}
-                   style={paymentMethod === "credit_card" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
-                 >
-                   <CreditCard className="w-4 h-4" /> Cartão
-                 </button>
+                  {config.pix !== false && (
+                    <button 
+                      onClick={() => setPaymentMethod("pix")}
+                      className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "pix" ? "shadow-sm border" : "opacity-60"}`}
+                      style={paymentMethod === "pix" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                    >
+                      <PixIcon size={16} /> PIX
+                    </button>
+                  )}
+                  {config.creditCard !== false && (
+                    <button 
+                      onClick={() => setPaymentMethod("credit_card")}
+                      className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "credit_card" ? "shadow-sm border" : "opacity-60"}`}
+                      style={paymentMethod === "credit_card" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                    >
+                      <CreditCard className="w-4 h-4" /> Cartão
+                    </button>
+                  )}
                </div>
              )}
  
