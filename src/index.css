@@ -18,17 +18,20 @@
  
  .spinning-border-wrapper {
    position: relative;
-   padding: 3px;
+  padding: 4px;
    border-radius: 50px;
-   background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
-   animation: spin 2s linear infinite;
+  background: conic-gradient(from var(--angle), transparent 40%, #ffffff, #a78bfa, transparent);
+  animation: spin 1.5s linear infinite;
    display: inline-flex;
    align-items: center;
    justify-content: center;
+  overflow: hidden;
  }
  
  .spinning-border-wrapper > button {
    background-clip: padding-box;
+  position: relative;
+  z-index: 1;
  }
  
 @layer base {
