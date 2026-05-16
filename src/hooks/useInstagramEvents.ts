@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+ import { useEffect } from "react";
+ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface InstagramEvent {
@@ -14,8 +16,9 @@ export interface InstagramEvent {
   created_at: string;
 }
 
-export function useInstagramEvents() {
-  const { data: events = [], isLoading } = useQuery({
+ export function useInstagramEvents() {
+   const queryClient = useQueryClient();
+   const { data: events = [], isLoading } = useQuery({
     queryKey: ["instagram_events"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -30,5 +33,26 @@ export function useInstagramEvents() {
     },
   });
 
-  return { events, isLoading };
-}
+   useEffect(() => {
+     const channel = supabase
+       .channel("instagram_events_realtime")
+       .on(
+         "postgres_changes",
+         {
+           event: "INSERT",
+           schema: "public",
+           table: "instagram_events",
+         },
+         () => {
+           queryClient.invalidateQueries({ queryKey: ["instagram_events"] });
+         }
+       )
+       .subscribe();
+ 
+     return () => {
+       supabase.removeChannel(channel);
+     };
+   }, [queryClient]);
+ 
+   return { events, isLoading };
+ }
