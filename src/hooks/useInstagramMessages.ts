@@ -38,27 +38,39 @@
    useEffect(() => {
      if (!userId) return;
  
+     console.log("[InstagramMessages] Subscribing to realtime updates for user:", userId);
      const channel = supabase
        .channel(`instagram_realtime_dm_${userId}`)
        .on(
          "postgres_changes",
          {
-           event: "INSERT",
+           event: "*", // Listen to all events for better catch-up
            schema: "public",
            table: "instagram_events",
-           filter: `user_id=eq.${userId}`,
          },
          (payload) => {
-           const newEvent = payload.new as InstagramEvent;
-           if (["dm", "dm_sent", "story_reply"].includes(newEvent.event_type)) {
-             setRealtimeMessages((prev) => [...prev, newEvent]);
+           console.log("[InstagramMessages] Realtime event received:", payload.eventType, payload.new?.id);
+           
+           const record = (payload.new || payload.old) as InstagramEvent;
+           if (!record || record.user_id !== userId) return;
+ 
+           if (["dm", "dm_sent", "story_reply"].includes(record.event_type)) {
+             if (payload.eventType === "INSERT") {
+               setRealtimeMessages((prev) => {
+                 if (prev.some(m => m.id === record.id)) return prev;
+                 return [...prev, record];
+               });
+             }
              queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
            }
          }
        )
-       .subscribe();
+       .subscribe((status) => {
+         console.log("[InstagramMessages] Realtime subscription status:", status);
+       });
  
      return () => {
+       console.log("[InstagramMessages] Unsubscribing from realtime");
        supabase.removeChannel(channel);
      };
    }, [queryClient, userId]);
