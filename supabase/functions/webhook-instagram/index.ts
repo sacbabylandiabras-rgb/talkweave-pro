@@ -492,7 +492,7 @@ serve(async (req) => {
           }
 
           const userId = cred.user_id;
-          const accessToken = cred.access_token;
+          const accessToken = (cred.access_token || "").trim().replace(/^"|"$/g, "");
 
           // Handle comment events
           if (entry.changes) {
@@ -580,8 +580,15 @@ serve(async (req) => {
                   } catch { /* not flow JSON */ }
 
                   if (isFlowMode) {
-                    // Traverse the flow graph starting from trigger nodes
-                    const visited = new Set<string>();
+                    await executeFlow({
+                      auto, nodes: flowNodes, edges: flowEdges,
+                      context: {
+                        userId, igPageId, senderId: fromId, senderUsername: fromUsername,
+                        accessToken, commentId, inputText: commentText, triggerType: "comment",
+                      },
+                      supabase
+                    });
+                  } else {
                     const replaceVars = (txt: string) =>
                       txt.replace(/\{\{nome_usuario\}\}/g, fromUsername)
                          .replace(/\{\{comentario\}\}/g, commentText);
