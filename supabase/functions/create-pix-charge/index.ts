@@ -121,17 +121,152 @@
        .eq('id', checkout.id)
    } catch {}
  
-   return new Response(JSON.stringify({
-     qrCodeImage,
-     brCode,
-     correlationID: externalId,
-     value: amountCents,
-     provider: 'pagarme',
-   }), {
-     status: 200,
-     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-   })
- }
+  return new Response(JSON.stringify({
+    qrCodeImage,
+    brCode,
+    correlationID: externalId,
+    value: amountCents,
+    provider: 'pagarme',
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+async function processPagarMeCard(supabase: any, checkout: any, amountCents: number, feeCents: number, netCents: number, customerName?: string, customerEmail?: string, customerPhone?: string, customerCpf?: string, cardInfo?: any) {
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const pagarmeKey = Deno.env.get('PAGARME_API_KEY')
+  
+  if (!pagarmeKey) {
+    return new Response(JSON.stringify({ error: 'Pagar.me not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (!cardInfo) {
+    return new Response(JSON.stringify({ error: 'Missing card information' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const externalId = `zlp_card_${checkout.id}_${Date.now()}`
+  const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
+  const cleanPhone = (customerPhone && customerPhone.replace(/\D/g, '').length >= 10) ? customerPhone.replace(/\D/g, '') : '11999999999'
+  const areaCode = cleanPhone.substring(0, 2)
+  const phoneNumber = cleanPhone.substring(2)
+  const productName = (checkout.config as any)?.productName || checkout.name || 'Produto'
+
+  const pagarmeBody = {
+    code: externalId,
+    customer: {
+      name: customerName || 'Cliente',
+      email: customerEmail || 'cliente@email.com',
+      type: cleanCpf.length > 11 ? 'corporation' : 'individual',
+      document: cleanCpf,
+      phones: {
+        mobile_phone: {
+          country_code: '55',
+          area_code: areaCode,
+          number: phoneNumber,
+        }
+      }
+    },
+    items: [
+      {
+        amount: amountCents,
+        description: productName,
+        quantity: 1,
+        code: checkout.product_id || 'prod_1'
+      }
+    ],
+    payments: [
+      {
+        payment_method: 'credit_card',
+        credit_card: {
+          installments: cardInfo.installments || 1,
+          statement_descriptor: 'ZAPLYNXPAY',
+          card: {
+            number: cardInfo.number.replace(/\s/g, ''),
+            holder_name: cardInfo.holder_name,
+            exp_month: cardInfo.exp_month,
+            exp_year: cardInfo.exp_year,
+            cvv: cardInfo.cvv
+          }
+        }
+      }
+    ]
+  }
+
+  const authHeader = `Basic ${btoa(pagarmeKey + ':')}`
+  const pagarmeRes = await fetch('https://api.pagar.me/core/v5/orders', {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(pagarmeBody),
+  })
+
+  const pagarmeData = await pagarmeRes.json()
+  
+  if (!pagarmeRes.ok) {
+    console.error('Pagar.me Card error:', pagarmeData)
+    return new Response(JSON.stringify({ error: 'Pagamento recusado ou erro no Pagar.me', details: pagarmeData }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const charge = pagarmeData.charges?.[0] || {}
+  const status = charge.status === 'paid' ? 'approved' : 'pending'
+
+  const { data: txRecord } = await supabase.from('gateway_transactions').insert({
+    user_id: checkout.user_id,
+    checkout_id: checkout.id,
+    product_id: checkout.product_id,
+    amount: amountCents,
+    fee: feeCents,
+    net: netCents,
+    payment_method: 'credit_card',
+    status: status,
+    external_id: externalId,
+    customer_name: customerName || null,
+    customer_email: customerEmail || null,
+    customer_phone: customerPhone || null,
+    metadata: { provider: 'pagarme', pagarme_order_id: pagarmeData.id, card_brand: charge.last_transaction?.card?.brand || null },
+  }).select('id').single()
+
+  // Push Notification
+  try {
+    const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+      body: JSON.stringify({
+        user_id: checkout.user_id,
+        title: status === 'approved' ? '✅ Cartão Aprovado!' : '⏳ Cartão Pendente',
+        body: `${customerName || 'Cliente'} pagou ${amountFormatted} no cartão.`,
+        data: { transaction_id: txRecord?.id, type: 'card_payment', url: 'https://zaplynx.com/aplicativo' },
+        url: 'https://zaplynx.com/aplicativo',
+        event_type: 'pix_or_boleto_issued', // Reusing same logic for alerts
+        checkout_id: checkout.id,
+      }),
+    })
+  } catch (err) {
+    console.error('Push notification error:', err)
+  }
+
+  return new Response(JSON.stringify({
+    status: status,
+    correlationID: externalId,
+    provider: 'pagarme'
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -287,7 +422,7 @@ serve(async (req) => {
   }
 
   try {
-    const { slug, amount, customerName, customerEmail, customerPhone, customerCpf } = await req.json()
+    const { slug, amount, customerName, customerEmail, customerPhone, customerCpf, paymentMethod, cardInfo } = await req.json()
 
     if (!slug || !amount) {
       return new Response(JSON.stringify({ error: 'Missing slug or amount' }), {
@@ -353,13 +488,18 @@ serve(async (req) => {
       }
     }
 
-    // Calculate platform fees: PIX = 6.99% + R$ 1.99 (199 centavos)
-    const feePercent = 6.99
+    // Calculate platform fees: PIX = 6.99% + R$ 1.99, Card = 9.99% + R$ 1.99
+    const feePercent = paymentMethod === 'credit_card' ? 9.99 : 6.99
     const feeFixed = 199
     const feeCents = Math.round((amountCents * feePercent) / 100) + feeFixed
     const netCents = amountCents - feeCents
 
-     // Route to the correct acquirer
+     // Specialized logic for Credit Card via Pagar.me
+     if (paymentMethod === 'credit_card') {
+       return await processPagarMeCard(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf, cardInfo)
+     }
+ 
+     // Route to the correct acquirer for PIX
      if (activeAcquirer === 'cartwave') {
        return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
      } else if (activeAcquirer === 'hubpague') {
