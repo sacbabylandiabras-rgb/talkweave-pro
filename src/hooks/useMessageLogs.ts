@@ -867,128 +867,108 @@ export const useMessageLogs = (
     }
   }, [filterInstanceId, savedContacts, fetchSavedContacts]);
 
-   useEffect(() => {
-     setLoading(true);
-     fetchAll().then(() => {
-       console.log('[Realtime] Initial fetch complete, setting up subscriptions...');
-       
-        const ch1 = supabase.channel(`msg-logs-rt-${Date.now()}`);
-        ch1
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'message_logs' }, (payload) => {
-            console.log('[Realtime] message_logs event:', payload.eventType, payload.new ? (payload.new as any).id : (payload.old as any).id);
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    const setupRealtime = async () => {
+      const userId = await getUserId();
+      if (!userId || !mounted) return;
+
+      await fetchAll();
+      if (!mounted) return;
+
+      console.log('[Realtime] Setting up message_logs subscription for user:', userId);
+      const ch1 = supabase.channel(`msg-logs-rt-${userId}-${Date.now()}`)
+        .on('postgres_changes', { 
+          event: '*', 
+          schema: 'public', 
+          table: 'message_logs',
+          filter: `user_id=eq.${userId}` 
+        }, (payload) => {
+          console.log('[Realtime] message_logs event:', payload.eventType, (payload.new as any)?.id || (payload.old as any)?.id);
+          
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const record = payload.new as MessageLog;
+            if (!record) return;
             
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const record = payload.new as MessageLog;
-              if (!record) return;
-              
-              // Skip if part of a deleted conversation
-              const normalized = normalizeConversationPhone(record.phone);
-              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
-                console.log('[Realtime] Ignoring record for deleted conversation:', normalized);
-                return;
+            const normalized = normalizeConversationPhone(record.phone);
+            if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) return;
+
+            const isInternal = isInternalFlowStateKeyword(record.keyword_matched);
+            const hasContent = Boolean(record.message_received || (record.response_sent && record.response_sent !== '__processing__'));
+            
+            if (isInternal && !hasContent) return;
+
+            setMessageLogs(prev => {
+              if (payload.eventType === 'INSERT' && record.message_received && !record.keyword_matched?.startsWith('__')) {
+                try {
+                  new Audio('/sounds/notificacao_custom.mp3').play().catch(() => {});
+                } catch {}
               }
 
-              const isInternal = isInternalFlowStateKeyword(record.keyword_matched);
-              const hasContent = Boolean(record.message_received || (record.response_sent && record.response_sent !== '__processing__'));
+              const exists = prev.some(m => m.id === record.id);
+              const next = exists 
+                ? prev.map(m => m.id === record.id ? record : m)
+                : [...prev, record];
               
-              if (isInternal && !hasContent) {
-                console.log('[Realtime] Ignoring internal system record:', record.id, record.keyword_matched);
-                return;
-              }
-
-               setMessageLogs(prev => {
-                 // Som de notificação para novas mensagens recebidas
-                 if (payload.eventType === 'INSERT' && record.message_received && !record.keyword_matched?.startsWith('__')) {
-                   try {
-                     const audio = new Audio('/sounds/notificacao_custom.mp3');
-                     audio.play().catch(e => console.warn('Erro ao reproduzir som de notificação:', e));
-                   } catch (err) {
-                     console.warn('Erro ao inicializar áudio de notificação:', err);
-                   }
-                 }
-
-                const exists = prev.some(m => m.id === record.id);
-                let next;
-                if (exists) {
-                  next = prev.map(m => m.id === record.id ? record : m);
-                } else {
-                  next = [...prev, record];
-                }
-                
-                return next.sort((a, b) => {
-                  const timeA = toMillis(a.timestamp || a.created_at);
-                  const timeB = toMillis(b.timestamp || b.created_at);
-                  const diff = timeA - timeB;
-                  return diff !== 0 ? diff : a.id.localeCompare(b.id);
-                });
+              return next.sort((a, b) => {
+                const diff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
+                return diff !== 0 ? diff : a.id.localeCompare(b.id);
               });
-            } else if (payload.eventType === 'DELETE') {
-              const oldRecord = payload.old as any;
-              if (oldRecord?.id) {
-                setMessageLogs(prev => prev.filter(m => m.id !== oldRecord.id));
-              }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const oldRecord = payload.old as any;
+            if (oldRecord?.id) {
+              setMessageLogs(prev => prev.filter(m => m.id !== oldRecord.id));
             }
-          })
-          .subscribe((status) => {
-            console.log('[Realtime] message_logs channel status:', status);
-            if (status === 'CHANNEL_ERROR') {
-              console.error('[Realtime] message_logs channel error - possible RLS or subscription issue');
-            }
-          });
-        channelRef.current = ch1;
- 
-       // Realtime for campaign_sends
-       const ch2 = supabase
-         .channel(`camp-sends-rt-${Date.now()}`)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends' }, (payload) => {
-           console.log('[Realtime] campaign_sends event:', payload.eventType);
-           const record = payload.new as CampaignSendMessage;
-           const isVisible = record?.status === 'delivered';
+          }
+        })
+        .subscribe();
 
-            // Skip if part of a deleted conversation
-            if (record?.phone) {
-              const normalized = normalizeConversationPhone(record.phone);
-              if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) {
-                console.log('[Realtime] Ignoring campaign send for deleted conversation:', normalized);
-                return;
-              }
-            }
+      channelRef.current = ch1;
 
-           if (payload.eventType === 'INSERT') {
-             if (!isVisible) return;
-             setCampaignSends(prev => {
-               if (prev.some(s => s.id === record.id)) return prev;
-               return [...prev, record];
-             });
-           } else if (payload.eventType === 'UPDATE') {
-             if (isVisible) {
-               setCampaignSends(prev => {
-                 const exists = prev.some(s => s.id === record.id);
-                 if (exists) return prev.map(s => s.id === record.id ? record : s);
-                 return [...prev, record];
-               });
-             } else {
-               setCampaignSends(prev => prev.filter(s => s.id !== record.id));
-             }
-           }
-         })
-         .subscribe((status) => {
-           console.log('[Realtime] campaign_sends channel status:', status);
-         });
-       channelRef2.current = ch2;
-     });
- 
-     fetchSavedContacts();
- 
-     // Polling at 30s as safety net only.
-     pollingRef.current = setInterval(fetchAll, 30000);
- 
-     return () => {
-       if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
-       if (channelRef2.current) { supabase.removeChannel(channelRef2.current); channelRef2.current = null; }
-       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
-     };
-   }, [fetchAll, fetchSavedContacts]);
+      console.log('[Realtime] Setting up campaign_sends subscription for user:', userId);
+      const ch2 = supabase.channel(`camp-sends-rt-${userId}-${Date.now()}`)
+        .on('postgres_changes', { 
+          event: '*', 
+          schema: 'public', 
+          table: 'campaign_sends',
+          filter: `user_id=eq.${userId}`
+        }, (payload) => {
+          const record = (payload.new || payload.old) as CampaignSendMessage;
+          if (!record) return;
+
+          const normalized = normalizeConversationPhone(record.phone);
+          if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) return;
+
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const isVisible = record.status === 'delivered';
+            setCampaignSends(prev => {
+              if (!isVisible) return prev.filter(s => s.id !== record.id);
+              const exists = prev.some(s => s.id === record.id);
+              return exists ? prev.map(s => s.id === record.id ? record : s) : [...prev, record];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setCampaignSends(prev => prev.filter(s => s.id !== record.id));
+          }
+        })
+        .subscribe();
+
+      channelRef2.current = ch2;
+    };
+
+    setupRealtime();
+    fetchSavedContacts();
+    pollingRef.current = setInterval(fetchAll, 30000);
+
+    return () => {
+      mounted = false;
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (channelRef2.current) supabase.removeChannel(channelRef2.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [fetchAll, fetchSavedContacts]);
 
   // Fetch group names when we detect group conversations
   useEffect(() => {
