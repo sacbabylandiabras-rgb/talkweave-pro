@@ -199,7 +199,7 @@ async function processPagarMeCard(supabase: any, checkout: any, amountCents: num
     ]
   }
 
-  const authHeader = `Basic ${btoa(pagarmeKey + ':')}`
+  const authHeader = `Basic ${btoa(pagarmeKey.trim() + ':')}`
   const pagarmeRes = await fetch('https://api.pagar.me/core/v5/orders', {
     method: 'POST',
     headers: {
