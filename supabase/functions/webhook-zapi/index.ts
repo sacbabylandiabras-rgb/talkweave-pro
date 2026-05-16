@@ -468,7 +468,7 @@ serve(async (req) => {
 });
 
 function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: string, message: string, webhook: any) {
-  const node = nodes.find(n => n.id === sourceNodeId);
+  const node = nodes.find(n => String(n.id) === String(sourceNodeId));
   if (!node || !node.data.buttons) return null;
 
     for (let i = 0; i < node.data.buttons.length; i++) {
@@ -483,11 +483,11 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
                                 webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                                 "");
       const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+    const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const isTextMatch = (normalizedBtnText && message) && (normalizedBtnText === message || message.includes(normalizedBtnText));
       
       if (isIdMatch || isTextMatch) {
-        const edge = edges.find(e => e.source === sourceNodeId && (e.sourceHandle === `button-${i}` || e.sourceHandle === btn.id));
+        const edge = edges.find(e => String(e.source) === String(sourceNodeId) && (String(e.sourceHandle) === `button-${i}` || String(e.sourceHandle) === String(btn.id)));
         if (edge) return { targetId: edge.target, text: btn.text };
       }
     }
@@ -504,13 +504,13 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
                             "");
 
   for (const edge of edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source);
+    const sourceNode = nodes.find(n => String(n.id) === String(edge.source));
     const buttons = sourceNode?.data?.buttons || [];
     for (let i = 0; i < buttons.length; i++) {
       const btn = buttons[i];
       const expectedIds = [btn.id, btn.value, `${sourceNode.id}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-      const isHandleMatch = edge.sourceHandle === `button-${i}` || edge.sourceHandle === btn.id;
-      const isIdMatch = expectedIds.includes(buttonIdFromWebhook);
+      const isHandleMatch = String(edge.sourceHandle) === `button-${i}` || String(edge.sourceHandle) === String(btn.id);
+      const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const normalizedBtnText = normalizeForMatch(btn.text);
       const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
       if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target, text: btn.text };
@@ -563,7 +563,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
 
   while (currentNodeId && !visited.has(currentNodeId)) {
     visited.add(currentNodeId);
-    const node = nodes.find((n: any) => n.id === currentNodeId);
+    const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
     if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
@@ -600,7 +600,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
    }
 
       if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture) {
-        const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+        const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
         currentNodeId = nextEdge?.target;
         continue;
       }
@@ -672,7 +672,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
     }
     // Find next node (default edge)
-    const nextEdge = edges.find((e: any) => e.source === currentNodeId && (!e.sourceHandle || e.sourceHandle === "default"));
+    const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default"));
     currentNodeId = nextEdge?.target;
   }
 }
