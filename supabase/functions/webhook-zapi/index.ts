@@ -215,8 +215,8 @@ serve(async (req) => {
       // SENT: Message reached Z-API/WhatsApp servers.
       // RECEIVED: Message delivered to the recipient's phone.
       // READ: Recipient read the message.
-      const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED", "delivered"].includes(status);
-      const isSentStatus = ["SENT", "sent"].includes(status);
+      const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
+      const isSentStatus = ["SENT"].includes(status);
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
