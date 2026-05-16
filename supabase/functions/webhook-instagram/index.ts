@@ -10,7 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper: extract variables from text
 const replaceVars = (txt: string, vars: Record<string, string>) => {
   let result = txt || "";
   for (const [key, value] of Object.entries(vars)) {
@@ -22,7 +21,6 @@ const replaceVars = (txt: string, vars: Record<string, string>) => {
   return result;
 };
 
-// Shared URL tracker wrapper for click metrics
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
   return (originalUrl: string, btnTitle: string) => {
     const trackBase = "https://go.zaplynxpro.online/r";
@@ -34,18 +32,18 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
       ph: fromUsername,
       src: "ig",
     });
-    return \`${trackBase}?\${params.toString()}\`;
+    return trackBase + "?" + params.toString();
   };
 };
 
-// Helper: trigger the official WhatsApp flow engine through webhook-zapi
 const triggerOfficialWhatsAppFlow = async (
   flowId: string,
   phone: string,
   instanceId: string,
   fromUsername: string,
 ) => {
-  const selfUrl = \`\${Deno.env.get("SUPABASE_URL")}/functions/v1/webhook-zapi\`;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const selfUrl = supabaseUrl + "/functions/v1/webhook-zapi";
   const response = await fetch(selfUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -57,14 +55,12 @@ const triggerOfficialWhatsAppFlow = async (
       __manual_flow_trigger__: true,
     }),
   });
-
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(\`webhook-zapi returned \${response.status}: \${text}\`);
+    throw new Error("WhatsApp flow trigger failed: " + text);
   }
 };
 
-// Helper: execute igWhatsApp node — sends WhatsApp message via Z-API
 const executeIgWhatsAppNode = async (
   nodeData: any,
   collectedPhone: string | null,
@@ -93,7 +89,7 @@ const executeIgWhatsAppNode = async (
   const wantedInstance = nodeData.instanceId || null;
   let zapiCreds: any = null;
   if (wantedInstance) {
-    const { data } = await supabase.from("zapi_instances").select("*").or(\`id.eq.\${wantedInstance},zapi_instance_id.eq.\${wantedInstance}\`).eq("user_id", userId).eq("is_active", true).maybeSingle();
+    const { data } = await supabase.from("zapi_instances").select("*").or("id.eq." + wantedInstance + ",zapi_instance_id.eq." + wantedInstance).eq("user_id", userId).eq("is_active", true).maybeSingle();
     zapiCreds = data;
   }
   if (!zapiCreds) {
@@ -102,7 +98,7 @@ const executeIgWhatsAppNode = async (
   }
   if (!zapiCreds) return;
 
-  const baseUrl = \`https://api.z-api.io/instances/\${zapiCreds.zapi_instance_id}/token/\${zapiCreds.zapi_token}\`;
+  const baseUrl = "https://api.z-api.io/instances/" + zapiCreds.zapi_instance_id + "/token/" + zapiCreds.zapi_token;
   const sendType = nodeData.sendType || "text";
   
   if (sendType === "flow" && nodeData.flowId) {
@@ -111,14 +107,13 @@ const executeIgWhatsAppNode = async (
   }
 
   const message = replaceVars(nodeData.message || "", { username: fromUsername });
-  await fetch(\`\${baseUrl}/send-text\`, {
+  await fetch(baseUrl + "/send-text", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Client-Token": zapiCreds.zapi_client_token },
     body: JSON.stringify({ phone: cleanPhone, message }),
   });
 };
 
-// Helper: Main Flow Execution Engine
 const executeFlow = async (params: {
   auto: any;
   nodes: any[];
@@ -158,7 +153,7 @@ const executeFlow = async (params: {
     if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
       try {
         const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
-        await fetch(\`https://graph.instagram.com/\${META_API_VERSION}/\${context.commentId}/replies\`, {
+        await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.commentId + "/replies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
@@ -185,9 +180,9 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
         if (payload) {
-          await fetch(\`https://graph.instagram.com/\${META_API_VERSION}/\${context.igPageId}/messages\`, {
+          await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": \`Bearer \${context.accessToken}\` },
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
             body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
           });
         }
@@ -248,7 +243,6 @@ serve(async (req) => {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
       if (body.action === "save_ig_token") {
-          // logic for save token
           return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
       }
 
@@ -278,15 +272,11 @@ serve(async (req) => {
                 const comment = change.value;
                 const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
                 for (const auto of (automations || [])) {
-                    // Match and execute flow for comment
                     try {
                         const p = JSON.parse(auto.dm_message || "");
                         if (p.__flow__) await executeFlow({ auto, nodes: p.nodes, edges: p.edges, context: { userId: cred.user_id, igPageId, senderId: comment.from.id, senderUsername: comment.from.username, accessToken: cleanAccessToken, commentId: comment.id, inputText: comment.text, triggerType: "comment" }, supabase });
                     } catch {}
                 }
-              }
-              if (change.field === "mentions") {
-                 // handle mentions
               }
               if (change.field === "follow" || change.field === "follows") {
                   const fromId = change.value.from?.id || change.value.id;
@@ -304,7 +294,6 @@ serve(async (req) => {
 
           if (entry.messaging) {
             for (const event of entry.messaging) {
-               // handle messages and postbacks
                const senderId = event.sender.id;
                const dmText = event.message?.text || "";
                const isStory = !!event.message?.reply_to?.story || !!event.message?.story;
