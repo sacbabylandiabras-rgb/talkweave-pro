@@ -14,16 +14,20 @@
  export function useInstagramMessages() {
    const queryClient = useQueryClient();
    const [realtimeMessages, setRealtimeMessages] = useState<InstagramEvent[]>([]);
+   const [userId, setUserId] = useState<string | null>(null);
+ 
+   useEffect(() => {
+     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
+   }, []);
  
    const { data: initialEvents = [], isLoading } = useQuery({
-     queryKey: ["instagram_dm_events"],
+     queryKey: ["instagram_dm_events", userId],
+     enabled: !!userId,
      queryFn: async () => {
-       const { data: { user } } = await supabase.auth.getUser();
-       if (!user) throw new Error("Não autenticado");
        const { data, error } = await supabase
          .from("instagram_events" as any)
          .select("*")
-         .eq("user_id", user.id)
+         .eq("user_id", userId)
          .in("event_type", ["dm", "dm_sent", "story_reply"])
          .order("created_at", { ascending: true });
        if (error) throw error;
@@ -32,19 +36,24 @@
    });
  
    useEffect(() => {
+     if (!userId) return;
+ 
      const channel = supabase
-       .channel("instagram_realtime_dm")
+       .channel(`instagram_realtime_dm_${userId}`)
        .on(
          "postgres_changes",
          {
            event: "INSERT",
            schema: "public",
            table: "instagram_events",
-           filter: `user_id=eq.${supabase.auth.getUser().then(({data}) => data.user?.id)}`,
+           filter: `user_id=eq.${userId}`,
          },
          (payload) => {
-           setRealtimeMessages((prev) => [...prev, payload.new as InstagramEvent]);
-           queryClient.invalidateQueries({ queryKey: ["instagram_dm_events"] });
+           const newEvent = payload.new as InstagramEvent;
+           if (["dm", "dm_sent", "story_reply"].includes(newEvent.event_type)) {
+             setRealtimeMessages((prev) => [...prev, newEvent]);
+             queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
+           }
          }
        )
        .subscribe();
@@ -52,7 +61,7 @@
      return () => {
        supabase.removeChannel(channel);
      };
-   }, [queryClient]);
+   }, [queryClient, userId]);
  
    const allMessages = useMemo(() => {
      const combined = [...initialEvents];
