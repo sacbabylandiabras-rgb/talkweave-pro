@@ -40,7 +40,7 @@
            event: "INSERT",
            schema: "public",
            table: "instagram_events",
-           filter: `event_type=in.(dm,dm_sent,story_reply)`,
+           filter: `user_id=eq.${supabase.auth.getUser().then(({data}) => data.user?.id)}`,
          },
          (payload) => {
            setRealtimeMessages((prev) => [...prev, payload.new as InstagramEvent]);
