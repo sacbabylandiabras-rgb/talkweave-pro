@@ -327,6 +327,26 @@ export default function AutomacaoComentarios() {
             edges: [
               { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
             ]
+          },
+          "saudacao-novo-seguidor": {
+            name: "Saudação para novos seguidores",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Novo Seguidor", triggerType: "follow" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Bem-vindo", message: "Olá {{username}}! Obrigado por me seguir! 😍 Como posso te ajudar hoje?", buttons: [{ title: "Ver Produtos", url: "https://", type: "url" }, { title: "Falar com Humano", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
+          }
+        }[templateId as keyof any];
+            name: "Menu Principal nas DMs",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Palavra 'Menu'", triggerType: "dm", keywords: "menu,ajuda,oi,ola", matchType: "any" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Menu Principal", message: "Seja bem-vindo ao nosso canal de atendimento! Como podemos ser úteis hoje?", buttons: [{ title: "Nossos Produtos", type: "text" }, { title: "Rastrear Pedido", url: "https://", type: "url" }, { title: "Falar com Consultor", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
           }
         }[templateId as keyof any];
  
