@@ -113,20 +113,6 @@ serve(async (req) => {
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
 
-    // Deduplication check
-    if (messageId) {
-      const { data: existingLog } = await supabase
-        .from("message_logs")
-        .select("id")
-        .eq("message_id", messageId)
-        .maybeSingle();
-
-      if (existingLog) {
-        console.log(`Ignoring duplicate message: ${messageId}`);
-        return new Response("duplicate", { status: 200, headers: corsHeaders });
-      }
-    }
-
     // Extract sender info for group prefixing
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
     const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
@@ -407,19 +393,28 @@ serve(async (req) => {
           .eq("id", flowState.id);
       }
     }
-    // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
-    const { data: flows } = await supabase
-      .from("flow_automations")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("active", true);
+    if (!flowStateHandled && (!fromMe || isButtonResponse)) {
+      // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
+      const { data: flows } = await supabase
+        .from("flow_automations")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("active", true);
 
-    await supabase.from("message_logs").insert({
-      ...logEntryBase,
-      message_received: messageRaw,
-    });
+      // Deduplication check - Moved here to prevent blocking retries that failed before triggering
+      if (messageId) {
+        const { data: existingLog } = await supabase
+          .from("message_logs")
+          .select("id")
+          .eq("message_id", messageId)
+          .maybeSingle();
 
-    if (!flowStateHandled) {
+        if (existingLog) {
+          console.log(`Ignoring duplicate message: ${messageId}`);
+          return new Response("duplicate", { status: 200, headers: corsHeaders });
+        }
+      }
+
       let triggerFound = false;
       for (const flow of (flows || [])) {
         if (triggerFound) break;
@@ -455,19 +450,26 @@ serve(async (req) => {
           triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
-          await supabase.from("message_logs").insert({
+          // Log the trigger and the response
+          const { error: logError } = await supabase.from("message_logs").insert({
             ...logEntryBase,
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: `__flow_trigger__:${flow.name}`,
           });
-
+          if (logError) console.error("Error logging flow trigger:", logError);
+          
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
+      
+      // If no trigger found, log the message anyway
+      await supabase.from("message_logs").insert({
+        ...logEntryBase,
+        message_received: messageRaw,
+      });
     }
-
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
     console.error("Erro no webhook:", err);
