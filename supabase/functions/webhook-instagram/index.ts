@@ -495,6 +495,7 @@ serve(async (req) => {
           const accessTokenRaw = (cred.access_token || "").trim();
           // Deep cleaning of token: remove quotes and any potential whitespace/garbage
           const cleanAccessToken = accessTokenRaw.replace(/^["']|["']$/g, "").trim();
+          const accessToken = cleanAccessToken;
 
           // Handle comment events
           if (entry.changes) {
@@ -592,7 +593,7 @@ serve(async (req) => {
                     });
                   } else {
                     // === LEGACY MODE: use flat fields ===
-                    if (auto.reply_comment && commentId && accessToken) {
+                    if (auto.reply_comment && commentId && cleanAccessToken) {
                       try {
                         const replyText = auto.reply_comment
                           .replace(/\{\{nome_usuario\}\}/g, fromUsername)
@@ -608,7 +609,7 @@ serve(async (req) => {
                       } catch (e) { console.error("❌ Reply failed:", e); }
                     }
 
-                    if (auto.dm_message && fromId && accessToken) {
+                    if (auto.dm_message && fromId && cleanAccessToken) {
                       try {
                         let dmText = auto.dm_message;
                         let dmButtons: any[] = [];
@@ -842,7 +843,7 @@ serve(async (req) => {
                 const isStoryMention = !!event.message.attachments?.some((a: any) => a.type === "story_mention");
                 const fromUsername = event.sender?.username || "";
 
-                if (senderId && accessToken) {
+                if (senderId && cleanAccessToken) {
                   // Log the event
                   await supabase.from("instagram_events").insert({
                     user_id: userId,
@@ -914,7 +915,7 @@ serve(async (req) => {
                 }
 
                 // 3. Check if this is a WhatsApp/Email collection response (continuation of existing flow)
-                if (dmText && senderId && accessToken) {
+                if (dmText && senderId && cleanAccessToken) {
                   const isPhone = /\d{8,15}/.test(dmText.replace(/\D/g, ""));
                   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dmText.trim());
 
@@ -947,6 +948,10 @@ serve(async (req) => {
                           const followUp = collectsWa ? node.data?.whatsappFollowUp : node.data?.emailFollowUp;
                           if (followUp) {
                             await fetch(`https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cleanAccessToken}` },
+                              body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
+                            });
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
                               body: JSON.stringify({ recipient: { id: senderId }, message: { text: followUp } }),
