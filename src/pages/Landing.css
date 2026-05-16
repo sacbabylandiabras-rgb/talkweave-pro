@@ -261,7 +261,12 @@
   margin: 0 auto 36px;
   line-height: 1.7;
 }
- .lp-btn-cta, .lp-btn-outline {
+  .lp-btn-cta, .lp-btn-outline, .lp-btn-accent {
+ .lp-btn-accent {
+   padding: 9px 20px;
+   font-size: 13px;
+ }
+ 
   background: var(--lp-accent);
   color: #fff;
    border: none !important;
