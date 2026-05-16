@@ -548,11 +548,13 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
         </button>
       </div>
 
-      {/* Waiting indicator */}
-      <div className="flex items-center justify-center gap-2 py-3">
-        <Loader2 className="w-4 h-4 animate-spin" style={{ color: s.primary }} />
-        <span className="text-xs font-medium" style={{ color: s.cardDesc }}>aguardando pagamento...</span>
-      </div>
+       {/* Waiting indicator */}
+       <div className="flex items-center justify-center gap-2 py-3">
+         <Loader2 className="w-4 h-4 animate-spin" style={{ color: s.primary }} />
+         <span className="text-xs font-medium" style={{ color: s.cardDesc }}>aguardando pagamento...</span>
+       </div>
+      </>
+     ) : null}
     </div>
-  );
-}
+   );
+ }
