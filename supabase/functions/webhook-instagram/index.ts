@@ -170,8 +170,73 @@ const executeFlow = async (params: {
     for (const t of triggers) {
       const children = getOutgoing(t.id);
       for (const c of children) await runNode(c);
-    }
-  }
+                 }
+               }
+ 
+               if (change.field === "mentions" && change.value) {
+                 const mention = change.value;
+                 const fromId = mention.from?.id || "";
+                 const fromUsername = mention.from?.username || "";
+                 const mediaId = mention.media_id || "";
+                 console.log(`📢 Story Mention from @${fromUsername} (Media: ${mediaId})`);
+ 
+                 const { data: automations } = await supabase
+                   .from("instagram_automations")
+                   .select("*")
+                   .eq("user_id", userId)
+                   .eq("active", true);
+ 
+                 for (const auto of (automations || [])) {
+                   let fNodes: any[] = [];
+                   let fEdges: any[] = [];
+                   try {
+                     const parsed = JSON.parse(auto.dm_message || "");
+                     if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                       fNodes = parsed.nodes;
+                       fEdges = parsed.edges || [];
+                     } else continue;
+                   } catch { continue; }
+ 
+                   await executeFlow({
+                     auto, nodes: fNodes, edges: fEdges,
+                     context: {
+                       userId, igPageId, senderId: fromId, senderUsername: fromUsername,
+                       accessToken: cleanAccessToken, inputText: "Menção em Story", triggerType: "story_reply",
+                     },
+                     supabase
+                   });
+                 }
+               }
+ 
+               if (change.field === "follow" || change.field === "follows") {
+                 const follow = change.value;
+                 const fromId = follow.from?.id || follow.id || "";
+                 const fromUsername = follow.from?.username || follow.username || "";
+                 
+                 console.log(`👤 New Follower (webhook): @${fromUsername}`);
+ 
+                 const { data: automations } = await supabase
+                   .from("instagram_automations")
+                   .select("*")
+                   .eq("user_id", userId)
+                   .eq("active", true);
+ 
+                 for (const auto of (automations || [])) {
+                   try {
+                     const parsed = JSON.parse(auto.dm_message || "");
+                     if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                       await executeFlow({
+                         auto, nodes: parsed.nodes, edges: parsed.edges || [],
+                         context: {
+                           userId, igPageId, senderId: fromId, senderUsername: fromUsername,
+                           accessToken: cleanAccessToken, inputText: "Novo Seguidor", triggerType: "follow",
+                         },
+                         supabase
+                       });
+                     }
+                   } catch { continue; }
+                 }
+               }
 };
 
 const corsHeaders = {
