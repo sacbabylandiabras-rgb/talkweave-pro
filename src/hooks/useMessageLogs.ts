@@ -1061,7 +1061,7 @@ export const useMessageLogs = (
           || null;
          let senderName = log.sender_name || parsed.name || null;
          let senderPhone = log.sender_phone || parsed.phone || null;
-         let senderPhoto = log.sender_photo || parsed.photo || null;
+         let senderPhoto = extractProfilePictureUrl(log.sender_photo || parsed.photo || null);
  
         if (isManualTrigger) {
           senderName = log.keyword_matched?.replace('__manual_flow_trigger__:', '') || null;

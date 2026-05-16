@@ -1226,7 +1226,11 @@ const ChatView = ({
               {msgs.map((msg) => {
                  const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, '') : null;
                  const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
-                 const senderPhoto = msg.sender_photo || senderContact?.profile_picture_url || (isGroupPhone(conversation.phone) ? null : conversation.profilePictureUrl);
+                 const senderPhoto = (msg.sender_photo && msg.sender_photo !== 'null' && msg.sender_photo !== 'undefined' && /^https?:\/\//i.test(msg.sender_photo))
+                   ? msg.sender_photo
+                   : (senderContact?.profile_picture_url && senderContact.profile_picture_url !== 'null' && senderContact.profile_picture_url !== 'undefined' && /^https?:\/\//i.test(senderContact.profile_picture_url))
+                   ? senderContact.profile_picture_url
+                   : (isGroupPhone(conversation.phone) ? null : conversation.profilePictureUrl);
 
                 return (
                   <div key={msg.id} className="mb-2">
