@@ -4,6 +4,175 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
 const IG_APP_ID = "1629147191696096";
 
+// Helper: extract variables from text
+const replaceVars = (txt: string, vars: Record<string, string>) => {
+  let result = txt || "";
+  for (const [key, value] of Object.entries(vars)) {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+    result = result.replace(regex, value || "");
+  }
+  // Legacy support for specific variables if not in Record
+  if (vars.username) result = result.replace(/\{\{nome_usuario\}\}/g, vars.username);
+  if (vars.text) result = result.replace(/\{\{comentario\}\}/g, vars.text);
+  return result;
+};
+
+// Helper: Main Flow Execution Engine
+const executeFlow = async (params: {
+  auto: any;
+  nodes: any[];
+  edges: any[];
+  startNodeId?: string;
+  context: {
+    userId: string;
+    igPageId: string;
+    senderId: string;
+    senderUsername: string;
+    accessToken: string;
+    commentId?: string;
+    inputText?: string;
+    triggerType: "comment" | "dm" | "story_reply";
+  };
+  supabase: any;
+}) => {
+  const { auto, nodes, edges, startNodeId, context, supabase } = params;
+  const visited = new Set<string>();
+  const wrapUrl = buildWrapUrl(auto.name, context.userId, context.senderUsername);
+
+  const getOutgoing = (nodeId: string, handleFilter?: string) =>
+    edges
+      .filter((e: any) => {
+        if (e.source !== nodeId) return false;
+        if (handleFilter !== undefined) return e.sourceHandle === handleFilter;
+        return true;
+      })
+      .map((e: any) => nodes.find((n: any) => n.id === e.target))
+      .filter(Boolean);
+
+  const runNode = async (node: any) => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+    const d = node.data || {};
+
+    // 1. IG Reply (Comments only)
+    if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
+      try {
+        const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
+        const res = await fetch(`https://graph.facebook.com/v21.0/${context.commentId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
+        });
+        const rd = await res.json();
+        if (res.ok && !rd.error) console.log(`✅ Flow: Reply sent to comment ${context.commentId}`);
+        else console.error("❌ Flow: Reply error:", JSON.stringify(rd));
+      } catch (e) { console.error("❌ Flow: Reply failed:", e); }
+    }
+
+    // 2. IG DM
+    if (node.type === "igDM" && context.senderId && context.accessToken) {
+      try {
+        const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
+        const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+
+        const buildButtonPayload = (text: string, buttons: any[]) => {
+          const templateBtns = buttons.slice(0, 3).map((b: any) => {
+            if (b.type === "reply") return { type: "postback", title: b.title.slice(0, 20), payload: b.title };
+            return { type: "web_url", title: b.title.slice(0, 20), url: wrapUrl(b.url, b.title) };
+          });
+          if (templateBtns.length > 0) {
+            return { attachment: { type: "template", payload: { template_type: "button", text: text || "Escolha uma opção:", buttons: templateBtns } } };
+          }
+          return text ? { text } : null;
+        };
+
+        const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
+
+        if (payload) {
+          const res = await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
+            body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+          });
+          const rd = await res.json();
+          
+          if (!res.ok || rd.error) {
+            const errCode = rd.error?.error_subcode || rd.error?.code;
+            const isWindowError = errCode === 2534022 || (rd.error?.message || "").includes("outside of allowed window");
+            if (isWindowError && context.commentId) {
+               // Attempt Private Reply if direct DM fails due to window
+               await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
+                 body: JSON.stringify({ recipient: { comment_id: context.commentId }, message: payload }),
+               });
+            }
+            console.error(`❌ Flow: DM error:`, JSON.stringify(rd));
+          } else {
+            console.log(`✅ Flow: DM sent to @${context.senderUsername}`);
+          }
+
+          // Log the DM event
+          await supabase.from("instagram_events").insert({
+            user_id: context.userId, event_type: "dm_sent", ig_user_id: context.senderId,
+            username: context.senderUsername, comment_text: dmText, payload: rd, processed: true,
+          });
+        }
+      } catch (e) { console.error("❌ Flow: DM failed:", e); }
+    }
+
+    // 3. Delay
+    if (node.type === "igDelay") {
+      const val = parseInt(d.delayValue) || 0;
+      const unit = d.delayUnit || "seconds";
+      const ms = val * (unit === "hours" ? 3600000 : unit === "minutes" ? 60000 : 1000);
+      if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+    }
+
+    // 4. WhatsApp
+    if (node.type === "igWhatsApp") {
+      await executeIgWhatsAppNode(d, null, context.userId, context.senderId, context.senderUsername, supabase);
+    }
+
+    // Traversal logic
+    const buttons = (node.data?.buttons || []).filter((b: any) => b.title);
+    const hasButtons = node.type === "igDM" && buttons.length > 0;
+    const hasCollection = node.type === "igDM" && (node.data?.collectWhatsapp || node.data?.collectEmail);
+
+    if (hasCollection || hasButtons) {
+      // STOP traversal - wait for user interaction
+      if (hasButtons) {
+        // But follow the bottom handle if it exists and isn't blocked by buttons
+        const bottomChildren = getOutgoing(node.id, "source-bottom");
+        for (const child of bottomChildren) await runNode(child);
+      }
+      return;
+    }
+
+    const children = edges
+      .filter((e: any) => e.source === node.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"))
+      .map((e: any) => nodes.find((n: any) => n.id === e.target))
+      .filter(Boolean);
+
+    for (const child of children) await runNode(child);
+  };
+
+  if (startNodeId) {
+    const startNode = nodes.find(n => n.id === startNodeId);
+    if (startNode) await runNode(startNode);
+  } else {
+    // Find trigger nodes that match current trigger type
+    const triggers = nodes.filter(n => 
+      n.type === "igGatilho" && 
+      (n.data?.triggerType === context.triggerType || (!n.data?.triggerType && context.triggerType === "comment"))
+    );
+    for (const t of triggers) {
+      const children = getOutgoing(t.id);
+      for (const c of children) await runNode(c);
+    }
+  }
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
