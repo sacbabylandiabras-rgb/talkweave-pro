@@ -376,19 +376,6 @@ export const useMessageLogs = (
     } catch { return new Set(); }
   });
 
-   // Limpar logs ao trocar de instância para evitar exibir mensagens do número anterior
-   useEffect(() => {
-     setMessageLogs([]);
-     setCampaignSends([]);
-     lastLogsRef.current = '';
-     lastSendsRef.current = '';
-     fetchAll();
-   }, [filterInstanceId]);
-
-  useEffect(() => {
-    localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedPhones)));
-  }, [deletedPhones]);
-
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
@@ -404,6 +391,10 @@ export const useMessageLogs = (
   const inFlightPhotosRef = useRef<Set<string>>(new Set());
   const fetchedGroupNamesRef = useRef<string>('');
   const stableGroupNamesRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedPhones)));
+  }, [deletedPhones]);
 
   const fetchSavedContacts = useCallback(async () => {
     try {
@@ -675,6 +666,15 @@ export const useMessageLogs = (
     ]);
     setLoading(false);
   }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
+
+  // Limpar logs ao trocar de instância para evitar exibir mensagens do número anterior.
+  useEffect(() => {
+    setMessageLogs([]);
+    setCampaignSends([]);
+    lastLogsRef.current = '';
+    lastSendsRef.current = '';
+    fetchAll();
+  }, [filterInstanceId, fetchAll]);
 
   const saveContact = useCallback(async (phone: string, name: string) => {
     const token = await getToken();
