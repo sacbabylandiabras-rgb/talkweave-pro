@@ -1176,10 +1176,57 @@ serve(async (req) => {
                   } catch { /* not flow JSON */ }
                 }
               } else if (event.message && !event.message.quick_reply && !event.message.is_echo) {
-                const dmText = event.message.text || "";
+                const dmText = (event.message.text || "").trim();
                 console.log(`📨 DM from ${senderId}: ${dmText || "(media)"}`);
 
-                // Check if this is a WhatsApp/Email collection response
+                // 1. Detect Story Reply or Mention
+                const isStoryReply = !!event.message.reply_to?.story || !!event.message.story;
+                const isStoryMention = !!event.message.attachments?.some((a: any) => a.type === "story_mention");
+
+                // 2. Check for new flow triggers (DM keywords or Story interactions)
+                if (senderId && accessToken) {
+                  const { data: triggerAutos } = await supabase
+                    .from("instagram_automations")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .eq("active", true);
+
+                  for (const auto of (triggerAutos || [])) {
+                    let fNodes: any[] = [];
+                    let fEdges: any[] = [];
+                    try {
+                      const parsed = JSON.parse(auto.dm_message || "");
+                      if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                        fNodes = parsed.nodes;
+                        fEdges = parsed.edges || [];
+                      } else continue;
+                    } catch { continue; }
+
+                    const eventTriggerType = (isStoryReply || isStoryMention) ? "story_reply" : "dm";
+                    
+                    // For DM triggers, check keywords
+                    if (eventTriggerType === "dm" && dmText) {
+                      const keywords = (auto.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+                      const matched = keywords.length === 0 || keywords.some((kw: string) => dmText.toLowerCase().includes(kw));
+                      if (!matched) continue;
+                    } else if (eventTriggerType === "dm" && !dmText) {
+                      // Media DMs only trigger if no keywords defined or "dm" trigger explicitly allows it (scope handles that)
+                      if ((auto.keyword || "").trim().length > 0) continue;
+                    }
+
+                    console.log(`🚀 Starting flow "${auto.name}" for ${eventTriggerType} from @${event.sender?.username || senderId}`);
+                    await executeFlow({
+                      auto, nodes: fNodes, edges: fEdges,
+                      context: {
+                        userId, igPageId, senderId, senderUsername: event.sender?.username || senderId,
+                        accessToken, inputText: dmText, triggerType: eventTriggerType,
+                      },
+                      supabase
+                    });
+                  }
+                }
+
+                // 3. Check if this is a WhatsApp/Email collection response (continuation of existing flow)
                 if (dmText && senderId && accessToken) {
                   const isPhone = /\d{8,15}/.test(dmText.replace(/\D/g, ""));
                   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dmText.trim());
