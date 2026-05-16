@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
- const DEFAULT_APP_ORIGIN = "https://zaplynx.com";
+ const DEFAULT_APP_ORIGIN = "https://talkweave-pro.lovable.app";
   const WHATSAPP_META_APP_ID = "1476628750280487";
  const INSTAGRAM_META_APP_ID = "1629147191696096";
 const CALLBACK_PATH = "/functions/v1/meta-oauth-callback";
@@ -100,7 +100,7 @@ serve(async (req) => {
       }
 
       // A Meta/Instagram exige que o redirect_uri na troca do token seja EXATAMENTE igual ao usado no diálogo.
-      const redirectUri = "https://zaplynx.com/meta-oauth-callback";
+      const redirectUri = "https://talkweave-pro.lovable.app/meta-oauth-callback";
       console.log("Instagram token exchange using FIXED redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
@@ -229,7 +229,7 @@ serve(async (req) => {
       });
     }
 
-    const redirectUri = "https://zaplynx.com/meta-oauth-callback";
+    const redirectUri = "https://talkweave-pro.lovable.app/meta-oauth-callback";
     const tokenData = await exchangeFacebookCode({
       appId: META_APP_ID,
       appSecret: META_APP_SECRET,
