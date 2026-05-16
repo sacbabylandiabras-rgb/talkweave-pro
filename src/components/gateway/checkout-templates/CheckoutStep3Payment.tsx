@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertTriangle, Copy, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image } from "lucide-react";
+ import { AlertTriangle, Copy, FileText, Loader2, Lock, QrCode, ShieldCheck, Smartphone, Zap, Check, Upload, X, Image, CreditCard } from "lucide-react";
+ import { PixIcon } from "./PaymentIcons";
 import nubankLogo from "@/assets/banks/nubank.png";
 import interLogo from "@/assets/banks/inter.png";
 import bradescoLogo from "@/assets/banks/bradesco.png";
@@ -26,7 +27,9 @@ interface Props {
 export default function CheckoutStep3Payment({ config, pixPrice, formName, formEmail, formPhone, formCpf, timerStr, isPreview: isPreviewProp }: Props) {
   const s = getCheckoutStyles(config);
   const isPreview = isPreviewProp ?? !window.location.pathname.includes('/pay/');
-  const [pixLoading, setPixLoading] = useState(false);
+   const [pixLoading, setPixLoading] = useState(false);
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
+   const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -44,12 +47,12 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const [paymentApproved, setPaymentApproved] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-generate PIX when step 3 mounts (only on public checkout, not preview)
-  useEffect(() => {
-    if (!isPreview && !pixData && !pixLoading && !pixError) {
-      handleGeneratePix();
-    }
-  }, []);
+   // Auto-generate PIX when step 3 mounts if it's the selected method
+   useEffect(() => {
+     if (!isPreview && paymentMethod === 'pix' && !pixData && !pixLoading && !pixError) {
+       handleGeneratePix();
+     }
+   }, [paymentMethod]);
 
   // Poll for payment status once we have a correlationID
   useEffect(() => {
