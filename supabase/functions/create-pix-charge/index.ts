@@ -842,7 +842,8 @@ async function processCartWave(supabase: any, checkout: any, amountCents: number
       if (accountCfg?.value) account = accountCfg.value
     } catch {}
 
-    const externalId = `zlp_${checkout.id}_${Date.now()}`
+    // Pagar.me has a limit of 52 characters for the code field
+    const externalId = `zlp_${checkout.id.substring(0, 24)}_${Date.now()}`
     const amountReais = parseFloat((amountCents / 100).toFixed(2))
     const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
     const isCnpj = cleanCpf.length === 14
