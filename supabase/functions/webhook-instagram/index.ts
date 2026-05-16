@@ -991,83 +991,14 @@ serve(async (req) => {
 
                       console.log(`✅ Found matching button "${title}" at index ${btnIndex} in node ${node.id}`);
 
-                      // Follow the edge from this button's handle
                       const handleId = `btn-${btnIndex}`;
                       const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
-
-                      const replaceVars = (txt: string) =>
-                        txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
-                           .replace(/\{\{comentario\}\}/g, title);
-
-                      const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
-                      const visited = new Set<string>();
-                      const executeNode = async (n: any) => {
-                        if (visited.has(n.id)) return;
-                        visited.add(n.id);
-                        const d = n.data || {};
-
-                        if (n.type === "igDM" && accessToken) {
-                          const dmText = replaceVars(d.message || "");
-                          const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-                          let messagePayload: any;
-                          if (dmButtons.length > 0) {
-                            const templateBtns = dmButtons.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
-                            });
-                            messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
-                          } else if (dmText) {
-                            messagePayload = { text: dmText };
-                          }
-                          if (messagePayload) {
-                            const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                              body: JSON.stringify({ recipient: { id: senderId }, message: messagePayload }),
-                            });
-                            const rd = await res.json();
-                            if (res.ok && !rd.error) console.log(`✅ Branch DM sent to ${senderId}`);
-                            else console.error("❌ Branch DM error:", JSON.stringify(rd));
-                          }
-                        }
-
-                        if (n.type === "igDelay") {
-                          const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
-                          if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
-                        }
-
-                        if (n.type === "igWhatsApp") {
-                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
-                        }
-
-                        // Continue traversal (stop at button/collection nodes)
-                        const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && hasCol) {
-                          console.log(`⏹ Branch DM node collecting data — STOPPING until user responds`);
-                        } else if (n.type === "igDM" && btnCount > 0) {
-                          const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
-                          for (const e of defaultEdges) {
-                            const next = fNodes.find((fn: any) => fn.id === e.target);
-                            if (next) await executeNode(next);
-                          }
-                        } else {
-                          const nextEdges = fEdges.filter((e: any) => {
-                            if (e.source !== n.id) return false;
-                            const h = e.sourceHandle || "";
-                            return !h.startsWith("btn-") && !h.startsWith("collect-");
-                          });
-                          for (const e of nextEdges) {
-                            const next = fNodes.find((fn: any) => fn.id === e.target);
-                            if (next) await executeNode(next);
-                          }
-                        }
-                      };
-
                       for (const edge of branchEdges) {
-                        const target = fNodes.find((fn: any) => fn.id === edge.target);
-                        if (target) await executeNode(target);
+                        await executeFlow({
+                          auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
+                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: title, triggerType: "dm" },
+                          supabase
+                        });
                       }
                       break; // Only process first matching automation
                     }
