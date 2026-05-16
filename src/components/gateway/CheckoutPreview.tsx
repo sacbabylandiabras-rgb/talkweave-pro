@@ -750,26 +750,104 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           </>
         )}
 
-        {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
-        {(step === sn.payment || isOneStep) && (
-          <>
-            {/* Header */}
-            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
-              <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>Já é quase seu...</h3>
-              <p className="text-sm" style={{ color: s.cardDesc }}>
-                Pague seu pix dentro de{" "}
-                <span className="font-bold" style={{ color: s.primary }}>{timerStr}</span>{" "}
-                para garantir sua compra
-              </p>
-              <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-                <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
-                <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
-              </div>
-            </div>
-
-
-            {/* QR Code Section */}
-            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+         {/* ───── STEP 3: Payment ───── */}
+         {(step === sn.payment || isOneStep) && (
+           <>
+             {/* Payment Method Selection */}
+             {!pixData && !paymentApproved && (
+               <div className="rounded-xl border p-2 flex gap-1 mb-4" style={cardStyle(s)}>
+                 <button 
+                   onClick={() => setPaymentMethod("pix")}
+                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "pix" ? "shadow-sm border" : "opacity-60"}`}
+                   style={paymentMethod === "pix" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                 >
+                   <PixIcon size={16} /> PIX
+                 </button>
+                 <button 
+                   onClick={() => setPaymentMethod("credit_card")}
+                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "credit_card" ? "shadow-sm border" : "opacity-60"}`}
+                   style={paymentMethod === "credit_card" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                 >
+                   <CreditCard className="w-4 h-4" /> Cartão
+                 </button>
+               </div>
+             )}
+ 
+             {/* Header */}
+             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+               <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>
+                 {paymentMethod === 'pix' ? 'Já é quase seu...' : 'Finalize sua compra'}
+               </h3>
+               {paymentMethod === 'pix' && (
+                 <p className="text-sm" style={{ color: s.cardDesc }}>
+                   Pague seu pix dentro de <span className="font-bold" style={{ color: s.primary }}>{timerStr}</span> para garantir sua compra
+                 </p>
+               )}
+               <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                 <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
+                 <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+               </div>
+             </div>
+ 
+             {/* Payment UI Section */}
+             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+               {paymentMethod === 'credit_card' && !paymentApproved ? (
+                 <div className="space-y-3">
+                   <div className="grid gap-3">
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Número do cartão</label>
+                       <input 
+                         className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                         placeholder="0000 0000 0000 0000"
+                         value={cardData.number} onChange={e => setCardInfo({...cardData, number: e.target.value})}
+                       />
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Nome no cartão</label>
+                       <input 
+                         className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                         placeholder="NOME DO TITULAR"
+                         value={cardData.holder} onChange={e => setCardInfo({...cardData, holder: e.target.value.toUpperCase()})}
+                       />
+                     </div>
+                     <div className="grid grid-cols-2 gap-3">
+                       <div>
+                         <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Validade</label>
+                         <input 
+                           className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                           placeholder="MM/AA"
+                           value={cardData.expiry} onChange={e => setCardInfo({...cardData, expiry: e.target.value})}
+                         />
+                       </div>
+                       <div>
+                         <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">CVV</label>
+                         <input 
+                           className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                           placeholder="000"
+                           value={cardData.cvv} onChange={e => setCardInfo({...cardData, cvv: e.target.value})}
+                         />
+                       </div>
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Parcelas</label>
+                       <select className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} value={cardData.installments} onChange={e => setCardInfo({...cardData, installments: e.target.value})}>
+                         {[1,2,3,4,5,6,10,12].map(n => (
+                           <option key={n} value={n}>{n}x de {formatCurrency(pixPrice / n)}</option>
+                         ))}
+                       </select>
+                     </div>
+                   </div>
+                   {pixError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg">{pixError}</div>}
+                   <button 
+                     onClick={handleGeneratePix} disabled={pixLoading}
+                     className="w-full py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                     style={buttonStyle(s)}
+                   >
+                     {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                     {pixLoading ? 'Processando...' : 'Finalizar Pagamento'}
+                   </button>
+                 </div>
+               ) : paymentMethod === 'pix' && pixData ? (
               {pixData ? (
                 <div className="space-y-4">
                   <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
