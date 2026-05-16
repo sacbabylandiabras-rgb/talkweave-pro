@@ -225,14 +225,16 @@ serve(async (req) => {
     const feeCents = Math.round((amountCents * feePercent) / 100) + feeFixed
     const netCents = amountCents - feeCents
 
-    // Route to the correct acquirer
-    if (activeAcquirer === 'cartwave') {
-      return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    } else if (activeAcquirer === 'hubpague') {
-      return await processHubPague(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    } else {
-      return await processOpenPix(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
-    }
+     // Route to the correct acquirer
+     if (activeAcquirer === 'cartwave') {
+       return await processCartWave(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else if (activeAcquirer === 'hubpague') {
+       return await processHubPague(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else if (activeAcquirer === 'pagarme') {
+       return await processPagarMe(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     } else {
+       return await processOpenPix(supabase, checkout, amountCents, feeCents, netCents, customerName, customerEmail, customerPhone, customerCpf)
+     }
 
   } catch (error) {
     console.error('PIX charge error:', error)
