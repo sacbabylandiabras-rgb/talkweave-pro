@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   isGroupPhone,
@@ -1037,7 +1037,7 @@ export const useMessageLogs = (
    }, [loading, messageLogs.length, autoFetchPhotos]);
 
   // Build unified messages
-  const conversations: Conversation[] = (() => {
+  const conversations: Conversation[] = useMemo(() => {
     const allMessages: UnifiedMessage[] = [];
 
     // When a specific instance is selected, filter to that one.
@@ -1046,13 +1046,16 @@ export const useMessageLogs = (
     const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
     const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
     
-    const filteredLogs = filterInstanceId && filterInstanceId !== 'all'
-      ? messageLogs.filter(m => m.instance_id === filterInstanceId)
-      : hasKnownInstanceFilter
-        ? (knownInstanceIds!.length === 0
-          ? [] // ← nenhuma instância conhecida = sem mensagens
-          : messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id)))
-        : messageLogs;
+    const filteredLogs = useMemo(() => {
+      if (filterInstanceId && filterInstanceId !== 'all') {
+        return messageLogs.filter(m => m.instance_id === filterInstanceId);
+      }
+      if (hasKnownInstanceFilter) {
+        if (knownInstanceIds!.length === 0) return [];
+        return messageLogs.filter(m => !!m.instance_id && knownIdSet!.has(m.instance_id));
+      }
+      return messageLogs;
+    }, [messageLogs, filterInstanceId, hasKnownInstanceFilter, knownInstanceIds, knownIdSet]);
 
     // From message_logs
     filteredLogs.forEach(log => {
@@ -1163,11 +1166,16 @@ export const useMessageLogs = (
     // Otherwise, restrict to known instance names so old campaign data from removed instances is hidden.
     const hasKnownInstanceNameFilter = Array.isArray(knownInstanceNames);
     const knownNameSet = hasKnownInstanceNameFilter ? new Set(knownInstanceNames) : null;
-    const filteredCampaignSends = filterInstanceName
-      ? campaignSends.filter(s => s.instance_name === filterInstanceName)
-      : hasKnownInstanceNameFilter
-        ? campaignSends.filter(s => !!s.instance_name && knownNameSet!.has(s.instance_name))
-        : campaignSends;
+    const filteredCampaignSends = useMemo(() => {
+      if (filterInstanceName) {
+        return campaignSends.filter(s => s.instance_name === filterInstanceName);
+      }
+      if (hasKnownInstanceNameFilter) {
+        if (knownInstanceNames!.length === 0) return [];
+        return campaignSends.filter(s => !!s.instance_name && knownNameSet!.has(s.instance_name));
+      }
+      return campaignSends;
+    }, [campaignSends, filterInstanceName, hasKnownInstanceNameFilter, knownInstanceNames, knownNameSet]);
 
     getLatestSuccessfulCampaignSends(filteredCampaignSends).forEach(send => {
       allMessages.push({
@@ -1267,7 +1275,7 @@ export const useMessageLogs = (
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
-  })();
+  }, [messageLogs, campaignSends, filterInstanceId, filterInstanceName, knownInstanceIds, knownInstanceNames, savedContacts, groupNames, groupPhotos, groupSourceInstances, localManualPhotos, deletedPhones]);
 
   const unresolvedGroupKey = conversations
     .filter((c) => isGroupPhone(c.phone) && (!c.contactName || c.contactName === 'Grupo' || c.contactName === 'Comunidade' || c.contactName === 'Canal'))
