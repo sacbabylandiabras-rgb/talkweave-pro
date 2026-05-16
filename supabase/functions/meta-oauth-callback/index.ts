@@ -99,14 +99,12 @@ serve(async (req) => {
         });
       }
 
-      // IMPORTANT: o redirect_uri enviado na troca de token DEVE ser idêntico
-      // ao redirect_uri usado no diálogo OAuth. Em GET callbacks usamos a URL
-      // exata que a Meta chamou (sem query string). Em POST (popup -> frontend),
-      // confiamos no redirectUri enviado pelo cliente.
-      const redirectUri = isJsonRequest && body?.redirectUri
-        ? body.redirectUri
-        : `${url.origin}${url.pathname}`;
-      console.log("Instagram token exchange redirect_uri:", redirectUri);
+      // A Meta/Instagram exige que o redirect_uri na troca do token seja EXATAMENTE igual ao usado no diálogo.
+      // Quando o Supabase Edge Function é chamado via GET, ele geralmente usa o domínio .supabase.co internamente,
+      // mas se o usuário acessou via zaplynx.com, o redirecionamento pode ter vindo de lá.
+      // IMPORTANTE: Se o domínio configurado no Meta Developer Console for zaplynx.com, devemos usar ele.
+      const redirectUri = "https://zaplynx.com/functions/v1/meta-oauth-callback";
+      console.log("Instagram token exchange using FIXED redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
         client_secret: igAppSecret,
