@@ -75,7 +75,7 @@ const Landing = () => {
             "Condições e ramificações inteligentes",
             "Integração com webhooks e APIs",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Criar Meus Fluxos →</SpinningButton>
         </div>
         <FlowMock />
       </div>
@@ -94,7 +94,7 @@ const Landing = () => {
             "Funciona 24 horas por dia, 7 dias por semana",
             "Integrado ao gateway de pagamentos",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Ativar Agente de IA →</SpinningButton>
         </div>
         <AgentChatMockup />
       </div>
@@ -113,7 +113,7 @@ const Landing = () => {
             "Painel de transações com filtros avançados",
             "Pixels de rastreamento (Facebook, Google, TikTok)",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Criar Meu Checkout →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Criar Meu Checkout →</SpinningButton>
         </div>
         <GatewayMock />
       </div>
@@ -133,7 +133,7 @@ const Landing = () => {
             "Validação de CPF/CNPJ em tempo real",
             "Integração com pixels e UTM tracking",
           ]} />
-          <button className="lp-btn-outline" onClick={goSignup}>Montar Meu Checkout →</button>
+           <SpinningButton className="lp-btn-outline" onClick={goSignup}>Montar Meu Checkout →</SpinningButton>
         </div>
         <CheckoutMock />
       </div>
@@ -151,7 +151,7 @@ const Landing = () => {
             "Dashboard com métricas de conversão",
             "Integrado à API oficial do Instagram (Meta)",
           ]} />
-          <button className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</button>
+           <SpinningButton className="lp-btn-outline lp-btn-ig" onClick={goSignup}>Ativar Automação Instagram →</SpinningButton>
         </div>
         <InstagramMock />
       </div>
