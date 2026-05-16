@@ -210,7 +210,7 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
      try {
        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-       const slug = window.location.pathname.split('/pay/')[1];
+        const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
        
        // Use specialized Pagar.me function if credit card or fallback to pix-charge
         const endpoint = 'create-pix-charge';
