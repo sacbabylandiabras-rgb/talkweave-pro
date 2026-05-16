@@ -88,21 +88,6 @@
   border-color: rgba(255, 255, 255, 0.25);
   color: #fff;
 }
-.lp-btn-accent {
-  background: var(--lp-accent);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 20px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 0.2s;
-}
-.lp-btn-accent:hover {
-  opacity: 0.88;
-}
 
 /* HERO PAC-MAN */
 #lp-hero-section {
