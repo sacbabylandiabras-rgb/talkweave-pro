@@ -261,18 +261,11 @@
   margin: 0 auto 36px;
   line-height: 1.7;
 }
-  .lp-btn-cta, .lp-btn-outline, .lp-btn-accent {
- .lp-btn-accent {
-   padding: 9px 20px;
-   font-size: 13px;
- }
- 
-  background: var(--lp-accent);
-  color: #fff;
+ .lp-btn-cta, .lp-btn-outline, .lp-btn-accent {
+   background: var(--lp-accent);
+   color: #fff;
    border: none !important;
    border-radius: 50px !important;
-  padding: 15px 32px;
-  font-size: 15px;
    font-weight: 700;
    cursor: pointer;
    font-family: inherit;
@@ -283,6 +276,11 @@
    align-items: center;
    justify-content: center;
    white-space: nowrap;
+ }
+ 
+ .lp-btn-accent {
+   padding: 9px 20px;
+   font-size: 13px;
  }
  
  .lp-btn-cta {
