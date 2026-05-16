@@ -151,7 +151,8 @@ async function processPagarMeCard(supabase: any, checkout: any, amountCents: num
     })
   }
 
-  const externalId = `zlp_card_${checkout.id}_${Date.now()}`
+  // Pagar.me has a limit of 52 characters for the code field
+  const externalId = `zlp_card_${checkout.id.substring(0, 24)}_${Date.now()}`
   const cleanCpf = (customerCpf && customerCpf.replace(/\D/g, '').length >= 11) ? customerCpf.replace(/\D/g, '') : '00000000000'
   const cleanPhone = (customerPhone && customerPhone.replace(/\D/g, '').length >= 10) ? customerPhone.replace(/\D/g, '') : '11999999999'
   const areaCode = cleanPhone.substring(0, 2)
