@@ -162,10 +162,11 @@
    const getTriggerIcon = (trigger: string) => {
      switch(trigger) {
        case "Comentário": return <MessageCircle className="w-3.5 h-3.5" />;
-       case "DM": return <Heart className="w-3.5 h-3.5" />;
-       case "Story": return <Share2 className="w-3.5 h-3.5" />;
-       case "Live": return <PlayCircle className="w-3.5 h-3.5" />;
-       default: return <Zap className="w-3.5 h-3.5" />;
+        case "DM": return <Heart className="w-3.5 h-3.5" />;
+        case "Story": return <Share2 className="w-3.5 h-3.5" />;
+        case "Live": return <PlayCircle className="w-3.5 h-3.5" />;
+        case "Seguidor": return <Users className="w-3.5 h-3.5" />;
+        default: return <Zap className="w-3.5 h-3.5" />;
      }
    };
  
