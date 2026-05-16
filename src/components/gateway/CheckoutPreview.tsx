@@ -924,9 +924,9 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                     <h4 className="font-bold text-lg">Pagamento Confirmado!</h4>
                     <p className="text-sm opacity-60">Sua compra foi processada com sucesso.</p>
                   </div>
-                  ) : null}
-                </div>
-              )}
+                ) : null}
+              </div>
+            )}
 
             {/* How to pay */}
             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
