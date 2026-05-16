@@ -104,35 +104,65 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
     };
   }, [pixData?.correlationID, isPreview, paymentApproved]);
 
-  const handleGeneratePix = async () => {
-    setPixLoading(true);
-    setPixError(null);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const slug = window.location.pathname.split('/pay/')[1];
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug, amount: pixPrice,
-          customerName: formName || undefined, customerEmail: formEmail || undefined,
-          customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const detailedMessage = data?.message || data?.error || 'Erro ao gerar cobrança';
-        const suffix = data?.attempt ? ` (tentativa: ${data.attempt})` : '';
-        throw new Error(`${detailedMessage}${suffix}`);
-      }
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
-    } catch (e: any) {
-      setPixError(e.message || 'Erro ao gerar PIX');
-    } finally {
-      setPixLoading(false);
-    }
-  };
+   const handleGeneratePix = async () => {
+     setPixLoading(true);
+     setPixError(null);
+     try {
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+       const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
+       
+       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+       const body: any = {
+         slug, amount: pixPrice,
+         customerName: formName || undefined, customerEmail: formEmail || undefined,
+         customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
+       };
+ 
+       if (paymentMethod === 'credit_card') {
+         const [month, year] = cardData.expiry.split('/');
+         body.paymentMethod = 'credit_card';
+         body.cardInfo = {
+           number: cardData.number,
+           holder_name: cardData.holder,
+           exp_month: parseInt(month),
+           exp_year: 2000 + parseInt(year),
+           cvv: cardData.cvv,
+           installments: parseInt(cardData.installments)
+         };
+       }
+ 
+       const res = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+         method: 'POST',
+         headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
+         body: JSON.stringify(body),
+       });
+       const data = await res.json();
+       if (!res.ok) {
+         throw new Error(data?.error || data?.message || 'Erro ao processar pagamento');
+       }
+       if (data.status === 'approved' || data.status === 'paid') {
+         setPaymentApproved(true);
+         const thankYouType = config.thankYouType || 'default';
+         if (thankYouType === 'custom_url' && config.thankYouUrl) {
+           window.location.href = config.thankYouUrl;
+         } else {
+           const basePath = window.location.pathname.includes('/pay/') ? '/pay' : '/checkout';
+           const params = new URLSearchParams();
+           if (formName) params.set('name', formName);
+           if (data.correlationID) params.set('tid', data.correlationID);
+           if (pixPrice) params.set('amount', String(Math.round(pixPrice)));
+           window.location.href = `${basePath}/${slug}/obrigado?${params.toString()}`;
+         }
+       } else {
+         setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
+       }
+     } catch (e: any) {
+       setPixError(e.message || 'Erro ao processar');
+     } finally {
+       setPixLoading(false);
+     }
+   };
 
   const handleCopyPix = () => {
     if (pixData?.brCode) {
