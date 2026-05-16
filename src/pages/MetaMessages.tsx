@@ -66,8 +66,8 @@ const looksLikePhoneOrId = (value: string) => {
 const getConversationDisplayName = (name?: string | null, phone?: string | null, isCommunityProp?: boolean) => {
   if (!phone) return name || '';
   
-  const isGroup = isGroupPhone(phone);
-  const isCommunity = isCommunityProp || isCommunityPhone(phone);
+   const isGroup = isGroupPhone(phone) && !phone.startsWith('ig_');
+   const isCommunity = (isCommunityProp || isCommunityPhone(phone)) && !phone.startsWith('ig_');
   const isChannel = phone.includes('@newsletter');
 
   // For groups, communities and channels, prioritize the real name if available
