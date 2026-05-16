@@ -14,7 +14,7 @@ const corsHeaders = {
 const replaceVars = (txt: string, vars: Record<string, string>) => {
   let result = txt || "";
   for (const [key, value] of Object.entries(vars)) {
-    const regex = new RegExp("\\\\{\\\\{" + key + "\\\\\\\\}\\\\}", "g");
+    const regex = new RegExp("\\\\\\\\{\\\\\\\\{" + key + "\\\\\\\\}\\\\\\\\}", "g");
     result = result.replace(regex, value || "");
   }
   if (vars.username) result = result.replace(/\{\{nome_usuario\}\}/g, vars.username);
