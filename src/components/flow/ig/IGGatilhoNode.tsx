@@ -1,5 +1,5 @@
 import { Handle, Position } from "reactflow";
- import { MessageCircle, Image, Share2, Heart, PlayCircle, Star, Zap } from "lucide-react";
+  import { MessageCircle, Image, Share2, Heart, PlayCircle, Star, Zap, UserPlus } from "lucide-react";
  import { Badge } from "@/components/ui/badge";
 
 export function IGGatilhoNode({ data }: any) {
@@ -19,7 +19,8 @@ export function IGGatilhoNode({ data }: any) {
        case "dm": return { label: "Mensagem Direta", color: "bg-blue-500", icon: Heart };
        case "share": return { label: "Compartilhamento", color: "bg-purple-500", icon: Zap };
        case "live": return { label: "Live Comment", color: "bg-red-500", icon: PlayCircle };
-       case "ads": return { label: "Anúncios", color: "bg-emerald-500", icon: Star };
+        case "ads": return { label: "Anúncios", color: "bg-emerald-500", icon: Star };
+        case "follow": return { label: "Novo Seguidor", color: "bg-indigo-500", icon: UserPlus };
        default: return { label: "Comentário", color: "bg-orange-500", icon: MessageCircle };
      }
    };
@@ -82,9 +83,11 @@ export function IGGatilhoNode({ data }: any) {
              <span className="text-primary font-bold">{data.keywords}</span>
            </div>
          ) : (
-           <div className="text-xs text-muted-foreground/60 italic font-medium">
-             Qualquer {data.triggerType === "story_reply" ? "resposta ou reação" : "comentário"}
-           </div>
+            <div className="text-xs text-muted-foreground/60 italic font-medium">
+              {data.triggerType === "story_reply" ? "Qualquer resposta ou reação" : 
+               data.triggerType === "follow" ? "Qualquer nova seguição" :
+               "Qualquer comentário ou mensagem"}
+            </div>
          )}
        </div>
  

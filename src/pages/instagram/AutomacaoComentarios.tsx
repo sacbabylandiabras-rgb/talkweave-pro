@@ -327,6 +327,16 @@ export default function AutomacaoComentarios() {
             edges: [
               { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
             ]
+          },
+          "saudacao-novo-seguidor": {
+            name: "Saudação para novos seguidores",
+            nodes: [
+              { id: "1", type: "igGatilho", position: { x: 50, y: 200 }, data: { label: "Novo Seguidor", triggerType: "follow" } },
+              { id: "2", type: "igDM", position: { x: 350, y: 200 }, data: { label: "Bem-vindo", message: "Olá {{username}}! Obrigado por me seguir! 😍 Como posso te ajudar hoje?", buttons: [{ title: "Ver Produtos", url: "https://", type: "url" }, { title: "Falar com Humano", type: "text" }] } },
+            ],
+            edges: [
+              { id: "e1-2", source: "1", target: "2", sourceHandle: "source-right", targetHandle: "target-left", animated: true, style: { stroke: "hsl(var(--primary))", strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" } },
+            ]
           }
         }[templateId as keyof any];
  
@@ -575,7 +585,8 @@ export default function AutomacaoComentarios() {
                  { id: "dm", label: "Mensagem Direta", icon: Heart },
                  { id: "share", label: "Compartilhar", icon: Zap },
                  { id: "live", label: "Live Comment", icon: PlayCircle },
-                 { id: "ads", label: "Anúncios", icon: Star },
+                  { id: "ads", label: "Anúncios", icon: Star },
+                  { id: "follow", label: "Seguidor", icon: User },
                ].map((t) => (
                  <Button
                    key={t.id}
@@ -638,7 +649,22 @@ export default function AutomacaoComentarios() {
              </div>
            )}
  
-           {triggerType === "story_reply" && (
+            {triggerType === "follow" && (
+              <div className="space-y-3 animate-in fade-in duration-300">
+                <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-xs text-muted-foreground leading-relaxed">
+                  <p className="font-bold text-indigo-600 mb-1 flex items-center gap-1">
+                    <Zap className="w-3 h-3" /> Automação de Novo Seguidor
+                  </p>
+                  Esta automação envia uma mensagem assim que um novo perfil começa a seguir sua conta. 
+                  <br/><br/>
+                  <span className="font-medium text-[10px] opacity-70">
+                    Nota: O Instagram não envia notificações em tempo real para seguidores. Esta função depende de sincronização periódica.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {triggerType === "story_reply" && (
              <div className="space-y-3 animate-in fade-in duration-300">
                <div>
                  <Label className="text-xs font-bold text-muted-foreground mb-1 block">Configuração do Story</Label>

@@ -6,7 +6,16 @@
  import { Input } from "@/components/ui/input";
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  
- const modelos = [
+  const modelos = [
+    {
+      id: "saudacao-novo-seguidor",
+      title: "Saudação para novos seguidores",
+      description: "Dê as boas-vindas automaticamente por DM assim que alguém começar a te seguir",
+      category: "gatilho",
+      tag: "Boas-vindas",
+      trigger: "Seguidor",
+      pro: true,
+    },
    {
      id: "venda-comentarios-reels",
      title: "Venda pelos comentários de Reels",
@@ -153,10 +162,11 @@
    const getTriggerIcon = (trigger: string) => {
      switch(trigger) {
        case "Comentário": return <MessageCircle className="w-3.5 h-3.5" />;
-       case "DM": return <Heart className="w-3.5 h-3.5" />;
-       case "Story": return <Share2 className="w-3.5 h-3.5" />;
-       case "Live": return <PlayCircle className="w-3.5 h-3.5" />;
-       default: return <Zap className="w-3.5 h-3.5" />;
+        case "DM": return <Heart className="w-3.5 h-3.5" />;
+        case "Story": return <Share2 className="w-3.5 h-3.5" />;
+        case "Live": return <PlayCircle className="w-3.5 h-3.5" />;
+        case "Seguidor": return <Users className="w-3.5 h-3.5" />;
+        default: return <Zap className="w-3.5 h-3.5" />;
      }
    };
  
