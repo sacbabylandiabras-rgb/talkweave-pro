@@ -392,6 +392,9 @@ serve(async (req) => {
           .eq("id", flowState.id);
       }
     }
+    console.log(`Processing message from ${phone} (chatId: ${chatId}): "${messageRaw}"`);
+    console.log(`cleanMessageForMatch: "${cleanMessageForMatch}"`);
+    
     if (!flowStateHandled && (!fromMe || isButtonResponse)) {
       // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
       const { data: flows } = await supabase
@@ -400,6 +403,8 @@ serve(async (req) => {
         .eq("user_id", userId)
         .eq("active", true);
 
+      console.log(`Found ${flows?.length || 0} active flows for user ${userId}`);
+      
       let triggerFound = false;
       for (const flow of (flows || [])) {
         if (triggerFound) break;
