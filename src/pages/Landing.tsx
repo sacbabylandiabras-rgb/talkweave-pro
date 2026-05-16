@@ -34,7 +34,7 @@ const Landing = () => {
         <div className="lp-logo">Zap<span>Lynx</span></div>
         <div className="lp-nav-right">
           <button className="lp-btn-ghost" onClick={goLogin}>Entrar</button>
-          <button className="lp-btn-accent" onClick={goSignup}>Começar Agora</button>
+           <SpinningButton className="lp-btn-accent" onClick={goSignup}>Começar Agora</SpinningButton>
         </div>
       </nav>
 
