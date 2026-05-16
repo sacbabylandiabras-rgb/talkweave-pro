@@ -339,6 +339,7 @@ export function DashboardLayout() {
       "/canais": "canais",
       // Instagram routes
       "/instagram/dashboard": "ig-dashboard",
+       "/instagram/mensagens": "ig-mensagens",
       "/instagram/campanhas": "ig-campanhas",
       "/instagram/automacao": "ig-automacao",
       "/instagram/contatos": "ig-contatos",
