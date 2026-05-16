@@ -847,53 +847,62 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
                      {pixLoading ? 'Processando...' : 'Finalizar Pagamento'}
                    </button>
                  </div>
-               ) : paymentMethod === 'pix' && pixData ? (
-              {pixData ? (
-                <div className="space-y-4">
-                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
-                    <Smartphone className="w-4 h-4 inline mr-1" />
-                    aponte a câmera do seu celular
-                  </p>
-                  <div className="flex justify-center">
-                    <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
-                  </div>
+                ) : paymentMethod === 'pix' ? (
+                  pixData ? (
+                    <div className="space-y-4">
+                      <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                        <Smartphone className="w-4 h-4 inline mr-1" />
+                        aponte a câmera do seu celular
+                      </p>
+                      <div className="flex justify-center">
+                        <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
+                      </div>
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
-                    <div className="flex gap-2">
-                      <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
-                      <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
-                        <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
+                        <div className="flex gap-2">
+                          <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
+                          <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
+                            <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                        <Smartphone className="w-4 h-4 inline mr-1" />
+                        aponte a câmera do seu celular
+                      </p>
+                      <div className="flex justify-center">
+                        <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                          <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                        </div>
+                      </div>
+                      {pixError && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
+                          <AlertTriangle className="w-4 h-4" /> {pixError}
+                        </div>
+                      )}
+                      <button
+                        type="button" onClick={handleGeneratePix} disabled={pixLoading}
+                        className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+                        style={buttonStyle(s)}
+                      >
+                        {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                        {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
                       </button>
                     </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
-                    <Smartphone className="w-4 h-4 inline mr-1" />
-                    aponte a câmera do seu celular
-                  </p>
-                  <div className="flex justify-center">
-                    <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
-                      <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                  )
+                ) : paymentApproved ? (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                      <Check className="w-8 h-8 text-green-500" />
                     </div>
+                    <h4 className="font-bold text-lg">Pagamento Confirmado!</h4>
+                    <p className="text-sm opacity-60">Sua compra foi processada com sucesso.</p>
                   </div>
-                  {pixError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
-                      <AlertTriangle className="w-4 h-4" /> {pixError}
-                    </div>
-                  )}
-                  <button
-                    type="button" onClick={handleGeneratePix} disabled={pixLoading}
-                    className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
-                    style={buttonStyle(s)}
-                  >
-                    {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                    {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
-                  </button>
-                </div>
-              )}
+                ) : null}
             </div>
 
             {/* How to pay */}
