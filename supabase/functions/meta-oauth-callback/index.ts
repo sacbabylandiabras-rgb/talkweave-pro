@@ -104,7 +104,7 @@ serve(async (req) => {
       // mas se o usuário acessou via zaplynx.com, o redirecionamento pode ter vindo de lá.
       // IMPORTANTE: Se o domínio configurado no Meta Developer Console for zaplynx.com, devemos usar ele.
       // IMPORTANTE: A Meta/Instagram exige que o redirect_uri na troca do token seja EXATAMENTE igual ao usado no diálogo.
-      const redirectUri = "https://zaplynx.com/meta-oauth-callback";
+      const redirectUri = "https://zaplynx.com/meta-oauth-callback/";
       console.log("Instagram token exchange using FIXED redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
