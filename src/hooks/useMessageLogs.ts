@@ -1,3 +1,4 @@
+// @refresh reset
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -391,6 +392,7 @@ export const useMessageLogs = (
   const inFlightPhotosRef = useRef<Set<string>>(new Set());
   const fetchedGroupNamesRef = useRef<string>('');
   const stableGroupNamesRef = useRef<Map<string, string>>(new Map());
+  const lidMapRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedPhones)));
@@ -547,9 +549,6 @@ export const useMessageLogs = (
       });
     }
   }, []);
-
-  // Build LID → real phone mapping from message_logs
-  const lidMapRef = useRef<Map<string, string>>(new Map());
 
   const fetchLidMap = useCallback(async () => {
     const { data } = await supabase
