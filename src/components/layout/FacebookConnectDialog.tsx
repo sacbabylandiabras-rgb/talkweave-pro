@@ -23,7 +23,7 @@ interface FacebookConnectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
- const META_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "26985190684454065";
+ const META_APP_ID = "1476628750280487";
 
 export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDialogProps) {
   const [connecting, setConnecting] = useState(false);

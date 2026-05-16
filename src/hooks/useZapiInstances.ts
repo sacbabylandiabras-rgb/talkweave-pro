@@ -146,7 +146,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
           .from("meta_credentials" as any)
           .select("*")
           .eq("user_id", user.id)
-          .eq("app_id", "26985190684454065")
+          .eq("app_id", "1476628750280487")
           .eq("connected", true)
           .not("phone_number_id", "is", null)
           .order("updated_at", { ascending: false });

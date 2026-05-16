@@ -148,7 +148,7 @@ const logProviderSend = async (
   }
 };
 
- const WHATSAPP_META_APP_ID = "26985190684454065";
+  const WHATSAPP_META_APP_ID = "1476628750280487";
 
  async function getMetaCredentials(adminClient: any, userId: string, phoneId?: string) {
    const query = adminClient

@@ -205,8 +205,8 @@ const TOOL_DEFS: Record<string, any> = {
   },
 }
 
-const WHATSAPP_META_APP_ID = '26985190684454065'
-const INSTAGRAM_META_APP_ID = '2389544344842071'
+const WHATSAPP_META_APP_ID = '1476628750280487'
+const INSTAGRAM_META_APP_ID = '1629147191696096'
 
 // ============ UAZAPI HELPERS ============
 async function getUserUazapiCreds(supabase: any, userId: string): Promise<{ apiUrl: string; apiToken: string } | null> {
