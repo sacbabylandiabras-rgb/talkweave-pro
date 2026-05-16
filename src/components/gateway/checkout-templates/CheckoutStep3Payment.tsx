@@ -28,7 +28,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
   const s = getCheckoutStyles(config);
   const isPreview = isPreviewProp ?? !window.location.pathname.includes('/pay/');
    const [pixLoading, setPixLoading] = useState(false);
-   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">(config.pix !== false ? "pix" : "credit_card");
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card" | null>(null);
    const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
   const [pixError, setPixError] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
      if (!isPreview && paymentMethod === 'pix' && !pixData && !pixLoading && !pixError) {
        handleGeneratePix();
      }
-   }, [paymentMethod]);
+   }, [paymentMethod, isPreview, pixData, pixLoading, pixError]);
 
   // Poll for payment status once we have a correlationID
   useEffect(() => {
@@ -257,21 +257,38 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
          </div>
        )}
  
-       {/* Header */}
-       <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
-         <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>
-           {paymentMethod === 'pix' ? 'Já é quase seu...' : 'Finalize sua compra'}
-         </h3>
-         {paymentMethod === 'pix' && (
-           <p className="text-sm" style={{ color: s.cardDesc }}>
-             Pague seu pix dentro de <span className="font-bold" style={{ color: s.primary }}>{timerStr || "15:00"}</span> para garantir sua compra
-           </p>
-         )}
-         <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-           <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
-           <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+       {/* Select Payment Placeholder */}
+       {!paymentMethod && !pixData && !paymentApproved && (
+         <div className="rounded-xl border p-8 text-center space-y-4" style={cardStyle(s)}>
+           <div className="flex justify-center">
+             <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${s.primary}10`, color: s.primary }}>
+               <CreditCard className="w-6 h-6" />
+             </div>
+           </div>
+           <div className="space-y-1">
+             <h3 className="font-bold text-base" style={{ color: s.cardTitle }}>Escolha como pagar</h3>
+             <p className="text-xs" style={{ color: s.cardDesc }}>Selecione acima o método de pagamento desejado.</p>
+           </div>
          </div>
-       </div>
+       )}
+ 
+       {/* Header - Only show if method selected or paid */}
+       {(paymentMethod || pixData || paymentApproved) && (
+         <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+           <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>
+             {paymentMethod === 'pix' ? 'Já é quase seu...' : 'Finalize sua compra'}
+           </h3>
+           {paymentMethod === 'pix' && (
+             <p className="text-sm" style={{ color: s.cardDesc }}>
+               Pague seu pix dentro de <span className="font-bold" style={{ color: s.primary }}>{timerStr || "15:00"}</span> para garantir sua compra
+             </p>
+           )}
+           <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+             <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
+             <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+           </div>
+         </div>
+       )}
  
        {/* Credit Card Section */}
        {paymentMethod === 'credit_card' && !paymentApproved ? (
