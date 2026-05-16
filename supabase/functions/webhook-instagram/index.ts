@@ -210,13 +210,23 @@ const executeFlow = async (params: {
 
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
-        if (payload) {
-          await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
-            body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
-          });
-        }
+         if (payload) {
+           await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
+             method: "POST",
+             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
+             body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+           });
+           
+           // Log automation outgoing message
+           await logInstagramEvent(supabase, {
+             userId: context.userId,
+             eventType: "dm_sent",
+             igUserId: context.senderId,
+             username: context.senderUsername,
+             text: dmText,
+             payload: { automation_id: auto.id, type: "automation" }
+           });
+         }
       } catch (e) { console.error("Flow DM failed:", e); }
     }
 
