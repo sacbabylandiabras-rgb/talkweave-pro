@@ -277,7 +277,9 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
+    let flowState = participantFlowState?.last_node_id
+      ? participantFlowState
+      : (isButtonResponse && participantFlowState?.flow_id ? participantFlowState : null);
     let flowStateIsSharedGroup = false;
 
     if (!flowState && isGroup && chatId && chatId !== phone) {
@@ -290,7 +292,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      if (sharedGroupFlowState?.last_node_id) {
+      if (sharedGroupFlowState?.last_node_id || (isButtonResponse && sharedGroupFlowState?.flow_id)) {
         const { data: existingParticipantState } = await supabase
           .from("flow_captured_data")
           .select("id")
