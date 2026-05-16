@@ -334,6 +334,12 @@ const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
   const result = String(payload?.result || '').toUpperCase();
+  
+  // Special case: "shadow ban" warning from Z-API
+  // Even if they include an ID, if this specific message is present, it's NOT a successful send.
+  const error = String(payload?.error || payload?.message || '').toLowerCase();
+  if (error.includes('likely shadow ban')) return false;
+
   // Status que indicam que a mensagem ficou apenas enfileirada (não entregue de fato)
   const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
   if (queuedStatuses.includes(status) || queuedStatuses.includes(result)) return false;
