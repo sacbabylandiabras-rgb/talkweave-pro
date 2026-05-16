@@ -91,9 +91,12 @@
            }
          }
        })
-     } else {
-       return new Response(JSON.stringify({ error: 'Invalid payment method or missing card info' }), { status: 400 })
-     }
+      } else {
+        return new Response(JSON.stringify({ error: 'Invalid payment method or missing card info' }), { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
  
      const pagarmeRes = await fetch('https://api.pagar.me/core/v5/orders', {
        method: 'POST',
@@ -140,7 +143,10 @@
        provider: 'pagarme'
      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
  
-   } catch (error) {
-     return new Response(JSON.stringify({ error: error.message }), { status: 500 })
-   }
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
  })
