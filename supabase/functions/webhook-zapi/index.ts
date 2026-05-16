@@ -277,7 +277,9 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    let flowState = participantFlowState?.last_node_id ? participantFlowState : null;
+    let flowState = participantFlowState?.last_node_id
+      ? participantFlowState
+      : (isButtonResponse && participantFlowState?.flow_id ? participantFlowState : null);
     let flowStateIsSharedGroup = false;
 
     if (!flowState && isGroup && chatId && chatId !== phone) {
@@ -290,7 +292,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      if (sharedGroupFlowState?.last_node_id) {
+      if (sharedGroupFlowState?.last_node_id || (isButtonResponse && sharedGroupFlowState?.flow_id)) {
         const { data: existingParticipantState } = await supabase
           .from("flow_captured_data")
           .select("id")
@@ -400,13 +402,16 @@ serve(async (req) => {
       }
 
       // Se tinha estado de fluxo mas não foi processado (não bateu botão nem captura),
-      // limpamos o estado para permitir que caia na verificação de palavras-chave
+      // não limpe automaticamente respostas de botão: alguns provedores reenviam callbacks
+      // antigos/duplicados depois que o fluxo já avançou para o próximo bloco. Limpar aqui
+      // apaga o last_node_id novo e deixa o fluxo travado esperando um botão que não existe mais.
       if (!flowStateHandled) {
-        console.log(`No match for flowState, clearing stuck state for ${phone}`);
-        await supabase
-          .from("flow_captured_data")
-          .update({ last_node_id: null, updated_at: new Date().toISOString() })
-          .eq("id", flowState.id);
+        if (isButtonResponse) {
+          console.log(`Button callback did not match current node ${lastNodeId}; preserving flow state for ${phone}`);
+          return new Response("button_no_match_preserved", { status: 200, headers: corsHeaders });
+        }
+
+        console.log(`No match for flowState text; keeping state until keyword check for ${phone}`);
       }
     }
     console.log(`Processing message from ${phone} (chatId: ${chatId}): "${messageRaw}"`);
