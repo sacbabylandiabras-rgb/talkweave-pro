@@ -103,8 +103,10 @@ serve(async (req) => {
       // Quando o Supabase Edge Function é chamado via GET, ele geralmente usa o domínio .supabase.co internamente,
       // mas se o usuário acessou via zaplynx.com, o redirecionamento pode ter vindo de lá.
       // IMPORTANTE: Se o domínio configurado no Meta Developer Console for zaplynx.com, devemos usar ele.
-      const redirectUri = "https://zaplynx.com/functions/v1/meta-oauth-callback";
-      console.log("Instagram token exchange using FIXED redirect_uri:", redirectUri);
+      // IMPORTANTE: A Meta/Instagram exige que o redirect_uri na troca do token seja EXATAMENTE igual ao usado no diálogo.
+      // O frontend envia o redirect_uri para a Edge Function do Supabase.
+      const redirectUri = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback";
+      console.log("Instagram token exchange using SUPABASE redirect_uri:", redirectUri);
       const tokenBody = new URLSearchParams({
         client_id: INSTAGRAM_META_APP_ID,
         client_secret: igAppSecret,
