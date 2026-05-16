@@ -428,21 +428,6 @@
 .lp-check-item.ig svg {
   stroke: var(--lp-pink);
 }
-.lp-btn-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--lp-accent);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 12px 26px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
 .lp-btn-outline:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(167, 139, 250, 0.3);
