@@ -228,7 +228,6 @@ serve(async (req) => {
     const logEntryBase = {
       user_id: userId,
       phone: chatId,
-      message_id: messageId,
       instance_id: instanceId,
       timestamp: new Date().toISOString()
     };
@@ -400,20 +399,6 @@ serve(async (req) => {
         .select("*")
         .eq("user_id", userId)
         .eq("active", true);
-
-      // Deduplication check - Moved here to prevent blocking retries that failed before triggering
-      if (messageId) {
-        const { data: existingLog } = await supabase
-          .from("message_logs")
-          .select("id")
-          .eq("message_id", messageId)
-          .maybeSingle();
-
-        if (existingLog) {
-          console.log(`Ignoring duplicate message: ${messageId}`);
-          return new Response("duplicate", { status: 200, headers: corsHeaders });
-        }
-      }
 
       let triggerFound = false;
       for (const flow of (flows || [])) {
