@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   isGroupPhone,
