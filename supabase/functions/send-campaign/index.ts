@@ -344,8 +344,9 @@ const isZapiConfirmed = (payload: any) => {
   const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
   if (queuedStatuses.includes(status) || queuedStatuses.includes(result)) return false;
   // Exige um ack id real OU um status explícito de sucesso de envio
-  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'DELIVERED', 'RECEIVED'];
-  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result);
+  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
+  const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
+  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
  const isGroupDestination = (phone: string) => (phone.includes('@g.us') || phone.includes('-group')) && !phone.includes('@newsletter') && !phone.includes('-community');
  const isCommunityDestination = (phone: string) => phone.includes('-community');
@@ -1692,11 +1693,10 @@ serve(async (req) => {
           if (specialTpl) {
           const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl, supabase, credentials.userId);
             if (uazSpecial.ok) {
-              campaignSend.status = 'delivered';
+              campaignSend.status = 'sent';
               campaignSend.sent_at = new Date().toISOString();
-              campaignSend.delivered_at = campaignSend.sent_at;
               results.push({ phone: contact.phone, success: true, messageId: uazSpecial.ack });
-              console.log(`📨 [UAZAPI] Delivered ${contact.phone} via ${currentInstance.instanceName} after accepted send`);
+              console.log(`📨 [UAZAPI] Sent ${contact.phone} via ${currentInstance.instanceName} (ack=${uazSpecial.ack || 'none'})`);
             } else {
               campaignSend.status = 'failed';
               campaignSend.error_message = uazSpecial.error || 'UAZAPI special envio falhou';
@@ -1726,11 +1726,10 @@ serve(async (req) => {
           })();
 
           if (uazResult.ok || uazLidBypass) {
-            campaignSend.status = 'delivered';
+            campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
-            campaignSend.delivered_at = campaignSend.sent_at;
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
-            console.log(`📨 Delivered${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'}) after accepted send`);
+            console.log(`📨 Sent${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'})`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
@@ -1804,9 +1803,8 @@ serve(async (req) => {
             console.log(`📬 [Special] Campaign Z-API response for ${contact.phone}: status=${zapiResponse.status}, confirmed=${confirmed}`);
 
             if ((zapiResponse.ok && !explicitError && confirmed) || (isLidIdentifier(contact.phone) && zapiResponse.ok)) {
-              campaignSend.status = 'delivered';
+              campaignSend.status = 'sent';
               campaignSend.sent_at = new Date().toISOString();
-              campaignSend.delivered_at = campaignSend.sent_at;
               const ackId = getZapiAckId(zapiResult);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -1865,9 +1863,8 @@ serve(async (req) => {
           console.log('[send-campaign] Resposta carrossel Z-API:', carouselResponse.status, carouselText);
           if (!carouselResponse.ok) throw new Error(`Erro ao enviar carrossel: ${carouselText}`);
 
-          campaignSend.status = 'delivered';
+          campaignSend.status = 'sent';
           campaignSend.sent_at = new Date().toISOString();
-          campaignSend.delivered_at = campaignSend.sent_at;
           results.push({ phone: contact.phone, success: true, messageId: 'carousel-sent' });
 
           await persistCampaignSend(campaignSend, reusableSendId);
@@ -2074,13 +2071,12 @@ serve(async (req) => {
         }
             }
 
-            campaignSend.status = 'delivered';
+            campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
-            campaignSend.delivered_at = campaignSend.sent_at;
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
-            console.log(`📨 Delivered${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone} after accepted send`);
+            console.log(`📨 Sent${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone} after accepted send`);
           } else {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
