@@ -390,11 +390,14 @@ serve(async (req) => {
         const triggerNodes = nodes.filter((n: any) => n.type === "blocoGatilho");
         
         let shouldTrigger = false;
+        let startNodeId = null;
         
         // Check main flow keywords
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
         if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
           shouldTrigger = true;
+          const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
+          startNodeId = initialNode?.id;
         }
         
         // Check blocoGatilho keywords
@@ -403,18 +406,18 @@ serve(async (req) => {
             const nodeKeyword = tNode.data?.keyword;
             if (nodeKeyword && isKeywordMatch(messageRaw, nodeKeyword)) {
               shouldTrigger = true;
+              // When triggered by a specific trigger node, we start from the NEXT node connected to it
+              const edge = (flow.edges || []).find((e: any) => e.source === tNode.id);
+              startNodeId = edge?.target;
               break;
             }
           }
         }
 
-        if (shouldTrigger) {
-          const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
-          if (initialNode) {
-            console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone}`);
-            await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
-            return new Response("flow_triggered", { status: 200, headers: corsHeaders });
-          }
+        if (shouldTrigger && startNodeId) {
+          console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
+          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+          return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
     }
