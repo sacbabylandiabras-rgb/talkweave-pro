@@ -432,9 +432,9 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(167, 139, 250, 0.3);
 }
-.lp-btn-ig {
-  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
-}
+ .lp-btn-ig {
+   background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045) !important;
+ }
 .lp-btn-ig:hover {
   box-shadow: 0 6px 18px rgba(225, 48, 108, 0.3);
 }
