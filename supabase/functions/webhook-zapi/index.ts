@@ -163,6 +163,10 @@ serve(async (req) => {
       }
     }
 
+    const cleanMessageForMatch = isGroup && messageRaw.startsWith('[sender:')
+      ? messageRaw.replace(/^\[sender:[^\]]*\]\s*/, '')
+      : messageRaw;
+
     const isStatusCallback = type === "DeliveryCallback" || 
                            type === "MessageStatusCallback" || 
                            type === "MessageStatus" ||
