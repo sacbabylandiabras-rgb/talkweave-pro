@@ -112,7 +112,7 @@ export default function CheckoutStep3Payment({ config, pixPrice, formName, formE
        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
        const slug = window.location.pathname.split('/pay/')[1]?.split('/')[0] || window.location.pathname.split('/checkout/')[1]?.split('/')[0];
        
-       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+        const endpoint = 'create-pix-charge';
        const body: any = {
          slug, amount: pixPrice,
          customerName: formName || undefined, customerEmail: formEmail || undefined,
