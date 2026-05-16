@@ -440,25 +440,32 @@ serve(async (req) => {
           triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
-          // Log the trigger and the response
-          const { error: logError } = await supabase.from("message_logs").insert({
-            ...logEntryBase,
-            message_received: messageRaw,
-            response_sent: `[Fluxo: ${flow.name}]`,
-            keyword_matched: `__flow_trigger__:${flow.name}`,
-          });
-          if (logError) console.error("Error logging flow trigger:", logError);
-          
-          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+      try {
+        // Log the trigger and the response
+        await supabase.from("message_logs").insert({
+          ...logEntryBase,
+          message_received: messageRaw,
+          response_sent: `[Fluxo: ${flow.name}]`,
+          keyword_matched: `__flow_trigger__:${flow.name}`,
+        });
+      } catch (logErr) {
+        console.error("Error logging flow trigger:", logErr);
+      }
+
+      await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
       
-      // If no trigger found, log the message anyway
-      await supabase.from("message_logs").insert({
-        ...logEntryBase,
-        message_received: messageRaw,
-      });
+      try {
+        // If no trigger found, log the message anyway
+        await supabase.from("message_logs").insert({
+          ...logEntryBase,
+          message_received: messageRaw,
+        });
+      } catch (logErr) {
+        console.error("Error logging message receipt:", logErr);
+      }
     }
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
