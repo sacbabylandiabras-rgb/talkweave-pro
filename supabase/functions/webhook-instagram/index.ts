@@ -4,6 +4,175 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
 const IG_APP_ID = "1629147191696096";
 
+// Helper: extract variables from text
+const replaceVars = (txt: string, vars: Record<string, string>) => {
+  let result = txt || "";
+  for (const [key, value] of Object.entries(vars)) {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+    result = result.replace(regex, value || "");
+  }
+  // Legacy support for specific variables if not in Record
+  if (vars.username) result = result.replace(/\{\{nome_usuario\}\}/g, vars.username);
+  if (vars.text) result = result.replace(/\{\{comentario\}\}/g, vars.text);
+  return result;
+};
+
+// Helper: Main Flow Execution Engine
+const executeFlow = async (params: {
+  auto: any;
+  nodes: any[];
+  edges: any[];
+  startNodeId?: string;
+  context: {
+    userId: string;
+    igPageId: string;
+    senderId: string;
+    senderUsername: string;
+    accessToken: string;
+    commentId?: string;
+    inputText?: string;
+    triggerType: "comment" | "dm" | "story_reply";
+  };
+  supabase: any;
+}) => {
+  const { auto, nodes, edges, startNodeId, context, supabase } = params;
+  const visited = new Set<string>();
+  const wrapUrl = buildWrapUrl(auto.name, context.userId, context.senderUsername);
+
+  const getOutgoing = (nodeId: string, handleFilter?: string) =>
+    edges
+      .filter((e: any) => {
+        if (e.source !== nodeId) return false;
+        if (handleFilter !== undefined) return e.sourceHandle === handleFilter;
+        return true;
+      })
+      .map((e: any) => nodes.find((n: any) => n.id === e.target))
+      .filter(Boolean);
+
+  const runNode = async (node: any) => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+    const d = node.data || {};
+
+    // 1. IG Reply (Comments only)
+    if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
+      try {
+        const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
+        const res = await fetch(`https://graph.facebook.com/v21.0/${context.commentId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
+        });
+        const rd = await res.json();
+        if (res.ok && !rd.error) console.log(`✅ Flow: Reply sent to comment ${context.commentId}`);
+        else console.error("❌ Flow: Reply error:", JSON.stringify(rd));
+      } catch (e) { console.error("❌ Flow: Reply failed:", e); }
+    }
+
+    // 2. IG DM
+    if (node.type === "igDM" && context.senderId && context.accessToken) {
+      try {
+        const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
+        const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+
+        const buildButtonPayload = (text: string, buttons: any[]) => {
+          const templateBtns = buttons.slice(0, 3).map((b: any) => {
+            if (b.type === "reply") return { type: "postback", title: b.title.slice(0, 20), payload: b.title };
+            return { type: "web_url", title: b.title.slice(0, 20), url: wrapUrl(b.url, b.title) };
+          });
+          if (templateBtns.length > 0) {
+            return { attachment: { type: "template", payload: { template_type: "button", text: text || "Escolha uma opção:", buttons: templateBtns } } };
+          }
+          return text ? { text } : null;
+        };
+
+        const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
+
+        if (payload) {
+          const res = await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
+            body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+          });
+          const rd = await res.json();
+          
+          if (!res.ok || rd.error) {
+            const errCode = rd.error?.error_subcode || rd.error?.code;
+            const isWindowError = errCode === 2534022 || (rd.error?.message || "").includes("outside of allowed window");
+            if (isWindowError && context.commentId) {
+               // Attempt Private Reply if direct DM fails due to window
+               await fetch(`https://graph.facebook.com/v21.0/${context.igPageId}/messages`, {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${context.accessToken}` },
+                 body: JSON.stringify({ recipient: { comment_id: context.commentId }, message: payload }),
+               });
+            }
+            console.error(`❌ Flow: DM error:`, JSON.stringify(rd));
+          } else {
+            console.log(`✅ Flow: DM sent to @${context.senderUsername}`);
+          }
+
+          // Log the DM event
+          await supabase.from("instagram_events").insert({
+            user_id: context.userId, event_type: "dm_sent", ig_user_id: context.senderId,
+            username: context.senderUsername, comment_text: dmText, payload: rd, processed: true,
+          });
+        }
+      } catch (e) { console.error("❌ Flow: DM failed:", e); }
+    }
+
+    // 3. Delay
+    if (node.type === "igDelay") {
+      const val = parseInt(d.delayValue) || 0;
+      const unit = d.delayUnit || "seconds";
+      const ms = val * (unit === "hours" ? 3600000 : unit === "minutes" ? 60000 : 1000);
+      if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
+    }
+
+    // 4. WhatsApp
+    if (node.type === "igWhatsApp") {
+      await executeIgWhatsAppNode(d, null, context.userId, context.senderId, context.senderUsername, supabase);
+    }
+
+    // Traversal logic
+    const buttons = (node.data?.buttons || []).filter((b: any) => b.title);
+    const hasButtons = node.type === "igDM" && buttons.length > 0;
+    const hasCollection = node.type === "igDM" && (node.data?.collectWhatsapp || node.data?.collectEmail);
+
+    if (hasCollection || hasButtons) {
+      // STOP traversal - wait for user interaction
+      if (hasButtons) {
+        // But follow the bottom handle if it exists and isn't blocked by buttons
+        const bottomChildren = getOutgoing(node.id, "source-bottom");
+        for (const child of bottomChildren) await runNode(child);
+      }
+      return;
+    }
+
+    const children = edges
+      .filter((e: any) => e.source === node.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"))
+      .map((e: any) => nodes.find((n: any) => n.id === e.target))
+      .filter(Boolean);
+
+    for (const child of children) await runNode(child);
+  };
+
+  if (startNodeId) {
+    const startNode = nodes.find(n => n.id === startNodeId);
+    if (startNode) await runNode(startNode);
+  } else {
+    // Find trigger nodes that match current trigger type
+    const triggers = nodes.filter(n => 
+      n.type === "igGatilho" && 
+      (n.data?.triggerType === context.triggerType || (!n.data?.triggerType && context.triggerType === "comment"))
+    );
+    for (const t of triggers) {
+      const children = getOutgoing(t.id);
+      for (const c of children) await runNode(c);
+    }
+  }
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -747,8 +916,40 @@ serve(async (req) => {
                 }
               }
 
-              if (change.field === "mentions") {
-                console.log("📢 Mention:", JSON.stringify(change.value));
+              if (change.field === "mentions" && change.value) {
+                const mention = change.value;
+                const fromId = mention.from?.id || "";
+                const fromUsername = mention.from?.username || "";
+                const mediaId = mention.media_id || "";
+                console.log(`📢 Story Mention from @${fromUsername} (Media: ${mediaId})`);
+
+                const { data: automations } = await supabase
+                  .from("instagram_automations")
+                  .select("*")
+                  .eq("user_id", userId)
+                  .eq("active", true);
+
+                for (const auto of (automations || [])) {
+                  let flowNodes: any[] = [];
+                  let flowEdges: any[] = [];
+                  try {
+                    const parsed = JSON.parse(auto.dm_message || "");
+                    if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                      flowNodes = parsed.nodes;
+                      flowEdges = parsed.edges || [];
+                    }
+                  } catch { continue; }
+
+                  // For mentions, we use triggerType: "story_reply"
+                  await executeFlow({
+                    auto, nodes: flowNodes, edges: flowEdges,
+                    context: {
+                      userId, igPageId, senderId: fromId, senderUsername: fromUsername,
+                      accessToken, inputText: "Menção em Story", triggerType: "story_reply",
+                    },
+                    supabase
+                  });
+                }
               }
             }
           }
@@ -790,83 +991,14 @@ serve(async (req) => {
 
                       console.log(`✅ Found matching button "${title}" at index ${btnIndex} in node ${node.id}`);
 
-                      // Follow the edge from this button's handle
                       const handleId = `btn-${btnIndex}`;
                       const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
-
-                      const replaceVars = (txt: string) =>
-                        txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
-                           .replace(/\{\{comentario\}\}/g, title);
-
-                      const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
-                      const visited = new Set<string>();
-                      const executeNode = async (n: any) => {
-                        if (visited.has(n.id)) return;
-                        visited.add(n.id);
-                        const d = n.data || {};
-
-                        if (n.type === "igDM" && accessToken) {
-                          const dmText = replaceVars(d.message || "");
-                          const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-                          let messagePayload: any;
-                          if (dmButtons.length > 0) {
-                            const templateBtns = dmButtons.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
-                            });
-                            messagePayload = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
-                          } else if (dmText) {
-                            messagePayload = { text: dmText };
-                          }
-                          if (messagePayload) {
-                            const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                              body: JSON.stringify({ recipient: { id: senderId }, message: messagePayload }),
-                            });
-                            const rd = await res.json();
-                            if (res.ok && !rd.error) console.log(`✅ Branch DM sent to ${senderId}`);
-                            else console.error("❌ Branch DM error:", JSON.stringify(rd));
-                          }
-                        }
-
-                        if (n.type === "igDelay") {
-                          const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
-                          if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
-                        }
-
-                        if (n.type === "igWhatsApp") {
-                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
-                        }
-
-                        // Continue traversal (stop at button/collection nodes)
-                        const btnCount = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && hasCol) {
-                          console.log(`⏹ Branch DM node collecting data — STOPPING until user responds`);
-                        } else if (n.type === "igDM" && btnCount > 0) {
-                          const defaultEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
-                          for (const e of defaultEdges) {
-                            const next = fNodes.find((fn: any) => fn.id === e.target);
-                            if (next) await executeNode(next);
-                          }
-                        } else {
-                          const nextEdges = fEdges.filter((e: any) => {
-                            if (e.source !== n.id) return false;
-                            const h = e.sourceHandle || "";
-                            return !h.startsWith("btn-") && !h.startsWith("collect-");
-                          });
-                          for (const e of nextEdges) {
-                            const next = fNodes.find((fn: any) => fn.id === e.target);
-                            if (next) await executeNode(next);
-                          }
-                        }
-                      };
-
                       for (const edge of branchEdges) {
-                        const target = fNodes.find((fn: any) => fn.id === edge.target);
-                        if (target) await executeNode(target);
+                        await executeFlow({
+                          auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
+                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: title, triggerType: "dm" },
+                          supabase
+                        });
                       }
                       break; // Only process first matching automation
                     }
@@ -906,79 +1038,97 @@ serve(async (req) => {
 
                       const handleId = `btn-${btnIndex}`;
                       const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
-
-                      const replaceVars = (txt: string) =>
-                        txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
-                           .replace(/\{\{comentario\}\}/g, title);
-
-                      const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
-                      const visited = new Set<string>();
-                      const executeNode = async (n: any) => {
-                        if (visited.has(n.id)) return;
-                        visited.add(n.id);
-                        const d = n.data || {};
-
-                        if (n.type === "igDM" && accessToken) {
-                          const dmText = replaceVars(d.message || "");
-                          const dmBtns = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-                          let mp: any;
-                          if (dmBtns.length > 0) {
-                            const templateBtns = dmBtns.slice(0, 3).map((b: any) => {
-                              if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                              const trackedUrl = wrapUrl(b.url, b.title || "Link");
-                              return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
-                            });
-                            mp = { attachment: { type: "template", payload: { template_type: "button", text: dmText || "Selecione:", buttons: templateBtns } } };
-                          } else if (dmText) {
-                            mp = { text: dmText };
-                          }
-                          if (mp) {
-                            const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                              body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
-                            });
-                            const rd = await res.json();
-                            if (res.ok && !rd.error) console.log(`✅ QR Branch DM sent to ${senderId}`);
-                            else console.error("❌ QR Branch DM error:", JSON.stringify(rd));
-                          }
-                        }
-
-                        if (n.type === "igDelay") {
-                          const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
-                          if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
-                        }
-
-                        if (n.type === "igWhatsApp") {
-                          await executeIgWhatsAppNode(d, null, userId, senderId, event.sender?.username || "", supabase);
-                        }
-
-                        const btnCount2 = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                        const hasCol2 = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
-                        if (n.type === "igDM" && hasCol2) {
-                          console.log(`⏹ QR DM node collecting data — STOPPING until user responds`);
-                        } else if (n.type === "igDM" && btnCount2 > 0) {
-                          const defEdges = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
-                          for (const e of defEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
-                        } else {
-                          const nextEdges = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"));
-                          for (const e of nextEdges) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
-                        }
-                      };
-
                       for (const edge of branchEdges) {
-                        const target = fNodes.find((fn: any) => fn.id === edge.target);
-                        if (target) await executeNode(target);
+                        await executeFlow({
+                          auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
+                          context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: title, triggerType: "dm" },
+                          supabase
+                        });
                       }
                       break;
                     }
                   } catch { /* not flow JSON */ }
                 }
               } else if (event.message && !event.message.quick_reply && !event.message.is_echo) {
-                const dmText = event.message.text || "";
+                const dmText = (event.message.text || "").trim();
                 console.log(`📨 DM from ${senderId}: ${dmText || "(media)"}`);
 
-                // Check if this is a WhatsApp/Email collection response
+                const isStoryReply = !!event.message.reply_to?.story || !!event.message.story;
+                const isStoryMention = !!event.message.attachments?.some((a: any) => a.type === "story_mention");
+                const fromUsername = event.sender?.username || "";
+
+                if (senderId && accessToken) {
+                  // Log the event
+                  await supabase.from("instagram_events").insert({
+                    user_id: userId,
+                    event_type: isStoryReply ? "story_reply" : "dm",
+                    ig_user_id: senderId,
+                    username: fromUsername,
+                    comment_text: dmText,
+                    payload: event,
+                    processed: false,
+                  });
+
+                  // Save/update contact
+                  const { data: existingContact } = await supabase
+                    .from("instagram_contacts")
+                    .select("id")
+                    .eq("user_id", userId)
+                    .eq("ig_user_id", senderId)
+                    .maybeSingle();
+
+                  if (!existingContact) {
+                    await supabase.from("instagram_contacts").insert({
+                      user_id: userId,
+                      ig_user_id: senderId,
+                      username: fromUsername,
+                      source: isStoryReply ? "story_reply" : "dm",
+                    });
+                  }
+
+                  // 2. Check for new flow triggers (DM keywords or Story interactions)
+                  const { data: triggerAutos } = await supabase
+                    .from("instagram_automations")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .eq("active", true);
+
+                  for (const auto of (triggerAutos || [])) {
+                    let fNodes: any[] = [];
+                    let fEdges: any[] = [];
+                    try {
+                      const parsed = JSON.parse(auto.dm_message || "");
+                      if (parsed.__flow__ && parsed.nodes?.length > 0) {
+                        fNodes = parsed.nodes;
+                        fEdges = parsed.edges || [];
+                      } else continue;
+                    } catch { continue; }
+
+                    const eventTriggerType = (isStoryReply || isStoryMention) ? "story_reply" : "dm";
+                    
+                    // For DM triggers, check keywords
+                    if (eventTriggerType === "dm" && dmText) {
+                      const keywords = (auto.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+                      const matched = keywords.length === 0 || keywords.some((kw: string) => dmText.toLowerCase().includes(kw));
+                      if (!matched) continue;
+                    } else if (eventTriggerType === "dm" && !dmText) {
+                      // Media DMs only trigger if no keywords defined or "dm" trigger explicitly allows it (scope handles that)
+                      if ((auto.keyword || "").trim().length > 0) continue;
+                    }
+
+                    console.log(`🚀 Starting flow "${auto.name}" for ${eventTriggerType} from @${event.sender?.username || senderId}`);
+                    await executeFlow({
+                      auto, nodes: fNodes, edges: fEdges,
+                      context: {
+                        userId, igPageId, senderId, senderUsername: event.sender?.username || senderId,
+                        accessToken, inputText: dmText, triggerType: eventTriggerType,
+                      },
+                      supabase
+                    });
+                  }
+                }
+
+                // 3. Check if this is a WhatsApp/Email collection response (continuation of existing flow)
                 if (dmText && senderId && accessToken) {
                   const isPhone = /\d{8,15}/.test(dmText.replace(/\D/g, ""));
                   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dmText.trim());
@@ -1036,72 +1186,13 @@ serve(async (req) => {
                           });
                           console.log(`💾 Lead saved: ${collectsWa ? "whatsapp" : "email"} = ${dmText.trim()}`);
                           
-                          // Follow the collection handle edges
                           const branchEdges = fEdges.filter((e: any) => e.source === node.id && e.sourceHandle === handleId);
-
-                          const replaceVars = (txt: string) =>
-                            txt.replace(/\{\{nome_usuario\}\}/g, event.sender?.username || "")
-                               .replace(/\{\{comentario\}\}/g, dmText);
-
-                          const wrapUrl = buildWrapUrl(auto.name, userId, event.sender?.username || senderId);
-                          const visited = new Set<string>();
-                          const executeNode = async (n: any) => {
-                            if (visited.has(n.id)) return;
-                            visited.add(n.id);
-                            const d = n.data || {};
-
-                            if (n.type === "igDM" && accessToken) {
-                              const msg = replaceVars(d.message || "");
-                              const btns = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-                              let mp: any;
-                              if (btns.length > 0) {
-                                const templateBtns = btns.slice(0, 3).map((b: any) => {
-                                  if (b.type === "reply") return { type: "postback", title: (b.title || "").slice(0, 20), payload: b.title || "reply" };
-                                  const trackedUrl = wrapUrl(b.url, b.title || "Link");
-                                  return { type: "web_url", title: (b.title || "").slice(0, 20), url: trackedUrl };
-                                });
-                                mp = { attachment: { type: "template", payload: { template_type: "button", text: msg || "Selecione:", buttons: templateBtns } } };
-                              } else if (msg) {
-                                mp = { text: msg };
-                              }
-                              if (mp) {
-                                const res = await fetch(`https://graph.facebook.com/v21.0/${igPageId}/messages`, {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-                                  body: JSON.stringify({ recipient: { id: senderId }, message: mp }),
-                                });
-                                const rd = await res.json();
-                                if (res.ok && !rd.error) console.log(`✅ Collection branch DM sent to ${senderId}`);
-                                else console.error("❌ Collection branch DM error:", JSON.stringify(rd));
-                              }
-                            }
-
-                            if (n.type === "igDelay") {
-                              const ms = (parseInt(d.delayValue) || 0) * (d.delayUnit === "hours" ? 3600000 : d.delayUnit === "minutes" ? 60000 : 1000);
-                              if (ms > 0 && ms <= 30000) await new Promise(r => setTimeout(r, ms));
-                            }
-
-                            if (n.type === "igWhatsApp") {
-                              const collectedPhone = isPhone ? dmText.trim() : null;
-                              await executeIgWhatsAppNode(d, collectedPhone, userId, senderId, event.sender?.username || "", supabase);
-                            }
-
-                            const btnC = (n.data?.buttons || []).filter((b: any) => b.title).length;
-                            const hasC = n.type === "igDM" && (n.data?.collectName || n.data?.collectWhatsapp || n.data?.collectEmail);
-                            if (n.type === "igDM" && hasC) {
-                              console.log(`⏹ Collection branch DM node also collecting — STOPPING until user responds`);
-                            } else if (n.type === "igDM" && btnC > 0) {
-                              const defE = fEdges.filter((e: any) => e.source === n.id && e.sourceHandle === "source-bottom");
-                              for (const e of defE) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
-                            } else {
-                              const nxtE = fEdges.filter((e: any) => e.source === n.id && !(e.sourceHandle || "").startsWith("btn-") && !(e.sourceHandle || "").startsWith("collect-"));
-                              for (const e of nxtE) { const next = fNodes.find((fn: any) => fn.id === e.target); if (next) await executeNode(next); }
-                            }
-                          };
-
                           for (const edge of branchEdges) {
-                            const target = fNodes.find((fn: any) => fn.id === edge.target);
-                            if (target) await executeNode(target);
+                            await executeFlow({
+                              auto, nodes: fNodes, edges: fEdges, startNodeId: edge.target,
+                              context: { userId, igPageId, senderId, senderUsername: event.sender?.username || senderId, accessToken, inputText: dmText, triggerType: "dm" },
+                              supabase
+                            });
                           }
                           break;
                         }
