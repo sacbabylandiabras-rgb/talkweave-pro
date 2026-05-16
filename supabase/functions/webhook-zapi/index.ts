@@ -80,8 +80,10 @@ serve(async (req) => {
       : chatId;
     const instanceId = webhook?.instanceId || "";
     
-    // ✅ CORREÇÃO 1: Ignorar webhooks de presença ANTES de qualquer processamento
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+    const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
+
+    // Ignore presence webhooks
     if (
       type === "PresenceChatCallback" ||
       type === "PresenceCallback" ||
@@ -91,11 +93,9 @@ serve(async (req) => {
       webhook?.status === "COMPOSING" ||
       webhook?.status === "RECORDING"
     ) {
-      console.log(`Ignorando webhook de presença: type=${type}, status=${webhook?.status}`);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // Ignore status callbacks and other non-message types
     const isMessage = !type || 
                      type === "OnMessage" || 
                      type === "MessageCallback" || 
@@ -105,7 +105,6 @@ serve(async (req) => {
                      type === "ButtonReply" ||
                      type === "ListResponseMessage";
     
-    // Determine if it's a button response to handle fromMe correctly
     const isButtonResponse = type === "ButtonsResponseMessage" || 
                             type === "ButtonReply" || 
                             type === "ListResponseMessage" || 
@@ -113,6 +112,20 @@ serve(async (req) => {
                             !!webhook?.buttonResponseMessage ||
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
+
+    // Deduplication check
+    if (messageId) {
+      const { data: existingLog } = await supabase
+        .from("message_logs")
+        .select("id")
+        .eq("message_id", messageId)
+        .maybeSingle();
+
+      if (existingLog) {
+        console.log(`Ignoring duplicate message: ${messageId}`);
+        return new Response("duplicate", { status: 200, headers: corsHeaders });
+      }
+    }
 
     // Extract sender info for group prefixing
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
@@ -228,19 +241,13 @@ serve(async (req) => {
 
     // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
-        // REGISTRA MENSAGEM NO LOG ANTES DE SAIR, MESMO SE FOR SELF-MESSAGE
-        if (isMessage && fromMe && !isButtonResponse) {
-          console.log(`Registering self-message for ${chatId}`);
-          await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId,
-            message_received: null,
-            response_sent: messageRaw,
-            instance_id: instanceId,
-            keyword_matched: "__manual_send__",
-            timestamp: new Date().toISOString()
-          });
-        }
+    const logEntry = {
+      user_id: userId,
+      phone: chatId,
+      message_id: messageId,
+      instance_id: instanceId,
+      timestamp: new Date().toISOString()
+    };
 
         if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
         return new Response("ok", { status: 200, headers: corsHeaders });
