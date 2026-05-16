@@ -151,10 +151,10 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
   // Auto-generate PIX when entering step 3 (only on public checkout)
   useEffect(() => {
-    if (isPublicCheckout && step === getStepNumbers(config).payment && !pixData && !pixLoading && !pixError) {
+    if (isPublicCheckout && step === getStepNumbers(config).payment && paymentMethod === 'pix' && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
-  }, [step]);
+  }, [step, paymentMethod]);
 
   // Poll for payment status once we have a correlationID
   useEffect(() => {
