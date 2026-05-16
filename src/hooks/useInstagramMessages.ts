@@ -49,9 +49,11 @@
            table: "instagram_events",
          },
          (payload) => {
-           console.log("[InstagramMessages] Realtime event received:", payload.eventType, payload.new?.id);
-           
-           const record = (payload.new || payload.old) as InstagramEvent;
+            const newRecord = payload.new as any;
+            const oldRecord = payload.old as any;
+            console.log("[InstagramMessages] Realtime event received:", payload.eventType, newRecord?.id || oldRecord?.id);
+            
+            const record = (newRecord || oldRecord) as InstagramEvent;
            if (!record || record.user_id !== userId) return;
  
            if (["dm", "dm_sent", "story_reply"].includes(record.event_type)) {
