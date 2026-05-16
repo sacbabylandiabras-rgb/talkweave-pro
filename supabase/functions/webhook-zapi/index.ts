@@ -416,6 +416,18 @@ serve(async (req) => {
 
         if (shouldTrigger && startNodeId) {
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
+          
+          // Register the interaction before executing
+          await supabase.from("message_logs").insert({
+            user_id: userId,
+            phone: chatId || phone,
+            message_received: messageRaw,
+            response_sent: `[Fluxo: ${flow.name}]`,
+            instance_id: instanceId,
+            keyword_matched: `__flow_trigger__:${flow.name}`,
+            timestamp: new Date().toISOString()
+          });
+
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
