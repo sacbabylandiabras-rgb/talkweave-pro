@@ -98,9 +98,11 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
   const isMobile = useIsMobile();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [quantity, setQuantity] = useState(1);
-  const [pixLoading, setPixLoading] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
-  const [pixError, setPixError] = useState<string | null>(null);
+   const [pixLoading, setPixLoading] = useState(false);
+   const [pixData, setPixData] = useState<{ qrCodeImage: string; brCode: string; correlationID?: string } | null>(null);
+   const [pixError, setPixError] = useState<string | null>(null);
+   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
+   const [cardData, setCardInfo] = useState({ number: "", holder: "", expiry: "", cvv: "", installments: "1" });
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState({ m: config.timerMinutes || 15, s: 0 });
   const [showAllBanks, setShowAllBanks] = useState(false);
@@ -149,10 +151,10 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
 
   // Auto-generate PIX when entering step 3 (only on public checkout)
   useEffect(() => {
-    if (isPublicCheckout && step === getStepNumbers(config).payment && !pixData && !pixLoading && !pixError) {
+    if (isPublicCheckout && step === getStepNumbers(config).payment && paymentMethod === 'pix' && !pixData && !pixLoading && !pixError) {
       handleGeneratePix();
     }
-  }, [step]);
+  }, [step, paymentMethod]);
 
   // Poll for payment status once we have a correlationID
   useEffect(() => {
@@ -202,35 +204,55 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
     };
   }, [pixData?.correlationID, paymentApproved]);
 
-  const handleGeneratePix = async () => {
-    setPixLoading(true);
-    setPixError(null);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const slug = window.location.pathname.split('/pay/')[1];
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug, amount: pixPrice,
-          customerName: formName || undefined, customerEmail: formEmail || undefined,
-          customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const detailedMessage = data?.message || data?.error || 'Erro ao gerar cobrança';
-        const suffix = data?.attempt ? ` (tentativa: ${data.attempt})` : '';
-        throw new Error(`${detailedMessage}${suffix}`);
-      }
-      setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
-    } catch (e: any) {
-      setPixError(e.message || 'Erro ao gerar PIX');
-    } finally {
-      setPixLoading(false);
-    }
-  };
+   const handleGeneratePix = async () => {
+     setPixLoading(true);
+     setPixError(null);
+     try {
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+       const slug = window.location.pathname.split('/pay/')[1];
+       
+       // Use specialized Pagar.me function if credit card or fallback to pix-charge
+       const endpoint = paymentMethod === 'credit_card' ? 'create-pagarme-charge' : 'create-pix-charge';
+       const body: any = {
+         slug, amount: pixPrice,
+         customerName: formName || undefined, customerEmail: formEmail || undefined,
+         customerPhone: formPhone || undefined, customerCpf: formCpf || undefined,
+       };
+ 
+       if (paymentMethod === 'credit_card') {
+         const [month, year] = cardData.expiry.split('/');
+         body.paymentMethod = 'credit_card';
+         body.cardInfo = {
+           number: cardData.number,
+           holder_name: cardData.holder,
+           exp_month: parseInt(month),
+           exp_year: 2000 + parseInt(year),
+           cvv: cardData.cvv,
+           installments: parseInt(cardData.installments)
+         };
+       }
+ 
+       const res = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+         method: 'POST',
+         headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
+         body: JSON.stringify(body),
+       });
+       const data = await res.json();
+       if (!res.ok) {
+         throw new Error(data?.error || 'Erro ao processar pagamento');
+       }
+       if (data.status === 'approved') {
+         setPaymentApproved(true);
+       } else {
+         setPixData({ qrCodeImage: data.qrCodeImage, brCode: data.brCode, correlationID: data.correlationID });
+       }
+     } catch (e: any) {
+       setPixError(e.message || 'Erro ao processar');
+     } finally {
+       setPixLoading(false);
+     }
+   };
 
   const handleCopyPix = () => {
     if (pixData?.brCode) {
@@ -728,72 +750,159 @@ export default function CheckoutPreview({ config, templateName, elements = [], i
           </>
         )}
 
-        {/* ───── STEP 3: Payment (QR Code + Info) ───── */}
-        {(step === sn.payment || isOneStep) && (
-          <>
-            {/* Header */}
-            <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
-              <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>Já é quase seu...</h3>
-              <p className="text-sm" style={{ color: s.cardDesc }}>
-                Pague seu pix dentro de{" "}
-                <span className="font-bold" style={{ color: s.primary }}>{timerStr}</span>{" "}
-                para garantir sua compra
-              </p>
-              <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
-                <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
-                <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
-              </div>
-            </div>
+         {/* ───── STEP 3: Payment ───── */}
+         {(step === sn.payment || isOneStep) && (
+           <>
+             {/* Payment Method Selection */}
+             {!pixData && !paymentApproved && (
+               <div className="rounded-xl border p-2 flex gap-1 mb-4" style={cardStyle(s)}>
+                 <button 
+                   onClick={() => setPaymentMethod("pix")}
+                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "pix" ? "shadow-sm border" : "opacity-60"}`}
+                   style={paymentMethod === "pix" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                 >
+                   <PixIcon size={16} /> PIX
+                 </button>
+                 <button 
+                   onClick={() => setPaymentMethod("credit_card")}
+                   className={`flex-1 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === "credit_card" ? "shadow-sm border" : "opacity-60"}`}
+                   style={paymentMethod === "credit_card" ? { background: s.isDark ? "#222" : "#f3f4f6", borderColor: s.primary } : {}}
+                 >
+                   <CreditCard className="w-4 h-4" /> Cartão
+                 </button>
+               </div>
+             )}
+ 
+             {/* Header */}
+             <div className="rounded-xl border p-5 space-y-3" style={cardStyle(s)}>
+               <h3 className="text-lg font-bold" style={{ color: s.cardTitle }}>
+                 {paymentMethod === 'pix' ? 'Já é quase seu...' : 'Finalize sua compra'}
+               </h3>
+               {paymentMethod === 'pix' && (
+                 <p className="text-sm" style={{ color: s.cardDesc }}>
+                   Pague seu pix dentro de <span className="font-bold" style={{ color: s.primary }}>{timerStr}</span> para garantir sua compra
+                 </p>
+               )}
+               <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${s.cardBorder}` }}>
+                 <span className="text-sm font-medium" style={{ color: s.cardDesc }}>Valor do pedido</span>
+                 <span className="text-xl font-bold" style={{ color: s.cardTitle }}>{formatCurrency(pixPrice)}</span>
+               </div>
+             </div>
+ 
+             {/* Payment UI Section */}
+             <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
+               {paymentMethod === 'credit_card' && !paymentApproved ? (
+                 <div className="space-y-3">
+                   <div className="grid gap-3">
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Número do cartão</label>
+                       <input 
+                         className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                         placeholder="0000 0000 0000 0000"
+                         value={cardData.number} onChange={e => setCardInfo({...cardData, number: e.target.value})}
+                       />
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Nome no cartão</label>
+                       <input 
+                         className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                         placeholder="NOME DO TITULAR"
+                         value={cardData.holder} onChange={e => setCardInfo({...cardData, holder: e.target.value.toUpperCase()})}
+                       />
+                     </div>
+                     <div className="grid grid-cols-2 gap-3">
+                       <div>
+                         <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Validade</label>
+                         <input 
+                           className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                           placeholder="MM/AA"
+                           value={cardData.expiry} onChange={e => setCardInfo({...cardData, expiry: e.target.value})}
+                         />
+                       </div>
+                       <div>
+                         <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">CVV</label>
+                         <input 
+                           className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} 
+                           placeholder="000"
+                           value={cardData.cvv} onChange={e => setCardInfo({...cardData, cvv: e.target.value})}
+                         />
+                       </div>
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-bold uppercase mb-1 block opacity-60">Parcelas</label>
+                       <select className="w-full px-3 py-2.5 text-sm border outline-none" style={inputStyle(s)} value={cardData.installments} onChange={e => setCardInfo({...cardData, installments: e.target.value})}>
+                         {[1,2,3,4,5,6,10,12].map(n => (
+                           <option key={n} value={n}>{n}x de {formatCurrency(pixPrice / n)}</option>
+                         ))}
+                       </select>
+                     </div>
+                   </div>
+                   {pixError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg">{pixError}</div>}
+                   <button 
+                     onClick={handleGeneratePix} disabled={pixLoading}
+                     className="w-full py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                     style={buttonStyle(s)}
+                   >
+                     {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                     {pixLoading ? 'Processando...' : 'Finalizar Pagamento'}
+                   </button>
+                 </div>
+                ) : paymentMethod === 'pix' ? (
+                  pixData ? (
+                    <div className="space-y-4">
+                      <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                        <Smartphone className="w-4 h-4 inline mr-1" />
+                        aponte a câmera do seu celular
+                      </p>
+                      <div className="flex justify-center">
+                        <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
+                      </div>
 
-
-            {/* QR Code Section */}
-            <div className="rounded-xl border p-5 space-y-4" style={cardStyle(s)}>
-              {pixData ? (
-                <div className="space-y-4">
-                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
-                    <Smartphone className="w-4 h-4 inline mr-1" />
-                    aponte a câmera do seu celular
-                  </p>
-                  <div className="flex justify-center">
-                    <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-52 h-52 rounded-lg" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
-                    <div className="flex gap-2">
-                      <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
-                      <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
-                        <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium" style={{ color: s.cardLabel }}>Código Pix</p>
+                        <div className="flex gap-2">
+                          <input readOnly value={pixData.brCode} className="flex-1 px-3 py-2 text-xs border rounded-lg truncate" style={{ borderColor: s.inputBorder, background: s.isDark ? "#111" : "#F9FAFB", color: s.cardDesc }} />
+                          <button onClick={handleCopyPix} className="px-4 py-2 text-xs font-medium rounded-lg flex items-center gap-1" style={{ background: copied ? '#10B981' : s.primary, color: 'white', borderRadius: s.buttonRadius }}>
+                            <Copy className="w-3 h-3" /> {copied ? 'Copiado!' : 'Copiar'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
+                        <Smartphone className="w-4 h-4 inline mr-1" />
+                        aponte a câmera do seu celular
+                      </p>
+                      <div className="flex justify-center">
+                        <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
+                          <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                        </div>
+                      </div>
+                      {pixError && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
+                          <AlertTriangle className="w-4 h-4" /> {pixError}
+                        </div>
+                      )}
+                      <button
+                        type="button" onClick={handleGeneratePix} disabled={pixLoading}
+                        className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+                        style={buttonStyle(s)}
+                      >
+                        {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                        {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
                       </button>
                     </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs font-medium text-center" style={{ color: s.cardLabel }}>
-                    <Smartphone className="w-4 h-4 inline mr-1" />
-                    aponte a câmera do seu celular
-                  </p>
-                  <div className="flex justify-center">
-                    <div className="w-52 h-52 rounded-lg flex items-center justify-center" style={{ background: s.isDark ? "#222" : "#F3F4F6" }}>
-                      <QrCode className="w-20 h-20" style={{ color: s.cardDesc }} />
+                  )
+                ) : paymentApproved ? (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                      <Check className="w-8 h-8 text-green-500" />
                     </div>
+                    <h4 className="font-bold text-lg">Pagamento Confirmado!</h4>
+                    <p className="text-sm opacity-60">Sua compra foi processada com sucesso.</p>
                   </div>
-                  {pixError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-xs">
-                      <AlertTriangle className="w-4 h-4" /> {pixError}
-                    </div>
-                  )}
-                  <button
-                    type="button" onClick={handleGeneratePix} disabled={pixLoading}
-                    className="w-full py-3.5 font-bold text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
-                    style={buttonStyle(s)}
-                  >
-                    {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                    {pixLoading ? 'Gerando...' : 'Gerar QR Code PIX'}
-                  </button>
-                </div>
-              )}
+                ) : null}
             </div>
 
             {/* How to pay */}
