@@ -19,9 +19,9 @@
      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
      const supabase = createClient(supabaseUrl, supabaseKey)
  
-      const event = payload.event || (payload.type === 'order.paid' ? 'order.paid' : null)
-      const order = payload.data || payload.order
-      const externalId = order?.code || order?.metadata?.code
+      const event = payload.event || payload.type
+      const order = payload.data?.order || payload.data || payload.order
+      const externalId = order?.code || order?.metadata?.code || payload.data?.code
       const pagarmeId = order?.id
  
      if (!externalId) {
