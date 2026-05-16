@@ -376,15 +376,6 @@ export const useMessageLogs = (
     } catch { return new Set(); }
   });
 
-   // Limpar logs ao trocar de instância para evitar exibir mensagens do número anterior
-   useEffect(() => {
-     setMessageLogs([]);
-     setCampaignSends([]);
-     lastLogsRef.current = '';
-     lastSendsRef.current = '';
-     fetchAll();
-   }, [filterInstanceId]);
-
   useEffect(() => {
     localStorage.setItem('talkweave_deleted_conversations', JSON.stringify(Array.from(deletedPhones)));
   }, [deletedPhones]);
@@ -675,6 +666,15 @@ export const useMessageLogs = (
     ]);
     setLoading(false);
   }, [fetchLidMap, fetchMessageLogs, fetchCampaignSends, fetchSavedContacts]);
+
+  // Limpar logs ao trocar de instância para evitar exibir mensagens do número anterior.
+  useEffect(() => {
+    setMessageLogs([]);
+    setCampaignSends([]);
+    lastLogsRef.current = '';
+    lastSendsRef.current = '';
+    fetchAll();
+  }, [filterInstanceId, fetchAll]);
 
   const saveContact = useCallback(async (phone: string, name: string) => {
     const token = await getToken();
