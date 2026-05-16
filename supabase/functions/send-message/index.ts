@@ -1006,6 +1006,20 @@ serve(async (req) => {
       }
     }
 
+     const isInstagram = payloadRaw.isInstagram || (instanceId && instanceId.startsWith('meta-ig-'));
+ 
+     if (isInstagram) {
+       // Log outgoing Instagram message
+       await supabase.from('instagram_events').insert({
+         user_id: credentials.userId,
+         event_type: 'dm_sent',
+         ig_user_id: phones[0], // Direct target
+         username: phones[0], // Direct target username (if provided as phone)
+         comment_text: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         payload: { ...payloadRaw, outgoing: true },
+       });
+     }
+ 
     await supabase.from('message_logs').insert({
       phone: resolvedPhone,
       message_received: null,

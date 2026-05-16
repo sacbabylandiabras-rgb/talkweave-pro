@@ -114,6 +114,37 @@ const executeIgWhatsAppNode = async (
   });
 };
 
+ const logInstagramEvent = async (supabase: any, params: {
+   userId: string;
+   eventType: string;
+   igUserId: string;
+   username: string;
+   text: string;
+   payload?: any;
+ }) => {
+   try {
+     await supabase.from("instagram_events").insert({
+       user_id: params.userId,
+       event_type: params.eventType,
+       ig_user_id: params.igUserId,
+       username: params.username,
+       comment_text: params.text,
+       payload: params.payload || {},
+     });
+     
+     // Update or insert contact
+     await supabase.from("instagram_contacts").upsert({
+       user_id: params.userId,
+       ig_user_id: params.igUserId,
+       username: params.username,
+       source: params.eventType,
+       updated_at: new Date().toISOString()
+     }, { onConflict: 'user_id,ig_user_id' });
+   } catch (e) {
+     console.error("Error logging instagram event:", e);
+   }
+ };
+ 
 const executeFlow = async (params: {
   auto: any;
   nodes: any[];
@@ -179,13 +210,23 @@ const executeFlow = async (params: {
 
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
-        if (payload) {
-          await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
-            body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
-          });
-        }
+         if (payload) {
+           await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
+             method: "POST",
+             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
+             body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+           });
+           
+           // Log automation outgoing message
+           await logInstagramEvent(supabase, {
+             userId: context.userId,
+             eventType: "dm_sent",
+             igUserId: context.senderId,
+             username: context.senderUsername,
+             text: dmText,
+             payload: { automation_id: auto.id, type: "automation" }
+           });
+         }
       } catch (e) { console.error("Flow DM failed:", e); }
     }
 
@@ -268,8 +309,17 @@ serve(async (req) => {
 
           if (entry.changes) {
             for (const change of entry.changes) {
-              if (change.field === "comments") {
-                const comment = change.value;
+               if (change.field === "comments") {
+                 const comment = change.value;
+                 await logInstagramEvent(supabase, {
+                   userId: cred.user_id,
+                   eventType: "comment",
+                   igUserId: comment.from.id,
+                   username: comment.from.username,
+                   text: comment.text,
+                   payload: comment
+                 });
+ 
                 const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
                 for (const auto of (automations || [])) {
                     try {
@@ -278,9 +328,18 @@ serve(async (req) => {
                     } catch {}
                 }
               }
-              if (change.field === "follow" || change.field === "follows") {
-                  const fromId = change.value.from?.id || change.value.id;
-                  const fromUsername = change.value.from?.username || change.value.username;
+               if (change.field === "follow" || change.field === "follows") {
+                   const fromId = change.value.from?.id || change.value.id;
+                   const fromUsername = change.value.from?.username || change.value.username;
+                   await logInstagramEvent(supabase, {
+                     userId: cred.user_id,
+                     eventType: "follow",
+                     igUserId: fromId,
+                     username: fromUsername,
+                     text: "Seguiu o perfil",
+                     payload: change.value
+                   });
+ 
                   const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
                   for (const auto of (automations || [])) {
                       try {
@@ -292,11 +351,22 @@ serve(async (req) => {
             }
           }
 
-          if (entry.messaging) {
-            for (const event of entry.messaging) {
-               const senderId = event.sender.id;
-               const dmText = event.message?.text || "";
-               const isStory = !!event.message?.reply_to?.story || !!event.message?.story;
+           if (entry.messaging) {
+             for (const event of entry.messaging) {
+                const senderId = event.sender.id;
+                const senderUsername = event.sender.username || senderId;
+                const dmText = event.message?.text || "";
+                const isStory = !!event.message?.reply_to?.story || !!event.message?.story;
+                
+                await logInstagramEvent(supabase, {
+                  userId: cred.user_id,
+                  eventType: isStory ? "story_reply" : "dm",
+                  igUserId: senderId,
+                  username: senderUsername,
+                  text: dmText,
+                  payload: event
+                });
+ 
                const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
                for (const auto of (automations || [])) {
                    try {

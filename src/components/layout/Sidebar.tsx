@@ -91,6 +91,7 @@ const zapiMenuItems = [
 
  const instagramMenuItems = [
    { id: "ig-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/instagram/dashboard" },
+   { id: "ig-mensagens", label: "Mensagens", icon: MessageCircle, path: "/instagram/mensagens" },
    { id: "ig-enviar", label: "Enviar", icon: Send, path: "/instagram/enviar" },
    { id: "ig-campanhas", label: "Campanhas", icon: Megaphone, path: "/instagram/campanhas" },
    { id: "ig-modelos", label: "Modelos", icon: LayoutTemplate, path: "/instagram/modelos" },
