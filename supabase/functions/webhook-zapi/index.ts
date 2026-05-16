@@ -386,10 +386,32 @@ serve(async (req) => {
 
     if (!flowStateHandled) {
       for (const flow of (flows || [])) {
-        const keywords = (flow.keyword || "").split(",").map((k: string) => k.trim());
-        if (keywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
-          const initialNode = flow.nodes?.find((n: any) => n.type === "blocoInicial");
+        const nodes = flow.nodes || [];
+        const triggerNodes = nodes.filter((n: any) => n.type === "blocoGatilho");
+        
+        let shouldTrigger = false;
+        
+        // Check main flow keywords
+        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+        if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+          shouldTrigger = true;
+        }
+        
+        // Check blocoGatilho keywords
+        if (!shouldTrigger && triggerNodes.length > 0) {
+          for (const tNode of triggerNodes) {
+            const nodeKeyword = tNode.data?.keyword;
+            if (nodeKeyword && isKeywordMatch(messageRaw, nodeKeyword)) {
+              shouldTrigger = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldTrigger) {
+          const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           if (initialNode) {
+            console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone}`);
             await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
             return new Response("flow_triggered", { status: 200, headers: corsHeaders });
           }
