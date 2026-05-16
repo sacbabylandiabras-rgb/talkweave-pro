@@ -399,7 +399,9 @@ serve(async (req) => {
     });
 
     if (!flowStateHandled) {
+      let triggerFound = false;
       for (const flow of (flows || [])) {
+        if (triggerFound) break;
         const nodes = flow.nodes || [];
         const triggerNodes = nodes.filter((n: any) => n.type === "blocoGatilho");
         
@@ -429,6 +431,7 @@ serve(async (req) => {
         }
 
         if (shouldTrigger && startNodeId) {
+          triggerFound = true;
           console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
           
           // Register the interaction before executing
