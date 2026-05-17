@@ -83,10 +83,107 @@
     --sidebar-accent: 248 250 252;
     --sidebar-accent-foreground: 15 23 42;
     --sidebar-border: 226 232 240;
-    --sidebar-ring: 255 77 46;
-  }
-
-  .dark {
+     --sidebar-ring: 255 77 46;
+   }
+ 
+   .blue {
+     /* Glass Blue Theme */
+     --background: 10 15 35;
+     --foreground: 240 245 255;
+ 
+     --card: 20 25 55;
+     --card-foreground: 240 245 255;
+ 
+     --popover: 20 25 55;
+     --popover-foreground: 240 245 255;
+ 
+     --primary: 30 144 255; /* Dodger Blue */
+     --primary-foreground: 255 255 255;
+     --primary-light: 100 180 255;
+     --primary-dark: 20 100 200;
+ 
+     --secondary: 30 40 70;
+     --secondary-foreground: 240 245 255;
+ 
+     --muted: 30 40 70;
+     --muted-foreground: 160 170 200;
+ 
+     --accent: 50 200 255; /* Cyan */
+     --accent-foreground: 255 255 255;
+ 
+     --destructive: 248 113 113;
+     --destructive-foreground: 255 255 255;
+ 
+     --success: 52 211 153;
+     --success-foreground: 255 255 255;
+ 
+     --warning: 251 146 60;
+     --warning-foreground: 255 255 255;
+ 
+     --border: 50 60 100;
+     --input: 50 60 100;
+     --ring: 30 144 255;
+ 
+     --sidebar-background: 15 20 50;
+     --sidebar-foreground: 240 245 255;
+     --sidebar-primary: 30 144 255;
+     --sidebar-primary-foreground: 255 255 255;
+     --sidebar-accent: 30 40 70;
+     --sidebar-accent-foreground: 240 245 255;
+     --sidebar-border: 50 60 100;
+     --sidebar-ring: 30 144 255;
+   }
+ 
+   .blue body {
+     background: linear-gradient(135deg, #0a0f23 0%, #101a35 40%, #1a2a4e 100%) !important;
+     background-attachment: fixed !important;
+   }
+ 
+   .blue body::before {
+     background: radial-gradient(circle, rgba(30, 144, 255, 0.45) 0%, transparent 70%) !important;
+   }
+ 
+   .blue body::after {
+     background: radial-gradient(circle, rgba(50, 200, 255, 0.35) 0%, transparent 70%) !important;
+   }
+ 
+   .blue .sidebar-item-active {
+     background: rgba(30, 144, 255, 0.18) !important;
+     color: #64b4ff !important;
+     border: 1px solid rgba(30, 144, 255, 0.25) !important;
+   }
+ 
+   .blue .btn-glass-primary {
+     background: linear-gradient(135deg, #1e90ff, #32c8ff) !important;
+   }
+ 
+   .blue .btn-glass-primary:hover {
+     background: linear-gradient(135deg, #2e9aff, #42d2ff) !important;
+   }
+ 
+   .blue .plan-badge {
+     background: rgba(30, 144, 255, 0.20) !important;
+     border: 1px solid rgba(30, 144, 255, 0.35) !important;
+     color: #64b4ff !important;
+   }
+ 
+   .blue .sidebar-item:hover {
+     background: rgba(255, 255, 255, 0.04) !important;
+   }
+ 
+   .blue ::-webkit-scrollbar-thumb {
+     background: rgba(30, 144, 255, 0.30) !important;
+   }
+ 
+   .blue ::-webkit-scrollbar-thumb:hover {
+     background: rgba(30, 144, 255, 0.50) !important;
+   }
+ 
+   .blue .spinning-border-wrapper {
+     background: conic-gradient(from var(--angle), transparent 40%, #ffffff, #1e90ff, transparent) !important;
+   }
+ 
+   .dark {
     /* Glass Dark — fundo translúcido sobre o gradiente global */
     --background: 15 12 41;
     --foreground: 248 250 252;

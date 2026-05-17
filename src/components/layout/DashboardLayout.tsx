@@ -123,12 +123,14 @@ export function DashboardLayout() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>();
   const [warmupConfig, setWarmupConfig] = useState<WarmupConfig>(readWarmupConfig);
-  const { setTheme } = useTheme();
-
-  // Glassmorphism Dark é o tema visual padrão do dashboard
-  useEffect(() => {
-    setTheme("dark");
-  }, [setTheme]);
+   const { theme, setTheme } = useTheme();
+ 
+   // Mantém um tema escuro válido (dark ou blue)
+   useEffect(() => {
+     if (theme !== "dark" && theme !== "blue") {
+       setTheme("dark");
+     }
+   }, [theme, setTheme]);
 
   useEffect(() => {
     const checkAuth = async () => {
