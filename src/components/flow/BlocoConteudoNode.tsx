@@ -228,15 +228,15 @@ export function BlocoConteudoNode({ data }: any) {
   const collectCPF = data.collectCPF || false;
 
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px]">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-orange-500/90 text-white rounded-md">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md">
         Conteúdo
       </span>
-      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-orange-500" />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-orange-500" />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-primary" />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-primary" />
       <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded bg-orange-500/10">
-          <Icon className="h-4 w-4 text-orange-500" />
+        <div className="p-1.5 rounded bg-primary/10">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-card-foreground">
@@ -331,7 +331,7 @@ export function BlocoConteudoNode({ data }: any) {
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-orange-500 rounded-full transition-all"
+                        className="h-full bg-primary rounded-full transition-all"
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       />
                     </div>
@@ -358,16 +358,16 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Default source handles */}
       {flowButtons.length === 0 && (
         <>
-          <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-orange-500" />
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
+          <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-primary" />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary" />
         </>
       )}
 
       {/* Default + bottom handles when there are flow buttons */}
       {flowButtons.length > 0 && (
         <>
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-orange-500" />
-          <Handle type="source" position={Position.Right} id="default" className="w-3 h-3 !bg-orange-500" style={{ top: "100%" }} />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary" />
+          <Handle type="source" position={Position.Right} id="default" className="w-3 h-3 !bg-primary" style={{ top: "100%" }} />
         </>
       )}
     </div>
