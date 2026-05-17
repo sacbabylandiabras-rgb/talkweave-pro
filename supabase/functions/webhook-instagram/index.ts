@@ -257,7 +257,7 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
          if (payload) {
-           await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
+           await fetch("https://graph.facebook.com/" + META_API_VERSION + "/" + context.igPageId + "/messages", {
              method: "POST",
              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + context.accessToken },
              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
@@ -337,7 +337,7 @@ serve(async (req) => {
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
           const igPageId = cred.fb_user_id;
 
-          const res = await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + igPageId + "/messages", {
+          const res = await fetch("https://graph.facebook.com/" + META_API_VERSION + "/" + igPageId + "/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cleanAccessToken },
             body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message } }),
@@ -556,6 +556,7 @@ serve(async (req) => {
       }
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
     } catch (err) {
+      console.error("[webhook-instagram] Global error:", err);
       return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
     }
   }
