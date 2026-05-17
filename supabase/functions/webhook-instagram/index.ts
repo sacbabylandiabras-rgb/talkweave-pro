@@ -339,12 +339,12 @@ serve(async (req) => {
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
           const igPageId = cred.fb_user_id;
 
-          const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages?access_token=${cleanAccessToken}`;
+          const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`;
           console.log(`[webhook-instagram] Sending to ${recipientId} via ${igPageId}`);
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message } }),
+            body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message }, access_token: cleanAccessToken }),
           });
 
           const data = await res.json();
