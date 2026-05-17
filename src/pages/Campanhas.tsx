@@ -593,9 +593,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">
-          {isGroupsMode ? "Campanhas em Grupo" : "Campanhas"}
-        </h1>
+         <h1 className="text-lg font-semibold text-foreground">
+           {isGroupsMode ? "Campanhas em Grupo" : "Campanhas"}
+         </h1>
         <div className="flex items-center gap-2">
           {campaigns.length > 0 && (
             <Button

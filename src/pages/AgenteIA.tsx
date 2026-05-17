@@ -327,10 +327,10 @@ const AgenteIA = () => {
   return (
     <div className="space-y-6 w-full">
       <div>
-        <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-          <Bot className="w-6 h-6 text-primary" />
-          Agente IA
-        </h1>
+         <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
+           <Bot className="w-6 h-6 text-primary" />
+           Agente IA
+         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           Configure e treine seu assistente virtual inteligente
         </p>

@@ -253,7 +253,7 @@ export default function DashboardMeta() {
   if (!isConnected) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Painel</h1>
+         <h1 className="text-2xl font-bold text-foreground">Painel</h1>
         <Card className="p-6 text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
           <p className="text-sm font-medium">Conta não conectada</p>

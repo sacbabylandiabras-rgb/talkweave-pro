@@ -319,7 +319,7 @@ const Etiquetas = () => {
     <div className="container mx-auto py-6 space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestão de Etiquetas</h1>
+           <h1 className="text-2xl font-bold text-foreground">Gestão de Etiquetas</h1>
           <p className="text-muted-foreground">Organize seus contatos e conversas com etiquetas coloridas.</p>
         </div>
         
