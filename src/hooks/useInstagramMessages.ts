@@ -80,22 +80,8 @@
            table: "instagram_events",
          },
          (payload) => {
-            const newRecord = payload.new as any;
-            const oldRecord = payload.old as any;
-            console.log("[InstagramMessages] Realtime event received:", payload.eventType, newRecord?.id || oldRecord?.id);
-            
-            const record = (newRecord || oldRecord) as InstagramEvent;
-           if (!record || record.user_id !== userId) return;
- 
-           if (["dm", "dm_sent", "story_reply"].includes(record.event_type)) {
-             if (payload.eventType === "INSERT") {
-               setRealtimeMessages((prev) => {
-                 if (prev.some(m => m.id === record.id)) return prev;
-                 return [...prev, record];
-               });
-             }
-             queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
-           }
+            console.log("[InstagramMessages] Realtime event received:", payload.eventType);
+            queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
          }
        )
        .subscribe((status) => {
