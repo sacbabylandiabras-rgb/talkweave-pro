@@ -332,12 +332,24 @@ serve(async (req) => {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       console.log(`[webhook-instagram] POST Action: ${body.action || "webhook event"}`);
 
-          const currentAppId = body.appId || IG_APP_ID_DEFAULT;
       if (body.action === "send_manual_message") {
           const { recipientId, message, userId } = body;
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("connected", true).maybeSingle();
+          const { data: creds, error: credError } = await supabase
+            .from("meta_credentials")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("app_id", IG_APP_ID_DEFAULT)
+            .eq("connected", true)
+            .not("access_token", "is", null)
+            .order("updated_at", { ascending: false })
+            .limit(1);
+          const cred = Array.isArray(creds) ? creds[0] : null;
           
-          if (!cred) return new Response(JSON.stringify({ error: "Credenciais não encontradas" }), { status: 404, headers: corsHeaders });
+          if (credError) {
+            console.error("[webhook-instagram] Credential lookup error:", credError);
+            return new Response(JSON.stringify({ error: "Erro ao buscar credenciais" }), { status: 500, headers: corsHeaders });
+          }
+          if (!cred) return new Response(JSON.stringify({ error: "Credenciais do Instagram não encontradas" }), { status: 404, headers: corsHeaders });
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
           const igPageId = cred.fb_user_id;
 
