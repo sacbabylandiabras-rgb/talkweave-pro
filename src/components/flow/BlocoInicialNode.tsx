@@ -20,8 +20,8 @@ export function BlocoInicialNode({ data }: any) {
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} id="right" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ right: -8, zIndex: 100 }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ bottom: -8, zIndex: 100 }} />
+      <Handle type="source" position={Position.Right} id="right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
     </div>
   );
 }
