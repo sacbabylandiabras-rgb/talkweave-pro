@@ -56,28 +56,33 @@
      setNewMessage(content);
    };
 
-   const handleSend = async (e: React.FormEvent) => {
-     e.preventDefault();
-     if (!newMessage.trim() || !selectedIgId || sending) return;
- 
-     setSending(true);
-     try {
-       const { error } = await supabase.functions.invoke("send-message", {
-         body: {
-           phone: selectedIgId,
-           message: newMessage,
-           isInstagram: true
-         }
-       });
- 
-       if (error) throw error;
-       setNewMessage("");
-     } catch (err: any) {
-       toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
-     } finally {
-       setSending(false);
-     }
-   };
+    const handleSend = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newMessage.trim() || !selectedIgId || sending) return;
+  
+      setSending(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Usuário não autenticado");
+
+        const { error } = await supabase.functions.invoke("webhook-instagram", {
+          body: {
+            action: "send_manual_message",
+            recipientId: selectedIgId,
+            message: newMessage,
+            userId: user.id
+          }
+        });
+  
+        if (error) throw error;
+        setNewMessage("");
+      } catch (err: any) {
+        console.error("Erro ao enviar:", err);
+        toast({ title: "Erro ao enviar", description: err.message || "Erro desconhecido", variant: "destructive" });
+      } finally {
+        setSending(false);
+      }
+    };
  
    if (isLoading) {
      return (
