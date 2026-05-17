@@ -156,7 +156,8 @@
     [data-theme='white'] .glass-panel,
     [data-theme='white'] .glass-card,
     [data-theme='white'] .glass-stat,
-    [data-theme='white'] .glass-chart {
+    [data-theme='white'] .glass-chart,
+    [data-theme='white'] [class*="glass-"] {
       background: #FFFFFF !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -389,7 +390,8 @@
     .dark .glass-panel,
     .dark .glass-card,
     .dark .glass-stat,
-    .dark .glass-chart {
+    .dark .glass-chart,
+    .dark [class*="glass-"] {
       position: relative;
       overflow: hidden;
     }
