@@ -30,6 +30,6 @@
    createRoot(document.getElementById("root")!).render(<App />);
  };
  
- init().finally(() => {
-   clearChunkRecoveryState();
- });
+  init().then(() => {
+    clearChunkRecoveryState();
+  });
