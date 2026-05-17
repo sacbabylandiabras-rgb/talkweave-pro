@@ -514,8 +514,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     (params: Connection) => setEdges((eds) => addEdge({
       ...params,
       animated: true,
-      style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+      style: { stroke: '#2563EB', strokeWidth: 3 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#2563EB' },
     }, eds)),
     [setEdges]
   );
@@ -1503,8 +1503,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             className="bg-background rounded-lg border"
             defaultEdgeOptions={{
               animated: true,
-              style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+              style: { stroke: '#2563EB', strokeWidth: 3 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#2563EB' },
             }}
           >
             <Background variant={BackgroundVariant.Dots} />
