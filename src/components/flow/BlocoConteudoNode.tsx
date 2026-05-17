@@ -228,8 +228,8 @@ export function BlocoConteudoNode({ data }: any) {
   const collectCPF = data.collectCPF || false;
 
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card !overflow-visible">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md z-[60]">
         Conteúdo
       </span>
       <Handle type="target" position={Position.Left} id="target-left" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ left: -10 }} />
@@ -345,8 +345,8 @@ export function BlocoConteudoNode({ data }: any) {
                     type="source"
                     position={Position.Right}
                     id={`button-${idx}`}
-                    className="!w-4 !h-4 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform cursor-pointer"
-                    style={{ right: -15, top: "50%", transform: "translateY(-50%)", zIndex: 50 }}
+                    className="!w-4 !h-4 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform cursor-pointer !z-[70]"
+                    style={{ right: -15, top: "50%", transform: "translateY(-50%)" }}
                   />
                 )}
               </div>
