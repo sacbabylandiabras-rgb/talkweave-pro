@@ -54,10 +54,10 @@ export function MetricCard({
         <Icon className={cn("w-[18px] h-[18px]", styles.icon)} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-nunito text-[12px] uppercase tracking-wider text-white/40 font-normal">{title}</p>
-        <p className="font-bebas text-[36px] text-white leading-none mt-0.5 tracking-wide">{value}</p>
+         <p className="font-nunito text-[12px] uppercase tracking-wider text-white/40 font-normal [[data-theme='blue']_&]:text-[#6B7280]">{title}</p>
+         <p className="font-bebas text-[36px] text-white leading-none mt-0.5 tracking-wide [[data-theme='blue']_&]:text-[#111827]">{value}</p>
         {subtitle && (
-          <p className="font-nunito text-[11px] text-white/30 mt-1">{subtitle}</p>
+           <p className="font-nunito text-[11px] text-white/30 mt-1 [[data-theme='blue']_&]:text-[#6B7280]">{subtitle}</p>
         )}
       </div>
     </div>
