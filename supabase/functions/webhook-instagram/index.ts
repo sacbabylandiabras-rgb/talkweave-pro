@@ -265,11 +265,11 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
          if (payload) {
-            const autoDmUrl = `https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages?access_token=${context.accessToken}`;
+            const autoDmUrl = `${getInstagramGraphBaseUrl(context.accessToken)}/${META_API_VERSION}/${context.igPageId}/messages`;
             await fetch(autoDmUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload, access_token: context.accessToken }),
             });
            
            // Log automation outgoing message
