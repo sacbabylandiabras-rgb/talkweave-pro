@@ -62,13 +62,13 @@ export function Header({ onNavigate }: HeaderProps) {
 
           <div className="w-px h-5 bg-white/10 mx-1" />
 
-          <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => setNotificationsOpen(true)}>
-            <Bell className="w-4 h-4 text-white/60" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#f472b6] rounded-full ring-2 ring-[#1a1040]" />
+           <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-foreground/10" onClick={() => setNotificationsOpen(true)}>
+             <Bell className="w-4 h-4 text-foreground/60" />
+             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#f472b6] rounded-full ring-2 ring-background" />
           </Button>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => setSettingsOpen(true)}>
-            <Settings className="w-4 h-4 text-white/60" />
+           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-foreground/10" onClick={() => setSettingsOpen(true)}>
+             <Settings className="w-4 h-4 text-foreground/60" />
           </Button>
 
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => onNavigate?.("perfil")}>
