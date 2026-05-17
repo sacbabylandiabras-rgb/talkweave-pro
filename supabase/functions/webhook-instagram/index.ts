@@ -469,7 +469,13 @@ serve(async (req) => {
                     // If the sender is the Page itself, it's an outgoing message (echo)
                     if (senderId === igPageId) {
                       eventType = "dm_sent";
-                      targetIgId = event.recipient?.id;
+                      targetIgId = event.recipient?.id || event.recipient?.[0]?.id;
+                      
+                      if (!targetIgId) {
+                        console.log("[webhook-instagram] Skipping outgoing event without recipient ID");
+                        continue;
+                      }
+
                       // For echoes, we don't always have the recipient's username in the payload
                       // We'll try to get it from the database or just use the ID
                       const { data: contact } = await supabase
