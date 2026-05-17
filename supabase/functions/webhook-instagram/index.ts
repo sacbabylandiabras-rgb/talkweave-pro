@@ -340,15 +340,15 @@ serve(async (req) => {
           const igPageId = cred.fb_user_id;
 
           const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages?access_token=${cleanAccessToken}`;
-          const res = await fetch(url, {
           console.log(`[webhook-instagram] Sending to ${recipientId} via ${igPageId}`);
+          const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message } }),
           });
 
           const data = await res.json();
-          console.log(`[webhook-instagram] Meta API status: ${res.status}`); if (!res.ok) { console.error(`[webhook-instagram] Meta API error: ${JSON.stringify(data)}`); throw new Error(data?.error?.message || "Erro na Meta API"); }
+          \n          console.log(`[webhook-instagram] Meta API status: ${res.status}`); \n          if (!res.ok) { console.error(`[webhook-instagram] Meta API error: ${JSON.stringify(data)}`); throw new Error(data?.error?.message || "Erro na Meta API"); }
 
           await logInstagramEvent(supabase, {
             userId,
