@@ -171,7 +171,8 @@
     [data-theme='white'] .glass-panel::before,
     [data-theme='white'] .glass-card::before,
     [data-theme='white'] .glass-stat::before,
-    [data-theme='white'] .glass-chart::before {
+    [data-theme='white'] .glass-chart::before,
+    [data-theme='white'] [class*="glass-"]::before {
       content: "";
       position: absolute;
       inset: 0;
