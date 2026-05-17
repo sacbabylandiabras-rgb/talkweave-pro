@@ -26,6 +26,7 @@
     height: 200%;
     background: conic-gradient(transparent 70%, #ffffff, transparent);
     animation: spin 4s linear infinite;
+    will-change: transform;
     z-index: 0;
    }
 
