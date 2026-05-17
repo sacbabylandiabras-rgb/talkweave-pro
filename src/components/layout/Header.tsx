@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { Bell, Settings, User } from "lucide-react";
+ import { Bell, Settings, User, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
+ import { useTheme } from "next-themes";
+ import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu";
 import { NotificationsDialog } from "./NotificationsDialog";
+   const { setTheme } = useTheme();
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
 import { WorkspaceSelector } from "./WorkspaceSelector";
@@ -18,7 +26,27 @@ export function Header({ onNavigate }: HeaderProps) {
   return (
     <>
       <header className="glass-topbar px-5 py-2.5 flex items-center justify-between gap-1.5 z-10">
-        <WorkspaceSelector />
+         <WorkspaceSelector />
+ 
+         <div className="flex-1" />
+ 
+         <DropdownMenu>
+           <DropdownMenuTrigger asChild>
+             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10">
+               <Palette className="w-4 h-4 text-white/60" />
+             </Button>
+           </DropdownMenuTrigger>
+           <DropdownMenuContent align="end" className="w-32 rounded-xl bg-[#1e1644] border-white/10">
+             <DropdownMenuItem onClick={() => setTheme("dark")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
+               <div className="w-3 h-3 rounded-full bg-violet-500" />
+               <span className="text-white/80">Roxo</span>
+             </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => setTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
+               <div className="w-3 h-3 rounded-full bg-blue-500" />
+               <span className="text-white/80">Azul</span>
+             </DropdownMenuItem>
+           </DropdownMenuContent>
+         </DropdownMenu>
 
         <div className="flex items-center gap-1.5">
           <Button
