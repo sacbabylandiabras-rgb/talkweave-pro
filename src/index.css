@@ -135,12 +135,12 @@
      --input: 226 232 240;
      --ring: 37 99 235;
  
-     --sidebar-background: 255 255 255; /* --sidebar-bg */
-     --sidebar-foreground: 107 114 128; /* --sidebar-inactive-text */
+     --sidebar-background: 255 255 255;
+     --sidebar-foreground: 17 24 39; /* #111827 */
      --sidebar-primary: 37 99 235;
      --sidebar-primary-foreground: 255 255 255;
-     --sidebar-accent: 239 246 255; /* --sidebar-active-bg */
-     --sidebar-accent-foreground: 37 99 235; /* --sidebar-active-text */
+     --sidebar-accent: 239 246 255;
+     --sidebar-accent-foreground: 37 99 235; /* #2563EB */
      --sidebar-border: 229 231 235;
      --sidebar-ring: 37 99 235;
    }
@@ -169,8 +169,17 @@
      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
    }
  
+   [data-theme='blue'] .btn-glass-primary {
+     background: #2563EB !important;
+     color: #FFFFFF !important;
+   }
+ 
+   [data-theme='blue'] .btn-glass-primary:hover {
+     background: #1D4ED8 !important;
+   }
+ 
    [data-theme='blue'] .sidebar-item {
-     color: #6B7280 !important;
+     color: #111827 !important;
    }
  
    [data-theme='blue'] .sidebar-item:hover {
@@ -185,17 +194,8 @@
      font-weight: 600 !important;
    }
  
-   [data-theme='blue'] .btn-glass-primary {
-     background: #2563EB !important;
-     color: #FFFFFF !important;
-   }
- 
-   [data-theme='blue'] .btn-glass-primary:hover {
-     background: #1D4ED8 !important;
-   }
- 
    [data-theme='blue'] .sidebar-section-label {
-     color: #9CA3AF !important;
+     color: #6B7280 !important;
    }
  
    [data-theme='blue'] .glass-topbar {
