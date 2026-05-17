@@ -1,6 +1,8 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
-const CHUNK_RELOAD_KEY = "lovable:chunk-reload-attempted";
+const CHUNK_RELOAD_KEY = "lovable:chunk-reload-attempts";
+const MAX_RELOADS = 3;
+const RELOAD_WINDOW_MS = 60_000;
 
 function getErrorMessage(error: unknown) {
   if (typeof error === "string") return error;
@@ -28,12 +30,21 @@ function isChunkLoadError(error: unknown) {
 }
 
 function reloadOnce() {
-  if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1") {
-    return;
+  try {
+    const raw = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    const parsed = raw ? JSON.parse(raw) : { count: 0, ts: 0 };
+    const now = Date.now();
+    const within = now - (parsed.ts || 0) < RELOAD_WINDOW_MS;
+    const count = within ? parsed.count + 1 : 1;
+    if (count > MAX_RELOADS) return;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify({ count, ts: now }));
+  } catch {
+    /* ignore */
   }
-
-  sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
-  window.location.reload();
+  // Bust cache by forcing a hard reload with a query param
+  const url = new URL(window.location.href);
+  url.searchParams.set("__lovable_sha", Date.now().toString(36));
+  window.location.replace(url.toString());
 }
 
 export function installChunkLoadRecovery() {
