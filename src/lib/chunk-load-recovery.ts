@@ -91,7 +91,7 @@ export function recoverFromChunkLoadError(error: unknown) {
  * `Cannot read properties of undefined (reading 'default')`.
  */
 export function lazyWithRecovery<T extends ComponentType<any>>(
-  factory: () => Promise<{ default: T } | any>,
+  factory: () => Promise<{ default: T } | unknown>,
 ): LazyExoticComponent<T> {
   return lazy(async () => {
     try {
