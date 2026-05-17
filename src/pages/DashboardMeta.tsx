@@ -338,18 +338,16 @@ export default function DashboardMeta() {
                 {profile.about && (
                   <p className="text-xs text-muted-foreground mt-1">{profile.about}</p>
                 )}
-                {phoneInfo.name_status && (
-                   {phoneInfo.name_status && (
-                     <Badge variant="secondary" className="text-[9px] mt-1.5">
-                       Status do Nome: {
-                         phoneInfo.name_status === 'APPROVED' ? 'APROVADO' : 
-                         phoneInfo.name_status === 'PENDING' ? 'PENDENTE' : 
-                         phoneInfo.name_status === 'DECLINED' ? 'RECUSADO' : 
-                         phoneInfo.name_status
-                       }
-                     </Badge>
-                   )}
-                )}
+                 {phoneInfo.name_status && (
+                   <Badge variant="secondary" className="text-[9px] mt-1.5">
+                     Status do Nome: {
+                       phoneInfo.name_status === 'APPROVED' ? 'APROVADO' : 
+                       phoneInfo.name_status === 'PENDING' ? 'PENDENTE' : 
+                       phoneInfo.name_status === 'DECLINED' ? 'RECUSADO' : 
+                       phoneInfo.name_status
+                     }
+                   </Badge>
+                 )}
               </div>
 
               {/* Edit Button */}
