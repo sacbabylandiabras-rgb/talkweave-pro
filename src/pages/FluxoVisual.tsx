@@ -511,12 +511,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   };
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({
-      ...params,
-      animated: true,
-      style: { stroke: '#2563EB', strokeWidth: 3 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#2563EB' },
-    }, eds)),
+    (params: Connection) => {
+      console.log("Connecting:", params);
+      return setEdges((eds) => addEdge({
+        ...params,
+        animated: true,
+        style: { stroke: '#2563EB', strokeWidth: 3, zIndex: 1000 },
+        markerEnd: { 
+          type: MarkerType.ArrowClosed, 
+          color: '#2563EB',
+          width: 20,
+          height: 20
+        },
+      }, eds));
+    },
     [setEdges]
   );
 
