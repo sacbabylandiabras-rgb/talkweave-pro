@@ -103,11 +103,24 @@ serve(async (req) => {
         return await getPhoneNumbers(creds);
     }
 
-    if (result && result instanceof Response && result.status === 200) {
-      const data = await result.clone().json();
-      if (data?.success) {
-        const { phone, message, media_type } = body;
-        const content = message || (media_type ? `[Mídia: ${media_type}]` : '[mensagem]');
+     const isSuccess = (r: any) => {
+       if (r instanceof Response) return r.status === 200;
+       return r && r.ok === true;
+     };
+ 
+     if (result && isSuccess(result)) {
+         const { phone: rawPhone, message, media_type, template_name, variables } = body;
+         const phone = String(rawPhone || '').replace(/\D/g, '');
+         
+         let content = message || (media_type ? `[Mídia: ${media_type}]` : '[mensagem]');
+         
+         // Se for template, tenta reconstruir o conteúdo para o log
+         if (template_name) {
+           content = `[Template: ${template_name}]`;
+           if (Array.isArray(variables) && variables.length > 0) {
+             content += ` (Vars: ${variables.join(', ')})`;
+           }
+         }
         
         console.log(`📝 Logging manual send to message_logs: to=${phone}, content=${content.slice(0, 50)}`);
         
