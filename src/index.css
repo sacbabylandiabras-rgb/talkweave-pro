@@ -105,33 +105,33 @@
      --card: 255 255 255; /* --card-bg */
      --card-foreground: 17 24 39;
      --popover: 255 255 255;
-     --popover-foreground: 17 24 39;
+     --popover-foreground: 15 23 42;
 
      --primary: 37 99 235;
      --primary-foreground: 255 255 255;
-     --primary-light: 239 246 255;
+     --primary-light: 59 130 246;
      --primary-dark: 29 78 216;
 
-     --secondary: 243 244 246;
-     --secondary-foreground: 107 114 128;
+     --secondary: 241 245 249;
+     --secondary-foreground: 15 23 42;
 
-     --muted: 243 244 246;
-     --muted-foreground: 107 114 128;
+     --muted: 241 245 249;
+     --muted-foreground: 71 85 105;
 
-     --accent: 37 99 235;
-     --accent-foreground: 255 255 255;
+     --accent: 239 246 255;
+     --accent-foreground: 37 99 235;
 
-     --destructive: 239 68 68;
+     --destructive: 220 38 38;
      --destructive-foreground: 255 255 255;
 
-     --success: 34 197 94;
+     --success: 22 163 74;
      --success-foreground: 255 255 255;
 
-     --warning: 245 158 11;
+     --warning: 217 119 6;
      --warning-foreground: 255 255 255;
 
-     --border: 229 231 235;
-     --input: 229 231 235;
+     --border: 226 232 240;
+     --input: 226 232 240;
      --ring: 37 99 235;
  
      --sidebar-background: 255 255 255; /* --sidebar-bg */
