@@ -42,6 +42,32 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
+  try {
+    // For regular Facebook Graph API (Standard App), we use name and profile_pic
+    // For Instagram Login tokens (IGA...), we use username and profile_picture_url
+    const isIGToken = isInstagramLoginToken(accessToken);
+    const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic";
+    
+    const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const profile = await res.json();
+      console.log(`[webhook-instagram] Fetched profile for ${igUserId}:`, JSON.stringify(profile));
+      return { 
+        ...profile, 
+        username: profile.username || profile.name || igUserId,
+        profile_pic: profile.profile_pic || profile.profile_picture_url 
+      };
+    }
+    const errorText = await res.text();
+    console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
+  } catch (e) {
+    console.error(`[webhook-instagram] Error fetching IG user profile for ${igUserId}:`, e);
+  }
+  return null;
+};
+
 const triggerOfficialWhatsAppFlow = async (
   flowId: string,
   phone: string,
@@ -120,23 +146,6 @@ const executeIgWhatsAppNode = async (
   });
 };
 
-const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
-  try {
-    const fields = isInstagramLoginToken(accessToken) ? "username,name,profile_picture_url" : "profile_pic,username,name";
-    const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const profile = await res.json();
-      return { ...profile, profile_pic: profile.profile_pic || profile.profile_picture_url };
-    }
-    const errorText = await res.text();
-    console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
-  } catch (e) {
-    console.error(`[webhook-instagram] Error fetching IG user profile for ${igUserId}:`, e);
-  }
-  return null;
-};
-
  const logInstagramEvent = async (supabase: any, params: {
    userId: string;
    eventType: string;
@@ -173,12 +182,6 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
         }
       }
 
-      // Update event with resolved username if needed
-      if (resolvedUsername && resolvedUsername !== params.username) {
-        await supabase.from("instagram_events")
-          .update({ username: resolvedUsername })
-          .match({ user_id: params.userId, ig_user_id: params.igUserId, username: params.username });
-      }
 
       // Update or insert contact
       const contactData: any = {
@@ -193,7 +196,42 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
         contactData.profile_pic_url = profilePicUrl;
       }
 
-      await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
+      // Try to update first, if no rows updated, then insert
+      // This is because we don't have a unique constraint on (user_id, ig_user_id) yet to use upsert with onConflict
+      const { data: existingContact } = await supabase
+        .from("instagram_contacts")
+        .select("id")
+        .eq("user_id", params.userId)
+        .eq("ig_user_id", params.igUserId)
+        .maybeSingle();
+
+      if (existingContact) {
+        const { error: updateError } = await supabase
+          .from("instagram_contacts")
+          .update(contactData)
+          .eq("id", existingContact.id);
+        if (updateError) console.error(`[webhook-instagram] Error updating contact for ${params.igUserId}:`, updateError);
+        else console.log(`[webhook-instagram] Successfully updated contact for ${params.igUserId}`);
+      } else {
+        const { error: insertError } = await supabase
+          .from("instagram_contacts")
+          .insert(contactData);
+        if (insertError) console.error(`[webhook-instagram] Error inserting contact for ${params.igUserId}:`, insertError);
+        else console.log(`[webhook-instagram] Successfully inserted contact for ${params.igUserId}`);
+      }
+
+      // Update ALL events for this contact with the resolved username if needed
+      if (resolvedUsername && resolvedUsername !== params.igUserId) {
+        console.log(`[webhook-instagram] Updating all events for ${params.igUserId} to username ${resolvedUsername}`);
+        const { error: eventUpdateError } = await supabase.from("instagram_events")
+          .update({ username: resolvedUsername })
+          .eq("user_id", params.userId)
+          .eq("ig_user_id", params.igUserId);
+        
+        if (eventUpdateError) {
+          console.error(`[webhook-instagram] Error updating events username for ${params.igUserId}:`, eventUpdateError);
+        }
+      }
    } catch (e) {
      console.error("Error logging instagram event:", e);
    }
