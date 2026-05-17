@@ -4,8 +4,10 @@
  import { Button } from "@/components/ui/button";
  import { ScrollArea } from "@/components/ui/scroll-area";
  import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
- import { Search, Send, Instagram, Loader2, ArrowLeft } from "lucide-react";
+ import { Search, Send, Instagram, Loader2, ArrowLeft, FileText, X, Image as ImageIcon, MessageSquare } from "lucide-react";
  import { useInstagramMessages, InstagramConversation } from "@/hooks/useInstagramMessages";
+ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
+ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
  import { format, isToday, isYesterday } from "date-fns";
  import { ptBR } from "date-fns/locale";
  import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@
  
  export default function InstagramMessages() {
    const { conversations, isLoading } = useInstagramMessages();
+   const { templates } = useMessageTemplates();
    const [selectedIgId, setSelectedIgId] = useState<string | null>(null);
    const [searchTerm, setSearchTerm] = useState("");
    const [newMessage, setNewMessage] = useState("");
@@ -53,6 +56,10 @@
      if (isMobile) setShowList(false);
    };
  
+   const handleApplyTemplate = (content: string) => {
+     setNewMessage(content);
+   };
+
    const handleSend = async (e: React.FormEvent) => {
      e.preventDefault();
      if (!newMessage.trim() || !selectedIgId || sending) return;
@@ -177,27 +184,46 @@
                <div className="space-y-4">
                  {selectedConversation.messages.map((msg) => {
                    const isSent = msg.event_type === "dm_sent";
+                   const isStoryReply = msg.event_type === "story_reply";
+                   const mediaUrl = msg.payload?.media_url || msg.payload?.image_url;
+
                    return (
                      <div 
                        key={msg.id} 
                        className={cn(
-                         "flex",
-                         isSent ? "justify-end" : "justify-start"
+                         "flex flex-col",
+                         isSent ? "items-end" : "items-start"
                        )}
                      >
+                       {isStoryReply && (
+                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1 px-1">
+                           <ImageIcon className="w-3 h-3" />
+                           Respondeu ao seu story
+                         </div>
+                       )}
                        <div className={cn(
-                         "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-1 shadow-sm",
+                         "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-1 shadow-sm relative overflow-hidden",
                          isSent 
                            ? "bg-primary text-primary-foreground rounded-tr-none" 
-                           : "bg-card border border-border rounded-tl-none"
+                           : "bg-card border border-border rounded-tl-none",
+                         isStoryReply && "border-l-4 border-l-pink-500"
                        )}>
-                         <p className="text-sm whitespace-pre-wrap">{msg.comment_text}</p>
-                         <p className={cn(
-                           "text-[9px] text-right",
-                           isSent ? "text-primary-foreground/70" : "text-muted-foreground"
-                         )}>
-                           {format(new Date(msg.created_at), "HH:mm")}
+                         {mediaUrl && (
+                           <div className="mb-2 rounded-lg overflow-hidden border border-border/20">
+                             <img src={mediaUrl} alt="Media" className="max-w-full h-auto object-cover max-h-60" />
+                           </div>
+                         )}
+                         <p className="text-sm whitespace-pre-wrap">
+                           {msg.comment_text || (mediaUrl ? "[Imagem]" : "[Mensagem sem texto]")}
                          </p>
+                         <div className="flex items-center justify-end gap-1.5 mt-1">
+                           <p className={cn(
+                             "text-[9px]",
+                             isSent ? "text-primary-foreground/70" : "text-muted-foreground"
+                           )}>
+                             {format(new Date(msg.created_at), "HH:mm")}
+                           </p>
+                         </div>
                        </div>
                      </div>
                    );
@@ -205,20 +231,66 @@
                </div>
              </ScrollArea>
  
-             {/* Input Area */}
-             <div className="p-4 bg-card border-t border-border">
-               <form onSubmit={handleSend} className="flex gap-2">
-                 <Input 
-                   placeholder="Escreva sua mensagem..." 
-                   value={newMessage}
-                   onChange={e => setNewMessage(e.target.value)}
-                   className="flex-1"
-                 />
-                 <Button type="submit" size="icon" disabled={!newMessage.trim() || sending}>
-                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                 </Button>
-               </form>
-             </div>
+               {/* Input Area */}
+               <div className="p-4 bg-card border-t border-border">
+                 <form onSubmit={handleSend} className="flex flex-col gap-2">
+                   <div className="flex gap-2 items-center">
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <Button type="button" variant="outline" size="icon" className="shrink-0" title="Modelos de mensagem">
+                           <FileText className="w-4 h-4" />
+                         </Button>
+                       </PopoverTrigger>
+                       <PopoverContent className="w-80 p-0" align="start">
+                         <div className="p-3 border-b border-border bg-muted/50">
+                           <h4 className="font-semibold text-sm">Modelos de Mensagem</h4>
+                         </div>
+                         <ScrollArea className="h-72">
+                           <div className="p-2 space-y-1">
+                             {templates.length === 0 ? (
+                               <p className="text-xs text-center py-4 text-muted-foreground">Nenhum modelo encontrado</p>
+                             ) : (
+                               templates.map((t) => (
+                                 <button
+                                   key={t.id}
+                                   type="button"
+                                   onClick={() => handleApplyTemplate(t.content)}
+                                   className="w-full text-left p-2 hover:bg-muted rounded-md transition-colors border border-transparent hover:border-border group"
+                                 >
+                                   <p className="text-xs font-medium truncate">{t.name}</p>
+                                   <p className="text-[10px] text-muted-foreground truncate line-clamp-1">{t.content}</p>
+                                 </button>
+                               ))
+                             )}
+                           </div>
+                         </ScrollArea>
+                       </PopoverContent>
+                     </Popover>
+
+                     <div className="relative flex-1">
+                       <Input 
+                         placeholder="Escreva sua mensagem..." 
+                         value={newMessage}
+                         onChange={e => setNewMessage(e.target.value)}
+                         className="pr-10"
+                       />
+                       {newMessage && (
+                         <button 
+                           type="button"
+                           onClick={() => setNewMessage("")}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                         >
+                           <X className="w-4 h-4" />
+                         </button>
+                       )}
+                     </div>
+
+                     <Button type="submit" size="icon" disabled={!newMessage.trim() || sending}>
+                       {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                     </Button>
+                   </div>
+                 </form>
+               </div>
            </>
          ) : (
            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
