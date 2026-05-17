@@ -103,12 +103,12 @@ serve(async (req) => {
         return await getPhoneNumbers(creds);
     }
 
-     const isSuccess = (r: any) => {
-       if (r instanceof Response) return r.status === 200;
-       return r && r.ok === true;
-     };
+      const checkSuccess = (r: any) => {
+        if (r instanceof Response) return r.status === 200;
+        return r && r.ok === true;
+      };
  
-     if (result && isSuccess(result)) {
+      if (result && checkSuccess(result)) {
          const { phone: rawPhone, message, media_type, template_name, variables } = body;
          const phone = String(rawPhone || '').replace(/\D/g, '');
          
