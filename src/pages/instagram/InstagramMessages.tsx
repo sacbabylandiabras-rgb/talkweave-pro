@@ -132,6 +132,9 @@
                    )}
                  >
                    <Avatar className="h-10 w-10 border border-border">
+                      {conv.profile_pic_url && (
+                        <AvatarImage src={conv.profile_pic_url} alt={conv.username} />
+                      )}
                      <AvatarFallback className="text-xs uppercase">
                        {conv.username.slice(0, 2)}
                      </AvatarFallback>
@@ -169,6 +172,9 @@
                  </Button>
                )}
                <Avatar className="h-9 w-9 border border-border">
+                  {selectedConversation.profile_pic_url && (
+                    <AvatarImage src={selectedConversation.profile_pic_url} alt={selectedConversation.username} />
+                  )}
                  <AvatarFallback className="text-xs uppercase">
                    {selectedConversation.username.slice(0, 2)}
                  </AvatarFallback>
