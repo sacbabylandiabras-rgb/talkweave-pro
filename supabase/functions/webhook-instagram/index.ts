@@ -202,7 +202,12 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
         contactData.profile_pic_url = profilePicUrl;
       }
 
-      await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
+      const { error: upsertError } = await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
+      if (upsertError) {
+        console.error(`[webhook-instagram] Error upserting contact for ${params.igUserId}:`, upsertError);
+      } else {
+        console.log(`[webhook-instagram] Successfully upserted contact for ${params.igUserId} (username: ${contactData.username})`);
+      }
    } catch (e) {
      console.error("Error logging instagram event:", e);
    }
