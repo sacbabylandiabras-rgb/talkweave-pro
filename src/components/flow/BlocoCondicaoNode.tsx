@@ -26,6 +26,7 @@ export function BlocoCondicaoNode({ data }: any) {
           )}
         </div>
       </div>
+      <Handle type="target" position={Position.Right} id="target-right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
       <Handle type="source" position={Position.Right} id="a" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: "35%", right: -8 }} />
       <Handle type="source" position={Position.Right} id="b" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: "65%", right: -8 }} />
       <Handle type="target" position={Position.Bottom} id="target-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
