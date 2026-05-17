@@ -219,6 +219,19 @@ const executeIgWhatsAppNode = async (
         if (insertError) console.error(`[webhook-instagram] Error inserting contact for ${params.igUserId}:`, insertError);
         else console.log(`[webhook-instagram] Successfully inserted contact for ${params.igUserId}`);
       }
+
+      // Update ALL events for this contact with the resolved username if needed
+      if (resolvedUsername && resolvedUsername !== params.igUserId) {
+        console.log(`[webhook-instagram] Updating all events for ${params.igUserId} to username ${resolvedUsername}`);
+        const { error: eventUpdateError } = await supabase.from("instagram_events")
+          .update({ username: resolvedUsername })
+          .eq("user_id", params.userId)
+          .eq("ig_user_id", params.igUserId);
+        
+        if (eventUpdateError) {
+          console.error(`[webhook-instagram] Error updating events username for ${params.igUserId}:`, eventUpdateError);
+        }
+      }
    } catch (e) {
      console.error("Error logging instagram event:", e);
    }
