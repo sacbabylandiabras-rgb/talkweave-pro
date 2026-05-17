@@ -151,13 +151,11 @@
      display: none !important;
    }
  
-    [data-theme='white'] .glass-sidebar,
-    [data-theme='white'] .glass-topbar,
     [data-theme='white'] .glass-panel,
     [data-theme='white'] .glass-card,
     [data-theme='white'] .glass-stat,
     [data-theme='white'] .glass-chart,
-    [data-theme='white'] [class*="glass-"] {
+    [data-theme='white'] [class*="glass-"]:not(.glass-sidebar):not(.glass-topbar) {
       background: #FFFFFF !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -167,13 +165,11 @@
       overflow: hidden;
     }
 
-    [data-theme='white'] .glass-sidebar::before,
-    [data-theme='white'] .glass-topbar::before,
     [data-theme='white'] .glass-panel::before,
     [data-theme='white'] .glass-card::before,
     [data-theme='white'] .glass-stat::before,
     [data-theme='white'] .glass-chart::before,
-    [data-theme='white'] [class*="glass-"]::before {
+    [data-theme='white'] [class*="glass-"]:not(.glass-sidebar):not(.glass-topbar)::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -385,24 +381,20 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
-    .dark .glass-sidebar,
-    .dark .glass-topbar,
     .dark .glass-panel,
     .dark .glass-card,
     .dark .glass-stat,
     .dark .glass-chart,
-    .dark [class*="glass-"] {
+    .dark [class*="glass-"]:not(.glass-sidebar):not(.glass-topbar) {
       position: relative;
       overflow: hidden;
     }
 
-    .dark .glass-sidebar::before,
-    .dark .glass-topbar::before,
     .dark .glass-panel::before,
     .dark .glass-card::before,
     .dark .glass-stat::before,
     .dark .glass-chart::before,
-    .dark [class*="glass-"]::before {
+    .dark [class*="glass-"]:not(.glass-sidebar):not(.glass-topbar)::before {
       content: "";
       position: absolute;
       inset: 0;
