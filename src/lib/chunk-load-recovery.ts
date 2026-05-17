@@ -90,23 +90,23 @@ export function recoverFromChunkLoadError(error: unknown) {
  * a one-time reload instead of letting React throw
  * `Cannot read properties of undefined (reading 'default')`.
  */
-export function lazyWithRecovery<T extends ComponentType<unknown>>(
-  factory: () => Promise<{ default: T } | unknown>,
-): LazyExoticComponent<T> {
+export function lazyWithRecovery<P extends object = Record<string, never>>(
+  factory: () => Promise<{ default: ComponentType<P> } | unknown>,
+): LazyExoticComponent<ComponentType<P>> {
   return lazy(async () => {
     try {
       const mod = await factory();
       if (mod && typeof mod === "object" && "default" in mod && mod.default) {
-        return mod as { default: T };
+        return mod as { default: ComponentType<P> };
       }
       // Module loaded but has no default export — stale chunk.
       reloadOnce();
       // Return a placeholder so React doesn't crash before reload kicks in.
-      return { default: (() => null) as unknown as T };
+      return { default: (() => null) as ComponentType<P> };
     } catch (err) {
       if (isChunkLoadError(err)) {
         reloadOnce();
-        return { default: (() => null) as unknown as T };
+        return { default: (() => null) as ComponentType<P> };
       }
       throw err;
     }
