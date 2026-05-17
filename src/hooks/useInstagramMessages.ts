@@ -16,6 +16,7 @@
    const queryClient = useQueryClient();
    const [realtimeMessages, setRealtimeMessages] = useState<InstagramEvent[]>([]);
    const [userId, setUserId] = useState<string | null>(null);
+  const [contacts, setContacts] = useState<Array<{ ig_user_id: string; profile_pic_url: string | null }>>([]);
  
    useEffect(() => {
      supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
@@ -35,6 +36,21 @@
        return (data || []) as unknown as InstagramEvent[];
      },
    });
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("instagram_contacts" as any)
+        .select("ig_user_id, profile_pic_url")
+        .eq("user_id", userId);
+      if (!cancelled && data) {
+        setContacts(data as any);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, initialEvents]);
  
    useEffect(() => {
      if (!userId) return;
@@ -116,19 +132,6 @@
       new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
     );
   }, [allMessages]);
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["instagram_contacts_list", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("instagram_contacts")
-        .select("ig_user_id, profile_pic_url")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   const conversationsWithProfile = useMemo(() => {
     const contactMap = new Map(contacts.map(c => [c.ig_user_id, c.profile_pic_url]));
