@@ -232,8 +232,8 @@ export function BlocoConteudoNode({ data }: any) {
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md">
         Conteúdo
       </span>
-      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-primary" />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-primary" />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ left: -10 }} />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ top: -10 }} />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-primary/10">
           <Icon className="h-4 w-4 text-primary" />
@@ -358,16 +358,16 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Default source handles */}
       {flowButtons.length === 0 && (
         <>
-          <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-primary" />
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary" />
+          <Handle type="source" position={Position.Right} id="source-right" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ right: -10 }} />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ bottom: -10 }} />
         </>
       )}
 
       {/* Default + bottom handles when there are flow buttons */}
       {flowButtons.length > 0 && (
         <>
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary" />
-          <Handle type="source" position={Position.Right} id="default" className="w-3 h-3 !bg-primary" style={{ top: "100%" }} />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ bottom: -10 }} />
+          <Handle type="source" position={Position.Right} id="default" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg" style={{ top: "100%", right: -10 }} />
         </>
       )}
     </div>
