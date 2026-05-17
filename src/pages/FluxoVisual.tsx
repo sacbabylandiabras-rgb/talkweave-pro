@@ -1500,10 +1500,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             maxZoom={4}
             defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
             deleteKeyCode={["Backspace", "Delete"]}
-            className="bg-background rounded-lg border"
+            className="bg-background rounded-lg border relative z-0"
             defaultEdgeOptions={{
               animated: true,
-              style: { stroke: '#2563EB', strokeWidth: 3 },
+              style: { stroke: '#2563EB', strokeWidth: 3, zIndex: 1000 },
               markerEnd: { type: MarkerType.ArrowClosed, color: '#2563EB' },
             }}
           >
