@@ -11,6 +11,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const isInstagramLoginToken = (accessToken: string) => accessToken.trim().startsWith("IGA");
+
+const getInstagramGraphBaseUrl = (accessToken: string) =>
+  isInstagramLoginToken(accessToken) ? "https://graph.instagram.com" : "https://graph.facebook.com";
+
 const replaceVars = (txt: string, vars: Record<string, string>) => {
   let result = txt || "";
   for (const [key, value] of Object.entries(vars)) {
@@ -117,10 +122,12 @@ const executeIgWhatsAppNode = async (
 
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
-    const url = `https://graph.facebook.com/${META_API_VERSION}/${igUserId}?fields=profile_pic,username,name&access_token=${accessToken}`;
+    const fields = isInstagramLoginToken(accessToken) ? "username,name,profile_picture_url" : "profile_pic,username,name";
+    const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
     const res = await fetch(url);
     if (res.ok) {
-      return await res.json();
+      const profile = await res.json();
+      return { ...profile, profile_pic: profile.profile_pic || profile.profile_picture_url };
     }
     const errorText = await res.text();
     console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
@@ -258,11 +265,11 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
          if (payload) {
-            const autoDmUrl = `https://graph.facebook.com/${META_API_VERSION}/${context.igPageId}/messages?access_token=${context.accessToken}`;
+            const autoDmUrl = `${getInstagramGraphBaseUrl(context.accessToken)}/${META_API_VERSION}/${context.igPageId}/messages`;
             await fetch(autoDmUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload }),
+              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload, access_token: context.accessToken }),
             });
            
            // Log automation outgoing message
@@ -332,16 +339,28 @@ serve(async (req) => {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       console.log(`[webhook-instagram] POST Action: ${body.action || "webhook event"}`);
 
-          const currentAppId = body.appId || IG_APP_ID_DEFAULT;
       if (body.action === "send_manual_message") {
           const { recipientId, message, userId } = body;
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("connected", true).maybeSingle();
+          const { data: creds, error: credError } = await supabase
+            .from("meta_credentials")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("app_id", IG_APP_ID_DEFAULT)
+            .eq("connected", true)
+            .not("access_token", "is", null)
+            .order("updated_at", { ascending: false })
+            .limit(1);
+          const cred = Array.isArray(creds) ? creds[0] : null;
           
-          if (!cred) return new Response(JSON.stringify({ error: "Credenciais não encontradas" }), { status: 404, headers: corsHeaders });
+          if (credError) {
+            console.error("[webhook-instagram] Credential lookup error:", credError);
+            return new Response(JSON.stringify({ error: "Erro ao buscar credenciais" }), { status: 500, headers: corsHeaders });
+          }
+          if (!cred) return new Response(JSON.stringify({ error: "Credenciais do Instagram não encontradas" }), { status: 404, headers: corsHeaders });
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
           const igPageId = cred.fb_user_id;
 
-          const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`;
+          const url = `${getInstagramGraphBaseUrl(cleanAccessToken)}/${META_API_VERSION}/${igPageId}/messages`;
           console.log(`[webhook-instagram] Sending to ${recipientId} via ${igPageId}`);
           const res = await fetch(url, {
             method: "POST",
