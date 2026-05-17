@@ -233,7 +233,9 @@ export function BlocoConteudoNode({ data }: any) {
         Conteúdo
       </span>
       <Handle type="target" position={Position.Left} id="target-left" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ left: -8 }} />
+      <Handle type="source" position={Position.Left} id="source-left" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ left: -8 }} />
       <Handle type="target" position={Position.Top} id="target-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
+      <Handle type="source" position={Position.Top} id="source-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-primary/10">
           <Icon className="h-4 w-4 text-primary" />
@@ -358,7 +360,9 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Default source handles */}
       {flowButtons.length === 0 && (
         <>
+          <Handle type="target" position={Position.Right} id="target-right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
           <Handle type="source" position={Position.Right} id="source-right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
+          <Handle type="target" position={Position.Bottom} id="target-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
           <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
         </>
       )}
@@ -366,7 +370,9 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Default + bottom handles when there are flow buttons */}
       {flowButtons.length > 0 && (
         <>
+          <Handle type="target" position={Position.Bottom} id="target-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
           <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
+          <Handle type="target" position={Position.Right} id="target-right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
           <Handle type="source" position={Position.Right} id="default" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
         </>
       )}
