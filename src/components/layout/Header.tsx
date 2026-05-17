@@ -47,16 +47,16 @@ export function Header({ onNavigate }: HeaderProps) {
               <Palette className="w-4 h-4 text-white/60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32 rounded-xl bg-[#1e1644] border-white/10">
-            <DropdownMenuItem onClick={() => toggleTheme("dark")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
-              <div className="w-3 h-3 rounded-full bg-violet-500" />
-              <span className="text-white/80">Roxo</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toggleTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-white/80">Azul</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+           <DropdownMenuContent align="end" className="w-32 rounded-xl bg-popover border-border">
+             <DropdownMenuItem onClick={() => toggleTheme("dark")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
+               <div className="w-3 h-3 rounded-full bg-[#7c3aed]" />
+               <span className="text-foreground">Roxo</span>
+             </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => toggleTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
+               <div className="w-3 h-3 rounded-full bg-[#2563EB]" />
+               <span className="text-foreground">Azul</span>
+             </DropdownMenuItem>
+           </DropdownMenuContent>
         </DropdownMenu>
 
         <div className="flex items-center gap-1.5">
