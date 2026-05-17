@@ -6,6 +6,7 @@
  export interface InstagramConversation {
    ig_user_id: string;
    username: string;
+  profile_pic_url?: string;
    lastMessage: string;
    lastTimestamp: string;
    messages: InstagramEvent[];
@@ -91,6 +92,9 @@
    const conversations = useMemo(() => {
      const map = new Map<string, InstagramConversation>();
      
+    // Get contacts to have access to profile pictures
+    const contactsMap = new Map<string, any>();
+    
      allMessages.forEach((msg) => {
        const existing = map.get(msg.ig_user_id);
        if (existing) {
@@ -107,11 +111,32 @@
          });
        }
      });
+
+    return Array.from(map.values()).sort((a, b) => 
+      new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
+    );
+  }, [allMessages]);
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["instagram_contacts_list", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("instagram_contacts")
+        .select("ig_user_id, profile_pic_url")
+        .eq("user_id", userId);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const conversationsWithProfile = useMemo(() => {
+    const contactMap = new Map(contacts.map(c => [c.ig_user_id, c.profile_pic_url]));
+    return conversations.map(conv => ({
+      ...conv,
+      profile_pic_url: contactMap.get(conv.ig_user_id)
+    }));
+  }, [conversations, contacts]);
  
-     return Array.from(map.values()).sort((a, b) => 
-       new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
-     );
-   }, [allMessages]);
- 
-   return { conversations, isLoading, allMessages };
+   return { conversations: conversationsWithProfile, isLoading, allMessages };
  }
