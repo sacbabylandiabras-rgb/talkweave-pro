@@ -20,8 +20,8 @@ export function BlocoGatewayTriggerNode({ data }: any) {
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="source" position={Position.Right} id="right" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100]" style={{ right: -8 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100]" style={{ bottom: -8 }} />
     </div>
   );
 }

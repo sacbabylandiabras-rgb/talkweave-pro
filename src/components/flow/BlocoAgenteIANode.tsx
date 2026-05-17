@@ -7,8 +7,8 @@ export function BlocoAgenteIANode({ data }: any) {
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md flex items-center gap-1">
         <Bot className="w-3 h-3" /> Agente IA
       </span>
-      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ left: -8, zIndex: 100 }} />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ top: -8, zIndex: 100 }} />
       
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-primary/10">
@@ -39,8 +39,8 @@ export function BlocoAgenteIANode({ data }: any) {
         Este bloco usará IA para responder ao usuário com base no contexto da conversa.
       </div>
 
-      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="source" position={Position.Right} id="source-right" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ right: -8, zIndex: 100 }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ bottom: -8, zIndex: 100 }} />
     </div>
   );
 }
