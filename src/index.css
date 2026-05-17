@@ -17,23 +17,17 @@
    }
  }
  
- .spinning-border-wrapper {
-   position: relative;
-  padding: 4px;
-   border-radius: 50px;
-  background: conic-gradient(from var(--angle), transparent 40%, #ffffff, #a78bfa, transparent);
-  animation: spin 1.5s linear infinite;
-   display: inline-flex;
-   align-items: center;
-   justify-content: center;
-  overflow: hidden;
- }
- 
- .spinning-border-wrapper > button {
-   background-clip: padding-box;
-  position: relative;
-  z-index: 1;
- }
+  .spinning-border-outer {
+    --angle: 0deg;
+    position: relative;
+    padding: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
+    animation: spin 2s linear infinite;
+  }
  
 @layer base {
   :root {
@@ -209,14 +203,11 @@
      color: #2563EB !important;
    }
  
-   [data-theme='blue'] .spinning-border-wrapper {
-     background: #2563EB !important;
-     animation: none !important;
-   }
- 
-   [data-theme='blue'] .spinning-border-wrapper::before {
-     display: none !important;
-   }
+    [data-theme='blue'] .spinning-border-outer {
+      background: none !important;
+      animation: none !important;
+      padding: 0 !important;
+    }
  
    .dark {
     /* Glass Dark — fundo translúcido sobre o gradiente global */

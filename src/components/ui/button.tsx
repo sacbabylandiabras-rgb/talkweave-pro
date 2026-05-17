@@ -39,17 +39,45 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-     const button = <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
- 
-     if (className?.includes("spinning-border")) {
-       return (
-         <div className="spinning-border-wrapper">
-           {button}
-         </div>
-       );
-     }
- 
-     return button;
+    const button = (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
+
+    // Check for purple theme via CSS class or attribute
+    const [isPurple, setIsPurple] = React.useState(false);
+
+    React.useEffect(() => {
+      const checkTheme = () => {
+        const isDark = document.documentElement.classList.contains("dark");
+        const themeAttr = document.documentElement.getAttribute("data-theme");
+        setIsPurple(isDark || themeAttr === "purple");
+      };
+
+      checkTheme();
+
+      const observer = new MutationObserver(checkTheme);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "data-theme"],
+      });
+
+      return () => observer.disconnect();
+    }, []);
+
+    if (className?.includes("spinning-border") || isPurple) {
+      const borderRadius = className?.includes("rounded-full") ? "9999px" : "0.75rem";
+      return (
+        <div className="spinning-border-outer" style={{ borderRadius }}>
+          {button}
+        </div>
+      );
+    }
+
+    return button;
   },
 );
 Button.displayName = "Button";
