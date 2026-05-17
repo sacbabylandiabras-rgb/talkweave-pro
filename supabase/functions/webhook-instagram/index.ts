@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const VERIFY_TOKEN = "zaplynx_ig_verify_2024";
-const IG_APP_ID = "1629147191696096";
+const IG_APP_ID_DEFAULT = '1629147191696096';
+
 const META_API_VERSION = "v21.0";
 
 const corsHeaders = {
@@ -331,9 +332,10 @@ serve(async (req) => {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       console.log(`[webhook-instagram] POST Action: ${body.action || "webhook event"}`);
 
+          const currentAppId = body.appId || IG_APP_ID_DEFAULT;
       if (body.action === "send_manual_message") {
           const { recipientId, message, userId } = body;
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("app_id", IG_APP_ID).eq("connected", true).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("app_id", currentAppId).eq("connected", true).maybeSingle();
           
           if (!cred) return new Response(JSON.stringify({ error: "Credenciais não encontradas" }), { status: 404, headers: corsHeaders });
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
@@ -371,7 +373,7 @@ serve(async (req) => {
       }
 
       if (body.action === "test_follow_flow") {
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", body.user_id).eq("app_id", IG_APP_ID).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", body.user_id).eq("app_id", currentAppId).maybeSingle();
           if (!cred) return new Response("No cred", { status: 404 });
           const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", body.user_id).eq("active", true);
           for (const auto of (automations || [])) {
@@ -386,7 +388,7 @@ serve(async (req) => {
       if (body.object === "instagram" && body.entry) {
         for (const entry of body.entry) {
           const igPageId = String(entry.id);
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("fb_user_id", igPageId).eq("app_id", IG_APP_ID).eq("connected", true).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("fb_user_id", igPageId).eq("app_id", currentAppId).eq("connected", true).maybeSingle();
           if (!cred) continue;
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
 
