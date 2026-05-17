@@ -52,10 +52,10 @@ export function Header({ onNavigate }: HeaderProps) {
                <div className="w-3 h-3 rounded-full bg-[#7c3aed]" />
                <span className="text-foreground">Roxo</span>
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => toggleTheme("white")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
-               <div className="w-3 h-3 rounded-full bg-[#2563EB]" />
-               <span className="text-foreground">Azul</span>
-             </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toggleTheme("white")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
+                <div className="w-3 h-3 rounded-full bg-white border border-gray-200" />
+                <span className="text-foreground">Branco</span>
+              </DropdownMenuItem>
            </DropdownMenuContent>
         </DropdownMenu>
 
