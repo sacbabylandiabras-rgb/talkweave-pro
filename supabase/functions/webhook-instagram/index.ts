@@ -509,12 +509,63 @@ serve(async (req) => {
                    accessToken: cleanAccessToken
                  });
  
-                const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
+                const { data: automations } = await supabase
+                  .from("instagram_automations")
+                  .select("*")
+                  .eq("user_id", cred.user_id)
+                  .eq("active", true);
+
                 for (const auto of (automations || [])) {
-                    try {
-                        const p = JSON.parse(auto.dm_message || "");
-                        if (p.__flow__) await executeFlow({ auto, nodes: p.nodes, edges: p.edges, context: { userId: cred.user_id, igPageId, senderId: comment.from.id, senderUsername: comment.from.username, accessToken: cleanAccessToken, commentId: comment.id, inputText: comment.text, triggerType: "comment" }, supabase });
-                    } catch {}
+                  try {
+                    const p = JSON.parse(auto.dm_message || "");
+                    if (!p.__flow__) continue;
+
+                    // Keyword filter
+                    const keywords = (p.nodes?.find((n: any) => n.type === "igGatilho")?.data?.keywords || "")
+                      .split(",")
+                      .map((k: string) => k.trim().toLowerCase())
+                      .filter(Boolean);
+
+                    if (keywords.length > 0) {
+                      const commentText = (comment.text || "").toLowerCase();
+                      const matches = keywords.some((k: string) => commentText.includes(k));
+                      if (!matches) continue;
+                    }
+
+                    // Prevent duplicate replies for the same comment
+                    const { data: existingReply } = await supabase
+                      .from("instagram_events")
+                      .select("id")
+                      .eq("user_id", cred.user_id)
+                      .eq("event_type", "dm_sent")
+                      .eq("ig_user_id", comment.from.id)
+                      .contains("payload", { automation_id: auto.id, comment_id: comment.id })
+                      .maybeSingle();
+
+                    if (existingReply) {
+                      console.log(`[webhook-instagram] Already replied to comment ${comment.id} with automation ${auto.id}`);
+                      continue;
+                    }
+
+                    await executeFlow({ 
+                      auto, 
+                      nodes: p.nodes, 
+                      edges: p.edges, 
+                      context: { 
+                        userId: cred.user_id, 
+                        igPageId, 
+                        senderId: comment.from.id, 
+                        senderUsername: comment.from.username, 
+                        accessToken: cleanAccessToken, 
+                        commentId: comment.id, 
+                        inputText: comment.text, 
+                        triggerType: "comment" 
+                      }, 
+                      supabase 
+                    });
+                  } catch (err) {
+                    console.error("[webhook-instagram] Error processing comment automation:", err);
+                  }
                 }
               }
                if (change.field === "follow" || change.field === "follows") {
