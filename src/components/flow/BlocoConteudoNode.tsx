@@ -232,8 +232,8 @@ export function BlocoConteudoNode({ data }: any) {
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md z-[60]">
         Conteúdo
       </span>
-      <Handle type="target" position={Position.Left} id="target-left" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ left: -8, zIndex: 100 }} />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ top: -8, zIndex: 100 }} />
+      <Handle type="target" position={Position.Left} id="target-left" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ left: -8 }} />
+      <Handle type="target" position={Position.Top} id="target-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-primary/10">
           <Icon className="h-4 w-4 text-primary" />
@@ -345,8 +345,8 @@ export function BlocoConteudoNode({ data }: any) {
                     type="source"
                     position={Position.Right}
                     id={`button-${idx}`}
-                    className="!w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl hover:scale-110 transition-transform cursor-pointer"
-                    style={{ right: -12, top: "50%", transform: "translateY(-50%)", zIndex: 100 }}
+                    className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl hover:scale-110 transition-transform cursor-pointer !z-[100] !pointer-events-auto"
+                    style={{ right: -12, top: "50%", transform: "translateY(-50%)" }}
                   />
                 )}
               </div>
@@ -358,16 +358,16 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Default source handles */}
       {flowButtons.length === 0 && (
         <>
-          <Handle type="source" position={Position.Right} id="source-right" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ right: -8, zIndex: 100 }} />
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ bottom: -8, zIndex: 100 }} />
+          <Handle type="source" position={Position.Right} id="source-right" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
         </>
       )}
 
       {/* Default + bottom handles when there are flow buttons */}
       {flowButtons.length > 0 && (
         <>
-          <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ bottom: -8, zIndex: 100 }} />
-          <Handle type="source" position={Position.Right} id="default" className="w-4 h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl" style={{ right: -8, zIndex: 100 }} />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
+          <Handle type="source" position={Position.Right} id="default" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ right: -8 }} />
         </>
       )}
     </div>
