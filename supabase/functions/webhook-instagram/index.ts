@@ -11,6 +11,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const isInstagramLoginToken = (accessToken: string) => accessToken.trim().startsWith("IGA");
+
+const getInstagramGraphBaseUrl = (accessToken: string) =>
+  isInstagramLoginToken(accessToken) ? "https://graph.instagram.com" : "https://graph.facebook.com";
+
 const replaceVars = (txt: string, vars: Record<string, string>) => {
   let result = txt || "";
   for (const [key, value] of Object.entries(vars)) {
