@@ -6,17 +6,18 @@
                       const senderUsername = messageData.from?.username || messageData.sender?.username || senderId;
                       const text = messageData.message?.text || "";
                       
-                      if (senderId && senderId !== igPageId) {
-                        console.log(`[webhook-instagram] Processing message from changes field for user ${senderUsername}`);
-                        await logInstagramEvent(supabase, {
-                          userId: cred.user_id,
-                          eventType: "dm",
-                          igUserId: senderId,
-                          username: senderUsername,
-                          text: text,
-                          payload: change.value
-                        });
-                      }
+                       if (senderId && senderId !== igPageId) {
+                         console.log(`[webhook-instagram] Processing message from changes field for user ${senderUsername}`);
+                         await logInstagramEvent(supabase, {
+                           userId: cred.user_id,
+                           eventType: "dm",
+                           igUserId: senderId,
+                           username: senderUsername,
+                           text: text,
+                           payload: change.value,
+                           accessToken: cleanAccessToken
+                         });
+                       }
                    }
                 }
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
