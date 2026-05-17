@@ -394,10 +394,13 @@
       overflow: hidden;
     }
 
+    .dark .glass-sidebar::before,
+    .dark .glass-topbar::before,
     .dark .glass-panel::before,
     .dark .glass-card::before,
     .dark .glass-stat::before,
-    .dark .glass-chart::before {
+    .dark .glass-chart::before,
+    .dark [class*="glass-"]::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -410,6 +413,7 @@
       mask-composite: exclude;
       animation: spin 2s linear infinite;
       pointer-events: none;
+      z-index: 5;
     }
 
 /* Botões glass */
