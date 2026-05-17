@@ -50,10 +50,14 @@ export default function ConfiguracaoMeta() {
       // Invalidate query and update workspace context to ensure immediate UI update
       queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
       
-      // Remove params without triggering a full re-render loop
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("connected");
-      setSearchParams(newParams, { replace: true });
+       // Wait a bit to ensure DB is updated then refresh
+       setTimeout(() => {
+         queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+         // Remove params without triggering a full re-render loop
+         const newParams = new URLSearchParams(searchParams);
+         newParams.delete("connected");
+         setSearchParams(newParams, { replace: true });
+       }, 1000);
     } else if (error === "1") {
       toast.error("Erro ao conectar conta Meta. Tente novamente.");
       const newParams = new URLSearchParams(searchParams);

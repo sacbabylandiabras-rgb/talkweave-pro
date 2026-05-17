@@ -33,7 +33,7 @@ export function useMetaCredentials(appId: string = WHATSAPP_META_APP_ID) {
 
       return data as any;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+       staleTime: 0,
+       gcTime: 1000 * 60 * 5,
   });
 }
