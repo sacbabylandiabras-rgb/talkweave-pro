@@ -345,8 +345,8 @@ export function BlocoConteudoNode({ data }: any) {
                     type="source"
                     position={Position.Right}
                     id={`button-${idx}`}
-                    className="!w-2.5 !h-2.5 !bg-orange-400 !border-2 !border-orange-600"
-                    style={{ right: -5, top: "50%", transform: "translateY(-50%)" }}
+                    className="!w-4 !h-4 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform cursor-pointer"
+                    style={{ right: -15, top: "50%", transform: "translateY(-50%)", zIndex: 50 }}
                   />
                 )}
               </div>
