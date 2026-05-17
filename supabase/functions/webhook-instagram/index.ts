@@ -183,8 +183,9 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
 
       let resolvedUsername = params.username;
 
-      // If we don't have a profile pic or username from payload, fetch from Meta API
-      if (params.accessToken && params.igUserId && (!profilePicUrl || !resolvedUsername || resolvedUsername === params.igUserId)) {
+      // Always fetch profile from Meta API if we have access token, to ensure we have the most up-to-date data
+      // (Meta often doesn't send profile_pic in the webhook payload)
+      if (params.accessToken && params.igUserId) {
         console.log(`[webhook-instagram] Fetching full profile from Meta API for user ${params.igUserId}`);
         const profile = await fetchInstagramUserProfile(params.igUserId, params.accessToken);
         if (profile) {
