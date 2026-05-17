@@ -96,7 +96,7 @@ export function lazyWithRecovery<T extends ComponentType<any>>(
   return lazy(async () => {
     try {
       const mod = await factory();
-      if (mod && typeof mod === "object" && mod.default) {
+      if (mod && typeof mod === "object" && "default" in mod && mod.default) {
         return mod as { default: T };
       }
       // Module loaded but has no default export — stale chunk.
