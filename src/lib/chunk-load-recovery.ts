@@ -72,6 +72,18 @@ export function clearChunkRecoveryState() {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
 }
 
+export function scheduleChunkRecoveryStateClear(delayMs = 15_000) {
+  window.setTimeout(() => {
+    clearChunkRecoveryState();
+  }, delayMs);
+}
+
+export function recoverFromChunkLoadError(error: unknown) {
+  if (!isChunkLoadError(error)) return false;
+  reloadOnce();
+  return true;
+}
+
 /**
  * Wraps React.lazy() so that if the resolved module is missing `default`
  * (a stale published bundle pointing at a removed/renamed chunk), we force
