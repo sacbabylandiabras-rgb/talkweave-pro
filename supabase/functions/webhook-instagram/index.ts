@@ -42,11 +42,15 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
     // For regular Facebook Graph API (Standard App), we use name and profile_pic
     // For Instagram Login tokens (IGA...), we use username and profile_picture_url
     const isIGToken = isInstagramLoginToken(accessToken);
+    
+    // For Standard App messaging, we need name and profile_pic. 
+    // Sometimes numeric IDs are page-scoped IDs (PSID) and don't have 'username'
     const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic";
     
     const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
@@ -194,6 +198,13 @@ const executeIgWhatsAppNode = async (
 
       if (profilePicUrl) {
         contactData.profile_pic_url = profilePicUrl;
+      }
+
+      // Debug contact username resolution
+      if (contactData.username === params.igUserId) {
+        console.log(`[webhook-instagram] Contact username for ${params.igUserId} could not be resolved, still using ID.`);
+      } else {
+        console.log(`[webhook-instagram] Contact username for ${params.igUserId} resolved to: ${contactData.username}`);
       }
 
       // Try to update first, if no rows updated, then insert
