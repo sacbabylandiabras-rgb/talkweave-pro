@@ -283,7 +283,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         "flex items-center gap-2.5 px-0 py-1 border-b border-white/10",
         collapsed && "justify-center px-1"
       )}>
-        <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2 drop-shadow-[0_4px_12px_rgba(37,99,235,0.15)] transition-all duration-300 sidebar-logo" />
+        <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] transition-all duration-300 sidebar-logo" />
       </div>
 
       {/* Collapse toggle */}
