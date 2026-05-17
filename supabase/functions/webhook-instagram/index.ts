@@ -198,6 +198,13 @@ const executeIgWhatsAppNode = async (
         contactData.profile_pic_url = profilePicUrl;
       }
 
+      // Debug contact username resolution
+      if (contactData.username === params.igUserId) {
+        console.log(`[webhook-instagram] Contact username for ${params.igUserId} could not be resolved, still using ID.`);
+      } else {
+        console.log(`[webhook-instagram] Contact username for ${params.igUserId} resolved to: ${contactData.username}`);
+      }
+
       // Try to update first, if no rows updated, then insert
       // This is because we don't have a unique constraint on (user_id, ig_user_id) yet to use upsert with onConflict
       const { data: existingContact } = await supabase
