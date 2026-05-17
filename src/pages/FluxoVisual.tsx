@@ -1154,7 +1154,16 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
     if (outgoingEdges.length === 0) return;
 
-    for (const edge of outgoingEdges) {
+    // Filtrar apenas uma conexão por tipo de handle de saída para evitar duplicidade no envio
+    const uniqueOutgoingEdges = new Map();
+    outgoingEdges.forEach(edge => {
+      const handleKey = edge.sourceHandle || "default";
+      if (!uniqueOutgoingEdges.has(handleKey)) {
+        uniqueOutgoingEdges.set(handleKey, edge);
+      }
+    });
+
+    for (const edge of uniqueOutgoingEdges.values()) {
       const targetNode = runtimeNodes.find(n => n.id === edge.target);
       if (!targetNode) continue;
 
