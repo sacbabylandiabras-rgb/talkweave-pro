@@ -136,11 +136,11 @@
      --ring: 37 99 235;
  
      --sidebar-background: 255 255 255;
-     --sidebar-foreground: 17 24 39;
+     --sidebar-foreground: 17 24 39; /* #111827 */
      --sidebar-primary: 37 99 235;
      --sidebar-primary-foreground: 255 255 255;
      --sidebar-accent: 239 246 255;
-     --sidebar-accent-foreground: 37 99 235;
+     --sidebar-accent-foreground: 37 99 235; /* #2563EB */
      --sidebar-border: 229 231 235;
      --sidebar-ring: 37 99 235;
    }
