@@ -12,7 +12,7 @@
    messages: InstagramEvent[];
  }
  
- export function useInstagramMessages() {
+  export function useInstagramMessages(selectedIgId?: string | null) {
    const queryClient = useQueryClient();
    const [realtimeMessages, setRealtimeMessages] = useState<InstagramEvent[]>([]);
    const [userId, setUserId] = useState<string | null>(null);
@@ -49,8 +49,22 @@
         setContacts(data as any);
       }
     })();
-    return () => { cancelled = true; };
-  }, [userId, initialEvents]);
+     // Also poll for changes periodically as profile pics might be updated by webhook
+     const interval = setInterval(async () => {
+       const { data } = await supabase
+         .from("instagram_contacts" as any)
+         .select("ig_user_id, profile_pic_url")
+         .eq("user_id", userId);
+       if (!cancelled && data) {
+         setContacts(data as any);
+       }
+     }, 10000);
+
+     return () => { 
+       cancelled = true; 
+       clearInterval(interval);
+     };
+   }, [userId, initialEvents, selectedIgId]);
  
    useEffect(() => {
      if (!userId) return;
@@ -141,5 +155,10 @@
     }));
   }, [conversations, contacts]);
  
-   return { conversations: conversationsWithProfile, isLoading, allMessages };
+    const selectedConversation = useMemo(() => {
+      if (!selectedIgId) return null;
+      return conversationsWithProfile.find(c => c.ig_user_id === selectedIgId) || null;
+    }, [conversationsWithProfile, selectedIgId]);
+
+    return { conversations: conversationsWithProfile, selectedConversation, isLoading, allMessages };
  }
