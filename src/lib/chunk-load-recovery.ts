@@ -90,7 +90,7 @@ export function recoverFromChunkLoadError(error: unknown) {
  * a one-time reload instead of letting React throw
  * `Cannot read properties of undefined (reading 'default')`.
  */
-export function lazyWithRecovery<T extends ComponentType<any>>(
+export function lazyWithRecovery<T extends ComponentType<unknown>>(
   factory: () => Promise<{ default: T } | unknown>,
 ): LazyExoticComponent<T> {
   return lazy(async () => {
