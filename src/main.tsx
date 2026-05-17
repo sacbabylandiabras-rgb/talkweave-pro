@@ -1,7 +1,11 @@
  import React from "react";
  import { createRoot } from "react-dom/client";
  import "./index.css";
- import { clearChunkRecoveryState, installChunkLoadRecovery } from "@/lib/chunk-load-recovery";
+import {
+  installChunkLoadRecovery,
+  recoverFromChunkLoadError,
+  scheduleChunkRecoveryStateClear,
+} from "@/lib/chunk-load-recovery";
  
  installChunkLoadRecovery();
  
@@ -25,11 +29,21 @@
 
     }
  
-   // Normal app loading
-   const { default: App } = await import("./App.tsx");
+  // Normal app loading
+  const appModule = await import("./App.tsx");
+  const App = appModule?.default;
+  if (!App) {
+    throw new TypeError("Cannot destructure property 'default' of dynamically imported App module");
+  }
    createRoot(document.getElementById("root")!).render(<App />);
  };
  
-  init().then(() => {
-    clearChunkRecoveryState();
+init()
+  .then(() => {
+    scheduleChunkRecoveryStateClear();
+  })
+  .catch((error) => {
+    if (!recoverFromChunkLoadError(error)) {
+      throw error;
+    }
   });
