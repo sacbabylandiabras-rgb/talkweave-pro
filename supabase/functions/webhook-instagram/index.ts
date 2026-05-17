@@ -60,7 +60,7 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
       console.log(`[webhook-instagram] Fetched profile for ${igUserId}:`, JSON.stringify(profile));
       return { 
         ...profile, 
-        username: profile.username || profile.name || igUserId,
+       username: profile.username || profile.name || `@${igUserId}`,
         profile_pic: profile.profile_pic || profile.profile_picture_url 
       };
     }
