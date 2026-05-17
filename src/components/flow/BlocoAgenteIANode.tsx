@@ -3,12 +3,12 @@ import { Bot, Sparkles, MessageSquare } from "lucide-react";
 
 export function BlocoAgenteIANode({ data }: any) {
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card !overflow-visible">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md flex items-center gap-1 z-[60]">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md flex items-center gap-1">
         <Bot className="w-3 h-3" /> Agente IA
       </span>
-      <Handle type="target" position={Position.Left} id="target-left" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ left: -10 }} />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ top: -10 }} />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
       
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded bg-primary/10">
@@ -39,8 +39,8 @@ export function BlocoAgenteIANode({ data }: any) {
         Este bloco usará IA para responder ao usuário com base no contexto da conversa.
       </div>
 
-      <Handle type="source" position={Position.Right} id="source-right" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ right: -10 }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ bottom: -10 }} />
+      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
     </div>
   );
 }

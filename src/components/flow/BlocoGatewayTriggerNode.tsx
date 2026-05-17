@@ -3,8 +3,8 @@ import { Webhook } from "lucide-react";
 
 export function BlocoGatewayTriggerNode({ data }: any) {
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] glass-card !overflow-visible">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md z-[60]">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] glass-card">
+      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md">
         Gateway
       </span>
       <div className="flex items-center gap-2">
@@ -20,8 +20,8 @@ export function BlocoGatewayTriggerNode({ data }: any) {
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} id="right" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ right: -10 }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-4 h-4 !bg-primary !border-2 !border-background shadow-lg !z-[70]" style={{ bottom: -10 }} />
+      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-primary !border-2 !border-background shadow-lg" />
     </div>
   );
 }
