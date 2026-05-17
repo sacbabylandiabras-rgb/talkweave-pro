@@ -73,7 +73,7 @@ const PerfilWhatsApp = () => {
     fetchUser();
   }, []);
 
-  const displayName = profile?.full_name || profile?.email || "Usuário";
+   const displayName = profile?.full_name || (profile?.email && profile.email.includes("@") ? profile.email : null) || "Usuário";
   const initial = displayName.charAt(0).toUpperCase();
 
   return (

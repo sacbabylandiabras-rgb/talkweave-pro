@@ -99,11 +99,11 @@ const PerfilGateway = () => {
         <CardContent className="flex items-center gap-4">
           <Avatar className="h-14 w-14">
             <AvatarFallback className="bg-[#a78bfa] text-white text-lg">
-              {userName ? userName.charAt(0).toUpperCase() : userEmail.charAt(0).toUpperCase()}
+               {userName ? userName.charAt(0).toUpperCase() : (userEmail && userEmail.includes("@") ? userEmail.charAt(0).toUpperCase() : "U")}
             </AvatarFallback>
           </Avatar>
           <div className="space-y-1 flex-1">
-            <p className="font-semibold text-foreground">{userName || "Sem nome"}</p>
+             <p className="font-semibold text-foreground">{userName || (userEmail && userEmail.includes("@") ? userEmail : "Usuário")}</p>
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Mail className="w-3.5 h-3.5" />{userEmail}
             </p>
