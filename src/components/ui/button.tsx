@@ -47,14 +47,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       />
     );
 
-    // Check for purple theme via CSS class or attribute
-    const [isPurple, setIsPurple] = React.useState(false);
+    // Check for active theme via CSS class or attribute
+    const [activeTheme, setActiveTheme] = React.useState<string | null>(null);
 
     React.useEffect(() => {
       const checkTheme = () => {
         const isDark = document.documentElement.classList.contains("dark");
         const themeAttr = document.documentElement.getAttribute("data-theme");
-        setIsPurple(isDark || themeAttr === "purple");
+        setActiveTheme(isDark ? "purple" : themeAttr);
       };
 
       checkTheme();
@@ -68,7 +68,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return () => observer.disconnect();
     }, []);
 
-    if (className?.includes("spinning-border") || isPurple) {
+    const shouldShowSpinningBorder = 
+      className?.includes("spinning-border") || 
+      activeTheme === "purple" || 
+      activeTheme === "white";
+
+    if (shouldShowSpinningBorder) {
       const borderRadius = className?.includes("rounded-full") ? "9999px" : "0.75rem";
       return (
         <div className="spinning-border-outer" style={{ borderRadius }}>
