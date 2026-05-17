@@ -202,11 +202,28 @@ const executeIgWhatsAppNode = async (
         contactData.profile_pic_url = profilePicUrl;
       }
 
-      const { error: upsertError } = await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
-      if (upsertError) {
-        console.error(`[webhook-instagram] Error upserting contact for ${params.igUserId}:`, upsertError);
+      // Try to update first, if no rows updated, then insert
+      // This is because we don't have a unique constraint on (user_id, ig_user_id) yet to use upsert with onConflict
+      const { data: existingContact } = await supabase
+        .from("instagram_contacts")
+        .select("id")
+        .eq("user_id", params.userId)
+        .eq("ig_user_id", params.igUserId)
+        .maybeSingle();
+
+      if (existingContact) {
+        const { error: updateError } = await supabase
+          .from("instagram_contacts")
+          .update(contactData)
+          .eq("id", existingContact.id);
+        if (updateError) console.error(`[webhook-instagram] Error updating contact for ${params.igUserId}:`, updateError);
+        else console.log(`[webhook-instagram] Successfully updated contact for ${params.igUserId}`);
       } else {
-        console.log(`[webhook-instagram] Successfully upserted contact for ${params.igUserId} (username: ${contactData.username})`);
+        const { error: insertError } = await supabase
+          .from("instagram_contacts")
+          .insert(contactData);
+        if (insertError) console.error(`[webhook-instagram] Error inserting contact for ${params.igUserId}:`, insertError);
+        else console.log(`[webhook-instagram] Successfully inserted contact for ${params.igUserId}`);
       }
    } catch (e) {
      console.error("Error logging instagram event:", e);
