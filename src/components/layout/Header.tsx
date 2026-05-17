@@ -25,9 +25,9 @@ export function Header({ onNavigate }: HeaderProps) {
 
    const toggleTheme = (newTheme: string) => {
      setTheme(newTheme);
-     if (newTheme === "blue") {
-       document.documentElement.setAttribute("data-theme", "blue");
-       document.body.setAttribute("data-theme", "blue");
+     if (newTheme === "white") {
+       document.documentElement.setAttribute("data-theme", "white");
+       document.body.setAttribute("data-theme", "white");
      } else {
        document.documentElement.removeAttribute("data-theme");
        document.body.removeAttribute("data-theme");
@@ -44,7 +44,7 @@ export function Header({ onNavigate }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10">
-                <Palette className="w-4 h-4 text-foreground/60 [[data-theme='blue']_&]:text-[#111827]" />
+                <Palette className="w-4 h-4 text-foreground/60 [[data-theme='white']_&]:text-[#111827]" />
             </Button>
           </DropdownMenuTrigger>
            <DropdownMenuContent align="end" className="w-32 rounded-xl bg-popover border-border">
@@ -52,10 +52,10 @@ export function Header({ onNavigate }: HeaderProps) {
                <div className="w-3 h-3 rounded-full bg-[#7c3aed]" />
                <span className="text-foreground">Roxo</span>
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => toggleTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
-               <div className="w-3 h-3 rounded-full bg-[#2563EB]" />
-               <span className="text-foreground">Azul</span>
-             </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toggleTheme("white")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
+                <div className="w-3 h-3 rounded-full bg-white border border-gray-200" />
+                <span className="text-foreground">Branco</span>
+              </DropdownMenuItem>
            </DropdownMenuContent>
         </DropdownMenu>
 
@@ -72,12 +72,12 @@ export function Header({ onNavigate }: HeaderProps) {
           <div className="w-px h-5 bg-white/10 mx-1" />
 
            <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg hover:bg-foreground/10" onClick={() => setNotificationsOpen(true)}>
-              <Bell className="w-4 h-4 text-foreground/60 [[data-theme='blue']_&]:text-[#111827]" />
+              <Bell className="w-4 h-4 text-foreground/60 [[data-theme='white']_&]:text-[#111827]" />
              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#f472b6] rounded-full ring-2 ring-background" />
           </Button>
 
            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-foreground/10" onClick={() => setSettingsOpen(true)}>
-              <Settings className="w-4 h-4 text-foreground/60 [[data-theme='blue']_&]:text-[#111827]" />
+              <Settings className="w-4 h-4 text-foreground/60 [[data-theme='white']_&]:text-[#111827]" />
           </Button>
 
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10" onClick={() => onNavigate?.("perfil")}>

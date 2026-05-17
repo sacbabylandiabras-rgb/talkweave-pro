@@ -132,8 +132,8 @@ export function DashboardLayout() {
      }
      
      if (theme === 'blue') {
-       document.documentElement.setAttribute('data-theme', 'blue');
-       document.body.setAttribute('data-theme', 'blue');
+       document.documentElement.setAttribute('data-theme', 'white');
+       document.body.setAttribute('data-theme', 'white');
      } else {
        document.documentElement.removeAttribute('data-theme');
        document.body.removeAttribute('data-theme');

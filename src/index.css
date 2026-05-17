@@ -82,7 +82,7 @@
      --sidebar-ring: 255 77 46;
    }
  
-   [data-theme='blue'] {
+   [data-theme='white'] {
      --primary: #2563EB;
      --primary-hover: #1D4ED8;
      --primary-light: #EFF6FF;
@@ -140,23 +140,23 @@
      --sidebar-ring: 37 99 235;
    }
  
-   [data-theme='blue'] body {
+   [data-theme='white'] body {
      background: #F9FAFB !important;
      background-image: none !important;
      color: #111827 !important;
    }
  
-   [data-theme='blue'] body::before,
-   [data-theme='blue'] body::after {
+   [data-theme='white'] body::before,
+   [data-theme='white'] body::after {
      display: none !important;
    }
  
-   [data-theme='blue'] .glass-sidebar,
-   [data-theme='blue'] .glass-topbar,
-   [data-theme='blue'] .glass-panel,
-   [data-theme='blue'] .glass-card,
-   [data-theme='blue'] .glass-stat,
-   [data-theme='blue'] .glass-chart {
+   [data-theme='white'] .glass-sidebar,
+   [data-theme='white'] .glass-topbar,
+   [data-theme='white'] .glass-panel,
+   [data-theme='white'] .glass-card,
+   [data-theme='white'] .glass-stat,
+   [data-theme='white'] .glass-chart {
      background: #FFFFFF !important;
      backdrop-filter: none !important;
      -webkit-backdrop-filter: none !important;
@@ -164,46 +164,46 @@
      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
    }
  
-   [data-theme='blue'] .btn-glass-primary {
+   [data-theme='white'] .btn-glass-primary {
      background: #2563EB !important;
      color: #FFFFFF !important;
    }
  
-   [data-theme='blue'] .btn-glass-primary:hover {
+   [data-theme='white'] .btn-glass-primary:hover {
      background: #1D4ED8 !important;
    }
  
  
-   [data-theme='blue'] .sidebar-section-label {
+   [data-theme='white'] .sidebar-section-label {
      color: #6B7280 !important;
    }
  
-   [data-theme='blue'] .glass-topbar {
+   [data-theme='white'] .glass-topbar {
      border-bottom: 1px solid #E5E7EB !important;
    }
  
-   [data-theme='blue'] .dashboard-content {
+   [data-theme='white'] .dashboard-content {
      background-image: none !important;
      background-color: #F9FAFB !important;
    }
  
-    [data-theme='blue'] .btn-glass-renew {
+    [data-theme='white'] .btn-glass-renew {
       background: #EFF6FF !important;
       border: 1px solid #DBEAFE !important;
       color: #2563EB !important;
     }
 
-    [data-theme='blue'] .sidebar-logo {
+    [data-theme='white'] .sidebar-logo {
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) !important;
     }
  
-   [data-theme='blue'] .plan-badge {
+   [data-theme='white'] .plan-badge {
      background: #EFF6FF !important;
      border: 1px solid #DBEAFE !important;
      color: #2563EB !important;
    }
  
-    [data-theme='blue'] .spinning-border-outer {
+    [data-theme='white'] .spinning-border-outer {
       background: conic-gradient(from var(--angle), transparent 70%, #2563EB, transparent) !important;
       animation: spin 2s linear infinite !important;
       padding: 3px !important;
