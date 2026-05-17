@@ -74,7 +74,18 @@
           }
         });
   
-        if (error) throw error;
+        if (error) {
+          console.error("Erro invoke function:", error);
+          throw error;
+        }
+        
+        // Local feedback: although the webhook logs it, we can force an immediate refresh
+        // or add the message locally if we want zero latency, but refresh is safer
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+           // The hook will pick up the new message via query invalidation from the webhook's insert
+        }
+
         setNewMessage("");
       } catch (err: any) {
         console.error("Erro ao enviar:", err);

@@ -375,14 +375,19 @@ serve(async (req) => {
             throw new Error(data?.error?.message || "Erro na Meta API");
           }
 
-          await logInstagramEvent(supabase, {
-            userId,
-            eventType: "dm_sent",
-            igUserId: recipientId,
-            username: recipientId,
-            text: message,
-            payload: { manual: true, ...data }
-          });
+          try {
+            await logInstagramEvent(supabase, {
+              userId,
+              eventType: "dm_sent",
+              igUserId: recipientId,
+              username: recipientId,
+              text: message,
+              payload: { manual: true, ...data }
+            });
+            console.log(`[webhook-instagram] Manual message logged for user ${userId}`);
+          } catch (logErr) {
+            console.error("[webhook-instagram] Failed to log manual message event:", logErr);
+          }
 
           return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: corsHeaders });
       }
