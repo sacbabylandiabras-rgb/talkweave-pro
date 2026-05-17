@@ -125,10 +125,18 @@ export function DashboardLayout() {
   const [warmupConfig, setWarmupConfig] = useState<WarmupConfig>(readWarmupConfig);
    const { theme, setTheme } = useTheme();
  
-   // Mantém um tema escuro válido (dark ou blue)
+   // Mantém um tema válido e aplica o atributo data-theme se necessário
    useEffect(() => {
      if (theme !== "dark" && theme !== "blue") {
        setTheme("dark");
+     }
+     
+     if (theme === 'blue') {
+       document.documentElement.setAttribute('data-theme', 'blue');
+       document.body.setAttribute('data-theme', 'blue');
+     } else {
+       document.documentElement.removeAttribute('data-theme');
+       document.body.removeAttribute('data-theme');
      }
    }, [theme, setTheme]);
 

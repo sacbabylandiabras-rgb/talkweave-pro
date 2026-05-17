@@ -9,7 +9,18 @@ import { Button } from "@/components/ui/button";
    DropdownMenuTrigger,
  } from "@/components/ui/dropdown-menu";
 import { NotificationsDialog } from "./NotificationsDialog";
-   const { setTheme } = useTheme();
+   const { theme, setTheme } = useTheme();
+   const toggleTheme = (newTheme: string) => {
+     setTheme(newTheme);
+     if (newTheme === 'blue') {
+       document.documentElement.setAttribute('data-theme', 'blue');
+       document.body.setAttribute('data-theme', 'blue');
+     } else {
+       document.documentElement.removeAttribute('data-theme');
+       document.body.removeAttribute('data-theme');
+     }
+   };
+ 
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
 import { WorkspaceSelector } from "./WorkspaceSelector";
@@ -37,11 +48,11 @@ export function Header({ onNavigate }: HeaderProps) {
              </Button>
            </DropdownMenuTrigger>
            <DropdownMenuContent align="end" className="w-32 rounded-xl bg-[#1e1644] border-white/10">
-             <DropdownMenuItem onClick={() => setTheme("dark")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
+             <DropdownMenuItem onClick={() => toggleTheme("dark")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
                <div className="w-3 h-3 rounded-full bg-violet-500" />
                <span className="text-white/80">Roxo</span>
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
+             <DropdownMenuItem onClick={() => toggleTheme("blue")} className="flex items-center gap-2 cursor-pointer hover:bg-white/5">
                <div className="w-3 h-3 rounded-full bg-blue-500" />
                <span className="text-white/80">Azul</span>
              </DropdownMenuItem>
