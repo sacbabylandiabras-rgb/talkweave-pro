@@ -329,6 +329,7 @@ serve(async (req) => {
     try {
       const body = await req.json();
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      console.log(`[webhook-instagram] POST Action: ${body.action || "webhook event"}`);
 
       if (body.action === "send_manual_message") {
           const { recipientId, message, userId } = body;
@@ -339,6 +340,7 @@ serve(async (req) => {
           const igPageId = cred.fb_user_id;
 
           const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages?access_token=${cleanAccessToken}`;
+          console.log(`[webhook-instagram] Sending to ${recipientId} via ${igPageId}`);
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -346,7 +348,11 @@ serve(async (req) => {
           });
 
           const data = await res.json();
-          if (!res.ok) throw new Error(data?.error?.message || "Erro na Meta API");
+          console.log(`[webhook-instagram] Meta API status: ${res.status}`);
+          if (!res.ok) {
+            console.error(`[webhook-instagram] Meta API error: ${JSON.stringify(data)}`);
+            throw new Error(data?.error?.message || "Erro na Meta API");
+          }
 
           await logInstagramEvent(supabase, {
             userId,
