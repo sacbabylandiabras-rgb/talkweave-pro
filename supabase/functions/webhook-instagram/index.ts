@@ -230,7 +230,7 @@ const executeFlow = async (params: {
     if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
       try {
         const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
-        await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + context.commentId + "/replies", {
+        await fetch("https://graph.facebook.com/" + META_API_VERSION + "/" + context.commentId + "/replies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
