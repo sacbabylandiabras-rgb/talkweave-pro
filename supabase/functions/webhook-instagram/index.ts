@@ -122,12 +122,21 @@ const executeIgWhatsAppNode = async (
 
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
-    const fields = isInstagramLoginToken(accessToken) ? "username,name,profile_picture_url" : "profile_pic,username,name";
+    // For regular Facebook Graph API (Standard App), we use name and profile_pic
+    // For Instagram Login tokens (IGA...), we use username and profile_picture_url
+    const isIGToken = isInstagramLoginToken(accessToken);
+    const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic";
+    
     const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
     const res = await fetch(url);
     if (res.ok) {
       const profile = await res.json();
-      return { ...profile, profile_pic: profile.profile_pic || profile.profile_picture_url };
+      console.log(`[webhook-instagram] Fetched profile for ${igUserId}:`, JSON.stringify(profile));
+      return { 
+        ...profile, 
+        username: profile.username || profile.name || igUserId,
+        profile_pic: profile.profile_pic || profile.profile_picture_url 
+      };
     }
     const errorText = await res.text();
     console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
