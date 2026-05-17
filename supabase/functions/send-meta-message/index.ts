@@ -103,38 +103,31 @@ serve(async (req) => {
         return await getPhoneNumbers(creds);
     }
 
-      const checkSuccess = (r: any) => {
-        if (r instanceof Response) return r.status === 200;
-        return r && r.ok === true;
-      };
- 
-      if (result && checkSuccess(result)) {
-         const { phone: rawPhone, message, media_type, template_name, variables } = body;
-         const phone = String(rawPhone || '').replace(/\D/g, '');
-         
-         let content = message || (media_type ? `[Mídia: ${media_type}]` : '[mensagem]');
-         
-         // Se for template, tenta reconstruir o conteúdo para o log
-         if (template_name) {
-           content = `[Template: ${template_name}]`;
-           if (Array.isArray(variables) && variables.length > 0) {
-             content += ` (Vars: ${variables.join(', ')})`;
-           }
-         }
-        
-        console.log(`📝 Logging manual send to message_logs: to=${phone}, content=${content.slice(0, 50)}`);
-        
-        await serviceClient.from('message_logs').insert({
-          user_id: userId,
-          phone: phone,
-          message_received: null,
-          keyword_matched: '__manual_send__',
-          response_sent: content,
-          instance_id: `meta:${effectivePhoneId}`,
-        });
-      }
-    }
+    const checkSuccess = (r: any) => {
+      if (r instanceof Response) return r.status === 200;
+      return r && (r.ok === true || r.success === true);
+    };
 
+    if (result && checkSuccess(result)) {
+      const { phone: rawPhone, message, media_type, template_name, variables } = body;
+      const phone = String(rawPhone || '').replace(/\D/g, '');
+      let content = message || (media_type ? `[Mídia: ${media_type}]` : '[mensagem]');
+      if (template_name) {
+        content = `[Template: ${template_name}]`;
+        if (Array.isArray(variables) && variables.length > 0) {
+          content += ` (Vars: ${variables.join(', ')})`;
+        }
+      }
+      console.log(`📝 Logging manual send to message_logs: to=${phone}, content=${content.slice(0, 50)}`);
+      await serviceClient.from('message_logs').insert({
+        user_id: userId,
+        phone: phone,
+        message_received: null,
+        keyword_matched: '__manual_send__',
+        response_sent: content,
+        instance_id: `meta:${effectivePhoneId}`,
+      });
+    }
     if (result) return result;
     return jsonResponse({ error: "Ação inválida ou sem resposta" }, 400);
   } catch (err) {
