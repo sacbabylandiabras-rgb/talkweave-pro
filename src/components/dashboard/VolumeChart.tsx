@@ -201,7 +201,7 @@ export function VolumeChart() {
             <TrendingUp className="w-4 h-4 text-[#a78bfa]" />
           </div>
           <div>
-            <span className="font-bebas text-[18px] text-white tracking-wider">VOLUME DE MENSAGENS</span>
+             <span className="font-bebas text-[18px] text-white tracking-wider">Volume de Mensagens</span>
             {chartData.length === 0 && (
               <p className="font-nunito text-[11px] text-white/30">Nenhum envio registrado ainda</p>
             )}
