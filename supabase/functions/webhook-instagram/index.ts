@@ -1,25 +1,24 @@
-                if (change.field === "messages") {
-                   const messageData = change.value;
-                   // Instagram Messaging can sometimes send messages here in newer API versions
-                   if (messageData && messageData.message) {
-                      const senderId = messageData.from?.id || messageData.sender?.id;
-                      const senderUsername = messageData.from?.username || messageData.sender?.username || senderId;
-                      const text = messageData.message?.text || "";
-                      
-                       if (senderId && senderId !== igPageId) {
-                         console.log(`[webhook-instagram] Processing message from changes field for user ${senderUsername}`);
-                         await logInstagramEvent(supabase, {
-                           userId: cred.user_id,
-                           eventType: "dm",
-                           igUserId: senderId,
-                           username: senderUsername,
-                           text: text,
-                           payload: change.value,
-                           accessToken: cleanAccessToken
-                         });
-                       }
-                   }
-                }
+                 if (change.field === "messages") {
+                    const messageData = change.value;
+                    if (messageData && messageData.message) {
+                       const senderId = messageData.from?.id || messageData.sender?.id;
+                       const senderUsername = messageData.from?.username || messageData.sender?.username || senderId;
+                       const text = messageData.message?.text || "";
+                       
+                        if (senderId && senderId !== igPageId) {
+                          console.log(`[webhook-instagram] Processing message from changes field for user ${senderUsername}`);
+                          await logInstagramEvent(supabase, {
+                            userId: cred.user_id,
+                            eventType: "dm",
+                            igUserId: senderId,
+                            username: senderUsername,
+                            text: text,
+                            payload: change.value,
+                            accessToken: cleanAccessToken
+                          });
+                        }
+                    }
+                 }
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
