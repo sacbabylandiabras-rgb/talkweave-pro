@@ -4,8 +4,10 @@
  import { Button } from "@/components/ui/button";
  import { ScrollArea } from "@/components/ui/scroll-area";
  import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
- import { Search, Send, Instagram, Loader2, ArrowLeft } from "lucide-react";
+ import { Search, Send, Instagram, Loader2, ArrowLeft, FileText, X } from "lucide-react";
  import { useInstagramMessages, InstagramConversation } from "@/hooks/useInstagramMessages";
+ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
+ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
  import { format, isToday, isYesterday } from "date-fns";
  import { ptBR } from "date-fns/locale";
  import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@
  
  export default function InstagramMessages() {
    const { conversations, isLoading } = useInstagramMessages();
+   const { templates } = useMessageTemplates();
    const [selectedIgId, setSelectedIgId] = useState<string | null>(null);
    const [searchTerm, setSearchTerm] = useState("");
    const [newMessage, setNewMessage] = useState("");
@@ -53,6 +56,10 @@
      if (isMobile) setShowList(false);
    };
  
+   const handleApplyTemplate = (content: string) => {
+     setNewMessage(content);
+   };
+
    const handleSend = async (e: React.FormEvent) => {
      e.preventDefault();
      if (!newMessage.trim() || !selectedIgId || sending) return;
@@ -205,20 +212,66 @@
                </div>
              </ScrollArea>
  
-             {/* Input Area */}
-             <div className="p-4 bg-card border-t border-border">
-               <form onSubmit={handleSend} className="flex gap-2">
-                 <Input 
-                   placeholder="Escreva sua mensagem..." 
-                   value={newMessage}
-                   onChange={e => setNewMessage(e.target.value)}
-                   className="flex-1"
-                 />
-                 <Button type="submit" size="icon" disabled={!newMessage.trim() || sending}>
-                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                 </Button>
-               </form>
-             </div>
+               {/* Input Area */}
+               <div className="p-4 bg-card border-t border-border">
+                 <form onSubmit={handleSend} className="flex flex-col gap-2">
+                   <div className="flex gap-2 items-center">
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <Button type="button" variant="outline" size="icon" className="shrink-0" title="Modelos de mensagem">
+                           <FileText className="w-4 h-4" />
+                         </Button>
+                       </PopoverTrigger>
+                       <PopoverContent className="w-80 p-0" align="start">
+                         <div className="p-3 border-b border-border bg-muted/50">
+                           <h4 className="font-semibold text-sm">Modelos de Mensagem</h4>
+                         </div>
+                         <ScrollArea className="h-72">
+                           <div className="p-2 space-y-1">
+                             {templates.length === 0 ? (
+                               <p className="text-xs text-center py-4 text-muted-foreground">Nenhum modelo encontrado</p>
+                             ) : (
+                               templates.map((t) => (
+                                 <button
+                                   key={t.id}
+                                   type="button"
+                                   onClick={() => handleApplyTemplate(t.content)}
+                                   className="w-full text-left p-2 hover:bg-muted rounded-md transition-colors border border-transparent hover:border-border group"
+                                 >
+                                   <p className="text-xs font-medium truncate">{t.name}</p>
+                                   <p className="text-[10px] text-muted-foreground truncate line-clamp-1">{t.content}</p>
+                                 </button>
+                               ))
+                             )}
+                           </div>
+                         </ScrollArea>
+                       </PopoverContent>
+                     </Popover>
+
+                     <div className="relative flex-1">
+                       <Input 
+                         placeholder="Escreva sua mensagem..." 
+                         value={newMessage}
+                         onChange={e => setNewMessage(e.target.value)}
+                         className="pr-10"
+                       />
+                       {newMessage && (
+                         <button 
+                           type="button"
+                           onClick={() => setNewMessage("")}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                         >
+                           <X className="w-4 h-4" />
+                         </button>
+                       )}
+                     </div>
+
+                     <Button type="submit" size="icon" disabled={!newMessage.trim() || sending}>
+                       {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                     </Button>
+                   </div>
+                 </form>
+               </div>
            </>
          ) : (
            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
