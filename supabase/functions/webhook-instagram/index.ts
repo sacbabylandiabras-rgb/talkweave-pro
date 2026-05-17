@@ -287,12 +287,21 @@ const executeFlow = async (params: {
     if (node.type === "igResposta" && d.message && context.commentId && context.accessToken) {
       try {
         const replyText = replaceVars(d.message, { username: context.senderUsername, text: context.inputText || "" });
-        await fetch("https://graph.facebook.com/" + META_API_VERSION + "/" + context.commentId + "/replies", {
+        const baseUrl = getInstagramGraphBaseUrl(context.accessToken);
+        const replyUrl = `${baseUrl}/${META_API_VERSION}/${context.commentId}/replies`;
+        console.log(`[webhook-instagram] Sending comment reply to ${context.commentId}`);
+        const res = await fetch(replyUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
         });
-      } catch (e) { console.error("Flow reply failed:", e); }
+        if (!res.ok) {
+          const errorData = await res.text();
+          console.error(`[webhook-instagram] Flow reply failed for comment ${context.commentId}:`, errorData);
+        } else {
+          console.log(`[webhook-instagram] Successfully replied to comment ${context.commentId}`);
+        }
+      } catch (e) { console.error("Flow reply error:", e); }
     }
 
     if (node.type === "igDM" && context.senderId && context.accessToken) {
