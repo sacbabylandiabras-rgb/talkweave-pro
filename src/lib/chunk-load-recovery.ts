@@ -22,7 +22,8 @@ function isChunkLoadError(error: unknown) {
     // Stale published bundle: lazy() resolved a module whose `.default` is undefined
     message.includes("Cannot read properties of undefined (reading 'default')") ||
     message.includes("undefined is not an object (evaluating") ||
-    message.includes("'default' of undefined")
+    message.includes("'default' of undefined") ||
+    message.includes("Cannot destructure property 'default'")
   );
 }
 
