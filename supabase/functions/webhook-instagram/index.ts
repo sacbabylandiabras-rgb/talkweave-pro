@@ -1,3 +1,32 @@
+      if (body.action === "send_manual_message") {
+          const { recipientId, message, userId } = body;
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("app_id", IG_APP_ID).eq("connected", true).maybeSingle();
+          
+          if (!cred) return new Response(JSON.stringify({ error: "Credenciais não encontradas" }), { status: 404, headers: corsHeaders });
+          const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
+          const igPageId = cred.fb_user_id;
+
+          const res = await fetch("https://graph.instagram.com/" + META_API_VERSION + "/" + igPageId + "/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cleanAccessToken },
+            body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message } }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error?.message || "Erro na Meta API");
+
+          await logInstagramEvent(supabase, {
+            userId,
+            eventType: "dm_sent",
+            igUserId: recipientId,
+            username: recipientId,
+            text: message,
+            payload: { manual: true, ...data }
+          });
+
+          return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: corsHeaders });
+      }
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
