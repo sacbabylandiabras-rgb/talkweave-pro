@@ -42,33 +42,6 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
-const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
-  try {
-    // For regular Facebook Graph API (Standard App), we use name and profile_pic
-    // For Instagram Login tokens (IGA...), we use username and profile_picture_url
-    const isIGToken = isInstagramLoginToken(accessToken);
-    // If it's a numeric ID, we should try to fetch it as a user profile (Standard App)
-    // standard page-scoped IDs for messaging often need just "name,profile_pic"
-    const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic,username";
-    
-    const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const profile = await res.json();
-      console.log(`[webhook-instagram] Fetched profile for ${igUserId}:`, JSON.stringify(profile));
-      return { 
-        ...profile, 
-        username: profile.username || profile.name || igUserId,
-        profile_pic: profile.profile_pic || profile.profile_picture_url 
-      };
-    }
-    const errorText = await res.text();
-    console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
-  } catch (e) {
-    console.error(`[webhook-instagram] Error fetching IG user profile for ${igUserId}:`, e);
-  }
-  return null;
-};
 
 const triggerOfficialWhatsAppFlow = async (
   flowId: string,
