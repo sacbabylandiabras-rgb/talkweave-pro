@@ -226,7 +226,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         <Icon className={cn(
           "shrink-0 transition-colors duration-200",
           collapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
-           isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground [[data-theme='blue']_&]:text-[#111827]"
+           isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground [[data-theme='white']_&]:text-[#111827]"
         )} />
         {!collapsed && (
           <>
@@ -289,12 +289,12 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-         className="absolute -right-3 top-[52px] z-10 w-6 h-6 rounded-full border border-white/15 bg-[#1a1040] shadow-md flex items-center justify-center hover:bg-[#24243e] transition-colors [[data-theme='blue']_&]:bg-white [[data-theme='blue']_&]:border-gray-200"
+         className="absolute -right-3 top-[52px] z-10 w-6 h-6 rounded-full border border-white/15 bg-[#1a1040] shadow-md flex items-center justify-center hover:bg-[#24243e] transition-colors [[data-theme='white']_&]:bg-white [[data-theme='white']_&]:border-gray-200"
       >
         {collapsed ? (
-           <ChevronRight className="w-3.5 h-3.5 text-white/60 [[data-theme='blue']_&]:text-[#111827]" />
+           <ChevronRight className="w-3.5 h-3.5 text-white/60 [[data-theme='white']_&]:text-[#111827]" />
         ) : (
-           <ChevronLeft className="w-3.5 h-3.5 text-white/60 [[data-theme='blue']_&]:text-[#111827]" />
+           <ChevronLeft className="w-3.5 h-3.5 text-white/60 [[data-theme='white']_&]:text-[#111827]" />
         )}
       </button>
 
