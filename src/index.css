@@ -407,14 +407,13 @@
 }
 
 /* Sidebar items */
-.dark .sidebar-section-label {
-  font-family: 'Manrope', sans-serif;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.20);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 500;
-}
+ .dark .sidebar-section-label {
+   font-family: 'Inter', sans-serif;
+   font-size: 9px;
+   color: rgba(255, 255, 255, 0.20);
+   letter-spacing: 2px;
+   font-weight: 500;
+ }
 .dark .sidebar-item {
   font-family: 'Manrope', sans-serif;
   font-size: 13px;
