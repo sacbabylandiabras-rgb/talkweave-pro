@@ -228,7 +228,7 @@ export function BlocoConteudoNode({ data }: any) {
   const collectCPF = data.collectCPF || false;
 
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card !overflow-visible z-50">
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md z-[60]">
         Conteúdo
       </span>
