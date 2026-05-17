@@ -56,21 +56,17 @@ async function collectWabaIdsFromBusiness(
   apiVersion: string,
   accumulator: Set<string>
 ) {
-  const endpoints = [
-    "owned_whatsapp_business_accounts",
-    "client_whatsapp_business_accounts",
-  ];
-
-  for (const endpoint of endpoints) {
-    const response = await safeMetaGet<MetaListResponse<{ id: string }>>(
-      `https://graph.facebook.com/${apiVersion}/${businessId}/${endpoint}?limit=250`,
-      accessToken
-    );
-
-    for (const account of response?.data || []) {
-      if (account?.id) accumulator.add(account.id);
-    }
-  }
+   const promises = [
+     `https://graph.facebook.com/${apiVersion}/${businessId}/owned_whatsapp_business_accounts?limit=250`,
+     `https://graph.facebook.com/${apiVersion}/${businessId}/client_whatsapp_business_accounts?limit=250`,
+   ].map(url => safeMetaGet<MetaListResponse<{ id: string }>>(url, accessToken));
+ 
+   const results = await Promise.all(promises);
+   for (const response of results) {
+     for (const account of response?.data || []) {
+       if (account?.id) accumulator.add(account.id);
+     }
+   }
 }
 
 async function discoverAccessibleWabaIds(
@@ -95,16 +91,13 @@ async function discoverAccessibleWabaIds(
     creds.access_token
   );
 
-  for (const business of businesses?.data || []) {
-    if (business?.id) {
-      await collectWabaIdsFromBusiness(
-        business.id,
-        creds.access_token,
-        apiVersion,
-        wabaIds
-      );
-    }
-  }
+   if (businesses?.data?.length) {
+     await Promise.all(
+       businesses.data.map(business => 
+         business?.id ? collectWabaIdsFromBusiness(business.id, creds.access_token, apiVersion, wabaIds) : Promise.resolve()
+       )
+     );
+   }
 
   const debugToken = await safeMetaGet<MetaDebugTokenResponse>(
     `https://graph.facebook.com/${apiVersion}/debug_token?input_token=${encodeURIComponent(creds.access_token)}&access_token=${encodeURIComponent(creds.access_token)}`,
@@ -133,22 +126,19 @@ export async function listAccessiblePhoneNumbers(
   console.log(`[phone-discovery] Found ${wabaIds.length} WABA IDs:`, wabaIds);
   console.log(`[phone-discovery] Creds: business_account_id=${creds.business_account_id}, waba_id=${creds.waba_id}, phone_number_id=${creds.phone_number_id}`);
 
-  for (const wabaId of wabaIds) {
-    const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status&limit=250`;
-    console.log(`[phone-discovery] Fetching phones from WABA ${wabaId}`);
-    const response = await safeMetaGet<MetaListResponse<MetaPhoneNumberInfo>>(
-      url,
-      creds.access_token
-    );
-
-    console.log(`[phone-discovery] WABA ${wabaId} returned ${response?.data?.length || 0} numbers`);
-
-    for (const number of response?.data || []) {
-      if (!number?.id || seenIds.has(number.id)) continue;
-      seenIds.add(number.id);
-      numbers.push({ ...number, waba_id: wabaId });
-    }
-  }
+   const phonePromises = wabaIds.map(wabaId => {
+     const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status&limit=250`;
+     return safeMetaGet<MetaListResponse<MetaPhoneNumberInfo>>(url, creds.access_token).then(response => ({ wabaId, response }));
+   });
+ 
+   const phoneResults = await Promise.all(phonePromises);
+   for (const { wabaId, response } of phoneResults) {
+     for (const number of response?.data || []) {
+       if (!number?.id || seenIds.has(number.id)) continue;
+       seenIds.add(number.id);
+       numbers.push({ ...number, waba_id: wabaId });
+     }
+   }
 
   if (numbers.length === 0 && creds.phone_number_id) {
     console.log(`[phone-discovery] No numbers from WABAs, falling back to single phone_number_id: ${creds.phone_number_id}`);
