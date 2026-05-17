@@ -203,14 +203,11 @@
      color: #2563EB !important;
    }
  
-   [data-theme='blue'] .spinning-border-wrapper {
-     background: #2563EB !important;
-     animation: none !important;
-   }
- 
-   [data-theme='blue'] .spinning-border-wrapper::before {
-     display: none !important;
-   }
+    [data-theme='blue'] .spinning-border-outer {
+      background: none !important;
+      animation: none !important;
+      padding: 0 !important;
+    }
  
    .dark {
     /* Glass Dark — fundo translúcido sobre o gradiente global */
