@@ -238,10 +238,10 @@ export default function ConfiguracaoMeta() {
           <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
           <div className="flex-1">
             <p className="text-xs font-medium text-foreground">
-              Conectado como {creds?.fb_user_name || "Conta Business"}
+               Conectado como {creds?.fb_user_name || "Conta Profissional"}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Credenciais configuradas · Phone ID: {creds?.phone_number_id || "—"}
+             Credenciais configuradas · ID do Telefone: {creds?.phone_number_id || "—"}
             </p>
           </div>
           <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20">
@@ -296,7 +296,7 @@ export default function ConfiguracaoMeta() {
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">
-                    Access Token <span className="text-destructive">*</span>
+                     Token de Acesso <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={manualToken}
@@ -305,14 +305,14 @@ export default function ConfiguracaoMeta() {
                     className="h-9 text-xs font-mono"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    Copie o "Token de acesso temporário" ou use um System User Token permanente
+                     Copie o "Token de acesso temporário" ou use um Token de Usuário do Sistema permanente
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">
-                      Phone Number ID <span className="text-destructive">*</span>
+                       ID do Número de Telefone <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       value={manualPhoneId}
@@ -390,7 +390,7 @@ export default function ConfiguracaoMeta() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Access Token</Label>
+                 <Label className="text-xs text-muted-foreground">Token de Acesso</Label>
               <div className="flex gap-2">
                 <Input value={maskedToken} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
                 <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => copyToClipboard(creds?.access_token as string)}>
@@ -401,7 +401,7 @@ export default function ConfiguracaoMeta() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Phone Number ID</Label>
+                 <Label className="text-xs text-muted-foreground">ID do Número de Telefone</Label>
                 <Input value={creds?.phone_number_id || "Não detectado"} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
               </div>
               <div className="space-y-1.5">
