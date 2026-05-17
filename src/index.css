@@ -17,17 +17,17 @@
    }
  }
  
-  .spinning-border-outer {
-    --angle: 0deg;
-    position: relative;
-    padding: 3px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
-    animation: spin 2s linear infinite;
-  }
+   .spinning-border-outer {
+     --angle: 0deg;
+     position: relative;
+     padding: 2.5px;
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+     overflow: hidden;
+     background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
+     animation: spin 2s linear infinite;
+   }
  
 @layer base {
   :root {

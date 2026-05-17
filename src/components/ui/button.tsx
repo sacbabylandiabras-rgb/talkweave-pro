@@ -74,9 +74,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       activeTheme === "white";
 
     if (shouldShowSpinningBorder) {
+      const isSmall = size === "sm" || size === "icon" || className?.includes("h-8");
       const borderRadius = className?.includes("rounded-full") ? "9999px" : "0.75rem";
+      
       return (
-        <div className="spinning-border-outer" style={{ borderRadius }}>
+        <div 
+          className="spinning-border-outer" 
+          style={{ 
+            borderRadius,
+            padding: isSmall ? "1.5px" : "2.5px"
+          }}
+        >
           {button}
         </div>
       );
