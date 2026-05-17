@@ -152,20 +152,29 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
                          params.payload?.message?.reply_to?.story?.url || 
                          null;
 
-     // Update or insert contact
-     const contactData: any = {
-       user_id: params.userId,
-       ig_user_id: params.igUserId,
-       username: params.username,
-       source: params.eventType,
-       updated_at: new Date().toISOString()
-     };
+      // If we don't have a profile pic from payload, try to fetch it from Meta API
+      if (!profilePicUrl && params.accessToken && params.igUserId) {
+        console.log(`[webhook-instagram] Fetching profile pic from Meta API for user ${params.igUserId}`);
+        const profile = await fetchInstagramUserProfile(params.igUserId, params.accessToken);
+        if (profile?.profile_pic) {
+          profilePicUrl = profile.profile_pic;
+        }
+      }
 
-     if (profilePicUrl) {
-       contactData.profile_pic_url = profilePicUrl;
-     }
+      // Update or insert contact
+      const contactData: any = {
+        user_id: params.userId,
+        ig_user_id: params.igUserId,
+        username: params.username,
+        source: params.eventType,
+        updated_at: new Date().toISOString()
+      };
 
-     await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
+      if (profilePicUrl) {
+        contactData.profile_pic_url = profilePicUrl;
+      }
+
+      await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
    } catch (e) {
      console.error("Error logging instagram event:", e);
    }
