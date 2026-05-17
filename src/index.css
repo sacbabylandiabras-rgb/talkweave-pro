@@ -179,21 +179,6 @@
      background: #1D4ED8 !important;
    }
  
-   [data-theme='blue'] .sidebar-item {
-     color: #111827 !important;
-   }
- 
-   [data-theme='blue'] .sidebar-item:hover {
-     background: #F3F4F6 !important;
-     color: #111827 !important;
-   }
- 
-   [data-theme='blue'] .sidebar-item-active {
-     background: #EFF6FF !important;
-     color: #2563EB !important;
-     border: 1px solid transparent !important;
-     font-weight: 600 !important;
-   }
  
    [data-theme='blue'] .sidebar-section-label {
      color: #6B7280 !important;
