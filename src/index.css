@@ -166,6 +166,8 @@
       overflow: hidden;
     }
 
+    [data-theme='white'] .glass-sidebar::before,
+    [data-theme='white'] .glass-topbar::before,
     [data-theme='white'] .glass-panel::before,
     [data-theme='white'] .glass-card::before,
     [data-theme='white'] .glass-stat::before,
@@ -182,6 +184,7 @@
       mask-composite: exclude;
       animation: spin 2s linear infinite;
       pointer-events: none;
+      z-index: 5;
     }
  
     [data-theme='white'] .btn-glass-primary {
