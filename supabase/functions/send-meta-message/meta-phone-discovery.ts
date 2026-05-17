@@ -127,7 +127,7 @@ export async function listAccessiblePhoneNumbers(
   console.log(`[phone-discovery] Creds: business_account_id=${creds.business_account_id}, waba_id=${creds.waba_id}, phone_number_id=${creds.phone_number_id}`);
 
    const phonePromises = wabaIds.map(wabaId => {
-     const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status&limit=250`;
+      const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status,status&limit=250`;
      return safeMetaGet<MetaListResponse<MetaPhoneNumberInfo>>(url, creds.access_token).then(response => ({ wabaId, response }));
    });
  
