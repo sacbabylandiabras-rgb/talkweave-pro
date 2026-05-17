@@ -22,10 +22,10 @@
    return format(date, "dd/MM/yyyy", { locale: ptBR });
  };
  
- export default function InstagramMessages() {
-   const { conversations, isLoading } = useInstagramMessages();
-   const { templates } = useMessageTemplates();
-   const [selectedIgId, setSelectedIgId] = useState<string | null>(null);
+  export default function InstagramMessages() {
+    const [selectedIgId, setSelectedIgId] = useState<string | null>(null);
+    const { conversations, selectedConversation, isLoading } = useInstagramMessages(selectedIgId);
+    const { templates } = useMessageTemplates();
    const [searchTerm, setSearchTerm] = useState("");
    const [newMessage, setNewMessage] = useState("");
    const [sending, setSending] = useState(false);
@@ -40,10 +40,6 @@
        c.ig_user_id.includes(searchTerm)
      );
    }, [conversations, searchTerm]);
- 
-   const selectedConversation = useMemo(() => {
-     return conversations.find(c => c.ig_user_id === selectedIgId) || null;
-   }, [conversations, selectedIgId]);
  
    useEffect(() => {
      if (scrollRef.current) {
