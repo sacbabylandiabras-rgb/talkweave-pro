@@ -348,7 +348,11 @@ serve(async (req) => {
           });
 
           const data = await res.json();
-          \n          console.log(`[webhook-instagram] Meta API status: ${res.status}`); \n          if (!res.ok) { console.error(`[webhook-instagram] Meta API error: ${JSON.stringify(data)}`); throw new Error(data?.error?.message || "Erro na Meta API"); }
+          console.log(`[webhook-instagram] Meta API status: ${res.status}`);
+          if (!res.ok) {
+            console.error(`[webhook-instagram] Meta API error: ${JSON.stringify(data)}`);
+            throw new Error(data?.error?.message || "Erro na Meta API");
+          }
 
           await logInstagramEvent(supabase, {
             userId,
