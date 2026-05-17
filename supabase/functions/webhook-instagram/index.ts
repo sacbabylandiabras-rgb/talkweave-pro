@@ -170,14 +170,9 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
        payload: params.payload || {},
      });
      
-     let profilePicUrl = null;
-     // Try to fetch profile pic if we have an access token
-     if (params.accessToken && params.igUserId && params.eventType !== "dm_sent") {
-        const profile = await fetchInstagramUserProfile(params.igUserId, params.accessToken);
-        if (profile && profile.profile_pic) {
-          profilePicUrl = profile.profile_pic;
-        }
-     }
+      let profilePicUrl = params.payload?.sender?.profile_pic || 
+                         params.payload?.message?.reply_to?.story?.url || 
+                         null;
 
      // Update or insert contact
      const contactData: any = {
