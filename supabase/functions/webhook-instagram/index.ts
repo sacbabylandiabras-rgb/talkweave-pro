@@ -152,20 +152,30 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
                          params.payload?.message?.reply_to?.story?.url || 
                          null;
 
-      // If we don't have a profile pic from payload, try to fetch it from Meta API
-      if (!profilePicUrl && params.accessToken && params.igUserId) {
-        console.log(`[webhook-instagram] Fetching profile pic from Meta API for user ${params.igUserId}`);
+      let resolvedUsername = params.username;
+
+      // If we don't have a profile pic or username from payload, fetch from Meta API
+      if (params.accessToken && params.igUserId && (!profilePicUrl || !resolvedUsername || resolvedUsername === params.igUserId)) {
+        console.log(`[webhook-instagram] Fetching full profile from Meta API for user ${params.igUserId}`);
         const profile = await fetchInstagramUserProfile(params.igUserId, params.accessToken);
-        if (profile?.profile_pic) {
-          profilePicUrl = profile.profile_pic;
+        if (profile) {
+          if (profile.profile_pic) profilePicUrl = profile.profile_pic;
+          if (profile.username) resolvedUsername = profile.username;
         }
+      }
+
+      // Update event with resolved username if needed
+      if (resolvedUsername && resolvedUsername !== params.username) {
+        await supabase.from("instagram_events")
+          .update({ username: resolvedUsername })
+          .match({ user_id: params.userId, ig_user_id: params.igUserId, username: params.username });
       }
 
       // Update or insert contact
       const contactData: any = {
         user_id: params.userId,
         ig_user_id: params.igUserId,
-        username: params.username,
+        username: resolvedUsername || params.igUserId,
         source: params.eventType,
         updated_at: new Date().toISOString()
       };
