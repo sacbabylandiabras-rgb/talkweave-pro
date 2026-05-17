@@ -135,7 +135,7 @@ const KycWrap = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-     <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} value={{ dark: "dark", blue: "blue" }}>
+     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <TooltipProvider>
         <WorkspaceProvider>
           <Toaster />
