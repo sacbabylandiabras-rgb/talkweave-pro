@@ -141,16 +141,17 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const fetchZapiPromise = fetchInstancesWithRetry(user.id);
       let metaPromise: any = Promise.resolve({ data: [] });
       
-      if (options?.includeMeta) {
-        metaPromise = supabase
-          .from("meta_credentials" as any)
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("app_id", "1476628750280487")
-          .eq("connected", true)
-          .not("phone_number_id", "is", null)
-          .order("updated_at", { ascending: false });
-      }
+       const WHATSAPP_META_APP_ID = "26985190684454065";
+       if (options?.includeMeta) {
+         metaPromise = supabase
+           .from("meta_credentials" as any)
+           .select("*")
+           .eq("user_id", user.id)
+           .eq("app_id", WHATSAPP_META_APP_ID)
+           .eq("connected", true)
+           .not("phone_number_id", "is", null)
+           .order("updated_at", { ascending: false });
+       }
 
       const [zapiData, metaResponse] = await Promise.all([fetchZapiPromise, metaPromise]);
       allInstances = [...zapiData];
