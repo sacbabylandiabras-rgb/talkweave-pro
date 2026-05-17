@@ -135,6 +135,21 @@ const executeIgWhatsAppNode = async (
   });
 };
 
+const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
+  try {
+    const url = `https://graph.facebook.com/${META_API_VERSION}/${igUserId}?fields=profile_pic,username,name&access_token=${accessToken}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      return await res.json();
+    }
+    const errorText = await res.text();
+    console.error(`[webhook-instagram] Error response from Meta API for user ${igUserId}:`, errorText);
+  } catch (e) {
+    console.error(`[webhook-instagram] Error fetching IG user profile for ${igUserId}:`, e);
+  }
+  return null;
+};
+
  const logInstagramEvent = async (supabase: any, params: {
    userId: string;
    eventType: string;
@@ -142,6 +157,7 @@ const executeIgWhatsAppNode = async (
    username: string;
    text: string;
    payload?: any;
+   accessToken?: string;
  }) => {
    try {
      await supabase.from("instagram_events").insert({
@@ -153,14 +169,29 @@ const executeIgWhatsAppNode = async (
        payload: params.payload || {},
      });
      
+     let profilePicUrl = null;
+     // Try to fetch profile pic if we have an access token
+     if (params.accessToken && params.igUserId && params.eventType !== "dm_sent") {
+        const profile = await fetchInstagramUserProfile(params.igUserId, params.accessToken);
+        if (profile && profile.profile_pic) {
+          profilePicUrl = profile.profile_pic;
+        }
+     }
+
      // Update or insert contact
-     await supabase.from("instagram_contacts").upsert({
+     const contactData: any = {
        user_id: params.userId,
        ig_user_id: params.igUserId,
        username: params.username,
        source: params.eventType,
        updated_at: new Date().toISOString()
-     }, { onConflict: 'user_id,ig_user_id' });
+     };
+
+     if (profilePicUrl) {
+       contactData.profile_pic_url = profilePicUrl;
+     }
+
+     await supabase.from("instagram_contacts").upsert(contactData, { onConflict: 'user_id,ig_user_id' });
    } catch (e) {
      console.error("Error logging instagram event:", e);
    }
@@ -338,7 +369,8 @@ serve(async (req) => {
                    igUserId: comment.from.id,
                    username: comment.from.username,
                    text: comment.text,
-                   payload: comment
+                   payload: comment,
+                   accessToken: cleanAccessToken
                  });
  
                 const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
@@ -358,7 +390,8 @@ serve(async (req) => {
                      igUserId: fromId,
                      username: fromUsername,
                      text: "Seguiu o perfil",
-                     payload: change.value
+                     payload: change.value,
+                     accessToken: cleanAccessToken
                    });
  
                   const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
@@ -417,7 +450,8 @@ serve(async (req) => {
                       igUserId: targetIgId,
                       username: targetUsername,
                       text: dmText,
-                      payload: event
+                      payload: event,
+                      accessToken: cleanAccessToken
                     });
 
                     // Run automations only for incoming messages (not echoes)
