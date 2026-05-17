@@ -23,16 +23,7 @@ export function Header({ onNavigate }: HeaderProps) {
   const [renewOpen, setRenewOpen] = useState(false);
   const { setTheme } = useTheme();
 
-  const toggleTheme = (newTheme: string) => {
-    setTheme(newTheme);
-    if (newTheme === "blue") {
-      document.documentElement.setAttribute("data-theme", "blue");
-      document.body.setAttribute("data-theme", "blue");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-      document.body.removeAttribute("data-theme");
-    }
-  };
+   const toggleTheme = (newTheme: string) => setTheme(newTheme);
 
   return (
     <>
