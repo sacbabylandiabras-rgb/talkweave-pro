@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const VERIFY_TOKEN = "zaplynx_whatsapp_verify_2024"
-  const WHATSAPP_META_APP_ID = "1478628750280487"
+  const WHATSAPP_META_APP_ID = "26985190684454065"
 const API_VERSION = "v21.0"
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
