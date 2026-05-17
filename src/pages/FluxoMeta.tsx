@@ -173,42 +173,12 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [];
 
 const blocosDisponiveis = [
-  {
-    type: "blocoConteudo",
-    label: "Conteúdo",
-    icon: MessageSquare,
-    description: "Enviar mensagem de texto, mídia ou arquivo",
-  },
-  {
-    type: "blocoCondicao",
-    label: "Condição",
-    icon: GitBranch,
-    description: "Criar ramificações no fluxo",
-  },
-  {
-    type: "blocoAcao",
-    label: "Ação",
-    icon: Zap,
-    description: "Executar uma ação específica",
-  },
-  {
-    type: "blocoGatilho",
-    label: "Gatilho",
-    icon: Key,
-    description: "Palavra-chave que dispara o fluxo",
-  },
-  {
-    type: "blocoAgendamento",
-    label: "Agendamento",
-    icon: CalendarClock,
-    description: "Agendar envio para data/hora específica",
-  },
-  {
-    type: "agenteIA",
-    label: "Agente IA",
-    icon: Bot,
-    description: "Responder usando Inteligência Artificial",
-  },
+   { type: "blocoConteudo", label: "Conteúdo", icon: MessageSquare, description: "Enviar mensagem de texto, mídia ou arquivo" },
+   { type: "blocoCondicao", label: "Condição", icon: GitBranch, description: "Criar ramificações no fluxo" },
+   { type: "blocoAcao", label: "Ação", icon: Zap, description: "Executar uma ação específica" },
+   { type: "blocoGatilho", label: "Gatilho", icon: Key, description: "Palavra-chave que dispara o fluxo" },
+   { type: "blocoAgendamento", label: "Agendamento", icon: CalendarClock, description: "Agendar envio para data/hora específica" },
+   { type: "agenteIA", label: "Agente IA", icon: Bot, description: "Responder usando Inteligência Artificial" },
 ];
 
 interface FlowAutomation {

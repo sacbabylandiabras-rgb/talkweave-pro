@@ -327,7 +327,7 @@ export default function DashboardMeta() {
                   </h2>
                   {phoneInfo.quality_rating && (
                     <Badge variant="outline" className={`text-[9px] ${qualityColor[phoneInfo.quality_rating] || ""}`}>
-                      Qualidade: {phoneInfo.quality_rating}
+                       Qualidade: {phoneInfo.quality_rating === 'GREEN' ? 'ALTA (Verde)' : phoneInfo.quality_rating === 'YELLOW' ? 'MÉDIA (Amarelo)' : phoneInfo.quality_rating === 'RED' ? 'BAIXA (Vermelho)' : phoneInfo.quality_rating}
                     </Badge>
                   )}
                 </div>
@@ -339,9 +339,16 @@ export default function DashboardMeta() {
                   <p className="text-xs text-muted-foreground mt-1">{profile.about}</p>
                 )}
                 {phoneInfo.name_status && (
-                  <Badge variant="secondary" className="text-[9px] mt-1.5">
-                    Status: {phoneInfo.name_status}
-                  </Badge>
+                   {phoneInfo.name_status && (
+                     <Badge variant="secondary" className="text-[9px] mt-1.5">
+                       Status do Nome: {
+                         phoneInfo.name_status === 'APPROVED' ? 'APROVADO' : 
+                         phoneInfo.name_status === 'PENDING' ? 'PENDENTE' : 
+                         phoneInfo.name_status === 'DECLINED' ? 'RECUSADO' : 
+                         phoneInfo.name_status
+                       }
+                     </Badge>
+                   )}
                 )}
               </div>
 
@@ -392,7 +399,7 @@ export default function DashboardMeta() {
               <div className="space-y-3 pt-2 border-t border-border">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Status (About)</Label>
+                     <Label className="text-xs">Recado (Sobre)</Label>
                     <Input
                       value={editForm.about}
                       onChange={(e) => setEditForm({ ...editForm, about: e.target.value })}

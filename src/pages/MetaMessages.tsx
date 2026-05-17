@@ -73,9 +73,9 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null,
   // For groups, communities and channels, prioritize the real name if available
   if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
   
-  if (isChannel) return 'canal';
-  if (isCommunity) return 'comunidade';
-  if (isGroup) return 'grupo';
+   if (isChannel) return 'Canal';
+   if (isCommunity) return 'Comunidade';
+   if (isGroup) return 'Grupo';
 
   return formatPhone(phone);
 };
@@ -119,7 +119,7 @@ const getSourceLabel = (source: string, keyword?: string | null) => {
   switch (source) {
     case 'campaign': return '📢 Campanha';
     case 'flow': return keyword ? `🤖 ${keyword}` : '🤖 Fluxo';
-    case 'manual': return '✉️ Envio manual';
+     case 'manual': return '✉️ Envio Manual';
     default: return '';
   }
 };
