@@ -179,21 +179,6 @@
      background: #1D4ED8 !important;
    }
  
-   [data-theme='blue'] .sidebar-item {
-     color: #111827 !important;
-   }
- 
-   [data-theme='blue'] .sidebar-item:hover {
-     background: #F3F4F6 !important;
-     color: #111827 !important;
-   }
- 
-   [data-theme='blue'] .sidebar-item-active {
-     background: #EFF6FF !important;
-     color: #2563EB !important;
-     border: 1px solid transparent !important;
-     font-weight: 600 !important;
-   }
  
    [data-theme='blue'] .sidebar-section-label {
      color: #6B7280 !important;
@@ -287,10 +272,28 @@
      @apply bg-background text-foreground;
      font-family: 'Inter', sans-serif;
      font-feature-settings: "rlig" 1, "calt" 1;
+     color: #374151;
    }
  
    h1, h2, h3, h4 {
      font-family: 'Inter', sans-serif;
+   }
+ 
+   .sidebar-item {
+     padding: 6px 12px !important;
+     border-radius: 8px !important;
+     color: #374151 !important;
+     background-color: transparent !important;
+     transition: all 0.2s ease;
+   }
+ 
+   .sidebar-item-active {
+     background-color: #EFF6FF !important;
+     color: #2563EB !important;
+   }
+ 
+   .sidebar-item:hover:not(.sidebar-item-active) {
+     background-color: #F3F4F6 !important;
    }
 }
 
