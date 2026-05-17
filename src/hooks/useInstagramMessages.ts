@@ -3,14 +3,14 @@
  import { InstagramEvent } from "./useInstagramEvents";
  import { useQuery, useQueryClient } from "@tanstack/react-query";
  
- export interface InstagramConversation {
-   ig_user_id: string;
-   username: string;
-  profile_pic_url?: string;
-   lastMessage: string;
-   lastTimestamp: string;
-   messages: InstagramEvent[];
- }
+  export interface InstagramConversation {
+    ig_user_id: string;
+    username: string;
+    profile_pic_url?: string;
+    lastMessage: string;
+    lastTimestamp: string;
+    messages: InstagramEvent[];
+  }
  
   export function useInstagramMessages(selectedIgId?: string | null) {
    const queryClient = useQueryClient();
@@ -119,41 +119,39 @@
      return combined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
    }, [initialEvents, realtimeMessages]);
  
-   const conversations = useMemo(() => {
-     const map = new Map<string, InstagramConversation>();
-     
-    // Get contacts to have access to profile pictures
-    const contactsMap = new Map<string, any>();
-    
-     allMessages.forEach((msg) => {
-       const existing = map.get(msg.ig_user_id);
-       if (existing) {
-         existing.messages.push(msg);
-         existing.lastMessage = msg.comment_text;
-         existing.lastTimestamp = msg.created_at;
-       } else {
-         map.set(msg.ig_user_id, {
-           ig_user_id: msg.ig_user_id,
-           username: msg.username || msg.ig_user_id,
-           lastMessage: msg.comment_text,
-           lastTimestamp: msg.created_at,
-           messages: [msg],
-         });
-       }
-     });
+    const conversationsWithProfile = useMemo(() => {
+      const map = new Map<string, InstagramConversation>();
+      const contactMap = new Map(contacts.map(c => [c.ig_user_id, c.profile_pic_url]));
+      
+      allMessages.forEach((msg) => {
+        const existing = map.get(msg.ig_user_id);
+        const profilePic = msg.payload?.sender?.profile_pic || 
+                          msg.payload?.message?.reply_to?.story?.url || 
+                          contactMap.get(msg.ig_user_id);
 
-    return Array.from(map.values()).sort((a, b) => 
-      new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
-    );
-  }, [allMessages]);
-
-  const conversationsWithProfile = useMemo(() => {
-    const contactMap = new Map(contacts.map(c => [c.ig_user_id, c.profile_pic_url]));
-    return conversations.map(conv => ({
-      ...conv,
-      profile_pic_url: contactMap.get(conv.ig_user_id)
-    }));
-  }, [conversations, contacts]);
+        if (existing) {
+          existing.messages.push(msg);
+          existing.lastMessage = msg.comment_text;
+          existing.lastTimestamp = msg.created_at;
+          if (profilePic && !existing.profile_pic_url) {
+            existing.profile_pic_url = profilePic;
+          }
+        } else {
+          map.set(msg.ig_user_id, {
+            ig_user_id: msg.ig_user_id,
+            username: msg.username || msg.ig_user_id,
+            profile_pic_url: profilePic,
+            lastMessage: msg.comment_text,
+            lastTimestamp: msg.created_at,
+            messages: [msg],
+          });
+        }
+      });
+ 
+      return Array.from(map.values()).sort((a, b) => 
+        new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
+      );
+    }, [allMessages, contacts]);
  
     const selectedConversation = useMemo(() => {
       if (!selectedIgId) return null;
