@@ -233,6 +233,7 @@
     [data-theme='white'] .spinning-border-outer::before {
       background: conic-gradient(transparent 70%, #7C3AED, transparent);
       animation: spin 4s linear infinite;
+      will-change: transform;
     }
  
    .dark {
