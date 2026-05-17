@@ -360,7 +360,7 @@ serve(async (req) => {
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
           const igPageId = cred.fb_user_id;
 
-          const url = `https://graph.facebook.com/${META_API_VERSION}/${igPageId}/messages`;
+          const url = `${getInstagramGraphBaseUrl(cleanAccessToken)}/${META_API_VERSION}/${igPageId}/messages`;
           console.log(`[webhook-instagram] Sending to ${recipientId} via ${igPageId}`);
           const res = await fetch(url, {
             method: "POST",
