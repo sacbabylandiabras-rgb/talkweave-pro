@@ -47,7 +47,9 @@ const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) 
     // For regular Facebook Graph API (Standard App), we use name and profile_pic
     // For Instagram Login tokens (IGA...), we use username and profile_picture_url
     const isIGToken = isInstagramLoginToken(accessToken);
-    const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic";
+    // If it's a numeric ID, we should try to fetch it as a user profile (Standard App)
+    // standard page-scoped IDs for messaging often need just "name,profile_pic"
+    const fields = isIGToken ? "username,profile_picture_url" : "name,profile_pic,username";
     
     const url = `${getInstagramGraphBaseUrl(accessToken)}/${META_API_VERSION}/${igUserId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
     const res = await fetch(url);
