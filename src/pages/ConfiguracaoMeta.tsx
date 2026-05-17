@@ -20,7 +20,8 @@ interface MetaPhoneNumber {
   verified_name?: string;
   quality_rating?: string;
   name_status?: string;
-  code_verification_status?: string;
+   code_verification_status?: string;
+   status?: string;
 }
 
    const WHATSAPP_META_APP_ID = "26985190684454065";
@@ -480,11 +481,19 @@ export default function ConfiguracaoMeta() {
                             {phoneNumber.name_status}
                           </Badge>
                         )}
-                        {phoneNumber.code_verification_status && (
-                          <Badge variant="outline" className="text-[9px]">
-                            {phoneNumber.code_verification_status}
-                          </Badge>
-                        )}
+                         {phoneNumber.code_verification_status && (
+                           <Badge variant="outline" className="text-[9px]">
+                             {phoneNumber.code_verification_status}
+                           </Badge>
+                         )}
+                         {phoneNumber.status && (
+                           <Badge 
+                             variant={phoneNumber.status === 'BANNED' || phoneNumber.status === 'DISCONNECTED' ? 'destructive' : 'outline'} 
+                             className="text-[9px]"
+                           >
+                             {phoneNumber.status}
+                           </Badge>
+                         )}
                       </div>
                     </div>
                   </div>
