@@ -351,31 +351,71 @@ serve(async (req) => {
             }
           }
 
-           if (entry.messaging) {
-             for (const event of entry.messaging) {
-                const senderId = event.sender.id;
-                const senderUsername = event.sender.username || senderId;
-                const dmText = event.message?.text || "";
-                const isStory = !!event.message?.reply_to?.story || !!event.message?.story;
-                
-                await logInstagramEvent(supabase, {
-                  userId: cred.user_id,
-                  eventType: isStory ? "story_reply" : "dm",
-                  igUserId: senderId,
-                  username: senderUsername,
-                  text: dmText,
-                  payload: event
-                });
- 
-               const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
-               for (const auto of (automations || [])) {
-                   try {
-                       const p = JSON.parse(auto.dm_message || "");
-                       if (p.__flow__) await executeFlow({ auto, nodes: p.nodes, edges: p.edges, context: { userId: cred.user_id, igPageId, senderId, senderUsername: event.sender.username || senderId, accessToken: cleanAccessToken, inputText: dmText, triggerType: isStory ? "story_reply" : "dm" }, supabase });
-                   } catch {}
-               }
+            // Handle DMs and Story Replies (messaging array)
+            if (entry.messaging && Array.isArray(entry.messaging)) {
+              for (const event of entry.messaging) {
+                try {
+                  const senderId = event.sender?.id;
+                  if (!senderId) continue;
+
+                  // Ignore events from the page itself (echoes) unless they are sent via the UI (handled by send-message)
+                  if (senderId === igPageId) {
+                    console.log("[webhook-instagram] Ignoring message from the page itself:", senderId);
+                    continue;
+                  }
+
+                  const senderUsername = event.sender?.username || senderId;
+                  const dmText = event.message?.text || "";
+                  const isStory = !!(event.message?.reply_to?.story || event.message?.story);
+                  
+                  // Only log if it's a message event (has message, postback, etc.)
+                  if (event.message || event.postback) {
+                    const eventType = isStory ? "story_reply" : "dm";
+                    console.log(`[webhook-instagram] Processing ${eventType} from ${senderUsername} (${senderId})`);
+
+                    await logInstagramEvent(supabase, {
+                      userId: cred.user_id,
+                      eventType,
+                      igUserId: senderId,
+                      username: senderUsername,
+                      text: dmText,
+                      payload: event
+                    });
+
+                    // Run automations
+                    const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
+                    for (const auto of (automations || [])) {
+                        try {
+                            const p = JSON.parse(auto.dm_message || "");
+                            if (p.__flow__) {
+                                await executeFlow({ 
+                                  auto, 
+                                  nodes: p.nodes, 
+                                  edges: p.edges, 
+                                  context: { 
+                                    userId: cred.user_id, 
+                                    igPageId, 
+                                    senderId, 
+                                    senderUsername, 
+                                    accessToken: cleanAccessToken, 
+                                    inputText: dmText || event.postback?.payload || "", 
+                                    triggerType: isStory ? "story_reply" : "dm" 
+                                  }, 
+                                  supabase 
+                                });
+                            }
+                        } catch (err) {
+                            console.error("[webhook-instagram] Error in automation execution:", err);
+                        }
+                    }
+                  } else {
+                    console.log("[webhook-instagram] Skipping non-message event:", Object.keys(event).join(", "));
+                  }
+                } catch (err) {
+                  console.error("[webhook-instagram] Error processing messaging event:", err);
+                }
+              }
             }
-          }
         }
       }
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
