@@ -230,10 +230,9 @@
      color: #2563EB !important;
    }
  
-    [data-theme='white'] .spinning-border-outer {
-      background: conic-gradient(from var(--angle), transparent 70%, #7C3AED, transparent) !important;
-      animation: spin 2s linear infinite !important;
-      padding: 3px !important;
+    [data-theme='white'] .spinning-border-outer::before {
+      background: conic-gradient(transparent 70%, #7C3AED, transparent);
+      animation: spin 4s linear infinite;
     }
  
    .dark {
