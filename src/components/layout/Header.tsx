@@ -35,7 +35,7 @@ export function Header({ onNavigate }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/10">
-              <Palette className="w-4 h-4 text-white/60" />
+               <Palette className="w-4 h-4 text-foreground/60" />
             </Button>
           </DropdownMenuTrigger>
            <DropdownMenuContent align="end" className="w-32 rounded-xl bg-popover border-border">
