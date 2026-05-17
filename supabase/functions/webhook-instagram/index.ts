@@ -484,7 +484,19 @@ serve(async (req) => {
                         .eq("user_id", cred.user_id)
                         .eq("ig_user_id", targetIgId)
                         .maybeSingle();
-                      targetUsername = contact?.username || targetIgId;
+                      targetUsername = contact?.username;
+                      
+                      // If username is not in DB, it might be the first interaction or an echo
+                      // Fetch it from Meta to avoid showing numerical ID
+                      if (!targetUsername || targetUsername === targetIgId) {
+                        console.log(`[webhook-instagram] Fetching username for echo recipient ${targetIgId}`);
+                        const profile = await fetchInstagramUserProfile(targetIgId, cleanAccessToken);
+                        if (profile?.username) {
+                          targetUsername = profile.username;
+                        } else {
+                          targetUsername = targetIgId;
+                        }
+                      }
                     }
 
                     if (!targetIgId) {
