@@ -388,7 +388,7 @@ serve(async (req) => {
       if (body.object === "instagram" && body.entry) {
         for (const entry of body.entry) {
           const igPageId = String(entry.id);
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("fb_user_id", igPageId).eq("app_id", currentAppId).eq("connected", true).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("fb_user_id", igPageId).eq("connected", true).maybeSingle();
           if (!cred) continue;
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
 
