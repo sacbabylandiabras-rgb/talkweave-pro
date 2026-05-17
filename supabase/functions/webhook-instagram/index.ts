@@ -290,17 +290,26 @@ const executeFlow = async (params: {
         const baseUrl = getInstagramGraphBaseUrl(context.accessToken);
         const replyUrl = `${baseUrl}/${META_API_VERSION}/${context.commentId}/replies`;
         console.log(`[webhook-instagram] Sending comment reply to ${context.commentId}`);
-        const res = await fetch(replyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
-        });
-        if (!res.ok) {
-          const errorData = await res.text();
-          console.error(`[webhook-instagram] Flow reply failed for comment ${context.commentId}:`, errorData);
-        } else {
-          console.log(`[webhook-instagram] Successfully replied to comment ${context.commentId}`);
-        }
+             const res = await fetch(replyUrl, {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ message: replyText, access_token: context.accessToken }),
+             });
+             if (!res.ok) {
+               const errorData = await res.text();
+               console.error(`[webhook-instagram] Flow reply failed for comment ${context.commentId}:`, errorData);
+             } else {
+               console.log(`[webhook-instagram] Successfully replied to comment ${context.commentId}`);
+               // Log that we replied to this comment to prevent duplicates
+               await logInstagramEvent(supabase, {
+                 userId: context.userId,
+                 eventType: "dm_sent", // Reusing this for tracking or could be 'comment_reply_sent'
+                 igUserId: context.senderId,
+                 username: context.senderUsername,
+                 text: replyText,
+                 payload: { automation_id: auto.id, comment_id: context.commentId, type: "comment_reply" }
+               });
+             }
       } catch (e) { console.error("Flow reply error:", e); }
     }
 
