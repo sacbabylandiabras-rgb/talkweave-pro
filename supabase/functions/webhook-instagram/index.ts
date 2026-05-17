@@ -335,7 +335,7 @@ serve(async (req) => {
           const currentAppId = body.appId || IG_APP_ID_DEFAULT;
       if (body.action === "send_manual_message") {
           const { recipientId, message, userId } = body;
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("app_id", currentAppId).eq("connected", true).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", userId).eq("connected", true).maybeSingle();
           
           if (!cred) return new Response(JSON.stringify({ error: "Credenciais não encontradas" }), { status: 404, headers: corsHeaders });
           const cleanAccessToken = cred.access_token.replace(/^["']|["']$/g, "").trim();
@@ -373,7 +373,7 @@ serve(async (req) => {
       }
 
       if (body.action === "test_follow_flow") {
-          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", body.user_id).eq("app_id", currentAppId).maybeSingle();
+          const { data: cred } = await supabase.from("meta_credentials").select("*").eq("user_id", body.user_id).maybeSingle();
           if (!cred) return new Response("No cred", { status: 404 });
           const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", body.user_id).eq("active", true);
           for (const auto of (automations || [])) {
