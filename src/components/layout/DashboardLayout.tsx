@@ -125,20 +125,21 @@ export function DashboardLayout() {
   const [warmupConfig, setWarmupConfig] = useState<WarmupConfig>(readWarmupConfig);
    const { theme, setTheme } = useTheme();
  
-   // Mantém um tema válido e aplica o atributo data-theme se necessário
-   useEffect(() => {
-     if (theme !== "dark" && theme !== "blue") {
-       setTheme("dark");
-     }
-     
-     if (theme === 'blue') {
-       document.documentElement.setAttribute('data-theme', 'white');
-       document.body.setAttribute('data-theme', 'white');
-     } else {
-       document.documentElement.removeAttribute('data-theme');
-       document.body.removeAttribute('data-theme');
-     }
-   }, [theme, setTheme]);
+    // Manage theme attributes for custom 'white' theme
+    useEffect(() => {
+      if (theme === 'white') {
+        document.documentElement.setAttribute('data-theme', 'white');
+        document.body.setAttribute('data-theme', 'white');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        document.body.removeAttribute('data-theme');
+      }
+      
+      // Ensure a default theme is set if none is active
+      if (!theme) {
+        setTheme('dark');
+      }
+    }, [theme, setTheme]);
 
   useEffect(() => {
     const checkAuth = async () => {
