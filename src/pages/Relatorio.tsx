@@ -189,7 +189,7 @@ const Relatorio = () => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">Relatórios</h1>
+       <h1 className="text-lg font-semibold text-foreground">Relatórios</h1>
 
       <div className="flex justify-between items-center">
         <div className="flex gap-2 items-center">

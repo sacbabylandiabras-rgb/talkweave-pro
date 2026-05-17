@@ -5,7 +5,7 @@ export default function GatewayIntegracoesList() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Integrações</h1>
+         <h1 className="text-2xl font-bold text-foreground">Integrações</h1>
         <p className="text-sm text-muted-foreground">Gerencie suas integrações de gateway</p>
       </div>
       <Card>

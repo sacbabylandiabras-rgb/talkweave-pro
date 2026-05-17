@@ -31,7 +31,7 @@ const Dashboard = () => {
     <div className="space-y-6 w-full">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-           <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none [[data-theme='blue']_&]:text-[#111827]">PAINEL</h1>
+            <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none [[data-theme='blue']_&]:text-[#111827]">Painel</h1>
            <p className="font-nunito text-[12px] text-white/40 mt-1 [[data-theme='blue']_&]:text-[#6B7280]">Visão geral das suas métricas e campanhas</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

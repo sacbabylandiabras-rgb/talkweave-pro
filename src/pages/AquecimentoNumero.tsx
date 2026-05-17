@@ -223,10 +223,10 @@ export default function AquecimentoNumero() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Flame className="w-6 h-6 text-primary" />
-            Aquecimento de Número
-          </h1>
+           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+             <Flame className="w-6 h-6 text-primary" />
+             Aquecimento de Número
+           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             As instâncias doadoras enviarão mensagens em PV para a(s) instância(s) selecionada(s)
           </p>

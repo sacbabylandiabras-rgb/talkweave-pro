@@ -382,7 +382,7 @@ const ConversationList = ({
     <div className="p-3 border-b border-border bg-muted/30 space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
+           <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
           {isSelectionMode && selectedPhones.size > 0 && (
             <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
               {selectedPhones.size}

@@ -10,7 +10,7 @@ const Comunidades = () => {
           <Building2 className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-bebas tracking-wider uppercase">Comunidades</h1>
+           <h1 className="text-2xl font-bold text-foreground font-bebas tracking-wider">Comunidades</h1>
           <p className="text-muted-foreground text-sm">
             Crie e gerencie comunidades do WhatsApp, vincule grupos e controle participantes.
           </p>
