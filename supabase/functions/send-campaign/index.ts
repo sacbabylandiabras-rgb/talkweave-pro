@@ -340,11 +340,9 @@ const isZapiConfirmed = (payload: any) => {
   const error = String(payload?.error || payload?.message || '').toLowerCase();
   if (error.includes('likely shadow ban')) return false;
 
-  // Status que indicam que a mensagem ficou apenas enfileirada (não entregue de fato)
-  const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
-  if (queuedStatuses.includes(status) || queuedStatuses.includes(result)) return false;
-  // Exige um ack id real OU um status explícito de sucesso de envio
-  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
+  // Status de sucesso de enfileiramento ou envio. 
+  // Consideramos PENDING como sucesso de processamento pela API (Enviado).
+  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
   const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
   return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
