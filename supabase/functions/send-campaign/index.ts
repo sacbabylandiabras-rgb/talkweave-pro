@@ -1732,16 +1732,8 @@ serve(async (req) => {
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
-        // Botões da Z-API podem retornar 200 e não renderizar quando o destino é @lid.
-        // Se já tivermos mapeamento do webhook, enviamos para o número real.
         if (isLidIdentifier(contact.phone)) {
-          const resolvedPhone = await resolveLidToRealPhoneForSend(supabase, credentials.userId, contact.phone, instId);
-          if (resolvedPhone !== contact.phone) {
-            console.log(`📞 [Z-API] Resolvendo @lid para envio: ${contact.phone} → ${resolvedPhone}`);
-            contact.phone = resolvedPhone;
-          } else {
-            console.log(`📞 [Z-API] Sem mapeamento; enviando @lid completo: ${contact.phone}`);
-          }
+          console.log(`📞 [Z-API] Enviando @lid exatamente como recebido: ${contact.phone}`);
         } else if (!isGroupDestination(contact.phone)) {
           // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
           // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
