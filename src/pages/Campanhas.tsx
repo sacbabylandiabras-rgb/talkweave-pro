@@ -1136,7 +1136,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
             );
 
-            type CampaignContactStatus = 'entregue' | 'enviando' | 'pendente' | 'cancelado';
+             type CampaignContactStatus = 'entregue' | 'enviado' | 'enviando' | 'pendente' | 'cancelado';
             // Build full list: all target contacts with their latest persisted status
             const fullContactList: Array<{
               id: string;
@@ -1154,11 +1154,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
 
-              if (send) {
-                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
-                  status = 'entregue';
-                  sentAt = send.delivered_at || send.sent_at || null;
-                } else if (send.status === 'pending') {
+               if (send) {
+                 if (send.status === 'delivered') {
+                   status = 'entregue';
+                   sentAt = send.delivered_at || send.sent_at || null;
+                 } else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
+                   status = 'enviado';
+                   sentAt = send.sent_at || null;
+                 } else if (send.status === 'pending') {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
@@ -1191,8 +1194,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
               if (!existsInTarget) {
                 let status: CampaignContactStatus = 'pendente';
-                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = 'entregue';
-                else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
+                 if (send.status === 'delivered') status = 'entregue';
+                 else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = 'enviado';
+                 else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
