@@ -38,12 +38,6 @@ const normalizePhoneKey = (phone?: string | null) => {
   return phone.replace(/@lid$/i, '').replace(/\D/g, '');
 };
 
-const getSendPriority = (status?: string | null) => {
-  if (status === 'delivered' || status === 'sent') return 3;
-  if (status === 'failed') return 1;
-  return 0;
-};
-
 const getSendTimestamp = (send?: Pick<CampaignSendRow, 'delivered_at' | 'sent_at' | 'created_at'> | null) =>
   send?.delivered_at || send?.sent_at || send?.created_at || '';
 
@@ -281,8 +275,9 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
   }, [open, campaignId, totalContacts]);
 
   const effectiveTotal = Math.max(stats.total, totalContacts);
-  const confirmedCount = stats.delivered;
-  const progress = effectiveTotal > 0 ? ((confirmedCount + stats.failed) / effectiveTotal) * 100 : 0;
+   // Use sent count for progress bar as it reflects work performed by the system
+   const progressCount = stats.sent;
+   const progress = effectiveTotal > 0 ? ((progressCount + stats.failed) / effectiveTotal) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
