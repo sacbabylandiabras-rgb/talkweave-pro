@@ -215,8 +215,13 @@ serve(async (req) => {
       // SENT: Message reached Z-API/WhatsApp servers.
       // RECEIVED: Message delivered to the recipient's phone.
       // READ: Recipient read the message.
-      const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
-      const isSentStatus = ["SENT"].includes(status);
+       const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
+       const isSentStatus = ["SENT"].includes(status);
+       const isShadowBanError = error && (
+         error.toLowerCase().includes("shadow ban") || 
+         error.toLowerCase().includes("restricted") || 
+         error.toLowerCase().includes("temporary limit")
+       );
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
@@ -242,17 +247,25 @@ serve(async (req) => {
             console.log(`Updated campaign_send ${campaignSend.id} to ${updateData.status} via message_id ${msgId}`);
           }
         }
-      } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
-        for (const msgId of messageIds) {
-          await supabase
-            .from("campaign_sends")
-            .update({
-              status: 'failed',
-              error_message: error || status
-            })
-            .eq("message_id", msgId);
-        }
-      }
+       } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
+         for (const msgId of messageIds) {
+           const finalErrorMessage = isShadowBanError 
+             ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio. Evite enviar a mesma mensagem para muitos contatos e tente novamente mais tarde."
+             : (error || status);
+             
+           await supabase
+             .from("campaign_sends")
+             .update({
+               status: 'failed',
+               error_message: finalErrorMessage
+             })
+             .eq("message_id", msgId);
+             
+           if (isShadowBanError) {
+             console.warn(`Shadow ban warning for message ${msgId}: ${finalErrorMessage}`);
+           }
+         }
+       }
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 

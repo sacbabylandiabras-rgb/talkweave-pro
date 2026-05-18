@@ -18,8 +18,9 @@ interface Stats {
   sending: number;
   pending: number;
   sent: number;
-  delivered: number;
-  failed: number;
+   delivered: number;
+   failed: number;
+   lastError?: string | null;
 }
 
 interface CampaignSendRow {
@@ -51,8 +52,9 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     sending: 0,
     pending: totalContacts,
     sent: 0,
-    delivered: 0,
-    failed: 0,
+       delivered: 0,
+       failed: 0,
+       lastError: null,
   });
   const [isComplete, setIsComplete] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -107,15 +109,15 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     const fetchAndUpdate = async () => {
       const [
         { data: sendRows, error: sendRowsError },
-        { data: campaignData },
-      ] = await Promise.all([
-        supabase
-          .from('campaign_sends')
-          .select('phone, status, sent_at, delivered_at, created_at, message_id')
-          .eq('campaign_id', campaignId)
-          .order('created_at', { ascending: true }),
-        supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single(),
-      ]);
+         { data: campaignData },
+       ] = await Promise.all([
+         supabase
+           .from('campaign_sends')
+           .select('phone, status, sent_at, delivered_at, created_at, message_id, error_message')
+           .eq('campaign_id', campaignId)
+           .order('created_at', { ascending: true }),
+         supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single(),
+       ]);
 
       if (sendRowsError) {
         console.error('Erro ao carregar progresso da campanha:', sendRowsError);
@@ -159,8 +161,9 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       let delivered = 0;
       let failed = 0;
       let sending = 0;
-      let pending = 0;
-      let sent = 0;
+       let pending = 0;
+       let sent = 0;
+       let lastError = null;
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
@@ -169,9 +172,10 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
           sent += 1;
         } else if (send?.status === 'pending') {
           pending += 1;
-        } else if (send?.status === 'failed') {
-          failed += 1;
-        } else {
+         } else if (send?.status === 'failed') {
+           failed += 1;
+           if (send.error_message) lastError = send.error_message;
+         } else {
           pending += 1;
         }
       });
@@ -181,8 +185,9 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
         sending,
         pending,
         sent,
-        delivered,
-        failed,
+         delivered,
+         failed,
+         lastError,
       };
       setStats(newStats);
 
@@ -287,9 +292,28 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
               <span className="font-medium">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+           </div>
+ 
+           {stats.failed > 0 && stats.lastError && (
+             <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+               <div className="flex gap-2 text-red-800 dark:text-red-300">
+                 <div className="mt-0.5">
+                   <XCircle className="w-4 h-4 text-red-500" />
+                 </div>
+                 <div className="space-y-1">
+                   <p className="text-xs font-semibold uppercase tracking-wider">Atenção ao Status de Envio</p>
+                   <p className="text-sm leading-relaxed">{stats.lastError}</p>
+                   {stats.lastError.toLowerCase().includes('shadow ban') && (
+                     <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-900/20">
+                       <p className="text-xs italic opacity-80">Dica: Reduza a velocidade de envio ou troque o conteúdo para proteger seu número.</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
+           )}
+ 
+           <div className="grid grid-cols-2 gap-4 relative">
             <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Send className="w-4 h-4" />
@@ -318,15 +342,15 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
               </div>
             </div>
 
-            <div className="space-y-1 p-3 bg-red-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                <XCircle className="w-4 h-4" />
-                <span>Falhas</span>
-              </div>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {stats.failed}
-              </div>
-            </div>
+             <div className="space-y-1 p-3 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
+               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                 <XCircle className="w-4 h-4" />
+                 <span>Falhas</span>
+               </div>
+               <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                 {stats.failed}
+               </div>
+             </div>
 
           </div>
 
