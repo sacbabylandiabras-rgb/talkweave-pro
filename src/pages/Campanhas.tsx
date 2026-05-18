@@ -1136,7 +1136,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean)
             );
 
-            type CampaignContactStatus = 'entregue' | 'enviando' | 'pendente' | 'cancelado';
+             type CampaignContactStatus = 'entregue' | 'enviado' | 'enviando' | 'pendente' | 'cancelado';
             // Build full list: all target contacts with their latest persisted status
             const fullContactList: Array<{
               id: string;
@@ -1154,11 +1154,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               let sentAt: string | null = null;
               let errorMessage: string | null = null;
 
-              if (send) {
-                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
-                  status = 'entregue';
-                  sentAt = send.delivered_at || send.sent_at || null;
-                } else if (send.status === 'pending') {
+               if (send) {
+                 if (send.status === 'delivered') {
+                   status = 'entregue';
+                   sentAt = send.delivered_at || send.sent_at || null;
+                 } else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) {
+                   status = 'enviado';
+                   sentAt = send.sent_at || null;
+                 } else if (send.status === 'pending') {
                   if (canTreatPendingAsCancelled) {
                     status = 'cancelado';
                     errorMessage = send.error_message || 'Campanha cancelada antes da entrega';
@@ -1191,8 +1194,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
               if (!existsInTarget) {
                 let status: CampaignContactStatus = 'pendente';
-                if (send.status === 'delivered' || send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = 'entregue';
-                else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
+                 if (send.status === 'delivered') status = 'entregue';
+                 else if (send.status === 'sent' || (send.status === 'pending' && Boolean((send as any).message_id || send.sent_at))) status = 'enviado';
+                 else if (send.status === 'pending') status = canTreatPendingAsCancelled ? 'cancelado' : 'pendente';
                 else if (isCancelledSendStatus(send.status)) status = 'cancelado';
                 fullContactList.push({
                   id: send.id,
@@ -1207,7 +1211,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               }
             });
 
-            const deliveredCount = fullContactList.filter(c => c.status === 'entregue').length;
+             const deliveredCount = fullContactList.filter(c => c.status === 'entregue').length;
+             const sentCount = fullContactList.filter(c => c.status === 'enviado' || c.status === 'entregue').length;
             const sendingCount = fullContactList.filter(c => c.status === 'enviando').length;
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
@@ -1266,25 +1271,29 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
                     <span>Progresso do envio</span>
-                    <span>{totalCount > 0 ? (((deliveredCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
-                  </div>
-                  <Progress value={totalCount > 0 ? ((deliveredCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
-                </div>
+                   <span>{totalCount > 0 ? (((sentCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
+                 </div>
+                 <Progress value={totalCount > 0 ? ((sentCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
+               </div>
 
                 {/* Stats grid */}
-                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-7' : 'md:grid-cols-6'} gap-3`}>
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="font-bold text-lg">{totalCount}</p>
-                  </div>
-                  <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                    <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">{deliveredCount}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Enviando</p>
-                    <p className="font-bold text-lg">{sendingCount}</p>
-                  </div>
+                 <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-8' : 'md:grid-cols-7'} gap-2`}>
+                   <div className="p-2 bg-muted/50 rounded-lg text-center">
+                     <p className="text-[10px] text-muted-foreground">Total</p>
+                     <p className="font-bold text-md">{totalCount}</p>
+                   </div>
+                   <div className="p-2 bg-blue-500/10 rounded-lg text-center">
+                     <p className="text-[10px] text-blue-600 dark:text-blue-400">Enviados (✓)</p>
+                     <p className="font-bold text-md text-blue-600 dark:text-blue-400">{sentCount}</p>
+                   </div>
+                   <div className="p-2 bg-green-500/10 rounded-lg text-center">
+                     <p className="text-[10px] text-green-600 dark:text-green-400">Entregues (✓✓)</p>
+                     <p className="font-bold text-md text-green-600 dark:text-green-400">{deliveredCount}</p>
+                   </div>
+                   <div className="p-2 bg-muted/50 rounded-lg text-center">
+                     <p className="text-[10px] text-muted-foreground">Em trânsito</p>
+                     <p className="font-bold text-md">{sendingCount}</p>
+                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
                     <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
@@ -1458,21 +1467,30 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         <TableRow key={contact.id}>
                           <TableCell className="font-medium">{contact.name || '-'}</TableCell>
                           <TableCell>{contact.phone}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={contact.status === 'entregue' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
-                              className="flex items-center gap-1 w-fit"
-                            >
-                              {contact.status === 'entregue' ? (
-                                <><CheckCircle className="w-3 h-3" /> Entregue</>
-                              ) : contact.status === 'enviando' ? (
-                                <><RefreshCw className="w-3 h-3 animate-spin" /> Enviando</>
-                              ) : contact.status === 'pendente' ? (
-                                <><ClockIcon className="w-3 h-3" /> Pendente</>
-                              ) : (
-                                <><XCircle className="w-3 h-3" /> Cancelado</>
-                              )}
-                            </Badge>
+                           <TableCell>
+                             <Badge 
+                               variant={
+                                 contact.status === 'entregue' ? 'default' : 
+                                 contact.status === 'enviado' ? 'secondary' :
+                                 contact.status === 'cancelado' ? 'destructive' : 
+                                 'secondary'
+                               }
+                               className={`flex items-center gap-1 w-fit ${
+                                 contact.status === 'enviado' ? 'bg-blue-500/10 text-blue-600 border-blue-500/30' : ''
+                               }`}
+                             >
+                               {contact.status === 'entregue' ? (
+                                 <><div className="flex -space-x-1"><CheckCircle className="w-3 h-3" /><CheckCircle className="w-3 h-3" /></div> Entregue</>
+                               ) : contact.status === 'enviado' ? (
+                                 <><CheckCircle className="w-3 h-3" /> Enviado</>
+                               ) : contact.status === 'enviando' ? (
+                                 <><RefreshCw className="w-3 h-3 animate-spin" /> Enviando</>
+                               ) : contact.status === 'pendente' ? (
+                                 <><ClockIcon className="w-3 h-3" /> Pendente</>
+                               ) : (
+                                 <><XCircle className="w-3 h-3" /> Cancelado</>
+                               )}
+                             </Badge>
                             {contact.errorMessage && (
                               <p className="text-xs text-destructive mt-1" title={contact.errorMessage}>
                                 {formatErrorMessage(contact.errorMessage)}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { MetricCard } from "./MetricCard";
-import { MessageSquare, Send, CheckCircle2, X, Loader2 } from "lucide-react";
+ import { MessageSquare, Send, CheckCircle2, X, Loader2, Check, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StatsGridProps {
@@ -23,12 +23,12 @@ export function StatsGrid({ dateFrom, dateTo }: StatsGridProps = {}) {
         if (dateTo) r = r.lte('created_at', endOfDayIso(dateTo));
         return r as T;
       };
-      const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true })),
-      ]);
+       const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'delivered')),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true })),
+       ]);
       setStats({
         total: totalRes.count ?? 0,
         sent: sentRes.count ?? 0,
@@ -76,8 +76,8 @@ export function StatsGrid({ dateFrom, dateTo }: StatsGridProps = {}) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <MetricCard title="Total" value={stats.total} icon={MessageSquare} variant="info" />
-      <MetricCard title="Enviadas" value={stats.sent} icon={Send} variant="success" />
-      <MetricCard title="Entregues" value={stats.delivered} icon={CheckCircle2} variant="success" />
+       <MetricCard title="Enviadas" value={stats.sent} icon={Check} variant="info" />
+       <MetricCard title="Entregues" value={stats.delivered} icon={CheckCheck} variant="success" />
       <MetricCard title="Falhas" value={stats.failed} icon={X} variant="error" />
     </div>
   );
