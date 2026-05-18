@@ -1467,21 +1467,30 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         <TableRow key={contact.id}>
                           <TableCell className="font-medium">{contact.name || '-'}</TableCell>
                           <TableCell>{contact.phone}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={contact.status === 'entregue' ? 'default' : contact.status === 'cancelado' ? 'destructive' : 'secondary'}
-                              className="flex items-center gap-1 w-fit"
-                            >
-                              {contact.status === 'entregue' ? (
-                                <><CheckCircle className="w-3 h-3" /> Entregue</>
-                              ) : contact.status === 'enviando' ? (
-                                <><RefreshCw className="w-3 h-3 animate-spin" /> Enviando</>
-                              ) : contact.status === 'pendente' ? (
-                                <><ClockIcon className="w-3 h-3" /> Pendente</>
-                              ) : (
-                                <><XCircle className="w-3 h-3" /> Cancelado</>
-                              )}
-                            </Badge>
+                           <TableCell>
+                             <Badge 
+                               variant={
+                                 contact.status === 'entregue' ? 'default' : 
+                                 contact.status === 'enviado' ? 'secondary' :
+                                 contact.status === 'cancelado' ? 'destructive' : 
+                                 'secondary'
+                               }
+                               className={`flex items-center gap-1 w-fit ${
+                                 contact.status === 'enviado' ? 'bg-blue-500/10 text-blue-600 border-blue-500/30' : ''
+                               }`}
+                             >
+                               {contact.status === 'entregue' ? (
+                                 <><div className="flex -space-x-1"><CheckCircle className="w-3 h-3" /><CheckCircle className="w-3 h-3" /></div> Entregue</>
+                               ) : contact.status === 'enviado' ? (
+                                 <><CheckCircle className="w-3 h-3" /> Enviado</>
+                               ) : contact.status === 'enviando' ? (
+                                 <><RefreshCw className="w-3 h-3 animate-spin" /> Enviando</>
+                               ) : contact.status === 'pendente' ? (
+                                 <><ClockIcon className="w-3 h-3" /> Pendente</>
+                               ) : (
+                                 <><XCircle className="w-3 h-3" /> Cancelado</>
+                               )}
+                             </Badge>
                             {contact.errorMessage && (
                               <p className="text-xs text-destructive mt-1" title={contact.errorMessage}>
                                 {formatErrorMessage(contact.errorMessage)}
