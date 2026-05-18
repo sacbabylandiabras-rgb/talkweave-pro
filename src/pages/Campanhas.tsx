@@ -1211,7 +1211,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               }
             });
 
-            const deliveredCount = fullContactList.filter(c => c.status === 'entregue').length;
+             const deliveredCount = fullContactList.filter(c => c.status === 'entregue').length;
+             const sentCount = fullContactList.filter(c => c.status === 'enviado' || c.status === 'entregue').length;
             const sendingCount = fullContactList.filter(c => c.status === 'enviando').length;
             const pendingCount = fullContactList.filter(c => c.status === 'pendente').length;
             const cancelledCount = fullContactList.filter(c => c.status === 'cancelado').length;
@@ -1270,25 +1271,29 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
                     <span>Progresso do envio</span>
-                    <span>{totalCount > 0 ? (((deliveredCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
-                  </div>
-                  <Progress value={totalCount > 0 ? ((deliveredCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
-                </div>
+                   <span>{totalCount > 0 ? (((sentCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%</span>
+                 </div>
+                 <Progress value={totalCount > 0 ? ((sentCount + cancelledCount) / totalCount) * 100 : 0} className="h-2" />
+               </div>
 
                 {/* Stats grid */}
-                <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-7' : 'md:grid-cols-6'} gap-3`}>
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="font-bold text-lg">{totalCount}</p>
-                  </div>
-                  <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                    <p className="text-xs text-green-600 dark:text-green-400">Entregues</p>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">{deliveredCount}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Enviando</p>
-                    <p className="font-bold text-lg">{sendingCount}</p>
-                  </div>
+                 <div className={`grid grid-cols-2 ${statsDialogHasUrlButton ? 'md:grid-cols-8' : 'md:grid-cols-7'} gap-2`}>
+                   <div className="p-2 bg-muted/50 rounded-lg text-center">
+                     <p className="text-[10px] text-muted-foreground">Total</p>
+                     <p className="font-bold text-md">{totalCount}</p>
+                   </div>
+                   <div className="p-2 bg-blue-500/10 rounded-lg text-center">
+                     <p className="text-[10px] text-blue-600 dark:text-blue-400">Enviados (✓)</p>
+                     <p className="font-bold text-md text-blue-600 dark:text-blue-400">{sentCount}</p>
+                   </div>
+                   <div className="p-2 bg-green-500/10 rounded-lg text-center">
+                     <p className="text-[10px] text-green-600 dark:text-green-400">Entregues (✓✓)</p>
+                     <p className="font-bold text-md text-green-600 dark:text-green-400">{deliveredCount}</p>
+                   </div>
+                   <div className="p-2 bg-muted/50 rounded-lg text-center">
+                     <p className="text-[10px] text-muted-foreground">Em trânsito</p>
+                     <p className="font-bold text-md">{sendingCount}</p>
+                   </div>
                   <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
                     <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
