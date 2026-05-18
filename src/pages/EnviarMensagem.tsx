@@ -1250,11 +1250,24 @@ const EnviarMensagem = () => {
           console.error(`Erro ao enviar para ${contato.nome}:`, error);
           ultimoErro = errorMessage;
           errosDetalhados.push(`${contato.nome}: ${errorMessage}`);
-          toast({
-            title: `Falha ao enviar para ${contato.nome}`,
-            description: errorMessage,
-            variant: "destructive",
-          });
+          
+          const lowMessage = errorMessage?.toLowerCase() || '';
+          const isRateLimited = lowMessage.includes('shadow ban') || lowMessage.includes('restriction') || lowMessage.includes('rate limit') || lowMessage.includes('463');
+          
+          if (isRateLimited) {
+            cancelarEnvioRef.current = true;
+            toast({
+              title: "Envio interrompido",
+              description: "Detectamos uma restrição no seu WhatsApp. O envio foi pausado para proteger sua conta.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: `Falha ao enviar para ${contato.nome}`,
+              description: errorMessage,
+              variant: "destructive",
+            });
+          }
         }
         
         // Determinar nome da instância usada neste envio

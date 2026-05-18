@@ -25,10 +25,36 @@ const isZapiSendConfirmed = (payload: any) => {
   return Boolean(ackId);
 };
 
+const isZapiConfirmed = (payload: any) => {
+  const ackId = payload?.messageId || payload?.zapiMessageId || payload?.zaapId || payload?.id || payload?.key?.id || payload?.message?.id || null;
+  const status = String(payload?.status || payload?.message?.status || '').toUpperCase();
+  const result = String(payload?.result || '').toUpperCase();
+  
+  // Special case: "shadow ban" warning from Z-API
+  // Even if they include an ID, if this specific message is present, it's NOT a successful send.
+  const error = String(payload?.error || payload?.message || '').toLowerCase();
+  if (error.includes('likely shadow ban')) return false;
+
+  // Status indicating queued but not delivered
+  const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
+  if (queuedStatuses.includes(status) || queuedStatuses.includes(result)) return false;
+  
+  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
+  const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
+  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
+};
+
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
   const data = await response.json().catch(() => ({}));
   const explicitError = hasExplicitZapiError(data);
-  const confirmed = isZapiSendConfirmed(data);
+  const confirmed = isZapiConfirmed(data);
+  
+  const errorBody = JSON.stringify(data).toLowerCase();
+  let errorMessage = explicitError;
+  
+  if (errorBody.includes('likely shadow ban')) {
+    errorMessage = "Sua conta WhatsApp está com uma restrição temporária (provável shadow ban). Tente enviar novamente em alguns minutos ou mude o conteúdo da mensagem.";
+  }
 
   console.log(
     `📬 Z-API response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
@@ -37,7 +63,7 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
   if (!response.ok || explicitError || !confirmed) {
     throw new Response(
       JSON.stringify({
-        error: explicitError || `Z-API did not confirm message acceptance (${label})`,
+        error: errorMessage || `Z-API did not confirm message acceptance (${label})`,
         details: data,
       }),
       {
@@ -642,16 +668,11 @@ serve(async (req) => {
           }))
         };
 
-        if (mediaType === 'image') {
-          payload.image = mediaUrl;
-          return sendZapi('/send-button-actions-image', payload, 'buttons-actions-image');
-        } else {
-          // Z-API não possui endpoint /send-button-actions-video.
-          // Enviamos o vídeo separado e depois os botões em /send-button-actions.
-          await sendZapiMedia(mediaUrl, mediaType || 'video', '');
-          const { image: _img, video: _vid, ...rest } = payload;
-          return sendZapi('/send-button-actions', rest, 'buttons-actions-after-video');
-        }
+        // Z-API handles media + action buttons best by sending media first, then buttons
+        // because specific endpoints like /send-button-actions-image can be unstable or non-existent
+        await sendZapiMedia(mediaUrl, mediaType || 'image', '');
+        const { image: _img, video: _vid, ...rest } = payload;
+        return sendZapi('/send-button-actions', rest, `buttons-actions-after-${mediaType || 'media'}`);
       }
 
       // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
