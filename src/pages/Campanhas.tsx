@@ -332,15 +332,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const isCancelledSendStatus = (status?: string | null) =>
     status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'error' || status === 'rejected';
 
-  const isAcceptedSend = (send: any) =>
-    send?.status === 'sent' ||
-    send?.status === 'delivered' ||
-    (send?.status === 'pending' && Boolean(send?.message_id || send?.sent_at));
+  const isAcceptedSend = (send: any) => 
+    send?.status === 'delivered' || 
+    (send?.status === 'sent' && (Boolean(send?.message_id) || Boolean(send?.delivered_at)));
 
   const statsDialogStats = {
     // Envios aceitos pela API são exibidos como entregues imediatamente.
-    sent: statsDialogSends.filter(s => isAcceptedSend(s)).length,
-    delivered: statsDialogSends.filter(s => isAcceptedSend(s)).length,
+    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
     // "Enviando" é apenas o que ainda está em trânsito/pendente na API.
     sending: 0,
     pending: statsDialogSends.filter(s => s.status === 'pending' && !Boolean((s as any).message_id || s.sent_at)).length,
