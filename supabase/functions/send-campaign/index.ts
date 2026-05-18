@@ -1719,22 +1719,23 @@ serve(async (req) => {
             },
           );
 
-          // @lid bypass: ignore "user_not_found"-style errors for @lid identifiers.
-          const uazLidBypass = isLidIdentifier(contact.phone) && (() => {
-            const blob = `${uazResult.error || ''} ${JSON.stringify(uazResult.raw || {})}`.toLowerCase();
-            return blob.includes('not_found') || blob.includes('user_not_found');
-          })();
-
-          if (uazResult.ok || uazLidBypass) {
+          // @lid bypass removido: identificadores @lid não resolvidos para um número real
+          // não são realmente entregues pelo WhatsApp, mesmo quando o provedor retorna 200.
+          // Marcamos como falha com mensagem clara para o usuário.
+          if (uazResult.ok) {
             campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
-            console.log(`📨 Sent${uazLidBypass ? ' (@lid bypass)' : ''} ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'})`);
+            console.log(`📨 Sent ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'})`);
           } else {
             campaignSend.status = 'failed';
-            campaignSend.error_message = uazResult.error || 'UAZAPI envio falhou';
+            if (isLidIdentifier(contact.phone)) {
+              campaignSend.error_message = 'Número oculto (@lid) não pôde ser resolvido para um WhatsApp válido. Capture esse contato em uma conversa direta para mapear o número real.';
+            } else {
+              campaignSend.error_message = uazResult.error || 'Envio não confirmado pelo WhatsApp';
+            }
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-            console.log(`❌ [UAZAPI] Failed ${contact.phone}: ${campaignSend.error_message}`);
+            console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
             if (isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined) && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
@@ -2053,18 +2054,12 @@ serve(async (req) => {
           const confirmed = isZapiConfirmed(zapiResult);
           console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
 
-          // For @lid identifiers the upstream may return a "user_not_found" / NOT_FOUND
-          // error even though the message is actually delivered. The user explicitly
-          // requested that @lid destinations skip the WhatsApp existence check and
-          // be treated as accepted.
+          // Identificadores @lid não resolvidos não são entregues mesmo quando a API
+          // retorna 200. Tratamos como falha explícita para evitar relatório falso de
+          // "entregue" quando a mensagem nunca chega ao WhatsApp do destinatário.
           const isLidContact = isLidIdentifier(contact.phone);
-          const looksLikeNotFound = (() => {
-            const blob = `${explicitError || ''} ${JSON.stringify(zapiResult || {})}`.toLowerCase();
-            return blob.includes('not_found') || blob.includes('user_not_found');
-          })();
-          const lidBypass = isLidContact && (looksLikeNotFound || (!confirmed && zapiResponse.ok));
 
-          if ((zapiResponse.ok && !explicitError && confirmed) || lidBypass) {
+          if (zapiResponse.ok && !explicitError && confirmed && !isLidContact) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
@@ -2087,10 +2082,14 @@ serve(async (req) => {
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
-            console.log(`📨 Sent${lidBypass ? ' (@lid bypass)' : ''} for ${contact.phone} after accepted send`);
+            console.log(`📨 Sent for ${contact.phone} after accepted send`);
           } else {
             campaignSend.status = 'failed';
-            campaignSend.error_message = explicitError || (!confirmed ? 'Z-API não confirmou o envio' : `HTTP ${zapiResponse.status}`);
+            if (isLidContact) {
+              campaignSend.error_message = 'Número oculto (@lid) não pôde ser resolvido para um WhatsApp real. Receba ao menos uma mensagem desse contato para que o sistema mapeie o número.';
+            } else {
+              campaignSend.error_message = explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`);
+            }
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
