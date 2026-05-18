@@ -1,4 +1,4 @@
-import { useState } from "react";
+ import { useState, useEffect } from "react";
 import { TopMetrics } from "@/components/dashboard/TopMetrics";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { VolumeChart } from "@/components/dashboard/VolumeChart";
@@ -6,12 +6,21 @@ import { RevenueMetrics } from "@/components/dashboard/RevenueMetrics";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+ import { CalendarIcon, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-const Dashboard = () => {
+ const Dashboard = () => {
+   const [showFinancials, setShowFinancials] = useState(() => {
+     const saved = localStorage.getItem("dashboard_show_financials");
+     return saved === null ? true : saved === "true";
+   });
+
+   useEffect(() => {
+     localStorage.setItem("dashboard_show_financials", String(showFinancials));
+   }, [showFinancials]);
+
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -58,17 +67,32 @@ const Dashboard = () => {
               <Calendar mode="single" selected={dateTo} onSelect={handleSelectTo} disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
-          {(dateFrom || dateTo) && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
-              Limpar
-            </Button>
-          )}
+           <div className="flex items-center gap-2">
+             <Button
+               variant="outline"
+               size="sm"
+               className="h-8 w-8 p-0 rounded border-border/60"
+               onClick={() => setShowFinancials(!showFinancials)}
+               title={showFinancials ? "Ocultar faturamento e CPA" : "Mostrar faturamento e CPA"}
+             >
+               {showFinancials ? (
+                 <EyeOff className="h-3.5 w-3.5" />
+               ) : (
+                 <Eye className="h-3.5 w-3.5" />
+               )}
+             </Button>
+             {(dateFrom || dateTo) && (
+               <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
+                 Limpar
+               </Button>
+             )}
+           </div>
           <span className="plan-badge">ZapLynx Pro</span>
         </div>
       </div>
-      <TopMetrics dateFrom={dateFrom} dateTo={dateTo} />
-      <RevenueMetrics dateFrom={dateFrom} dateTo={dateTo} />
-      <StatsGrid dateFrom={dateFrom} dateTo={dateTo} />
+       <TopMetrics dateFrom={dateFrom} dateTo={dateTo} />
+       {showFinancials && <RevenueMetrics dateFrom={dateFrom} dateTo={dateTo} />}
+       <StatsGrid dateFrom={dateFrom} dateTo={dateTo} />
       <VolumeChart />
     </div>
   );
