@@ -381,29 +381,6 @@ const getZapiTargetPhone = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
-const resolveLidToRealPhoneForSend = async (
-  supabase: any,
-  userId: string,
-  lidPhone: string,
-  instanceId?: string,
-) => {
-  if (!isLidIdentifier(lidPhone)) return lidPhone;
-
-  const { data } = await supabase
-    .from('message_logs')
-    .select('phone, instance_id, timestamp')
-    .eq('user_id', userId)
-    .eq('keyword_matched', '__lid_map__')
-    .eq('message_received', lidPhone)
-    .order('timestamp', { ascending: false })
-    .limit(10);
-
-  const rows = Array.isArray(data) ? data : [];
-  const match = rows.find((row: any) => instanceId && row.instance_id === instanceId) || rows[0];
-  const realPhone = getZapiTargetPhone(String(match?.phone || ''));
-  return realPhone && !realPhone.includes('@lid') && realPhone.length >= 8 ? realPhone : lidPhone;
-};
-
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
@@ -1755,16 +1732,8 @@ serve(async (req) => {
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
-        // Botões da Z-API podem retornar 200 e não renderizar quando o destino é @lid.
-        // Se já tivermos mapeamento do webhook, enviamos para o número real.
         if (isLidIdentifier(contact.phone)) {
-          const resolvedPhone = await resolveLidToRealPhoneForSend(supabase, credentials.userId, contact.phone, instId);
-          if (resolvedPhone !== contact.phone) {
-            console.log(`📞 [Z-API] Resolvendo @lid para envio: ${contact.phone} → ${resolvedPhone}`);
-            contact.phone = resolvedPhone;
-          } else {
-            console.log(`📞 [Z-API] Sem mapeamento; enviando @lid completo: ${contact.phone}`);
-          }
+          console.log(`📞 [Z-API] Enviando @lid exatamente como recebido: ${contact.phone}`);
         } else if (!isGroupDestination(contact.phone)) {
           // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
           // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
