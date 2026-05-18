@@ -13,15 +13,15 @@ interface SendProgressDialogProps {
   onPause?: () => void;
 }
 
-interface Stats {
-  total: number;
-  sending: number;
-  pending: number;
-  sent: number;
-   delivered: number;
+ interface Stats {
+   total: number;
+   sending: number;
+   pending: number;
+   sent: number; // For "Enviado" (1 checkmark)
+   delivered: number; // For "Entregue" (2 checkmarks)
    failed: number;
    lastError?: string | null;
-}
+ }
 
 interface CampaignSendRow {
   phone: string | null;
@@ -135,23 +135,31 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
           .filter((phoneKey: string) => Boolean(phoneKey))
       );
 
-      const sendsByPhone = new Map<string, CampaignSendRow>();
-      (sendRows as CampaignSendRow[] | null | undefined)?.forEach((send) => {
-        const phoneKey = normalizePhoneKey(send.phone) || String(send.phone || '');
-        if (!phoneKey) return;
-
-        const existing = sendsByPhone.get(phoneKey);
-        const nextPriority = send.status === 'pending' && Boolean(send.message_id || send.sent_at) ? 3 : getSendPriority(send.status);
-        const currentPriority = existing?.status === 'pending' && Boolean(existing.message_id || existing.sent_at) ? 3 : getSendPriority(existing?.status);
-
-        if (
-          !existing ||
-          nextPriority > currentPriority ||
-          (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
-        ) {
-          sendsByPhone.set(phoneKey, send);
-        }
-      });
+       const sendsByPhone = new Map<string, CampaignSendRow>();
+       (sendRows as CampaignSendRow[] | null | undefined)?.forEach((send) => {
+         const phoneKey = normalizePhoneKey(send.phone) || String(send.phone || '');
+         if (!phoneKey) return;
+ 
+         const existing = sendsByPhone.get(phoneKey);
+         // Priority: delivered (3) > sent (2) > failed (1) > pending (0)
+         const getStatusPriority = (s?: string | null) => {
+           if (s === 'delivered') return 3;
+           if (s === 'sent') return 2;
+           if (s === 'failed') return 1;
+           return 0;
+         };
+ 
+         const nextPriority = getStatusPriority(send.status);
+         const currentPriority = getStatusPriority(existing?.status);
+ 
+         if (
+           !existing ||
+           nextPriority > currentPriority ||
+           (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
+         ) {
+           sendsByPhone.set(phoneKey, send);
+         }
+       });
 
       const allPhoneKeys = new Set<string>([
         ...Array.from(targetPhoneKeys),
@@ -166,20 +174,26 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
        let sent = 0;
        let lastError = null;
 
-      allPhoneKeys.forEach((phoneKey) => {
-        const send = sendsByPhone.get(phoneKey);
-        if (send?.status === 'delivered' || send?.status === 'sent' || (send?.status === 'pending' && Boolean(send.message_id || send.sent_at))) {
-          delivered += 1;
-          sent += 1;
-        } else if (send?.status === 'pending') {
-          pending += 1;
+       allPhoneKeys.forEach((phoneKey) => {
+         const send = sendsByPhone.get(phoneKey);
+         if (send?.status === 'delivered') {
+           delivered += 1;
+           sent += 1;
+         } else if (send?.status === 'sent') {
+           sent += 1;
+         } else if (send?.status === 'pending') {
+           if (Boolean(send.message_id || send.sent_at)) {
+             sent += 1;
+           } else {
+             pending += 1;
+           }
          } else if (send?.status === 'failed') {
            failed += 1;
            if (send.error_message) lastError = send.error_message;
          } else {
-          pending += 1;
-        }
-      });
+           pending += 1;
+         }
+       });
 
       const newStats = {
         total: effectiveTotal,
@@ -315,44 +329,58 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
            )}
  
            <div className="grid grid-cols-2 gap-4 relative">
-            <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Send className="w-4 h-4" />
-                <span>Total</span>
-              </div>
-              <div className="text-2xl font-bold">{effectiveTotal}</div>
-            </div>
-
-            <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Entregues</span>
-              </div>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {confirmedCount}
-              </div>
-            </div>
-
-            <div className="space-y-1 p-3 bg-yellow-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-                <Clock className="w-4 h-4" />
-                <span>Pendentes</span>
-              </div>
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {stats.pending}
-              </div>
-            </div>
-
-             <div className="space-y-1 p-3 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
-               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                 <XCircle className="w-4 h-4" />
-                 <span>Falhas</span>
+             <div className="space-y-1 p-2 bg-muted/50 rounded-lg">
+               <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                 <Send className="w-3.5 h-3.5" />
+                 <span>Total</span>
                </div>
-               <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                 {stats.failed}
+               <div className="text-xl font-bold">{effectiveTotal}</div>
+             </div>
+ 
+             <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
+               <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                 <div className="flex -space-x-1">
+                   <CheckCircle2 className="w-3.5 h-3.5" />
+                 </div>
+                 <span>Enviados (✓)</span>
+               </div>
+               <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                 {stats.sent}
+               </div>
+             </div>
+ 
+             <div className="space-y-1 p-2 bg-green-500/10 rounded-lg">
+               <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                 <div className="flex -space-x-2">
+                   <CheckCircle2 className="w-3.5 h-3.5" />
+                   <CheckCircle2 className="w-3.5 h-3.5" />
+                 </div>
+                 <span>Entregues (✓✓)</span>
+               </div>
+               <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                 {stats.delivered}
                </div>
              </div>
 
+             <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
+               <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+                 <Clock className="w-3.5 h-3.5" />
+                <span>Pendentes</span>
+              </div>
+               <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                {stats.pending}
+              </div>
+            </div>
+ 
+             <div className="space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
+               <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                 <XCircle className="w-3.5 h-3.5" />
+                 <span>Falhas</span>
+               </div>
+               <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                 {stats.failed}
+               </div>
+             </div>
           </div>
 
           {isComplete && stats.total > 0 && (
