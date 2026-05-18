@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, Clock, Send, Pause } from "lucide-react";
+ import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
@@ -334,9 +334,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
  
              <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                 <div className="flex -space-x-1">
-                   <CheckCircle2 className="w-3.5 h-3.5" />
-                 </div>
+                 <Check className="w-4 h-4" />
                  <span>Enviados (✓)</span>
                </div>
                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
@@ -346,10 +344,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
  
              <div className="space-y-1 p-2 bg-green-500/10 rounded-lg">
                <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                 <div className="flex -space-x-2">
-                   <CheckCircle2 className="w-3.5 h-3.5" />
-                   <CheckCircle2 className="w-3.5 h-3.5" />
-                 </div>
+                 <CheckCheck className="w-4 h-4" />
                  <span>Entregues (✓✓)</span>
                </div>
                <div className="text-xl font-bold text-green-600 dark:text-green-400">
