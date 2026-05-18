@@ -304,7 +304,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <Progress value={progress} className="h-2" />
            </div>
  
-           {stats.failed > 0 && stats.lastError && (
+           {stats.failed > 0 && stats.lastError && !stats.lastError.toLowerCase().includes('@lid') && (
              <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
                <div className="flex gap-2 text-red-800 dark:text-red-300">
                  <div className="mt-0.5">
