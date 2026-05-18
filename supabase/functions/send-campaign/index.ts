@@ -1720,6 +1720,9 @@ serve(async (req) => {
           // @lid bypass removido: identificadores @lid não resolvidos para um número real
           // não são realmente entregues pelo WhatsApp, mesmo quando o provedor retorna 200.
           // Marcamos como falha com mensagem clara para o usuário.
+          // Para @lid, o provedor UAZAPI pode retornar 200/OK mesmo quando o destino é inválido 
+          // ou não mapeado. No entanto, o usuário solicitou FORÇAR o envio para @lid.
+          // Assim, se a API retornar sucesso, marcamos como 'sent' (Enviado/1 tracinho).
           if (uazResult.ok) {
             campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
@@ -1727,11 +1730,7 @@ serve(async (req) => {
             console.log(`📨 Sent ${contact.phone} via ${currentInstance.instanceName} (ack=${uazResult.ack || 'none'})`);
           } else {
             campaignSend.status = 'failed';
-            if (isLidIdentifier(contact.phone)) {
-              campaignSend.error_message = 'Número oculto (@lid) não pôde ser resolvido para um WhatsApp válido. Capture esse contato em uma conversa direta para mapear o número real.';
-            } else {
-              campaignSend.error_message = uazResult.error || 'Envio não confirmado pelo WhatsApp';
-            }
+            campaignSend.error_message = uazResult.error || 'Envio não confirmado pelo WhatsApp';
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
