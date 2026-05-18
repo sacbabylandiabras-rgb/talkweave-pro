@@ -642,16 +642,11 @@ serve(async (req) => {
           }))
         };
 
-        if (mediaType === 'image') {
-          payload.image = mediaUrl;
-          return sendZapi('/send-button-actions-image', payload, 'buttons-actions-image');
-        } else {
-          // Z-API não possui endpoint /send-button-actions-video.
-          // Enviamos o vídeo separado e depois os botões em /send-button-actions.
-          await sendZapiMedia(mediaUrl, mediaType || 'video', '');
-          const { image: _img, video: _vid, ...rest } = payload;
-          return sendZapi('/send-button-actions', rest, 'buttons-actions-after-video');
-        }
+        // Z-API handles media + action buttons best by sending media first, then buttons
+        // because specific endpoints like /send-button-actions-image can be unstable or non-existent
+        await sendZapiMedia(mediaUrl, mediaType || 'image', '');
+        const { image: _img, video: _vid, ...rest } = payload;
+        return sendZapi('/send-button-actions', rest, `buttons-actions-after-${mediaType || 'media'}`);
       }
 
       // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
