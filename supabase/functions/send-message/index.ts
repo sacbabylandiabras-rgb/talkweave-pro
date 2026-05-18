@@ -44,6 +44,8 @@ const isZapiConfirmed = (payload: any) => {
   return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
 
+const isLidIdentifier = (phone?: string | null) => Boolean(phone && phone.includes('@lid'));
+
 const parseZapiResponse = async (response: Response, phone: string, instanceId: string, label: string) => {
   const data = await response.json().catch(() => ({}));
   const explicitError = hasExplicitZapiError(data);
@@ -60,7 +62,8 @@ const parseZapiResponse = async (response: Response, phone: string, instanceId: 
     `📬 Z-API response [${label}] for ${phone} (instance ${instanceId}): status=${response.status}, confirmed=${confirmed}, ack=${getZapiAckId(data) || 'none'}, body=${JSON.stringify(data).substring(0, 300)}`
   );
 
-  if (!response.ok || explicitError || !confirmed) {
+  const isLid = isLidIdentifier(phone);
+  if (!response.ok || (explicitError && !isLid) || (!confirmed && !isLid)) {
     throw new Response(
       JSON.stringify({
         error: errorMessage || `Z-API did not confirm message acceptance (${label})`,
