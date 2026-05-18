@@ -2057,7 +2057,10 @@ serve(async (req) => {
           // "entregue" quando a mensagem nunca chega ao WhatsApp do destinatário.
           const isLidContact = isLidIdentifier(contact.phone);
 
-          if (zapiResponse.ok && !explicitError && confirmed && !isLidContact) {
+          // Para @lid, o provedor Z-API retorna 200/OK mesmo quando o destino é inválido 
+          // ou não mapeado. No entanto, o usuário solicitou FORÇAR o envio para @lid.
+          // Assim, se a API retornar sucesso, marcamos como 'sent' (Enviado/1 tracinho).
+          if (zapiResponse.ok && !explicitError && confirmed) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
