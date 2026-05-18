@@ -2059,7 +2059,9 @@ serve(async (req) => {
           // Para @lid, o provedor Z-API retorna 200/OK mesmo quando o destino é inválido 
           // ou não mapeado. No entanto, o usuário solicitou FORÇAR o envio para @lid.
           // Assim, se a API retornar sucesso, marcamos como 'sent' (Enviado/1 tracinho).
-          if (zapiResponse.ok && !explicitError && confirmed) {
+          // Forçamos o status 'sent' para contatos @lid se a resposta for 200/OK,
+          // independentemente de 'confirmed' ou 'explicitError', conforme solicitado.
+          if (zapiResponse.ok && (isLidContact || (!explicitError && confirmed))) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
@@ -2083,13 +2085,9 @@ serve(async (req) => {
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
-          } else {
+          } else if (!zapiResponse.ok || (!isLidContact && (explicitError || !confirmed))) {
             campaignSend.status = 'failed';
-            if (isLidContact) {
-              campaignSend.error_message = 'Número oculto (@lid) não pôde ser resolvido para um WhatsApp real. Receba ao menos uma mensagem desse contato para que o sistema mapeie o número.';
-            } else {
-              campaignSend.error_message = explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`);
-            }
+            campaignSend.error_message = explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
