@@ -381,29 +381,6 @@ const getZapiTargetPhone = (phone: string) => {
   return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
 };
 
-const resolveLidToRealPhoneForSend = async (
-  supabase: any,
-  userId: string,
-  lidPhone: string,
-  instanceId?: string,
-) => {
-  if (!isLidIdentifier(lidPhone)) return lidPhone;
-
-  const { data } = await supabase
-    .from('message_logs')
-    .select('phone, instance_id, timestamp')
-    .eq('user_id', userId)
-    .eq('keyword_matched', '__lid_map__')
-    .eq('message_received', lidPhone)
-    .order('timestamp', { ascending: false })
-    .limit(10);
-
-  const rows = Array.isArray(data) ? data : [];
-  const match = rows.find((row: any) => instanceId && row.instance_id === instanceId) || rows[0];
-  const realPhone = getZapiTargetPhone(String(match?.phone || ''));
-  return realPhone && !realPhone.includes('@lid') && realPhone.length >= 8 ? realPhone : lidPhone;
-};
-
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!opts.campaignId || !opts.userId) return cleanUrl;
