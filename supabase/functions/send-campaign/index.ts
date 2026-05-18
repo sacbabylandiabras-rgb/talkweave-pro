@@ -1694,13 +1694,7 @@ serve(async (req) => {
             },
           );
 
-          // @lid bypass removido: identificadores @lid não resolvidos para um número real
-          // não são realmente entregues pelo WhatsApp, mesmo quando o provedor retorna 200.
-          // Marcamos como falha com mensagem clara para o usuário.
-          // Para @lid, o provedor UAZAPI pode retornar 200/OK mesmo quando o destino é inválido 
-          // ou não mapeado. No entanto, o usuário solicitou FORÇAR o envio para @lid.
-          // Assim, se a API retornar sucesso, marcamos como 'sent' (Enviado/1 tracinho).
-          if (uazResult.ok) {
+          if (uazResult.ok && !isLidIdentifier(contact.phone)) {
             campaignSend.status = 'sent';
             campaignSend.sent_at = new Date().toISOString();
             results.push({ phone: contact.phone, success: true, messageId: uazResult.ack });
@@ -2023,14 +2017,7 @@ serve(async (req) => {
           // Identificadores @lid não resolvidos não são entregues mesmo quando a API
           // retorna 200. Tratamos como falha explícita para evitar relatório falso de
           // "entregue" quando a mensagem nunca chega ao WhatsApp do destinatário.
-          const isLidContact = isLidIdentifier(contact.phone);
-
-          // Para @lid, o provedor Z-API retorna 200/OK mesmo quando o destino é inválido 
-          // ou não mapeado. No entanto, o usuário solicitou FORÇAR o envio para @lid.
-          // Assim, se a API retornar sucesso, marcamos como 'sent' (Enviado/1 tracinho).
-          // Forçamos o status 'sent' para contatos @lid se a resposta for 200/OK,
-          // independentemente de 'confirmed' ou 'explicitError', conforme solicitado.
-          if (zapiResponse.ok && (isLidContact || (!explicitError && confirmed))) {
+          if (zapiResponse.ok && !explicitError && confirmed) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
@@ -2054,7 +2041,7 @@ serve(async (req) => {
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
-          } else if (!zapiResponse.ok || (!isLidContact && (explicitError || !confirmed))) {
+          } else if (!zapiResponse.ok || explicitError || !confirmed) {
             campaignSend.status = 'failed';
             campaignSend.error_message = explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`);
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
