@@ -23,12 +23,12 @@ export function StatsGrid({ dateFrom, dateTo }: StatsGridProps = {}) {
         if (dateTo) r = r.lte('created_at', endOfDayIso(dateTo));
         return r as T;
       };
-      const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
-        applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true })),
-      ]);
+       const [sentRes, deliveredRes, failedRes, totalRes] = await Promise.all([
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).in('status', ['sent', 'delivered'])),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'delivered')),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
+         applyRange(supabase.from('campaign_sends').select('id', { count: 'exact', head: true })),
+       ]);
       setStats({
         total: totalRes.count ?? 0,
         sent: sentRes.count ?? 0,
