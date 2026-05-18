@@ -45,8 +45,9 @@ serve(async (req) => {
       .from("meta_credentials")
       .select("access_token, phone_number_id, waba_id, business_account_id")
       .eq("user_id", userId)
-      .eq("app_id", WHATSAPP_META_APP_ID)
       .eq("connected", true)
+      .not("waba_id", "is", null)
+      .order("updated_at", { ascending: false })
       .maybeSingle();
 
     if (credsError || !creds) {
