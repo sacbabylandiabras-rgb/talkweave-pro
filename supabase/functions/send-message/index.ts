@@ -457,37 +457,8 @@ serve(async (req) => {
     }
 
     if (phone.includes('@lid')) {
-      console.log(`📌 Phone is LID format: ${phone} — resolving to clean number`);
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      
-      const { data: mapping } = await adminClient
-        .from('message_logs')
-        .select('phone, instance_id')
-        .eq('keyword_matched', '__lid_map__')
-        .eq('message_received', phone)
-        .eq('user_id', credentials.userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (mapping) {
-        console.log(`✅ Resolved LID: ${phone} → ${mapping.phone}`);
-        resolvedPhone = mapping.phone;
-        
-        if (mapping.instance_id) {
-            const lidInstance = await findUserInstance(adminClient, credentials.userId, mapping.instance_id);
-
-            if (lidInstance && !lockedToRequestedInstance) {
-              console.log(`✅ Using mapped instance ${lidInstance.zapi_instance_id} for resolved LID`);
-              instanceId = lidInstance.zapi_instance_id;
-              token = lidInstance.zapi_token;
-              clientToken = lidInstance.zapi_client_token;
-            } else if (lidInstance && lockedToRequestedInstance) {
-              console.log(`🔒 LID mapped to instance ${lidInstance.zapi_instance_id}, but keeping user-selected instance ${instanceId}.`);
-          }
-        }
-      } else {
-        console.log(`⚠️ No LID mapping found for ${phone}, sending as-is`);
-      }
+      console.log(`📌 Phone is LID format: ${phone} — sending exactly as provided`);
+      resolvedPhone = phone;
     }
 
     let zapiResponse: Response | null = null;
