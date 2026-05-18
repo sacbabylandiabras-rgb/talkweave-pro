@@ -660,8 +660,11 @@ serve(async (req) => {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
         };
-        if (mediaType === 'image') payload.buttonList.image = mediaUrl;
-        else payload.buttonList.video = mediaUrl;
+        if (mediaType === 'image') {
+          payload.image = mediaUrl;
+        } else {
+          payload.video = mediaUrl;
+        }
         return sendZapi(endpoint, payload, 'buttons-media-reply');
       }
 

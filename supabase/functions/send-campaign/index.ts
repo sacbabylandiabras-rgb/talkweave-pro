@@ -1938,6 +1938,30 @@ serve(async (req) => {
             caption: fullMessage,
           };
 
+        } else if (templateType === 'imagem_lista_opcao' && hasMedia) {
+          const rawItems = Array.isArray(campaignTemplate.list_items)
+            ? campaignTemplate.list_items
+            : (Array.isArray((campaignTemplate as any).listItems) ? (campaignTemplate as any).listItems : []);
+          const cleanItems = rawItems
+            .filter((it: any) => it && String(it.title || '').trim() !== '')
+            .slice(0, 10)
+            .map((it: any, idx: number) => ({
+              title: String(it.title).trim(),
+              description: String(it.description || '').trim(),
+              rowId: String(it.id || `opt_${idx + 1}`),
+            }));
+          
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+          requestBody = {
+            phone: contact.phone,
+            message: fullMessage || ' ',
+            image: campaignTemplate.media_url,
+            buttonList: {
+              title: campaignTemplate.header || '',
+              buttonLabel: 'Ver opções',
+              options: cleanItems,
+            },
+          };
         } else if (templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção') {
           const rawItems = Array.isArray(campaignTemplate.list_items)
             ? campaignTemplate.list_items
