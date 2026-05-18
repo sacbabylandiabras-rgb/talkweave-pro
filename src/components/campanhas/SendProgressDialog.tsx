@@ -26,10 +26,11 @@ interface Stats {
 interface CampaignSendRow {
   phone: string | null;
   status: string | null;
-  sent_at: string | null;
-  delivered_at: string | null;
-  created_at: string;
-  message_id?: string | null;
+   sent_at: string | null;
+   delivered_at: string | null;
+   created_at: string;
+   message_id?: string | null;
+   error_message?: string | null;
 }
 
 const normalizePhoneKey = (phone?: string | null) => {
