@@ -677,13 +677,16 @@ serve(async (req) => {
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
-            // Preferimos /send-button-actions para vídeo composto pois é mais estável em todas as instâncias
-            // mas mantemos o fallback caso o usuário prefira o layout de lista
-            if (!hasActionButtons && secondaryMediaType === 'image') {
-              const listEndpoint = '/send-button-list-image';
+            // Preferimos layouts de lista (send-button-list-image/video) se não houver botões de ação (URL/CALL)
+            // pois são mais compatíveis visualmente com mídias em algumas instâncias e foi solicitado pelo usuário.
+            if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
+              const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
               secondaryPayload.buttonList = {
                 buttons: buttons.map(b => ({ id: b.id, label: b.label }))
               };
+              
+              // Ajuste de caption para os endpoints de lista
+              secondaryPayload.caption = message || ' ';
               
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
               try {
@@ -693,7 +696,7 @@ serve(async (req) => {
               } catch (err: any) {
                 const isNotFound = err instanceof Response && (err.status === 404 || (await err.clone().json().catch(() => ({}))).error === 'NOT_FOUND');
                 if (!isNotFound) throw err;
-                console.log(`🔄 ${listEndpoint} not found, falling back to /send-button-actions`);
+                console.log(`🔄 ${listEndpoint} not found or failed, falling back to /send-button-actions`);
               }
             }
 
