@@ -2581,7 +2581,7 @@ const getPreviewFileLabel = (template: any) => {
                   </div>
                 )}
                 
-                {!(newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes") && (
+                {true && (
                   <div>
                     <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
                     <Input
