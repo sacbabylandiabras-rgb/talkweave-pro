@@ -665,10 +665,14 @@ serve(async (req) => {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               ...payload,
+              ...(headerTitle ? { title: headerTitle } : {}),
               // Z-API handles image/video headers in /send-button-actions
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
+            // Some Z-API instances expect caption for media even with buttons
+            secondaryPayload.caption = secondaryPayload.message;
+
             // Remove audio related fields from base payload to avoid sending audio twice
             delete secondaryPayload.audio;
 
