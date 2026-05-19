@@ -2240,8 +2240,8 @@ const getPreviewFileLabel = (template: any) => {
                           <Label htmlFor="template-secondary-media-url">Ou cole a URL da Mídia</Label>
                           <Input
                             id="template-secondary-media-url"
-                            value={newTemplate.header}
-                            onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
+                            value={newTemplate.secondaryMediaUrl}
+                            onChange={(e) => setNewTemplate(prev => ({ ...prev, secondaryMediaUrl: e.target.value }))}
                             placeholder={newTemplate.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
                           />
                         </div>
