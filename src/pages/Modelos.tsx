@@ -739,6 +739,8 @@ const getTemplateIcon = (type?: string) => {
     case "audio":
       return <Music className="w-5 h-5 text-primary" />;
     case "audio_botoes":
+    case "audio_imagem_botoes":
+    case "audio_video_botoes":
       return <Music className="w-5 h-5 text-primary" />;
     case "video":
     case "video_botoes":
@@ -785,6 +787,8 @@ const getTypeFriendlyName = (type?: string) => {
     video: "Vídeo",
     video_botoes: "Vídeo c/ Botões",
     audio_botoes: "Áudio c/ Botões",
+    audio_imagem_botoes: "Áudio c/ Imagem e Botões",
+    audio_video_botoes: "Áudio c/ Vídeo e Botões",
     lista_opcao: "Lista",
     copia_cola: "Copiar/Colar",
     arquivo: "Arquivo",
@@ -997,9 +1001,9 @@ const validateButtons = (
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useToast } from "@/hooks/use-toast";
 
-const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes";
-const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes";
-const isAudioTemplateType = (type?: string) => type === "audio" || type === "audio_botoes";
+const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes" || type === "audio_imagem_botoes";
+const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes" || type === "audio_video_botoes";
+const isAudioTemplateType = (type?: string) => type === "audio" || type === "audio_botoes" || type === "audio_imagem_botoes" || type === "audio_video_botoes";
 const isDocumentTemplateType = (type?: string) => type === "arquivo" || type === "documento";
 
 const getPreviewFileLabel = (template: any) => {
@@ -2020,6 +2024,16 @@ const getPreviewFileLabel = (template: any) => {
                           <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
                         </div>
                       </SelectItem>
+                      <SelectItem value="audio_imagem_botoes">
+                        <div className="flex items-center gap-2 text-primary font-medium">
+                          <Music className="w-4 h-4" /> Áudio com Imagem e Botões
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="audio_video_botoes">
+                        <div className="flex items-center gap-2 text-primary font-medium">
+                          <Music className="w-4 h-4" /> Áudio com Vídeo e Botões
+                        </div>
+                      </SelectItem>
                       <SelectItem value="imagem_botoes">
                         <div className="flex items-center gap-2">
                           <Image className="w-4 h-4" /> Imagem com Botões
@@ -2089,7 +2103,7 @@ const getPreviewFileLabel = (template: any) => {
                 />
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-3">
                     <div>
                       <Label>Upload de Arquivo</Label>
@@ -2745,6 +2759,16 @@ const getPreviewFileLabel = (template: any) => {
                       <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
                     </div>
                   </SelectItem>
+                  <SelectItem value="audio_imagem_botoes">
+                    <div className="flex items-center gap-2 text-primary font-medium">
+                      <Music className="w-4 h-4" /> Áudio com Imagem e Botões
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="audio_video_botoes">
+                    <div className="flex items-center gap-2 text-primary font-medium">
+                      <Music className="w-4 h-4" /> Áudio com Vídeo e Botões
+                    </div>
+                  </SelectItem>
                   <SelectItem value="imagem_botoes">
                     <div className="flex items-center gap-2">
                       <Image className="w-4 h-4" /> Imagem com Botões
@@ -2814,7 +2838,7 @@ const getPreviewFileLabel = (template: any) => {
             />
 
             {/* Campos específicos por tipo - Edição */}
-            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-3">
                 <div>
                   <Label>Upload de Arquivo</Label>
