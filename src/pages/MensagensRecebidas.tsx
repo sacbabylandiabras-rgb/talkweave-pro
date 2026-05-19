@@ -575,7 +575,8 @@ interface ChatViewProps {
   onSendCall?: (phone: string, duration?: number, audioUrl?: string) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
-   campaignTemplates?: Map<string, string>;
+    campaignTemplates?: Map<string, string>;
+    activeInstance?: any;
 }
 
 const ChatView = (props: ChatViewProps) => {
