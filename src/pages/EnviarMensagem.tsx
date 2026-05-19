@@ -168,15 +168,6 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
-      const type = (btn.type || 'REPLY').toUpperCase();
-      const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
-      if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
-      else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
-      else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
-      return b;
-    });
-
     if (modeloData) {
       const specialTpl = parseSpecialTemplate(modeloData.content);
       const templateType = String(modeloData.type || '').toLowerCase();
@@ -184,12 +175,20 @@ const EnviarMensagem = () => {
         .replace(/\{nome\}/g, nome || '')
         .replace(/\{numero\}/g, phone);
 
+      const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
+        const type = (btn.type || 'REPLY').toUpperCase();
+        const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
+        if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
+        else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
+        else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
+        return b;
+      });
+
       const isListTemplate = ['lista_opcao', 'lista', 'lista de opção'].includes(templateType);
       const isCopyPasteTemplate = ['copia_cola', 'copia e cola', 'copy_paste'].includes(templateType);
       const isDocumentTemplate = ['arquivo', 'documento'].includes(templateType);
       const isContactTemplate = ['contato', 'contact', 'contato (vcard)', 'multiplos_contatos'].includes(templateType);
       const isProductTemplate = ['produto', 'product'].includes(templateType);
-
       const temListaOpcoes = isListTemplate && Array.isArray(modeloData.listItems) && modeloData.listItems.length > 0;
       const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData.carouselCards) && modeloData.carouselCards.length > 0;
       const audioComBotoes = ['audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
@@ -203,106 +202,71 @@ const EnviarMensagem = () => {
         await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
         return mensagemPersonalizada;
       }
-
       if (isContactTemplate) {
-        const special = parseSpecialTemplate(modeloData.content);
-        await sendMessageContact(phone, special?.contactName || '', special?.contactPhone || '', special?.contactBusinessDescription || '');
+        const s = parseSpecialTemplate(modeloData.content);
+        await sendMessageContact(phone, s?.contactName || '', s?.contactPhone || '', s?.contactBusinessDescription || '');
         return mensagemPersonalizada;
       }
-
       if (isProductTemplate) {
-        const special = parseSpecialTemplate(modeloData.content);
-        await sendMessageCatalog(phone, special?.catalogId || '', special?.productId || '', mensagemPersonalizada, modeloData.footer || '');
+        const s = parseSpecialTemplate(modeloData.content);
+        await sendMessageCatalog(phone, s?.catalogId || '', s?.productId || '', mensagemPersonalizada, modeloData.footer || '');
         return mensagemPersonalizada;
       }
-
       if (temCarrossel) {
         await sendCarousel(phone, modeloData.carouselCards as any, mensagemPersonalizada);
         return mensagemPersonalizada;
       }
-
       if (audioComBotoes) {
         await sendAudio(phone, modeloData.mediaUrl!, '');
-
         const secondaryUrl = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
           ? (modeloData.carouselCards as any)[0].image
           : (modeloData.header?.startsWith('http') ? modeloData.header : null);
-
         const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
         const headerTitle = !modeloData.header?.startsWith('http') ? modeloData.header : undefined;
-
-        await sendButtonActions(
-          phone,
-          mensagemPersonalizada || modeloData.content || '',
-          mapButtons(modeloData.buttons!),
-          headerTitle,
-          modeloData.footer,
-          modeloData.mediaUrl!,
-          'audio',
-          { secondaryMediaUrl: secondaryUrl, secondaryMediaType },
-          templateType,
-          modeloData.carouselCards as any
-        );
+        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), headerTitle, modeloData.footer, modeloData.mediaUrl!, 'audio', { secondaryMediaUrl: secondaryUrl, secondaryMediaType }, templateType, modeloData.carouselCards as any);
         return mensagemPersonalizada;
       }
-
       if (videoComBotoes) {
         await sendVideo(phone, modeloData.mediaUrl!, '', viewOnce, isPtv);
         await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
         return mensagemPersonalizada;
       }
-
       if (imagemComBotoes) {
         await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer, modeloData.mediaUrl!, 'image');
         return mensagemPersonalizada;
       }
-
       if (documentoComBotoes) {
         await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'pdf', '');
         await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
         return mensagemPersonalizada;
       }
-
       if (isListTemplate && !temListaOpcoes) throw new Error('Modelo de lista sem opções válidas.');
-
       if (temListaOpcoes) {
         await sendOptionList(phone, mensagemPersonalizada || modeloData.content || '', {
           title: modeloData.header || modeloData.name || 'Opções',
           buttonLabel: 'Ver opções',
-          options: modeloData.listItems!.filter((it: any) => String(it.title || '').trim()).map((it: any, i: number) => ({
-            id: String(it.id ?? i + 1), title: String(it.title), description: it.description ? String(it.description) : ''
-          }))
+          options: modeloData.listItems!.filter((it: any) => String(it.title || '').trim()).map((it: any, i: number) => ({ id: String(it.id ?? i + 1), title: String(it.title), description: it.description ? String(it.description) : '' }))
         });
         return mensagemPersonalizada;
       }
-
       if (isCopyPasteTemplate) {
         const vars = (modeloData.variables && !Array.isArray(modeloData.variables)) ? (modeloData.variables as any).copyText : undefined;
         const copyContent = specialTpl?.copyText || (typeof vars === 'string' ? vars : '') || modeloData.header || modeloData.content || mensagemPersonalizada || '';
         await sendButtonActions(phone, mensagemPersonalizada || modeloData.name || 'Copiar', [{ id: 'copy_btn', type: 'COPY', label: 'Copiar', copyText: copyContent } as any]);
         return mensagemPersonalizada;
       }
-
       if (temBotoes) {
         await sendButtonActions(phone, mensagemPersonalizada, mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
         return mensagemPersonalizada;
       }
-
       if (temMidiaModelo) {
         const caption = legenda || mensagemPersonalizada;
-        if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) {
-          await sendAudio(phone, modeloData.mediaUrl!, caption);
-        } else if (['video', 'video_botoes'].includes(templateType)) {
-          await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
-        } else if (isDocumentTemplate) {
-          await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
-        } else {
-          await sendImage(phone, modeloData.mediaUrl!, caption);
-        }
+        if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
+        else if (['video', 'video_botoes'].includes(templateType)) await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
+        else if (isDocumentTemplate) await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
+        else await sendImage(phone, modeloData.mediaUrl!, caption);
         return caption;
       }
-
-      // fallback texto
       await sendMessage(phone, mensagemPersonalizada);
       return mensagemPersonalizada;
     }
