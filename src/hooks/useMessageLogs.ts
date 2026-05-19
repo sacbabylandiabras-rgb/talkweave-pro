@@ -1136,6 +1136,7 @@ export const useMessageLogs = (
           timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,
+          status: 'sent', // Standard logs are at least 'sent'
         });
       }
     });
