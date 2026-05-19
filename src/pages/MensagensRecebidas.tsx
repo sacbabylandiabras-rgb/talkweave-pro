@@ -1234,7 +1234,7 @@ const ChatView = ({
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-sm h-9 gap-2" 
-                  onClick={() => conversation && sendCall(conversation.phone)}
+                   onClick={() => conversation && sendCall(conversation.phone, 15)}
                 >
                   <PhoneCall className="w-4 h-4 text-green-600" />
                   Chamada WhatsApp
