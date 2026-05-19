@@ -3016,7 +3016,7 @@ const getPreviewFileLabel = (template: any) => {
                                   const { error } = await supabase.storage.from('template-media').upload(path, file);
                                   if (error) throw error;
                                   const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-                                  setEditFormData(prev => ({ ...prev, header: publicUrl }));
+                                  setEditFormData(prev => ({ ...prev, secondaryMediaUrl: publicUrl }));
                                 } catch (err: any) {
                                   toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
                                 } finally {
