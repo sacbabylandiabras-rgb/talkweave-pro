@@ -1265,18 +1265,34 @@ const ChatView = ({
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground uppercase">Chamar e desligar (15s)</Label>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start text-xs h-8 gap-2 border-green-200 hover:bg-green-50" 
-                   onClick={() => {
-                     if (!conversation) return;
-                     const audioUrl = window.prompt("Link do áudio (opcional):", "");
-                     sendCall(conversation.phone, 15, audioUrl || undefined);
-                   }}
-                    >
-                      <PhoneCall className="w-3.5 h-3.5 text-green-600" />
-                      Apenas Chamar
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
+                        onClick={() => conversation && sendCall(conversation.phone, 15)}
+                        title="Apenas chamar sem áudio"
+                      >
+                        <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
+                        Chamar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-blue-200 hover:bg-blue-50 px-2" 
+                        onClick={() => callAudioInputRef.current?.click()}
+                        disabled={isUploadingAudio}
+                        title="Subir áudio para tocar na chamada"
+                      >
+                        {isUploadingAudio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mic className="w-3 h-3 text-blue-600 shrink-0" />}
+                        {isUploadingAudio ? "Sendo..." : "Com Áudio"}
+                      </Button>
+                      <input 
+                        type="file" 
+                        ref={callAudioInputRef} 
+                        className="hidden" 
+                        accept="audio/*" 
+                        onChange={handleCallAudioUpload}
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-1">
