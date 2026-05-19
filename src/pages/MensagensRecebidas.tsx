@@ -1212,7 +1212,36 @@ const ChatView = ({
              )}
            </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" title="Ligações">
+                <Phone className="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="end">
+              <div className="space-y-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-sm h-9 gap-2" 
+                  onClick={() => conversation && sendCall(conversation.phone)}
+                >
+                  <PhoneCall className="w-4 h-4 text-green-600" />
+                  Chamada WhatsApp
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-sm h-9 gap-2" 
+                  onClick={handleOpenSipInfo}
+                  disabled={loadingSip}
+                >
+                  {loadingSip ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4 text-blue-600" />}
+                  Configurações SIP
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
             <Bot className="w-4 h-4" />
           </Button>
