@@ -225,16 +225,32 @@ const EnviarMensagem = () => {
 
       if (audioComBotoes) {
         await sendAudio(phone, modeloData.mediaUrl!, '');
+
         const secondaryUrl = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
           ? (modeloData.carouselCards as any)[0].image
           : (modeloData.header?.startsWith('http') ? modeloData.header : null);
-        const mediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!),
-          modeloData.header?.startsWith('http') ? undefined : modeloData.header,
+
+        const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
+        const headerTitle = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
+          ? (modeloData.header?.startsWith('http') ? undefined : modeloData.header)
+          : (!modeloData.header?.startsWith('http') ? modeloData.header : undefined);
+
+        await sendButtonActions(
+          phone,
+          mensagemPersonalizada || modeloData.content || '',
+          mapButtons(modeloData.buttons!),
+          headerTitle,
           modeloData.footer,
-          secondaryUrl || undefined,
-          secondaryUrl ? mediaType : undefined
+          modeloData.mediaUrl!,   // ← áudio como mediaUrl principal
+          'audio',                // ← mediaType = audio
+          {                       // ← specialPayload com o vídeo/imagem secundária
+            secondaryMediaUrl: secondaryUrl,
+            secondaryMediaType,
+          },
+          templateType,                  // ← templateType para o edge function detectar o tipo composto
+          modeloData.carouselCards       // ← carouselCards para o edge function extrair a mídia secundária
         );
+
         return mensagemPersonalizada;
       }
 
