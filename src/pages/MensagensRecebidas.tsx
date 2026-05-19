@@ -1086,28 +1086,63 @@ const ChatView = (props: ChatViewProps) => {
       if (!conversation) return;
       setSending(true);
       try {
-        let mediaType = 'document';
-        if (['image', 'imagem', 'imagem_botoes'].includes(template.type)) mediaType = 'image';
-        else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
-        else if (template.type === 'audio') mediaType = 'audio';
-        
-        const sendOptions: any = {
-          mediaUrl: template.mediaUrl,
-          mediaType,
-          preferredInstanceId: conversation.preferredInstanceId,
-          title: template.header || undefined,
-          footer: template.footer || undefined,
-          templateId: template.id,
-        };
+        if (template.type === "audio_imagem_botoes" || template.type === "audio_video_botoes") {
+          // Sequential send: First the Audio, then the Media (Image/Video) with Buttons
+          // 1. Send Audio
+          await onSendMessage(conversation.phone, "", {
+            mediaUrl: template.mediaUrl,
+            mediaType: 'audio',
+            preferredInstanceId: conversation.preferredInstanceId,
+            templateId: template.id,
+          });
 
-        if (filteredButtonActions.length > 0) {
-          sendOptions.buttonActions = filteredButtonActions;
+          // 2. Send Media with Buttons (reusing 'header' as the secondary media URL)
+          const mediaType = template.type === "audio_imagem_botoes" ? 'image' : 'video';
+          const secondaryMediaUrl = template.header; // Repurposed header field
+
+          if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
+            await onSendMessage(conversation.phone, template.content, {
+              mediaUrl: secondaryMediaUrl,
+              mediaType,
+              preferredInstanceId: conversation.preferredInstanceId,
+              buttonActions: filteredButtonActions.length > 0 ? filteredButtonActions : undefined,
+              templateId: template.id,
+            });
+          } else {
+             // Fallback if no secondary media: send buttons with text
+             await onSendMessage(conversation.phone, template.content, {
+               preferredInstanceId: conversation.preferredInstanceId,
+               buttonActions: filteredButtonActions.length > 0 ? filteredButtonActions : undefined,
+               templateId: template.id,
+             });
+          }
+        } else {
+          // Standard single media send
+          let mediaType = 'document';
+          if (['image', 'imagem', 'imagem_botoes'].includes(template.type)) mediaType = 'image';
+          else if (['video', 'video_botoes'].includes(template.type)) mediaType = 'video';
+          else if (template.type === 'audio') mediaType = 'audio';
+          
+          const sendOptions: any = {
+            mediaUrl: template.mediaUrl,
+            mediaType,
+            preferredInstanceId: conversation.preferredInstanceId,
+            title: template.header || undefined,
+            footer: template.footer || undefined,
+            templateId: template.id,
+          };
+  
+          if (filteredButtonActions.length > 0) {
+            sendOptions.buttonActions = filteredButtonActions;
+          }
+  
+          await onSendMessage(conversation.phone, template.content, sendOptions);
         }
-
-        await onSendMessage(conversation.phone, template.content, sendOptions);
+        
         incrementUsage(template.id);
         toast({ title: "Modelo enviado", description: `"${template.name}" enviado com sucesso.` });
-      } catch {
+      } catch (err: any) {
+        console.error("Erro ao enviar modelo:", err);
         toast({ title: "Erro", description: "Falha ao enviar modelo.", variant: "destructive" });
       } finally {
         setSending(false);
