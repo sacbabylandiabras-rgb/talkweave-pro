@@ -382,8 +382,46 @@ serve(async (req) => {
 
           // Status updates
           if (field === 'messages' && value?.statuses) {
-            for (const status of value.statuses) {
-              console.log(`[webhook-meta] Status update: ${status?.id} → ${status?.status}`)
+            for (const statusObj of value.statuses) {
+              const msgId = statusObj?.id;
+              const status = statusObj?.status;
+              const error = statusObj?.errors?.[0]?.message;
+              
+              console.log(`[webhook-meta] Status update: ${msgId} → ${status}`);
+              
+              if (msgId && status) {
+                const isDelivered = status === 'delivered' || status === 'read';
+                const isSent = status === 'sent';
+                const isFailed = status === 'failed';
+                
+                const updateData: any = {
+                  updated_at: new Date().toISOString()
+                };
+                
+                if (isDelivered) {
+                  updateData.status = 'delivered';
+                  updateData.delivered_at = new Date().toISOString();
+                } else if (isSent) {
+                  updateData.status = 'sent';
+                  updateData.sent_at = new Date().toISOString();
+                } else if (isFailed) {
+                  updateData.status = 'failed';
+                  updateData.error_message = error || 'Erro no envio via Meta API';
+                }
+                
+                if (updateData.status) {
+                  const { error: updateErr } = await supabase
+                    .from("campaign_sends")
+                    .update(updateData)
+                    .eq("message_id", msgId);
+                    
+                  if (updateErr) {
+                    console.error(`[webhook-meta] Error updating status for ${msgId}:`, updateErr);
+                  } else {
+                    console.log(`[webhook-meta] Successfully updated ${msgId} to ${updateData.status}`);
+                  }
+                }
+              }
             }
           }
         }
