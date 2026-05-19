@@ -90,7 +90,7 @@ export const useMessageTemplates = () => {
     buttons?: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>;
     listItems?: Array<{id: string, title: string, description?: string}>;
     carouselCards?: Array<{id: string, image: string, title: string, description: string, buttons: Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>}>;
-    specialType?: string;
+    // specialType?: string;
   }) => {
     try {
       // Obter o user_id do usuário autenticado
