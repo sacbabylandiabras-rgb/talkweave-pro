@@ -258,7 +258,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
          body: {
            phone: phone.replace(/\D/g, ''),
            callDuration: payload?.callDuration || 5,
-           callAudioUrl: payload?.callAudioUrl || undefined
+           ...(payload?.callAudioUrl ? { callAudioUrl: payload.callAudioUrl } : {}),
          } 
        };
      case 'call-token':
@@ -478,7 +478,7 @@ Deno.serve(async (req) => {
 
     const ep = endpointFor(action, phone, finalPayload, creds.apiProvider);
     
-    console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId} (${creds.instanceType || 'unknown type'})`);
+    console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId} (${creds.instanceType || 'unknown type'}) creds token: ${creds.token?.substring(0, 4)}...`);
     console.log(`[zapi-chat-actions] URL: ${ep.method} ${base}${ep.path}`);
     if (ep.body) console.log(`[zapi-chat-actions] Body:`, JSON.stringify(ep.body));
 
