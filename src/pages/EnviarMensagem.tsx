@@ -174,83 +174,70 @@ const EnviarMensagem = () => {
     const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
     const isContactTemplate = templateType === 'contato' || templateType === 'contact' || templateType === 'contato (vcard)' || templateType === 'multiplos_contatos';
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
-     const isProductTemplate = templateType === 'produto' || templateType === 'product';
-     const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
+    const isProductTemplate = templateType === 'produto' || templateType === 'product';
+    const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
+    
+    // Novas lógicas para tipos compostos
     const audioComBotoes = (templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes') && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const videoComBotoes = (templateType === 'video_botoes' || templateType === 'audio_video_botoes' || templateType === 'video') && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const imagemComBotoes = (templateType === 'imagem_botoes' || templateType === 'image' || templateType === 'imagem' || (templateType === 'audio_imagem_botoes' && !audioComBotoes)) && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const documentoComBotoes = (isDocumentTemplate || templateType === 'arquivo') && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
-    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
-    const temMidiaAvulsa = !modeloData && !!arquivoMidia;
 
-    if (specialTpl && specialTpl.type !== 'copia_cola') {
-      if (isStatusOnlySpecialTemplate(specialTpl.type)) {
-        throw new Error(getStatusOnlyTemplateError());
-      }
-
-      const specialAllowsExtraButtons = !['uaz_status', 'uaz_location_button', 'uaz_request_payment'].includes(specialTpl.type);
-      await sendSpecialTemplate(phone, specialTpl.type, {
-        ...specialTpl,
-        description: mensagemPersonalizada || specialTpl.description,
+    // Se tiver mídia com botões, usamos sendButtonActions com os parâmetros de mídia
+    if (audioComBotoes || videoComBotoes || imagemComBotoes || documentoComBotoes) {
+      const buttons = (modeloData?.buttons || []).map((btn: any) => {
+        const buttonType = (btn.type || 'REPLY').toUpperCase();
+        const buttonData: any = {
+          id: btn.id || btn.text || Math.random().toString(),
+          type: buttonType,
+          label: btn.text || btn.label || 'Botão',
+        };
+        if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+        else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+        else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+        return buttonData;
       });
 
-      // Enviar botões do modelo (ex: PIX cobrança com botão Copiar)
-      if (specialAllowsExtraButtons && modeloData?.buttons?.length) {
-        await sendButtonActions(
-          phone,
-          mensagemPersonalizada || specialTpl.description || modeloData?.name || 'Pagamento',
-          modeloData.buttons.map((btn: any) => {
-            const buttonType = (btn.type || 'REPLY').toUpperCase();
-            const buttonData: any = {
-              id: btn.id || btn.text || Math.random().toString(),
-              type: buttonType,
-              label: btn.text || btn.label || 'Botão',
-            };
-            if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-            else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-            else if (buttonType === 'COPY' && (btn.copyText || btn.value || specialTpl.pixKey)) {
-              buttonData.copyText = btn.copyText || btn.value || specialTpl.pixKey;
-            }
-            return buttonData;
-          }),
-          modeloData?.header || undefined,
-          modeloData?.footer || undefined,
-        );
-      }
-
-      return mensagemPersonalizada || `${modeloData?.name || 'Modelo especial'} enviado`;
-    }
-
-    if (isContactTemplate) {
-      const special = parseSpecialTemplate(modeloData?.content);
+      const mediaType = audioComBotoes ? 'audio' : (videoComBotoes ? 'video' : (imagemComBotoes ? 'image' : 'document'));
       
-      if (templateType === 'multiplos_contatos' || (special?.type === 'multiplos_contatos')) {
-        const phonesArray = special?.phones || [];
-        if (!Array.isArray(phonesArray) || phonesArray.length === 0) {
-          throw new Error('Nenhum número de telefone encontrado no modelo de múltiplos contatos');
+      // Lógica para mídia secundária (header URL)
+      let secondaryMediaUrl = null;
+      let secondaryMediaType = null;
+      
+      if (audioComBotoes) {
+        if (templateType === 'audio_video_botoes') {
+          secondaryMediaType = 'video';
+          secondaryMediaUrl = Array.isArray(modeloData?.carouselCards) && (modeloData as any).carouselCards[0]?.id === 'secondary' 
+            ? (modeloData as any).carouselCards[0].image 
+            : (modeloData?.header?.startsWith('http') ? modeloData.header : null);
+        } else if (templateType === 'audio_imagem_botoes') {
+          secondaryMediaType = 'image';
+          secondaryMediaUrl = Array.isArray(modeloData?.carouselCards) && (modeloData as any).carouselCards[0]?.id === 'secondary' 
+            ? (modeloData as any).carouselCards[0].image 
+            : (modeloData?.header?.startsWith('http') ? modeloData.header : null);
         }
-        
-        // Envia cada contato separadamente para o destinatário
-        for (const targetPhone of phonesArray) {
-          const cleanPhone = String(targetPhone).replace(/\D/g, '');
-          if (cleanPhone) {
-            await sendMessageContact(phone, `Contato ${cleanPhone}`, cleanPhone, '');
-          }
-        }
-        return `[múltiplos contatos] ${modeloData?.name || 'Contatos enviados'}`;
-      } else {
-        const contactName = special?.contactName || (modeloData as any)?.contactName || '';
-        const contactPhone = special?.contactPhone || (modeloData as any)?.contactPhone || '';
-        const contactDesc = special?.description || special?.contactBusinessDescription || '';
-
-        if (!contactName || !contactPhone) throw new Error('Nome e telefone do contato são obrigatórios no modelo');
-
-        await sendMessageContact(phone, contactName, contactPhone, contactDesc);
-        return `[contato:${contactName}] ${modeloData?.name || mensagemPersonalizada || 'Contato enviado'}`;
       }
+
+      const headerTitle = !modeloData?.header?.startsWith('http') ? modeloData?.header : undefined;
+
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || modeloData?.content || '',
+        buttons,
+        headerTitle || undefined,
+        modeloData?.footer || undefined,
+        modeloData!.mediaUrl!, 
+        mediaType as any,
+        secondaryMediaUrl ? { secondaryMediaUrl, secondaryMediaType } : undefined,
+        templateType,
+        modeloData?.carouselCards
+      );
+      
+      return mensagemPersonalizada || modeloData?.name || 'Mensagem com mídia e botões enviada';
     }
 
+    if (specialTpl && specialTpl.type !== 'copia_cola') {
+...
     if (isProductTemplate) {
       const special = parseSpecialTemplate(modeloData?.content);
       const prodId = special?.productId || (modeloData as any)?.productId || '';
@@ -267,91 +254,50 @@ const EnviarMensagem = () => {
       return `[produto:${prodId}] ${modeloData?.name || mensagemPersonalizada || 'Produto enviado'}`;
     }
  
-     if (temCarrossel) {
+    if (temCarrossel) {
       await sendCarousel(phone, modeloData!.carouselCards as any, mensagemPersonalizada);
       return `[carrossel] ${modeloData?.name || mensagemPersonalizada || 'Modelo enviado'}`;
     }
 
-    if (audioComBotoes) {
-      const buttons = modeloData!.buttons!.map((btn: any) => {
-        const buttonType = (btn.type || 'REPLY').toUpperCase();
-        const buttonData: any = {
-          id: btn.id || btn.text || Math.random().toString(),
-          type: buttonType,
-          label: btn.text || btn.label || 'Botão',
-        };
-        if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-        else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-        else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
-        return buttonData;
-      });
-
-      const secondaryMediaFromCarousel = Array.isArray(modeloData?.carouselCards) && (modeloData as any).carouselCards[0]?.id === 'secondary' 
-        ? (modeloData as any).carouselCards[0].image 
-        : null;
-      
-      const secondaryMediaUrl = secondaryMediaFromCarousel || (modeloData?.header?.startsWith('http') ? modeloData.header : null);
-      const headerTitle = secondaryMediaFromCarousel ? modeloData?.header : (!modeloData?.header?.startsWith('http') ? modeloData?.header : undefined);
-
-      // Delegamos o fluxo completo para o Edge Function enviando specialType e carouselCards
-      await sendButtonActions(
-        phone,
-        mensagemPersonalizada || modeloData?.content || '',
-        buttons,
-        headerTitle || undefined,
-        modeloData?.footer || undefined,
-        modeloData!.mediaUrl!, // Áudio principal
-        'audio',
-        { 
-          secondaryMediaUrl, 
-          secondaryMediaType: templateType === 'audio_video_botoes' ? 'video' : 'image' 
-        },
-        templateType,
-        modeloData?.carouselCards
-      );
-      
-      return mensagemPersonalizada || modeloData?.name || 'Áudio + texto com botões enviado';
+    // Se for um modelo de áudio simples (sem botões)
+    if (isAudioTemplate && !audioComBotoes) {
+      await sendAudio(phone, modeloData!.mediaUrl!);
+      if (mensagemPersonalizada) {
+        await sendMessage(phone, mensagemPersonalizada);
+      }
+      return mensagemPersonalizada || 'Áudio enviado';
     }
 
-    if (videoComBotoes) {
-      await sendButtonActions(
-        phone,
-        mensagemPersonalizada || modeloData?.content || '',
-        modeloData!.buttons!.map((btn: any) => {
-          const buttonType = (btn.type || 'REPLY').toUpperCase();
-          const buttonData: any = {
-            id: btn.id || btn.text || Math.random().toString(),
-            type: buttonType,
-            label: btn.text || btn.label || 'Botão',
-          };
-          if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-          else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-          else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
-          return buttonData;
-        }),
-        modeloData?.header || undefined,
-        modeloData?.footer || undefined,
-        modeloData!.mediaUrl!,
-        'video',
-      );
-      return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
+    // Se for um modelo de vídeo simples (sem botões)
+    if (isVideoTemplate && !videoComBotoes) {
+      await sendVideo(phone, modeloData!.mediaUrl!, mensagemPersonalizada);
+      return mensagemPersonalizada || 'Vídeo enviado';
     }
 
-    if (imagemComBotoes) {
-      const buttons = modeloData!.buttons!.map((btn: any) => {
-        const buttonType = (btn.type || 'REPLY').toUpperCase();
-        const buttonData: any = {
-          id: btn.id || btn.text || Math.random().toString(),
-          type: buttonType,
-          label: btn.text || btn.label || 'Botão',
-        };
-        if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-        else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-        else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
-        return buttonData;
-      });
+    // Se for um modelo de imagem simples (sem botões)
+    if (isImageTemplate && !imagemComBotoes) {
+      await sendImage(phone, modeloData!.mediaUrl!, mensagemPersonalizada);
+      return mensagemPersonalizada || 'Imagem enviada';
+    }
 
+    // Se for um modelo de documento simples (sem botões)
+    if (isDocumentTemplate && !documentoComBotoes) {
+      const ext = getDocumentExtension(modeloData!.mediaUrl!, modeloData?.fileName);
+      await sendDocument(phone, modeloData!.mediaUrl!, modeloData?.fileName || 'documento', ext, mensagemPersonalizada);
+      return mensagemPersonalizada || 'Documento enviado';
+    }
+
+    if (temListaOpcoes) {
+...
+    }
+
+    const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
+    const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl);
+    const temMidiaAvulsa = !modeloData && !!arquivoMidia;
+
+    if (temBotoes) {
       await sendButtonActions(
+
         phone,
         mensagemPersonalizada || modeloData?.content || '',
         buttons,
