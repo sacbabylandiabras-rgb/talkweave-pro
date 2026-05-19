@@ -572,7 +572,7 @@ interface ChatViewProps {
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
    onDeleteConversation: (phone: string) => Promise<void>;
-  onSendCall?: (phone: string) => Promise<void>;
+  onSendCall?: (phone: string, duration?: number, audioUrl?: string) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
    campaignTemplates?: Map<string, string>;
@@ -2118,7 +2118,7 @@ const MensagensRecebidas = () => {
      refetch();
    }, []); // roda só uma vez ao montar
 
-   const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
+    const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi } = useZapi();
    const { listTags: pageListTags } = useZapi();
  
    useEffect(() => {
@@ -2566,6 +2566,9 @@ const MensagensRecebidas = () => {
             onSendMessage={async (phone, message, options) => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
+            }}
+            onSendCall={async (phone, duration, audioUrl) => {
+              await sendCallZapi(phone, duration, audioUrl);
             }}
             onForwardMessage={async (phone, messageId) => {
               const destination = window.prompt(
