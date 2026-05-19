@@ -3816,8 +3816,23 @@ const getPreviewFileLabel = (template: any) => {
                         preload="metadata"
                       />
                     )}
+                    {/* Secondary Media for Audio Composite Templates */}
+                    {['audio_imagem_botoes', 'audio_video_botoes'].includes(previewTemplate.type) && (
+                      (() => {
+                        const secondaryUrl = previewTemplate.secondaryMediaUrl || (previewTemplate.carouselCards?.[0]?.id === 'secondary' ? previewTemplate.carouselCards[0].image : null) || (previewTemplate.header?.startsWith('http') ? previewTemplate.header : null);
+                        if (!secondaryUrl) return null;
+                        return previewTemplate.type === 'audio_imagem_botoes' ? (
+                          <img src={secondaryUrl} alt="Mídia Secundária" className="w-full rounded-t-lg object-cover max-h-48" />
+                        ) : (
+                          <video src={secondaryUrl} className="w-full rounded-t-lg object-cover max-h-48 bg-black" controls playsInline preload="metadata" />
+                        );
+                      })()
+                    )}
                     {previewTemplate.mediaUrl && isAudioTemplateType(previewTemplate.type) && (
                       <div className="px-3 pt-3">
+                        {previewTemplate.header && !previewTemplate.header.startsWith('http') && (
+                          <p className="font-bold text-sm text-foreground mb-2">{previewTemplate.header}</p>
+                        )}
                         <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-3 space-y-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                             <Music className="w-4 h-4 text-primary" />
