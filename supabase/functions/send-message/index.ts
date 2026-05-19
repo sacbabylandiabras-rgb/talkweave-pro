@@ -629,7 +629,7 @@ serve(async (req) => {
       const isCompositeAudioType = specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' || specialType === 'audio-image-buttons' || (templateId && (specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' || specialType === 'audio-image-buttons'));
 
       // Case 1: Media + Action Buttons -> Prefer /send-button-actions-image or video if possible, else carousel
-      if ((mediaUrl && (hasActionButtons || mediaType === 'video' || isCompositeAudioType)) || (mediaUrl && mediaType === 'audio' && (templateId || isCompositeAudioType))) {
+      if ((mediaUrl && (hasActionButtons || mediaType === 'video' || isCompositeAudioType)) || (mediaUrl && mediaType === 'audio' && (templateId || isCompositeAudioType)) || (mediaUrl && (templateId || specialType))) {
         const payload: any = {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
