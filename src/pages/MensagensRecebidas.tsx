@@ -572,7 +572,7 @@ interface ChatViewProps {
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
    onDeleteConversation: (phone: string) => Promise<void>;
-  onSendCall?: (phone: string) => Promise<void>;
+  onSendCall?: (phone: string, duration?: number, audioUrl?: string) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
    campaignTemplates?: Map<string, string>;
