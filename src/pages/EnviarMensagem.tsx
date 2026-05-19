@@ -198,6 +198,28 @@ const EnviarMensagem = () => {
       const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
       const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.mediaUrl;
 
+      const isMassaTemplate = modeloData.type === 'multiplos_contatos';
+
+      if (modeloData) {
+        // Usar a mesma lógica de envio de campanhas para garantir fidelidade
+        const { data, error } = await supabase.functions.invoke('send-campaign', {
+          body: {
+            campaignId: `direct-${Date.now()}`,
+            contacts: [{
+              phone,
+              name: nome || '',
+              variables: { nome: nome || '', numero: phone }
+            }],
+            _directSendTemplateId: modeloData.id
+          }
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        return mensagemPersonalizada;
+      }
+
       if (specialTpl && specialTpl.type !== 'copia_cola') {
         await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
         return mensagemPersonalizada;
