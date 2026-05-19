@@ -2568,17 +2568,19 @@ const getPreviewFileLabel = (template: any) => {
                   </div>
                 )}
                 
-                <div>
-                  <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
-                  <Input
-                    id="template-header"
-                    value={newTemplate.header}
-                    onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
-                    placeholder="Ex: Oferta Especial"
-                    maxLength={60}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
-                </div>
+                {!(newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes") && (
+                  <div>
+                    <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
+                    <Input
+                      id="template-header"
+                      value={newTemplate.header}
+                      onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
+                      placeholder="Ex: Oferta Especial"
+                      maxLength={60}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
+                  </div>
+                )}
                 
                 <div>
                   <Label htmlFor="template-content">Conteúdo do Modelo</Label>
