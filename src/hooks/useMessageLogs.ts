@@ -919,7 +919,7 @@ export const useMessageLogs = (
           if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) return;
 
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const isVisible = record.status === 'delivered';
+            const isVisible = record.status === 'delivered' || record.status === 'sent' || record.status === 'read';
             setCampaignSends(prev => {
               if (!isVisible) return prev.filter(s => s.id !== record.id);
               const exists = prev.some(s => s.id === record.id);
