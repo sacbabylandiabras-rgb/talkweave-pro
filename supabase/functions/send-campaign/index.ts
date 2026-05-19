@@ -1836,7 +1836,7 @@ serve(async (req) => {
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
 
           if (!hasActionButtons) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-video`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
@@ -1930,7 +1930,7 @@ serve(async (req) => {
           console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
           if (secondaryUrl && !hasActionButtons && (sType === 'image' || sType === 'video')) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-${sType}`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload: any = {
               phone: contact.phone,
               message: fullMessage || ' ',
@@ -1987,7 +1987,7 @@ serve(async (req) => {
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
           
           if (!hasActionButtons) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
