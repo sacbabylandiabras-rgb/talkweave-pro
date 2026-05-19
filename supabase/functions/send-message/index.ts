@@ -652,20 +652,19 @@ serve(async (req) => {
           await sendZapiMedia(mediaUrl, 'audio');
           
           // Send secondary media
-          // Based on Modelos.tsx, secondary media is stored in carouselCards[0].image or 'header' field
+          // Secondary media can be in carouselCards, specialPayload or the title field (if it's a URL)
           const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
             ? payloadRaw.carouselCards[0].image
             : null;
           
-          // Use title instead of header as that is what useZapi.ts sends
-          const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (title?.startsWith('http') ? title : null);
+          const secondaryMediaUrl = secondaryMediaFromCarousel || specialPayload?.secondaryMediaUrl || (title?.startsWith('http') ? title : null);
           const headerTitle = secondaryMediaFromCarousel ? title : (!title?.startsWith('http') ? title : undefined);
           
-          const secondaryMediaType = payloadRaw.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
+          const secondaryMediaType = specialPayload?.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
           
-          console.log(`🎬 Secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}`);
+          console.log(`🎬 Composite secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}`);
 
-          if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
+          if (secondaryMediaUrl && String(secondaryMediaUrl).startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               phone: resolvedPhone,
