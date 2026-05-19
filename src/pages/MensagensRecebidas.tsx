@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus } from "lucide-react";
+    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus, Phone, PhoneCall, ShieldCheck, Key } from "lucide-react";
  import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
  import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
  import {
@@ -572,6 +572,8 @@ interface ChatViewProps {
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
    onDeleteConversation: (phone: string) => Promise<void>;
+  onSendCall?: (phone: string) => Promise<void>;
+  onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
    campaignTemplates?: Map<string, string>;
 }
@@ -591,11 +593,14 @@ const ChatView = ({
     onSendSticker,
     onSendGif,
     onDeleteConversation,
+  onSendCall,
+  onGetSipInfo,
    campaignTemplates,
    savedContacts,
    onUpdate,
  }: ChatViewProps) => {
    const { listTags, addTagChat, removeTagChat } = useZapi();
+  const { sendCall, getSipInfo, getSipToken, getCallToken } = useZapi();
    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
    const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
    const [loadingTags, setLoadingTags] = useState(false);
@@ -605,6 +610,25 @@ const ChatView = ({
    const [newTagDescription, setNewTagDescription] = useState("");
    const [newTagColor, setNewTagColor] = useState(0);
    const [addingTag, setAddingTag] = useState(false);
+  const [sipInfoOpen, setSipInfoOpen] = useState(false);
+  const [sipData, setSipData] = useState<any>(null);
+  const [loadingSip, setLoadingSip] = useState(false);
+
+  const handleOpenSipInfo = async () => {
+    setLoadingSip(true);
+    try {
+      const info = await getSipInfo();
+      const token = await getSipToken();
+      const callToken = await getCallToken();
+      setSipData({ ...info, sipToken: token, callToken });
+      setSipInfoOpen(true);
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar info SIP", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingSip(false);
+    }
+  };
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -1188,7 +1212,36 @@ const ChatView = ({
              )}
            </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" title="Ligações">
+                <Phone className="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="end">
+              <div className="space-y-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-sm h-9 gap-2" 
+                  onClick={() => conversation && sendCall(conversation.phone)}
+                >
+                  <PhoneCall className="w-4 h-4 text-green-600" />
+                  Chamada WhatsApp
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-sm h-9 gap-2" 
+                  onClick={handleOpenSipInfo}
+                  disabled={loadingSip}
+                >
+                  {loadingSip ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4 text-blue-600" />}
+                  Configurações SIP
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Disparar fluxo" onClick={() => conversation && onTriggerFlow(conversation.phone)}>
             <Bot className="w-4 h-4" />
           </Button>
@@ -1790,6 +1843,67 @@ const ChatView = ({
           )}
         </div>
       </div>
+
+      <Dialog open={sipInfoOpen} onOpenChange={setSipInfoOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              Configurações SIP para Chamadas
+            </DialogTitle>
+            <DialogDescription>
+              Utilize estas informações em seu cliente SIP (Softphone) para realizar chamadas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Servidor / Domain</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono">
+                  {sipData?.server || "sip.z-api.io"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Porta</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono">
+                  {sipData?.port || "5060"}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Usuário / Ramal</Label>
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono break-all">
+                {sipData?.username || sipData?.extension || "---"}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Senha / Token SIP</Label>
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono break-all">
+                {sipData?.sipToken || "---"}
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800 leading-relaxed">
+              <p className="font-semibold mb-1 flex items-center gap-1">
+                <Key className="w-3 h-3" /> Token de Chamada:
+              </p>
+              <p className="break-all opacity-80">{sipData?.callToken || "Nenhum token disponível"}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSipInfoOpen(false)}>Fechar</Button>
+            <Button onClick={() => {
+              const text = `SIP Info:\nServer: ${sipData?.server}\nPort: ${sipData?.port}\nUser: ${sipData?.username}\nPass: ${sipData?.sipToken}`;
+              navigator.clipboard.writeText(text);
+              toast({ title: "Copiado", description: "Configurações copiadas para a área de transferência." });
+            }}>
+              Copiar Tudo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
