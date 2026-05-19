@@ -678,8 +678,13 @@ serve(async (req) => {
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
           const finalPayload = { ...payload };
-          if (mediaType === 'image') finalPayload.image = mediaUrl;
-          else finalPayload.video = mediaUrl;
+          if (mediaType === 'image') {
+            finalPayload.image = mediaUrl;
+          } else {
+            finalPayload.video = mediaUrl;
+          }
+          // Some Z-API instances expect caption for media even with buttons
+          finalPayload.caption = finalPayload.message;
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
 
