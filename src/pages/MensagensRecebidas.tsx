@@ -651,7 +651,38 @@ const ChatView = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+    const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+    const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+    const callAudioInputRef = useRef<HTMLInputElement>(null);
+
+    const handleCallAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !conversation) return;
+      
+      setIsUploadingAudio(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `call_audios/${Math.random()}.${fileExt}`;
+        
+        const { data, error } = await supabase.storage
+          .from('chat_media')
+          .upload(filePath, file);
+          
+        if (error) throw error;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat_media')
+          .getPublicUrl(filePath);
+          
+        await sendCall(conversation.phone, 15, publicUrl);
+      } catch (err: any) {
+        console.error('Erro ao upar áudio da chamada:', err);
+        toast({ title: "Erro", description: "Falha ao enviar áudio da chamada.", variant: "destructive" });
+      } finally {
+        setIsUploadingAudio(false);
+        if (callAudioInputRef.current) callAudioInputRef.current.value = '';
+      }
+    };
     const stickerInputRef = useRef<HTMLInputElement>(null);
     const gifInputRef = useRef<HTMLInputElement>(null);
    const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
