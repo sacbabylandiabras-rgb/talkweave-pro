@@ -572,7 +572,7 @@ interface ChatViewProps {
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
    onDeleteConversation: (phone: string) => Promise<void>;
-  onSendCall?: (phone: string, duration?: number, audioUrl?: string) => Promise<void>;
+  onSendCall?: (phone: string, duration?: number) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
     campaignTemplates?: Map<string, string>;
@@ -655,40 +655,6 @@ const ChatView = (props: ChatViewProps) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-    const [isUploadingAudio, setIsUploadingAudio] = useState(false);
-    const callAudioInputRef = useRef<HTMLInputElement>(null);
-
-    const handleCallAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !conversation) return;
-      
-      setIsUploadingAudio(true);
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) throw new Error("Usuário não autenticado");
-
-        const ext = file.name.split('.').pop() || 'mp3';
-        const filePath = `${currentUser.id}/call-audios/${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('template-media')
-          .upload(filePath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('template-media')
-          .getPublicUrl(filePath);
-
-        await onSendCall(conversation.phone, 5, publicUrl);
-      } catch (err: any) {
-        console.error('Erro ao upar áudio da chamada:', err);
-        toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
-      } finally {
-        setIsUploadingAudio(false);
-        if (callAudioInputRef.current) callAudioInputRef.current.value = '';
-      }
-    };
     const stickerInputRef = useRef<HTMLInputElement>(null);
     const gifInputRef = useRef<HTMLInputElement>(null);
    const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1284,27 +1250,7 @@ const ChatView = (props: ChatViewProps) => {
                            <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
                            Chamada Simples (Sem Áudio)
                          </Button>
-                         <Button 
-                           variant="outline" 
-                           className="w-full justify-start text-[11px] h-8 gap-1.5 border-blue-200 hover:bg-blue-50 px-2" 
-                           onClick={() => callAudioInputRef.current?.click()}
-                           disabled={isUploadingAudio}
-                           title="Subir áudio para tocar na chamada (Requer plano compatível na Z-API)"
-                         >
-                           {isUploadingAudio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mic className="w-3 h-3 text-blue-600 shrink-0" />}
-                           {isUploadingAudio ? "Enviando Áudio..." : "Chamada com Áudio (Beta)"}
-                         </Button>
-                         <p className="text-[9px] text-muted-foreground leading-tight px-1 italic">
-                           Obs: Se a chamada com áudio falhar, tente a chamada simples.
-                         </p>
                        </div>
-                      <input 
-                        type="file" 
-                        ref={callAudioInputRef} 
-                        className="hidden" 
-                        accept="audio/*" 
-                        onChange={handleCallAudioUpload}
-                      />
                     </div>
                   </div>
                   
@@ -2587,10 +2533,10 @@ const MensagensRecebidas = () => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
-            onSendCall={async (phone, duration, audioUrl) => {
+            onSendCall={async (phone, duration) => {
               const cleanPhone = String(phone || '').replace(/\D/g, '');
               console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
-              await sendCallZapi(cleanPhone, duration, audioUrl);
+              await sendCallZapi(cleanPhone, duration);
             }}
             onForwardMessage={async (phone, messageId) => {
               const destination = window.prompt(
