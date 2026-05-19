@@ -1001,10 +1001,11 @@ const validateButtons = (
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { useToast } from "@/hooks/use-toast";
 
-const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes" || type === "audio_imagem_botoes";
-const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes" || type === "audio_video_botoes";
+const isImageTemplateType = (type?: string) => type === "imagem" || type === "imagem_botoes";
+const isVideoTemplateType = (type?: string) => type === "video" || type === "video_botoes";
 const isAudioTemplateType = (type?: string) => type === "audio" || type === "audio_botoes" || type === "audio_imagem_botoes" || type === "audio_video_botoes";
 const isDocumentTemplateType = (type?: string) => type === "arquivo" || type === "documento";
+
 
 const getPreviewFileLabel = (template: any) => {
   if (template?.fileName) return template.fileName;
@@ -1533,6 +1534,8 @@ const getPreviewFileLabel = (template: any) => {
         footer: newTemplate.footer,
         variables,
         buttons: newTemplate.buttons,
+        specialType: newTemplate.type, // Explicitly pass the type as specialType for the function
+
         mediaUrl: newTemplate.type === "lista_opcao" ? "" : newTemplate.mediaUrl,
         fileName: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileName,
         fileType: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileType,
