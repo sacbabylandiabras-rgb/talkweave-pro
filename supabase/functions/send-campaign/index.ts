@@ -1061,15 +1061,24 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) throw new Error('Missing Supabase configuration');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const body: SendCampaignRequest = await req.json();
-    const { campaignId, contacts, instanceId: requestedInstanceId, rotationOffset: initialRotationOffset, _isContinuation, _userId } = body;
+    const body: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
+    const { 
+      campaignId, 
+      contacts, 
+      instanceId: requestedInstanceId, 
+      rotationOffset: initialRotationOffset, 
+      _isContinuation, 
+      _userId,
+      _directSendTemplateId 
+    } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
 
-    if (!campaignId || requestedContacts.length === 0) {
+    if (!_directSendTemplateId && (!campaignId || requestedContacts.length === 0)) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
+
 
     console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
 
@@ -1267,28 +1276,58 @@ serve(async (req) => {
       }
     };
 
-    // Check campaign status
-    const { data: campaign, error: campaignError } = await supabase
-      .from('campaigns')
-      .select(`*, template:message_templates(*)`)
-      .eq('id', campaignId)
-      .eq('user_id', credentials.userId)
-      .single();
+    // Check campaign status or resolve direct template
+    let campaign: any = null;
+    let campaignTemplate: any = null;
 
-    if (campaignError || !campaign) {
-      console.error(`❌ Campaign not found: ${campaignError?.message}`);
-      throw new Error('Campaign not found');
+    if (_directSendTemplateId) {
+      const { data: directTpl, error: tplErr } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('id', _directSendTemplateId)
+        .maybeSingle();
+
+      if (tplErr || !directTpl) {
+        throw new Error('Template not found for direct send');
+      }
+      
+      campaignTemplate = directTpl;
+      // Mock a campaign object for internal logic consistency
+      campaign = {
+        id: campaignId || `direct-${Date.now()}`,
+        name: 'Envio Direto',
+        status: 'active',
+        user_id: credentials.userId,
+        template_id: _directSendTemplateId,
+        delay_seconds: 0
+      };
+    } else {
+      const { data: campaignData, error: campaignError } = await supabase
+        .from('campaigns')
+        .select(`*, template:message_templates(*)`)
+        .eq('id', campaignId)
+        .eq('user_id', credentials.userId)
+        .single();
+
+      if (campaignError || !campaignData) {
+        console.error(`❌ Campaign not found: ${campaignError?.message}`);
+        throw new Error('Campaign not found');
+      }
+
+      if (campaignData.status === 'paused' || campaignData.status === 'completed' || campaignData.status === 'cancelled') {
+        console.log(`🛑 Campaign ${campaignId} is ${campaignData.status}. Not processing.`);
+        return new Response(JSON.stringify({ stopped: true, status: campaignData.status, message: `Campaign is ${campaignData.status}` }),
+          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+      }
+
+      if (campaignData.status === 'draft') {
+        await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
+      }
+      
+      campaign = campaignData;
+      campaignTemplate = campaign.template;
     }
 
-    if (campaign.status === 'paused' || campaign.status === 'completed' || campaign.status === 'cancelled') {
-      console.log(`🛑 Campaign ${campaignId} is ${campaign.status}. Not processing.`);
-      return new Response(JSON.stringify({ stopped: true, status: campaign.status, message: `Campaign is ${campaign.status}` }),
-        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-    }
-
-    if (campaign.status === 'draft') {
-      await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
-    }
 
     let campaignTemplate = campaign.template;
 
@@ -1306,20 +1345,28 @@ serve(async (req) => {
       }
     }
 
-    const campaignTargetContacts = Array.isArray(campaign.target_audience?.contacts)
-      ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
-      : [];
+    const campaignTargetContacts = _directSendTemplateId 
+      ? requestedContacts 
+      : (Array.isArray(campaign.target_audience?.contacts)
+          ? campaign.target_audience.contacts.filter((contact: any) => Boolean(contact?.phone))
+          : []);
 
-    const { count: existingSendsCount } = await supabase
-      .from('campaign_sends')
-      .select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaignId);
+    let existingSendsCount = 0;
+    if (!_directSendTemplateId) {
+      const { count } = await supabase
+        .from('campaign_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId);
+      existingSendsCount = count ?? 0;
+    }
 
     const shouldUseCampaignAudience =
+      !_directSendTemplateId &&
       !_isContinuation &&
-      (existingSendsCount ?? 0) === 0 &&
+      existingSendsCount === 0 &&
       campaignTargetContacts.length > 0 &&
       requestedContacts.length !== campaignTargetContacts.length;
+
 
     const executionContacts = shouldUseCampaignAudience ? campaignTargetContacts : requestedContacts;
 
