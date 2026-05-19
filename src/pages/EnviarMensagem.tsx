@@ -245,6 +245,7 @@ const EnviarMensagem = () => {
     }
 
     if (specialTpl && specialTpl.type !== 'copia_cola') {
+// ... keep existing code
       if (isStatusOnlySpecialTemplate(specialTpl.type)) {
         throw new Error(getStatusOnlyTemplateError());
       }
@@ -440,10 +441,14 @@ const EnviarMensagem = () => {
 
       await sendButtonActions(
         phone,
-        mensagemPersonalizada,
+        mensagemPersonalizada || modeloData?.content || '',
         buttons,
         modeloData?.header || undefined,
-        modeloData?.footer || undefined
+        modeloData?.footer || undefined,
+        undefined,
+        undefined,
+        undefined,
+        templateType
       );
 
       return mensagemPersonalizada || modeloData?.name || 'Modelo com botões enviado';
