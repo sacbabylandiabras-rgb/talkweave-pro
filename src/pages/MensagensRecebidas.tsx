@@ -578,27 +578,29 @@ interface ChatViewProps {
    campaignTemplates?: Map<string, string>;
 }
 
-const ChatView = ({
-  conversation,
-  onBack,
-  isMobile,
-  onSaveContact,
-  onFetchPhoto,
-  loadingPhoto,
-  onSendMessage,
-  onOpenProfile,
-  onTriggerFlow,
-  onForwardMessage,
-   onSendReaction,
+const ChatView = (props: ChatViewProps) => {
+  const {
+    conversation,
+    onBack,
+    isMobile,
+    onSaveContact,
+    onFetchPhoto,
+    loadingPhoto,
+    onSendMessage,
+    onOpenProfile,
+    onTriggerFlow,
+    onForwardMessage,
+    onSendReaction,
     onSendSticker,
     onSendGif,
     onDeleteConversation,
-  onSendCall,
-  onGetSipInfo,
-   campaignTemplates,
-   savedContacts,
-   onUpdate,
- }: ChatViewProps) => {
+    onSendCall,
+    onGetSipInfo,
+    campaignTemplates,
+    savedContacts,
+    onUpdate,
+    activeInstance,
+  } = props;
    const { listTags, addTagChat, removeTagChat } = useZapi();
   const { sendCall, getSipInfo, getSipToken, getCallToken } = useZapi();
    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
@@ -2579,6 +2581,7 @@ const MensagensRecebidas = () => {
             onTriggerFlow={(phone) => setProfileOpen(true)}
             campaignTemplates={campaignTemplates}
             savedContacts={savedContacts}
+            activeInstance={rawActiveInstance}
             onSendMessage={async (phone, message, options) => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
