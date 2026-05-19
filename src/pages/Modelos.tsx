@@ -1141,7 +1141,8 @@ const getPreviewFileLabel = (template: any) => {
     mediaUrl: "",
     fileName: "",
     fileType: "",
-    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>,
+
     listItems: [] as Array<{id: string, title: string, description?: string}>,
     carouselCards: [] as Array<{
       id: string;
