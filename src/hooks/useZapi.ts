@@ -1307,10 +1307,7 @@ const getZAPIConfig = async () => {
   const sendCall = async (phone: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-        body: { action: 'send-call', phone },
-      });
-      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao realizar chamada'));
+      const data = await invokeZapiAction('send-call', phone);
       toast({ title: "Chamada iniciada", description: "O comando de chamada foi enviado." });
       return data;
     } catch (error) {
@@ -1328,11 +1325,7 @@ const getZAPIConfig = async () => {
   const getCallToken = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-        body: { action: 'call-token' },
-      });
-      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar token de chamada'));
-      return data?.data || data;
+      return await invokeZapiAction('call-token');
     } catch (error) {
       toast({
         title: "Erro ao buscar token",
@@ -1348,11 +1341,7 @@ const getZAPIConfig = async () => {
   const getSipToken = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-        body: { action: 'sip-token' },
-      });
-      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar token SIP'));
-      return data?.data || data;
+      return await invokeZapiAction('sip-token');
     } catch (error) {
       toast({
         title: "Erro ao buscar token SIP",
@@ -1368,22 +1357,18 @@ const getZAPIConfig = async () => {
   const getSipInfo = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-        body: { action: 'sip-info' },
-      });
-      if (error) throw new Error(await getInvokeErrorMessage(error, 'Erro ao buscar info SIP'));
-      return data?.data || data;
+      return await invokeZapiAction('sip-info');
     } catch (error) {
-       toast({
-         title: "Erro ao buscar info SIP",
-         description: error instanceof Error ? error.message : "Erro desconhecido",
-         variant: "destructive",
-       });
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
+      toast({
+        title: "Erro ao buscar info SIP",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const invokeGroupAction = async (action: string, payload?: any, phone?: string) => {
     setLoading(true);
