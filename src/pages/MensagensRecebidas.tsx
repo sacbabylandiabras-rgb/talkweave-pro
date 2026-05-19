@@ -677,7 +677,7 @@ const ChatView = ({
           .from('template-media')
           .getPublicUrl(filePath);
 
-        await sendCall(conversation.phone, 15, publicUrl);
+        await onSendCall(conversation.phone, 20, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
         toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
@@ -1267,12 +1267,12 @@ const ChatView = ({
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Chamar e desligar (15s)</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (20s)</Label>
                     <div className="flex gap-1">
                       <Button 
                         variant="outline" 
                         className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
-                        onClick={() => conversation && sendCall(conversation.phone, 15)}
+                        onClick={() => conversation && onSendCall(conversation.phone, 20)}
                         title="Apenas chamar sem áudio"
                       >
                         <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
@@ -2118,7 +2118,16 @@ const MensagensRecebidas = () => {
      refetch();
    }, []); // roda só uma vez ao montar
 
-    const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi } = useZapi();
+    const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi, setOverride } = useZapi();
+   // Sincroniza a instância selecionada com o hook useZapi
+   useEffect(() => {
+     if (selectedInstance) {
+       setOverride(selectedInstance as any);
+     } else {
+       setOverride(null);
+     }
+   }, [selectedInstance, setOverride]);
+
    const { listTags: pageListTags } = useZapi();
  
    useEffect(() => {

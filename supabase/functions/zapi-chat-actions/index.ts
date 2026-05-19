@@ -438,7 +438,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, phone = '', instanceDbId, payload } = body;
+    let { action, phone = '', instanceDbId, payload } = body;
+    
+    // Clean phone number (only digits, unless it's a group)
+    if (phone && !phone.includes('-group') && !phone.includes('@')) {
+      phone = phone.replace(/\D/g, '');
+    }
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
@@ -460,7 +465,14 @@ Deno.serve(async (req) => {
       finalPayload = { ...payload, messageId: resolvedMessageId };
     }
 
-    const base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
+    let base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
+    
+    if (creds.apiProvider === 'evolution' && creds.evolutionUrl) {
+      base = creds.evolutionUrl.replace(/\/$/, '') + "/instances/" + creds.instanceId + "/token/" + creds.token;
+    } else if (creds.apiProvider === 'uazapi' && creds.evolutionUrl) {
+      base = creds.evolutionUrl.replace(/\/$/, '');
+    }
+
     const ep = endpointFor(action, phone, finalPayload, creds.apiProvider);
     
     console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId}`);
@@ -474,7 +486,8 @@ Deno.serve(async (req) => {
       method: ep.method,
       headers: {
         'Content-Type': 'application/json',
-        'Client-Token': creds.clientToken,
+        'Client-Token': creds.clientToken || '',
+        'apikey': creds.evolutionKey || '',
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
