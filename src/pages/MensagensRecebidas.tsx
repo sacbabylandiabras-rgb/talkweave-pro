@@ -1863,7 +1863,7 @@ const ChatView = ({
             </DialogTitle>
             <DialogDescription>
                Utilize estas informações em seu cliente SIP (Softphone) para realizar chamadas. 
-               <a href="https://developer.z-api.io/calls/sip-info" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block mt-1">
+                <a href="https://zaplynxpro.online/sip-info" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block mt-1">
                  Ver guia de configuração do Zoiper/MicroSIP
                </a>
             </DialogDescription>
