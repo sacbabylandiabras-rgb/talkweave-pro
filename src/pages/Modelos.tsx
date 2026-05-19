@@ -2912,58 +2912,129 @@ const getPreviewFileLabel = (template: any) => {
 
             {/* Campos específicos por tipo - Edição */}
             {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
-              <div className="space-y-3">
-                <div>
-                  <Label>Upload de Arquivo</Label>
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept={
-                          editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
-                            ? "image/*"
-                            : editFormData.type === "audio" || editFormData.type === "audio_botoes"
-                            ? "audio/*"
-                            : "video/*"
-                        }
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file, true);
-                        }}
-                        disabled={uploadingFile}
-                      />
-                      {uploadingFile && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Enviando arquivo...
-                        </p>
+              <div className="space-y-4 border rounded-xl p-4 bg-muted/30 border-muted-foreground/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
+                  <Music className="w-4 h-4" /> Arquivo Principal (Áudio)
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <Label>{(editFormData.type?.startsWith('audio')) ? "Arquivo de Áudio" : "Arquivo de Mídia"}</Label>
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <Input
+                          type="file"
+                          accept={
+                            editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
+                              ? "image/*"
+                              : editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes"
+                              ? "audio/*"
+                              : "video/*"
+                          }
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, true);
+                          }}
+                          disabled={uploadingFile}
+                        />
+                        {uploadingFile && (
+                          <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                            Enviando arquivo...
+                          </p>
+                        )}
+                      </div>
+                      {editFormData.mediaUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditFormData(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       )}
                     </div>
                     {editFormData.mediaUrl && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditFormData(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <p className="text-xs text-green-600 mt-1 font-medium">
+                        ✓ Áudio: {editFormData.fileName}
+                      </p>
                     )}
                   </div>
-                  {editFormData.mediaUrl && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ Arquivo: {editFormData.fileName}
-                    </p>
-                  )}
+                  <div>
+                    <Label htmlFor="edit-template-media-url">Ou cole a URL do Áudio</Label>
+                    <Input
+                      id="edit-template-media-url"
+                      value={editFormData.mediaUrl}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                      placeholder="https://exemplo.com/audio.mp3"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="edit-template-media-url">Ou cole a URL da Mídia</Label>
-                  <Input
-                    id="edit-template-media-url"
-                    value={editFormData.mediaUrl}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
-                    placeholder="https://exemplo.com/arquivo.jpg"
-                  />
-                </div>
+
+                {(editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes") && (
+                  <div className="mt-4 pt-4 border-t border-muted-foreground/10 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
+                      {editFormData.type === "audio_imagem_botoes" ? <Image className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                      Mídia Secundária ({editFormData.type === "audio_imagem_botoes" ? "Imagem" : "Vídeo"})
+                    </div>
+                    <div>
+                      <Label>Upload da Mídia (visto após o áudio)</Label>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept={editFormData.type === "audio_imagem_botoes" ? "image/*" : "video/*"}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setUploadingFile(true);
+                                try {
+                                  const { supabase } = await import('@/integrations/supabase/client');
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  if (!user) throw new Error("Não autorizado");
+                                  const ext = file.name.split('.').pop();
+                                  const path = `${user.id}/${Date.now()}.${ext}`;
+                                  const { error } = await supabase.storage.from('template-media').upload(path, file);
+                                  if (error) throw error;
+                                  const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+                                  setEditFormData(prev => ({ ...prev, header: publicUrl }));
+                                } catch (err: any) {
+                                  toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+                                } finally {
+                                  setUploadingFile(false);
+                                }
+                              }
+                            }}
+                            disabled={uploadingFile}
+                          />
+                        </div>
+                        {editFormData.header && editFormData.header.startsWith('http') && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditFormData(prev => ({ ...prev, header: "" }))}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {editFormData.header && editFormData.header.startsWith('http') && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">
+                          ✓ Mídia carregada com sucesso
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-template-secondary-media-url">Ou cole a URL da Mídia</Label>
+                      <Input
+                        id="edit-template-secondary-media-url"
+                        value={editFormData.header}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
+                        placeholder={editFormData.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
