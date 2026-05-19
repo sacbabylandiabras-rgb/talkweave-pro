@@ -334,7 +334,7 @@ const getZAPIConfig = async () => {
     try {
       const data = await invokeSendMessageEdge({
         phone,
-        message,
+        message: message || ' ',
         title,
         footer,
         ...(mediaUrl ? { mediaUrl, mediaType: mediaType || 'image' } : {}),
