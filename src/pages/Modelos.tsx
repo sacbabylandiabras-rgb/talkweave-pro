@@ -1821,7 +1821,7 @@ const getPreviewFileLabel = (template: any) => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
   };
 
   const addButton = useCallback((isEdit = false) => {
