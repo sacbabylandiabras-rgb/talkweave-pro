@@ -1421,7 +1421,7 @@ const ChatView = ({
                           campaignTemplates={campaignTemplates}
                           originalContent={msg.original_content}
                         />
-                        <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
+                        <div className="flex items-center justify-end gap-1 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] flex items-center gap-0.5">
                               {getSourceIcon(msg.source)}
@@ -1431,6 +1431,7 @@ const ChatView = ({
                           <span className="text-[10px]">
                             {formatMessageTime(msg.timestamp)}
                           </span>
+                          <MessageStatus status={msg.status} />
                         </div>
                         {localReactions[msg.id] && (
                           <span className="absolute -bottom-3 left-2 rounded-full bg-card border border-border px-1 text-xs shadow-sm text-foreground">
