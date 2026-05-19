@@ -1929,10 +1929,10 @@ serve(async (req) => {
           const sType = templateType === 'audio_video_botoes' ? 'video' : 'image';
 
           if (secondaryUrl && !hasActionButtons) {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/${sType === 'video' ? 'send-button-list-video' : 'send-button-list-image'}`;
-            requestBody = {
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/${sType === 'video' ? 'send-button-list-video' : 'send-button-list-image'}`;
+            const listPayload = {
               phone: contact.phone,
-              message: fullMessage || ' ',
+              caption: fullMessage || ' ',
               [sType]: secondaryUrl,
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
@@ -1941,6 +1941,42 @@ serve(async (req) => {
                 }))
               }
             };
+
+            console.log(`🎬 [Campaign] Attempting composite ${listEndpoint}`);
+            const listResponse = await fetch(listEndpoint, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, 
+              body: JSON.stringify(listPayload) 
+            });
+
+            if (listResponse.ok) {
+              const result = await listResponse.json();
+              campaignSend.status = 'sent';
+              campaignSend.sent_at = new Date().toISOString();
+              const ackId = getZapiAckId(result);
+              if (ackId) campaignSend.message_id = String(ackId);
+              results.push({ phone: contact.phone, success: true, messageId: ackId });
+              await persistCampaignSend(campaignSend, reusableSendId);
+              return { stop: false };
+            }
+
+            const errorBody = await listResponse.json().catch(() => ({}));
+            if (listResponse.status !== 404 && errorBody.error !== 'NOT_FOUND') {
+               throw new Error(`Erro ao enviar botões de lista (composite): ${JSON.stringify(errorBody)}`);
+            }
+            
+            console.log(`🔄 [Campaign] Composite ${listEndpoint} not found, falling back to /send-button-actions`);
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+            requestBody = { 
+              phone: contact.phone, 
+              ...buttonPayload,
+              caption: buttonPayload.message,
+              ...(headerTitle ? { title: headerTitle } : {})
+            };
+            if (secondaryUrl) {
+              requestBody[sType] = secondaryUrl;
+            }
           } else {
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
             const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
