@@ -672,6 +672,7 @@ serve(async (req) => {
             const secondaryPayload: any = { 
               phone: resolvedPhone,
               message: message || ' ',
+              caption: message || ' ',
               ...(headerTitle ? { title: headerTitle } : {}),
               ...(footer ? { footer } : {}),
               ...mentionFlag(resolvedPhone)
