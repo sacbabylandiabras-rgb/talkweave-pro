@@ -1573,7 +1573,8 @@ serve(async (req) => {
         }
 
         let fullMessage = '';
-        if (campaignTemplate.header) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
+        const isAudioWithMedia = (campaignTemplate.type === 'audio_imagem_botoes' || campaignTemplate.type === 'audio_video_botoes');
+        if (campaignTemplate.header && !isAudioWithMedia) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
         fullMessage += messageContent;
         if (campaignTemplate.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaignTemplate.footer);
 
