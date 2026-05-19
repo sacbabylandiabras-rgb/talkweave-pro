@@ -2123,7 +2123,7 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
           requestBody = {
             phone: contact.phone,
-            message: fullMessage || ' ',
+            caption: fullMessage || ' ',
             image: campaignTemplate.media_url,
             buttonList: {
               title: campaignTemplate.header || '',
