@@ -110,16 +110,16 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
                )}
 
                {/* Secondary Media for composite types OR Main Media for standard types */}
-               {(type.includes('imagem') || type.includes('image') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') || (template.type?.startsWith('audio_') && template.header?.startsWith('http'))) && (
+               {(type.includes('imagem') || type.includes('image') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') || (template.type?.startsWith('audio_') && template.header?.startsWith('http'))) && (template.mediaUrl || (specialData && specialData.mediaUrl)) && (
                  <div className="rounded overflow-hidden bg-white/5 border border-white/5">
                    <img src={(template.type?.startsWith('audio_') && template.header?.startsWith('http')) ? template.header : (template.mediaUrl || specialData.mediaUrl)} alt="Preview" className="w-full h-48 object-cover" />
                  </div>
                 )}
                 
-                {(type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video')) && (
+                {(type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video')) && (template.mediaUrl || (specialData && specialData.mediaUrl)) && (
                  <div className="rounded overflow-hidden bg-white/5 border border-white/5 relative aspect-video bg-black">
                    <video 
-                     src={template.mediaUrl || specialData.mediaUrl} 
+                     src={template.mediaUrl || (specialData && specialData.mediaUrl)} 
                      className="w-full h-full object-contain"
                      muted
                      loop

@@ -1212,6 +1212,11 @@ const EnviarMensagem = () => {
       setTitulo(modelo.header || "");
       setRodape(modelo.footer || "");
       
+      // Limpar mídia manual se o modelo já tiver mídia ou for um tipo que não aceita mistura simples
+      if (modelo.mediaUrl) {
+        setArquivoMidia(null);
+      }
+      
       toast({
         title: "Modelo aplicado!",
         description: `Modelo "${modelo.name}" foi aplicado à mensagem`,
@@ -1224,17 +1229,28 @@ const EnviarMensagem = () => {
        ? modelosDisponiveis.find(m => m.id === modeloSelecionado) 
        : null;
  
-     if (modeloData) return modeloData;
+     if (modeloData) {
+       return {
+         ...modeloData,
+         // Se o modelo tiver header/footer mas o usuário editou nos campos (para botões), usar os campos
+         header: titulo || modeloData.header,
+         footer: rodape || modeloData.footer,
+         content: mensagem || modeloData.content,
+         buttons: modeloData.buttons || (botoesAcao.some(b => b.label) ? botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : [])
+       };
+     }
  
      // Se não tiver modelo, simular um modelo com o conteúdo atual
      return {
+       header: titulo,
+       footer: rodape,
        content: mensagem,
        mediaUrl: arquivoMidia ? URL.createObjectURL(arquivoMidia) : undefined,
        fileType: arquivoMidia?.type,
        fileName: arquivoMidia?.name,
-       buttons: botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() }))
+       buttons: botoesAcao.some(b => b.label) ? botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : []
      };
-   }, [modeloSelecionado, modelosDisponiveis, mensagem, arquivoMidia, botoesAcao]);
+   }, [modeloSelecionado, modelosDisponiveis, mensagem, arquivoMidia, botoesAcao, titulo, rodape]);
  
    return (
      <div className="space-y-4">
