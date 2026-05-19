@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
  import { Send, Users, User, FileText, Image, Plus, Trash2, MessageSquare, List, MousePointer, Upload, Video, FileAudio, Paperclip, Clock, Eye, Sparkles, CalendarClock, Reply, Pencil, XCircle, LayoutTemplate } from "lucide-react";
  import { WhatsAppPreview } from "@/components/WhatsAppPreview";
-import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
+import { useZapi, setZapiInstanceOverride, setZapiRotateMode, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
 import { useToast } from "@/hooks/use-toast";
 import InstanceSelector, { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
