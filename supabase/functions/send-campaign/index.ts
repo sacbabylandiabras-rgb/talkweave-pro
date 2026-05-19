@@ -1832,16 +1832,34 @@ serve(async (req) => {
           await persistCampaignSend(campaignSend, reusableSendId);
           return { stop: false };
 
-        } else if (templateType === 'video_botoes' && hasMedia && hasButtons && !campaignIsPtv) {
-          // Use single-step send for better reliability and to avoid duplicate messages on retry
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
-          requestBody = { 
-            phone: contact.phone, 
-            ...buttonPayload, 
-            video: campaignTemplate.media_url,
-            ...(campaignViewOnce ? { viewOnce: true } : {})
-          };
+         } else if (templateType === 'video_botoes' && hasMedia && hasButtons && !campaignIsPtv) {
+          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+
+          if (!hasActionButtons) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-video`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage || ' ',
+              video: campaignTemplate.media_url,
+              buttonList: {
+                buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
+                  id: b.id || String(idx + 1),
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                }))
+              },
+              ...(campaignViewOnce ? { viewOnce: true } : {})
+            };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+            requestBody = { 
+              phone: contact.phone, 
+              ...buttonPayload, 
+              caption: buttonPayload.message,
+              video: campaignTemplate.media_url,
+              ...(campaignViewOnce ? { viewOnce: true } : {})
+            };
+          }
         } else if (templateType === 'video_botoes' && hasMedia && hasButtons && campaignIsPtv) {
           // PTV must be sent separately as it's a special message type
           const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
@@ -1866,35 +1884,69 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
-          // Use standard /send-button-actions which is more reliable and supports image/video headers
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-          
-          // Tentar extrair mídia secundária do carrossel ou header
+          // Extract secondary media
           const secondaryFromCarousel = Array.isArray(campaignTemplate.carousel_cards) && campaignTemplate.carousel_cards[0]?.id === 'secondary'
             ? campaignTemplate.carousel_cards[0].image
             : null;
           
           const secondaryUrl = secondaryFromCarousel || (campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : null);
           const headerTitle = secondaryFromCarousel ? campaignTemplate.header : (!campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : undefined);
-          
-          if (templateType === 'audio_imagem_botoes' && secondaryUrl) {
-             requestBody = { phone: contact.phone, ...buttonPayload, image: secondaryUrl, ...(headerTitle ? { title: headerTitle } : {}) };
-          } else if (templateType === 'audio_video_botoes' && secondaryUrl) {
-             requestBody = { phone: contact.phone, ...buttonPayload, video: secondaryUrl, ...(headerTitle ? { title: headerTitle } : {}) };
+          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          const sType = templateType === 'audio_video_botoes' ? 'video' : 'image';
+
+          if (secondaryUrl && !hasActionButtons) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/${sType === 'video' ? 'send-button-list-video' : 'send-button-list-image'}`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage || ' ',
+              [sType]: secondaryUrl,
+              buttonList: {
+                buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
+                  id: b.id || String(idx + 1),
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                }))
+              }
+            };
           } else {
-             requestBody = { phone: contact.phone, ...buttonPayload, ...(headerTitle ? { title: headerTitle } : {}) };
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+            requestBody = { 
+              phone: contact.phone, 
+              ...buttonPayload,
+              caption: buttonPayload.message,
+              ...(headerTitle ? { title: headerTitle } : {})
+            };
+            if (secondaryUrl) {
+              requestBody[sType] = secondaryUrl;
+            }
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          // Use single-step send for better reliability
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-          requestBody = { 
-            phone: contact.phone, 
-            ...buttonPayload, 
-            image: campaignTemplate.media_url 
-          };
+          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          
+          if (!hasActionButtons) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage || ' ',
+              image: campaignTemplate.media_url,
+              buttonList: {
+                buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
+                  id: b.id || String(idx + 1),
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                }))
+              }
+            };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+            requestBody = { 
+              phone: contact.phone, 
+              ...buttonPayload, 
+              caption: buttonPayload.message,
+              image: campaignTemplate.media_url 
+            };
+          }
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;

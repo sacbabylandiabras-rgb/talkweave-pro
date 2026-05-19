@@ -311,9 +311,6 @@ const EnviarMensagem = () => {
     }
 
     if (videoComBotoes) {
-      // 1) Envia o vídeo puro
-      await sendVideo(phone, modeloData!.mediaUrl!, '', viewOnce, isPtv);
-      // 2) Em seguida, envia o texto + botões
       await sendButtonActions(
         phone,
         mensagemPersonalizada || modeloData?.content || '',
@@ -331,12 +328,13 @@ const EnviarMensagem = () => {
         }),
         modeloData?.header || undefined,
         modeloData?.footer || undefined,
+        modeloData!.mediaUrl!,
+        'video',
       );
       return mensagemPersonalizada || modeloData?.name || 'Vídeo + texto com botões enviado';
     }
 
     if (imagemComBotoes) {
-      // Imagem + botões em uma única chamada (mesma instância)
       await sendButtonActions(
         phone,
         mensagemPersonalizada || modeloData?.content || '',

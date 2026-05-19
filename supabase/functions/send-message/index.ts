@@ -667,20 +667,38 @@ serve(async (req) => {
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
-              ...payload,
+              phone: resolvedPhone,
+              message: message || 'Escolha uma opção:',
               ...(headerTitle ? { title: headerTitle } : {}),
-              // Z-API handles image/video headers in /send-button-actions
+              ...(footer ? { footer } : {}),
+              ...mentionFlag(resolvedPhone),
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
+            // If only reply buttons and it's image/video, use the more specific Z-API endpoints
+            // as suggested by the user link (send-button-list-video)
+            if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
+              const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+              secondaryPayload.buttonList = {
+                buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+              };
+              console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
+              return sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+            }
+
+            secondaryPayload.buttonActions = buttons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : {}),
+              ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+            }));
+
             // Some Z-API instances expect caption for media even with buttons
             secondaryPayload.caption = secondaryPayload.message;
 
-            // Remove audio related fields from base payload to avoid sending audio twice
-            delete secondaryPayload.audio;
-
-            // Use the standard /send-button-actions as it is more reliable and supports media headers
-            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-buttons`);
+            console.log(`🎬 Sending composite secondary media with /send-button-actions`);
+            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-actions`);
           } else {
             console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
@@ -689,14 +707,46 @@ serve(async (req) => {
 
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
-          const finalPayload = { ...payload };
-          if (mediaType === 'image') {
-            finalPayload.image = mediaUrl;
-          } else {
-            finalPayload.video = mediaUrl;
+          const finalPayload = { 
+            phone: resolvedPhone,
+            message: message || 'Escolha uma opção:',
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            ...mentionFlag(resolvedPhone)
+          };
+
+          // If only reply buttons, use the specific endpoints (as suggested by user link)
+          if (!hasActionButtons) {
+            const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+            (finalPayload as any).buttonList = {
+              buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+            };
+            if (mediaType === 'image') {
+              (finalPayload as any).image = mediaUrl;
+            } else {
+              (finalPayload as any).video = mediaUrl;
+            }
+            console.log(`🎬 Sending media with ${endpoint}`);
+            return sendZapi(endpoint, finalPayload, `buttons-list-with-${mediaType}`);
           }
+
+          // Otherwise use /send-button-actions
+          if (mediaType === 'image') {
+            (finalPayload as any).image = mediaUrl;
+          } else {
+            (finalPayload as any).video = mediaUrl;
+          }
+          (finalPayload as any).buttonActions = buttons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            ...(b.type === 'URL' ? { url: b.url } : {}),
+            ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+          }));
+          
           // Some Z-API instances expect caption for media even with buttons
-          finalPayload.caption = finalPayload.message;
+          (finalPayload as any).caption = (finalPayload as any).message;
+          console.log(`🎬 Sending media with /send-button-actions`);
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
 
