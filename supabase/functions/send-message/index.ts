@@ -714,11 +714,8 @@ serve(async (req) => {
             console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
           }
-          } else {
-            console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
-            return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
-          }
         }
+
 
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
