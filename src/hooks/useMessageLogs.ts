@@ -136,7 +136,7 @@ const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 't
   return ts;
 };
 
-const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered';
+const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered' || send.status === 'sent' || send.status === 'read';
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
