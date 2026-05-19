@@ -1328,9 +1328,6 @@ serve(async (req) => {
       campaignTemplate = campaign.template;
     }
 
-
-    let campaignTemplate = campaign.template;
-
     // Fallback for missing template relation - try fetching manually if needed
     if (!campaignTemplate && campaign.template_id) {
       console.log(`🔍 Campaign ${campaignId}: template relation missing, fetching template ${campaign.template_id} manually...`);
