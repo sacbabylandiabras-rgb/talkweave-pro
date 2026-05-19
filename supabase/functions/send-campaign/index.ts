@@ -1870,12 +1870,20 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
           
-          if (templateType === 'audio_imagem_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
-             requestBody = { phone: contact.phone, ...buttonPayload, image: campaignTemplate.header };
-          } else if (templateType === 'audio_video_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
-             requestBody = { phone: contact.phone, ...buttonPayload, video: campaignTemplate.header };
+          // Tentar extrair mídia secundária do carrossel ou header
+          const secondaryFromCarousel = Array.isArray(campaignTemplate.carousel_cards) && campaignTemplate.carousel_cards[0]?.id === 'secondary'
+            ? campaignTemplate.carousel_cards[0].image
+            : null;
+          
+          const secondaryUrl = secondaryFromCarousel || (campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : null);
+          const headerTitle = secondaryFromCarousel ? campaignTemplate.header : (!campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : undefined);
+          
+          if (templateType === 'audio_imagem_botoes' && secondaryUrl) {
+             requestBody = { phone: contact.phone, ...buttonPayload, image: secondaryUrl, ...(headerTitle ? { title: headerTitle } : {}) };
+          } else if (templateType === 'audio_video_botoes' && secondaryUrl) {
+             requestBody = { phone: contact.phone, ...buttonPayload, video: secondaryUrl, ...(headerTitle ? { title: headerTitle } : {}) };
           } else {
-             requestBody = { phone: contact.phone, ...buttonPayload };
+             requestBody = { phone: contact.phone, ...buttonPayload, ...(headerTitle ? { title: headerTitle } : {}) };
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
