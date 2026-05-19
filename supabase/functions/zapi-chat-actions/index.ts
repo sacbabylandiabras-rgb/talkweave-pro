@@ -438,7 +438,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, phone = '', instanceDbId, payload } = body;
+    let { action, phone = '', instanceDbId, payload } = body;
+    
+    // Clean phone number (only digits, unless it's a group)
+    if (phone && !phone.includes('-group') && !phone.includes('@')) {
+      phone = phone.replace(/\D/g, '');
+    }
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
