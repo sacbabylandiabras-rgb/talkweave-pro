@@ -332,22 +332,41 @@ const executeFlow = async (params: {
         const payload = dmButtons.length > 0 ? buildButtonPayload(dmText, dmButtons) : (dmText ? { text: dmText } : null);
 
          if (payload) {
-            const autoDmUrl = `${getInstagramGraphBaseUrl(context.accessToken)}/${META_API_VERSION}/${context.igPageId}/messages`;
-            await fetch(autoDmUrl, {
+            const isIGLogin = isInstagramLoginToken(context.accessToken);
+            const baseUrl = getInstagramGraphBaseUrl(context.accessToken);
+            const autoDmUrl = (isIGLogin 
+              ? `${baseUrl}/${META_API_VERSION}/me/messages`
+              : `${baseUrl}/${META_API_VERSION}/${context.igPageId}/messages`) + `?access_token=${encodeURIComponent(context.accessToken)}`;
+            
+            const recipient = context.commentId ? { comment_id: context.commentId } : { id: context.senderId };
+            
+            console.log(`[webhook-instagram] Sending DM to ${context.senderId} (via ${context.commentId ? 'comment_id' : 'id'})`);
+            
+            const res = await fetch(autoDmUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ recipient: { id: context.senderId }, message: payload, access_token: context.accessToken }),
+              body: JSON.stringify({ 
+                recipient, 
+                message: payload
+              }),
             });
+            
+            if (!res.ok) {
+              const errorData = await res.text();
+              console.error(`[webhook-instagram] Flow DM failed:`, errorData);
+            } else {
+              console.log(`[webhook-instagram] Successfully sent DM to ${context.senderId}`);
            
-           // Log automation outgoing message
-           await logInstagramEvent(supabase, {
-             userId: context.userId,
-             eventType: "dm_sent",
-             igUserId: context.senderId,
-             username: context.senderUsername,
-             text: dmText,
-             payload: { automation_id: auto.id, type: "automation" }
-           });
+              // Log automation outgoing message
+              await logInstagramEvent(supabase, {
+                userId: context.userId,
+                eventType: "dm_sent",
+                igUserId: context.senderId,
+                username: context.senderUsername,
+                text: dmText,
+                payload: { automation_id: auto.id, type: "automation", comment_id: context.commentId }
+              });
+            }
          }
       } catch (e) { console.error("Flow DM failed:", e); }
     }
