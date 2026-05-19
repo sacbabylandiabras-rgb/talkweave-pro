@@ -2533,10 +2533,10 @@ const MensagensRecebidas = () => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
-            onSendCall={async (phone, duration, audioUrl) => {
+            onSendCall={async (phone, duration) => {
               const cleanPhone = String(phone || '').replace(/\D/g, '');
               console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
-              await sendCallZapi(cleanPhone, duration, audioUrl);
+              await sendCallZapi(cleanPhone, duration);
             }}
             onForwardMessage={async (phone, messageId) => {
               const destination = window.prompt(
