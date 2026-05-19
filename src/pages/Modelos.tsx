@@ -1546,7 +1546,7 @@ const getPreviewFileLabel = (template: any) => {
         carouselCards: newTemplate.carouselCards,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
       setShowCreateDialog(false);
     } catch (error: any) {
       console.error('Error creating template:', error);
