@@ -47,9 +47,10 @@ export interface UnifiedMessage {
   keyword_matched?: string | null;
   original_content?: string | null;
   campaign_id?: string | null;
-   sender_name?: string | null;
-   sender_phone?: string | null;
-   sender_photo?: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  sender_photo?: string | null;
+  status?: string | null;
 }
 
 export interface SavedContact {
@@ -135,7 +136,7 @@ const getInboundMessageTimestamp = (log: Pick<MessageLog, 'keyword_matched' | 't
   return ts;
 };
 
-const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered';
+const isCampaignMessageVisible = (send: CampaignSendMessage) => send.status === 'delivered' || send.status === 'sent' || send.status === 'read';
 
 const getCampaignSendTimestamp = (send: Pick<CampaignSendMessage, 'sent_at' | 'created_at'>) => send.sent_at || send.created_at;
 
@@ -918,7 +919,7 @@ export const useMessageLogs = (
           if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) return;
 
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const isVisible = record.status === 'delivered';
+            const isVisible = record.status === 'delivered' || record.status === 'sent' || record.status === 'read';
             setCampaignSends(prev => {
               if (!isVisible) return prev.filter(s => s.id !== record.id);
               const exists = prev.some(s => s.id === record.id);
@@ -1135,6 +1136,7 @@ export const useMessageLogs = (
           timestamp: log.timestamp || log.created_at,
           source,
           keyword_matched: displayKeyword,
+          status: 'sent', // Standard logs are at least 'sent'
         });
       }
     });
@@ -1163,6 +1165,7 @@ export const useMessageLogs = (
         timestamp: send.sent_at || send.created_at,
         source: 'campaign',
         campaign_id: send.campaign_id ?? null,
+        status: send.status,
       });
     });
 

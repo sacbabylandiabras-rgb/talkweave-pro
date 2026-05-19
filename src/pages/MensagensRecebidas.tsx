@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus, Phone, PhoneCall, ShieldCheck, Key } from "lucide-react";
+    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, CheckCheck, Plus, Phone, PhoneCall, ShieldCheck, Key } from "lucide-react";
  import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
  import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
  import {
@@ -332,6 +332,28 @@ const ChatTypeBadge = ({ phone, isCommunity }: { phone: string; name?: string | 
     );
   }
   return null;
+};
+
+const MessageStatus = ({ status }: { status?: string | null }) => {
+  if (!status) return null;
+
+  switch (status.toLowerCase()) {
+    case 'sent':
+    case 'enviado':
+      return <Check className="w-3 h-3 text-muted-foreground/70" />;
+    case 'delivered':
+    case 'entregue':
+      return <CheckCheck className="w-3 h-3 text-muted-foreground/70" />;
+    case 'read':
+    case 'lido':
+    case 'visualizado':
+      return <CheckCheck className="w-3 h-3 text-blue-400" />;
+    case 'failed':
+    case 'erro':
+      return <span className="text-[10px] text-destructive font-bold">!</span>;
+    default:
+      return <Check className="w-3 h-3 text-muted-foreground/70" />;
+  }
 };
 
 const SaveContactDialog = ({
@@ -1498,7 +1520,7 @@ const ChatView = (props: ChatViewProps) => {
                           </Popover>
                         </div>
                         <MessageContent content={msg.content} isSent={true} templates={templates} campaignId={msg.campaign_id} campaignTemplates={campaignTemplates} />
-                        <div className="flex items-center justify-end gap-1.5 mt-1 opacity-80">
+                        <div className="flex items-center justify-end gap-1 mt-1 opacity-80">
                           {msg.source !== 'message_log' && (
                             <span className="text-[9px] flex items-center gap-0.5">
                               {getSourceIcon(msg.source)}
@@ -1508,6 +1530,7 @@ const ChatView = (props: ChatViewProps) => {
                           <span className="text-[10px]">
                             {formatMessageTime(msg.timestamp)}
                           </span>
+                          <MessageStatus status={msg.status} />
                         </div>
                         {localReactions[msg.id] && (
                           <span className="absolute -bottom-3 left-2 rounded-full bg-card border border-border px-1 text-xs shadow-sm text-foreground">
