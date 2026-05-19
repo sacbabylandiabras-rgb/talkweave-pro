@@ -3027,18 +3027,18 @@ const getPreviewFileLabel = (template: any) => {
                             disabled={uploadingFile}
                           />
                         </div>
-                        {editFormData.header && editFormData.header.startsWith('http') && (
+                        {editFormData.secondaryMediaUrl && editFormData.secondaryMediaUrl.startsWith('http') && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setEditFormData(prev => ({ ...prev, header: "" }))}
+                            onClick={() => setEditFormData(prev => ({ ...prev, secondaryMediaUrl: "" }))}
                           >
                             <X className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
-                      {editFormData.header && editFormData.header.startsWith('http') && (
+                      {editFormData.secondaryMediaUrl && editFormData.secondaryMediaUrl.startsWith('http') && (
                         <p className="text-xs text-green-600 mt-1 font-medium">
                           ✓ Mídia carregada com sucesso
                         </p>
