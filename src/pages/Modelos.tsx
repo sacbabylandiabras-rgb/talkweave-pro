@@ -3376,17 +3376,19 @@ const getPreviewFileLabel = (template: any) => {
               </div>
             )}
             
-            <div>
-              <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
-              <Input
-                id="edit-template-header"
-                value={editFormData.header}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
-                placeholder="Ex: Oferta Especial"
-                maxLength={60}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
-            </div>
+            {!(editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes") && (
+              <div>
+                <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
+                <Input
+                  id="edit-template-header"
+                  value={editFormData.header}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
+                  placeholder="Ex: Oferta Especial"
+                  maxLength={60}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Aparece no topo da mensagem no WhatsApp</p>
+              </div>
+            )}
             
             <div>
               <Label htmlFor="edit-template-content">Conteúdo do Modelo</Label>
