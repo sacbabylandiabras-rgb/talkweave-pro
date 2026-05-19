@@ -1613,25 +1613,30 @@ serve(async (req) => {
 
           const formatZapiButtons = (buttons: any[], sendId?: string | null) => buttons
           .map((btn: any, index: number) => {
-            const btnType = String(btn?.type || 'url').toUpperCase();
+            let btnType = String(btn?.type || 'url').toUpperCase();
             const label = String(btn?.text || btn?.label || `Botão ${index + 1}`).trim().slice(0, 20);
+            
             const buttonData: any = {
               id: String(index + 1),
               type: 'URL',
               label,
             };
+
+            if (btnType === 'COPY') {
+              const code = String(btn?.copyText || btn?.value || '').trim();
+              if (code) {
+                btnType = 'URL';
+                buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
+              }
+            }
+
             if (btnType === 'CALL') {
               const phone = sanitizeCallPhone(btn?.phone || btn?.value);
               if (!phone) return null;
               buttonData.type = 'CALL';
               buttonData.phone = phone;
-            } else if (btnType === 'REPLY' || btnType === 'OPTION') {
+            } else if (btnType === 'REPLY' || btnType === 'OPTION' || btnType === 'QUICK_REPLY') {
               buttonData.type = 'REPLY';
-            } else if (btnType === 'COPY') {
-              const code = String(btn?.copyText || btn?.value || '').trim();
-              if (!code) return null;
-              buttonData.type = 'URL';
-              buttonData.url = `https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=${encodeURIComponent(code)}`;
             } else {
               const rawUrl = btn?.url || btn?.value || '';
               const finalUrl = buildTrackedCampaignUrl(rawUrl || 'https://z-api.io', {
@@ -1834,8 +1839,11 @@ serve(async (req) => {
 
          } else if (templateType === 'video_botoes' && hasMedia && hasButtons && !campaignIsPtv) {
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          const zapiButtons = formatZapiButtons(campaignTemplate.buttons, reusableSendId);
+          const hasActionButtonsInFormatted = zapiButtons.some((b: any) => b.type === 'URL' || b.type === 'CALL');
 
-          if (!hasActionButtons) {
+
+          if (!hasActionButtonsInFormatted) {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
@@ -1924,12 +1932,14 @@ serve(async (req) => {
           
           const secondaryUrl = secondaryFromCarousel || (campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : null);
           const headerTitle = secondaryFromCarousel ? campaignTemplate.header : (!campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : undefined);
-          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          const zapiButtons = formatZapiButtons(campaignTemplate.buttons, reusableSendId);
+          const hasActionButtonsInFormatted = zapiButtons.some((b: any) => b.type === 'URL' || b.type === 'CALL');
+
           const sType = templateType === 'audio_video_botoes' ? 'video' : 'image';
 
           console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
-          if (secondaryUrl && !hasActionButtons && (sType === 'image' || sType === 'video')) {
+          if (secondaryUrl && !hasActionButtonsInFormatted && (sType === 'image' || sType === 'video')) {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload: any = {
               phone: contact.phone,
@@ -1984,9 +1994,11 @@ serve(async (req) => {
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          const zapiButtons = formatZapiButtons(campaignTemplate.buttons, reusableSendId);
+          const hasActionButtonsInFormatted = zapiButtons.some((b: any) => b.type === 'URL' || b.type === 'CALL');
+
           
-          if (!hasActionButtons) {
+          if (!hasActionButtonsInFormatted) {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
