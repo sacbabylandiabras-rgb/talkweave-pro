@@ -1862,15 +1862,14 @@ serve(async (req) => {
 
           await sleep(Math.max(delayMs / 2, 1000));
 
+          // Use standard /send-button-actions which is more reliable and supports image/video headers
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
           
           if (templateType === 'audio_imagem_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
              requestBody = { phone: contact.phone, ...buttonPayload, image: campaignTemplate.header };
-             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions-image`;
           } else if (templateType === 'audio_video_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
              requestBody = { phone: contact.phone, ...buttonPayload, video: campaignTemplate.header };
-             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions-video`;
           } else {
              requestBody = { phone: contact.phone, ...buttonPayload };
           }
