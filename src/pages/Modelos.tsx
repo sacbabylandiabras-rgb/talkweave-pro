@@ -1096,7 +1096,6 @@ const getPreviewFileLabel = (template: any) => {
     type: "texto",
     content: "",
     header: "",
-    secondaryMediaUrl: "",
     footer: "",
     mediaUrl: "",
     fileName: "",
@@ -1132,11 +1131,13 @@ const getPreviewFileLabel = (template: any) => {
     paymentDescription: "",
     paymentAmount: "",
     paymentCurrency: "BRL",
-      paymentReferenceId: "",
-      massPhones: "",
-      metaTemplateName: "",
-      metaLanguage: "pt_BR",
-     });
+    paymentReferenceId: "",
+    massPhones: "",
+    metaTemplateName: "",
+    metaLanguage: "pt_BR",
+    secondaryMediaUrl: "",
+    secondaryMediaType: "image",
+  });
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -1144,7 +1145,6 @@ const getPreviewFileLabel = (template: any) => {
     type: "texto",
     content: "",
     header: "",
-    secondaryMediaUrl: "",
     footer: "",
     mediaUrl: "",
     fileName: "",
@@ -1182,6 +1182,8 @@ const getPreviewFileLabel = (template: any) => {
       massPhones: "",
       metaTemplateName: "",
       metaLanguage: "pt_BR",
+      secondaryMediaUrl: "",
+      secondaryMediaType: "image",
      });
    const [showCreateDialog, setShowCreateDialog] = useState(false);
    const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -1529,8 +1531,9 @@ const getPreviewFileLabel = (template: any) => {
         : newTemplate.content;
 
       const isCompositeAudio = newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes";
+      const secondaryMediaType = newTemplate.type === "audio_video_botoes" ? "video" : "image";
       const carouselCardsToSave = isCompositeAudio && newTemplate.secondaryMediaUrl 
-        ? [{ id: 'secondary', image: newTemplate.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        ? [{ id: 'secondary', image: newTemplate.secondaryMediaUrl, title: secondaryMediaType, description: '', buttons: [] }]
         : newTemplate.carouselCards;
 
       await createTemplate({
@@ -1551,7 +1554,7 @@ const getPreviewFileLabel = (template: any) => {
         carouselCards: carouselCardsToSave as any,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", secondaryMediaType: "image", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
       setShowCreateDialog(false);
     } catch (error: any) {
       console.error('Error creating template:', error);
@@ -1614,6 +1617,7 @@ const getPreviewFileLabel = (template: any) => {
       content: cleanContent,
       header: template.header || "",
       secondaryMediaUrl: (Array.isArray(template.carouselCards) && template.carouselCards[0]?.id === 'secondary') ? template.carouselCards[0].image : "",
+      secondaryMediaType: (Array.isArray(template.carouselCards) && template.carouselCards[0]?.id === 'secondary') ? (template.carouselCards[0].title || "image") : "image",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
       fileName: template.fileName || "",
@@ -1770,8 +1774,9 @@ const getPreviewFileLabel = (template: any) => {
         : editFormData.content;
 
       const isCompositeAudioEdit = editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes";
+      const secondaryMediaTypeEdit = editFormData.type === "audio_video_botoes" ? "video" : "image";
       const carouselCardsToUpdate = isCompositeAudioEdit && editFormData.secondaryMediaUrl 
-        ? [{ id: 'secondary', image: editFormData.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        ? [{ id: 'secondary', image: editFormData.secondaryMediaUrl, title: secondaryMediaTypeEdit, description: '', buttons: [] }]
         : editFormData.carouselCards;
 
       await updateTemplate(editingTemplate!, {
@@ -1791,7 +1796,7 @@ const getPreviewFileLabel = (template: any) => {
       });
 
       setEditingTemplate(null);
-        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+        setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR", secondaryMediaUrl: "", secondaryMediaType: "image" });
     } catch (error: any) {
       console.error('Error updating template:', error);
       toast({
@@ -1831,7 +1836,7 @@ const getPreviewFileLabel = (template: any) => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", secondaryMediaType: "image", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
   };
 
   const addButton = useCallback((isEdit = false) => {
