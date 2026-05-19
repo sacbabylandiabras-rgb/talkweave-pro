@@ -168,10 +168,6 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    const mensagemPersonalizada = (mensagem || modeloData?.content || "")
-      .replace(/\{nome\}/g, nome || "")
-      .replace(/\{numero\}/g, phone);
-
     const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
       const type = (btn.type || 'REPLY').toUpperCase();
       const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
@@ -184,6 +180,9 @@ const EnviarMensagem = () => {
     if (modeloData) {
       const specialTpl = parseSpecialTemplate(modeloData.content);
       const templateType = String(modeloData.type || '').toLowerCase();
+      const mensagemPersonalizada = (mensagem || modeloData.content || '')
+        .replace(/\{nome\}/g, nome || '')
+        .replace(/\{numero\}/g, phone);
 
       const isListTemplate = ['lista_opcao', 'lista', 'lista de opção'].includes(templateType);
       const isCopyPasteTemplate = ['copia_cola', 'copia e cola', 'copy_paste'].includes(templateType);
@@ -242,7 +241,7 @@ const EnviarMensagem = () => {
           'audio',
           { secondaryMediaUrl: secondaryUrl, secondaryMediaType },
           templateType,
-          modeloData.carouselCards
+          modeloData.carouselCards as any
         );
         return mensagemPersonalizada;
       }
@@ -303,12 +302,13 @@ const EnviarMensagem = () => {
         return caption;
       }
 
+      // fallback texto
       await sendMessage(phone, mensagemPersonalizada);
       return mensagemPersonalizada;
     }
 
     // Sem modelo — arquivo avulso ou texto manual
-    const msgFinal = (mensagem || "").replace(/\{nome\}/g, nome || "").replace(/\{numero\}/g, phone);
+    const msgFinal = (mensagem || '').replace(/\{nome\}/g, nome || '').replace(/\{numero\}/g, phone);
 
     if (arquivoMidia) {
       const base64File = await convertToBase64(arquivoMidia);
