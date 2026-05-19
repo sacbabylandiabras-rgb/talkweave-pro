@@ -779,7 +779,7 @@ serve(async (req) => {
       }
 
       // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
-      if (mediaUrl && !hasActionButtons) {
+      if (mediaUrl && !hasActionButtons && (mediaType === 'image' || mediaType === 'video')) {
         const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
         const payload: any = {
           phone: resolvedPhone,
@@ -789,12 +789,31 @@ serve(async (req) => {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
         };
+        // Ensure caption is set
+        payload.caption = payload.message;
+        
         if (mediaType === 'image') {
           payload.image = mediaUrl;
         } else {
           payload.video = mediaUrl;
         }
-        return sendZapi(endpoint, payload, 'buttons-media-reply');
+
+        try {
+          return await sendZapi(endpoint, payload, 'buttons-media-reply');
+        } catch (err: any) {
+          const isNotFound = err instanceof Response && (err.status === 404 || (await err.clone().json().catch(() => ({}))).error === 'NOT_FOUND');
+          if (!isNotFound) throw err;
+          console.log(`🔄 Case 2: ${endpoint} not found, falling back to /send-button-actions`);
+          
+          const actionsPayload = { ...payload };
+          delete actionsPayload.buttonList;
+          (actionsPayload as any).buttonActions = buttons.map(b => ({
+            id: b.id,
+            type: 'REPLY',
+            label: b.label
+          }));
+          return sendZapi('/send-button-actions', actionsPayload, 'buttons-media-reply-fallback');
+        }
       }
 
       // Case 3: No Media + Any Buttons -> Use /send-button-actions if any action btns present
