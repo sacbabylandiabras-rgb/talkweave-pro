@@ -1784,7 +1784,7 @@ const getPreviewFileLabel = (template: any) => {
       next.listItems = value === "carrossel" ? current.listItems : current.listItems;
     }
 
-    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "arquivo", "documento"].includes(value)) {
+    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "audio_botoes", "arquivo", "documento"].includes(value)) {
       next.mediaUrl = "";
       next.fileName = "";
       next.fileType = "";
