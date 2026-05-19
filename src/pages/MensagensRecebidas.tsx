@@ -2567,6 +2567,10 @@ const MensagensRecebidas = () => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
+            onSendCall={async (phone, duration, audioUrl) => {
+              const { sendCall } = useZapi();
+              await sendCall(phone, duration, audioUrl);
+            }}
             onForwardMessage={async (phone, messageId) => {
               const destination = window.prompt(
                 'Encaminhar mensagem para qual número? (ex: 5511999998888)',
