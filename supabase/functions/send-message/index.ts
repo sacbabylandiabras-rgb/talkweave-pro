@@ -648,16 +648,22 @@ serve(async (req) => {
         // For composite audio types, we send the audio FIRST, then the secondary media (image/video) with buttons
         if (isCompositeAudioType) {
           // Send audio first (the main mediaUrl in these types is the audio)
+          console.log(`🎤 Sending composite audio: ${mediaUrl}`);
           await sendZapiMedia(mediaUrl, 'audio');
           
-          // Send secondary media (stored in 'title' or 'header' depending on context, but 'title' is used as secondary URL in flow)
+          // Send secondary media
           // Based on Modelos.tsx, secondary media is stored in 'header' field when creating template
-          const secondaryMediaUrl = title || payloadRaw.header;
+          const secondaryMediaUrl = payloadRaw.header || title;
           const secondaryMediaType = specialType === 'audio_video_botoes' ? 'video' : 'image';
           
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
-            const secondaryPayload: any = { ...payload, title: undefined, header: undefined };
+            const secondaryPayload: any = { ...payload };
+            // Remove media related fields from base payload to avoid sending media twice
+            delete secondaryPayload.audio;
+            delete secondaryPayload.image;
+            delete secondaryPayload.video;
+
             if (secondaryMediaType === 'image') {
               secondaryPayload.image = secondaryMediaUrl;
               return sendZapi('/send-button-actions-image', secondaryPayload, 'composite-image-buttons');
@@ -665,6 +671,9 @@ serve(async (req) => {
               secondaryPayload.video = secondaryMediaUrl;
               return sendZapi('/send-button-actions-video', secondaryPayload, 'composite-video-buttons');
             }
+          } else {
+            console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
+            return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
           }
         }
 
