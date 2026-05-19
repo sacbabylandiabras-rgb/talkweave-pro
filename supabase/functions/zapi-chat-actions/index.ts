@@ -251,11 +251,26 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
     // Call Actions
     case 'send-call': {
-      const callPayload = {
-        phone: zapiPhone,
-        callDuration: payload?.callDuration || 15, // Default to max 15s for longer ring
-        audioUrl: payload?.audioUrl || undefined
+      let callPhone = zapiPhone.replace(/@c\.us$/i, '').replace(/@g\.us$/i, '').replace(/\D/g, '');
+      
+      // Fix para números brasileiros sem o 9
+      if (callPhone.startsWith('55') && callPhone.length === 12) {
+        const ddd = parseInt(callPhone.slice(2, 4));
+        const firstDigit = callPhone.charAt(4);
+        // Mobiles em DDDs >= 11 usam o 9
+        if (ddd >= 11 && ['6', '7', '8', '9'].includes(firstDigit)) {
+          callPhone = '55' + ddd + '9' + callPhone.slice(4);
+          console.log(`[zapi-chat-actions] Ajustando número brasileiro para incluir o 9: ${callPhone}`);
+        }
+      }
+
+      const callPayload: any = {
+        phone: callPhone,
+        callDuration: payload?.callDuration || 20
       };
+      if (payload?.audioUrl) {
+        callPayload.audioUrl = payload.audioUrl;
+      }
       return { method: 'POST', path: '/send-call', body: callPayload };
     }
     case 'call-token':
