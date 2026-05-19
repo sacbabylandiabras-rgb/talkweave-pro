@@ -673,8 +673,7 @@ serve(async (req) => {
               message: message || ' ',
               ...(headerTitle ? { title: headerTitle } : {}),
               ...(footer ? { footer } : {}),
-              ...mentionFlag(resolvedPhone),
-              ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
+              ...mentionFlag(resolvedPhone)
             };
             
             // Preferimos layouts de lista (send-button-list-image/video) se não houver botões de ação (URL/CALL)
@@ -682,6 +681,7 @@ serve(async (req) => {
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
               secondaryPayload.buttonList = {
+                [secondaryMediaType]: secondaryMediaUrl,
                 buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
               };
               
@@ -697,6 +697,8 @@ serve(async (req) => {
               }
             }
 
+            // If list layout failed or was not possible, prepare payload for /send-button-actions
+            (secondaryPayload as any)[secondaryMediaType] = secondaryMediaUrl;
             secondaryPayload.buttonActions = buttons.map(b => ({
               id: b.id,
               type: b.type,
