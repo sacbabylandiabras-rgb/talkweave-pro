@@ -1304,28 +1304,23 @@ const getZAPIConfig = async () => {
     }
   };
 
-  const sendCall = async (phone: string, duration: number = 15, audioUrl?: string) => {
+  const sendCall = async (phone: string, duration: number = 5, audioUrl?: string) => {
     setLoading(true);
     try {
       const cleanPhone = String(phone || '').replace(/\D/g, '');
+      console.log(`[useZapi] sendCall for ${cleanPhone}, duration: ${duration}`);
       const data = await invokeZapiAction('send-call', cleanPhone, { callDuration: duration, callAudioUrl: audioUrl });
       toast({ 
         title: "Chamada iniciada", 
-        description: `O comando de chamada foi enviado (Duração: ${duration}s).` 
+        description: `O comando de chamada foi enviado para ${cleanPhone}.` 
       });
       return data;
     } catch (error) {
       const raw = error instanceof Error ? error.message : "Erro desconhecido";
-      let description = raw;
-      const lower = raw.toLowerCase();
-      if (lower.includes('reproduces an audio') || (lower.includes('upgrade') && lower.includes('subscription'))) {
-        description = 'Chamadas com áudio não estão disponíveis no seu plano atual. Faça o upgrade do plano da sua conexão para liberar esse recurso.';
-      } else if (lower.includes('mobile')) {
-        description = 'A chamada só funciona em conexões do tipo Mobile. Verifique sua conexão.';
-      }
+      console.error('[useZapi] Error in sendCall:', raw);
       toast({
         title: "Erro ao realizar chamada",
-        description,
+        description: raw,
         variant: "destructive",
       });
       throw error;
