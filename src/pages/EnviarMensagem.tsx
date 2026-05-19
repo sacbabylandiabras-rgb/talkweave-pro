@@ -1050,7 +1050,8 @@ const EnviarMensagem = () => {
               'audio',
               { 
                 secondaryMediaUrl, 
-                secondaryMediaType: templateType === 'audio_video_botoes' ? 'video' : 'image' 
+                secondaryMediaType: (templateType as string) === 'audio_video_botoes' ? 'video' : 'image' 
+
               },
               templateType,
               modeloData?.carouselCards
