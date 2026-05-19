@@ -708,7 +708,7 @@ const EnviarMensagem = () => {
             : null;
 
           const specialTpl = parseSpecialTemplate(modeloData?.content);
-          let mensagemPersonalizada = mensagem
+          let mensagemPersonalizada = (mensagem || modeloData?.content || '')
             .replace(/\{nome\}/g, contato.nome)
             .replace(/\{numero\}/g, contato.telefone);
 
