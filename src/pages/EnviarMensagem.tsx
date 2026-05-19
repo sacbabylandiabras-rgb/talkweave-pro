@@ -172,7 +172,7 @@ const EnviarMensagem = () => {
     const instanceId = currentSelectedInstanceId === '__rotate_all__' ? undefined : currentSelectedInstanceId;
 
     if (modeloData) {
-      // Se for um modelo de áudio com botões ou mídia complexa, o send-campaign já lida melhor
+      // Usar a mesma lógica de envio de campanhas para garantir fidelidade
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         body: {
           campaignId: `direct-${Date.now()}`,
@@ -1226,62 +1226,43 @@ const EnviarMensagem = () => {
   const aplicarModelo = (modeloId: string) => {
     const modelo = modelosDisponiveis.find(m => m.id === modeloId);
     if (modelo) {
-      const special = parseSpecialTemplate(modelo.content);
-      
-      // Se for um modelo especial (PIX, Localização, etc), limpa a mensagem e deixa o motor de envio tratar
-      if (special) {
-        setMensagem(""); 
-        setTitulo("");
-        setRodape("");
-        setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
-        setOpcoes([{id: "1", title: "", description: ""}]);
-        toast({
-          title: "Modelo especial selecionado",
-          description: `${modelo.name} (${special.type}) será enviado pelo formato nativo`,
-        });
-        return;
-      }
-      
-      // Se for um modelo normal, preenche os campos
+      // Para manter a fidelidade total ao modelo (incluindo botões e mídias),
+      // limpamos os campos manuais que poderiam conflitar, pois o envio usará o template_id diretamente.
       setMensagem(modelo.content || "");
       setTitulo(modelo.header || "");
       setRodape(modelo.footer || "");
 
-      // Se o modelo tiver botões, preencher o estado de botões para as abas que usam botoesAcao
+      // Sincroniza estados de botões e listas para a UI refletir o modelo
       if (modelo.buttons && modelo.buttons.length > 0) {
-        const novosBotoes = modelo.buttons.map((btn: any, index: number) => ({
+        setBotoesAcao(modelo.buttons.map((btn: any, index: number) => ({
           id: btn.id || (index + 1).toString(),
           type: (btn.type || "REPLY").toUpperCase() as any,
           label: btn.text || btn.label || "",
           phone: btn.type === "call" ? (btn.value || "") : "",
           url: btn.type === "url" ? (btn.value || "") : "",
           copyText: btn.type === "copy" ? (btn.value || "") : "",
-        }));
-        setBotoesAcao(novosBotoes);
+        })));
       } else {
         setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
       }
 
-      // Se o modelo tiver itens de lista, preencher o estado de opções
       if (modelo.listItems && modelo.listItems.length > 0) {
         setOpcoes(modelo.listItems.map((it: any, index: number) => ({
           id: it.id || (index + 1).toString(),
           title: it.title || "",
           description: it.description || "",
         })));
-        if (modelo.header) setTituloLista(modelo.header);
+        setTituloLista(modelo.header || "Opções");
       } else {
         setOpcoes([{id: "1", title: "", description: ""}]);
       }
       
-      // Limpar mídia manual se o modelo já tiver mídia ou for um tipo que não aceita mistura simples
-      if (modelo.mediaUrl) {
-        setArquivoMidia(null);
-      }
+      setArquivoMidia(null);
+      setLegenda("");
       
       toast({
         title: "Modelo aplicado!",
-        description: `Modelo "${modelo.name}" foi aplicado à mensagem`,
+        description: `Modelo "${modelo.name}" selecionado para envio.`,
       });
     }
   };
