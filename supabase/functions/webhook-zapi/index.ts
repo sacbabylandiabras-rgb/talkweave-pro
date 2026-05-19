@@ -213,10 +213,11 @@ serve(async (req) => {
       
       // Mark as delivered/sent based on status.
       // SENT: Message reached Z-API/WhatsApp servers.
-      // RECEIVED: Message delivered to the recipient's phone.
+      // RECEIVED/DELIVERED: Message delivered to the recipient's phone.
       // READ: Recipient read the message.
-       const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
-       const isSentStatus = ["SENT"].includes(status);
+       const upperStatus = status.toUpperCase();
+       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
+       const isSentStatus = ["SENT"].includes(upperStatus);
        const isShadowBanError = error && (
          error.toLowerCase().includes("shadow ban") || 
          error.toLowerCase().includes("restricted") || 
@@ -247,7 +248,7 @@ serve(async (req) => {
             console.log(`Updated campaign_send ${campaignSend.id} to ${updateData.status} via message_id ${msgId}`);
           }
         }
-       } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
+       } else if (messageIds.length > 0 && (upperStatus === "ERROR" || error)) {
          for (const msgId of messageIds) {
            const finalErrorMessage = isShadowBanError 
              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio. Evite enviar a mesma mensagem para muitos contatos e tente novamente mais tarde."
