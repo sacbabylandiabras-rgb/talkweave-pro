@@ -2201,7 +2201,10 @@ const getPreviewFileLabel = (template: any) => {
                                       const { error } = await supabase.storage.from('template-media').upload(path, file);
                                       if (error) throw error;
                                       const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-                                      setNewTemplate(prev => ({ ...prev, header: publicUrl }));
+                                      setNewTemplate(prev => ({ 
+                                        ...prev, 
+                                        variables: { ...((prev.variables as any) || {}), secondaryMediaUrl: publicUrl }
+                                      }));
                                     } catch (err: any) {
                                       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
                                     } finally {
