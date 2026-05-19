@@ -1931,12 +1931,11 @@ serve(async (req) => {
 
           console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
-          if (secondaryUrl && !hasActionButtons && sType === 'image') {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
-            const listPayload = {
+          if (secondaryUrl && !hasActionButtons && (sType === 'image' || sType === 'video')) {
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-${sType}`;
+            const listPayload: any = {
               phone: contact.phone,
               caption: fullMessage || ' ',
-              image: secondaryUrl,
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
@@ -1944,6 +1943,7 @@ serve(async (req) => {
                 }))
               }
             };
+            listPayload[sType] = secondaryUrl;
 
             console.log(`🎬 [Campaign] Attempting composite ${listEndpoint}`);
             const listResponse = await fetch(listEndpoint, { 
