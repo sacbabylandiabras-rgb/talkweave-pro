@@ -1063,21 +1063,23 @@ const EnviarMensagem = () => {
             );
           } else if (imagemComBotoes) {
             // Imagem + botões em uma única chamada (mesma instância garantida)
+            const buttons = modeloData!.buttons!.map((btn: any) => {
+              const buttonType = (btn.type || 'REPLY').toUpperCase();
+              const buttonData: any = {
+                id: btn.id || btn.text || Math.random().toString(),
+                type: buttonType,
+                label: btn.text || btn.label || 'Botão',
+              };
+              if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+              else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+              else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+              return buttonData;
+            });
+
             await sendButtonActions(
               contato.telefone,
               mensagemPersonalizada || modeloData?.content || '',
-              modeloData!.buttons!.map((btn: any) => {
-                const buttonType = (btn.type || 'REPLY').toUpperCase();
-                const buttonData: any = {
-                  id: btn.id || btn.text || Math.random().toString(),
-                  type: buttonType,
-                  label: btn.text || btn.label || 'Botão',
-                };
-                if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-                else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-                else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
-                return buttonData;
-              }),
+              buttons,
               modeloData?.header || undefined,
               modeloData?.footer || undefined,
               modeloData!.mediaUrl!,
