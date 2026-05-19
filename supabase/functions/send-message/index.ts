@@ -632,7 +632,7 @@ serve(async (req) => {
       if ((mediaUrl && (hasActionButtons || mediaType === 'video' || isCompositeAudioType)) || (mediaUrl && mediaType === 'audio' && (templateId || isCompositeAudioType)) || (mediaUrl && (templateId || specialType))) {
         const payload: any = {
           phone: resolvedPhone,
-          message: message || 'Escolha uma opção:',
+          message: message || ' ',
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
           ...mentionFlag(resolvedPhone),
@@ -640,8 +640,8 @@ serve(async (req) => {
             id: b.id,
             type: b.type,
             label: b.label,
-            ...(b.type === 'URL' ? { url: b.url } : {}),
-            ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+            ...(b.type === 'URL' ? { url: b.url || b.value } : {}),
+            ...(b.type === 'CALL' ? { phone: b.phone || b.value } : {}),
           }))
         };
 
@@ -720,7 +720,7 @@ serve(async (req) => {
         if (mediaType === 'image' || mediaType === 'video') {
           const finalPayload = { 
             phone: resolvedPhone,
-            message: message || 'Escolha uma opção:',
+            message: message || ' ',
             ...(title ? { title } : {}),
             ...(footer ? { footer } : {}),
             ...mentionFlag(resolvedPhone)
@@ -733,7 +733,7 @@ serve(async (req) => {
               buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
             };
             // Ensure we use message and put media inside buttonList as expected by Z-API
-            (finalPayload as any).message = message || 'Escolha uma opção:';
+            (finalPayload as any).message = message || ' ';
             (finalPayload as any).buttonList[mediaType] = mediaUrl;
             
             console.log(`🎬 Sending media with ${endpoint}`);
@@ -762,7 +762,7 @@ serve(async (req) => {
           }));
           
           // Some Z-API instances expect message for media even with buttons
-          (finalPayload as any).message = message || 'Escolha uma opção:';
+          (finalPayload as any).message = message || ' ';
           console.log(`🎬 Sending media with /send-button-actions`);
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
