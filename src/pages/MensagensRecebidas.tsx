@@ -1250,8 +1250,11 @@ const ChatView = (props: ChatViewProps) => {
                            <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
                            Chamada Simples (Sem Áudio)
                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
+
                   
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground uppercase">Falar agora (SIP)</Label>
