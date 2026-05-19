@@ -334,9 +334,9 @@ const executeFlow = async (params: {
          if (payload) {
             const isIGLogin = isInstagramLoginToken(context.accessToken);
             const baseUrl = getInstagramGraphBaseUrl(context.accessToken);
-            const autoDmUrl = isIGLogin 
+            const autoDmUrl = (isIGLogin 
               ? `${baseUrl}/${META_API_VERSION}/me/messages`
-              : `${baseUrl}/${META_API_VERSION}/${context.igPageId}/messages`;
+              : `${baseUrl}/${META_API_VERSION}/${context.igPageId}/messages`) + `?access_token=${encodeURIComponent(context.accessToken)}`;
             
             const recipient = context.commentId ? { comment_id: context.commentId } : { id: context.senderId };
             
@@ -347,8 +347,7 @@ const executeFlow = async (params: {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
                 recipient, 
-                message: payload, 
-                access_token: context.accessToken 
+                message: payload
               }),
             });
             
