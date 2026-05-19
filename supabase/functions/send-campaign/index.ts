@@ -1844,7 +1844,7 @@ serve(async (req) => {
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
-                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
                 }))
               },
               ...(campaignViewOnce ? { viewOnce: true } : {})
@@ -1937,7 +1937,7 @@ serve(async (req) => {
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
-                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
                 }))
               }
             };
@@ -1995,7 +1995,7 @@ serve(async (req) => {
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
-                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
                 }))
               }
             };
