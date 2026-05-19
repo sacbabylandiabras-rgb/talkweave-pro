@@ -730,8 +730,8 @@ serve(async (req) => {
             (finalPayload as any).buttonList = {
               buttons: buttons.map(b => ({ id: b.id, label: b.label }))
             };
-            // Ensure we use caption as expected by these endpoints
-            (finalPayload as any).caption = (finalPayload as any).message;
+            // Ensure we use message as expected by these endpoints
+            (finalPayload as any).message = message || 'Escolha uma opção:';
             (finalPayload as any)[mediaType] = mediaUrl;
             
             console.log(`🎬 Sending media with ${endpoint}`);
@@ -759,8 +759,8 @@ serve(async (req) => {
             ...(b.type === 'CALL' ? { phone: b.phone } : {}),
           }));
           
-          // Some Z-API instances expect caption for media even with buttons
-          (finalPayload as any).caption = (finalPayload as any).message;
+          // Some Z-API instances expect message for media even with buttons
+          (finalPayload as any).message = message || 'Escolha uma opção:';
           console.log(`🎬 Sending media with /send-button-actions`);
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
@@ -782,8 +782,6 @@ serve(async (req) => {
             buttons: buttons.map(b => ({ id: b.id, label: b.label }))
           }
         };
-        // Ensure caption is set
-        payload.caption = payload.message;
         
         if (mediaType === 'image') {
           payload.image = mediaUrl;
