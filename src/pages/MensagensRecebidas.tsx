@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
  import { Label } from "@/components/ui/label";
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapiInstances, isMobileZapiInstance } from "@/hooks/useZapiInstances";
 import { useZapi } from "@/hooks/useZapi";
 import { format, isToday, isYesterday, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -1267,7 +1267,14 @@ const ChatView = ({
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (15s)</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (15s)</Label>
+                      {rawActiveInstance && !isMobileZapiInstance(rawActiveInstance) && (
+                        <p className="text-[9px] text-amber-600 font-medium leading-tight">
+                          Aviso: Chamadas funcionam melhor em instâncias Mobile.
+                        </p>
+                      )}
+                    </div>
                     <div className="flex gap-1">
                       <Button 
                         variant="outline" 
