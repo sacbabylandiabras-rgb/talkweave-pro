@@ -655,40 +655,6 @@ const ChatView = (props: ChatViewProps) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-    const [isUploadingAudio, setIsUploadingAudio] = useState(false);
-    const callAudioInputRef = useRef<HTMLInputElement>(null);
-
-    const handleCallAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !conversation) return;
-      
-      setIsUploadingAudio(true);
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) throw new Error("Usuário não autenticado");
-
-        const ext = file.name.split('.').pop() || 'mp3';
-        const filePath = `${currentUser.id}/call-audios/${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('template-media')
-          .upload(filePath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('template-media')
-          .getPublicUrl(filePath);
-
-        await onSendCall(conversation.phone, 5, publicUrl);
-      } catch (err: any) {
-        console.error('Erro ao upar áudio da chamada:', err);
-        toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
-      } finally {
-        setIsUploadingAudio(false);
-        if (callAudioInputRef.current) callAudioInputRef.current.value = '';
-      }
-    };
     const stickerInputRef = useRef<HTMLInputElement>(null);
     const gifInputRef = useRef<HTMLInputElement>(null);
    const handleStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
