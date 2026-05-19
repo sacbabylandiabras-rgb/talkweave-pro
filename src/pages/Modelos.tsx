@@ -2104,58 +2104,129 @@ const getPreviewFileLabel = (template: any) => {
 
                 {/* Campos específicos por tipo */}
                 {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Upload de Arquivo</Label>
-                      <div className="flex gap-2 items-start">
-                        <div className="flex-1">
-                          <Input
-                            type="file"
-                            accept={
-                              newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
-                                ? "image/*"
-                                : newTemplate.type === "audio" || newTemplate.type === "audio_botoes"
-                                ? "audio/*"
-                                : "video/*"
-                            }
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleFileUpload(file, false);
-                            }}
-                            disabled={uploadingFile}
-                          />
-                          {uploadingFile && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Enviando arquivo...
-                            </p>
+                  <div className="space-y-4 border rounded-xl p-4 bg-muted/30 border-muted-foreground/10">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
+                      <Music className="w-4 h-4" /> Arquivo Principal (Áudio)
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <Label>{(newTemplate.type?.startsWith('audio')) ? "Arquivo de Áudio" : "Arquivo de Mídia"}</Label>
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept={
+                                newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
+                                  ? "image/*"
+                                  : newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes"
+                                  ? "audio/*"
+                                  : "video/*"
+                              }
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleFileUpload(file, false);
+                              }}
+                              disabled={uploadingFile}
+                            />
+                            {uploadingFile && (
+                              <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                                Enviando arquivo...
+                              </p>
+                            )}
+                          </div>
+                          {newTemplate.mediaUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setNewTemplate(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
                           )}
                         </div>
                         {newTemplate.mediaUrl && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setNewTemplate(prev => ({ ...prev, mediaUrl: "", fileName: "", fileType: "" }))}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <p className="text-xs text-green-600 mt-1 font-medium">
+                            ✓ Áudio: {newTemplate.fileName}
+                          </p>
                         )}
                       </div>
-                      {newTemplate.mediaUrl && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Arquivo: {newTemplate.fileName}
-                        </p>
-                      )}
+                      <div>
+                        <Label htmlFor="template-media-url">Ou cole a URL do Áudio</Label>
+                        <Input
+                          id="template-media-url"
+                          value={newTemplate.mediaUrl}
+                          onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                          placeholder="https://exemplo.com/audio.mp3"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="template-media-url">Ou cole a URL da Mídia</Label>
-                      <Input
-                        id="template-media-url"
-                        value={newTemplate.mediaUrl}
-                        onChange={(e) => setNewTemplate(prev => ({ ...prev, mediaUrl: e.target.value }))}
-                        placeholder="https://exemplo.com/arquivo.jpg"
-                      />
-                    </div>
+
+                    {(newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes") && (
+                      <div className="mt-4 pt-4 border-t border-muted-foreground/10 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
+                          {newTemplate.type === "audio_imagem_botoes" ? <Image className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                          Mídia Secundária ({newTemplate.type === "audio_imagem_botoes" ? "Imagem" : "Vídeo"})
+                        </div>
+                        <div>
+                          <Label>Upload da Mídia (visto após o áudio)</Label>
+                          <div className="flex gap-2 items-start">
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept={newTemplate.type === "audio_imagem_botoes" ? "image/*" : "video/*"}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setUploadingFile(true);
+                                    try {
+                                      const { supabase } = await import('@/integrations/supabase/client');
+                                      const { data: { user } } = await supabase.auth.getUser();
+                                      if (!user) throw new Error("Não autorizado");
+                                      const ext = file.name.split('.').pop();
+                                      const path = `${user.id}/${Date.now()}.${ext}`;
+                                      const { error } = await supabase.storage.from('template-media').upload(path, file);
+                                      if (error) throw error;
+                                      const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
+                                      setNewTemplate(prev => ({ ...prev, header: publicUrl }));
+                                    } catch (err: any) {
+                                      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+                                    } finally {
+                                      setUploadingFile(false);
+                                    }
+                                  }
+                                }}
+                                disabled={uploadingFile}
+                              />
+                            </div>
+                            {newTemplate.header && newTemplate.header.startsWith('http') && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setNewTemplate(prev => ({ ...prev, header: "" }))}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {newTemplate.header && newTemplate.header.startsWith('http') && (
+                            <p className="text-xs text-green-600 mt-1 font-medium">
+                              ✓ Mídia carregada com sucesso
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="template-secondary-media-url">Ou cole a URL da Mídia</Label>
+                          <Input
+                            id="template-secondary-media-url"
+                            value={newTemplate.header}
+                            onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
+                            placeholder={newTemplate.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
