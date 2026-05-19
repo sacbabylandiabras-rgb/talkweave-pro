@@ -3866,7 +3866,7 @@ const getPreviewFileLabel = (template: any) => {
                       </div>
                     )}
                     <div className="px-3 py-2 space-y-1">
-                      {previewTemplate.header && !['audio_imagem_botoes', 'audio_video_botoes'].includes(previewTemplate.type) && (
+                      {previewTemplate.header && !['audio_imagem_botoes', 'audio_video_botoes'].includes(previewTemplate.type) && !previewTemplate.header.startsWith('http') && (
                         <p className="font-bold text-sm text-foreground">{previewTemplate.header}</p>
                       )}
                       <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
