@@ -250,26 +250,19 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: `/privacy/messages-duration?value=${value}` };
     }
 
-    // Call Actions
-    case 'send-call': {
-      let callPhone = zapiPhone.replace(/@c\.us$/i, '').replace(/@g\.us$/i, '').replace(/\D/g, '');
-      
-
-      const callPayload: any = {
-        phone: callPhone,
-        callDuration: Math.min(payload?.callDuration || 15, 15)
-      };
-      if (payload?.audioUrl || payload?.callAudioUrl) {
-        callPayload.callAudioUrl = payload?.callAudioUrl || payload?.audioUrl;
-      }
-      return { method: 'POST', path: '/send-call', body: callPayload };
-    }
-    case 'call-token': {
-      // O endpoint correto é /instances/{instanceId}/token/{token}/call-token
-      // Como a base já tem /instances/{instanceId}/token/{token}, o path deve ser /call-token
-      // Importante: a Z-API recomenda GET para este endpoint.
-      return { method: 'GET', path: '/call-token' };
-    }
+     // Call Actions
+     case 'send-call':
+       return { 
+         method: 'POST', 
+         path: '/send-call', 
+         body: {
+           phone: phone.replace(/\D/g, ''),
+           callDuration: payload?.callDuration || 15,
+           callAudioUrl: payload?.callAudioUrl || payload?.audioUrl || undefined
+         } 
+       };
+     case 'call-token':
+       return { method: 'GET', path: '/call-token' };
     case 'sip-token':
       return { method: 'GET', path: '/sip-token' };
      case 'sip-info':
