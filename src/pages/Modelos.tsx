@@ -3389,7 +3389,7 @@ const getPreviewFileLabel = (template: any) => {
               </div>
             )}
             
-            {!(editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes") && (
+            {true && (
               <div>
                 <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
                 <Input
