@@ -1904,14 +1904,31 @@ serve(async (req) => {
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          // Use single-step send for better reliability
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-          requestBody = { 
-            phone: contact.phone, 
-            ...buttonPayload, 
-            image: campaignTemplate.media_url 
-          };
+          const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
+          
+          if (!hasActionButtons) {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+            requestBody = {
+              phone: contact.phone,
+              message: fullMessage || ' ',
+              image: campaignTemplate.media_url,
+              buttonList: {
+                buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
+                  id: b.id || String(idx + 1),
+                  label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 25)
+                }))
+              }
+            };
+          } else {
+            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+            requestBody = { 
+              phone: contact.phone, 
+              ...buttonPayload, 
+              caption: buttonPayload.message,
+              image: campaignTemplate.media_url 
+            };
+          }
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
