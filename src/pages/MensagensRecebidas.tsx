@@ -1237,7 +1237,11 @@ const ChatView = ({
                     <Button 
                       variant="outline" 
                       className="w-full justify-start text-xs h-8 gap-2 border-green-200 hover:bg-green-50" 
-                      onClick={() => conversation && sendCall(conversation.phone, 15)}
+                   onClick={() => {
+                     if (!conversation) return;
+                     const audioUrl = window.prompt("Link do áudio (opcional):", "");
+                     sendCall(conversation.phone, 15, audioUrl || undefined);
+                   }}
                     >
                       <PhoneCall className="w-3.5 h-3.5 text-green-600" />
                       Apenas Chamar
