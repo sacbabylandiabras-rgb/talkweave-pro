@@ -682,7 +682,7 @@ serve(async (req) => {
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
               secondaryPayload.buttonList = {
-                buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+                buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
               };
               
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
@@ -728,7 +728,7 @@ serve(async (req) => {
           if (!hasActionButtons) {
             const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
             (finalPayload as any).buttonList = {
-              buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+              buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
             };
             // Ensure we use message as expected by these endpoints
             (finalPayload as any).message = message || 'Escolha uma opção:';
@@ -779,7 +779,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           ...mentionFlag(resolvedPhone),
           buttonList: {
-            buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+            buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
           }
         };
         

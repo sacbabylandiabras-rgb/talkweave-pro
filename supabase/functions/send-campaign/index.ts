@@ -1839,7 +1839,7 @@ serve(async (req) => {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-video`;
             const listPayload = {
               phone: contact.phone,
-              caption: fullMessage || ' ',
+              message: fullMessage || ' ',
               video: campaignTemplate.media_url,
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
@@ -2113,7 +2113,7 @@ serve(async (req) => {
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
           requestBody = {
             phone: contact.phone,
-            caption: fullMessage || ' ',
+            message: fullMessage || ' ',
             image: campaignTemplate.media_url,
             buttonList: {
               title: campaignTemplate.header || '',
