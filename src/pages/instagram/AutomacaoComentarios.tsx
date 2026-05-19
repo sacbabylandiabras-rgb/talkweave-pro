@@ -520,7 +520,10 @@ export default function AutomacaoComentarios() {
     try {
       // Extract keyword from trigger nodes
       const triggerNodes = nodes.filter((n) => n.type === "igGatilho");
-      const keywords = triggerNodes.map((n) => n.data.keywords || "").filter(Boolean).join(",");
+      const keywords = triggerNodes
+        .map((n) => (n.data.triggerType === "follow" ? "" : n.data.keywords || ""))
+        .filter(Boolean)
+        .join(",");
 
       // Extract reply_comment from first reply node (for backward compat)
       const replyNode = nodes.find((n) => n.type === "igResposta");
