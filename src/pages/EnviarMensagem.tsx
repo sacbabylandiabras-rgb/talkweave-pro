@@ -31,6 +31,14 @@ const parseSpecialTemplate = (content?: string | null) => {
   }
 };
 
+const getDocumentExtension = (fileUrl: string, fileName?: string) => {
+  const source = String(fileName || fileUrl || '')
+    .split('?')[0]
+    .split('#')[0];
+  const ext = source.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'pdf';
+  return ext && ext !== source.toLowerCase() ? ext : 'pdf';
+};
+
 const isStatusOnlySpecialTemplate = (_type?: string | null) => false;
 const getStatusOnlyTemplateError = () =>
   'O tipo Status publica nos Stories da instância selecionada (broadcast) e não envia mensagem para um número específico.';
