@@ -662,7 +662,7 @@ serve(async (req) => {
           const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null);
           const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
           
-          const secondaryMediaType = (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons') ? 'video' : 'image';
+          const secondaryMediaType = payloadRaw.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
           
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
