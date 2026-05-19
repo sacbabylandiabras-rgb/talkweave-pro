@@ -213,10 +213,11 @@ serve(async (req) => {
       
       // Mark as delivered/sent based on status.
       // SENT: Message reached Z-API/WhatsApp servers.
-      // RECEIVED: Message delivered to the recipient's phone.
+      // RECEIVED/DELIVERED: Message delivered to the recipient's phone.
       // READ: Recipient read the message.
-       const isDeliveredStatus = ["RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
-       const isSentStatus = ["SENT"].includes(status);
+       const upperStatus = status.toUpperCase();
+       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
+       const isSentStatus = ["SENT"].includes(upperStatus);
        const isShadowBanError = error && (
          error.toLowerCase().includes("shadow ban") || 
          error.toLowerCase().includes("restricted") || 
