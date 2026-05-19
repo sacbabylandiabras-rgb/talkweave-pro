@@ -3046,12 +3046,12 @@ const getPreviewFileLabel = (template: any) => {
                     </div>
                     <div>
                       <Label htmlFor="edit-template-secondary-media-url">Ou cole a URL da Mídia</Label>
-                      <Input
-                        id="edit-template-secondary-media-url"
-                        value={editFormData.header}
-                        onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
-                        placeholder={editFormData.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
-                      />
+                        <Input
+                          id="edit-template-secondary-media-url"
+                          value={editFormData.secondaryMediaUrl}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, secondaryMediaUrl: e.target.value }))}
+                          placeholder={editFormData.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
+                        />
                     </div>
                   </div>
                 )}
