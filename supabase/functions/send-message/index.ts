@@ -675,8 +675,6 @@ serve(async (req) => {
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
-            // If only reply buttons and it's image/video, use the more specific Z-API endpoints
-            // as suggested by the user link (send-button-list-video)
             // If only reply buttons and it's image/video, try the more specific Z-API endpoints first
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
