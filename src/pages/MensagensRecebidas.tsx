@@ -2577,7 +2577,8 @@ const MensagensRecebidas = () => {
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
             }}
             onSendCall={async (phone, duration, audioUrl) => {
-              await sendCallZapi(phone, duration, audioUrl);
+              const cleanPhone = String(phone || '').replace(/\D/g, '');
+              await sendCallZapi(cleanPhone, duration, audioUrl);
             }}
             onForwardMessage={async (phone, messageId) => {
               const destination = window.prompt(
