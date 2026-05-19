@@ -290,24 +290,31 @@ const EnviarMensagem = () => {
       });
 
       // 2) Em seguida, envia o texto + botões (com mídia secundária se houver)
-      if (templateType === 'audio_imagem_botoes' && modeloData?.header) {
+      const secondaryMediaFromCarousel = Array.isArray(modeloData?.carouselCards) && (modeloData as any).carouselCards[0]?.id === 'secondary' 
+        ? (modeloData as any).carouselCards[0].image 
+        : null;
+      
+      const secondaryMediaUrl = secondaryMediaFromCarousel || (modeloData?.header?.startsWith('http') ? modeloData.header : null);
+      const headerTitle = secondaryMediaFromCarousel ? modeloData?.header : (!modeloData?.header?.startsWith('http') ? modeloData?.header : undefined);
+
+      if (templateType === 'audio_imagem_botoes' && secondaryMediaUrl) {
         await sendButtonActions(
           phone,
           mensagemPersonalizada || modeloData?.content || '',
           buttons,
-          undefined,
+          headerTitle || undefined,
           modeloData?.footer || undefined,
-          modeloData.header,
+          secondaryMediaUrl,
           'image'
         );
-      } else if (templateType === 'audio_video_botoes' && modeloData?.header) {
+      } else if (templateType === 'audio_video_botoes' && secondaryMediaUrl) {
         await sendButtonActions(
           phone,
           mensagemPersonalizada || modeloData?.content || '',
           buttons,
-          undefined,
+          headerTitle || undefined,
           modeloData?.footer || undefined,
-          modeloData.header,
+          secondaryMediaUrl,
           'video'
         );
       } else {

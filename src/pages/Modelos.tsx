@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
 const SPECIAL_FIELD_DEFAULTS = {
+  secondaryMediaUrl: "",
   pixKey: "",
   pixKeyType: "cpf",
   pixAmount: "",
@@ -1095,6 +1096,7 @@ const getPreviewFileLabel = (template: any) => {
     type: "texto",
     content: "",
     header: "",
+    secondaryMediaUrl: "",
     footer: "",
     mediaUrl: "",
     fileName: "",
@@ -1142,6 +1144,7 @@ const getPreviewFileLabel = (template: any) => {
     type: "texto",
     content: "",
     header: "",
+    secondaryMediaUrl: "",
     footer: "",
     mediaUrl: "",
     fileName: "",
@@ -1525,6 +1528,11 @@ const getPreviewFileLabel = (template: any) => {
         ? buildSpecialContent(newTemplate.type, newTemplate)
         : newTemplate.content;
 
+      const isCompositeAudio = newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes";
+      const carouselCardsToSave = isCompositeAudio && newTemplate.secondaryMediaUrl 
+        ? [{ id: 'secondary', image: newTemplate.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        : newTemplate.carouselCards;
+
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
@@ -1540,10 +1548,10 @@ const getPreviewFileLabel = (template: any) => {
         fileName: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileName,
         fileType: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileType,
         listItems: validListItems,
-        carouselCards: newTemplate.carouselCards,
+        carouselCards: carouselCardsToSave as any,
       });
 
-      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
       setShowCreateDialog(false);
     } catch (error: any) {
       console.error('Error creating template:', error);
@@ -1605,13 +1613,14 @@ const getPreviewFileLabel = (template: any) => {
       type: template.type || "texto",
       content: cleanContent,
       header: template.header || "",
+      secondaryMediaUrl: (Array.isArray(template.carouselCards) && template.carouselCards[0]?.id === 'secondary') ? template.carouselCards[0].image : "",
       footer: template.footer || "",
       mediaUrl: template.mediaUrl || "",
       fileName: template.fileName || "",
       fileType: template.fileType || "",
       buttons: template.buttons || [],
       listItems: template.listItems || [],
-      carouselCards: template.carouselCards || [],
+      carouselCards: (Array.isArray(template.carouselCards) && template.carouselCards[0]?.id === 'secondary') ? [] : (template.carouselCards || []),
       variables: template.variables || {},
       pixKey: special.pixKey || "",
       pixKeyType: special.pixKeyType || "cpf",
@@ -1760,6 +1769,11 @@ const getPreviewFileLabel = (template: any) => {
         ? buildSpecialContent(editFormData.type, editFormData)
         : editFormData.content;
 
+      const isCompositeAudioEdit = editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes";
+      const carouselCardsToUpdate = isCompositeAudioEdit && editFormData.secondaryMediaUrl 
+        ? [{ id: 'secondary', image: editFormData.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        : editFormData.carouselCards;
+
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
@@ -1773,7 +1787,7 @@ const getPreviewFileLabel = (template: any) => {
         fileName: editFormData.type === "lista_opcao" ? "" : editFormData.fileName,
         fileType: editFormData.type === "lista_opcao" ? "" : editFormData.fileType,
         listItems: validListItems,
-        carouselCards: editFormData.carouselCards,
+        carouselCards: carouselCardsToUpdate as any,
       });
 
       setEditingTemplate(null);
@@ -1817,7 +1831,7 @@ const getPreviewFileLabel = (template: any) => {
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
   };
 
   const addButton = useCallback((isEdit = false) => {
@@ -2201,7 +2215,10 @@ const getPreviewFileLabel = (template: any) => {
                                       const { error } = await supabase.storage.from('template-media').upload(path, file);
                                       if (error) throw error;
                                       const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-                                      setNewTemplate(prev => ({ ...prev, header: publicUrl }));
+                                      setNewTemplate(prev => ({ 
+                                        ...prev, 
+                                        secondaryMediaUrl: publicUrl
+                                      }));
                                     } catch (err: any) {
                                       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
                                     } finally {
@@ -2212,18 +2229,18 @@ const getPreviewFileLabel = (template: any) => {
                                 disabled={uploadingFile}
                               />
                             </div>
-                            {newTemplate.header && newTemplate.header.startsWith('http') && (
+                            {newTemplate.secondaryMediaUrl && newTemplate.secondaryMediaUrl.startsWith('http') && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setNewTemplate(prev => ({ ...prev, header: "" }))}
+                                onClick={() => setNewTemplate(prev => ({ ...prev, secondaryMediaUrl: "" }))}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             )}
                           </div>
-                          {newTemplate.header && newTemplate.header.startsWith('http') && (
+                          {newTemplate.secondaryMediaUrl && newTemplate.secondaryMediaUrl.startsWith('http') && (
                             <p className="text-xs text-green-600 mt-1 font-medium">
                               ✓ Mídia carregada com sucesso
                             </p>
@@ -2233,8 +2250,8 @@ const getPreviewFileLabel = (template: any) => {
                           <Label htmlFor="template-secondary-media-url">Ou cole a URL da Mídia</Label>
                           <Input
                             id="template-secondary-media-url"
-                            value={newTemplate.header}
-                            onChange={(e) => setNewTemplate(prev => ({ ...prev, header: e.target.value }))}
+                            value={newTemplate.secondaryMediaUrl}
+                            onChange={(e) => setNewTemplate(prev => ({ ...prev, secondaryMediaUrl: e.target.value }))}
                             placeholder={newTemplate.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
                           />
                         </div>
@@ -2581,7 +2598,7 @@ const getPreviewFileLabel = (template: any) => {
                   </div>
                 )}
                 
-                {!(newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes") && (
+                {true && (
                   <div>
                     <Label htmlFor="template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
                     <Input
@@ -3009,7 +3026,7 @@ const getPreviewFileLabel = (template: any) => {
                                   const { error } = await supabase.storage.from('template-media').upload(path, file);
                                   if (error) throw error;
                                   const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(path);
-                                  setEditFormData(prev => ({ ...prev, header: publicUrl }));
+                                  setEditFormData(prev => ({ ...prev, secondaryMediaUrl: publicUrl }));
                                 } catch (err: any) {
                                   toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
                                 } finally {
@@ -3020,18 +3037,18 @@ const getPreviewFileLabel = (template: any) => {
                             disabled={uploadingFile}
                           />
                         </div>
-                        {editFormData.header && editFormData.header.startsWith('http') && (
+                        {editFormData.secondaryMediaUrl && editFormData.secondaryMediaUrl.startsWith('http') && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setEditFormData(prev => ({ ...prev, header: "" }))}
+                            onClick={() => setEditFormData(prev => ({ ...prev, secondaryMediaUrl: "" }))}
                           >
                             <X className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
-                      {editFormData.header && editFormData.header.startsWith('http') && (
+                      {editFormData.secondaryMediaUrl && editFormData.secondaryMediaUrl.startsWith('http') && (
                         <p className="text-xs text-green-600 mt-1 font-medium">
                           ✓ Mídia carregada com sucesso
                         </p>
@@ -3039,12 +3056,12 @@ const getPreviewFileLabel = (template: any) => {
                     </div>
                     <div>
                       <Label htmlFor="edit-template-secondary-media-url">Ou cole a URL da Mídia</Label>
-                      <Input
-                        id="edit-template-secondary-media-url"
-                        value={editFormData.header}
-                        onChange={(e) => setEditFormData(prev => ({ ...prev, header: e.target.value }))}
-                        placeholder={editFormData.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
-                      />
+                        <Input
+                          id="edit-template-secondary-media-url"
+                          value={editFormData.secondaryMediaUrl}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, secondaryMediaUrl: e.target.value }))}
+                          placeholder={editFormData.type === "audio_imagem_botoes" ? "https://exemplo.com/imagem.jpg" : "https://exemplo.com/video.mp4"}
+                        />
                     </div>
                   </div>
                 )}
@@ -3389,7 +3406,7 @@ const getPreviewFileLabel = (template: any) => {
               </div>
             )}
             
-            {!(editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes") && (
+            {true && (
               <div>
                 <Label htmlFor="edit-template-header">Título/Cabeçalho da Mensagem (opcional)</Label>
                 <Input

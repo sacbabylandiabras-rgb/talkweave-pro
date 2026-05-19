@@ -652,18 +652,27 @@ serve(async (req) => {
           await sendZapiMedia(mediaUrl, 'audio');
           
           // Send secondary media
-          // Based on Modelos.tsx, secondary media is stored in 'header' field when creating template
-          const secondaryMediaUrl = payloadRaw.header || title;
+          // Based on Modelos.tsx, secondary media is stored in carouselCards[0].image or 'header' field
+          const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
+            ? payloadRaw.carouselCards[0].image
+            : null;
+          const secondaryMediaUrl = secondaryMediaFromCarousel || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null) || title;
+          const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
+          
           const secondaryMediaType = (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons') ? 'video' : 'image';
           
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               ...payload,
+              ...(headerTitle ? { title: headerTitle } : {}),
               // Z-API handles image/video headers in /send-button-actions
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
+            // Some Z-API instances expect caption for media even with buttons
+            secondaryPayload.caption = secondaryPayload.message;
+
             // Remove audio related fields from base payload to avoid sending audio twice
             delete secondaryPayload.audio;
 
@@ -678,8 +687,13 @@ serve(async (req) => {
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
           const finalPayload = { ...payload };
-          if (mediaType === 'image') finalPayload.image = mediaUrl;
-          else finalPayload.video = mediaUrl;
+          if (mediaType === 'image') {
+            finalPayload.image = mediaUrl;
+          } else {
+            finalPayload.video = mediaUrl;
+          }
+          // Some Z-API instances expect caption for media even with buttons
+          finalPayload.caption = finalPayload.message;
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
 
