@@ -251,7 +251,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
     // Call Actions
     case 'send-call':
-      return { method: 'POST', path: '/send-call', body: payload };
+      return { method: 'POST', path: '/send-call', body: { ...payload, phone: zapiPhone } };
     case 'call-token':
       return { method: 'GET', path: '/call-token' };
     case 'sip-token':
