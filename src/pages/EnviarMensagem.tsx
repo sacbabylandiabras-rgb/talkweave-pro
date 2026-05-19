@@ -960,17 +960,17 @@ const EnviarMensagem = () => {
 
           const temMidia = !!arquivoMidia;
           const templateType = String(modeloData?.type || '').toLowerCase();
-          const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
-          const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
-          const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes';
+          const isAudioTemplate = templateType === 'audio' || templateType === 'áudio' || templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes';
+          const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes' || templateType === 'audio_video_botoes';
+          const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes' || templateType === 'audio_imagem_botoes';
           const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
           const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
           const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
           const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
           const temCarrossel = !specialTpl && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
-          const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-          const imagemComBotoes = isImageTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+          const audioComBotoes = (templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes') && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+          const videoComBotoes = templateType === 'video_botoes' && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+          const imagemComBotoes = (templateType === 'imagem_botoes' || (templateType === 'audio_imagem_botoes' && !audioComBotoes)) && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
           const documentoComBotoes = isDocumentTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
           const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
           const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
