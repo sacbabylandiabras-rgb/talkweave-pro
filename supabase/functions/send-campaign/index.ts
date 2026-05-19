@@ -1867,8 +1867,10 @@ serve(async (req) => {
           
           if (templateType === 'audio_imagem_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
              requestBody = { phone: contact.phone, ...buttonPayload, image: campaignTemplate.header };
+             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions-image`;
           } else if (templateType === 'audio_video_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
              requestBody = { phone: contact.phone, ...buttonPayload, video: campaignTemplate.header };
+             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions-video`;
           } else {
              requestBody = { phone: contact.phone, ...buttonPayload };
           }

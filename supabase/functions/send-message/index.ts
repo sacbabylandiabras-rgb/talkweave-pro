@@ -625,8 +625,11 @@ serve(async (req) => {
 
       const hasActionButtons = buttons.some(b => b.type === 'URL' || b.type === 'CALL');
 
+      // Detect composite audio types (Audio + Image/Video + Buttons)
+      const isCompositeAudioType = specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || (templateId && (specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes'));
+
       // Case 1: Media + Action Buttons -> Prefer /send-button-actions-image or video if possible, else carousel
-      if (mediaUrl && (hasActionButtons || mediaType === 'video')) {
+      if (mediaUrl && (hasActionButtons || mediaType === 'video' || isCompositeAudioType)) {
         const payload: any = {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',
@@ -641,6 +644,29 @@ serve(async (req) => {
             ...(b.type === 'CALL' ? { phone: b.phone } : {}),
           }))
         };
+
+        // For composite audio types, we send the audio FIRST, then the secondary media (image/video) with buttons
+        if (isCompositeAudioType) {
+          // Send audio first (the main mediaUrl in these types is the audio)
+          await sendZapiMedia(mediaUrl, 'audio');
+          
+          // Send secondary media (stored in 'title' or 'header' depending on context, but 'title' is used as secondary URL in flow)
+          // Based on Modelos.tsx, secondary media is stored in 'header' field when creating template
+          const secondaryMediaUrl = title || payloadRaw.header;
+          const secondaryMediaType = specialType === 'audio_video_botoes' ? 'video' : 'image';
+          
+          if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
+            console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
+            const secondaryPayload: any = { ...payload, title: undefined, header: undefined };
+            if (secondaryMediaType === 'image') {
+              secondaryPayload.image = secondaryMediaUrl;
+              return sendZapi('/send-button-actions-image', secondaryPayload, 'composite-image-buttons');
+            } else {
+              secondaryPayload.video = secondaryMediaUrl;
+              return sendZapi('/send-button-actions-video', secondaryPayload, 'composite-video-buttons');
+            }
+          }
+        }
 
         // Z-API handles media + action buttons best by sending media first, then buttons
         // because specific endpoints like /send-button-actions-image can be unstable or non-existent
