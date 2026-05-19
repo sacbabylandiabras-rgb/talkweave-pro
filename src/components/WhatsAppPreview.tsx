@@ -116,10 +116,10 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
                  </div>
                 )}
                 
-                {(type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video')) && (
+                {(type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video')) && (template.mediaUrl || (specialData && specialData.mediaUrl)) && (
                  <div className="rounded overflow-hidden bg-white/5 border border-white/5 relative aspect-video bg-black">
                    <video 
-                     src={template.mediaUrl || specialData.mediaUrl} 
+                     src={template.mediaUrl || (specialData && specialData.mediaUrl)} 
                      className="w-full h-full object-contain"
                      muted
                      loop
