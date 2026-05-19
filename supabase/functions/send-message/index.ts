@@ -651,6 +651,9 @@ serve(async (req) => {
           console.log(`🎤 Sending composite audio: ${mediaUrl}`);
           await sendZapiMedia(mediaUrl, 'audio');
           
+          // Small delay to ensure order and avoid rejection for speed
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           // Send secondary media
           // Secondary media can be in carouselCards, specialPayload or the title field (if it's a URL)
           const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
@@ -662,7 +665,7 @@ serve(async (req) => {
           
           const secondaryMediaType = specialPayload?.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
           
-          console.log(`🎬 Composite secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}`);
+          console.log(`🎬 Composite secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}, message=${message}`);
 
           if (secondaryMediaUrl && String(secondaryMediaUrl).startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
