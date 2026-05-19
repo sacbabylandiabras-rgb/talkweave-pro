@@ -191,10 +191,19 @@ const EnviarMensagem = () => {
         throw new Error(data.error);
       }
 
+      // Se for envio em massa de modelos do tipo multiplos_contatos, a resposta pode ser diferente
+      if (data?.results && Array.isArray(data.results)) {
+        const result = data.results.find((r: any) => r.phone === phone);
+        if (result && !result.success) {
+          throw new Error(result.error || 'Erro ao processar envio para este contato');
+        }
+      }
+
       return (modeloData.content || modeloData.name || 'Modelo enviado')
         .replace(/\{nome\}/g, nome || "")
         .replace(/\{numero\}/g, phone);
     }
+
 
     const mensagemPersonalizada = (mensagem || "")
       .replace(/\{nome\}/g, nome || "")
