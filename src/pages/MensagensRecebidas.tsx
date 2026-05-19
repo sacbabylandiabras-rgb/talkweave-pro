@@ -620,7 +620,17 @@ const ChatView = ({
       const info = await getSipInfo();
       const token = await getSipToken();
       const callToken = await getCallToken();
-      setSipData({ ...info, sipToken: token, callToken });
+      const pickStr = (v: any): string => {
+        if (v == null) return '';
+        if (typeof v === 'string' || typeof v === 'number') return String(v);
+        if (typeof v === 'object') return String(v.token || v.value || v.sipToken || v.callToken || JSON.stringify(v));
+        return String(v);
+      };
+      setSipData({
+        ...(typeof info === 'object' && info !== null ? info : {}),
+        sipToken: pickStr(token),
+        callToken: pickStr(callToken),
+      });
       setSipInfoOpen(true);
     } catch (err: any) {
       toast({ title: "Erro ao buscar info SIP", description: err.message, variant: "destructive" });
