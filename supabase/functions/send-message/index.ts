@@ -677,13 +677,24 @@ serve(async (req) => {
             
             // If only reply buttons and it's image/video, use the more specific Z-API endpoints
             // as suggested by the user link (send-button-list-video)
+            // If only reply buttons and it's image/video, try the more specific Z-API endpoints first
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
               secondaryPayload.buttonList = {
                 buttons: buttons.map(b => ({ id: b.id, label: b.label }))
               };
+              // Ensure we use caption as expected by these endpoints
+              secondaryPayload.caption = secondaryPayload.message;
+              
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
-              return sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+              try {
+                return await sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+              } catch (err: any) {
+                // If endpoint not found, fallback to send-button-actions
+                const isNotFound = err instanceof Response && (err.status === 404 || (await err.clone().json().catch(() => ({}))).error === 'NOT_FOUND');
+                if (!isNotFound) throw err;
+                console.log(`🔄 ${listEndpoint} not found, falling back to /send-button-actions`);
+              }
             }
 
             secondaryPayload.buttonActions = buttons.map(b => ({
