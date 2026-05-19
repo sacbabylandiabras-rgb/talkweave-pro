@@ -656,7 +656,10 @@ serve(async (req) => {
           const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
             ? payloadRaw.carouselCards[0].image
             : null;
-          const secondaryMediaUrl = secondaryMediaFromCarousel || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null) || title;
+          
+          // If mediaUrl is specified and it's an audio file, it's the audio.
+          // The secondaryMediaUrl (video or image) should be in secondaryMediaFromCarousel or requested as title/header if it starts with http
+          const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null);
           const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
           
           const secondaryMediaType = (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons') ? 'video' : 'image';
