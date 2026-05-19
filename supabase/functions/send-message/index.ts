@@ -626,7 +626,7 @@ serve(async (req) => {
       const hasActionButtons = buttons.some(b => b.type === 'URL' || b.type === 'CALL');
 
       // Detect composite audio types (Audio + Image/Video + Buttons)
-      const isCompositeAudioType = specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || (templateId && (specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes'));
+      const isCompositeAudioType = specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' || specialType === 'audio-image-buttons' || (templateId && (specialType === 'audio_imagem_botoes' || specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' || specialType === 'audio-image-buttons'));
 
       // Case 1: Media + Action Buttons -> Prefer /send-button-actions-image or video if possible, else carousel
       if (mediaUrl && (hasActionButtons || mediaType === 'video' || isCompositeAudioType)) {
@@ -654,21 +654,22 @@ serve(async (req) => {
           // Send secondary media
           // Based on Modelos.tsx, secondary media is stored in 'header' field when creating template
           const secondaryMediaUrl = payloadRaw.header || title;
-          const secondaryMediaType = specialType === 'audio_video_botoes' ? 'video' : 'image';
+          const secondaryMediaType = (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons') ? 'video' : 'image';
           
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
-            const secondaryPayload: any = { ...payload };
-            // Remove media related fields from base payload to avoid sending media twice
+            const secondaryPayload: any = { 
+              ...payload,
+              // For these composite types, we need to ensure the secondary media URL is used
+              ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
+            };
+            
+            // Remove audio related fields from base payload to avoid sending audio twice
             delete secondaryPayload.audio;
-            delete secondaryPayload.image;
-            delete secondaryPayload.video;
 
             if (secondaryMediaType === 'image') {
-              secondaryPayload.image = secondaryMediaUrl;
               return sendZapi('/send-button-actions-image', secondaryPayload, 'composite-image-buttons');
             } else {
-              secondaryPayload.video = secondaryMediaUrl;
               return sendZapi('/send-button-actions-video', secondaryPayload, 'composite-video-buttons');
             }
           } else {
