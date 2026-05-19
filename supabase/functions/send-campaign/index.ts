@@ -1573,7 +1573,8 @@ serve(async (req) => {
         }
 
         let fullMessage = '';
-        if (campaignTemplate.header) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
+        const isAudioWithMedia = (campaignTemplate.type === 'audio_imagem_botoes' || campaignTemplate.type === 'audio_video_botoes');
+        if (campaignTemplate.header && !isAudioWithMedia) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
         fullMessage += messageContent;
         if (campaignTemplate.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaignTemplate.footer);
 
@@ -1848,7 +1849,7 @@ serve(async (req) => {
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
 
-        } else if (templateType === 'audio_botoes' && hasMedia && hasButtons) {
+        } else if ((templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes') && hasMedia && hasButtons) {
           // Z-API não suporta áudio + botões em uma única chamada.
           // Enviamos áudio primeiro e depois os botões com a mensagem.
           const audioUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
@@ -1863,7 +1864,14 @@ serve(async (req) => {
 
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-          requestBody = { phone: contact.phone, ...buttonPayload };
+          
+          if (templateType === 'audio_imagem_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
+             requestBody = { phone: contact.phone, ...buttonPayload, image: campaignTemplate.header };
+          } else if (templateType === 'audio_video_botoes' && campaignTemplate.header && campaignTemplate.header.startsWith('http')) {
+             requestBody = { phone: contact.phone, ...buttonPayload, video: campaignTemplate.header };
+          } else {
+             requestBody = { phone: contact.phone, ...buttonPayload };
+          }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
           // Z-API handles media + buttons more reliably when sent separately or using /send-button-actions without 'image' field inside

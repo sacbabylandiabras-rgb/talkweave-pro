@@ -166,9 +166,9 @@ const EnviarMensagem = () => {
 
     const specialTpl = parseSpecialTemplate(modeloData?.content);
     const templateType = String(modeloData?.type || '').toLowerCase();
-    const isAudioTemplate = templateType === 'audio' || templateType === 'áudio';
-    const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes';
-    const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes';
+    const isAudioTemplate = templateType === 'audio' || templateType === 'áudio' || templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes';
+    const isVideoTemplate = templateType === 'video' || templateType === 'video_botoes' || templateType === 'audio_video_botoes';
+    const isImageTemplate = templateType === 'imagem' || templateType === 'image' || templateType === 'imagem_botoes' || templateType === 'audio_imagem_botoes';
     const isListTemplate = templateType === 'lista_opcao' || templateType === 'lista' || templateType === 'lista de opção';
     const isCopyPasteTemplate = templateType === 'copia_cola' || templateType === 'copia e cola' || templateType === 'copy_paste';
     const isDocumentTemplate = templateType === 'arquivo' || templateType === 'documento';
@@ -176,9 +176,9 @@ const EnviarMensagem = () => {
     const temListaOpcoes = isListTemplate && Array.isArray(modeloData?.listItems) && modeloData!.listItems!.length > 0;
      const isProductTemplate = templateType === 'produto' || templateType === 'product';
      const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData?.carouselCards) && modeloData.carouselCards.length > 0;
-    const audioComBotoes = isAudioTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const videoComBotoes = isVideoTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
-    const imagemComBotoes = isImageTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+    const audioComBotoes = (templateType === 'audio_botoes' || templateType === 'audio_imagem_botoes' || templateType === 'audio_video_botoes') && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+    const videoComBotoes = templateType === 'video_botoes' && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
+    const imagemComBotoes = (templateType === 'imagem_botoes' || (templateType === 'audio_imagem_botoes' && !audioComBotoes)) && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const documentoComBotoes = isDocumentTemplate && !!modeloData?.mediaUrl && !!modeloData?.buttons?.length;
     const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData?.buttons?.length;
     const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && (!!modeloData?.mediaUrl || isAudioTemplate);
@@ -275,25 +275,50 @@ const EnviarMensagem = () => {
     if (audioComBotoes) {
       // 1) Envia o áudio puro
       await sendAudio(phone, modeloData!.mediaUrl!, '');
-      // 2) Em seguida, envia o texto + botões
-      await sendButtonActions(
-        phone,
-        mensagemPersonalizada || modeloData?.content || '',
-        modeloData!.buttons!.map((btn: any) => {
-          const buttonType = (btn.type || 'REPLY').toUpperCase();
-          const buttonData: any = {
-            id: btn.id || btn.text || Math.random().toString(),
-            type: buttonType,
-            label: btn.text || btn.label || 'Botão',
-          };
-          if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
-          else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
-          else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
-          return buttonData;
-        }),
-        modeloData?.header || undefined,
-        modeloData?.footer || undefined,
-      );
+      
+      const buttons = modeloData!.buttons!.map((btn: any) => {
+        const buttonType = (btn.type || 'REPLY').toUpperCase();
+        const buttonData: any = {
+          id: btn.id || btn.text || Math.random().toString(),
+          type: buttonType,
+          label: btn.text || btn.label || 'Botão',
+        };
+        if (buttonType === 'CALL' && (btn.phone || btn.value)) buttonData.phone = btn.phone || btn.value;
+        else if (buttonType === 'URL' && (btn.url || btn.value)) buttonData.url = btn.url || btn.value;
+        else if (buttonType === 'COPY' && (btn.copyText || btn.value)) buttonData.copyText = btn.copyText || btn.value;
+        return buttonData;
+      });
+
+      // 2) Em seguida, envia o texto + botões (com mídia secundária se houver)
+      if (templateType === 'audio_imagem_botoes' && modeloData?.header) {
+        await sendButtonActions(
+          phone,
+          mensagemPersonalizada || modeloData?.content || '',
+          buttons,
+          undefined,
+          modeloData?.footer || undefined,
+          modeloData.header,
+          'image'
+        );
+      } else if (templateType === 'audio_video_botoes' && modeloData?.header) {
+        await sendButtonActions(
+          phone,
+          mensagemPersonalizada || modeloData?.content || '',
+          buttons,
+          undefined,
+          modeloData?.footer || undefined,
+          modeloData.header,
+          'video'
+        );
+      } else {
+        await sendButtonActions(
+          phone,
+          mensagemPersonalizada || modeloData?.content || '',
+          buttons,
+          modeloData?.header || undefined,
+          modeloData?.footer || undefined,
+        );
+      }
       return mensagemPersonalizada || modeloData?.name || 'Áudio + texto com botões enviado';
     }
 
