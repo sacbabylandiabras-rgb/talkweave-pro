@@ -1144,6 +1144,7 @@ const getPreviewFileLabel = (template: any) => {
     type: "texto",
     content: "",
     header: "",
+    secondaryMediaUrl: "",
     footer: "",
     mediaUrl: "",
     fileName: "",
