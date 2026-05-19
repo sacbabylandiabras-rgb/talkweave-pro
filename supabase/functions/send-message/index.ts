@@ -657,13 +657,14 @@ serve(async (req) => {
             ? payloadRaw.carouselCards[0].image
             : null;
           
-          // If mediaUrl is specified and it's an audio file, it's the audio.
-          // The secondaryMediaUrl (video or image) should be in secondaryMediaFromCarousel or requested as title/header if it starts with http
-          const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null);
-          const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
+          // Use title instead of header as that is what useZapi.ts sends
+          const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (title?.startsWith('http') ? title : null);
+          const headerTitle = secondaryMediaFromCarousel ? title : (!title?.startsWith('http') ? title : undefined);
           
           const secondaryMediaType = payloadRaw.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
           
+          console.log(`🎬 Secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}`);
+
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
