@@ -9,11 +9,33 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate, FileCheck, Download } from "lucide-react";
+  import { FileText, Plus, Copy, Edit, Trash2, Save, Send, Users, Search, Phone, Link, MessageCircle, Image, Music, Video, List, FileArchive, FileType, Menu, Upload, X, Eye, Wifi, Check, MapPin, User as UserIcon, DollarSign, Play, Pause, ShoppingBag, CalendarClock, Package, CreditCard, Camera, LayoutTemplate, FileCheck, Download, Smartphone } from "lucide-react";
  import { WhatsAppPreview } from "@/components/WhatsAppPreview";
 import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
+const validateButtons = (buttons: Array<{ id: string; text: string; type: 'reply' | 'url' | 'call' | 'copy'; value?: string }> | undefined) => {
+  if (!Array.isArray(buttons) || buttons.length === 0) return null;
+  for (let i = 0; i < buttons.length; i++) {
+    const b = buttons[i];
+    const label = `Botão ${i + 1}`;
+    if (!b.text?.trim()) return `${label}: o texto do botão é obrigatório.`;
+    const type = b.type;
+    const value = b.value?.trim();
+    if (type === 'url') {
+      if (!value) return `${label}: a URL é obrigatória para botões de Link.`;
+      if (!/^https?:\/\/.+/i.test(value)) return `${label}: informe uma URL válida começando com http:// ou https://`;
+    }
+    if (type === 'call') {
+      if (!value) return `${label}: o número de telefone é obrigatório para botões de Ligar.`;
+    }
+    if (type === 'copy' && !value) {
+       return `${label}: o texto para cópia é obrigatório.`;
+    }
+  }
+  return null;
+};
+
 const SPECIAL_FIELD_DEFAULTS = {
   pixKey: "",
   pixKeyType: "cpf",
@@ -1095,7 +1117,7 @@ const getPreviewFileLabel = (template: any) => {
     fileName: "",
     fileType: "",
     variables: [] as string[],
-    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>,
     listItems: [] as Array<{id: string, title: string, description?: string}>,
     carouselCards: [] as Array<{
       id: string;
@@ -1141,7 +1163,8 @@ const getPreviewFileLabel = (template: any) => {
     mediaUrl: "",
     fileName: "",
     fileType: "",
-    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>,
+
     listItems: [] as Array<{id: string, title: string, description?: string}>,
     carouselCards: [] as Array<{
       id: string;
@@ -1784,7 +1807,7 @@ const getPreviewFileLabel = (template: any) => {
       next.listItems = value === "carrossel" ? current.listItems : current.listItems;
     }
 
-    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "arquivo", "documento"].includes(value)) {
+    if (!["imagem", "audio", "video", "imagem_botoes", "video_botoes", "audio_botoes", "arquivo", "documento"].includes(value)) {
       next.mediaUrl = "";
       next.fileName = "";
       next.fileType = "";
@@ -1806,7 +1829,7 @@ const getPreviewFileLabel = (template: any) => {
     const newButton = {
       id: Date.now().toString(),
       text: "",
-      type: 'reply' as 'reply' | 'url' | 'call',
+      type: 'reply' as 'reply' | 'url' | 'call' | 'copy',
       value: "",
     };
     
@@ -1994,30 +2017,86 @@ const getPreviewFileLabel = (template: any) => {
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
-                      <SelectItem value="texto">texto</SelectItem>
-                      <SelectItem value="imagem">imagem</SelectItem>
-                      <SelectItem value="audio">audio</SelectItem>
-                      <SelectItem value="video">video</SelectItem>
-                      <SelectItem value="video_botoes">vídeo com botões</SelectItem>
-                      <SelectItem value="audio_botoes">áudio com botões</SelectItem>
-                      <SelectItem value="lista_opcao">lista de opção</SelectItem>
-                      <SelectItem value="copia_cola">copia e cola</SelectItem>
-                      <SelectItem value="arquivo">arquivo</SelectItem>
-                      <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
-                      <SelectItem value="documento">documento</SelectItem>
-                      <SelectItem value="carrossel">carrossel</SelectItem>
-                       <SelectItem value="pix">PIX (cobrança)</SelectItem>
-                       <SelectItem value="produto">produto</SelectItem>
-                       <SelectItem value="localizacao">localização</SelectItem>
-                     <SelectItem value="contato">contato (vCard)</SelectItem>
-                     <SelectItem value="multiplos_contatos">múltiplos contatos</SelectItem>
-                     <SelectItem value="evento">evento</SelectItem>
-                       <SelectItem value="status_pedido">status do pedido</SelectItem>
-                        <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
-                        <SelectItem value="pagamento">solicitar pagamento</SelectItem>
-                   <SelectItem value="status">Status (Stories)</SelectItem>
-                   <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
-                   <SelectItem value="meta_template">template meta api</SelectItem>
+                      <SelectItem value="texto">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4" /> Texto Simples
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="imagem">
+                        <div className="flex items-center gap-2">
+                          <Image className="w-4 h-4" /> Imagem
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="audio">
+                        <div className="flex items-center gap-2">
+                          <Music className="w-4 h-4" /> Áudio
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="video">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-4 h-4" /> Vídeo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="audio_botoes">
+                        <div className="flex items-center gap-2 text-primary font-medium">
+                          <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="imagem_botoes">
+                        <div className="flex items-center gap-2">
+                          <Image className="w-4 h-4" /> Imagem com Botões
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="video_botoes">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-4 h-4" /> Vídeo com Botões
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="lista_opcao">
+                        <div className="flex items-center gap-2">
+                          <List className="w-4 h-4" /> Lista de Opções
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="copia_cola">
+                        <div className="flex items-center gap-2">
+                          <Copy className="w-4 h-4" /> Botão Copiar e Cola
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="arquivo">
+                        <div className="flex items-center gap-2">
+                          <FileArchive className="w-4 h-4" /> Arquivo / Documento
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="carrossel">
+                        <div className="flex items-center gap-2">
+                          <LayoutTemplate className="w-4 h-4" /> Carrossel de Cards
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pix">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" /> Cobrança PIX
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="produto">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4" /> Produto do Catálogo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="localizacao">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" /> Localização
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="contato">
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="w-4 h-4" /> Contato (vCard)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="meta_template">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" /> Template Cloud API (Meta)
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -2663,29 +2742,86 @@ const getPreviewFileLabel = (template: any) => {
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="texto">texto</SelectItem>
-                  <SelectItem value="imagem">imagem</SelectItem>
-                  <SelectItem value="audio">audio</SelectItem>
-                  <SelectItem value="video">video</SelectItem>
-                  <SelectItem value="video_botoes">vídeo com botões</SelectItem>
-                  <SelectItem value="audio_botoes">áudio com botões</SelectItem>
-                  <SelectItem value="lista_opcao">lista de opção</SelectItem>
-                  <SelectItem value="copia_cola">copia e cola</SelectItem>
-                  <SelectItem value="arquivo">arquivo</SelectItem>
-                  <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
-                  <SelectItem value="documento">documento</SelectItem>
-                  <SelectItem value="carrossel">carrossel</SelectItem>
-                   <SelectItem value="pix">PIX (cobrança)</SelectItem>
-                   <SelectItem value="produto">produto</SelectItem>
-                   <SelectItem value="localizacao">localização</SelectItem>
-                     <SelectItem value="contato">contato (vCard)</SelectItem>
-                     <SelectItem value="multiplos_contatos">múltiplos contatos</SelectItem>
-                     <SelectItem value="evento">evento</SelectItem>
-                   <SelectItem value="status_pedido">status do pedido</SelectItem>
-                  <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
-                  <SelectItem value="pagamento">solicitar pagamento</SelectItem>
-                  <SelectItem value="status">Status (Stories)</SelectItem>
-                    <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
+                  <SelectItem value="texto">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" /> Texto Simples
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="imagem">
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4" /> Imagem
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="audio">
+                    <div className="flex items-center gap-2">
+                      <Music className="w-4 h-4" /> Áudio
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="video">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4" /> Vídeo
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="audio_botoes">
+                    <div className="flex items-center gap-2 text-primary font-medium">
+                      <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="imagem_botoes">
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4" /> Imagem com Botões
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="video_botoes">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4" /> Vídeo com Botões
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="lista_opcao">
+                    <div className="flex items-center gap-2">
+                      <List className="w-4 h-4" /> Lista de Opções
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="copia_cola">
+                    <div className="flex items-center gap-2">
+                      <Copy className="w-4 h-4" /> Botão Copiar e Cola
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="arquivo">
+                    <div className="flex items-center gap-2">
+                      <FileArchive className="w-4 h-4" /> Arquivo / Documento
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="carrossel">
+                    <div className="flex items-center gap-2">
+                      <LayoutTemplate className="w-4 h-4" /> Carrossel de Cards
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="pix">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" /> Cobrança PIX
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="produto">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4" /> Produto do Catálogo
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="localizacao">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" /> Localização
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="contato">
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4" /> Contato (vCard)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="meta_template">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4" /> Template Cloud API (Meta)
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
