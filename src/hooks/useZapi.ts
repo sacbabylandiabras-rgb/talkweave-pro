@@ -1315,9 +1315,17 @@ const getZAPIConfig = async () => {
       });
       return data;
     } catch (error) {
+      const raw = error instanceof Error ? error.message : "Erro desconhecido";
+      let description = raw;
+      const lower = raw.toLowerCase();
+      if (lower.includes('reproduces an audio') || (lower.includes('upgrade') && lower.includes('subscription'))) {
+        description = 'Chamadas com áudio não estão disponíveis no seu plano atual. Faça o upgrade do plano da sua conexão para liberar esse recurso.';
+      } else if (lower.includes('mobile')) {
+        description = 'A chamada só funciona em conexões do tipo Mobile. Verifique sua conexão.';
+      }
       toast({
         title: "Erro ao realizar chamada",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
+        description,
         variant: "destructive",
       });
       throw error;
