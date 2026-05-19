@@ -1543,10 +1543,15 @@ const getPreviewFileLabel = (template: any) => {
         carouselCards: newTemplate.carouselCards,
       });
 
-        setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
-       setShowCreateDialog(false);
-    } catch (error) {
+      setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
+      setShowCreateDialog(false);
+    } catch (error: any) {
       console.error('Error creating template:', error);
+      toast({
+        title: "Erro ao Criar Modelo",
+        description: error.message || "Ocorreu um erro inesperado ao salvar o modelo.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1773,8 +1778,13 @@ const getPreviewFileLabel = (template: any) => {
 
       setEditingTemplate(null);
         setEditFormData({ name: "", category: "", type: "texto", content: "", header: "", footer: "", mediaUrl: "", fileName: "", fileType: "", buttons: [], listItems: [], carouselCards: [], variables: {}, ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating template:', error);
+      toast({
+        title: "Erro ao Atualizar Modelo",
+        description: error.message || "Ocorreu um erro inesperado ao atualizar o modelo.",
+        variant: "destructive",
+      });
     }
   };
 
