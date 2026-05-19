@@ -75,21 +75,22 @@ export function IGGatilhoNode({ data }: any) {
          </div>
        )}
  
-       <div className="mt-3 p-2.5 bg-muted/30 rounded-xl border border-border/30">
-         <div className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-1 tracking-tight">Regra de Ativação</div>
-         {data.keywords ? (
-           <div className="text-xs text-card-foreground font-medium whitespace-pre-wrap break-words leading-relaxed">
-             {data.matchType === "exact" ? "Palavra exata: " : "Contém: "} 
-             <span className="text-primary font-bold">{data.keywords}</span>
-           </div>
-         ) : (
-            <div className="text-xs text-muted-foreground/60 italic font-medium">
-              {data.triggerType === "story_reply" ? "Qualquer resposta ou reação" : 
-               data.triggerType === "follow" ? "Qualquer nova seguição" :
-               "Qualquer comentário ou mensagem"}
+      {data.triggerType !== "follow" && (
+        <div className="mt-3 p-2.5 bg-muted/30 rounded-xl border border-border/30">
+          <div className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-1 tracking-tight">Regra de Ativação</div>
+          {data.keywords ? (
+            <div className="text-xs text-card-foreground font-medium whitespace-pre-wrap break-words leading-relaxed">
+              {data.matchType === "exact" ? "Palavra exata: " : "Contém: "} 
+              <span className="text-primary font-bold">{data.keywords}</span>
             </div>
-         )}
-       </div>
+          ) : (
+             <div className="text-xs text-muted-foreground/60 italic font-medium">
+               {data.triggerType === "story_reply" ? "Qualquer resposta ou reação" : 
+                "Qualquer comentário ou mensagem"}
+             </div>
+          )}
+        </div>
+      )}
  
        <Handle type="source" position={Position.Right} id="source-right" className={`w-3 h-3 !border-2 !border-background ${color}`} />
        <Handle type="source" position={Position.Bottom} id="source-bottom" className={`w-3 h-3 !border-2 !border-background ${color}`} />

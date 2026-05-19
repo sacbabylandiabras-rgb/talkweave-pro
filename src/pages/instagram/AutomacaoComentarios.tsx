@@ -520,7 +520,10 @@ export default function AutomacaoComentarios() {
     try {
       // Extract keyword from trigger nodes
       const triggerNodes = nodes.filter((n) => n.type === "igGatilho");
-      const keywords = triggerNodes.map((n) => n.data.keywords || "").filter(Boolean).join(",");
+      const keywords = triggerNodes
+        .map((n) => (n.data.triggerType === "follow" ? "" : n.data.keywords || ""))
+        .filter(Boolean)
+        .join(",");
 
       // Extract reply_comment from first reply node (for backward compat)
       const replyNode = nodes.find((n) => n.type === "igResposta");
@@ -687,38 +690,40 @@ export default function AutomacaoComentarios() {
              </div>
            )}
  
-           <div className="pt-2 border-t border-border/40">
-             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Regras de Ativação</Label>
-             <div className="space-y-3">
-               <Select 
-                 value={selectedNode.data.matchType || "contains"} 
-                 onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, matchType: v } })}
-               >
-                 <SelectTrigger className="h-9 text-xs">
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="contains">Mensagem contém palavras-chave</SelectItem>
-                   <SelectItem value="exact">Mensagem é exatamente a palavra-chave</SelectItem>
-                   <SelectItem value="any">Qualquer mensagem/comentário</SelectItem>
-                 </SelectContent>
-               </Select>
-               
-               {selectedNode.data.matchType !== "any" && (
-                 <div>
-                   <Label className="text-[11px] font-semibold text-muted-foreground mb-1.5 block">Palavras-chave (separadas por vírgula)</Label>
-                   <Input
-                     value={selectedNode.data.keywords || ""}
-                     onChange={(e) =>
-                       setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
-                     }
-                     placeholder="eu quero, me manda, info"
-                     className="h-9 text-xs"
-                   />
-                 </div>
-               )}
-             </div>
-           </div>
+            {triggerType !== "follow" && (
+              <div className="pt-2 border-t border-border/40">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Regras de Ativação</Label>
+                <div className="space-y-3">
+                  <Select 
+                    value={selectedNode.data.matchType || "contains"} 
+                    onValueChange={(v) => setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, matchType: v } })}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">Mensagem contém palavras-chave</SelectItem>
+                      <SelectItem value="exact">Mensagem é exatamente a palavra-chave</SelectItem>
+                      <SelectItem value="any">Qualquer mensagem/comentário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedNode.data.matchType !== "any" && (
+                    <div>
+                      <Label className="text-[11px] font-semibold text-muted-foreground mb-1.5 block">Palavras-chave (separadas por vírgula)</Label>
+                      <Input
+                        value={selectedNode.data.keywords || ""}
+                        onChange={(e) =>
+                          setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, keywords: e.target.value } })
+                        }
+                        placeholder="eu quero, me manda, info"
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
          </div>
        );
      }
