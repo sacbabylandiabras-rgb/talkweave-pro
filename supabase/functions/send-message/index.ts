@@ -970,7 +970,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-payment-pix`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken }, body: JSON.stringify(pixBody) });
         logMessage = `💳 Solicitação de pagamento ${specialPayload.amount ? `R$ ${specialPayload.amount}` : ''}`.trim();
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'request-payment');
-    } else if (Array.isArray(carouselCards) && carouselCards.length > 0) {
+    } else if (Array.isArray(carouselCards) && carouselCards.length > 0 && carouselCards[0]?.id !== 'secondary') {
       const cards = carouselCards.map((card: any) => {
         const cardText = [card.title, card.description].filter(v => v && String(v).trim() !== '').join('\n\n');
         const c: any = { text: cardText || card.text || '' };

@@ -273,9 +273,6 @@ const EnviarMensagem = () => {
     }
 
     if (audioComBotoes) {
-      // 1) Envia o áudio puro
-      await sendAudio(phone, modeloData!.mediaUrl!, '');
-      
       const buttons = modeloData!.buttons!.map((btn: any) => {
         const buttonType = (btn.type || 'REPLY').toUpperCase();
         const buttonData: any = {
@@ -289,7 +286,6 @@ const EnviarMensagem = () => {
         return buttonData;
       });
 
-      // 2) Em seguida, envia o texto + botões (com mídia secundária se houver)
       const secondaryMediaFromCarousel = Array.isArray(modeloData?.carouselCards) && (modeloData as any).carouselCards[0]?.id === 'secondary' 
         ? (modeloData as any).carouselCards[0].image 
         : null;
@@ -297,35 +293,20 @@ const EnviarMensagem = () => {
       const secondaryMediaUrl = secondaryMediaFromCarousel || (modeloData?.header?.startsWith('http') ? modeloData.header : null);
       const headerTitle = secondaryMediaFromCarousel ? modeloData?.header : (!modeloData?.header?.startsWith('http') ? modeloData?.header : undefined);
 
-      if (templateType === 'audio_imagem_botoes' && secondaryMediaUrl) {
-        await sendButtonActions(
-          phone,
-          mensagemPersonalizada || modeloData?.content || '',
-          buttons,
-          headerTitle || undefined,
-          modeloData?.footer || undefined,
-          secondaryMediaUrl,
-          'image'
-        );
-      } else if (templateType === 'audio_video_botoes' && secondaryMediaUrl) {
-        await sendButtonActions(
-          phone,
-          mensagemPersonalizada || modeloData?.content || '',
-          buttons,
-          headerTitle || undefined,
-          modeloData?.footer || undefined,
-          secondaryMediaUrl,
-          'video'
-        );
-      } else {
-        await sendButtonActions(
-          phone,
-          mensagemPersonalizada || modeloData?.content || '',
-          buttons,
-          modeloData?.header || undefined,
-          modeloData?.footer || undefined,
-        );
-      }
+      // Delegamos o fluxo completo para o Edge Function enviando specialType e carouselCards
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada || modeloData?.content || '',
+        buttons,
+        headerTitle || undefined,
+        modeloData?.footer || undefined,
+        modeloData!.mediaUrl!, // Áudio principal
+        'audio',
+        undefined,
+        templateType,
+        modeloData?.carouselCards
+      );
+      
       return mensagemPersonalizada || modeloData?.name || 'Áudio + texto com botões enviado';
     }
 
