@@ -651,11 +651,10 @@ serve(async (req) => {
           console.log(`🎤 Sending composite audio: ${mediaUrl}`);
           await sendZapiMedia(mediaUrl, 'audio');
           
-          // Small delay to ensure order and avoid rejection for speed
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Aumentamos o delay para garantir a ordem e evitar rejeição por velocidade
+          await new Promise(resolve => setTimeout(resolve, 2500));
           
-          // Send secondary media
-          // Secondary media can be in carouselCards, specialPayload or the title field (if it's a URL)
+          // Envio da mídia secundária
           const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
             ? payloadRaw.carouselCards[0].image
             : null;
@@ -671,27 +670,27 @@ serve(async (req) => {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               phone: resolvedPhone,
-              message: message || 'Escolha uma opção:',
+              caption: message || ' ',
               ...(headerTitle ? { title: headerTitle } : {}),
               ...(footer ? { footer } : {}),
               ...mentionFlag(resolvedPhone),
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
-            // If only reply buttons and it's image/video, try the more specific Z-API endpoints first
-            if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
-              const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+            // Preferimos /send-button-actions para vídeo composto pois é mais estável em todas as instâncias
+            // mas mantemos o fallback caso o usuário prefira o layout de lista
+            if (!hasActionButtons && secondaryMediaType === 'image') {
+              const listEndpoint = '/send-button-list-image';
               secondaryPayload.buttonList = {
                 buttons: buttons.map(b => ({ id: b.id, label: b.label }))
               };
-              // Ensure we use caption as expected by these endpoints
-              secondaryPayload.caption = secondaryPayload.message;
               
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
               try {
-                return await sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+                const listData = await sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+                if (isZapiConfirmed(listData)) return listData;
+                console.log(`⚠️ ${listEndpoint} não confirmou envio, tentando fallback...`);
               } catch (err: any) {
-                // If endpoint not found, fallback to send-button-actions
                 const isNotFound = err instanceof Response && (err.status === 404 || (await err.clone().json().catch(() => ({}))).error === 'NOT_FOUND');
                 if (!isNotFound) throw err;
                 console.log(`🔄 ${listEndpoint} not found, falling back to /send-button-actions`);
@@ -706,8 +705,8 @@ serve(async (req) => {
               ...(b.type === 'CALL' ? { phone: b.phone } : {}),
             }));
 
-            // Some Z-API instances expect caption for media even with buttons
-            secondaryPayload.caption = secondaryPayload.message;
+            // Removendo 'message' para evitar conflito com 'caption' em mídias
+            delete secondaryPayload.message;
 
             console.log(`🎬 Sending composite secondary media with /send-button-actions`);
             return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-actions`);
@@ -716,6 +715,7 @@ serve(async (req) => {
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
           }
         }
+
 
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
