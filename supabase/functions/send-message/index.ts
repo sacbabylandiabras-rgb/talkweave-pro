@@ -600,7 +600,7 @@ serve(async (req) => {
         let type = String(b?.type || b?.buttonType || 'REPLY').toUpperCase();
         let url = b.url || b.value || b.urlValue || b.link || b.website;
         let phone = b.phone || b.phoneNumber || b.value || b.phoneValue;
-        let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim().slice(0, 25);
+        let label = String(b?.label || b?.text || b?.buttonText || `Botão ${index + 1}`).trim().slice(0, 20);
         
         if (type === 'COPY' && url) {
           type = 'URL';
@@ -682,7 +682,7 @@ serve(async (req) => {
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
               secondaryPayload.buttonList = {
-                buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
+                buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
               };
               
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
@@ -728,7 +728,7 @@ serve(async (req) => {
           if (!hasActionButtons) {
             const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
             (finalPayload as any).buttonList = {
-              buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
+              buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
             };
             // Ensure we use message as expected by these endpoints
             (finalPayload as any).message = message || 'Escolha uma opção:';
@@ -779,7 +779,7 @@ serve(async (req) => {
           message: message || 'Escolha uma opção:',
           ...mentionFlag(resolvedPhone),
           buttonList: {
-            buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 25) }))
+            buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
           }
         };
         
