@@ -1272,7 +1272,7 @@ const ChatView = (props: ChatViewProps) => {
                   <div className="space-y-1">
                     <div className="space-y-1">
                       <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (15s)</Label>
-                      {rawActiveInstance && !isMobileZapiInstance(rawActiveInstance) && (
+                      {activeInstance && !isMobileZapiInstance(activeInstance) && (
                         <p className="text-[9px] text-amber-600 font-medium leading-tight">
                           Aviso: Chamadas funcionam melhor em instâncias Mobile.
                         </p>
