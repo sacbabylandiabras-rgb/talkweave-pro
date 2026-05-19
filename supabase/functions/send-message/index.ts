@@ -679,7 +679,7 @@ serve(async (req) => {
             // Preferimos layouts de lista (send-button-list-image/video) se não houver botões de ação (URL/CALL)
             // pois são mais compatíveis visualmente com mídias em algumas instâncias e foi solicitado pelo usuário.
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
-              const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+              const listEndpoint = '/send-button-list';
               secondaryPayload.buttonList = {
                 [secondaryMediaType]: secondaryMediaUrl,
                 buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
@@ -728,7 +728,7 @@ serve(async (req) => {
 
           // If only reply buttons, try the specific endpoints (as suggested by user link)
           if (!hasActionButtons) {
-            const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+            const endpoint = '/send-button-list';
             (finalPayload as any).buttonList = {
               buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: String(b.label || b.text || 'Botão').trim().slice(0, 20) }))
             };
@@ -775,7 +775,7 @@ serve(async (req) => {
 
       // Case 2: Media + Only Reply Buttons -> Use /send-button-list-image or video
       if (mediaUrl && !hasActionButtons && (mediaType === 'image' || mediaType === 'video')) {
-        const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+        const endpoint = '/send-button-list';
         const payload: any = {
           phone: resolvedPhone,
           message: message || 'Escolha uma opção:',

@@ -1836,7 +1836,7 @@ serve(async (req) => {
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
 
           if (!hasActionButtons) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-video`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
@@ -1873,7 +1873,7 @@ serve(async (req) => {
                throw new Error(`Erro ao enviar botões de lista (video): ${JSON.stringify(errorBody)}`);
             }
             
-            console.log(`🔄 [Campaign] send-button-list-video not found, falling back to /send-button-actions`);
+            console.log(`🔄 [Campaign] send-button-list not found, falling back to /send-button-actions`);
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
             const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
             requestBody = { 
@@ -1930,7 +1930,7 @@ serve(async (req) => {
           console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
           if (secondaryUrl && !hasActionButtons && (sType === 'image' || sType === 'video')) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-${sType}`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload: any = {
               phone: contact.phone,
               message: fullMessage || ' ',
@@ -1987,7 +1987,7 @@ serve(async (req) => {
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
           
           if (!hasActionButtons) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
@@ -2023,7 +2023,7 @@ serve(async (req) => {
                throw new Error(`Erro ao enviar botões de lista (image): ${JSON.stringify(errorBody)}`);
             }
             
-            console.log(`🔄 [Campaign] send-button-list-image not found, falling back to /send-button-actions`);
+            console.log(`🔄 [Campaign] send-button-list not found, falling back to /send-button-actions`);
             zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
             const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
             requestBody = { 
@@ -2110,7 +2110,7 @@ serve(async (req) => {
               rowId: String(it.id || `opt_${idx + 1}`),
             }));
           
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
           requestBody = {
             phone: contact.phone,
             message: fullMessage || ' ',
