@@ -1267,7 +1267,7 @@ const ChatView = ({
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Chamar e desligar (20s)</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (20s)</Label>
                     <div className="flex gap-1">
                       <Button 
                         variant="outline" 
