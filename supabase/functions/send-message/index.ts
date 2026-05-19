@@ -660,26 +660,30 @@ serve(async (req) => {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               ...payload,
-              // For these composite types, we need to ensure the secondary media URL is used
+              // Z-API handles image/video headers in /send-button-actions
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
             // Remove audio related fields from base payload to avoid sending audio twice
             delete secondaryPayload.audio;
 
-            if (secondaryMediaType === 'image') {
-              return sendZapi('/send-button-actions-image', secondaryPayload, 'composite-image-buttons');
-            } else {
-              return sendZapi('/send-button-actions-video', secondaryPayload, 'composite-video-buttons');
-            }
+            // Use the standard /send-button-actions as it is more reliable and supports media headers
+            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-buttons`);
           } else {
             console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
           }
         }
 
-        // Z-API handles media + action buttons best by sending media first, then buttons
-        // because specific endpoints like /send-button-actions-image can be unstable or non-existent
+        // For non-composite media with buttons, prefer single send if possible
+        if (mediaType === 'image' || mediaType === 'video') {
+          const finalPayload = { ...payload };
+          if (mediaType === 'image') finalPayload.image = mediaUrl;
+          else finalPayload.video = mediaUrl;
+          return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
+        }
+
+        // For audio or other media, Z-API requires two steps
         await sendZapiMedia(mediaUrl, mediaType || 'image', '');
         const { image: _img, video: _vid, ...rest } = payload;
         return sendZapi('/send-button-actions', rest, `buttons-actions-after-${mediaType || 'media'}`);
