@@ -117,7 +117,6 @@ export const useMessageTemplates = () => {
           buttons: templateData.buttons || [],
           list_items: templateData.listItems || [],
           carousel_cards: templateData.carouselCards || [],
-          // special_type: templateData.specialType,
         })
         .select()
         .single();
