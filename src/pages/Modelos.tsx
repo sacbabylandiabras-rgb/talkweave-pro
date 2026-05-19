@@ -1528,6 +1528,11 @@ const getPreviewFileLabel = (template: any) => {
         ? buildSpecialContent(newTemplate.type, newTemplate)
         : newTemplate.content;
 
+      const isCompositeAudio = newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes";
+      const carouselCardsToSave = isCompositeAudio && newTemplate.secondaryMediaUrl 
+        ? [{ id: 'secondary', image: newTemplate.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        : newTemplate.carouselCards;
+
       await createTemplate({
         name: newTemplate.name,
         category: newTemplate.category,
@@ -1543,7 +1548,7 @@ const getPreviewFileLabel = (template: any) => {
         fileName: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileName,
         fileType: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileType,
         listItems: validListItems,
-        carouselCards: newTemplate.carouselCards,
+        carouselCards: carouselCardsToSave as any,
       });
 
       setNewTemplate({ name: "", category: "", type: "texto", content: "", header: "", secondaryMediaUrl: "", footer: "", mediaUrl: "", fileName: "", fileType: "", variables: [], buttons: [], listItems: [], carouselCards: [], ...SPECIAL_FIELD_DEFAULTS, contactBusinessDescription: "", catalogId: "", productId: "", paymentTitle: "", paymentDescription: "", paymentAmount: "", paymentCurrency: "BRL", paymentReferenceId: "", massPhones: "", metaTemplateName: "", metaLanguage: "pt_BR" });
