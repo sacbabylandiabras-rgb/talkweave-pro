@@ -29,7 +29,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) throw new Error('Unauthorized');
 
-  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key';
+  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_type';
   const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   let q = admin.from('zapi_instances' as any)
@@ -80,6 +80,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     token: inst.zapi_token,
     clientToken: inst.zapi_client_token,
     apiProvider: inst.api_provider || 'zapi',
+    instanceType: inst.instance_type,
     evolutionUrl: inst.evolution_api_url,
     evolutionKey: inst.evolution_api_key,
   };
@@ -266,10 +267,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
       const callPayload: any = {
         phone: callPhone,
-        callDuration: payload?.callDuration || 20
+        callDuration: Math.min(payload?.callDuration || 15, 15)
       };
-      if (payload?.audioUrl) {
-        callPayload.audioUrl = payload.audioUrl;
+      if (payload?.audioUrl || payload?.callAudioUrl) {
+        callPayload.callAudioUrl = payload?.callAudioUrl || payload?.audioUrl;
       }
       return { method: 'POST', path: '/send-call', body: callPayload };
     }
@@ -490,7 +491,7 @@ Deno.serve(async (req) => {
 
     const ep = endpointFor(action, phone, finalPayload, creds.apiProvider);
     
-    console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId}`);
+    console.log(`[zapi-chat-actions] Executing ${action} for ${phone} via ${creds.instanceId} (${creds.instanceType || 'unknown type'})`);
     console.log(`[zapi-chat-actions] URL: ${ep.method} ${base}${ep.path}`);
     if (ep.body) console.log(`[zapi-chat-actions] Body:`, JSON.stringify(ep.body));
 

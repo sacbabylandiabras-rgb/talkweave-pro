@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
  import { Label } from "@/components/ui/label";
 import type { Contact } from "@/hooks/useContacts";
 import { useMessageLogs, type Conversation, type UnifiedMessage } from "@/hooks/useMessageLogs";
-import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapiInstances, isMobileZapiInstance } from "@/hooks/useZapiInstances";
 import { useZapi } from "@/hooks/useZapi";
 import { format, isToday, isYesterday, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -575,30 +575,33 @@ interface ChatViewProps {
   onSendCall?: (phone: string, duration?: number, audioUrl?: string) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
-   campaignTemplates?: Map<string, string>;
+    campaignTemplates?: Map<string, string>;
+    activeInstance?: any;
 }
 
-const ChatView = ({
-  conversation,
-  onBack,
-  isMobile,
-  onSaveContact,
-  onFetchPhoto,
-  loadingPhoto,
-  onSendMessage,
-  onOpenProfile,
-  onTriggerFlow,
-  onForwardMessage,
-   onSendReaction,
+const ChatView = (props: ChatViewProps) => {
+  const {
+    conversation,
+    onBack,
+    isMobile,
+    onSaveContact,
+    onFetchPhoto,
+    loadingPhoto,
+    onSendMessage,
+    onOpenProfile,
+    onTriggerFlow,
+    onForwardMessage,
+    onSendReaction,
     onSendSticker,
     onSendGif,
     onDeleteConversation,
-  onSendCall,
-  onGetSipInfo,
-   campaignTemplates,
-   savedContacts,
-   onUpdate,
- }: ChatViewProps) => {
+    onSendCall,
+    onGetSipInfo,
+    campaignTemplates,
+    savedContacts,
+    onUpdate,
+    activeInstance,
+  } = props;
    const { listTags, addTagChat, removeTagChat } = useZapi();
   const { sendCall, getSipInfo, getSipToken, getCallToken } = useZapi();
    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
@@ -677,7 +680,7 @@ const ChatView = ({
           .from('template-media')
           .getPublicUrl(filePath);
 
-        await onSendCall(conversation.phone, 20, publicUrl);
+        await onSendCall(conversation.phone, 15, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
         toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
@@ -1267,12 +1270,19 @@ const ChatView = ({
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (20s)</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (15s)</Label>
+                      {activeInstance && !isMobileZapiInstance(activeInstance) && (
+                        <p className="text-[9px] text-amber-600 font-medium leading-tight">
+                          Aviso: Chamadas funcionam melhor em instâncias Mobile.
+                        </p>
+                      )}
+                    </div>
                     <div className="flex gap-1">
                       <Button 
                         variant="outline" 
                         className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
-                        onClick={() => conversation && onSendCall(conversation.phone, 20)}
+                        onClick={() => conversation && onSendCall(conversation.phone, 15)}
                         title="Apenas chamar sem áudio"
                       >
                         <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
@@ -2572,6 +2582,7 @@ const MensagensRecebidas = () => {
             onTriggerFlow={(phone) => setProfileOpen(true)}
             campaignTemplates={campaignTemplates}
             savedContacts={savedContacts}
+            activeInstance={rawActiveInstance}
             onSendMessage={async (phone, message, options) => {
               await sendMessage(phone, message, options);
               toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
