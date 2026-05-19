@@ -1231,14 +1231,35 @@ const ChatView = ({
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2" align="end">
               <div className="space-y-1">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm h-9 gap-2" 
-                   onClick={() => conversation && sendCall(conversation.phone, 15)}
-                >
-                  <PhoneCall className="w-4 h-4 text-green-600" />
-                  Chamada WhatsApp
-                </Button>
+                <div className="p-2 space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground uppercase">Chamar e desligar (15s)</Label>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-xs h-8 gap-2 border-green-200 hover:bg-green-50" 
+                      onClick={() => conversation && sendCall(conversation.phone, 15)}
+                    >
+                      <PhoneCall className="w-3.5 h-3.5 text-green-600" />
+                      Apenas Chamar
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground uppercase">Falar agora (SIP)</Label>
+                    <Button 
+                      variant="default" 
+                      className="w-full justify-start text-xs h-8 gap-2 bg-green-600 hover:bg-green-700" 
+                      onClick={handleOpenSipInfo}
+                      disabled={loadingSip}
+                    >
+                      {loadingSip ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Phone className="w-3.5 h-3.5" />}
+                      Configurar Ramal SIP
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground leading-tight px-1">
+                      Para conversar por voz, é necessário configurar um ramal (Zoiper/MicroSIP).
+                    </p>
+                  </div>
+                </div>
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-sm h-9 gap-2" 
