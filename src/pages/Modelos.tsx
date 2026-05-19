@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
 const SPECIAL_FIELD_DEFAULTS = {
+  secondaryMediaUrl: "",
   pixKey: "",
   pixKeyType: "cpf",
   pixAmount: "",
