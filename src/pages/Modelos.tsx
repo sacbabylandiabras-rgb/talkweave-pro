@@ -2219,18 +2219,18 @@ const getPreviewFileLabel = (template: any) => {
                                 disabled={uploadingFile}
                               />
                             </div>
-                            {newTemplate.header && newTemplate.header.startsWith('http') && (
+                            {newTemplate.secondaryMediaUrl && newTemplate.secondaryMediaUrl.startsWith('http') && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setNewTemplate(prev => ({ ...prev, header: "" }))}
+                                onClick={() => setNewTemplate(prev => ({ ...prev, secondaryMediaUrl: "" }))}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             )}
                           </div>
-                          {newTemplate.header && newTemplate.header.startsWith('http') && (
+                          {newTemplate.secondaryMediaUrl && newTemplate.secondaryMediaUrl.startsWith('http') && (
                             <p className="text-xs text-green-600 mt-1 font-medium">
                               ✓ Mídia carregada com sucesso
                             </p>
