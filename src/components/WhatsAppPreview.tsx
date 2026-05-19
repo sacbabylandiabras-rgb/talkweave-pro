@@ -83,11 +83,41 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
           )}
           
            {(template.mediaUrl || (specialData && specialData.mediaUrl)) && (
-             <div className="mb-2 rounded overflow-hidden bg-white/5 border border-white/5">
-               {type.includes('imagem') || type.includes('image') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') ? (
-                 <img src={template.mediaUrl || specialData.mediaUrl} alt="Preview" className="w-full h-48 object-cover" />
-                ) : type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video') ? (
-                 <div className="relative aspect-video bg-black">
+             <div className="space-y-2">
+               {/* Audio message for composite types or single audio type */}
+               {(type.includes('áudio') || type.includes('audio') || template.fileType?.startsWith('audio')) && (
+                 <div className="w-full py-3 px-4 bg-[#111b21] flex items-center gap-3 rounded-lg">
+                    <div className="relative w-10 h-10 rounded-full bg-[#202c33] flex items-center justify-center overflow-hidden">
+                      <img src={zaplynxAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111b21]"></div>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <svg viewBox="0 0 24 24" width="16" height="16" className="text-[#8696a0]"><path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                        <div className="h-0.5 flex-1 bg-[#8696a0]/30 rounded-full overflow-hidden">
+                          <div className="h-full w-1/3 bg-[#53bdeb]"></div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-[#8696a0]">
+                        <span>0:00 / 0:15</span>
+                        <span>2x</span>
+                      </div>
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-[#202c33] flex items-center justify-center text-[#8696a0]">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                  </div>
+               )}
+
+               {/* Secondary Media for composite types OR Main Media for standard types */}
+               {(type.includes('imagem') || type.includes('image') || type === 'sticker' || type === 'gif' || template.fileType?.startsWith('image') || (template.type?.startsWith('audio_') && template.header?.startsWith('http'))) && (
+                 <div className="rounded overflow-hidden bg-white/5 border border-white/5">
+                   <img src={(template.type?.startsWith('audio_') && template.header?.startsWith('http')) ? template.header : (template.mediaUrl || specialData.mediaUrl)} alt="Preview" className="w-full h-48 object-cover" />
+                 </div>
+                )}
+                
+                {(type.includes('vídeo') || type.includes('video') || template.fileType?.startsWith('video')) && (
+                 <div className="rounded overflow-hidden bg-white/5 border border-white/5 relative aspect-video bg-black">
                    <video 
                      src={template.mediaUrl || specialData.mediaUrl} 
                      className="w-full h-full object-contain"
@@ -102,39 +132,20 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
                      </div>
                    </div>
                  </div>
-                ) : type.includes('áudio') || type.includes('audio') || template.fileType?.startsWith('audio') ? (
-                 <div className="w-full py-3 px-4 bg-[#111b21] flex items-center gap-3">
-                   <div className="relative w-10 h-10 rounded-full bg-[#202c33] flex items-center justify-center overflow-hidden">
-                     <img src={zaplynxAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111b21]"></div>
-                   </div>
-                   <div className="flex-1 space-y-1">
-                     <div className="flex items-center gap-1">
-                       <svg viewBox="0 0 24 24" width="16" height="16" className="text-[#8696a0]"><path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                       <div className="h-0.5 flex-1 bg-[#8696a0]/30 rounded-full overflow-hidden">
-                         <div className="h-full w-1/3 bg-[#53bdeb]"></div>
-                       </div>
-                     </div>
-                     <div className="flex justify-between items-center text-[10px] text-[#8696a0]">
-                       <span>0:00 / 0:15</span>
-                       <span>2x</span>
-                     </div>
-                   </div>
-                   <div className="w-6 h-6 rounded-full bg-[#202c33] flex items-center justify-center text-[#8696a0]">
-                     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                   </div>
-                 </div>
-               ) : (
-                 <div className="w-full h-16 flex items-center gap-3 px-3 bg-[#111b21] text-white/70">
-                   <div className="w-8 h-8 rounded bg-red-500/20 flex items-center justify-center text-red-500">
-                     <span className="text-[10px] font-bold">DOC</span>
-                   </div>
-                   <div className="flex-1 truncate text-xs">
-                     {template.fileName || 'Documento.pdf'}
-                   </div>
-                   <svg viewBox="0 0 24 24" width="16" height="16" className="text-[#8696a0]"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                 </div>
-               )}
+                )}
+
+                {/* Document preview if not audio/image/video */}
+                {!(type.includes('audio') || type.includes('áudio') || type.includes('image') || type.includes('imagem') || type.includes('video') || type.includes('vídeo') || type === 'sticker' || type === 'gif') && (
+                  <div className="w-full h-16 flex items-center gap-3 px-3 bg-[#111b21] text-white/70 rounded-lg">
+                    <div className="w-8 h-8 rounded bg-red-500/20 flex items-center justify-center text-red-500">
+                      <span className="text-[10px] font-bold">DOC</span>
+                    </div>
+                    <div className="flex-1 truncate text-xs">
+                      {template.fileName || 'Documento.pdf'}
+                    </div>
+                    <svg viewBox="0 0 24 24" width="16" height="16" className="text-[#8696a0]"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                  </div>
+                )}
              </div>
            )}
 
