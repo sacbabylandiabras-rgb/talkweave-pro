@@ -1879,21 +1879,14 @@ serve(async (req) => {
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
-          // Z-API handles media + buttons more reliably when sent separately or using /send-button-actions without 'image' field inside
-          // We follow the two-step approach used for video/audio
-          const imgUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
-          const imgResponse = await fetch(imgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
-            body: JSON.stringify({ phone: contact.phone, image: campaignTemplate.media_url }),
-          });
-          if (!imgResponse.ok) throw new Error(`Erro ao enviar imagem do template: ${await imgResponse.text()}`);
-
-          await sleep(Math.max(delayMs / 2, 1000));
-
+          // Use single-step send for better reliability
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-          requestBody = { phone: contact.phone, ...buttonPayload };
+          requestBody = { 
+            phone: contact.phone, 
+            ...buttonPayload, 
+            image: campaignTemplate.media_url 
+          };
         } else if (templateType === 'imagem') {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
