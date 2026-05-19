@@ -47,9 +47,10 @@ export interface UnifiedMessage {
   keyword_matched?: string | null;
   original_content?: string | null;
   campaign_id?: string | null;
-   sender_name?: string | null;
-   sender_phone?: string | null;
-   sender_photo?: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  sender_photo?: string | null;
+  status?: string | null;
 }
 
 export interface SavedContact {
