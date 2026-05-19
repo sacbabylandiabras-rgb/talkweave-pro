@@ -1534,7 +1534,7 @@ const getPreviewFileLabel = (template: any) => {
         footer: newTemplate.footer,
         variables,
         buttons: newTemplate.buttons,
-        specialType: newTemplate.type, // Explicitly pass the type as specialType for the function
+        // specialType: newTemplate.type, // Explicitly pass the type as specialType for the function
 
         mediaUrl: newTemplate.type === "lista_opcao" ? "" : newTemplate.mediaUrl,
         fileName: newTemplate.type === "lista_opcao" ? "" : newTemplate.fileName,
