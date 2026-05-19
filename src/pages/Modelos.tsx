@@ -1994,30 +1994,86 @@ const getPreviewFileLabel = (template: any) => {
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
-                      <SelectItem value="texto">texto</SelectItem>
-                      <SelectItem value="imagem">imagem</SelectItem>
-                      <SelectItem value="audio">audio</SelectItem>
-                      <SelectItem value="video">video</SelectItem>
-                      <SelectItem value="video_botoes">vídeo com botões</SelectItem>
-                      <SelectItem value="audio_botoes">áudio com botões</SelectItem>
-                      <SelectItem value="lista_opcao">lista de opção</SelectItem>
-                      <SelectItem value="copia_cola">copia e cola</SelectItem>
-                      <SelectItem value="arquivo">arquivo</SelectItem>
-                      <SelectItem value="imagem_botoes">imagem com botões</SelectItem>
-                      <SelectItem value="documento">documento</SelectItem>
-                      <SelectItem value="carrossel">carrossel</SelectItem>
-                       <SelectItem value="pix">PIX (cobrança)</SelectItem>
-                       <SelectItem value="produto">produto</SelectItem>
-                       <SelectItem value="localizacao">localização</SelectItem>
-                     <SelectItem value="contato">contato (vCard)</SelectItem>
-                     <SelectItem value="multiplos_contatos">múltiplos contatos</SelectItem>
-                     <SelectItem value="evento">evento</SelectItem>
-                       <SelectItem value="status_pedido">status do pedido</SelectItem>
-                        <SelectItem value="pagamento_pedido">pagamento do pedido</SelectItem>
-                        <SelectItem value="pagamento">solicitar pagamento</SelectItem>
-                   <SelectItem value="status">Status (Stories)</SelectItem>
-                   <SelectItem value="gateway_billing">cobrança gateway</SelectItem>
-                   <SelectItem value="meta_template">template meta api</SelectItem>
+                      <SelectItem value="texto">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4" /> Texto Simples
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="imagem">
+                        <div className="flex items-center gap-2">
+                          <Image className="w-4 h-4" /> Imagem
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="audio">
+                        <div className="flex items-center gap-2">
+                          <Music className="w-4 h-4" /> Áudio
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="video">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-4 h-4" /> Vídeo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="audio_botoes">
+                        <div className="flex items-center gap-2 text-primary font-medium">
+                          <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="imagem_botoes">
+                        <div className="flex items-center gap-2">
+                          <Image className="w-4 h-4" /> Imagem com Botões
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="video_botoes">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-4 h-4" /> Vídeo com Botões
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="lista_opcao">
+                        <div className="flex items-center gap-2">
+                          <List className="w-4 h-4" /> Lista de Opções
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="copia_cola">
+                        <div className="flex items-center gap-2">
+                          <Copy className="w-4 h-4" /> Botão Copiar e Cola
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="arquivo">
+                        <div className="flex items-center gap-2">
+                          <FileArchive className="w-4 h-4" /> Arquivo / Documento
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="carrossel">
+                        <div className="flex items-center gap-2">
+                          <LayoutTemplate className="w-4 h-4" /> Carrossel de Cards
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pix">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" /> Cobrança PIX
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="produto">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4" /> Produto do Catálogo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="localizacao">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" /> Localização
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="contato">
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="w-4 h-4" /> Contato (vCard)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="meta_template">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" /> Template Cloud API (Meta)
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
