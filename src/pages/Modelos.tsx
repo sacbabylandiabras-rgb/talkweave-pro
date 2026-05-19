@@ -1769,6 +1769,11 @@ const getPreviewFileLabel = (template: any) => {
         ? buildSpecialContent(editFormData.type, editFormData)
         : editFormData.content;
 
+      const isCompositeAudioEdit = editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes";
+      const carouselCardsToUpdate = isCompositeAudioEdit && editFormData.secondaryMediaUrl 
+        ? [{ id: 'secondary', image: editFormData.secondaryMediaUrl, title: '', description: '', buttons: [] }]
+        : editFormData.carouselCards;
+
       await updateTemplate(editingTemplate!, {
         name: editFormData.name,
         category: editFormData.category,
@@ -1782,7 +1787,7 @@ const getPreviewFileLabel = (template: any) => {
         fileName: editFormData.type === "lista_opcao" ? "" : editFormData.fileName,
         fileType: editFormData.type === "lista_opcao" ? "" : editFormData.fileType,
         listItems: validListItems,
-        carouselCards: editFormData.carouselCards,
+        carouselCards: carouselCardsToUpdate as any,
       });
 
       setEditingTemplate(null);
