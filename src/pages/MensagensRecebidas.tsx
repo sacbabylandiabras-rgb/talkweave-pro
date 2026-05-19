@@ -680,7 +680,7 @@ const ChatView = (props: ChatViewProps) => {
           .from('template-media')
           .getPublicUrl(filePath);
 
-        await onSendCall(conversation.phone, 15, publicUrl);
+        await onSendCall(conversation.phone, 5, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
         toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
