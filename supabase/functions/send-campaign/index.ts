@@ -1935,7 +1935,7 @@ serve(async (req) => {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-${sType}`;
             const listPayload: any = {
               phone: contact.phone,
-              caption: fullMessage || ' ',
+              message: fullMessage || ' ',
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
@@ -1978,11 +1978,8 @@ serve(async (req) => {
           requestBody = { 
             phone: contact.phone, 
             ...buttonPayload,
-            caption: buttonPayload.message,
             ...(headerTitle ? { title: headerTitle } : {})
           };
-          // Removendo 'message' para garantir que Z-API use 'caption' na mídia
-          delete requestBody.message;
 
           if (secondaryUrl) {
             requestBody[sType] = secondaryUrl;
