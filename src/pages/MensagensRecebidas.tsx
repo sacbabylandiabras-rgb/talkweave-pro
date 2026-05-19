@@ -1862,7 +1862,10 @@ const ChatView = ({
               Configurações SIP para Chamadas
             </DialogTitle>
             <DialogDescription>
-              Utilize estas informações em seu cliente SIP (Softphone) para realizar chamadas.
+               Utilize estas informações em seu cliente SIP (Softphone) para realizar chamadas. 
+               <a href="https://developer.z-api.io/calls/sip-info" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block mt-1">
+                 Ver guia de configuração do Zoiper/MicroSIP
+               </a>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1894,6 +1897,17 @@ const ChatView = ({
                 {sipData?.sipToken || "---"}
               </div>
             </div>
+
+             <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800 space-y-2">
+               <p className="font-semibold">Como configurar:</p>
+               <ol className="list-decimal ml-4 space-y-1">
+                 <li>Baixe um Softphone (Zoiper ou MicroSIP).</li>
+                 <li>Crie uma nova conta do tipo <b>SIP</b>.</li>
+                 <li>Use o <b>Usuário</b> e <b>Servidor</b> acima.</li>
+                 <li>No campo de senha, use o <b>Token SIP</b>.</li>
+                 <li>Certifique-se que o transporte está como <b>UDP</b>.</li>
+               </ol>
+             </div>
 
             <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800 leading-relaxed">
               <p className="font-semibold mb-1 flex items-center gap-1">
