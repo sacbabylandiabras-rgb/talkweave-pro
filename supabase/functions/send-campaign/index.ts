@@ -1916,8 +1916,8 @@ serve(async (req) => {
           });
           if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
 
-          // Small delay to ensure order and avoid rejection
-          await sleep(Math.max(delayMs / 2, 1500));
+          // Delay maior para garantir ordem e evitar sobrecarga na instância
+          await sleep(Math.max(delayMs / 2, 2500));
 
           // Extract secondary media
           const secondaryFromCarousel = Array.isArray(campaignTemplate.carousel_cards) && campaignTemplate.carousel_cards[0]?.id === 'secondary'
@@ -1931,12 +1931,12 @@ serve(async (req) => {
 
           console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
-          if (secondaryUrl && !hasActionButtons) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/${sType === 'video' ? 'send-button-list-video' : 'send-button-list-image'}`;
+          if (secondaryUrl && !hasActionButtons && sType === 'image') {
+            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list-image`;
             const listPayload = {
               phone: contact.phone,
               caption: fullMessage || ' ',
-              [sType]: secondaryUrl,
+              image: secondaryUrl,
               buttonList: {
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
@@ -1954,44 +1954,38 @@ serve(async (req) => {
 
             if (listResponse.ok) {
               const result = await listResponse.json();
-              campaignSend.status = 'sent';
-              campaignSend.sent_at = new Date().toISOString();
-              const ackId = getZapiAckId(result);
-              if (ackId) campaignSend.message_id = String(ackId);
-              results.push({ phone: contact.phone, success: true, messageId: ackId });
-              await persistCampaignSend(campaignSend, reusableSendId);
-              return { stop: false };
+              if (isZapiConfirmed(result)) {
+                campaignSend.status = 'sent';
+                campaignSend.sent_at = new Date().toISOString();
+                const ackId = getZapiAckId(result);
+                if (ackId) campaignSend.message_id = String(ackId);
+                results.push({ phone: contact.phone, success: true, messageId: ackId });
+                await persistCampaignSend(campaignSend, reusableSendId);
+                return { stop: false };
+              }
+              console.log(`⚠️ [Campaign] ${listEndpoint} não confirmou envio (confirmed=false)`);
+            } else {
+              const errorBody = await listResponse.json().catch(() => ({}));
+              if (listResponse.status !== 404 && errorBody.error !== 'NOT_FOUND') {
+                console.warn(`⚠️ [Campaign] Erro ao enviar composite list layout: ${JSON.stringify(errorBody)}`);
+              }
             }
+          }
 
-            const errorBody = await listResponse.json().catch(() => ({}));
-            if (listResponse.status !== 404 && errorBody.error !== 'NOT_FOUND') {
-               throw new Error(`Erro ao enviar botões de lista (composite): ${JSON.stringify(errorBody)}`);
-            }
-            
-            console.log(`🔄 [Campaign] Composite ${listEndpoint} not found, falling back to /send-button-actions`);
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-            requestBody = { 
-              phone: contact.phone, 
-              ...buttonPayload,
-              caption: buttonPayload.message,
-              ...(headerTitle ? { title: headerTitle } : {})
-            };
-            if (secondaryUrl) {
-              requestBody[sType] = secondaryUrl;
-            }
-          } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
-            const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
-            requestBody = { 
-              phone: contact.phone, 
-              ...buttonPayload,
-              caption: buttonPayload.message,
-              ...(headerTitle ? { title: headerTitle } : {})
-            };
-            if (secondaryUrl) {
-              requestBody[sType] = secondaryUrl;
-            }
+          // Fallback para send-button-actions (mais estável para vídeos compostos)
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage || ' ', reusableSendId);
+          requestBody = { 
+            phone: contact.phone, 
+            ...buttonPayload,
+            caption: buttonPayload.message,
+            ...(headerTitle ? { title: headerTitle } : {})
+          };
+          // Removendo 'message' para garantir que Z-API use 'caption' na mídia
+          delete requestBody.message;
+
+          if (secondaryUrl) {
+            requestBody[sType] = secondaryUrl;
           }
 
         } else if (templateType === 'imagem_botoes' && hasMedia && hasButtons) {
