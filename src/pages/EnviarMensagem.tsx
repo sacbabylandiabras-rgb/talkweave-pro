@@ -1294,15 +1294,16 @@ const EnviarMensagem = () => {
      if (modeloData) {
        return {
          ...modeloData,
-         // Se o modelo tiver header/footer mas o usuário editou nos campos (para botões), usar os campos
          header: titulo || modeloData.header,
          footer: rodape || modeloData.footer,
          content: mensagem || modeloData.content,
-         buttons: modeloData.buttons || (botoesAcao.some(b => b.label) ? botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : [])
+         mediaUrl: modeloData.mediaUrl, // Garantir que a mídia do modelo seja usada
+         fileType: modeloData.fileType,
+         fileName: modeloData.fileName,
+         buttons: modeloData.buttons || (botoesAcao.some(b => b.label) ? botoesAcao.filter(b => b.label).map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : [])
        };
      }
  
-     // Se não tiver modelo, simular um modelo com o conteúdo atual
      return {
        header: titulo,
        footer: rodape,
@@ -1310,7 +1311,7 @@ const EnviarMensagem = () => {
        mediaUrl: arquivoMidia ? URL.createObjectURL(arquivoMidia) : undefined,
        fileType: arquivoMidia?.type,
        fileName: arquivoMidia?.name,
-       buttons: botoesAcao.some(b => b.label) ? botoesAcao.map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : []
+       buttons: botoesAcao.some(b => b.label) ? botoesAcao.filter(b => b.label).map((b, i) => ({ id: i.toString(), text: b.label, type: b.type.toLowerCase() })) : []
      };
    }, [modeloSelecionado, modelosDisponiveis, mensagem, arquivoMidia, botoesAcao, titulo, rodape]);
  
