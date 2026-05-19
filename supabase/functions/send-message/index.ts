@@ -660,18 +660,15 @@ serve(async (req) => {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               ...payload,
-              // For these composite types, we need to ensure the secondary media URL is used
+              // Z-API handles image/video headers in /send-button-actions
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
             // Remove audio related fields from base payload to avoid sending audio twice
             delete secondaryPayload.audio;
 
-            if (secondaryMediaType === 'image') {
-              return sendZapi('/send-button-actions-image', secondaryPayload, 'composite-image-buttons');
-            } else {
-              return sendZapi('/send-button-actions-video', secondaryPayload, 'composite-video-buttons');
-            }
+            // Use the standard /send-button-actions as it is more reliable and supports media headers
+            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-buttons`);
           } else {
             console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
