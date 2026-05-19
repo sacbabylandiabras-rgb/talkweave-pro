@@ -677,7 +677,7 @@ const ChatView = ({
           .from('template-media')
           .getPublicUrl(filePath);
 
-        await sendCall(conversation.phone, 20, publicUrl);
+        await onSendCall(conversation.phone, 20, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
         toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
@@ -1272,7 +1272,7 @@ const ChatView = ({
                       <Button 
                         variant="outline" 
                         className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
-                        onClick={() => conversation && sendCall(conversation.phone, 20)}
+                        onClick={() => conversation && onSendCall(conversation.phone, 20)}
                         title="Apenas chamar sem áudio"
                       >
                         <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
