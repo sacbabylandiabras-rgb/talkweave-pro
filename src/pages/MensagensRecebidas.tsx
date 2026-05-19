@@ -2578,6 +2578,7 @@ const MensagensRecebidas = () => {
             }}
             onSendCall={async (phone, duration, audioUrl) => {
               const cleanPhone = String(phone || '').replace(/\D/g, '');
+              console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
               await sendCallZapi(cleanPhone, duration, audioUrl);
             }}
             onForwardMessage={async (phone, messageId) => {
