@@ -965,7 +965,7 @@ const ButtonEditor = memo(({
 
 // Validação dos botões: garante texto e, para URL/CALL, valor preenchido e válido.
 const validateButtons = (
-  buttons: Array<{ id: string; text: string; type: 'reply' | 'url' | 'call'; value?: string }> | undefined,
+  buttons: Array<{ id: string; text: string; type: 'reply' | 'url' | 'call' | 'copy'; value?: string }> | undefined,
 ): string | null => {
   if (!Array.isArray(buttons) || buttons.length === 0) return null;
   for (let i = 0; i < buttons.length; i++) {
