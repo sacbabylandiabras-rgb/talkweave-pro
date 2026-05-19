@@ -1194,15 +1194,24 @@ const EnviarMensagem = () => {
     const modelo = modelosDisponiveis.find(m => m.id === modeloId);
     if (modelo) {
       const special = parseSpecialTemplate(modelo.content);
+      
+      // Se for um modelo especial (PIX, Localização, etc), limpa a mensagem e deixa o motor de envio tratar
       if (special) {
-        setMensagem(special.description || "");
+        setMensagem(""); 
+        setTitulo("");
+        setRodape("");
         toast({
           title: "Modelo especial selecionado",
           description: `${modelo.name} (${special.type}) será enviado pelo formato nativo`,
         });
         return;
       }
-      setMensagem(modelo.content);
+      
+      // Se for um modelo normal, preenche os campos
+      setMensagem(modelo.content || "");
+      setTitulo(modelo.header || "");
+      setRodape(modelo.footer || "");
+      
       toast({
         title: "Modelo aplicado!",
         description: `Modelo "${modelo.name}" foi aplicado à mensagem`,
