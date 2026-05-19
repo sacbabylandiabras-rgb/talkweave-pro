@@ -1304,11 +1304,11 @@ const getZAPIConfig = async () => {
     }
   };
 
-  const sendCall = async (phone: string, duration: number = 20, audioUrl?: string) => {
+  const sendCall = async (phone: string, duration: number = 15, audioUrl?: string) => {
     setLoading(true);
     try {
       const cleanPhone = String(phone || '').replace(/\D/g, '');
-      const data = await invokeZapiAction('send-call', cleanPhone, { callDuration: duration, audioUrl });
+      const data = await invokeZapiAction('send-call', cleanPhone, { callDuration: duration, callAudioUrl: audioUrl });
       toast({ 
         title: "Chamada iniciada", 
         description: `O comando de chamada foi enviado (Duração: ${duration}s).` 

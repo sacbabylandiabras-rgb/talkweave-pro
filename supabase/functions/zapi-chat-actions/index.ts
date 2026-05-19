@@ -266,10 +266,10 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
 
       const callPayload: any = {
         phone: callPhone,
-        callDuration: payload?.callDuration || 20
+        callDuration: Math.min(payload?.callDuration || 15, 15)
       };
-      if (payload?.audioUrl) {
-        callPayload.audioUrl = payload.audioUrl;
+      if (payload?.audioUrl || payload?.callAudioUrl) {
+        callPayload.callAudioUrl = payload?.callAudioUrl || payload?.audioUrl;
       }
       return { method: 'POST', path: '/send-call', body: callPayload };
     }
