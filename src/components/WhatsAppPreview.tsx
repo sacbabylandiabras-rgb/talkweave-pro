@@ -150,7 +150,7 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
            )}
 
           <div className="text-[#e9edef] text-[13.5px] whitespace-pre-wrap break-words leading-snug">
-            {content}
+            {content || (template.content && !isSpecial ? template.content : "")}
           </div>
 
           {template.footer && (
@@ -184,6 +184,16 @@ export const WhatsAppPreview = ({ template, className }: WhatsAppPreviewProps) =
                 {btn.text}
               </div>
             ))}
+          </div>
+        )}
+        
+        {/* Adicionar suporte a Lista de Opções na prévia */}
+        {template.listItems && template.listItems.length > 0 && (
+          <div className="mt-1 w-[90%]">
+            <div className="bg-[#202c33] py-2 px-4 rounded-lg text-[#3eb2f9] text-[13px] font-medium text-center shadow-sm flex items-center justify-center gap-2 border border-white/5">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+              Menu de Opções
+            </div>
           </div>
         )}
       </div>
