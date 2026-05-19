@@ -687,6 +687,7 @@ serve(async (req) => {
               
               // Ajuste de caption para os endpoints de lista
               secondaryPayload.caption = message || ' ';
+              secondaryPayload[secondaryMediaType] = secondaryMediaUrl;
               
               console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
               try {
@@ -738,12 +739,7 @@ serve(async (req) => {
             };
             // Ensure we use caption as expected by these endpoints
             (finalPayload as any).caption = (finalPayload as any).message;
-
-            if (mediaType === 'image') {
-              (finalPayload as any).image = mediaUrl;
-            } else {
-              (finalPayload as any).video = mediaUrl;
-            }
+            (finalPayload as any)[mediaType] = mediaUrl;
             
             console.log(`🎬 Sending media with ${endpoint}`);
             try {
