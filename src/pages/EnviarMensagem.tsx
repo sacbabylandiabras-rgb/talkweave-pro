@@ -168,7 +168,7 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    const mensagemPersonalizada = ((modeloData?.content || mensagem) || "")
+    const mensagemPersonalizada = (mensagem || modeloData?.content || "")
       .replace(/\{nome\}/g, nome || "")
       .replace(/\{numero\}/g, phone);
 
