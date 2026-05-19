@@ -651,20 +651,23 @@ serve(async (req) => {
           console.log(`🎤 Sending composite audio: ${mediaUrl}`);
           await sendZapiMedia(mediaUrl, 'audio');
           
+          // Small delay to ensure order and avoid rejection for speed
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           // Send secondary media
-          // Based on Modelos.tsx, secondary media is stored in carouselCards[0].image or 'header' field
+          // Secondary media can be in carouselCards, specialPayload or the title field (if it's a URL)
           const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
             ? payloadRaw.carouselCards[0].image
             : null;
           
-          // If mediaUrl is specified and it's an audio file, it's the audio.
-          // The secondaryMediaUrl (video or image) should be in secondaryMediaFromCarousel or requested as title/header if it starts with http
-          const secondaryMediaUrl = secondaryMediaFromCarousel || payloadRaw.secondaryMediaUrl || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null);
-          const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
+          const secondaryMediaUrl = secondaryMediaFromCarousel || specialPayload?.secondaryMediaUrl || (title?.startsWith('http') ? title : null);
+          const headerTitle = secondaryMediaFromCarousel ? title : (!title?.startsWith('http') ? title : undefined);
           
-          const secondaryMediaType = payloadRaw.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
+          const secondaryMediaType = specialPayload?.secondaryMediaType || (Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary' && payloadRaw.carouselCards[0].title === 'video' ? 'video' : (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons' ? 'video' : 'image'));
           
-          if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
+          console.log(`🎬 Composite secondary media debug: url=${secondaryMediaUrl}, type=${secondaryMediaType}, title=${headerTitle}, message=${message}`);
+
+          if (secondaryMediaUrl && String(secondaryMediaUrl).startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
               phone: resolvedPhone,
@@ -675,8 +678,6 @@ serve(async (req) => {
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
-            // If only reply buttons and it's image/video, use the more specific Z-API endpoints
-            // as suggested by the user link (send-button-list-video)
             // If only reply buttons and it's image/video, try the more specific Z-API endpoints first
             if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
               const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';

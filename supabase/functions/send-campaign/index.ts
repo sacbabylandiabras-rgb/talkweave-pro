@@ -1916,7 +1916,8 @@ serve(async (req) => {
           });
           if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
 
-          await sleep(Math.max(delayMs / 2, 1000));
+          // Small delay to ensure order and avoid rejection
+          await sleep(Math.max(delayMs / 2, 1500));
 
           // Extract secondary media
           const secondaryFromCarousel = Array.isArray(campaignTemplate.carousel_cards) && campaignTemplate.carousel_cards[0]?.id === 'secondary'
@@ -1927,6 +1928,8 @@ serve(async (req) => {
           const headerTitle = secondaryFromCarousel ? campaignTemplate.header : (!campaignTemplate.header?.startsWith('http') ? campaignTemplate.header : undefined);
           const hasActionButtons = (campaignTemplate.buttons || []).some((b: any) => ['CALL', 'URL', 'COPY'].includes(String(b.type || '').toUpperCase()));
           const sType = templateType === 'audio_video_botoes' ? 'video' : 'image';
+
+          console.log(`🎬 [Campaign] Composite secondary media debug: url=${secondaryUrl}, type=${sType}, title=${headerTitle}`);
 
           if (secondaryUrl && !hasActionButtons) {
             const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/${sType === 'video' ? 'send-button-list-video' : 'send-button-list-image'}`;

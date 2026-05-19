@@ -302,7 +302,10 @@ const EnviarMensagem = () => {
         modeloData?.footer || undefined,
         modeloData!.mediaUrl!, // Áudio principal
         'audio',
-        undefined,
+        { 
+          secondaryMediaUrl, 
+          secondaryMediaType: templateType === 'audio_video_botoes' ? 'video' : 'image' 
+        },
         templateType,
         modeloData?.carouselCards
       );
