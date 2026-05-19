@@ -248,7 +248,7 @@ serve(async (req) => {
             console.log(`Updated campaign_send ${campaignSend.id} to ${updateData.status} via message_id ${msgId}`);
           }
         }
-       } else if (messageIds.length > 0 && (status === "ERROR" || error)) {
+       } else if (messageIds.length > 0 && (upperStatus === "ERROR" || error)) {
          for (const msgId of messageIds) {
            const finalErrorMessage = isShadowBanError 
              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio. Evite enviar a mesma mensagem para muitos contatos e tente novamente mais tarde."
