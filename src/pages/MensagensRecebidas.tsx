@@ -2118,7 +2118,7 @@ const MensagensRecebidas = () => {
      refetch();
    }, []); // roda só uma vez ao montar
 
-   const { forwardMessage, sendReaction, sendSticker, sendGif } = useZapi();
+    const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi } = useZapi();
    const { listTags: pageListTags } = useZapi();
  
    useEffect(() => {
