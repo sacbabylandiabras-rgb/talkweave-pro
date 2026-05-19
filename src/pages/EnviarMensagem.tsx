@@ -172,6 +172,7 @@ const EnviarMensagem = () => {
     const instanceId = currentSelectedInstanceId === '__rotate_all__' ? undefined : currentSelectedInstanceId;
 
     if (modeloData) {
+      // Se for um modelo de áudio com botões ou mídia complexa, o send-campaign já lida melhor
       const { data, error } = await supabase.functions.invoke('send-campaign', {
         body: {
           campaignId: `direct-${Date.now()}`,
@@ -221,6 +222,38 @@ const EnviarMensagem = () => {
         await sendDocument(phone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
       }
       return legenda || mensagemPersonalizada;
+    }
+
+    // Se tiver botões ou lista mas não for modelo, enviar via hook manual
+    const activeTab = document.querySelector('[role="tablist"] [aria-selected="true"]')?.getAttribute('data-value');
+    
+    if (activeTab === 'botoes' && botoesAcao.some(b => b.label)) {
+      const validButtons = botoesAcao.filter(btn => btn.label.trim() !== "");
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada,
+        validButtons.map(btn => ({
+          id: btn.id,
+          type: btn.type,
+          label: btn.label,
+          ...(btn.type === "CALL" && { phone: btn.phone }),
+          ...(btn.type === "URL" && { url: btn.url }),
+          ...(btn.type === "COPY" && { copyText: btn.copyText })
+        })),
+        titulo || undefined,
+        rodape || undefined
+      );
+      return mensagemPersonalizada;
+    }
+
+    if (activeTab === 'lista' && opcoes.some(o => o.title)) {
+      const validOptions = opcoes.filter(opt => opt.title.trim() !== "");
+      await sendOptionList(phone, mensagemPersonalizada, {
+        title: tituloLista || "Opções",
+        buttonLabel: labelBotaoLista || "Ver opções",
+        options: validOptions
+      });
+      return mensagemPersonalizada;
     }
 
     await sendMessage(phone, mensagemPersonalizada);
@@ -1200,6 +1233,8 @@ const EnviarMensagem = () => {
         setMensagem(""); 
         setTitulo("");
         setRodape("");
+        setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
+        setOpcoes([{id: "1", title: "", description: ""}]);
         toast({
           title: "Modelo especial selecionado",
           description: `${modelo.name} (${special.type}) será enviado pelo formato nativo`,
@@ -1211,6 +1246,33 @@ const EnviarMensagem = () => {
       setMensagem(modelo.content || "");
       setTitulo(modelo.header || "");
       setRodape(modelo.footer || "");
+
+      // Se o modelo tiver botões, preencher o estado de botões para as abas que usam botoesAcao
+      if (modelo.buttons && modelo.buttons.length > 0) {
+        const novosBotoes = modelo.buttons.map((btn: any, index: number) => ({
+          id: btn.id || (index + 1).toString(),
+          type: (btn.type || "REPLY").toUpperCase() as any,
+          label: btn.text || btn.label || "",
+          phone: btn.type === "call" ? (btn.value || "") : "",
+          url: btn.type === "url" ? (btn.value || "") : "",
+          copyText: btn.type === "copy" ? (btn.value || "") : "",
+        }));
+        setBotoesAcao(novosBotoes);
+      } else {
+        setBotoesAcao([{id: "1", type: "REPLY", label: "", phone: "", url: "", copyText: ""}]);
+      }
+
+      // Se o modelo tiver itens de lista, preencher o estado de opções
+      if (modelo.listItems && modelo.listItems.length > 0) {
+        setOpcoes(modelo.listItems.map((it: any, index: number) => ({
+          id: it.id || (index + 1).toString(),
+          title: it.title || "",
+          description: it.description || "",
+        })));
+        if (modelo.header) setTituloLista(modelo.header);
+      } else {
+        setOpcoes([{id: "1", title: "", description: ""}]);
+      }
       
       // Limpar mídia manual se o modelo já tiver mídia ou for um tipo que não aceita mistura simples
       if (modelo.mediaUrl) {
@@ -1330,7 +1392,10 @@ const EnviarMensagem = () => {
                     setLegenda={setLegenda}
                     modeloSelecionado={modeloSelecionado}
                     setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
+                    aplicarModelo={(id) => {
+                      setModeloSelecionado(id);
+                      aplicarModelo(id);
+                    }}
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
@@ -1412,7 +1477,10 @@ const EnviarMensagem = () => {
                     setLegenda={setLegenda}
                     modeloSelecionado={modeloSelecionado}
                     setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
+                    aplicarModelo={(id) => {
+                      setModeloSelecionado(id);
+                      aplicarModelo(id);
+                    }}
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
@@ -1617,7 +1685,10 @@ const EnviarMensagem = () => {
                     setLegenda={setLegenda}
                     modeloSelecionado={modeloSelecionado}
                     setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
+                    aplicarModelo={(id) => {
+                      setModeloSelecionado(id);
+                      aplicarModelo(id);
+                    }}
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
@@ -1753,7 +1824,10 @@ const EnviarMensagem = () => {
                     setLegenda={setLegenda}
                     modeloSelecionado={modeloSelecionado}
                     setModeloSelecionado={setModeloSelecionado}
-                    aplicarModelo={aplicarModelo}
+                    aplicarModelo={(id) => {
+                      setModeloSelecionado(id);
+                      aplicarModelo(id);
+                    }}
                     modelosDisponiveis={modelosDisponiveis}
                     viewOnce={viewOnce}
                     setViewOnce={setViewOnce}
