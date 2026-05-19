@@ -652,8 +652,13 @@ serve(async (req) => {
           await sendZapiMedia(mediaUrl, 'audio');
           
           // Send secondary media
-          // Based on Modelos.tsx, secondary media is stored in 'header' field when creating template
-          const secondaryMediaUrl = payloadRaw.header || title;
+          // Based on Modelos.tsx, secondary media is stored in carouselCards[0].image or 'header' field
+          const secondaryMediaFromCarousel = Array.isArray(payloadRaw.carouselCards) && payloadRaw.carouselCards[0]?.id === 'secondary'
+            ? payloadRaw.carouselCards[0].image
+            : null;
+          const secondaryMediaUrl = secondaryMediaFromCarousel || (payloadRaw.header?.startsWith('http') ? payloadRaw.header : null) || title;
+          const headerTitle = secondaryMediaFromCarousel ? payloadRaw.header : (!payloadRaw.header?.startsWith('http') ? payloadRaw.header : undefined);
+          
           const secondaryMediaType = (specialType === 'audio_video_botoes' || specialType === 'audio-video-buttons') ? 'video' : 'image';
           
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
