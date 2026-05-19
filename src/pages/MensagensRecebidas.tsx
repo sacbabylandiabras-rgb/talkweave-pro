@@ -1279,25 +1279,30 @@ const ChatView = (props: ChatViewProps) => {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
-                        onClick={() => conversation && onSendCall(conversation.phone, 15)}
-                        title="Apenas chamar sem áudio"
-                      >
-                        <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
-                        Chamar
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 justify-start text-[11px] h-8 gap-1.5 border-blue-200 hover:bg-blue-50 px-2" 
-                        onClick={() => callAudioInputRef.current?.click()}
-                        disabled={isUploadingAudio}
-                        title="Subir áudio para tocar na chamada"
-                      >
-                        {isUploadingAudio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mic className="w-3 h-3 text-blue-600 shrink-0" />}
-                        {isUploadingAudio ? "Sendo..." : "Com Áudio"}
-                      </Button>
+                       <div className="flex flex-col gap-1.5 w-full">
+                         <Button 
+                           variant="outline" 
+                           className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
+                           onClick={() => conversation && onSendCall(conversation.phone, 15)}
+                           title="Apenas chamar sem áudio (Geralmente liberado em todos os planos)"
+                         >
+                           <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
+                           Chamada Simples (Sem Áudio)
+                         </Button>
+                         <Button 
+                           variant="outline" 
+                           className="w-full justify-start text-[11px] h-8 gap-1.5 border-blue-200 hover:bg-blue-50 px-2" 
+                           onClick={() => callAudioInputRef.current?.click()}
+                           disabled={isUploadingAudio}
+                           title="Subir áudio para tocar na chamada (Requer plano compatível na Z-API)"
+                         >
+                           {isUploadingAudio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mic className="w-3 h-3 text-blue-600 shrink-0" />}
+                           {isUploadingAudio ? "Enviando Áudio..." : "Chamada com Áudio (Beta)"}
+                         </Button>
+                         <p className="text-[9px] text-muted-foreground leading-tight px-1 italic">
+                           Obs: Se a chamada com áudio falhar, tente a chamada simples.
+                         </p>
+                       </div>
                       <input 
                         type="file" 
                         ref={callAudioInputRef} 
