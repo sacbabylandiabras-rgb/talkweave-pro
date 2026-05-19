@@ -274,8 +274,12 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       }
       return { method: 'POST', path: '/send-call', body: callPayload };
     }
-    case 'call-token':
+    case 'call-token': {
+      // O endpoint correto é /instances/{instanceId}/token/{token}/call-token
+      // Como a base já tem /instances/{instanceId}/token/{token}, o path deve ser /call-token
+      // Importante: a Z-API recomenda GET para este endpoint.
       return { method: 'GET', path: '/call-token' };
+    }
     case 'sip-token':
       return { method: 'GET', path: '/sip-token' };
      case 'sip-info':
