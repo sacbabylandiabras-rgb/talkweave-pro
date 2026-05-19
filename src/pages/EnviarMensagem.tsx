@@ -168,124 +168,198 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    if (modeloData) {
-      const specialTpl = parseSpecialTemplate(modeloData.content);
-      const templateType = String(modeloData.type || '').toLowerCase();
-      const mensagemPersonalizada = (mensagem || modeloData.content || '')
-        .replace(/\{nome\}/g, nome || '')
-        .replace(/\{numero\}/g, phone);
+    const currentSelectedInstanceId = getSelectedCampaignInstanceId();
+    const instanceId = currentSelectedInstanceId === '__rotate_all__' ? undefined : currentSelectedInstanceId;
 
-      const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
-        const type = (btn.type || 'REPLY').toUpperCase();
-        const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
-        if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
-        else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
-        else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
-        return b;
+    if (modeloData) {
+      // Usar a mesma lógica de envio de campanhas para garantir fidelidade
+      const { data, error } = await supabase.functions.invoke('send-campaign', {
+        body: {
+          campaignId: `direct-${Date.now()}`,
+          contacts: [{ phone, name: nome || "Cliente" }],
+          instanceId,
+          _directSendTemplateId: modeloData.id
+          if (modeloData) {
+  const specialTpl = parseSpecialTemplate(modeloData.content);
+  const templateType = String(modeloData.type || '').toLowerCase();
+  const mensagemPersonalizada = (mensagem || modeloData.content || '')
+    .replace(/\{nome\}/g, nome || '')
+    .replace(/\{numero\}/g, phone);
+
+  const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
+    const type = (btn.type || 'REPLY').toUpperCase();
+    const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
+    if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
+    else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
+    else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
+    return b;
+  });
+
+  const isListTemplate = ['lista_opcao', 'lista', 'lista de opção'].includes(templateType);
+  const isCopyPasteTemplate = ['copia_cola', 'copia e cola', 'copy_paste'].includes(templateType);
+  const isDocumentTemplate = ['arquivo', 'documento'].includes(templateType);
+  const isContactTemplate = ['contato', 'contact', 'contato (vcard)', 'multiplos_contatos'].includes(templateType);
+  const isProductTemplate = ['produto', 'product'].includes(templateType);
+  const temListaOpcoes = isListTemplate && Array.isArray(modeloData.listItems) && modeloData.listItems.length > 0;
+  const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData.carouselCards) && modeloData.carouselCards.length > 0;
+  const audioComBotoes = ['audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+  const videoComBotoes = templateType === 'video_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+  const imagemComBotoes = templateType === 'imagem_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+  const documentoComBotoes = isDocumentTemplate && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+  const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
+  const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.mediaUrl;
+
+  if (specialTpl && specialTpl.type !== 'copia_cola') {
+    await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
+    return mensagemPersonalizada;
+  }
+  if (isContactTemplate) {
+    const s = parseSpecialTemplate(modeloData.content);
+    await sendMessageContact(phone, s?.contactName || '', s?.contactPhone || '', s?.contactBusinessDescription || '');
+    return mensagemPersonalizada;
+  }
+  if (isProductTemplate) {
+    const s = parseSpecialTemplate(modeloData.content);
+    await sendMessageCatalog(phone, s?.catalogId || '', s?.productId || '', mensagemPersonalizada, modeloData.footer || '');
+    return mensagemPersonalizada;
+  }
+  if (temCarrossel) {
+    await sendCarousel(phone, modeloData.carouselCards as any, mensagemPersonalizada);
+    return mensagemPersonalizada;
+  }
+  if (audioComBotoes) {
+    await sendAudio(phone, modeloData.mediaUrl!, '');
+    const secondaryUrl = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
+      ? (modeloData.carouselCards as any)[0].image
+      : (modeloData.header?.startsWith('http') ? modeloData.header : null);
+    const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
+    const headerTitle = !modeloData.header?.startsWith('http') ? modeloData.header : undefined;
+    await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), headerTitle, modeloData.footer, modeloData.mediaUrl!, 'audio', { secondaryMediaUrl: secondaryUrl, secondaryMediaType }, templateType, modeloData.carouselCards as any);
+    return mensagemPersonalizada;
+  }
+  if (videoComBotoes) {
+    await sendVideo(phone, modeloData.mediaUrl!, '', viewOnce, isPtv);
+    await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
+    return mensagemPersonalizada;
+  }
+  if (imagemComBotoes) {
+    await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer, modeloData.mediaUrl!, 'image');
+    return mensagemPersonalizada;
+  }
+  if (documentoComBotoes) {
+    await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'pdf', '');
+    await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
+    return mensagemPersonalizada;
+  }
+  if (isListTemplate && !temListaOpcoes) throw new Error('Modelo de lista sem opções válidas.');
+  if (temListaOpcoes) {
+    await sendOptionList(phone, mensagemPersonalizada || modeloData.content || '', {
+      title: modeloData.header || modeloData.name || 'Opções',
+      buttonLabel: 'Ver opções',
+      options: modeloData.listItems!.filter((it: any) => String(it.title || '').trim()).map((it: any, i: number) => ({ id: String(it.id ?? i + 1), title: String(it.title), description: it.description ? String(it.description) : '' }))
+    });
+    return mensagemPersonalizada;
+  }
+  if (isCopyPasteTemplate) {
+    const vars = (modeloData.variables && !Array.isArray(modeloData.variables)) ? (modeloData.variables as any).copyText : undefined;
+    const copyContent = specialTpl?.copyText || (typeof vars === 'string' ? vars : '') || modeloData.header || modeloData.content || mensagemPersonalizada || '';
+    await sendButtonActions(phone, mensagemPersonalizada || modeloData.name || 'Copiar', [{ id: 'copy_btn', type: 'COPY', label: 'Copiar', copyText: copyContent } as any]);
+    return mensagemPersonalizada;
+  }
+  if (temBotoes) {
+    await sendButtonActions(phone, mensagemPersonalizada, mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
+    return mensagemPersonalizada;
+  }
+  if (temMidiaModelo) {
+    const caption = legenda || mensagemPersonalizada;
+    if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
+    else if (['video', 'video_botoes'].includes(templateType)) await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
+    else if (isDocumentTemplate) await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
+    else await sendImage(phone, modeloData.mediaUrl!, caption);
+    return caption;
+  }
+  await sendMessage(phone, mensagemPersonalizada);
+  return mensagemPersonalizada;
+}
+        }
       });
 
-      const isListTemplate = ['lista_opcao', 'lista', 'lista de opção'].includes(templateType);
-      const isCopyPasteTemplate = ['copia_cola', 'copia e cola', 'copy_paste'].includes(templateType);
-      const isDocumentTemplate = ['arquivo', 'documento'].includes(templateType);
-      const isContactTemplate = ['contato', 'contact', 'contato (vcard)', 'multiplos_contatos'].includes(templateType);
-      const isProductTemplate = ['produto', 'product'].includes(templateType);
-      const temListaOpcoes = isListTemplate && Array.isArray(modeloData.listItems) && modeloData.listItems.length > 0;
-      const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData.carouselCards) && modeloData.carouselCards.length > 0;
-      const audioComBotoes = ['audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const videoComBotoes = templateType === 'video_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const imagemComBotoes = templateType === 'imagem_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const documentoComBotoes = isDocumentTemplate && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
-      const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.mediaUrl;
+      if (error) {
+        console.error('Erro ao enviar via send-campaign:', error);
+        throw new Error(error.message || 'Erro ao processar envio do modelo');
+      }
 
-      if (specialTpl && specialTpl.type !== 'copia_cola') {
-        await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
-        return mensagemPersonalizada;
+      if (data?.error) {
+        throw new Error(data.error);
       }
-      if (isContactTemplate) {
-        const s = parseSpecialTemplate(modeloData.content);
-        await sendMessageContact(phone, s?.contactName || '', s?.contactPhone || '', s?.contactBusinessDescription || '');
-        return mensagemPersonalizada;
-      }
-      if (isProductTemplate) {
-        const s = parseSpecialTemplate(modeloData.content);
-        await sendMessageCatalog(phone, s?.catalogId || '', s?.productId || '', mensagemPersonalizada, modeloData.footer || '');
-        return mensagemPersonalizada;
-      }
-      if (temCarrossel) {
-        await sendCarousel(phone, modeloData.carouselCards as any, mensagemPersonalizada);
-        return mensagemPersonalizada;
-      }
-      if (audioComBotoes) {
-        await sendAudio(phone, modeloData.mediaUrl!, '');
-        const secondaryUrl = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
-          ? (modeloData.carouselCards as any)[0].image
-          : (modeloData.header?.startsWith('http') ? modeloData.header : null);
-        const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
-        const headerTitle = !modeloData.header?.startsWith('http') ? modeloData.header : undefined;
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), headerTitle, modeloData.footer, modeloData.mediaUrl!, 'audio', { secondaryMediaUrl: secondaryUrl, secondaryMediaType }, templateType, modeloData.carouselCards as any);
-        return mensagemPersonalizada;
-      }
-      if (videoComBotoes) {
-        await sendVideo(phone, modeloData.mediaUrl!, '', viewOnce, isPtv);
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
-        return mensagemPersonalizada;
-      }
-      if (imagemComBotoes) {
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer, modeloData.mediaUrl!, 'image');
-        return mensagemPersonalizada;
-      }
-      if (documentoComBotoes) {
-        await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'pdf', '');
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
-        return mensagemPersonalizada;
-      }
-      if (isListTemplate && !temListaOpcoes) throw new Error('Modelo de lista sem opções válidas.');
-      if (temListaOpcoes) {
-        await sendOptionList(phone, mensagemPersonalizada || modeloData.content || '', {
-          title: modeloData.header || modeloData.name || 'Opções',
-          buttonLabel: 'Ver opções',
-          options: modeloData.listItems!.filter((it: any) => String(it.title || '').trim()).map((it: any, i: number) => ({ id: String(it.id ?? i + 1), title: String(it.title), description: it.description ? String(it.description) : '' }))
-        });
-        return mensagemPersonalizada;
-      }
-      if (isCopyPasteTemplate) {
-        const vars = (modeloData.variables && !Array.isArray(modeloData.variables)) ? (modeloData.variables as any).copyText : undefined;
-        const copyContent = specialTpl?.copyText || (typeof vars === 'string' ? vars : '') || modeloData.header || modeloData.content || mensagemPersonalizada || '';
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.name || 'Copiar', [{ id: 'copy_btn', type: 'COPY', label: 'Copiar', copyText: copyContent } as any]);
-        return mensagemPersonalizada;
-      }
-      if (temBotoes) {
-        await sendButtonActions(phone, mensagemPersonalizada, mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
-        return mensagemPersonalizada;
-      }
-      if (temMidiaModelo) {
-        const caption = legenda || mensagemPersonalizada;
-        if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
-        else if (['video', 'video_botoes'].includes(templateType)) await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
-        else if (isDocumentTemplate) await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
-        else await sendImage(phone, modeloData.mediaUrl!, caption);
-        return caption;
-      }
-      await sendMessage(phone, mensagemPersonalizada);
-      return mensagemPersonalizada;
+
+      return (modeloData.content || modeloData.name || 'Modelo enviado')
+        .replace(/\{nome\}/g, nome || "")
+        .replace(/\{numero\}/g, phone);
     }
 
-    // Sem modelo — arquivo avulso ou texto manual
-    const msgFinal = (mensagem || '').replace(/\{nome\}/g, nome || '').replace(/\{numero\}/g, phone);
+    const mensagemPersonalizada = (mensagem || "")
+      .replace(/\{nome\}/g, nome || "")
+      .replace(/\{numero\}/g, phone);
 
     if (arquivoMidia) {
       const base64File = await convertToBase64(arquivoMidia);
-      const ext = arquivoMidia.name.split('.').pop()?.toLowerCase();
-      if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext || '')) await sendImage(phone, base64File, legenda || msgFinal);
-      else if (['mp4','avi','mov','wmv','flv','3gp','mkv','webm'].includes(ext || '')) await sendVideo(phone, base64File, legenda || msgFinal, viewOnce, isPtv);
-      else if (['mp3','wav','aac','ogg','m4a','wma','flac'].includes(ext || '')) await sendAudio(phone, base64File, legenda || msgFinal);
-      else await sendDocument(phone, base64File, arquivoMidia.name, ext || 'txt', legenda || msgFinal);
-      return legenda || msgFinal;
+      const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+      
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+      const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+      const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+      
+      const isImage = imageExtensions.includes(fileExtension || '');
+      const isVideo = videoExtensions.includes(fileExtension || '');
+      const isAudio = audioExtensions.includes(fileExtension || '');
+
+      if (isImage) {
+        await sendImage(phone, base64File, legenda || mensagemPersonalizada);
+      } else if (isVideo) {
+        await sendVideo(phone, base64File, legenda || mensagemPersonalizada, viewOnce, isPtv);
+      } else if (isAudio) {
+        await sendAudio(phone, base64File, legenda || mensagemPersonalizada);
+      } else {
+        await sendDocument(phone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
+      }
+      return legenda || mensagemPersonalizada;
     }
 
-    await sendMessage(phone, msgFinal);
-    return msgFinal;
+    // Se tiver botões ou lista mas não for modelo, enviar via hook manual
+    const activeTab = document.querySelector('[role="tablist"] [aria-selected="true"]')?.getAttribute('data-value');
+    
+    if (activeTab === 'botoes' && botoesAcao.some(b => b.label)) {
+      const validButtons = botoesAcao.filter(btn => btn.label.trim() !== "");
+      await sendButtonActions(
+        phone,
+        mensagemPersonalizada,
+        validButtons.map(btn => ({
+          id: btn.id,
+          type: btn.type,
+          label: btn.label,
+          ...(btn.type === "CALL" && { phone: btn.phone }),
+          ...(btn.type === "URL" && { url: btn.url }),
+          ...(btn.type === "COPY" && { copyText: btn.copyText })
+        })),
+        titulo || undefined,
+        rodape || undefined
+      );
+      return mensagemPersonalizada;
+    }
+
+    if (activeTab === 'lista' && opcoes.some(o => o.title)) {
+      const validOptions = opcoes.filter(opt => opt.title.trim() !== "");
+      await sendOptionList(phone, mensagemPersonalizada, {
+        title: tituloLista || "Opções",
+        buttonLabel: labelBotaoLista || "Ver opções",
+        options: validOptions
+      });
+      return mensagemPersonalizada;
+    }
+
+    await sendMessage(phone, mensagemPersonalizada);
+    return mensagemPersonalizada;
   };
 
   const handleSendIndividual = async (e: React.FormEvent) => {
@@ -708,7 +782,7 @@ const EnviarMensagem = () => {
             : null;
 
           const specialTpl = parseSpecialTemplate(modeloData?.content);
-          let mensagemPersonalizada = (mensagem || modeloData?.content || '')
+          let mensagemPersonalizada = mensagem
             .replace(/\{nome\}/g, contato.nome)
             .replace(/\{numero\}/g, contato.telefone);
 
