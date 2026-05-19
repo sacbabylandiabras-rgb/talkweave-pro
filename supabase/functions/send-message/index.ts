@@ -667,20 +667,38 @@ serve(async (req) => {
           if (secondaryMediaUrl && secondaryMediaUrl.startsWith('http')) {
             console.log(`🎬 Sending composite secondary media [${secondaryMediaType}]: ${secondaryMediaUrl}`);
             const secondaryPayload: any = { 
-              ...payload,
+              phone: resolvedPhone,
+              message: message || 'Escolha uma opção:',
               ...(headerTitle ? { title: headerTitle } : {}),
-              // Z-API handles image/video headers in /send-button-actions
+              ...(footer ? { footer } : {}),
+              ...mentionFlag(resolvedPhone),
               ...(secondaryMediaType === 'image' ? { image: secondaryMediaUrl } : { video: secondaryMediaUrl })
             };
             
+            // If only reply buttons and it's image/video, use the more specific Z-API endpoints
+            // as suggested by the user link (send-button-list-video)
+            if (!hasActionButtons && (secondaryMediaType === 'image' || secondaryMediaType === 'video')) {
+              const listEndpoint = secondaryMediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+              secondaryPayload.buttonList = {
+                buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+              };
+              console.log(`🎬 Sending composite secondary media with ${listEndpoint}`);
+              return sendZapi(listEndpoint, secondaryPayload, `composite-${secondaryMediaType}-list`);
+            }
+
+            secondaryPayload.buttonActions = buttons.map(b => ({
+              id: b.id,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : {}),
+              ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+            }));
+
             // Some Z-API instances expect caption for media even with buttons
             secondaryPayload.caption = secondaryPayload.message;
 
-            // Remove audio related fields from base payload to avoid sending audio twice
-            delete secondaryPayload.audio;
-
-            // Use the standard /send-button-actions as it is more reliable and supports media headers
-            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-buttons`);
+            console.log(`🎬 Sending composite secondary media with /send-button-actions`);
+            return sendZapi('/send-button-actions', secondaryPayload, `composite-${secondaryMediaType}-actions`);
           } else {
             console.log('⚠️ Secondary media URL missing or invalid for composite type, falling back to buttons only');
             return sendZapi('/send-button-actions', payload, 'composite-fallback-buttons');
