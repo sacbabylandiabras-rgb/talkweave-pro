@@ -633,6 +633,7 @@ serve(async (req) => {
         const payload: any = {
           phone: resolvedPhone,
           message: message || ' ',
+          caption: message || ' ',
           ...(title ? { title } : {}),
           ...(footer ? { footer } : {}),
           ...mentionFlag(resolvedPhone),
@@ -721,6 +722,7 @@ serve(async (req) => {
           const finalPayload = { 
             phone: resolvedPhone,
             message: message || ' ',
+            caption: message || ' ',
             ...(title ? { title } : {}),
             ...(footer ? { footer } : {}),
             ...mentionFlag(resolvedPhone)
