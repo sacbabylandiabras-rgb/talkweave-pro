@@ -171,7 +171,7 @@ const EnviarMensagem = () => {
     if (modeloData) {
       const specialTpl = parseSpecialTemplate(modeloData.content);
       const templateType = String(modeloData.type || '').toLowerCase();
-      const mensagemPersonalizada = (mensagem?.trim() || modeloData.content || '')
+      const mensagemPersonalizada = (mensagem || modeloData.content || '')
         .replace(/\{nome\}/g, nome || '')
         .replace(/\{numero\}/g, phone);
 
@@ -223,7 +223,7 @@ const EnviarMensagem = () => {
           : (modeloData.header?.startsWith('http') ? modeloData.header : null);
         const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
         const headerTitle = !modeloData.header?.startsWith('http') ? modeloData.header : undefined;
-        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || ' ', mapButtons(modeloData.buttons!), headerTitle, modeloData.footer, secondaryUrl, secondaryMediaType, { secondaryMediaUrl: secondaryUrl, secondaryMediaType }, templateType, modeloData.carouselCards as any);
+        await sendButtonActions(phone, mensagemPersonalizada || modeloData.content || '', mapButtons(modeloData.buttons!), headerTitle, modeloData.footer, modeloData.mediaUrl!, 'audio', { secondaryMediaUrl: secondaryUrl, secondaryMediaType }, templateType, modeloData.carouselCards as any);
         return mensagemPersonalizada;
       }
       if (videoComBotoes) {
