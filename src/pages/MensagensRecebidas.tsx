@@ -2432,6 +2432,67 @@ const MensagensRecebidas = () => {
        </div>
         <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
 
+        <Dialog open={sipInfoOpen} onOpenChange={setSipInfoOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-blue-600" />
+                Configurações SIP para Chamadas
+              </DialogTitle>
+              <DialogDescription>
+                Utilize estas informações em seu cliente SIP (Softphone) para realizar chamadas.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Servidor / Domain</Label>
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono">
+                    {sipData?.server || "sip.z-api.io"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Porta</Label>
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono">
+                    {sipData?.port || "5060"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Usuário / Ramal</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono break-all">
+                  {sipData?.username || sipData?.extension || "---"}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Senha / Token SIP</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md border text-sm font-mono break-all">
+                  {sipData?.sipToken || "---"}
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800 leading-relaxed">
+                <p className="font-semibold mb-1 flex items-center gap-1">
+                  <Key className="w-3 h-3" /> Token de Chamada:
+                </p>
+                <p className="break-all opacity-80">{sipData?.callToken || "Nenhum token disponível"}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSipInfoOpen(false)}>Fechar</Button>
+              <Button onClick={() => {
+                const text = `SIP Info:\nServer: ${sipData?.server}\nPort: ${sipData?.port}\nUser: ${sipData?.username}\nPass: ${sipData?.sipToken}`;
+                navigator.clipboard.writeText(text);
+                toast({ title: "Copiado", description: "Configurações copiadas para a área de transferência." });
+              }}>
+                Copiar Tudo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <ContactProfileDialog
           contact={selectedConversation ? {
             phone: selectedConversation.phone,
