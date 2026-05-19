@@ -1212,6 +1212,11 @@ const EnviarMensagem = () => {
       setTitulo(modelo.header || "");
       setRodape(modelo.footer || "");
       
+      // Limpar mídia manual se o modelo já tiver mídia ou for um tipo que não aceita mistura simples
+      if (modelo.mediaUrl) {
+        setArquivoMidia(null);
+      }
+      
       toast({
         title: "Modelo aplicado!",
         description: `Modelo "${modelo.name}" foi aplicado à mensagem`,
