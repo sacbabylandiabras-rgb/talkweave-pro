@@ -191,7 +191,7 @@ const getZAPIConfig = async () => {
         phone?: string;
         url?: string;
       }>;
-       specialType?: 'pix' | 'localizacao' | 'contato' | 'sticker';
+       specialType?: string;
       specialPayload?: Record<string, any>;
       carouselCards?: Array<{
         id?: string;
