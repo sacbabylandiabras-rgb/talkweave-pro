@@ -1840,8 +1840,8 @@ serve(async (req) => {
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
-              video: campaignTemplate.media_url,
               buttonList: {
+                video: campaignTemplate.media_url,
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
                   label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
@@ -1935,13 +1935,13 @@ serve(async (req) => {
               phone: contact.phone,
               message: fullMessage || ' ',
               buttonList: {
+                [sType]: secondaryUrl,
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
                   label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
                 }))
               }
             };
-            listPayload[sType] = secondaryUrl;
 
             console.log(`🎬 [Campaign] Attempting composite ${listEndpoint}`);
             const listResponse = await fetch(listEndpoint, { 
@@ -1991,8 +1991,8 @@ serve(async (req) => {
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || ' ',
-              image: campaignTemplate.media_url,
               buttonList: {
+                image: campaignTemplate.media_url,
                 buttons: (campaignTemplate.buttons || []).slice(0, 3).map((b: any, idx: number) => ({
                   id: b.id || String(idx + 1),
                   label: String(b.text || b.label || `Botão ${idx + 1}`).trim().slice(0, 20)
