@@ -1255,6 +1255,8 @@ const ChatView = (props: ChatViewProps) => {
                     </div>
                   </div>
 
+
+
                   
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground uppercase">Falar agora (SIP)</Label>
