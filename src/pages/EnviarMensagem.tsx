@@ -168,15 +168,23 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    const mensagemPersonalizada = (modeloData?.content || mensagem || "")
+    const mensagemPersonalizada = ((modeloData?.content || mensagem) || "")
       .replace(/\{nome\}/g, nome || "")
       .replace(/\{numero\}/g, phone);
+
+    const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
+      const type = (btn.type || 'REPLY').toUpperCase();
+      const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
+      if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
+      else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
+      else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
+      return b;
+    });
 
     if (modeloData) {
       const specialTpl = parseSpecialTemplate(modeloData.content);
       const templateType = String(modeloData.type || '').toLowerCase();
 
-      const isAudioTemplate = ['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType);
       const isListTemplate = ['lista_opcao', 'lista', 'lista de opção'].includes(templateType);
       const isCopyPasteTemplate = ['copia_cola', 'copia e cola', 'copy_paste'].includes(templateType);
       const isDocumentTemplate = ['arquivo', 'documento'].includes(templateType);
@@ -187,19 +195,10 @@ const EnviarMensagem = () => {
       const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData.carouselCards) && modeloData.carouselCards.length > 0;
       const audioComBotoes = ['audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const videoComBotoes = templateType === 'video_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const imagemComBotoes = (templateType === 'imagem_botoes') && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+      const imagemComBotoes = templateType === 'imagem_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const documentoComBotoes = isDocumentTemplate && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
-      const temBotoes = !specialTpl && !temCarrossel && !isAudioTemplate && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
+      const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
       const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.mediaUrl;
-
-      const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
-        const type = (btn.type || 'REPLY').toUpperCase();
-        const b: any = { id: btn.id || Math.random().toString(), type, label: btn.text || btn.label || 'Botão' };
-        if (type === 'CALL' && (btn.phone || btn.value)) b.phone = btn.phone || btn.value;
-        else if (type === 'URL' && (btn.url || btn.value)) b.url = btn.url || btn.value;
-        else if (type === 'COPY' && (btn.copyText || btn.value)) b.copyText = btn.copyText || btn.value;
-        return b;
-      });
 
       if (specialTpl && specialTpl.type !== 'copia_cola') {
         await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
@@ -231,9 +230,7 @@ const EnviarMensagem = () => {
           : (modeloData.header?.startsWith('http') ? modeloData.header : null);
 
         const secondaryMediaType = templateType === 'audio_video_botoes' ? 'video' : 'image';
-        const headerTitle = (Array.isArray(modeloData.carouselCards) && (modeloData.carouselCards as any)[0]?.id === 'secondary')
-          ? (modeloData.header?.startsWith('http') ? undefined : modeloData.header)
-          : (!modeloData.header?.startsWith('http') ? modeloData.header : undefined);
+        const headerTitle = !modeloData.header?.startsWith('http') ? modeloData.header : undefined;
 
         await sendButtonActions(
           phone,
@@ -241,16 +238,12 @@ const EnviarMensagem = () => {
           mapButtons(modeloData.buttons!),
           headerTitle,
           modeloData.footer,
-          modeloData.mediaUrl!,   // ← áudio como mediaUrl principal
-          'audio',                // ← mediaType = audio
-          {                       // ← specialPayload com o vídeo/imagem secundária
-            secondaryMediaUrl: secondaryUrl,
-            secondaryMediaType,
-          },
-          templateType,                  // ← templateType para o edge function detectar o tipo composto
-          modeloData.carouselCards       // ← carouselCards para o edge function extrair a mídia secundária
+          modeloData.mediaUrl!,
+          'audio',
+          { secondaryMediaUrl: secondaryUrl, secondaryMediaType },
+          templateType,
+          modeloData.carouselCards
         );
-
         return mensagemPersonalizada;
       }
 
@@ -298,33 +291,37 @@ const EnviarMensagem = () => {
 
       if (temMidiaModelo) {
         const caption = legenda || mensagemPersonalizada;
-        if (['audio', 'áudio'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
-        else if (['video', 'video_botoes'].includes(templateType)) await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
-        else if (isDocumentTemplate) await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
-        else await sendImage(phone, modeloData.mediaUrl!, caption);
+        if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) {
+          await sendAudio(phone, modeloData.mediaUrl!, caption);
+        } else if (['video', 'video_botoes'].includes(templateType)) {
+          await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
+        } else if (isDocumentTemplate) {
+          await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
+        } else {
+          await sendImage(phone, modeloData.mediaUrl!, caption);
+        }
         return caption;
       }
 
-      // Fallback: texto simples
       await sendMessage(phone, mensagemPersonalizada);
       return mensagemPersonalizada;
     }
 
-    // Sem modelo — lógica manual (arquivo avulso ou texto)
-    const mensagemFinal = mensagem.replace(/\{nome\}/g, nome || "").replace(/\{numero\}/g, phone);
+    // Sem modelo — arquivo avulso ou texto manual
+    const msgFinal = (mensagem || "").replace(/\{nome\}/g, nome || "").replace(/\{numero\}/g, phone);
 
     if (arquivoMidia) {
       const base64File = await convertToBase64(arquivoMidia);
       const ext = arquivoMidia.name.split('.').pop()?.toLowerCase();
-      if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext || '')) await sendImage(phone, base64File, legenda || mensagemFinal);
-      else if (['mp4','avi','mov','wmv','flv','3gp','mkv','webm'].includes(ext || '')) await sendVideo(phone, base64File, legenda || mensagemFinal, viewOnce, isPtv);
-      else if (['mp3','wav','aac','ogg','m4a','wma','flac'].includes(ext || '')) await sendAudio(phone, base64File, legenda || mensagemFinal);
-      else await sendDocument(phone, base64File, arquivoMidia.name, ext || 'txt', legenda || mensagemFinal);
-      return legenda || mensagemFinal;
+      if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext || '')) await sendImage(phone, base64File, legenda || msgFinal);
+      else if (['mp4','avi','mov','wmv','flv','3gp','mkv','webm'].includes(ext || '')) await sendVideo(phone, base64File, legenda || msgFinal, viewOnce, isPtv);
+      else if (['mp3','wav','aac','ogg','m4a','wma','flac'].includes(ext || '')) await sendAudio(phone, base64File, legenda || msgFinal);
+      else await sendDocument(phone, base64File, arquivoMidia.name, ext || 'txt', legenda || msgFinal);
+      return legenda || msgFinal;
     }
 
-    await sendMessage(phone, mensagemFinal);
-    return mensagemFinal;
+    await sendMessage(phone, msgFinal);
+    return msgFinal;
   };
 
   const handleSendIndividual = async (e: React.FormEvent) => {
