@@ -661,23 +661,26 @@ const ChatView = ({
       
       setIsUploadingAudio(true);
       try {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `call_audios/${Math.random()}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('chat_media')
-          .upload(filePath, file);
-          
-        if (error) throw error;
-        
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error("Usuário não autenticado");
+
+        const ext = file.name.split('.').pop() || 'mp3';
+        const filePath = `${currentUser.id}/call-audios/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('template-media')
+          .upload(filePath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
+
+        if (uploadError) throw uploadError;
+
         const { data: { publicUrl } } = supabase.storage
-          .from('chat_media')
+          .from('template-media')
           .getPublicUrl(filePath);
-          
+
         await sendCall(conversation.phone, 15, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
-        toast({ title: "Erro", description: "Falha ao enviar áudio da chamada.", variant: "destructive" });
+        toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
       } finally {
         setIsUploadingAudio(false);
         if (callAudioInputRef.current) callAudioInputRef.current.value = '';
