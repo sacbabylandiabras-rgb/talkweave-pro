@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-   import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus } from "lucide-react";
+    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, Plus, Phone, PhoneCall, ShieldCheck, Key } from "lucide-react";
  import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
  import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
  import {
@@ -572,6 +572,8 @@ interface ChatViewProps {
    onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
    onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
    onDeleteConversation: (phone: string) => Promise<void>;
+  onSendCall?: (phone: string) => Promise<void>;
+  onGetSipInfo?: () => Promise<any>;
    onUpdate?: () => void;
    campaignTemplates?: Map<string, string>;
 }
@@ -591,11 +593,14 @@ const ChatView = ({
     onSendSticker,
     onSendGif,
     onDeleteConversation,
+  onSendCall,
+  onGetSipInfo,
    campaignTemplates,
    savedContacts,
    onUpdate,
  }: ChatViewProps) => {
    const { listTags, addTagChat, removeTagChat } = useZapi();
+  const { sendCall, getSipInfo, getSipToken, getCallToken } = useZapi();
    const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
    const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
    const [loadingTags, setLoadingTags] = useState(false);
@@ -605,6 +610,25 @@ const ChatView = ({
    const [newTagDescription, setNewTagDescription] = useState("");
    const [newTagColor, setNewTagColor] = useState(0);
    const [addingTag, setAddingTag] = useState(false);
+  const [sipInfoOpen, setSipInfoOpen] = useState(false);
+  const [sipData, setSipData] = useState<any>(null);
+  const [loadingSip, setLoadingSip] = useState(false);
+
+  const handleOpenSipInfo = async () => {
+    setLoadingSip(true);
+    try {
+      const info = await getSipInfo();
+      const token = await getSipToken();
+      const callToken = await getCallToken();
+      setSipData({ ...info, sipToken: token, callToken });
+      setSipInfoOpen(true);
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar info SIP", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingSip(false);
+    }
+  };
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
