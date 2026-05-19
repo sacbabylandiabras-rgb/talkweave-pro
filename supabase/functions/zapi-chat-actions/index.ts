@@ -257,8 +257,8 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
          path: '/send-call', 
          body: {
            phone: phone.replace(/\D/g, ''),
-           callDuration: payload?.callDuration || 15,
-           callAudioUrl: payload?.callAudioUrl || payload?.audioUrl || undefined
+           callDuration: payload?.callDuration || 5,
+           callAudioUrl: payload?.callAudioUrl || undefined
          } 
        };
      case 'call-token':

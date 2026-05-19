@@ -680,7 +680,7 @@ const ChatView = (props: ChatViewProps) => {
           .from('template-media')
           .getPublicUrl(filePath);
 
-        await onSendCall(conversation.phone, 15, publicUrl);
+        await onSendCall(conversation.phone, 5, publicUrl);
       } catch (err: any) {
         console.error('Erro ao upar áudio da chamada:', err);
         toast({ title: "Erro", description: err?.message || "Falha ao enviar áudio da chamada.", variant: "destructive" });
@@ -1271,20 +1271,15 @@ const ChatView = (props: ChatViewProps) => {
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (15s)</Label>
-                      {activeInstance && !isMobileZapiInstance(activeInstance) && (
-                        <p className="text-[9px] text-amber-600 font-medium leading-tight">
-                          Aviso: Chamadas funcionam melhor em instâncias Mobile.
-                        </p>
-                      )}
+                      <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (5s)</Label>
                     </div>
                     <div className="flex gap-1">
                        <div className="flex flex-col gap-1.5 w-full">
                          <Button 
                            variant="outline" 
                            className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2" 
-                           onClick={() => conversation && onSendCall(conversation.phone, 15)}
-                           title="Apenas chamar sem áudio (Geralmente liberado em todos os planos)"
+                           onClick={() => conversation && onSendCall(conversation.phone, 5)}
+                           title="Apenas chamar sem áudio"
                          >
                            <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
                            Chamada Simples (Sem Áudio)
