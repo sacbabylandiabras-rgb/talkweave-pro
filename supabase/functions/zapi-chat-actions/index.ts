@@ -250,8 +250,14 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     }
 
     // Call Actions
-    case 'send-call':
-      return { method: 'POST', path: '/send-call', body: { ...payload, phone: zapiPhone } };
+    case 'send-call': {
+      const callPayload = {
+        phone: zapiPhone,
+        callDuration: payload?.callDuration || 15, // Default to max 15s for longer ring
+        audioUrl: payload?.audioUrl || undefined
+      };
+      return { method: 'POST', path: '/send-call', body: callPayload };
+    }
     case 'call-token':
       return { method: 'GET', path: '/call-token' };
     case 'sip-token':
