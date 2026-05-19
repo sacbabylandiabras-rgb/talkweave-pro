@@ -14,6 +14,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 
 // Defaults para os campos especiais (PIX/Localização/Contato)
+const validateButtons = (buttons: Array<{ id: string; text: string; type: 'reply' | 'url' | 'call' | 'copy'; value?: string }> | undefined) => {
+  if (!Array.isArray(buttons) || buttons.length === 0) return null;
+  for (let i = 0; i < buttons.length; i++) {
+    const b = buttons[i];
+    const label = `Botão ${i + 1}`;
+    if (!b.text?.trim()) return `${label}: o texto do botão é obrigatório.`;
+    const type = b.type;
+    const value = b.value?.trim();
+    if (type === 'url') {
+      if (!value) return `${label}: a URL é obrigatória para botões de Link.`;
+      if (!/^https?:\/\/.+/i.test(value)) return `${label}: informe uma URL válida começando com http:// ou https://`;
+    }
+    if (type === 'call') {
+      if (!value) return `${label}: o número de telefone é obrigatório para botões de Ligar.`;
+    }
+    if (type === 'copy' && !value) {
+       return `${label}: o texto para cópia é obrigatório.`;
+    }
+  }
+  return null;
+};
+
 const SPECIAL_FIELD_DEFAULTS = {
   pixKey: "",
   pixKeyType: "cpf",
@@ -1095,7 +1117,7 @@ const getPreviewFileLabel = (template: any) => {
     fileName: "",
     fileType: "",
     variables: [] as string[],
-    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call', value?: string}>,
+    buttons: [] as Array<{id: string, text: string, type: 'reply' | 'url' | 'call' | 'copy', value?: string}>,
     listItems: [] as Array<{id: string, title: string, description?: string}>,
     carouselCards: [] as Array<{
       id: string;
@@ -1807,7 +1829,7 @@ const getPreviewFileLabel = (template: any) => {
     const newButton = {
       id: Date.now().toString(),
       text: "",
-      type: 'reply' as 'reply' | 'url' | 'call',
+      type: 'reply' as 'reply' | 'url' | 'call' | 'copy',
       value: "",
     };
     
