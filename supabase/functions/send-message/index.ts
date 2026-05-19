@@ -707,14 +707,46 @@ serve(async (req) => {
 
         // For non-composite media with buttons, prefer single send if possible
         if (mediaType === 'image' || mediaType === 'video') {
-          const finalPayload = { ...payload };
-          if (mediaType === 'image') {
-            finalPayload.image = mediaUrl;
-          } else {
-            finalPayload.video = mediaUrl;
+          const finalPayload = { 
+            phone: resolvedPhone,
+            message: message || 'Escolha uma opção:',
+            ...(title ? { title } : {}),
+            ...(footer ? { footer } : {}),
+            ...mentionFlag(resolvedPhone)
+          };
+
+          // If only reply buttons, use the specific endpoints (as suggested by user link)
+          if (!hasActionButtons) {
+            const endpoint = mediaType === 'image' ? '/send-button-list-image' : '/send-button-list-video';
+            (finalPayload as any).buttonList = {
+              buttons: buttons.map(b => ({ id: b.id, label: b.label }))
+            };
+            if (mediaType === 'image') {
+              (finalPayload as any).image = mediaUrl;
+            } else {
+              (finalPayload as any).video = mediaUrl;
+            }
+            console.log(`🎬 Sending media with ${endpoint}`);
+            return sendZapi(endpoint, finalPayload, `buttons-list-with-${mediaType}`);
           }
+
+          // Otherwise use /send-button-actions
+          if (mediaType === 'image') {
+            (finalPayload as any).image = mediaUrl;
+          } else {
+            (finalPayload as any).video = mediaUrl;
+          }
+          (finalPayload as any).buttonActions = buttons.map(b => ({
+            id: b.id,
+            type: b.type,
+            label: b.label,
+            ...(b.type === 'URL' ? { url: b.url } : {}),
+            ...(b.type === 'CALL' ? { phone: b.phone } : {}),
+          }));
+          
           // Some Z-API instances expect caption for media even with buttons
-          finalPayload.caption = finalPayload.message;
+          (finalPayload as any).caption = (finalPayload as any).message;
+          console.log(`🎬 Sending media with /send-button-actions`);
           return sendZapi('/send-button-actions', finalPayload, `buttons-actions-with-${mediaType}`);
         }
 
