@@ -336,6 +336,28 @@ const ChatTypeBadge = ({ phone, isCommunity }: { phone: string; name?: string | 
   return null;
 };
 
+const MessageStatus = ({ status }: { status?: string | null }) => {
+  if (!status) return null;
+
+  switch (status.toLowerCase()) {
+    case 'sent':
+    case 'enviado':
+      return <Check className="w-3 h-3 text-primary-foreground/70" />;
+    case 'delivered':
+    case 'entregue':
+      return <CheckCheck className="w-3 h-3 text-primary-foreground/70" />;
+    case 'read':
+    case 'lido':
+    case 'visualizado':
+      return <CheckCheck className="w-3 h-3 text-blue-300" />;
+    case 'failed':
+    case 'erro':
+      return <span className="text-[10px] text-destructive font-bold">!</span>;
+    default:
+      return <Check className="w-3 h-3 text-primary-foreground/70" />;
+  }
+};
+
 const SaveContactDialog = ({
   open, onOpenChange, phone, currentName, onSave,
 }: {
