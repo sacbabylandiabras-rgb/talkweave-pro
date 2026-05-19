@@ -1832,19 +1832,23 @@ serve(async (req) => {
           await persistCampaignSend(campaignSend, reusableSendId);
           return { stop: false };
 
-        } else if (templateType === 'video_botoes' && hasMedia && hasButtons) {
-          if (campaignIsPtv) {
-            const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
-            const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaignTemplate.media_url }) });
-            if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
-          } else {
-            const videoUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
-            const videoResponse = await fetch(videoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, video: campaignTemplate.media_url, ...(campaignViewOnce ? { viewOnce: true } : {}) }) });
-            if (!videoResponse.ok) throw new Error(`Erro ao enviar vídeo: ${await videoResponse.text()}`);
-          }
-
+        } else if (templateType === 'video_botoes' && hasMedia && hasButtons && !campaignIsPtv) {
+          // Use single-step send for better reliability and to avoid duplicate messages on retry
+          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
+          requestBody = { 
+            phone: contact.phone, 
+            ...buttonPayload, 
+            video: campaignTemplate.media_url,
+            ...(campaignViewOnce ? { viewOnce: true } : {})
+          };
+        } else if (templateType === 'video_botoes' && hasMedia && hasButtons && campaignIsPtv) {
+          // PTV must be sent separately as it's a special message type
+          const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+          const ptvResponse = await fetch(ptvUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken }, body: JSON.stringify({ phone: contact.phone, ptv: campaignTemplate.media_url }) });
+          if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
+          
           await sleep(Math.max(delayMs / 2, 1000));
-
           zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
