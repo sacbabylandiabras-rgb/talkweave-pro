@@ -276,9 +276,7 @@ serve(async (req) => {
                 const isSent = status === 'sent';
                 const isFailed = status === 'failed';
                 
-                const updateData: any = {
-                  updated_at: new Date().toISOString()
-                };
+                const updateData: any = {};
                 
                 if (isDelivered) {
                   updateData.status = 'delivered';
