@@ -137,7 +137,7 @@ serve(async (req) => {
     const { data: instanceData } = await supabase
       .from("zapi_instances")
       .select("user_id, zapi_instance_id, zapi_token, zapi_client_token")
-      .eq("zapi_instance_id", instanceId)
+      .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
       .maybeSingle();
 
     const userId = instanceData?.user_id;
@@ -156,11 +156,11 @@ serve(async (req) => {
         status = "DELIVERED";
       }
 
-      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
+      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status} (type=${type})`);
       
       const upperStatus = status.toUpperCase();
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
-      const isSentStatus = ["SENT"].includes(upperStatus);
+      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
       const isShadowBanError = error && (
         error.toLowerCase().includes("shadow ban") || 
         error.toLowerCase().includes("restricted") || 
