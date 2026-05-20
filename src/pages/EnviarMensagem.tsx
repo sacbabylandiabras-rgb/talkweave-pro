@@ -163,17 +163,33 @@ const EnviarMensagem = () => {
     }
   };
 
-  const sendResolvedContent = async (phone: string, nome?: string) => {
+  const sendResolvedContent = async (phone: string, nome?: string, preConvertedMedia?: { base64: string, name: string, type: string } | null) => {
     const modeloData = modeloSelecionado
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
+    const mensagemPersonalizada = (mensagem || modeloData?.content || '')
+      .replace(/\{nome\}/g, nome || '')
+      .replace(/\{numero\}/g, phone);
+
+    // Priorizar mídia manual se fornecida ou se estiver no estado
+    const getManualMedia = async () => {
+      if (preConvertedMedia) return preConvertedMedia;
+      if (arquivoMidia) {
+        return {
+          base64: await convertToBase64(arquivoMidia),
+          name: arquivoMidia.name,
+          type: arquivoMidia.type
+        };
+      }
+      return null;
+    };
+
+    const manualMedia = await getManualMedia();
+
     if (modeloData) {
       const specialTpl = parseSpecialTemplate(modeloData.content);
       const templateType = String(modeloData.type || '').toLowerCase();
-      const mensagemPersonalizada = (mensagem || modeloData.content || '')
-        .replace(/\{nome\}/g, nome || '')
-        .replace(/\{numero\}/g, phone);
 
       const mapButtons = (buttons: any[]) => buttons.map((btn: any) => {
         const type = (btn.type || 'REPLY').toUpperCase();
@@ -197,6 +213,26 @@ const EnviarMensagem = () => {
       const documentoComBotoes = isDocumentTemplate && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const temBotoes = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.buttons?.length;
       const temMidiaModelo = !specialTpl && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes && !isListTemplate && !isCopyPasteTemplate && !!modeloData.mediaUrl;
+
+      // Se houver mídia manual e o modelo NÃO tiver mídia própria, enviamos a mídia manual com o texto do modelo
+      if (manualMedia && !temMidiaModelo && !temCarrossel && !audioComBotoes && !videoComBotoes && !imagemComBotoes && !documentoComBotoes) {
+        const caption = legenda || mensagemPersonalizada;
+        const fileExtension = manualMedia.name.split('.').pop()?.toLowerCase();
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
+        const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
+
+        if (imageExtensions.includes(fileExtension || '')) await sendImage(phone, manualMedia.base64, caption);
+        else if (videoExtensions.includes(fileExtension || '')) await sendVideo(phone, manualMedia.base64, caption, viewOnce, isPtv);
+        else if (audioExtensions.includes(fileExtension || '')) await sendAudio(phone, manualMedia.base64, caption);
+        else await sendDocument(phone, manualMedia.base64, manualMedia.name, fileExtension || 'txt', caption);
+
+        // Se o modelo tiver botões, enviamos eles depois
+        if (temBotoes) {
+          await sendButtonActions(phone, ' ', mapButtons(modeloData.buttons!), modeloData.header, modeloData.footer);
+        }
+        return caption;
+      }
 
       if (specialTpl && specialTpl.type !== 'copia_cola') {
         await sendSpecialTemplate(phone, specialTpl.type, { ...specialTpl, description: mensagemPersonalizada || specialTpl.description });
@@ -271,21 +307,17 @@ const EnviarMensagem = () => {
       return mensagemPersonalizada;
     }
 
-    const mensagemPersonalizada = (mensagem || '')
-      .replace(/\{nome\}/g, nome || '')
-      .replace(/\{numero\}/g, phone);
-
-    if (arquivoMidia) {
-      const base64File = await convertToBase64(arquivoMidia);
-      const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
+    if (manualMedia) {
+      const caption = legenda || mensagemPersonalizada;
+      const fileExtension = manualMedia.name.split('.').pop()?.toLowerCase();
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
       const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
       const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
-      if (imageExtensions.includes(fileExtension || '')) await sendImage(phone, base64File, legenda || mensagemPersonalizada);
-      else if (videoExtensions.includes(fileExtension || '')) await sendVideo(phone, base64File, legenda || mensagemPersonalizada, viewOnce, isPtv);
-      else if (audioExtensions.includes(fileExtension || '')) await sendAudio(phone, base64File, legenda || mensagemPersonalizada);
-      else await sendDocument(phone, base64File, arquivoMidia.name, fileExtension || 'txt', legenda || mensagemPersonalizada);
-      return legenda || mensagemPersonalizada;
+      if (imageExtensions.includes(fileExtension || '')) await sendImage(phone, manualMedia.base64, caption);
+      else if (videoExtensions.includes(fileExtension || '')) await sendVideo(phone, manualMedia.base64, caption, viewOnce, isPtv);
+      else if (audioExtensions.includes(fileExtension || '')) await sendAudio(phone, manualMedia.base64, caption);
+      else await sendDocument(phone, manualMedia.base64, manualMedia.name, fileExtension || 'txt', caption);
+      return caption;
     }
 
     const activeTab = document.querySelector('[role="tablist"] [aria-selected="true"]')?.getAttribute('data-value');
