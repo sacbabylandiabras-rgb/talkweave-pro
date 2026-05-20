@@ -1785,11 +1785,14 @@ serve(async (req) => {
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
 
         if (isLidIdentifier(contact.phone)) {
-          console.log(`📞 [Z-API] Enviando @lid exatamente como recebido: ${contact.phone}`);
+          console.log(`📞 [Z-API] Enviando @lid: ${contact.phone}`);
+          // Para IDs @lid com nomes (ex: cliente\t123@lid), limpamos para o Z-API aceitar
+          const cleanLid = contact.phone.split(/[\s\t]+/).pop() || contact.phone;
+          if (cleanLid !== contact.phone) {
+            console.log(`🧹 Limpando nome do @lid: ${contact.phone} -> ${cleanLid}`);
+            contact.phone = cleanLid;
+          }
         } else if (!isGroupDestination(contact.phone)) {
-          // Z-API exige apenas dígitos no campo phone (sem +, espaços, traços, parênteses).
-          // Sem essa normalização, a API pode aceitar a requisição (HTTP 200) mas
-          // a mensagem nunca é entregue ao WhatsApp.
           const normalized = getZapiTargetPhone(contact.phone);
           if (normalized && normalized !== contact.phone) {
             console.log(`📞 [Z-API] Normalizando telefone: ${contact.phone} → ${normalized}`);
