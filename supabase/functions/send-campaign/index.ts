@@ -2259,11 +2259,13 @@ serve(async (req) => {
 
           const explicitError = getZapiExplicitError(zapiResult);
           const confirmed = isZapiConfirmed(zapiResult);
-          console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${getZapiAckId(zapiResult) || 'none'}, body=${JSON.stringify(zapiResult).substring(0, 300)}`);
+          const messageIdFromResponse = getZapiAckId(zapiResult);
+          
+          console.log(`📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${messageIdFromResponse || 'none'}`);
 
           // Para identificadores @lid, forçamos o status 'sent' se o HTTP for 200,
           // ignorando erros internos da API ou falta de confirmação imediata.
-          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && confirmed))) {
+          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && (confirmed || messageIdFromResponse)))) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
