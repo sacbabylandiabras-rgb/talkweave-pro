@@ -647,7 +647,7 @@ export const useCampaigns = () => {
         description: `Enviando para ${remainingContacts.length} contato(s) restante(s)`,
       });
 
-      // Limpa registros antigos 'pending' e 'cancelled'/'failed' (que serão reenviados)
+      // Limpa registros antigos 'pending'/'sent' e 'cancelled'/'failed' (que serão reenviados)
       // para não duplicar entradas em campaign_sends ao reenviar.
       if (pendingRetryPhones.length > 0) {
         const phonesToClean = pendingRetryPhones.map((c) => c.phone);
@@ -655,9 +655,9 @@ export const useCampaigns = () => {
           .from('campaign_sends')
           .delete()
           .eq('campaign_id', id)
-          .eq('status', 'pending')
+          .in('status', ['pending', 'sent'])
           .in('phone', phonesToClean);
-        if (cleanError) console.warn('⚠️ Falha ao limpar pendentes antigos:', cleanError.message);
+        if (cleanError) console.warn('⚠️ Falha ao limpar envios pendentes antigos:', cleanError.message);
       }
       if (cancelledRetryPhones.length > 0) {
         const phonesToClean = cancelledRetryPhones.map((c) => c.phone);
