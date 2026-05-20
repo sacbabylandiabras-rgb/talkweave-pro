@@ -311,8 +311,7 @@ const EnviarMensagem = () => {
       const modeloData = modeloSelecionado
         ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
         : null;
-      // Quando há modelo selecionado, o campo "mensagem" é opcional —
-      // o conteúdo virá do próprio modelo (texto, mídia, PIX, etc.)
+      
       const effectiveMessage = mensagem || modeloData?.content || modeloData?.name || 'modelo';
       const validatedData = messageSchema.parse({ phone: numero, message: effectiveMessage });
       setErrors({});
@@ -322,6 +321,16 @@ const EnviarMensagem = () => {
       let trackedContent = validatedData.message;
       
       try {
+        const currentInstance = instanceSelectionMode === 'rotate'
+          ? rotateInstances[0] // Para individual, pega a primeira se estiver em rotate ou a selecionada
+          : selectedInstanceId
+            ? instances.find(inst => inst.id === selectedInstanceId) || null
+            : activeInstance || null;
+
+        if (currentInstance) {
+          setZapiInstanceOverride(currentInstance);
+        }
+
         trackedContent = await sendResolvedContent(validatedData.phone);
       } catch (sendError) {
         sendStatus = 'failed';
@@ -331,7 +340,6 @@ const EnviarMensagem = () => {
         await trackIndividualSend(validatedData.phone, trackedContent, sendStatus, errorMsg);
       }
       
-      // Limpar formulário após envio bem-sucedido
       setNumero("");
       setMensagem("");
     } catch (error) {
@@ -348,73 +356,22 @@ const EnviarMensagem = () => {
 
   const handleSendButtonActions = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const validatedData = buttonMessageSchema.parse({ phone: numero, message: mensagem });
       setErrors({});
-      
-      const validButtons = botoesAcao.filter(btn => {
-        if (btn.label.trim() === "") return false;
-        if (btn.type === "CALL" && btn.phone.trim() === "") return false;
-        if (btn.type === "URL" && btn.url.trim() === "") return false;
-        if (btn.type === "COPY" && btn.copyText.trim() === "") return false;
-        return true;
-      });
-      
-      if (validButtons.length === 0) {
-        throw new Error("Adicione pelo menos um botão válido");
-      }
+      const validButtons = botoesAcao.filter(btn => btn.label.trim() !== "");
+      if (validButtons.length === 0) throw new Error("Adicione pelo menos um botão válido");
 
       let sendStatus: 'sent' | 'failed' = 'sent';
       let errorMsg: string | undefined;
-
       try {
-        // Verificar se há mídia anexada
-        const temMidia = !!arquivoMidia;
-        
-        if (temMidia) {
-          const base64File = await convertToBase64(arquivoMidia);
-          const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
-          
-          const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-          const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
-          const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
-          
-          const isImage = imageExtensions.includes(fileExtension || '');
-          const isVideo = videoExtensions.includes(fileExtension || '');
-          const isAudio = audioExtensions.includes(fileExtension || '');
-
-          if (isImage) {
-            await sendImage(validatedData.phone, base64File, legenda || '');
-          } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce, isPtv);
-          } else if (isAudio) {
-            await sendAudio(validatedData.phone, base64File, legenda || '');
-          } else {
-            await sendDocument(
-              validatedData.phone,
-              base64File,
-              arquivoMidia.name,
-              fileExtension || 'txt',
-              legenda || ''
-            );
-          }
-        }
-        
-        await sendButtonActions(
-          validatedData.phone, 
-          validatedData.message, 
-          validButtons.map(btn => ({
-            id: btn.id,
-            type: btn.type,
-            label: btn.label,
-            ...(btn.type === "CALL" && { phone: btn.phone }),
-            ...(btn.type === "URL" && { url: btn.url }),
-            ...(btn.type === "COPY" && { copyText: btn.copyText })
-          })),
-          titulo || undefined,
-          rodape || undefined
-        );
+        const currentInstance = instanceSelectionMode === 'rotate'
+          ? rotateInstances[0]
+          : selectedInstanceId
+            ? instances.find(inst => inst.id === selectedInstanceId) || null
+            : activeInstance || null;
+        if (currentInstance) setZapiInstanceOverride(currentInstance);
+        await sendResolvedContent(validatedData.phone);
       } catch (sendError) {
         sendStatus = 'failed';
         errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
@@ -422,8 +379,7 @@ const EnviarMensagem = () => {
       } finally {
         await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
       }
-      
-      // Limpar formulário após envio bem-sucedido
+
       setNumero("");
       setMensagem("");
       setTitulo("");
@@ -445,61 +401,23 @@ const EnviarMensagem = () => {
 
   const handleSendOptionList = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const validatedData = messageSchema.parse({ phone: numero, message: mensagem });
       setErrors({});
-      
-      const validOptions = opcoes.filter(opt => opt.title.trim() !== "" && opt.description.trim() !== "");
-      if (validOptions.length === 0) {
-        throw new Error("Adicione pelo menos uma opção válida");
-      }
-      
-      if (!tituloLista.trim()) {
-        throw new Error("Título da lista é obrigatório");
-      }
+      const validOptions = opcoes.filter(opt => opt.title.trim() !== "");
+      if (validOptions.length === 0) throw new Error("Adicione pelo menos uma opção válida");
+      if (!tituloLista.trim()) throw new Error("Título da lista é obrigatório");
 
       let sendStatus: 'sent' | 'failed' = 'sent';
       let errorMsg: string | undefined;
-
       try {
-        // Verificar se há mídia anexada
-        const temMidia = !!arquivoMidia;
-        
-        if (temMidia) {
-          const base64File = await convertToBase64(arquivoMidia);
-          const fileExtension = arquivoMidia.name.split('.').pop()?.toLowerCase();
-          
-          const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-          const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', '3gp', 'mkv', 'webm'];
-          const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'm4a', 'wma', 'flac'];
-          
-          const isImage = imageExtensions.includes(fileExtension || '');
-          const isVideo = videoExtensions.includes(fileExtension || '');
-          const isAudio = audioExtensions.includes(fileExtension || '');
-
-          if (isImage) {
-            await sendImage(validatedData.phone, base64File, legenda || '');
-          } else if (isVideo) {
-            await sendVideo(validatedData.phone, base64File, legenda || '', viewOnce, isPtv);
-          } else if (isAudio) {
-            await sendAudio(validatedData.phone, base64File, legenda || '');
-          } else {
-            await sendDocument(
-              validatedData.phone,
-              base64File,
-              arquivoMidia.name,
-              fileExtension || 'txt',
-              legenda || ''
-            );
-          }
-        }
-        
-        await sendOptionList(validatedData.phone, validatedData.message, {
-          title: tituloLista,
-          buttonLabel: labelBotaoLista,
-          options: validOptions
-        });
+        const currentInstance = instanceSelectionMode === 'rotate'
+          ? rotateInstances[0]
+          : selectedInstanceId
+            ? instances.find(inst => inst.id === selectedInstanceId) || null
+            : activeInstance || null;
+        if (currentInstance) setZapiInstanceOverride(currentInstance);
+        await sendResolvedContent(validatedData.phone);
       } catch (sendError) {
         sendStatus = 'failed';
         errorMsg = sendError instanceof Error ? sendError.message : 'Erro desconhecido';
@@ -507,8 +425,7 @@ const EnviarMensagem = () => {
       } finally {
         await trackIndividualSend(validatedData.phone, validatedData.message, sendStatus, errorMsg);
       }
-      
-      // Limpar formulário após envio bem-sucedido
+
       setNumero("");
       setMensagem("");
       setTituloLista("");
