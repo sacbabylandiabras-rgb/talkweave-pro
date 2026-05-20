@@ -357,8 +357,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   useEffect(() => {
     if (instanceSelectionMode === 'default' && activeInstance) {
       setZapiInstanceOverride(activeInstance);
+    } else if (instanceSelectionMode === 'rotate') {
+      const activeInstances = instances.filter(i => i.is_active);
+      setZapiRotateMode(activeInstances);
     }
-  }, [activeInstance, instanceSelectionMode]);
+  }, [activeInstance, instanceSelectionMode, instances]);
 
   // Cleanup only on unmount
   useEffect(() => {

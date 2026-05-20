@@ -1091,7 +1091,15 @@ serve(async (req) => {
       credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
       const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-      const preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
+      
+      // If we have a requestedInstanceId, we don't need to resolve a preferred one here
+      // because it will be resolved specifically in the logic below.
+      // We only fallback to preferred if requestedInstanceId is NOT provided.
+      let preferredInstance = null;
+      if (!requestedInstanceId) {
+        preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
+      }
+
       credentials = preferredInstance
         ? buildCampaignCredentials(baseCredentials.userId, preferredInstance)
         : {
