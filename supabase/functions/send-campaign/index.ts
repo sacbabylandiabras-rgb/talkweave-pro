@@ -1571,7 +1571,7 @@ serve(async (req) => {
         }
 
         const { data: existingSends } = await supabase.from('campaign_sends').select('id, status, created_at').eq('campaign_id', campaignId).eq('phone', contact.phone);
-        const successfulForPhone = existingSends?.filter(s => s.status === 'sent' || s.status === 'delivered').length || 0;
+        const successfulForPhone = existingSends?.filter(s => s.status === 'delivered').length || 0;
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
         const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: any) => c.phone === contact.phone).length;
 
