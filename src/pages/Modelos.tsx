@@ -2948,7 +2948,7 @@ const getPreviewFileLabel = (template: any) => {
                           accept={
                             editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
                               ? "image/*"
-                              : editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes"
+                              : editFormData.type === "audio" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes"
                               ? "audio/*"
                               : "video/*"
                           }
