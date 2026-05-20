@@ -59,7 +59,6 @@ serve(async (req) => {
 
   try {
     const webhook = await req.json();
-    console.log("WEBHOOK COMPLETO:", JSON.stringify(webhook));
     console.log("Webhook Z-API:", JSON.stringify(webhook).slice(0, 500));
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -67,7 +66,6 @@ serve(async (req) => {
     const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
     let chatId = webhook?.phone || webhook?.chatPhone || "";
 
-    // Normalize chatId for groups to match frontend expectations (suffix -group)
     if (isGroup || chatId.includes('@g.us')) {
       const rawId = chatId.replace(/@g\.us$/i, '').replace(/-group$/i, '');
       if (rawId) {
@@ -83,7 +81,6 @@ serve(async (req) => {
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
 
-    // Ignore presence webhooks
     if (
       type === "PresenceChatCallback" ||
       type === "PresenceCallback" ||
@@ -113,12 +110,10 @@ serve(async (req) => {
                             !!webhook?.buttonReply ||
                             !!webhook?.listResponseMessage;
 
-    // Extract sender info for group prefixing
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
     const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
     const senderPhone = participantPhone;
 
-    // Extract message text and fromMe
     let messageRaw = webhook?.buttonsResponseMessage?.message ||
                       webhook?.buttonsResponseMessage?.buttonText ||
                       webhook?.buttonsResponseMessage?.buttonId ||
@@ -137,8 +132,6 @@ serve(async (req) => {
                       webhook?.interactiveResponseMessage?.body ||
                       "";
     
-    // Z-API can send fromMe as boolean or string
-    // IMPORTANT: Button clicks often arrive with fromMe: true, so we must check isButtonResponse
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
 
     const { data: instanceData } = await supabase
@@ -147,79 +140,24 @@ serve(async (req) => {
       .eq("zapi_instance_id", instanceId)
       .maybeSingle();
 
-    if (!instanceData) return new Response("instance_not_found", { status: 200, headers: corsHeaders });
-    const userId = instanceData.user_id;
+    const userId = instanceData?.user_id;
 
-    const isManualTrigger = webhook?.__manual_flow_trigger__ === true;
-    if (isManualTrigger && webhook.flowId) {
-      console.log(`Manual flow trigger for phone ${phone}, flow ${webhook.flowId}`);
-      const { data: manualFlow } = await supabase
-        .from("flow_automations")
-        .select("*")
-        .eq("id", webhook.flowId)
-        .maybeSingle();
-
-      if (manualFlow) {
-        const initialNode = manualFlow.nodes?.find((n: any) => n.type === "blocoInicial");
-        if (initialNode) {
-          await executeFlow(supabase, userId, phone, manualFlow, initialNode.id, {}, instanceData, chatId, isGroup, webhook);
-          return new Response("manual_flow_triggered", { status: 200, headers: corsHeaders });
-        }
-      }
-    }
-
-    // If it's a group message from someone else, prefix it with sender info for the UI
-    if (isGroup && !fromMe && messageRaw) {
-      const senderPrefix = `[sender:${senderName}|${senderPhone}|${senderPhoto}] `;
-      if (!messageRaw.startsWith('[sender:')) {
-        messageRaw = senderPrefix + messageRaw;
-      }
-    }
-
-    const cleanMessageForMatch = isGroup && messageRaw.startsWith('[sender:')
-      ? messageRaw.replace(/^\[sender:[^\]]*\]\s*/, '')
-      : messageRaw;
-
-    // ✅ CORREÇÃO 3: isStatusCallback sem o !!webhook?.status genérico que capturava presença
     const isStatusCallback = type === "DeliveryCallback" || 
                            type === "MessageStatusCallback" || 
                            type === "MessageStatus" ||
                            (!!webhook?.status && !webhook?.text && !webhook?.buttonsResponseMessage && !webhook?.buttonReply && !webhook?.listResponseMessage);
 
-    // Deduplication check (tolerant - won't break if column missing)
-    if (messageId) {
-      try {
-        const { data: existingMessage, error: dedupErr } = await supabase
-          .from("message_logs")
-          .select("id")
-          .eq("message_id", messageId)
-          .maybeSingle();
-        if (!dedupErr && existingMessage) {
-          console.log(`Duplicate message ignored: ${messageId}`);
-          return new Response("duplicate", { status: 200, headers: corsHeaders });
-        }
-      } catch (e) {
-        console.warn("Dedup check skipped:", e);
-      }
-    }
-
-    // 1. Handle delivery/status callbacks first (entregue)
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
       let status = webhook?.status || "";
       const error = webhook?.error;
       
-      // If it's a DeliveryCallback, it implicitly means it was delivered
       if (!status && type === "DeliveryCallback") {
         status = "DELIVERED";
       }
 
       console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
       
-      // Mark as delivered/sent based on status.
-      // SENT: Message reached Z-API/WhatsApp servers.
-      // RECEIVED/DELIVERED: Message delivered to the recipient's phone.
-      // READ: Recipient read the message.
       const upperStatus = status.toUpperCase();
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
       const isSentStatus = ["SENT"].includes(upperStatus);
@@ -231,76 +169,88 @@ serve(async (req) => {
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
-          const updateData: any = {
-            status: isDeliveredStatus ? 'delivered' : 'sent',
-            updated_at: new Date().toISOString()
-          };
+          const newStatusLabel = isDeliveredStatus ? 'delivered' : 'sent';
           
-          if (isDeliveredStatus) {
-            updateData.delivered_at = new Date().toISOString();
-          } else {
-            updateData.sent_at = new Date().toISOString();
+          const { data: currentRecord, error: fetchError } = await supabase
+            .from("campaign_sends")
+            .select("status, id")
+            .eq("message_id", msgId)
+            .maybeSingle();
+
+          if (fetchError) {
+            console.error(`❌ Error fetching campaign_send ${msgId}:`, fetchError.message);
+            continue;
           }
 
-          const { data: campaignSend } = await supabase
-            .from("campaign_sends")
-            .update(updateData)
-            .eq("message_id", msgId)
-            .select('id')
-            .maybeSingle();
-          
-          if (campaignSend) {
-            console.log(`Updated campaign_send ${campaignSend.id} to ${updateData.status} via message_id ${msgId}`);
+          if (currentRecord) {
+            if (currentRecord.status === 'delivered') {
+              console.log(`✅ Message ${msgId} is already delivered. Skipping update to ${newStatusLabel}.`);
+              continue;
+            }
+
+            const updateData: any = {
+              status: newStatusLabel,
+              updated_at: new Date().toISOString()
+            };
+            
+            if (isDeliveredStatus) {
+              updateData.delivered_at = new Date().toISOString();
+            } else {
+              updateData.sent_at = new Date().toISOString();
+            }
+
+            const { data: updated, error: updateError } = await supabase
+              .from("campaign_sends")
+              .update(updateData)
+              .eq("id", currentRecord.id)
+              .select('id')
+              .maybeSingle();
+            
+            if (updateError) {
+              console.error(`❌ Error updating campaign_send ${currentRecord.id}:`, updateError.message);
+            } else if (updated) {
+              console.log(`✨ Updated campaign_send ${updated.id} to ${newStatusLabel} via message_id ${msgId}`);
+            }
+          } else {
+            console.log(`🔍 No campaign_send found with message_id ${msgId}`);
           }
         }
-       } else if (messageIds.length > 0 && (upperStatus === "ERROR" || error)) {
-         for (const msgId of messageIds) {
-           const finalErrorMessage = isShadowBanError 
-             ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio. Evite enviar a mesma mensagem para muitos contatos e tente novamente mais tarde."
-             : (error || status);
-             
-           await supabase
-             .from("campaign_sends")
-             .update({
-               status: 'failed',
-               error_message: finalErrorMessage
-             })
-             .eq("message_id", msgId);
-             
-           if (isShadowBanError) {
-             console.warn(`Shadow ban warning for message ${msgId}: ${finalErrorMessage}`);
-           }
-         }
-       }
+      } else if (messageIds.length > 0 && (upperStatus === "ERROR" || error)) {
+        for (const msgId of messageIds) {
+          const finalErrorMessage = isShadowBanError 
+            ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio."
+            : (error || status);
+            
+          await supabase
+            .from("campaign_sends")
+            .update({
+              status: 'failed',
+              error_message: finalErrorMessage,
+              updated_at: new Date().toISOString()
+            })
+            .eq("message_id", msgId);
+        }
+      }
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    const logEntryBase = {
-      user_id: userId,
-      phone: chatId,
-      instance_id: instanceId,
-      timestamp: new Date().toISOString()
-    };
-
-    // 2. Filter out non-message webhooks or self-messages that shouldn't trigger flows
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !isManualTrigger)) {
-        if (isMessage && fromMe && !isButtonResponse) {
-          console.log(`Registering self-message for ${chatId}`);
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !webhook?.__manual_flow_trigger__)) {
+        if (isMessage && fromMe && !isButtonResponse && userId) {
           await supabase.from("message_logs").insert({
-            ...logEntryBase,
+            user_id: userId,
+            phone: chatId,
+            instance_id: instanceId,
+            timestamp: new Date().toISOString(),
             message_received: null,
             response_sent: messageRaw,
             keyword_matched: "__manual_send__",
           });
         }
-        if (isMessage && fromMe) console.log(`Webhook ignored (Self-message): phone=${phone}`);
         return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
-    // 1. CHECK FOR PENDING FLOWS (Captures or Buttons)
-    // We use a specific table for flow state to be more reliable than logs
     const { data: participantFlowState } = await supabase
       .from("flow_captured_data")
       .select("*")
@@ -339,11 +289,9 @@ serve(async (req) => {
       }
     }
 
-    // Se encontrarmos um estado de fluxo, tentamos processar antes de verificar gatilhos globais
     let flowStateHandled = false;
 
     if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
-      console.log(`Resuming flow ${flowState.flow_id} for phone ${phone} at node ${flowState.last_node_id}`);
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
 
@@ -367,7 +315,7 @@ serve(async (req) => {
             const captured = { ...(flowState.captured_data || {}) };
             captured[field] = messageRaw;
 
-            const { error: upsertError } = await supabase.from("flow_captured_data").upsert({
+            await supabase.from("flow_captured_data").upsert({
               user_id: userId,
               flow_id: flowId,
               flow_name: flow.name,
@@ -378,8 +326,6 @@ serve(async (req) => {
               source: isGroup ? "whatsapp_group" : "whatsapp",
               updated_at: new Date().toISOString()
             }, { onConflict: "user_id,flow_id,phone" });
-
-            if (upsertError) console.error("Error upserting flow_captured_data:", upsertError);
 
             const captureHandle = getCaptureHandle(field);
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
@@ -392,7 +338,10 @@ serve(async (req) => {
             if (buttonMatch) {
               flowStateHandled = true;
               await supabase.from("message_logs").insert({
-                ...logEntryBase,
+                user_id: userId,
+                phone: chatId,
+                instance_id: instanceId,
+                timestamp: new Date().toISOString(),
                 message_received: messageRaw,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
                 response_sent: `[Fluxo: ${flow.name}]`,
@@ -410,13 +359,15 @@ serve(async (req) => {
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
             }
           }
-
         } else if (isButtonResponse) {
           const buttonMatch = findAnyButtonMatch(nodes, edges, normalizedMessage, webhook);
           if (buttonMatch) {
             flowStateHandled = true;
             await supabase.from("message_logs").insert({
-              ...logEntryBase,
+              user_id: userId,
+              phone: chatId,
+              instance_id: instanceId,
+              timestamp: new Date().toISOString(),
               message_received: messageRaw,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
@@ -433,32 +384,14 @@ serve(async (req) => {
           }
         }
       }
-
-      // Se tinha estado de fluxo mas não foi processado (não bateu botão nem captura),
-      // não limpe automaticamente respostas de botão: alguns provedores reenviam callbacks
-      // antigos/duplicados depois que o fluxo já avançou para o próximo bloco. Limpar aqui
-      // apaga o last_node_id novo e deixa o fluxo travado esperando um botão que não existe mais.
-      if (!flowStateHandled) {
-        if (isButtonResponse) {
-          console.log(`Button callback did not match current node ${lastNodeId}; preserving flow state for ${phone}`);
-          return new Response("button_no_match_preserved", { status: 200, headers: corsHeaders });
-        }
-
-        console.log(`No match for flowState text; keeping state until keyword check for ${phone}`);
-      }
     }
-    console.log(`Processing message from ${phone} (chatId: ${chatId}): "${messageRaw}"`);
-    console.log(`cleanMessageForMatch: "${cleanMessageForMatch}"`);
     
     if (!flowStateHandled && (!fromMe || isButtonResponse)) {
-      // 2. CHECK FOR NEW FLOW TRIGGERS (Keywords)
       const { data: flows } = await supabase
         .from("flow_automations")
         .select("*")
         .eq("user_id", userId)
         .eq("active", true);
-
-      console.log(`Found ${flows?.length || 0} active flows for user ${userId}`);
       
       let triggerFound = false;
       for (const flow of (flows || [])) {
@@ -469,21 +402,18 @@ serve(async (req) => {
         let shouldTrigger = false;
         let startNodeId = null;
         
-        // Check main flow keywords
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-        if (mainKeywords.some((k: string) => isKeywordMatch(cleanMessageForMatch, k))) {
+        if (mainKeywords.some((k: string) => isKeywordMatch(normalizeForMatch(messageRaw), k))) {
           shouldTrigger = true;
           const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           startNodeId = initialNode?.id;
         }
         
-        // Check blocoGatilho keywords
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
             const nodeKeyword = tNode.data?.keyword;
-            if (nodeKeyword && isKeywordMatch(cleanMessageForMatch, nodeKeyword)) {
+            if (nodeKeyword && isKeywordMatch(normalizeForMatch(messageRaw), nodeKeyword)) {
               shouldTrigger = true;
-              // When triggered by a specific trigger node, we start from the NEXT node connected to it
               const edge = (flow.edges || []).find((e: any) => e.source === tNode.id);
               startNodeId = edge?.target;
               break;
@@ -493,34 +423,28 @@ serve(async (req) => {
 
         if (shouldTrigger && startNodeId) {
           triggerFound = true;
-          console.log(`Triggering flow ${flow.id} (${flow.name}) for phone ${phone} starting at node ${startNodeId}`);
-          
-      try {
-        // Log the trigger and the response
-        await supabase.from("message_logs").insert({
-          ...logEntryBase,
-          message_received: messageRaw,
-          response_sent: `[Fluxo: ${flow.name}]`,
-          keyword_matched: `__flow_trigger__:${flow.name}`,
-        });
-      } catch (logErr) {
-        console.error("Error logging flow trigger:", logErr);
-      }
+          await supabase.from("message_logs").insert({
+            user_id: userId,
+            phone: chatId,
+            instance_id: instanceId,
+            timestamp: new Date().toISOString(),
+            message_received: messageRaw,
+            response_sent: `[Fluxo: ${flow.name}]`,
+            keyword_matched: `__flow_trigger__:${flow.name}`,
+          });
 
-      await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
       
-      try {
-        // If no trigger found, log the message anyway
-        await supabase.from("message_logs").insert({
-          ...logEntryBase,
-          message_received: messageRaw,
-        });
-      } catch (logErr) {
-        console.error("Error logging message receipt:", logErr);
-      }
+      await supabase.from("message_logs").insert({
+        user_id: userId,
+        phone: chatId,
+        instance_id: instanceId,
+        timestamp: new Date().toISOString(),
+        message_received: messageRaw,
+      });
     }
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
@@ -536,7 +460,6 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
     for (let i = 0; i < node.data.buttons.length; i++) {
       const btn = node.data.buttons[i];
       const normalizedBtnText = normalizeForMatch(btn.text);
-      // Suporte para matching por ID (enviado via send-button-actions) ou por texto
       const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
                                 webhook?.buttonsResponseMessage?.buttonId ||
                                 webhook?.buttonsResponseMessage?.selectedButtonId ||
@@ -589,7 +512,6 @@ async function callAI(systemPrompt: string, userMessage: string, model: string) 
   }
 
   try {
-    console.log(`🤖 Chamando IA Gateway: Modelo=${model}`);
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -623,23 +545,15 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
   let currentNodeId = nodeId;
   const visited = new Set();
 
-  console.log(`🚀 Iniciando executeFlow: node=${nodeId}, phone=${phone}, nodesCount=${nodes.length}`);
-
   while (currentNodeId && !visited.has(String(currentNodeId))) {
     visited.add(String(currentNodeId));
     const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
-    console.log(`📍 Processando nó: id=${currentNodeId}, type=${node?.type}`);
     
-    if (!node) {
-      console.log(`❌ Nó ${currentNodeId} não encontrado no fluxo ${flow.id}`);
-      break;
-    }
+    if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
-      // Aplicar delay do bloco de conteúdo se existir
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        console.log(`⏳ Aguardando delay de ${delaySeconds}s para o bloco ${node.id}`);
         await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
       }
 
@@ -660,17 +574,14 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const contentType = node.data.contentType || "text";
       const mediaUrl = node.data.mediaUrl || "";
       
-      // Send message via Z-API (with buttons if applicable)
-   // Normaliza destino Z-API para grupos
-   let destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-   if (isGroup || destination.includes('@g.us')) {
-     const numericId = destination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-     destination = numericId ? `${numericId}-group` : destination;
-   }
+      let destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
+      if (isGroup || destination.includes('@g.us')) {
+        const numericId = destination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+        destination = numericId ? `${numericId}-group` : destination;
+      }
 
       if (!resolvedContent.trim() && !mediaUrl && !hasButtons && !isCapture && node.type === "blocoInicial") {
         const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId));
-        console.log(`➡️ Bloco inicial sem conteúdo, pulando para o próximo nó: ${nextEdge?.target}`);
         currentNodeId = nextEdge?.target;
         continue;
       }
@@ -683,7 +594,6 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           flow_id: flow.id,
           flow_name: flow.name,
           phone,
-          last_node_id: node.id,
           captured_data: captured,
           source: isGroup ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
@@ -691,7 +601,6 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         return;
       }
     } else if (node.type === "agenteIA") {
-      // Agente IA também pode ter delay
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
         await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
@@ -718,13 +627,11 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
       await sendZapiText(instance, aiDestination, aiResponse, [], node.id);
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
-      // Suporte para blocos de agendamento e delay de ação
       const actionType = node.data.actionType;
       
       if (actionType === "delay" || node.type === "blocoAcao" && actionType === "delay") {
         const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
         if (seconds > 0) {
-          console.log(`⏳ Aguardando delay de ação de ${seconds}s`);
           await new Promise(resolve => setTimeout(resolve, Math.min(seconds, 25) * 1000));
         }
       } else if (node.type === "blocoAgendamento" || (node.type === "blocoAcao" && actionType === "schedule")) {
@@ -733,28 +640,19 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           const targetDate = new Date(scheduledAt);
           const diffMs = targetDate.getTime() - Date.now();
           if (diffMs > 0) {
-            // No Edge Function, limitamos o wait para não dar timeout (max 25s)
             const waitTime = Math.min(diffMs, 25000);
-            console.log(`⏳ Aguardando agendamento até ${targetDate.toISOString()} (limitado a 25s)`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
           }
         }
       }
     }
-    // Find next node (default edge) - be more flexible with handle names
     const nextEdge = edges.find((e: any) => 
       String(e.source) === String(currentNodeId) && 
       (!e.sourceHandle || e.sourceHandle === "default" || e.sourceHandle === "output" || e.sourceHandle.includes("source"))
     );
     
-    if (nextEdge) {
-      console.log(`➡️ Seguindo para o próximo nó: ${nextEdge.target}`);
-    } else {
-      console.log(`⏹️ Fim do fluxo ou sem saída padrão para o nó ${currentNodeId}`);
-    }
     currentNodeId = nextEdge?.target;
   }
-  console.log(`✅ executeFlow finalizado para o nó ${nodeId}`);
 }
 
 function replaceVars(text: string, captured: any, phone: string) {
@@ -768,8 +666,6 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
-
-  console.log(`📤 Enviando mensagem via Z-API: Instância=${zapiId}, Phone=${phone}`);
 
   let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
   let body: any = { phone, message };
@@ -794,7 +690,6 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
   }
 
   if (buttons && buttons.length > 0) {
-    // Se houver botões, enviamos via send-button-actions para que fiquem clicáveis
     url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-button-actions`;
     body = {
       phone,
@@ -819,15 +714,7 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
       body: JSON.stringify(body)
     });
 
-    const responseData = await response.json().catch(() => ({}));
-    
-    if (!response.ok) {
-      console.error(`❌ Erro Z-API (${response.status}):`, JSON.stringify(responseData));
-      throw new Error(`Z-API error: ${response.status}`);
-    }
-
-    console.log(`✅ Mensagem enviada com sucesso pela instância ${zapiId}`);
-    return responseData;
+    return await response.json().catch(() => ({}));
   } catch (error) {
     console.error(`❌ Falha crítica ao enviar via Z-API:`, error);
     throw error;
