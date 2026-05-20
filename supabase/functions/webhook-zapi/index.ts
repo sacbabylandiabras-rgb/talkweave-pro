@@ -189,8 +189,7 @@ serve(async (req) => {
             }
 
             const updateData: any = {
-              status: newStatusLabel,
-              updated_at: new Date().toISOString()
+              status: newStatusLabel
             };
             
             if (isDeliveredStatus) {
@@ -225,8 +224,7 @@ serve(async (req) => {
             .from("campaign_sends")
             .update({
               status: 'failed',
-              error_message: finalErrorMessage,
-              updated_at: new Date().toISOString()
+              error_message: finalErrorMessage
             })
             .eq("message_id", msgId);
         }
