@@ -344,8 +344,8 @@ const EnviarMensagem = () => {
         ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
         : null;
       
-      const effectiveMessage = mensagem || modeloData?.content || modeloData?.name || 'modelo';
-      const validatedData = messageSchema.parse({ phone: numero, message: effectiveMessage });
+      const effectiveMessage = mensagem || modeloData?.content || modeloData?.name || (arquivoMidia ? 'mídia' : '');
+      const validatedData = messageSchema.parse({ phone: numero, message: effectiveMessage || (arquivoMidia ? 'mídia' : 'mensagem') });
       setErrors({});
       
       let sendStatus: 'sent' | 'failed' = 'sent';
