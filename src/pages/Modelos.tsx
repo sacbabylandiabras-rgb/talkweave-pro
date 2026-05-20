@@ -2854,11 +2854,6 @@ const getPreviewFileLabel = (template: any) => {
                       <Video className="w-4 h-4" /> Vídeo
                     </div>
                   </SelectItem>
-                  <SelectItem value="audio_botoes">
-                    <div className="flex items-center gap-2 text-primary font-medium">
-                      <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
-                    </div>
-                  </SelectItem>
                   <SelectItem value="audio_imagem_botoes">
                     <div className="flex items-center gap-2 text-primary font-medium">
                       <Music className="w-4 h-4" /> Áudio com Imagem e Botões
