@@ -297,7 +297,7 @@ const EnviarMensagem = () => {
       }
       if (temMidiaModelo) {
         const caption = legenda || mensagemPersonalizada;
-        if (['audio', 'áudio', 'audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
+        if (['audio', 'áudio', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType)) await sendAudio(phone, modeloData.mediaUrl!, caption);
         else if (['video', 'video_botoes'].includes(templateType)) await sendVideo(phone, modeloData.mediaUrl!, caption, viewOnce, isPtv);
         else if (isDocumentTemplate) await sendDocument(phone, modeloData.mediaUrl!, modeloData.fileName || 'arquivo', modeloData.fileType?.split('/').pop() || 'txt', caption);
         else await sendImage(phone, modeloData.mediaUrl!, caption);
