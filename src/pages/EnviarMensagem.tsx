@@ -207,7 +207,7 @@ const EnviarMensagem = () => {
       const isProductTemplate = ['produto', 'product'].includes(templateType);
       const temListaOpcoes = isListTemplate && Array.isArray(modeloData.listItems) && modeloData.listItems.length > 0;
       const temCarrossel = !specialTpl && !isProductTemplate && Array.isArray(modeloData.carouselCards) && modeloData.carouselCards.length > 0;
-      const audioComBotoes = ['audio_botoes', 'audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
+      const audioComBotoes = ['audio_imagem_botoes', 'audio_video_botoes'].includes(templateType) && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const videoComBotoes = templateType === 'video_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const imagemComBotoes = templateType === 'imagem_botoes' && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
       const documentoComBotoes = isDocumentTemplate && !!modeloData.mediaUrl && !!modeloData.buttons?.length;
