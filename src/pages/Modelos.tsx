@@ -738,8 +738,6 @@ const getTemplateIcon = (type?: string) => {
     case "imagem_botoes":
       return <Image className="w-5 h-5 text-primary" />;
     case "audio":
-      return <Music className="w-5 h-5 text-primary" />;
-    case "audio_botoes":
     case "audio_imagem_botoes":
     case "audio_video_botoes":
       return <Music className="w-5 h-5 text-primary" />;
@@ -787,7 +785,6 @@ const getTypeFriendlyName = (type?: string) => {
     audio: "Áudio",
     video: "Vídeo",
     video_botoes: "Vídeo c/ Botões",
-    audio_botoes: "Áudio c/ Botões",
     audio_imagem_botoes: "Áudio c/ Imagem e Botões",
     audio_video_botoes: "Áudio c/ Vídeo e Botões",
     lista_opcao: "Lista",
@@ -2051,11 +2048,6 @@ const getPreviewFileLabel = (template: any) => {
                           <Video className="w-4 h-4" /> Vídeo
                         </div>
                       </SelectItem>
-                      <SelectItem value="audio_botoes">
-                        <div className="flex items-center gap-2 text-primary font-medium">
-                          <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
-                        </div>
-                      </SelectItem>
                       <SelectItem value="audio_imagem_botoes">
                         <div className="flex items-center gap-2 text-primary font-medium">
                           <Music className="w-4 h-4" /> Áudio com Imagem e Botões
@@ -2124,7 +2116,7 @@ const getPreviewFileLabel = (template: any) => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
+                    ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
                   </p>
                 </div>
 
@@ -2135,7 +2127,7 @@ const getPreviewFileLabel = (template: any) => {
                 />
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-4 border rounded-xl p-4 bg-muted/30 border-muted-foreground/10">
                     <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
                       <Music className="w-4 h-4" /> Arquivo Principal (Áudio)
@@ -2150,7 +2142,7 @@ const getPreviewFileLabel = (template: any) => {
                               accept={
                                 newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
                                   ? "image/*"
-                                  : newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes"
+                                  : newTemplate.type === "audio" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes"
                                   ? "audio/*"
                                   : "video/*"
                               }
@@ -2862,11 +2854,6 @@ const getPreviewFileLabel = (template: any) => {
                       <Video className="w-4 h-4" /> Vídeo
                     </div>
                   </SelectItem>
-                  <SelectItem value="audio_botoes">
-                    <div className="flex items-center gap-2 text-primary font-medium">
-                      <Music className="w-4 h-4" /> Áudio com Botões (Mídia)
-                    </div>
-                  </SelectItem>
                   <SelectItem value="audio_imagem_botoes">
                     <div className="flex items-center gap-2 text-primary font-medium">
                       <Music className="w-4 h-4" /> Áudio com Imagem e Botões
@@ -2935,7 +2922,7 @@ const getPreviewFileLabel = (template: any) => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
+                ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
               </p>
             </div>
 
@@ -2946,7 +2933,7 @@ const getPreviewFileLabel = (template: any) => {
             />
 
             {/* Campos específicos por tipo - Edição */}
-            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
+            {(editFormData.type === "imagem" || editFormData.type === "audio" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes" || editFormData.type === "video" || editFormData.type === "imagem_botoes" || editFormData.type === "video_botoes") && (
               <div className="space-y-4 border rounded-xl p-4 bg-muted/30 border-muted-foreground/10">
                 <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
                   <Music className="w-4 h-4" /> Arquivo Principal (Áudio)
@@ -2961,7 +2948,7 @@ const getPreviewFileLabel = (template: any) => {
                           accept={
                             editFormData.type === "imagem" || editFormData.type === "imagem_botoes"
                               ? "image/*"
-                              : editFormData.type === "audio" || editFormData.type === "audio_botoes" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes"
+                              : editFormData.type === "audio" || editFormData.type === "audio_imagem_botoes" || editFormData.type === "audio_video_botoes"
                               ? "audio/*"
                               : "video/*"
                           }
