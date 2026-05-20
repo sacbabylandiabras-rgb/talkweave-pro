@@ -2142,7 +2142,7 @@ const getPreviewFileLabel = (template: any) => {
                               accept={
                                 newTemplate.type === "imagem" || newTemplate.type === "imagem_botoes"
                                   ? "image/*"
-                                  : newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes"
+                                  : newTemplate.type === "audio" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes"
                                   ? "audio/*"
                                   : "video/*"
                               }
