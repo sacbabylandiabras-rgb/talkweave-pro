@@ -2127,7 +2127,7 @@ const getPreviewFileLabel = (template: any) => {
                 />
 
                 {/* Campos específicos por tipo */}
-                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_botoes" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
+                {(newTemplate.type === "imagem" || newTemplate.type === "audio" || newTemplate.type === "audio_imagem_botoes" || newTemplate.type === "audio_video_botoes" || newTemplate.type === "video" || newTemplate.type === "imagem_botoes" || newTemplate.type === "video_botoes") && (
                   <div className="space-y-4 border rounded-xl p-4 bg-muted/30 border-muted-foreground/10">
                     <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-2">
                       <Music className="w-4 h-4" /> Arquivo Principal (Áudio)
