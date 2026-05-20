@@ -2922,7 +2922,7 @@ const getPreviewFileLabel = (template: any) => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Botões funcionam com "imagem com botões", "vídeo com botões" e "áudio com botões"
+                ⚠️ Botões funcionam com "imagem com botões" e "vídeo com botões"
               </p>
             </div>
 
