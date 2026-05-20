@@ -609,6 +609,15 @@ const EnviarMensagem = () => {
       let ultimoErro: string | null = null;
       const errosDetalhados: string[] = [];
 
+      let preConvertedMedia: { base64: string, name: string, type: string } | null = null;
+      if (arquivoMidia) {
+        preConvertedMedia = {
+          base64: await convertToBase64(arquivoMidia),
+          name: arquivoMidia.name,
+          type: arquivoMidia.type
+        };
+      }
+
        for (let i = 0; i < contatosProcessados.length; i++) {
          if (cancelarEnvioRef.current) {
            await supabase
