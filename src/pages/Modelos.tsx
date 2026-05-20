@@ -785,7 +785,6 @@ const getTypeFriendlyName = (type?: string) => {
     audio: "Áudio",
     video: "Vídeo",
     video_botoes: "Vídeo c/ Botões",
-    audio_botoes: "Áudio c/ Botões",
     audio_imagem_botoes: "Áudio c/ Imagem e Botões",
     audio_video_botoes: "Áudio c/ Vídeo e Botões",
     lista_opcao: "Lista",
