@@ -206,23 +206,28 @@ serve(async (req) => {
     // 1. Handle delivery/status callbacks first (entregue)
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
-      const status = webhook?.status || "";
+      let status = webhook?.status || "";
       const error = webhook?.error;
       
+      // If it's a DeliveryCallback, it implicitly means it was delivered
+      if (!status && type === "DeliveryCallback") {
+        status = "DELIVERED";
+      }
+
       console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
       
       // Mark as delivered/sent based on status.
       // SENT: Message reached Z-API/WhatsApp servers.
       // RECEIVED/DELIVERED: Message delivered to the recipient's phone.
       // READ: Recipient read the message.
-       const upperStatus = status.toUpperCase();
-       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
-       const isSentStatus = ["SENT"].includes(upperStatus);
-       const isShadowBanError = error && (
-         error.toLowerCase().includes("shadow ban") || 
-         error.toLowerCase().includes("restricted") || 
-         error.toLowerCase().includes("temporary limit")
-       );
+      const upperStatus = status.toUpperCase();
+      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
+      const isSentStatus = ["SENT"].includes(upperStatus);
+      const isShadowBanError = error && (
+        error.toLowerCase().includes("shadow ban") || 
+        error.toLowerCase().includes("restricted") || 
+        error.toLowerCase().includes("temporary limit")
+      );
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
