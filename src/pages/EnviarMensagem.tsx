@@ -172,15 +172,7 @@ const EnviarMensagem = () => {
     const instanceId = currentSelectedInstanceId === '__rotate_all__' ? undefined : currentSelectedInstanceId;
 
     if (modeloData) {
-      // Usar a mesma lógica de envio de campanhas para garantir fidelidade
-      const { data, error } = await supabase.functions.invoke('send-campaign', {
-        body: {
-          campaignId: `direct-${Date.now()}`,
-          contacts: [{ phone, name: nome || "Cliente" }],
-          instanceId,
-          _directSendTemplateId: modeloData.id
-          if (modeloData) {
-  const specialTpl = parseSpecialTemplate(modeloData.content);
+      const specialTpl = parseSpecialTemplate(modeloData.content);
   const templateType = String(modeloData.type || '').toLowerCase();
   const mensagemPersonalizada = (mensagem || modeloData.content || '')
     .replace(/\{nome\}/g, nome || '')
@@ -281,22 +273,6 @@ const EnviarMensagem = () => {
   await sendMessage(phone, mensagemPersonalizada);
   return mensagemPersonalizada;
 }
-        }
-      });
-
-      if (error) {
-        console.error('Erro ao enviar via send-campaign:', error);
-        throw new Error(error.message || 'Erro ao processar envio do modelo');
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      return (modeloData.content || modeloData.name || 'Modelo enviado')
-        .replace(/\{nome\}/g, nome || "")
-        .replace(/\{numero\}/g, phone);
-    }
 
     const mensagemPersonalizada = (mensagem || "")
       .replace(/\{nome\}/g, nome || "")
