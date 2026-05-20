@@ -156,11 +156,11 @@ serve(async (req) => {
         status = "DELIVERED";
       }
 
-      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status}`);
+      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status} (type=${type})`);
       
       const upperStatus = status.toUpperCase();
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
-      const isSentStatus = ["SENT"].includes(upperStatus);
+      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
       const isShadowBanError = error && (
         error.toLowerCase().includes("shadow ban") || 
         error.toLowerCase().includes("restricted") || 
