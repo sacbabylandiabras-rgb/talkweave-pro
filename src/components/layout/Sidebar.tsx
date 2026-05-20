@@ -75,7 +75,7 @@ const zapiMenuItems = [
     { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
   { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
   { id: "campanhas", label: "Campanhas", icon: Megaphone, path: "/campanhas" },
-  { id: "enviar-mensagem", label: "Enviar", icon: Send, path: "/enviar-mensagem" },
+  
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
   { id: "apanhador-grupos", label: "Extrair membros", icon: UserPlus, path: "/apanhador-grupos" },
