@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
- import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
@@ -13,43 +13,49 @@ interface SendProgressDialogProps {
   onPause?: () => void;
 }
 
- interface Stats {
-   total: number;
-   sending: number;
-   pending: number;
-   sent: number; // For "Enviado" (1 checkmark)
-   delivered: number; // For "Entregue" (2 checkmarks)
-   failed: number;
-   lastError?: string | null;
- }
+interface Stats {
+  total: number;
+  sending: number;
+  pending: number;
+  sent: number; // status === 'sent' (1 checkmark, sem confirmação de entrega)
+  delivered: number; // status === 'delivered' (2 checkmarks, confirmado pelo WhatsApp)
+  failed: number;
+  lastError?: string | null;
+}
 
 interface CampaignSendRow {
   phone: string | null;
   status: string | null;
-   sent_at: string | null;
-   delivered_at: string | null;
-   created_at: string;
-   message_id?: string | null;
-   error_message?: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  message_id?: string | null;
+  error_message?: string | null;
 }
 
 const normalizePhoneKey = (phone?: string | null) => {
-  if (!phone) return '';
-  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+  if (!phone) return "";
+  return phone.replace(/@lid$/i, "").replace(/\D/g, "");
 };
 
-const getSendTimestamp = (send?: Pick<CampaignSendRow, 'delivered_at' | 'sent_at' | 'created_at'> | null) =>
-  send?.delivered_at || send?.sent_at || send?.created_at || '';
+const getSendTimestamp = (send?: Pick<CampaignSendRow, "delivered_at" | "sent_at" | "created_at"> | null) =>
+  send?.delivered_at || send?.sent_at || send?.created_at || "";
 
-export function SendProgressDialog({ open, onOpenChange, campaignId, totalContacts, onPause }: SendProgressDialogProps) {
+export function SendProgressDialog({
+  open,
+  onOpenChange,
+  campaignId,
+  totalContacts,
+  onPause,
+}: SendProgressDialogProps) {
   const [stats, setStats] = useState<Stats>({
     total: 0,
     sending: 0,
     pending: totalContacts,
     sent: 0,
-       delivered: 0,
-       failed: 0,
-       lastError: null,
+    delivered: 0,
+    failed: 0,
+    lastError: null,
   });
   const [isComplete, setIsComplete] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -74,20 +80,13 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     if (campaignId && !isPausing) {
       try {
         setIsPausing(true);
-
-        // 1. Update status to paused
-        const { error } = await supabase
-          .from('campaigns')
-          .update({ status: 'paused' })
-          .eq('id', campaignId);
-        
+        const { error } = await supabase.from("campaigns").update({ status: "paused" }).eq("id", campaignId);
         if (error) throw error;
-
         setIsPaused(true);
         setIsPausing(false);
         if (onPause) onPause();
       } catch (error) {
-        console.error('Error pausing campaign:', error);
+        console.error("Error pausing campaign:", error);
         setIsPausing(false);
       }
     }
@@ -102,20 +101,17 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     resetProgressState();
 
     const fetchAndUpdate = async () => {
-      const [
-        { data: sendRows, error: sendRowsError },
-         { data: campaignData },
-       ] = await Promise.all([
-         supabase
-           .from('campaign_sends')
-           .select('phone, status, sent_at, delivered_at, created_at, message_id, error_message')
-           .eq('campaign_id', campaignId)
-           .order('created_at', { ascending: true }),
-         supabase.from('campaigns').select('status, target_audience').eq('id', campaignId).single(),
-       ]);
+      const [{ data: sendRows, error: sendRowsError }, { data: campaignData }] = await Promise.all([
+        supabase
+          .from("campaign_sends")
+          .select("phone, status, sent_at, delivered_at, created_at, message_id, error_message")
+          .eq("campaign_id", campaignId)
+          .order("created_at", { ascending: true }),
+        supabase.from("campaigns").select("status, target_audience").eq("id", campaignId).single(),
+      ]);
 
       if (sendRowsError) {
-        console.error('Erro ao carregar progresso da campanha:', sendRowsError);
+        console.error("Erro ao carregar progresso da campanha:", sendRowsError);
         return;
       }
 
@@ -126,143 +122,153 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
       const targetPhoneKeys = new Set<string>(
         targetContacts
           .map((contact: any) => normalizePhoneKey(contact?.phone))
-          .filter((phoneKey: string) => Boolean(phoneKey))
+          .filter((phoneKey: string) => Boolean(phoneKey)),
       );
 
-       const sendsByPhone = new Map<string, CampaignSendRow>();
-       (sendRows as CampaignSendRow[] | null | undefined)?.forEach((send) => {
-         const phoneKey = normalizePhoneKey(send.phone) || String(send.phone || '');
-         if (!phoneKey) return;
- 
-         const existing = sendsByPhone.get(phoneKey);
-         // Priority: delivered (3) > sent (2) > failed (1) > pending (0)
-         const getStatusPriority = (s?: string | null) => {
-           if (s === 'delivered') return 3;
-           if (s === 'sent') return 2;
-           if (s === 'failed') return 1;
-           return 0;
-         };
- 
-         const nextPriority = getStatusPriority(send.status);
-         const currentPriority = getStatusPriority(existing?.status);
- 
-         if (
-           !existing ||
-           nextPriority > currentPriority ||
-           (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
-         ) {
-           sendsByPhone.set(phoneKey, send);
-         }
-       });
+      // Mantém apenas o registro de maior prioridade por telefone
+      const sendsByPhone = new Map<string, CampaignSendRow>();
+      (sendRows as CampaignSendRow[] | null | undefined)?.forEach((send) => {
+        const phoneKey = normalizePhoneKey(send.phone) || String(send.phone || "");
+        if (!phoneKey) return;
 
-      const allPhoneKeys = new Set<string>([
-        ...Array.from(targetPhoneKeys),
-        ...Array.from(sendsByPhone.keys()),
-      ]);
+        const existing = sendsByPhone.get(phoneKey);
+        // Prioridade: delivered (4) > sent (3) > pending com message_id (2) > failed (1) > pending (0)
+        const getStatusPriority = (s?: string | null, row?: CampaignSendRow) => {
+          if (s === "delivered") return 4;
+          if (s === "sent") return 3;
+          if (s === "pending" && (row?.message_id || row?.sent_at)) return 2;
+          if (s === "failed") return 1;
+          return 0;
+        };
+
+        const nextPriority = getStatusPriority(send.status, send);
+        const currentPriority = getStatusPriority(existing?.status, existing);
+
+        if (
+          !existing ||
+          nextPriority > currentPriority ||
+          (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
+        ) {
+          sendsByPhone.set(phoneKey, send);
+        }
+      });
+
+      const allPhoneKeys = new Set<string>([...Array.from(targetPhoneKeys), ...Array.from(sendsByPhone.keys())]);
 
       const effectiveTotal = Math.max(totalContacts, allPhoneKeys.size);
+
+      // ─── CONTAGEM CORRIGIDA ───────────────────────────────────────────────────
+      // "sent"     = confirmado pelo servidor (1 check), NÃO inclui delivered
+      // "delivered"= confirmado pelo WhatsApp (2 checks)
+      // pending com message_id = o servidor enviou mas ainda aguarda ACK do WhatsApp → conta como "sent"
+      // pending sem message_id = ainda não foi processado → conta como pending
+      // ─────────────────────────────────────────────────────────────────────────
       let delivered = 0;
       let failed = 0;
       let sending = 0;
-       let pending = 0;
-       let sent = 0;
-       let lastError = null;
+      let pending = 0;
+      let sent = 0;
+      let lastError: string | null = null;
 
-       allPhoneKeys.forEach((phoneKey) => {
-         const send = sendsByPhone.get(phoneKey);
-         if (send?.status === 'delivered') {
-           delivered += 1;
-           sent += 1;
-         } else if (send?.status === 'sent') {
-           sent += 1;
-         } else if (send?.status === 'pending') {
-           if (Boolean(send.message_id || send.sent_at)) {
-             sent += 1;
-           } else {
-             pending += 1;
-           }
-         } else if (send?.status === 'failed') {
-           failed += 1;
-           if (send.error_message) lastError = send.error_message;
-         } else {
-           pending += 1;
-         }
-       });
+      allPhoneKeys.forEach((phoneKey) => {
+        const send = sendsByPhone.get(phoneKey);
 
-      const newStats = {
+        if (!send) {
+          // Contato alvo sem nenhum registro ainda
+          pending += 1;
+        } else if (send.status === "delivered") {
+          // Confirmado pelo WhatsApp (2 checks)
+          delivered += 1;
+          // NÃO soma em sent — mostramos as categorias separadas no UI
+        } else if (send.status === "sent") {
+          // Enviado pelo servidor, aguardando confirmação de entrega (1 check)
+          sent += 1;
+        } else if (send.status === "pending") {
+          if (send.message_id || send.sent_at) {
+            // Já foi enviado pelo servidor mas ainda está com status "pending" no banco
+            // (o webhook de ACK ainda não chegou) — exibir como enviado
+            sent += 1;
+          } else {
+            // Ainda não foi processado
+            pending += 1;
+          }
+        } else if (send.status === "failed") {
+          failed += 1;
+          if (send.error_message) lastError = send.error_message;
+        } else {
+          pending += 1;
+        }
+      });
+
+      // Total de processados = enviados + entregues + falhas
+      const processed = sent + delivered + failed;
+
+      const newStats: Stats = {
         total: effectiveTotal,
         sending,
         pending,
         sent,
-         delivered,
-         failed,
-         lastError,
+        delivered,
+        failed,
+        lastError,
       };
       setStats(newStats);
 
-      if (campaignData?.status === 'completed') {
-        const trulyDelivered = effectiveTotal > 0 && delivered >= effectiveTotal;
-        setIsComplete(trulyDelivered);
-        if (!trulyDelivered) {
-          // Não rebaixar para "paused" só porque alguns callbacks ainda não chegaram.
-          // Mensagens com status "sent" estão aguardando confirmação do WhatsApp e não
-          // significam falha. Só voltamos para "active" se ainda há trabalho real pendente.
-          if (sending + pending > 0) {
-            await supabase
-              .from('campaigns')
-              .update({ status: 'active', updated_at: new Date().toISOString() })
-              .eq('id', campaignId);
-          }
-        }
-        } else if (campaignData?.status === 'active') {
-        setIsComplete(false);
-        setIsPaused(false);
-        // Só completa quando não há pendentes aguardando confirmação real.
-        if (
-          effectiveTotal > 0 &&
-          sending === 0 &&
-          pending === 0 &&
-          delivered >= effectiveTotal
-        ) {
-          setIsComplete(true);
-          try {
-            await supabase
-              .from('campaigns')
-              .update({ status: 'completed', updated_at: new Date().toISOString() })
-              .eq('id', campaignId);
-          } catch (err) {
-            console.warn('Falha ao marcar campanha como completa:', err);
-          }
-        }
-      } else if (campaignData?.status === 'paused') {
+      // ─── LÓGICA DE STATUS DA CAMPANHA ────────────────────────────────────────
+      if (campaignData?.status === "completed") {
+        // Campanha já marcada como completa no banco
+        setIsComplete(true);
+      } else if (campaignData?.status === "paused") {
         setIsComplete(false);
         setIsPaused(true);
         setIsPausing(false);
-      } else if (
-        campaignData?.status !== 'active' &&
-        campaignData?.status !== 'paused' &&
-        campaignData?.status !== 'draft' &&
-        effectiveTotal > 0 && 
-        newStats.pending === 0 &&
-        delivered >= effectiveTotal
-      ) {
-        setIsComplete(true);
+      } else if (campaignData?.status === "active") {
+        setIsComplete(false);
+        setIsPaused(false);
+
+        // Considera completo quando não há mais pendentes e todos foram processados
+        const allProcessed = effectiveTotal > 0 && pending === 0 && sending === 0;
+        if (allProcessed) {
+          setIsComplete(true);
+          try {
+            await supabase
+              .from("campaigns")
+              .update({ status: "completed", updated_at: new Date().toISOString() })
+              .eq("id", campaignId);
+          } catch (err) {
+            console.warn("Falha ao marcar campanha como completa:", err);
+          }
+        }
       }
     };
 
     const channel = supabase
       .channel(`progress-${campaignId}-${Date.now()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_sends', filter: `campaign_id=eq.${campaignId}` }, () => {
-        fetchAndUpdate();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` }, (payload) => {
-        const status = (payload.new as any)?.status;
-        fetchAndUpdate();
-        if (status === 'paused') { setIsPaused(true); setIsPausing(false); }
-        if (status === 'active') { setIsPaused(false); setIsComplete(false); }
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "campaign_sends", filter: `campaign_id=eq.${campaignId}` },
+        () => {
+          fetchAndUpdate();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "campaigns", filter: `id=eq.${campaignId}` },
+        (payload) => {
+          const status = (payload.new as any)?.status;
+          fetchAndUpdate();
+          if (status === "paused") {
+            setIsPaused(true);
+            setIsPausing(false);
+          }
+          if (status === "active") {
+            setIsPaused(false);
+            setIsComplete(false);
+          }
+        },
+      )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === "SUBSCRIBED") {
           fetchAndUpdate();
         }
       });
@@ -270,14 +276,22 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
     channelRef.current = channel;
 
     return () => {
-      if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [open, campaignId, totalContacts]);
 
   const effectiveTotal = Math.max(stats.total, totalContacts);
-   // Use sent count for progress bar as it reflects work performed by the system
-   const progressCount = stats.sent;
-   const progress = effectiveTotal > 0 ? ((progressCount + stats.failed) / effectiveTotal) * 100 : 0;
+
+  // Barra de progresso: conta tudo que foi processado (enviado + entregue + falhas)
+  const processed = stats.sent + stats.delivered + stats.failed;
+  const progress = effectiveTotal > 0 ? (processed / effectiveTotal) * 100 : 0;
+
+  // Taxa de sucesso final: (enviados + entregues) / total
+  const successCount = stats.sent + stats.delivered;
+  const successRate = stats.total > 0 ? Math.round((successCount / stats.total) * 100) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -287,8 +301,8 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             {isComplete ? "Envio Concluído!" : isPaused ? "Campanha Pausada" : "Enviando Campanha..."}
           </DialogTitle>
           <DialogDescription>
-            {isComplete 
-              ? "A campanha foi enviada com sucesso" 
+            {isComplete
+              ? "A campanha foi enviada com sucesso"
               : isPaused
                 ? "A campanha foi pausada. Você pode retomá-la na lista de campanhas"
                 : "Aguarde enquanto as mensagens são enviadas"}
@@ -302,83 +316,85 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
               <span className="font-medium">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
-           </div>
- 
-           {stats.failed > 0 && stats.lastError && !stats.lastError.toLowerCase().includes('@lid') && (
-             <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
-               <div className="flex gap-2 text-red-800 dark:text-red-300">
-                 <div className="mt-0.5">
-                   <XCircle className="w-4 h-4 text-red-500" />
-                 </div>
-                 <div className="space-y-1">
-                   <p className="text-xs font-semibold uppercase tracking-wider">Atenção ao Status de Envio</p>
-                   <p className="text-sm leading-relaxed">{stats.lastError}</p>
-                   {stats.lastError.toLowerCase().includes('shadow ban') && (
-                     <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-900/20">
-                       <p className="text-xs italic opacity-80">Dica: Reduza a velocidade de envio ou troque o conteúdo para proteger seu número.</p>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-           )}
- 
-           <div className="grid grid-cols-2 gap-4 relative">
-             <div className="space-y-1 p-2 bg-muted/50 rounded-lg">
-               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                 <Send className="w-3.5 h-3.5" />
-                 <span>Total</span>
-               </div>
-               <div className="text-xl font-bold">{effectiveTotal}</div>
-             </div>
- 
-             <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
-               <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                 <Check className="w-4 h-4" />
-                 <span>Enviados (✓)</span>
-               </div>
-               <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                 {stats.sent}
-               </div>
-             </div>
- 
-             <div className="space-y-1 p-2 bg-green-500/10 rounded-lg">
-               <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                 <CheckCheck className="w-4 h-4" />
-                 <span>Entregues (✓✓)</span>
-               </div>
-               <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                 {stats.delivered}
-               </div>
-             </div>
+          </div>
 
-             <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
-               <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
-                 <Clock className="w-3.5 h-3.5" />
-                <span>Pendentes</span>
-              </div>
-               <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                {stats.pending}
+          {stats.failed > 0 && stats.lastError && !stats.lastError.toLowerCase().includes("@lid") && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex gap-2 text-red-800 dark:text-red-300">
+                <div className="mt-0.5">
+                  <XCircle className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider">Atenção ao Status de Envio</p>
+                  <p className="text-sm leading-relaxed">{stats.lastError}</p>
+                  {stats.lastError.toLowerCase().includes("shadow ban") && (
+                    <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-900/20">
+                      <p className="text-xs italic opacity-80">
+                        Dica: Reduza a velocidade de envio ou troque o conteúdo para proteger seu número.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
- 
-             <div className="space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
-               <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
-                 <XCircle className="w-3.5 h-3.5" />
-                 <span>Falhas</span>
-               </div>
-               <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                 {stats.failed}
-               </div>
-             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 relative">
+            {/* Total */}
+            <div className="space-y-1 p-2 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Send className="w-3.5 h-3.5" />
+                <span>Total</span>
+              </div>
+              <div className="text-xl font-bold">{effectiveTotal}</div>
+            </div>
+
+            {/* Enviados (1 check) — enviados pelo servidor, aguardando ACK do WhatsApp */}
+            <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                <Check className="w-4 h-4" />
+                <span>Enviados (✓)</span>
+              </div>
+              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.sent}</div>
+            </div>
+
+            {/* Entregues (2 checks) — confirmados pelo WhatsApp via webhook */}
+            <div className="space-y-1 p-2 bg-green-500/10 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                <CheckCheck className="w-4 h-4" />
+                <span>Entregues (✓✓)</span>
+              </div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.delivered}</div>
+            </div>
+
+            {/* Pendentes */}
+            <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pendentes</span>
+              </div>
+              <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
+            </div>
+
+            {/* Falhas */}
+            <div className="space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
+              <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Falhas</span>
+              </div>
+              <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.failed}</div>
+            </div>
           </div>
 
           {isComplete && stats.total > 0 && (
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">Taxa de Sucesso</div>
-                <div className="text-3xl font-bold text-primary">
-                  {Math.round((stats.delivered / stats.total) * 100)}%
+                <div className="text-3xl font-bold text-primary">{successRate}%</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {stats.delivered > 0
+                    ? `${stats.delivered} confirmados entregues pelo WhatsApp`
+                    : `${stats.sent} enviados aguardando confirmação`}
                 </div>
               </div>
             </div>
@@ -388,17 +404,12 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                <span>Enviando mensagens... {stats.sending > 0 ? `(${stats.sending} em andamento)` : ''}</span>
+                <span>Enviando mensagens... {stats.sending > 0 ? `(${stats.sending} em andamento)` : ""}</span>
               </div>
               <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  onClick={handlePause}
-                  disabled={isPausing}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={handlePause} disabled={isPausing} className="gap-2">
                   <Pause className="w-4 h-4" />
-                  {isPausing ? 'Pausando...' : 'Pausar Campanha'}
+                  {isPausing ? "Pausando..." : "Pausar Campanha"}
                 </Button>
               </div>
             </div>
@@ -414,9 +425,7 @@ export function SendProgressDialog({ open, onOpenChange, campaignId, totalContac
 
         {(isComplete || isPaused) && (
           <div className="flex justify-end">
-            <Button onClick={() => onOpenChange(false)}>
-              Fechar
-            </Button>
+            <Button onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
         )}
       </DialogContent>
