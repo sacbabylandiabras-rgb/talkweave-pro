@@ -1685,15 +1685,6 @@ Formatos aceitos:
           </Card>
         </TabsContent>
 
-        {/* Eventos */}
-        <TabsContent value="eventos" className="space-y-4">
-          <EventosSection
-            sendEvent={sendEvent}
-            sendEditEvent={sendEditEvent}
-            sendEventResponse={sendEventResponse}
-            loading={loading}
-          />
-        </TabsContent>
            </Tabs>
          </div>
  
