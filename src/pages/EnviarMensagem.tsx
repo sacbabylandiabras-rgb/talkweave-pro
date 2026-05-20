@@ -497,11 +497,11 @@ const EnviarMensagem = () => {
       ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
       : null;
 
-    // Permite envio sem texto manual quando há modelo selecionado (ex: PIX/cobrança, mídia, botões)
-    if (!mensagem.trim() && !modeloDataValidation) {
+    // Permite envio sem texto manual quando há modelo selecionado ou mídia anexada
+    if (!mensagem.trim() && !modeloDataValidation && !arquivoMidia) {
       toast({
         title: "Mensagem vazia",
-        description: "Digite uma mensagem ou selecione um modelo para enviar",
+        description: "Digite uma mensagem, selecione um modelo ou anexe uma mídia para enviar",
         variant: "destructive"
       });
       setEnviandoEmMassa(false);
