@@ -738,8 +738,6 @@ const getTemplateIcon = (type?: string) => {
     case "imagem_botoes":
       return <Image className="w-5 h-5 text-primary" />;
     case "audio":
-      return <Music className="w-5 h-5 text-primary" />;
-    case "audio_botoes":
     case "audio_imagem_botoes":
     case "audio_video_botoes":
       return <Music className="w-5 h-5 text-primary" />;
