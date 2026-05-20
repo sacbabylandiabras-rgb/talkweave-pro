@@ -311,8 +311,7 @@ const EnviarMensagem = () => {
       const modeloData = modeloSelecionado
         ? modelosDisponiveis.find(m => m.id === modeloSelecionado)
         : null;
-      // Quando há modelo selecionado, o campo "mensagem" é opcional —
-      // o conteúdo virá do próprio modelo (texto, mídia, PIX, etc.)
+      
       const effectiveMessage = mensagem || modeloData?.content || modeloData?.name || 'modelo';
       const validatedData = messageSchema.parse({ phone: numero, message: effectiveMessage });
       setErrors({});
@@ -322,6 +321,16 @@ const EnviarMensagem = () => {
       let trackedContent = validatedData.message;
       
       try {
+        const currentInstance = instanceSelectionMode === 'rotate'
+          ? rotateInstances[0] // Para individual, pega a primeira se estiver em rotate ou a selecionada
+          : selectedInstanceId
+            ? instances.find(inst => inst.id === selectedInstanceId) || null
+            : activeInstance || null;
+
+        if (currentInstance) {
+          setZapiInstanceOverride(currentInstance);
+        }
+
         trackedContent = await sendResolvedContent(validatedData.phone);
       } catch (sendError) {
         sendStatus = 'failed';
@@ -331,7 +340,6 @@ const EnviarMensagem = () => {
         await trackIndividualSend(validatedData.phone, trackedContent, sendStatus, errorMsg);
       }
       
-      // Limpar formulário após envio bem-sucedido
       setNumero("");
       setMensagem("");
     } catch (error) {
