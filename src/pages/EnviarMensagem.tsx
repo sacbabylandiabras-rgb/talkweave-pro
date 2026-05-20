@@ -681,7 +681,7 @@ const EnviarMensagem = () => {
              setZapiInstanceOverride(currentInstance);
            }
 
-           await sendResolvedContent(contato.telefone, contato.nome);
+           await sendResolvedContent(contato.telefone, contato.nome, preConvertedMedia);
            
            sendStatus = 'sent';
            processados++;
