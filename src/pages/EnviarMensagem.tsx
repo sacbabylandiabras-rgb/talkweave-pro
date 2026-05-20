@@ -1654,7 +1654,7 @@ Formatos aceitos:
                   <div className="space-y-2">
                     <Button 
                        type="submit"
-                       disabled={loading || enviandoEmMassa || !contatos.trim() || (!mensagem.trim() && !modeloSelecionado)}
+                       disabled={loading || enviandoEmMassa || !contatos.trim() || (!mensagem.trim() && !modeloSelecionado && !arquivoMidia)}
                        className="w-full flex items-center gap-2"
                       size="lg"
                     >
