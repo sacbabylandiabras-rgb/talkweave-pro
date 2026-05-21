@@ -145,6 +145,8 @@ serve(async (req) => {
       }
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/qr-code/image`;
+      console.log(`[get-qr-code] Fetching QR for instance ${instance.zapi_instance_id} at ${zapiUrl}`);
+
       const zapiResponse = await fetch(zapiUrl, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token }
@@ -152,6 +154,7 @@ serve(async (req) => {
       const zapiData = await parseJsonResponse(zapiResponse);
 
       if (!zapiResponse.ok) {
+        console.warn(`[get-qr-code] Z-API error for ${instance.zapi_instance_id}:`, zapiResponse.status, zapiData);
         const upstreamMsg = getUpstreamMessage(zapiData);
         if (zapiResponse.status === 401 || zapiResponse.status === 403 || upstreamMsg.includes('client-token') || upstreamMsg.includes('not allowed')) {
           return unavailableQrResponse(zapiData, 'credentials_invalid');

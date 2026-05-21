@@ -244,7 +244,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-  import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin, Clock, AlertCircle } from "lucide-react";
+  import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin, Clock, AlertCircle, KeyRound, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
@@ -277,7 +277,7 @@ const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
 
 const getConnectionIssueMessage = (issue?: string | null) => {
   if (issue === 'credentials_invalid') {
-    return 'Credenciais da conexão inválidas. Atualize o ID da instância, token e token de segurança em Dispositivos.';
+    return 'Credenciais da conexão inválidas no Z-API. Verifique se você está usando o "Security Token" (Token de Segurança da Conta) correto em Minha Conta -> Segurança no painel da Z-API.';
   }
   if (issue === 'whatsapp_unavailable') {
     return 'WhatsApp não respondeu agora. Aguarde alguns instantes e tente gerar novamente.';
@@ -375,7 +375,63 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState(instance.instance_name);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const [tempName, setTempName] = useState(instance.instance_name);
+
+  // Connection settings
+  const [showSettings, setShowSettings] = useState(false);
+  const [editForm, setEditForm] = useState({
+    zapi_instance_id: instance.zapi_instance_id || "",
+    zapi_token: instance.zapi_token || "",
+    zapi_client_token: instance.zapi_client_token || "",
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const handleSaveName = async () => {
+    if (!tempName.trim()) return;
+    setSavingName(true);
+    try {
+      const { error } = await supabase
+        .from('zapi_instances')
+        .update({ instance_name: tempName.trim() })
+        .eq('id', instance.id);
+      
+      if (error) throw error;
+      setInstanceName(tempName.trim());
+      setIsEditingName(false);
+      toast({ title: "✅ Nome atualizado" });
+    } catch (err: any) {
+      toast({ title: "❌ Erro ao salvar nome", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleUpdateSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('zapi_instances')
+        .update({
+          zapi_instance_id: editForm.zapi_instance_id.trim(),
+          zapi_token: editForm.zapi_token.trim(),
+          zapi_client_token: editForm.zapi_client_token.trim(),
+        })
+        .eq('id', instance.id);
+
+      if (error) throw error;
+      
+      setShowSettings(false);
+      toast({ title: "✅ Conexão atualizada", description: "O sistema tentará reconectar em instantes." });
+      
+      // Force status update
+      setTimeout(fetchDeviceStatus, 1500);
+    } catch (err: any) {
+      toast({ title: "❌ Erro ao atualizar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
    const [healthBlock, setHealthBlock] = useState<{ blocked_until: string | null, block_type?: string } | null>(null);
@@ -970,15 +1026,15 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                     onChange={(e) => setTempName(e.target.value)}
                     className="h-7 text-sm w-28"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') { setInstanceName(tempName); setIsEditingName(false); }
+                      if (e.key === 'Enter') handleSaveName();
                       if (e.key === 'Escape') { setTempName(instanceName); setIsEditingName(false); }
                     }}
                     autoFocus
                   />
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setInstanceName(tempName); setIsEditingName(false); }}>
-                    <Check className="w-3 h-3" />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSaveName} disabled={savingName}>
+                    {savingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setTempName(instanceName); setIsEditingName(false); }}>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setTempName(instanceName); setIsEditingName(false); }} disabled={savingName}>
                     <X className="w-3 h-3" />
                   </Button>
                 </div>
@@ -1025,9 +1081,14 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               </span>
             </div>
           </div>
-          <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px] shrink-0">
-            {isOnline ? 'Online' : 'Offline'}
-          </Badge>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px]">
+              {isOnline ? 'Online' : 'Offline'}
+            </Badge>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setShowSettings(true)}>
+              <Edit2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
 
         {/* Status dots */}
@@ -1536,6 +1597,53 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" /> Configurações de Conexão
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance ID</Label>
+              <Input 
+                value={editForm.zapi_instance_id} 
+                onChange={(e) => setEditForm({...editForm, zapi_instance_id: e.target.value})}
+                placeholder="Ex: 3F32C5..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance Token</Label>
+              <Input 
+                value={editForm.zapi_token} 
+                onChange={(e) => setEditForm({...editForm, zapi_token: e.target.value})}
+                placeholder="Ex: EA393E..."
+                type="password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase text-muted-foreground font-semibold">Security Token (Client Token)</Label>
+              <Input 
+                value={editForm.zapi_client_token} 
+                onChange={(e) => setEditForm({...editForm, zapi_client_token: e.target.value})}
+                placeholder="Minha Conta -> Segurança no Z-API"
+                type="password"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Este token é encontrado na aba "Segurança" dentro do painel Z-API. É o "Account Security Token".
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setShowSettings(false)}>Cancelar</Button>
+              <Button onClick={handleUpdateSettings} disabled={savingSettings}>
+                {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Salvar Alterações
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
