@@ -22,6 +22,32 @@ const normalizeZapiStatus = (raw: any) => {
   };
 };
 
+const parseJsonResponse = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
+const getUpstreamMessage = (payload: any) =>
+  String(payload?.error || payload?.message || payload?.details?.error || '').toLowerCase();
+
+const disconnectedResponse = (raw: any, issue: string, status = 200) =>
+  new Response(JSON.stringify({
+    success: true,
+    data: {
+      connected: false,
+      session: false,
+      smartphoneConnected: false,
+      status: issue,
+      issue,
+      raw: issue === 'credentials_invalid' ? { error: 'credentials_invalid' } : raw,
+    }
+  }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -103,17 +129,15 @@ serve(async (req) => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token }
       });
-      const zapiData = await zapiResponse.json();
+      const zapiData = await parseJsonResponse(zapiResponse);
 
       if (!zapiResponse.ok) {
-        // Treat upstream "Instance not found" / invalid creds as disconnected so the UI
-        // doesn't loop with toast errors for stale or misconfigured instances.
-        const upstreamMsg = String(zapiData?.error || zapiData?.message || '').toLowerCase();
-        if (zapiResponse.status === 400 || zapiResponse.status === 404 || upstreamMsg.includes('not found')) {
-          return new Response(JSON.stringify({
-            success: true,
-            data: { connected: false, session: false, smartphoneConnected: false, status: 'disconnected', raw: zapiData }
-          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        const upstreamMsg = getUpstreamMessage(zapiData);
+        if (zapiResponse.status === 401 || zapiResponse.status === 403 || upstreamMsg.includes('client-token') || upstreamMsg.includes('not allowed')) {
+          return disconnectedResponse(zapiData, 'credentials_invalid');
+        }
+        if (zapiResponse.status === 400 || zapiResponse.status === 404 || upstreamMsg.includes('not found') || upstreamMsg.includes('not responding')) {
+          return disconnectedResponse(zapiData, 'disconnected');
         }
         return new Response(JSON.stringify({ error: 'Failed to get device status', details: zapiData }),
           { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -195,15 +219,15 @@ serve(async (req) => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Client-Token': activeInstance.zapi_client_token }
     });
-    const zapiData = await zapiResponse.json();
+    const zapiData = await parseJsonResponse(zapiResponse);
 
     if (!zapiResponse.ok) {
-      const upstreamMsg = String(zapiData?.error || zapiData?.message || '').toLowerCase();
-      if (zapiResponse.status === 400 || zapiResponse.status === 404 || upstreamMsg.includes('not found')) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: { connected: false, session: false, smartphoneConnected: false, status: 'disconnected', raw: zapiData }
-        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const upstreamMsg = getUpstreamMessage(zapiData);
+      if (zapiResponse.status === 401 || zapiResponse.status === 403 || upstreamMsg.includes('client-token') || upstreamMsg.includes('not allowed')) {
+        return disconnectedResponse(zapiData, 'credentials_invalid');
+      }
+      if (zapiResponse.status === 400 || zapiResponse.status === 404 || upstreamMsg.includes('not found') || upstreamMsg.includes('not responding')) {
+        return disconnectedResponse(zapiData, 'disconnected');
       }
       return new Response(JSON.stringify({ error: 'Failed to get device status', details: zapiData }),
         { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

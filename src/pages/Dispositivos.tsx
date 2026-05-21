@@ -258,18 +258,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
+const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
+  const text = typeof message === 'string' && message.trim() ? message.trim() : fallback;
+  const lower = text.toLowerCase();
+
+  if (lower.includes('client-token') || lower.includes('not allowed') || lower.includes('unauthorized') || lower.includes('forbidden')) {
+    return 'Credenciais da conexão inválidas. Atualize o ID da instância, token e token de segurança em Dispositivos.';
+  }
+
+  if (lower.includes('whatsapp is not responding') || lower.includes('not responding')) {
+    return 'WhatsApp não respondeu agora. Aguarde alguns instantes e tente gerar novamente.';
+  }
+
+  return text
+    .replace(/z-api|uazapi|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
+    .replace(/client-token\s+[\w-]+/gi, 'token de segurança');
+};
+
+const getConnectionIssueMessage = (issue?: string | null) => {
+  if (issue === 'credentials_invalid') {
+    return 'Credenciais da conexão inválidas. Atualize o ID da instância, token e token de segurança em Dispositivos.';
+  }
+  if (issue === 'whatsapp_unavailable') {
+    return 'WhatsApp não respondeu agora. Aguarde alguns instantes e tente gerar novamente.';
+  }
+  return 'Tente reiniciar a instância e gerar o QR Code novamente.';
+};
+
 const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
   if (error instanceof FunctionsHttpError) {
     try {
       const payload = await error.context.json();
-      return payload?.message || payload?.error || fallback;
+      return sanitizeConnectionMessage(payload?.details?.error || payload?.message || payload?.error, fallback);
     } catch {
       return fallback;
     }
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return sanitizeConnectionMessage(error.message, fallback);
   }
 
   return fallback;
@@ -607,12 +634,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
       statusErrorShownRef.current = false;
     } catch (error) {
-      console.error('Erro ao buscar status:', error);
+      const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
+      console.error('Erro ao buscar status:', message);
       // Mantém o último status conhecido para não exibir offline por falha momentânea.
       // Only show toast once per error streak
       if (!statusErrorShownRef.current) {
         statusErrorShownRef.current = true;
-        const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
         toast({
           title: 'Erro ao buscar status',
           description: message,
@@ -704,6 +731,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
       if (data?.data?.connected === true) {
         toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
+      } else if (data?.data?.issue) {
+        toast({ title: "QR Code indisponível", description: getConnectionIssueMessage(data.data.issue), variant: "destructive" });
       } else {
         toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
       }
@@ -867,7 +896,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         }
       }, 5000);
     }
-    if (deviceStatus?.connected === false) {
+    if (deviceStatus?.connected === false && !deviceStatus?.issue) {
       fetchQRCode();
     }
     
