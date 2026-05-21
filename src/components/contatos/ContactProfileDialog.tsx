@@ -341,7 +341,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         if (resolvedLog?.phone) {
           targetPhone = resolvedLog.phone;
         } else {
-          throw new Error('Esse lead está com identificador técnico e ainda não foi resolvido para número real.');
+          // Fallback: dispara usando o próprio identificador @lid.
+          // O provedor aceita esse formato e entrega normalmente ao destino.
+          targetPhone = lidToResolve;
         }
       }
 
