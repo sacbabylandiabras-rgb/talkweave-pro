@@ -100,7 +100,12 @@ serve(async (req) => {
                      type === "ReceivedCallback" ||
                      type === "ButtonsResponseMessage" || 
                      type === "ButtonReply" ||
-                     type === "ListResponseMessage";
+                     type === "ListResponseMessage" ||
+                     type === "ImageCallback" ||
+                     type === "VideoCallback" ||
+                     type === "AudioCallback" ||
+                     type === "StickerCallback" ||
+                     type === "DocumentCallback";
     
     const isButtonResponse = type === "ButtonsResponseMessage" || 
                             type === "ButtonReply" || 
@@ -131,6 +136,22 @@ serve(async (req) => {
                       webhook?.text || 
                       webhook?.interactiveResponseMessage?.body ||
                       "";
+
+    // Media Handling for Z-API
+    const mediaUrl = webhook?.image?.url || webhook?.video?.url || webhook?.audio?.url || webhook?.sticker?.url || webhook?.document?.url;
+    if (mediaUrl) {
+      let mediaType = "";
+      if (webhook.image) mediaType = "image";
+      else if (webhook.video) mediaType = "video";
+      else if (webhook.audio) mediaType = "audio";
+      else if (webhook.sticker) mediaType = "sticker";
+      else if (webhook.document) mediaType = "document";
+
+      if (mediaType) {
+        const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+        messageRaw = messageRaw ? `${mediaTag}\n${messageRaw}` : mediaTag;
+      }
+    }
     
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
 

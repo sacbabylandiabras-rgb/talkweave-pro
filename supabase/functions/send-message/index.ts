@@ -334,11 +334,17 @@ serve(async (req) => {
        const metaResult = await sendMetaMessage(metaCreds as any, payloadRaw, phones[0]);
        
        // Log Meta send
+       let metaLogContent = message || "";
+       if (mediaUrl && mediaType) {
+         const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+         metaLogContent = metaLogContent ? `${mediaTag}\n${metaLogContent}` : mediaTag;
+       }
+
        await adminClient.from("message_logs").insert({
          user_id: userId,
          phone: phones[0],
          message_received: null,
-         response_sent: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         response_sent: metaLogContent || "[mensagem]",
          keyword_matched: "__manual_send__",
          instance_id: requestedInstanceId,
        });

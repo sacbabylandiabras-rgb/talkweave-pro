@@ -1,33 +1,22 @@
-### Overview
-The user wants a dedicated DM section for Instagram with real-time updates. Since the application already has a `MetaMessages.tsx` for WhatsApp Cloud API (Meta), I will create a specialized `InstagramMessages.tsx` page. I will also update the `webhook-instagram` edge function to log incoming DMs into a common table (like `message_logs`) or a new `instagram_messages` table to support this feature.
+I will fix the issue where images and other media (videos, audio, etc.) are not appearing in the chat. The problem is caused by inconsistent message logging formats and missing media handling in the webhooks.
 
-### Technical Implementation Plan
+### Changes:
 
-1.  **Database Update**:
-    *   I will use the existing `instagram_events` table if suitable, but for a real chat experience, I'll ensure `message_logs` can handle Instagram entries or create a dedicated `instagram_messages` table if needed. Given the current structure, adding a column to `message_logs` or ensuring `instance_id` can be `instagram:IG_PAGE_ID` is a good approach.
-    *   I'll check if `instagram_events` is enough. It currently stores comments and DMs. I'll stick with `instagram_events` for now but enhance its usage.
+#### 1. Update `send-message` Edge Function:
+- In the Meta API section, update the log format for messages with media to use `[media:type:url]` instead of the descriptive `[Mídia: type]`. This ensures the UI can correctly parse and render the media.
 
-2.  **Backend (Edge Function)**:
-    *   Update `supabase/functions/webhook-instagram/index.ts` to log every incoming `messaging` event into `instagram_events` with `event_type = 'dm'`.
-    *   Update `supabase/functions/send-message/index.ts` to ensure it logs outgoing Instagram DMs properly so the chat history is complete.
+#### 2. Update `webhook-zapi` Edge Function:
+- Expand the message type detection to include media callbacks (`ImageCallback`, `VideoCallback`, `AudioCallback`, `StickerCallback`, `DocumentCallback`).
+- Update the content extraction logic to detect media URLs from the webhook payload (e.g., `webhook.image.url`, `webhook.video.url`).
+- Format these as `[media:type:url]` so they appear correctly in the conversation history.
 
-3.  **Frontend (New Page)**:
-    *   Create `src/pages/instagram/InstagramMessages.tsx`:
-        *   Sidebar for conversation list (users who sent DMs).
-        *   Main chat area for message history.
-        *   Real-time subscription to `instagram_events` for incoming messages.
-        *   Input area to send DMs back.
-    *   Create `src/hooks/useInstagramMessages.ts` to handle fetching and real-time logic.
+#### 3. Update `webhook-meta` Edge Function:
+- Add detection for media message types from the Meta WhatsApp Business API (image, video, audio, document, sticker).
+- Extract media IDs and, where possible, log them so they are recognized as media in the chat (Meta requires an extra step to get URLs from IDs, but I will ensure they are at least identified as media).
 
-4.  **Navigation**:
-    *   Add "Mensagens" to the Instagram section in `src/components/layout/Sidebar.tsx`.
-    *   Register the route in `src/App.tsx`.
+#### 4. Update `webhook-meta-v2` (if applicable):
+- Apply similar fixes to the v2 version of the Meta webhook to ensure consistency.
 
-5.  **Refinement**:
-    *   Ensure the "Enviar" page and the new "Mensagens" page are consistent.
-    *   Add real-time feedback using Supabase Realtime.
-
-### Technical Details
-*   **Table**: `instagram_events` will be the source of truth.
-*   **Realtime**: `supabase.channel('instagram_events').on('postgres_changes', ...)`
-*   **API**: `supabase.functions.invoke('send-message')` with `isInstagram: true`.
+### Technical Details:
+- The UI uses a regex `^\[media:(image|imagem|video|audio|document|sticker|figurinha|gif):(.+?)\]` to identify media in the message content.
+- I will ensure all outgoing and incoming media messages follow this exact format.
