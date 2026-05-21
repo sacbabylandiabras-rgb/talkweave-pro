@@ -731,6 +731,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
       if (data?.data?.connected === true) {
         toast({ title: "⚠️ Dispositivo já conectado", variant: "destructive" });
+      } else if (data?.data?.issue) {
+        toast({ title: "QR Code indisponível", description: getConnectionIssueMessage(data.data.issue), variant: "destructive" });
       } else {
         toast({ title: "❌ QR Code indisponível", description: "Tente reiniciar a instância.", variant: "destructive" });
       }
