@@ -634,12 +634,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
       statusErrorShownRef.current = false;
     } catch (error) {
-      console.error('Erro ao buscar status:', error);
+      const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
+      console.error('Erro ao buscar status:', message);
       // Mantém o último status conhecido para não exibir offline por falha momentânea.
       // Only show toast once per error streak
       if (!statusErrorShownRef.current) {
         statusErrorShownRef.current = true;
-        const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
         toast({
           title: 'Erro ao buscar status',
           description: message,
