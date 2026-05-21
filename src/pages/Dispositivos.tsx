@@ -896,7 +896,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         }
       }, 5000);
     }
-    if (deviceStatus?.connected === false) {
+    if (deviceStatus?.connected === false && !deviceStatus?.issue) {
       fetchQRCode();
     }
     
