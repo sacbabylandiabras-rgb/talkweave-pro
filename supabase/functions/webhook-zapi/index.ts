@@ -668,7 +668,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         continue;
       }
 
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl);
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl, supabase, userId, flow.name);
 
       if (isCapture || hasButtons) {
         await supabase.from("flow_captured_data").upsert({
@@ -708,7 +708,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         const numericId = aiDestination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
         aiDestination = numericId ? `${numericId}-group` : aiDestination;
       }
-      await sendZapiText(instance, aiDestination, aiResponse, [], node.id);
+      await sendZapiText(instance, aiDestination, aiResponse, [], node.id, "text", "", supabase, userId, flow.name);
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
       
@@ -745,10 +745,39 @@ function replaceVars(text: string, captured: any, phone: string) {
     .replace(/\{\{email\}\}/gi, captured.email || "");
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "") {
+async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "", supabase?: any, userId?: string, flowName?: string) {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
+
+  // Log outgoing flow message
+  if (supabase && userId) {
+    try {
+      let logContent = message || "";
+      if (mediaUrl && contentType !== "text") {
+        const mediaTag = `[media:${contentType}:${mediaUrl}]`;
+        logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
+      }
+      if (buttons && buttons.length > 0) {
+        const buttonLabels = buttons.map(b => b.text).filter(Boolean).join(' | ');
+        if (buttonLabels) {
+          logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`;
+        }
+      }
+
+      await supabase.from("message_logs").insert({
+        user_id: userId,
+        phone,
+        instance_id: zapiId,
+        timestamp: new Date().toISOString(),
+        message_received: null,
+        response_sent: logContent || "[mensagem]",
+        keyword_matched: flowName ? `__flow_send__:${flowName}` : "__flow_send__",
+      });
+    } catch (logErr) {
+      console.error("Error logging flow message:", logErr);
+    }
+  }
 
   let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
   let body: any = { phone, message };
