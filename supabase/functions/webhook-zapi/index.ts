@@ -333,6 +333,7 @@ serve(async (req) => {
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
+            console.log("Button match result:", JSON.stringify(buttonMatch));
             if (buttonMatch) {
               flowStateHandled = true;
               await supabase.from("message_logs").insert({
@@ -465,12 +466,13 @@ function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: str
                                 webhook?.buttonResponseMessage?.selectedButtonId ||
                                 webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                                 "");
-      const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-    const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
+      const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1), `node:${sourceNodeId}:button:${i}`].filter(Boolean).map(String);
+      console.log(`Checking button ${i} (${btn.text}): expectedIds=${expectedIds.join(',')}, receivedId=${buttonIdFromWebhook}, msg=${message}`);
+      const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const isTextMatch = (normalizedBtnText && message) && (normalizedBtnText === message || message.includes(normalizedBtnText));
       
       if (isIdMatch || isTextMatch) {
-        const edge = edges.find(e => String(e.source) === String(sourceNodeId) && (String(e.sourceHandle) === `button-${i}` || String(e.sourceHandle) === String(btn.id)));
+        const edge = edges.find(e => String(e.source) === String(sourceNodeId) && (String(e.sourceHandle) === `button-${i}` || String(e.sourceHandle) === String(btn.id) || String(e.sourceHandle) === `node:${sourceNodeId}:button:${i}`));
         if (edge) return { targetId: edge.target, text: btn.text };
       }
     }
@@ -693,7 +695,7 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
       phone,
       message,
       buttonActions: buttons.map((btn, idx) => ({
-        id: btn.id || `${nodeId}-btn-${idx}`,
+        id: btn.id || `node:${nodeId}:button:${idx}`,
         type: btn.type === "url" ? "URL" : (btn.type === "call" ? "CALL" : "REPLY"),
         label: btn.text,
         url: btn.type === "url" ? btn.value : undefined,
