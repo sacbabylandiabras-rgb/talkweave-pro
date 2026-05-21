@@ -488,19 +488,35 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
                             webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                             "");
 
+  console.log(`[findAnyButtonMatch] Searching match for id="${buttonIdFromWebhook}" message="${message}"`);
+
   for (const edge of edges) {
     const sourceNode = nodes.find(n => String(n.id) === String(edge.source));
+    if (!sourceNode) continue;
+    
     const buttons = sourceNode?.data?.buttons || [];
     for (let i = 0; i < buttons.length; i++) {
       const btn = buttons[i];
-      const expectedIds = [btn.id, btn.value, `${sourceNode.id}-btn-${i}`, String(i + 1)].filter(Boolean).map(String);
-      const isHandleMatch = String(edge.sourceHandle) === `button-${i}` || String(edge.sourceHandle) === String(btn.id);
+      const expectedIds = [
+        btn.id, 
+        btn.value, 
+        `${sourceNode.id}-btn-${i}`, 
+        String(i + 1), 
+        `node:${sourceNode.id}:button:${i}`
+      ].filter(Boolean).map(String);
+      
+      const isHandleMatch = String(edge.sourceHandle) === `button-${i}` || String(edge.sourceHandle) === String(btn.id) || String(edge.sourceHandle) === `node:${sourceNode.id}:button:${i}`;
       const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const normalizedBtnText = normalizeForMatch(btn.text);
-      const isTextMatch = normalizedBtnText === message || message.includes(normalizedBtnText);
-      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target, text: btn.text };
+      const isTextMatch = normalizedBtnText === message || (message && message.includes(normalizedBtnText));
+      
+      if (isHandleMatch && (isIdMatch || isTextMatch)) {
+        console.log(`[findAnyButtonMatch] ✅ Match found! Node=${sourceNode.id} Button=${btn.text} Target=${edge.target}`);
+        return { targetId: edge.target, text: btn.text };
+      }
     }
   }
+  console.log(`[findAnyButtonMatch] ❌ No match found in ${edges.length} edges`);
   return null;
 }
 
@@ -595,6 +611,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           flow_name: flow.name,
           phone,
           captured_data: captured,
+          last_node_id: node.id,
           source: isGroup ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
