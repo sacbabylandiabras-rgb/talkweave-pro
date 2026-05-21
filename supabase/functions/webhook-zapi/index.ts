@@ -488,6 +488,8 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
                             webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
                             "");
 
+  console.log(`[findAnyButtonMatch] Searching match for id="${buttonIdFromWebhook}" message="${message}"`);
+
   for (const edge of edges) {
     const sourceNode = nodes.find(n => String(n.id) === String(edge.source));
     if (!sourceNode) continue;
@@ -508,9 +510,13 @@ function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: strin
       const normalizedBtnText = normalizeForMatch(btn.text);
       const isTextMatch = normalizedBtnText === message || (message && message.includes(normalizedBtnText));
       
-      if (isHandleMatch && (isIdMatch || isTextMatch)) return { targetId: edge.target, text: btn.text };
+      if (isHandleMatch && (isIdMatch || isTextMatch)) {
+        console.log(`[findAnyButtonMatch] ✅ Match found! Node=${sourceNode.id} Button=${btn.text} Target=${edge.target}`);
+        return { targetId: edge.target, text: btn.text };
+      }
     }
   }
+  console.log(`[findAnyButtonMatch] ❌ No match found in ${edges.length} edges`);
   return null;
 }
 
