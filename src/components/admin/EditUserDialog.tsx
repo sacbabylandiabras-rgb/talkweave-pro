@@ -77,7 +77,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
    const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi' | 'uazapi_warmup'>('zapi');
    const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
    const [newEvolutionKey, setNewEvolutionKey] = useState('');
-    const [newInstanceType, setNewInstanceType] = useState<'web'>('web');
+     const [newInstanceType, setNewInstanceType] = useState<'web'>('web');
+     const [editingInstanceId, setEditingInstanceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -127,40 +128,67 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     }
   };
 
-  const resetAddForm = () => {
-    setNewInstanceName('');
-    setNewInstanceId('');
-    setNewInstanceToken('');
-    setNewClientToken('');
-    setNewIsDefault(false);
-    setNewProvider('zapi');
-    setNewEvolutionUrl('');
-    setNewEvolutionKey('');
-    setNewInstanceType('web');
-  };
+   const resetAddForm = () => {
+     setNewInstanceName('');
+     setNewInstanceId('');
+     setNewInstanceToken('');
+     setNewClientToken('');
+     setNewIsDefault(false);
+     setNewProvider('zapi');
+     setNewEvolutionUrl('');
+     setNewEvolutionKey('');
+     setNewInstanceType('web');
+     setEditingInstanceId(null);
+   };
 
-      const handleAddZapiInstance = async (type: 'web') => {
-       if (!user) return;
-       if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
-         toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
-         return;
-       }
- 
-       const ok = await addInstance(user.id, {
-         instance_name: newInstanceName.trim(),
-         zapi_instance_id: newInstanceId.trim(),
-         zapi_token: newInstanceToken.trim(),
-         zapi_client_token: newClientToken.trim(),
-         is_default: newIsDefault,
-         instance_type: type,
-         api_provider: 'zapi'
-       });
-       
-       if (ok) {
-         resetAddForm();
-         setShowAddForm(null);
-       }
-     };
+   const handleEditClick = (inst: ZapiInstance) => {
+     setNewInstanceName(inst.instance_name || '');
+     setNewInstanceId(inst.zapi_instance_id || '');
+     setNewInstanceToken(inst.zapi_token || '');
+     setNewClientToken(inst.zapi_client_token || '');
+     setNewIsDefault(inst.is_default || false);
+     setNewProvider(inst.api_provider as any || 'zapi');
+     setNewEvolutionUrl((inst as any).evolution_api_url || '');
+     setNewEvolutionKey((inst as any).evolution_api_key || '');
+     setEditingInstanceId(inst.id);
+     setShowAddForm(inst.api_provider as any || 'zapi');
+   };
+
+       const handleAddZapiInstance = async (type: 'web') => {
+        if (!user) return;
+        if (!newInstanceName.trim() || !newInstanceId.trim() || !newInstanceToken.trim() || !newClientToken.trim()) {
+          toast({ title: "Campos obrigatórios", description: "Preencha todos os campos da instância Z-API.", variant: "destructive" });
+          return;
+        }
+  
+        let ok = false;
+        if (editingInstanceId) {
+          ok = await updateInstance(editingInstanceId, user.id, {
+            instance_name: newInstanceName.trim(),
+            zapi_instance_id: newInstanceId.trim(),
+            zapi_token: newInstanceToken.trim(),
+            zapi_client_token: newClientToken.trim(),
+            is_default: newIsDefault,
+            instance_type: type,
+            api_provider: 'zapi'
+          });
+        } else {
+          ok = await addInstance(user.id, {
+            instance_name: newInstanceName.trim(),
+            zapi_instance_id: newInstanceId.trim(),
+            zapi_token: newInstanceToken.trim(),
+            zapi_client_token: newClientToken.trim(),
+            is_default: newIsDefault,
+            instance_type: type,
+            api_provider: 'zapi'
+          });
+        }
+        
+        if (ok) {
+          resetAddForm();
+          setShowAddForm(null);
+        }
+      };
 
   if (!user) return null;
 
@@ -307,6 +335,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               {showAddForm === 'uazapi' && (
                 <Card className="border-primary/40">
                   <CardContent className="pt-4 pb-4 space-y-3">
+                    <DialogDescription className="text-xs font-semibold uppercase text-primary">
+                      {editingInstanceId ? "Editar Instância de Extração" : "Nova Instância de Extração"}
+                    </DialogDescription>
                     <div className="space-y-2">
                       <Label>Nome da Instância (Extração)</Label>
                       <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Extração 01" />
@@ -320,19 +351,28 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
                     </div>
                      <div className="flex gap-2 justify-end pt-2">
-                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
+                       <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
                        <Button 
                          size="sm" 
-                         onClick={() => addUazapiInstance({
-                           instance_name: newInstanceName.trim(),
-                           evolution_api_url: newEvolutionUrl.trim(),
-                           evolution_api_key: newEvolutionKey.trim(),
-                           api_provider: 'uazapi',
-                           is_default: false
-                         }).then(ok => ok && (resetAddForm(), setShowAddForm(null)))} 
-                         disabled={addingUazapi}
+                         onClick={async () => {
+                           const payload = {
+                             instance_name: newInstanceName.trim(),
+                             evolution_api_url: newEvolutionUrl.trim(),
+                             evolution_api_key: newEvolutionKey.trim(),
+                             api_provider: 'uazapi' as const,
+                             is_default: false
+                           };
+                           let ok = false;
+                           if (editingInstanceId) {
+                             ok = await updateInstance(editingInstanceId, user.id, payload);
+                           } else {
+                             ok = await addUazapiInstance(payload);
+                           }
+                           if (ok) { resetAddForm(); setShowAddForm(null); }
+                         }} 
+                         disabled={addingUazapi || instancesLoading}
                        >
-                         {addingUazapi ? "Adicionando..." : "Salvar Extração"}
+                         {addingUazapi || instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Extração"}
                        </Button>
                      </div>
                   </CardContent>
@@ -348,6 +388,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
                       </div>
                        <div className="flex items-center gap-1">
+                         <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
+                           <Pencil className="w-3 h-3 text-muted-foreground" />
+                         </Button>
                          <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
                            <ArrowRightLeft className="w-3 h-3 text-primary" />
                          </Button>
@@ -384,6 +427,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               {showAddForm === 'uazapi_warmup' && (
                 <Card className="border-orange-500/40">
                   <CardContent className="pt-4 pb-4 space-y-3">
+                    <DialogDescription className="text-xs font-semibold uppercase text-orange-500">
+                      {editingInstanceId ? "Editar Instância de Aquecimento" : "Nova Instância de Aquecimento"}
+                    </DialogDescription>
                     <div className="space-y-2">
                       <Label>Nome da Instância (Aquecimento)</Label>
                       <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Aquecimento 01" />
@@ -396,21 +442,30 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                       <Label>API Key</Label>
                       <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
                     </div>
-                     <div className="flex gap-2 justify-end pt-2">
-                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                       <Button 
-                         size="sm" 
-                         onClick={() => addUazapiInstance({
-                           instance_name: newInstanceName.trim(),
-                           evolution_api_url: newEvolutionUrl.trim(),
-                           evolution_api_key: newEvolutionKey.trim(),
-                           api_provider: 'uazapi_warmup',
-                           is_default: false
-                         }).then(ok => ok && (resetAddForm(), setShowAddForm(null)))} 
-                         disabled={addingUazapi}
-                       >
-                         {addingUazapi ? "Adicionando..." : "Salvar Aquecimento"}
-                       </Button>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
+                        <Button 
+                          size="sm" 
+                          onClick={async () => {
+                            const payload = {
+                              instance_name: newInstanceName.trim(),
+                              evolution_api_url: newEvolutionUrl.trim(),
+                              evolution_api_key: newEvolutionKey.trim(),
+                              api_provider: 'uazapi_warmup' as const,
+                              is_default: false
+                            };
+                            let ok = false;
+                            if (editingInstanceId) {
+                              ok = await updateInstance(editingInstanceId, user.id, payload);
+                            } else {
+                              ok = await addUazapiInstance(payload);
+                            }
+                            if (ok) { resetAddForm(); setShowAddForm(null); }
+                          }} 
+                          disabled={addingUazapi || instancesLoading}
+                        >
+                          {addingUazapi || instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Aquecimento"}
+                        </Button>
                      </div>
                   </CardContent>
                 </Card>
@@ -425,6 +480,9 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                         <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
                       </div>
                        <div className="flex items-center gap-1">
+                         <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
+                           <Pencil className="w-3 h-3 text-muted-foreground" />
+                         </Button>
                          <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
                            <ArrowRightLeft className="w-3 h-3 text-orange-500" />
                          </Button>
@@ -457,9 +515,12 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                  </Button>
                </div>
  
-               {showAddForm === 'zapi' && (
-                 <Card className="border-emerald-500/40">
-                   <CardContent className="pt-4 pb-4 space-y-3">
+                {showAddForm === 'zapi' && (
+                  <Card className="border-emerald-500/40">
+                    <CardContent className="pt-4 pb-4 space-y-3">
+                      <DialogDescription className="text-xs font-semibold uppercase text-emerald-500">
+                        {editingInstanceId ? "Editar Instância de Uso (Web)" : "Nova Instância de Uso (Web)"}
+                      </DialogDescription>
                      <div className="grid grid-cols-2 gap-3">
                        <div className="space-y-2">
                          <Label>Nome</Label>
@@ -482,11 +543,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                        <Label>Client Token</Label>
                        <Input value={newClientToken} onChange={(e) => setNewClientToken(e.target.value)} placeholder="Client Token" type="password" />
                      </div>
-                     <div className="flex gap-2 justify-end pt-2">
-                       <Button size="sm" variant="ghost" onClick={() => setShowAddForm(null)}>Cancelar</Button>
-                          <Button size="sm" onClick={() => handleAddZapiInstance('web')} disabled={instancesLoading}>
-                            {instancesLoading ? "Adicionando..." : "Salvar Uso"}
-                          </Button>
+                       <div className="flex gap-2 justify-end pt-2">
+                        <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
+                           <Button size="sm" onClick={() => handleAddZapiInstance('web')} disabled={instancesLoading}>
+                             {instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Uso"}
+                           </Button>
                      </div>
                    </CardContent>
                  </Card>
@@ -503,8 +564,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                          </div>
                          <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
                        </div>
-                       <div className="flex items-center gap-1">
-                         {!inst.is_default && (
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
+                            <Pencil className="w-3 h-3 text-muted-foreground" />
+                          </Button>
+                          {!inst.is_default && (
                            <Button size="sm" variant="ghost" title="Tornar padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                              <Star className="w-3 h-3" />
                            </Button>
