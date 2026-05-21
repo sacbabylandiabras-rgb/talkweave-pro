@@ -33,6 +33,31 @@ const getQrCodeValue = (payload: any) => {
   );
 };
 
+const parseJsonResponse = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
+const getUpstreamMessage = (payload: any) =>
+  String(payload?.error || payload?.message || payload?.details?.error || '').toLowerCase();
+
+const unavailableQrResponse = (raw: any, issue: string) =>
+  new Response(JSON.stringify({
+    success: true,
+    data: {
+      value: null,
+      qrCode: null,
+      connected: false,
+      issue,
+      raw,
+    },
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -124,9 +149,16 @@ serve(async (req) => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Client-Token': instance.zapi_client_token }
       });
-      const zapiData = await zapiResponse.json();
+      const zapiData = await parseJsonResponse(zapiResponse);
 
       if (!zapiResponse.ok) {
+        const upstreamMsg = getUpstreamMessage(zapiData);
+        if (zapiResponse.status === 401 || zapiResponse.status === 403 || upstreamMsg.includes('client-token') || upstreamMsg.includes('not allowed')) {
+          return unavailableQrResponse(zapiData, 'credentials_invalid');
+        }
+        if (zapiResponse.status === 400 && upstreamMsg.includes('not responding')) {
+          return unavailableQrResponse(zapiData, 'whatsapp_unavailable');
+        }
         return new Response(JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
           { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -142,9 +174,16 @@ serve(async (req) => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken }
     });
-    const zapiData = await zapiResponse.json();
+    const zapiData = await parseJsonResponse(zapiResponse);
 
     if (!zapiResponse.ok) {
+      const upstreamMsg = getUpstreamMessage(zapiData);
+      if (zapiResponse.status === 401 || zapiResponse.status === 403 || upstreamMsg.includes('client-token') || upstreamMsg.includes('not allowed')) {
+        return unavailableQrResponse(zapiData, 'credentials_invalid');
+      }
+      if (zapiResponse.status === 400 && upstreamMsg.includes('not responding')) {
+        return unavailableQrResponse(zapiData, 'whatsapp_unavailable');
+      }
       return new Response(JSON.stringify({ error: 'Failed to get QR code', details: zapiData }),
         { status: zapiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
