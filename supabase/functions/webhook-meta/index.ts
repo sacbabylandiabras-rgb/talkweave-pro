@@ -142,7 +142,8 @@ serve(async (req) => {
               }
 
               if (mediaInfo) {
-                const mediaTag = `[media:${mediaInfo.type}:${mediaInfo.id}]`;
+                const mediaUrl = await fetchMetaMediaUrl(accessToken, mediaInfo.id);
+                const mediaTag = `[media:${mediaInfo.type}:${mediaUrl || mediaInfo.id}]`;
                 msgText = msgText ? `${mediaTag}\n${msgText}` : mediaTag;
               }
 
@@ -412,6 +413,22 @@ async function metaSendInteractive(accessToken: string, phoneNumberId: string, t
   const data = await res.json()
   if (!res.ok) console.error('[webhook-meta] Send interactive error:', data)
   return data
+}
+
+async function fetchMetaMediaUrl(accessToken: string, mediaId: string) {
+  try {
+    const url = `https://graph.facebook.com/${API_VERSION}/${mediaId}?fields=url`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.url || null;
+    }
+  } catch (e) {
+    console.error(`[webhook-meta] Error fetching media URL for ${mediaId}:`, e);
+  }
+  return null;
 }
 
 // =================== FLOW EXECUTION (SERVER-SIDE) ===================
