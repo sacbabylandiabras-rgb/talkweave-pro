@@ -393,6 +393,8 @@ serve(async (req) => {
         .eq("active", true);
       
       let triggerFound = false;
+      const normalizedMessage = normalizeForMatch(messageRaw);
+
       for (const flow of (flows || [])) {
         if (triggerFound) break;
         const nodes = flow.nodes || [];
@@ -400,10 +402,13 @@ serve(async (req) => {
         
         let shouldTrigger = false;
         let startNodeId = null;
+        let matchedKeyword = "";
         
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-        if (mainKeywords.some((k: string) => isKeywordMatch(normalizeForMatch(messageRaw), k))) {
+        const matchedMain = mainKeywords.find((k: string) => isKeywordMatch(normalizedMessage, k));
+        if (matchedMain) {
           shouldTrigger = true;
+          matchedKeyword = matchedMain;
           const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           startNodeId = initialNode?.id;
         }
@@ -411,8 +416,9 @@ serve(async (req) => {
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
             const nodeKeyword = tNode.data?.keyword;
-            if (nodeKeyword && isKeywordMatch(normalizeForMatch(messageRaw), nodeKeyword)) {
+            if (nodeKeyword && isKeywordMatch(normalizedMessage, nodeKeyword)) {
               shouldTrigger = true;
+              matchedKeyword = nodeKeyword;
               const edge = (flow.edges || []).find((e: any) => e.source === tNode.id);
               startNodeId = edge?.target;
               break;
@@ -423,18 +429,20 @@ serve(async (req) => {
         if (shouldTrigger && startNodeId) {
           triggerFound = true;
           
-          // Check for recent identical trigger to prevent duplication (debouncing 2s)
+          // CRITICAL: Prevent double trigger by checking for messageId or recent trigger
+          const triggerKey = `__flow_trigger__:${flow.id}:${messageId || normalizedMessage}`;
+          
           const { data: recentTrigger } = await supabase
             .from("message_logs")
             .select("id")
             .eq("user_id", userId)
             .eq("phone", chatId)
-            .eq("keyword_matched", `__flow_trigger__:${flow.name}`)
-            .gte("timestamp", new Date(Date.now() - 2000).toISOString())
+            .eq("keyword_matched", triggerKey)
+            .gte("timestamp", new Date(Date.now() - 5000).toISOString())
             .maybeSingle();
 
           if (recentTrigger) {
-            console.log(`[FlowTrigger] Duplicated trigger detected for flow ${flow.name}. Skipping.`);
+            console.log(`[FlowTrigger] Duplicated trigger detected for flow ${flow.name} (Key: ${triggerKey}). Skipping.`);
             return new Response("flow_triggered_duplicate", { status: 200, headers: corsHeaders });
           }
 
@@ -445,7 +453,7 @@ serve(async (req) => {
             timestamp: new Date().toISOString(),
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
-            keyword_matched: `__flow_trigger__:${flow.name}`,
+            keyword_matched: triggerKey,
           });
 
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
