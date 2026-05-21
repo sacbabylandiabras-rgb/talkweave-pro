@@ -397,6 +397,12 @@ serve(async (req) => {
 
       for (const flow of (flows || [])) {
         if (triggerFound) break;
+        
+        // Skip flow if it's explicitly disabled for groups and the message is from a group
+        if (isGroup && (flow as any).disable_in_groups === true) {
+          continue;
+        }
+
         const nodes = flow.nodes || [];
         const triggerNodes = nodes.filter((n: any) => n.type === "blocoGatilho");
         
@@ -427,6 +433,21 @@ serve(async (req) => {
         }
 
         if (shouldTrigger && startNodeId) {
+          // If the message is from a group, additional checks are needed
+          if (isGroup) {
+            // 1. If it's a mention-based trigger, ensure the bot was mentioned
+            const botNumber = instanceData?.zapi_instance_id; // Simple heuristic
+            const wasMentioned = messageRaw.includes(`@${botNumber}`) || 
+                                 (webhook?.isMentioned === true || webhook?.isMentioned === "true");
+            
+            // 2. If it's a regular keyword, we might want to be more restrictive
+            // For now, let's allow it but ensure we don't trigger on every word
+            if (!wasMentioned && normalizedMessage.split(' ').length > 5) {
+               // If it's a long message and no mention, it's likely a conversation, not a command
+               continue;
+            }
+          }
+
           triggerFound = true;
           
           // CRITICAL: Prevent double trigger by checking for messageId or recent trigger
