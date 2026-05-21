@@ -44,7 +44,7 @@ const disconnectedResponse = (raw: any, issue: string, status = 200) =>
       smartphoneConnected: false,
       status: issue,
       issue,
-      raw,
+      raw: issue === 'credentials_invalid' ? { error: 'credentials_invalid' } : raw,
     }
   }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
