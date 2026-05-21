@@ -422,6 +422,22 @@ serve(async (req) => {
 
         if (shouldTrigger && startNodeId) {
           triggerFound = true;
+          
+          // Check for recent identical trigger to prevent duplication (debouncing 2s)
+          const { data: recentTrigger } = await supabase
+            .from("message_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("phone", chatId)
+            .eq("keyword_matched", `__flow_trigger__:${flow.name}`)
+            .gte("timestamp", new Date(Date.now() - 2000).toISOString())
+            .maybeSingle();
+
+          if (recentTrigger) {
+            console.log(`[FlowTrigger] Duplicated trigger detected for flow ${flow.name}. Skipping.`);
+            return new Response("flow_triggered_duplicate", { status: 200, headers: corsHeaders });
+          }
+
           await supabase.from("message_logs").insert({
             user_id: userId,
             phone: chatId,
