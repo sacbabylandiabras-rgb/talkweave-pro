@@ -1153,12 +1153,18 @@ serve(async (req) => {
  
      if (isInstagram) {
        // Log outgoing Instagram message
+       let igLogContent = message || "";
+       if (mediaUrl && mediaType) {
+         const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+         igLogContent = igLogContent ? `${mediaTag}\n${igLogContent}` : mediaTag;
+       }
+
        await supabase.from('instagram_events').insert({
          user_id: credentials.userId,
          event_type: 'dm_sent',
          ig_user_id: phones[0], // Direct target
          username: phones[0], // Direct target username (if provided as phone)
-         comment_text: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         comment_text: igLogContent || "[mensagem]",
          payload: { ...payloadRaw, outgoing: true },
        });
      }
