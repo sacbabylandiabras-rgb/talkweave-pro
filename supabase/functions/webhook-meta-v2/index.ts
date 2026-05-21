@@ -145,13 +145,27 @@ serve(async (req) => {
               const fromPhone = msg?.from || ''
               const contactName = contacts?.find((c: any) => c?.wa_id === fromPhone)?.profile?.name || ''
 
-              // Extract message text from various Meta message types
+              // Extract message text and media from various Meta message types
               let msgText = ''
               let buttonReplyTitle = ''
               let buttonReplyId = ''
+              let mediaInfo = null
 
               if (msg?.type === 'text') {
                 msgText = msg?.text?.body || ''
+              } else if (msg?.type === 'image') {
+                mediaInfo = { type: 'image', id: msg.image.id, caption: msg.image.caption };
+                msgText = msg.image.caption || '';
+              } else if (msg?.type === 'video') {
+                mediaInfo = { type: 'video', id: msg.video.id, caption: msg.video.caption };
+                msgText = msg.video.caption || '';
+              } else if (msg?.type === 'audio') {
+                mediaInfo = { type: 'audio', id: msg.audio.id };
+              } else if (msg?.type === 'document') {
+                mediaInfo = { type: 'document', id: msg.document.id, filename: msg.document.filename, caption: msg.document.caption };
+                msgText = msg.document.caption || '';
+              } else if (msg?.type === 'sticker') {
+                mediaInfo = { type: 'sticker', id: msg.sticker.id };
               } else if (msg?.type === 'interactive') {
                 // Interactive button reply
                 if (msg?.interactive?.type === 'button_reply') {
@@ -165,6 +179,11 @@ serve(async (req) => {
                 // Template button reply
                 buttonReplyTitle = msg?.button?.text || ''
                 msgText = buttonReplyTitle
+              }
+
+              if (mediaInfo) {
+                const mediaTag = `[media:${mediaInfo.type}:${mediaInfo.id}]`;
+                msgText = msgText ? `${mediaTag}\n${msgText}` : mediaTag;
               }
 
                console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText?.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
