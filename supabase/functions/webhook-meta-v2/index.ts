@@ -145,13 +145,27 @@ serve(async (req) => {
               const fromPhone = msg?.from || ''
               const contactName = contacts?.find((c: any) => c?.wa_id === fromPhone)?.profile?.name || ''
 
-              // Extract message text from various Meta message types
+              // Extract message text and media from various Meta message types
               let msgText = ''
               let buttonReplyTitle = ''
               let buttonReplyId = ''
+              let mediaInfo = null
 
               if (msg?.type === 'text') {
                 msgText = msg?.text?.body || ''
+              } else if (msg?.type === 'image') {
+                mediaInfo = { type: 'image', id: msg.image.id, caption: msg.image.caption };
+                msgText = msg.image.caption || '';
+              } else if (msg?.type === 'video') {
+                mediaInfo = { type: 'video', id: msg.video.id, caption: msg.video.caption };
+                msgText = msg.video.caption || '';
+              } else if (msg?.type === 'audio') {
+                mediaInfo = { type: 'audio', id: msg.audio.id };
+              } else if (msg?.type === 'document') {
+                mediaInfo = { type: 'document', id: msg.document.id, filename: msg.document.filename, caption: msg.document.caption };
+                msgText = msg.document.caption || '';
+              } else if (msg?.type === 'sticker') {
+                mediaInfo = { type: 'sticker', id: msg.sticker.id };
               } else if (msg?.type === 'interactive') {
                 // Interactive button reply
                 if (msg?.interactive?.type === 'button_reply') {
@@ -165,6 +179,12 @@ serve(async (req) => {
                 // Template button reply
                 buttonReplyTitle = msg?.button?.text || ''
                 msgText = buttonReplyTitle
+              }
+
+              if (mediaInfo) {
+                const mediaUrl = await fetchMetaMediaUrl(accessToken, mediaInfo.id);
+                const mediaTag = `[media:${mediaInfo.type}:${mediaUrl || mediaInfo.id}]`;
+                msgText = msgText ? `${mediaTag}\n${msgText}` : mediaTag;
               }
 
                console.log(`[webhook-meta] Message from ${fromPhone}: type=${msg?.type} text="${msgText?.slice(0, 100)}" buttonReply="${buttonReplyTitle}" | contact: ${contactName}`)
@@ -504,6 +524,22 @@ async function metaSendInteractive(accessToken: string, phoneNumberId: string, t
   const data = await res.json()
   if (!res.ok) console.error('[webhook-meta] Send interactive error:', data)
   return data
+}
+
+async function fetchMetaMediaUrl(accessToken: string, mediaId: string) {
+  try {
+    const url = `https://graph.facebook.com/${API_VERSION}/${mediaId}?fields=url`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.url || null;
+    }
+  } catch (e) {
+    console.error(`[webhook-meta] Error fetching media URL for ${mediaId}:`, e);
+  }
+  return null;
 }
 
 // =================== FLOW EXECUTION (SERVER-SIDE) ===================

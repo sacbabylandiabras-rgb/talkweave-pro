@@ -334,11 +334,17 @@ serve(async (req) => {
        const metaResult = await sendMetaMessage(metaCreds as any, payloadRaw, phones[0]);
        
        // Log Meta send
+       let metaLogContent = message || "";
+       if (mediaUrl && mediaType) {
+         const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+         metaLogContent = metaLogContent ? `${mediaTag}\n${metaLogContent}` : mediaTag;
+       }
+
        await adminClient.from("message_logs").insert({
          user_id: userId,
          phone: phones[0],
          message_received: null,
-         response_sent: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         response_sent: metaLogContent || "[mensagem]",
          keyword_matched: "__manual_send__",
          instance_id: requestedInstanceId,
        });
@@ -1147,12 +1153,18 @@ serve(async (req) => {
  
      if (isInstagram) {
        // Log outgoing Instagram message
+       let igLogContent = message || "";
+       if (mediaUrl && mediaType) {
+         const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
+         igLogContent = igLogContent ? `${mediaTag}\n${igLogContent}` : mediaTag;
+       }
+
        await supabase.from('instagram_events').insert({
          user_id: credentials.userId,
          event_type: 'dm_sent',
          ig_user_id: phones[0], // Direct target
          username: phones[0], // Direct target username (if provided as phone)
-         comment_text: message || (mediaUrl ? `[Mídia: ${mediaType}]` : "[mensagem]"),
+         comment_text: igLogContent || "[mensagem]",
          payload: { ...payloadRaw, outgoing: true },
        });
      }
