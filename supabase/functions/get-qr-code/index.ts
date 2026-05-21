@@ -54,7 +54,7 @@ const unavailableQrResponse = (raw: any, issue: string) =>
       qrCode: null,
       connected: false,
       issue,
-      raw,
+      raw: issue === 'credentials_invalid' ? { error: 'credentials_invalid' } : raw,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
