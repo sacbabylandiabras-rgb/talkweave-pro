@@ -167,6 +167,7 @@ serve(async (req) => {
 
                 // === CHECK BUTTON REPLY MATCH ===
                 const buttonMatch = findButtonEdgeMatch(flowAutomations, normalizedMessage, msgText, buttonReplyTitle, buttonReplyId)
+                console.log(`[webhook-meta] findButtonEdgeMatch result:`, JSON.stringify(buttonMatch))
                 if (buttonMatch) {
                   console.log(`[webhook-meta] === BOTÃO MATCH === Flow: ${buttonMatch.flowName} | Button: ${buttonMatch.buttonText} | Target: ${buttonMatch.targetNodeId}`)
 
