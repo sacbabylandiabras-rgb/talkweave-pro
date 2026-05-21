@@ -2117,8 +2117,8 @@ const MensagensRecebidas = () => {
     } = useMessageLogs(
     filterZapiInstanceId,
     filterInstanceName,
-    knownInstanceIds,
-    knownInstanceNames,
+    connectedInstanceIds ?? knownInstanceIds,
+    connectedInstanceNames ?? knownInstanceNames,
   );
   const [syncing, setSyncing] = useState(false);
    const isMobile = useIsMobile();
