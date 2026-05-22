@@ -37,6 +37,7 @@ interface CampaignSendRecord {
 }
 
 interface ResolvedInstance {
+  dbId?: string;
   zapiInstanceId: string;
   zapiToken: string;
   zapiClientToken: string;
@@ -171,6 +172,7 @@ const normalizePublicRedirectUrlsInText = (text: string) => {
 };
 
 const mapResolvedInstance = (instance: {
+  id?: string;
   zapi_instance_id: string;
   zapi_token: string | null;
   zapi_client_token: string | null;
@@ -188,6 +190,7 @@ const mapResolvedInstance = (instance: {
     if (!hasUazapiCreds) return null;
 
     return {
+      dbId: instance.id,
       zapiInstanceId: instance.zapi_instance_id,
       zapiToken: instance.zapi_token || instance.evolution_api_key || '',
       zapiClientToken: instance.zapi_client_token || instance.zapi_token || instance.evolution_api_key || '',
@@ -202,6 +205,7 @@ const mapResolvedInstance = (instance: {
   if (!hasZapiCreds) return null;
 
   return {
+    dbId: instance.id,
     zapiInstanceId: instance.zapi_instance_id,
     zapiToken: instance.zapi_token || '',
     zapiClientToken: instance.zapi_client_token || '',
@@ -216,7 +220,7 @@ const resolvePreferredUserInstance = async (
   supabase: any,
   userId: string,
 ): Promise<ResolvedInstance | null> => {
-  const selectFields = 'zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
+  const selectFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
 
   const { data: defaultInstance } = await supabase
     .from('zapi_instances')
@@ -275,6 +279,7 @@ const resolveContactInstance = async (
 
 
   let instance: {
+    id: string;
     zapi_instance_id: string;
     zapi_token: string;
     zapi_client_token: string;
@@ -286,7 +291,7 @@ const resolveContactInstance = async (
 
   const { data: byZapiInstanceId } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .eq('user_id', userId)
     .eq('zapi_instance_id', sourceInstanceId)
     .eq('is_active', true)
@@ -297,7 +302,7 @@ const resolveContactInstance = async (
   if (!instance) {
     const { data: byTableId } = await supabase
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+      .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
       .eq('user_id', userId)
       .eq('id', sourceInstanceId)
       .eq('is_active', true)
@@ -356,7 +361,7 @@ const resolveGroupInstanceFromInboundLogs = async (
 
   const { data: correctInstance } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
     .eq('user_id', userId)
     .eq('is_active', true)
@@ -439,6 +444,42 @@ const isWhatsAppRateLimitError = (payload: any, httpStatus?: number): boolean =>
     httpStatus === 429
   );
 };
+ 
+ const recordShadowBan = async (
+   supabase: any,
+   instanceDbId: string,
+   errorText: string
+ ) => {
+   try {
+     const isCapping = /cycle_end|new_chat_message_capping|capping/i.test(errorText);
+     const extractCycleEnd = (text: string): string | null => {
+       try {
+         const m = text.match(/"cycle_end"\s*:\s*"([^"]+)"/i);
+         if (m && m[1]) return new Date(m[1]).toISOString();
+       } catch (_) { /* ignore */ }
+       return null;
+     };
+ 
+     const blockedUntil = extractCycleEnd(errorText);
+     const blockType = isCapping ? "new_chat_capping" : "shadowban";
+ 
+     await supabase
+       .from("warmup_instance_health")
+       .upsert(
+         {
+           instance_ref: instanceDbId,
+           block_type: blockType,
+           blocked_until: blockedUntil,
+           last_detected_at: new Date().toISOString(),
+           detail: errorText.slice(0, 240),
+         },
+         { onConflict: "instance_ref,block_type" }
+       );
+     console.log(`🛡️ Recorded ${blockType} for instance ${instanceDbId}`);
+   } catch (e: any) {
+     console.warn(`  ⚠ Failed to record shadowban health: ${e?.message}`);
+   }
+ };
 
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
@@ -2080,7 +2121,12 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-            if (isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined) && !isLidIdentifier(contact.phone)) {
+            const isShadowBan = isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined);
+            if (isShadowBan && currentInstance.dbId) {
+              await recordShadowBan(admin, currentInstance.dbId, JSON.stringify(uazResult.raw || { message: campaignSend.error_message }));
+            }
+
+            if (isShadowBan && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
             } else {
               rateLimitHitsInBatch = 0;
@@ -2616,8 +2662,13 @@ serve(async (req) => {
             const isShadowBan = explicitError && (
               explicitError.toLowerCase().includes("shadow ban") || 
               explicitError.toLowerCase().includes("restricted") || 
-              explicitError.toLowerCase().includes("unauthorized")
+              explicitError.toLowerCase().includes("unauthorized") ||
+              explicitError.toLowerCase().includes("capping")
             );
+            
+            if (isShadowBan && currentInstance.dbId) {
+              await recordShadowBan(admin, currentInstance.dbId, JSON.stringify(zapiResult));
+            }
 
             campaignSend.status = 'failed';
             campaignSend.error_message = isShadowBan 

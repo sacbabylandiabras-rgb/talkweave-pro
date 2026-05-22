@@ -434,7 +434,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   };
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
-   const [healthBlock, setHealthBlock] = useState<{ blocked_until: string | null, block_type?: string } | null>(null);
+   const [healthBlock, setHealthBlock] = useState<{ blocked_until: string | null, block_type?: string, detail?: any } | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -688,6 +688,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
+      fetchHealth(); // Atualiza também o status de shadowban/saúde
       statusErrorShownRef.current = false;
     } catch (error) {
       const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
@@ -962,36 +963,33 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const isConnected = deviceStatus?.connected === true;
 
   // Busca status de saúde (bloqueios de envio detectados pelo aquecimento)
+  const fetchHealth = async () => {
+    try {
+      const phoneDigits = (connectedPhone || "").replace(/\D/g, "");
+      const filters: string[] = [`instance_ref.eq.${instance.id}`];
+      if (phoneDigits) filters.push(`phone.eq.${phoneDigits}`);
+       const { data } = await (supabase as any)
+         .from("warmup_instance_health")
+         .select("blocked_until, last_detected_at, block_type, detail")
+         .or(filters.join(","))
+         .order("last_detected_at", { ascending: false })
+         .limit(2);
+
+       // Prioritize active blocks
+       const activeBlock = data?.find((b: any) => 
+         b.block_type === 'disconnected' || 
+         (b.block_type === 'new_chat_capping' && (!b.blocked_until || new Date(b.blocked_until) > new Date())) ||
+         b.block_type === 'shadowban'
+       ) || data?.[0];
+
+       setHealthBlock(activeBlock || null);
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
-    let alive = true;
-    const fetchHealth = async () => {
-      try {
-        const phoneDigits = (connectedPhone || "").replace(/\D/g, "");
-        const filters: string[] = [`instance_ref.eq.${instance.id}`];
-        if (phoneDigits) filters.push(`phone.eq.${phoneDigits}`);
-         const { data } = await (supabase as any)
-           .from("warmup_instance_health")
-           .select("blocked_until, last_detected_at, block_type")
-           .or(filters.join(","))
-           .order("last_detected_at", { ascending: false })
-           .limit(2);
- 
-         if (!alive) return;
-         
-         // Prioritize active blocks
-         const activeBlock = data?.find((b: any) => 
-           b.block_type === 'disconnected' || 
-           (b.block_type === 'new_chat_capping' && (!b.blocked_until || new Date(b.blocked_until) > new Date()))
-         ) || data?.[0];
- 
-         setHealthBlock(activeBlock || null);
-        if (!alive) return;
-        setHealthBlock((data && data[0]) || null);
-      } catch { /* ignore */ }
-    };
     fetchHealth();
     const t = setInterval(fetchHealth, 60_000);
-    return () => { alive = false; clearInterval(t); };
+    return () => clearInterval(t);
   }, [instance.id, connectedPhone]);
 
   const [showDetails, setShowDetails] = useState(false);
@@ -1055,10 +1053,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             )}
             {healthBlock && (() => {
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
+              const isShadowBan = healthBlock.block_type === 'new_chat_capping' || 
+                                 healthBlock.block_type === 'shadowban' ||
+                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban'));
+              
               let label = "";
+              let icon = <AlertCircle className="w-3 h-3 mr-1 inline" />;
               
               if (healthBlock.block_type === 'disconnected') {
                 label = "⚠️ Número com restrição ou desconectado pelo WhatsApp";
+              } else if (isShadowBan) {
+                label = until
+                  ? `Shadowban Ativo · expira em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+                  : "Shadowban Ativo (Restrição de novos chats)";
+                icon = <AlertCircle className="w-3 h-3 mr-1 inline text-orange-600" />;
               } else {
                 label = until
                   ? `Limite de novas conversas atingido · libera em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
@@ -1067,8 +1075,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
               return (
                 <div className="mt-1.5">
-                  <Badge variant="destructive" className="text-[10px] leading-tight whitespace-normal text-left bg-red-100 text-red-700 border-red-200">
-                    <AlertCircle className="w-3 h-3 mr-1 inline" />
+                  <Badge 
+                    variant="destructive" 
+                    className={`text-[10px] leading-tight whitespace-normal text-left ${isShadowBan ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-red-50 text-red-700 border-red-200'}`}
+                  >
+                    {icon}
                     {label}
                   </Badge>
                 </div>
