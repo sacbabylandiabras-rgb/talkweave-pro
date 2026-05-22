@@ -1479,7 +1479,6 @@ serve(async (req) => {
     };
 
     // Check campaign status or resolve direct template
-    let campaign: any = null;
     let campaignTemplate: any = null;
 
     if (_directSendTemplateId) {
