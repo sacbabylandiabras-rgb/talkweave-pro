@@ -140,7 +140,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
     );
   }
 
-  const allSelected = selectedIds.size === instances.length;
+  const allSelected = allowMultiple && selectedIds.size === instances.length;
 
   return (
     <div className="space-y-2">
@@ -154,19 +154,21 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
         )}
       </Label>
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={selectAll}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
-            allSelected
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Todas
-        </button>
+        {allowMultiple && (
+          <button
+            type="button"
+            onClick={selectAll}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+              allSelected
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Todas
+          </button>
+        )}
         {instances.map((inst) => {
           const isSelected = selectedIds.has(inst.id);
           return (
