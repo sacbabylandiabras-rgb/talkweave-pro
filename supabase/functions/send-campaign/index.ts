@@ -220,7 +220,7 @@ const resolvePreferredUserInstance = async (
   supabase: any,
   userId: string,
 ): Promise<ResolvedInstance | null> => {
-  const selectFields = 'zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
+  const selectFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key';
 
   const { data: defaultInstance } = await supabase
     .from('zapi_instances')
