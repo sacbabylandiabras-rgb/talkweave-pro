@@ -1115,7 +1115,13 @@ const readDeviceConnectivity = (deviceStatus: any) => {
 
 const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
   try {
+    // === Meta API status check (always connected if configured) ===
+    if (instance.apiProvider === 'meta' || instance.zapiInstanceId?.startsWith("meta:")) {
+      return { connected: true, explicitlyDisconnected: false, ok: true, raw: { provider: 'meta' } };
+    }
+
     // === UAZAPI status check ===
+
     if (instance.apiProvider === 'uazapi' && instance.uazapiUrl && instance.uazapiToken) {
       const baseUrl = String(instance.uazapiUrl).replace(/\/+$/, '');
       const uazRes = await fetch(`${baseUrl}/instance/status`, {
