@@ -2657,8 +2657,13 @@ serve(async (req) => {
             const isShadowBan = explicitError && (
               explicitError.toLowerCase().includes("shadow ban") || 
               explicitError.toLowerCase().includes("restricted") || 
-              explicitError.toLowerCase().includes("unauthorized")
+              explicitError.toLowerCase().includes("unauthorized") ||
+              explicitError.toLowerCase().includes("capping")
             );
+            
+            if (isShadowBan && currentInstance.dbId) {
+              await recordShadowBan(admin, currentInstance.dbId, JSON.stringify(zapiResult));
+            }
 
             campaignSend.status = 'failed';
             campaignSend.error_message = isShadowBan 
