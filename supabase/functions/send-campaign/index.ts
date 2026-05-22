@@ -451,13 +451,12 @@ const isZapiConfirmed = (payload: any) => {
   if (error.includes('likely shadow ban')) return false;
 
   // Status de sucesso real de envio. 
-  // Removidos PENDING e QUEUED para evitar falsos positivos de sucesso.
-  // Mensagem deve ter sido efetivamente disparada ou entregue.
-  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
+  // Incluímos PENDING e QUEUED pois o Z-API aceitou a mensagem para sua fila interna.
+  // Se houver um messageId/ackId, consideramos que o envio foi aceito com sucesso.
+  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'PENDING', 'QUEUED', 'ENQUEUED', 'ACCEPTED', 'PROCESSING'];
   const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
   
-  // Se tiver ID e status de sucesso, confirmamos. 
-  // Sem ID, apenas status não é suficiente para 'confirmed'.
+  // Se tiver ID e status de sucesso ou entrega, confirmamos. 
   return Boolean(ackId) && (successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status));
 };
 
