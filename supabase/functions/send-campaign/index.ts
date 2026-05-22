@@ -1185,11 +1185,9 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
-    const requestedInstanceId = requestedInstanceIdRaw === '__rotate_all__' ? undefined : requestedInstanceIdRaw;
+    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__';
+    const requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
-    if (requestedInstanceIdRaw === '__rotate_all__') {
-      console.warn(`⚠️ Campaign ${campaignId}: rotate-all was requested, but campaigns are locked to single-instance mode. Using the selected/default instance only.`);
-    }
 
     if (!_directSendTemplateId && (!campaignId || requestedContacts.length === 0)) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
@@ -1254,7 +1252,7 @@ serve(async (req) => {
     let zapiToken = credentials.token;
     let zapiClientToken = credentials.clientToken;
 
-    const isRotateMode = requestedInstanceId === '__rotate_all__';
+    // Use already defined isRotateMode
     let rotatePool: ResolvedInstance[] = [];
     let forcedRequestedInstance: ResolvedInstance | null = null;
 
