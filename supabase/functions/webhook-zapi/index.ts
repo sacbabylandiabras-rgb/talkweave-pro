@@ -544,7 +544,9 @@ serve(async (req) => {
         instance_id: instanceId,
         timestamp: new Date().toISOString(),
         message_received: messageRaw,
+        message_id: messageId,
       });
+
     }
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
