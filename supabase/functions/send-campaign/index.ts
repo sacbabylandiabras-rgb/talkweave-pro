@@ -255,6 +255,21 @@ const resolveContactInstance = async (
 ): Promise<ResolvedInstance | null> => {
   if (!sourceInstanceId) return null;
 
+  // Handle Meta API instances
+  if (sourceInstanceId.startsWith("meta:")) {
+    const phoneId = sourceInstanceId.split(":")[1];
+    return {
+      zapiInstanceId: sourceInstanceId,
+      zapiToken: "",
+      zapiClientToken: "",
+      instanceName: `Meta API (${phoneId})`,
+      apiProvider: "meta",
+      uazapiUrl: "",
+      uazapiToken: "",
+    };
+  }
+
+
   let instance: {
     zapi_instance_id: string;
     zapi_token: string;
