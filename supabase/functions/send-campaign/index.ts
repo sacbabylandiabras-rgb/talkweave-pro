@@ -444,6 +444,42 @@ const isWhatsAppRateLimitError = (payload: any, httpStatus?: number): boolean =>
     httpStatus === 429
   );
 };
+ 
+ const recordShadowBan = async (
+   supabase: any,
+   instanceDbId: string,
+   errorText: string
+ ) => {
+   try {
+     const isCapping = /cycle_end|new_chat_message_capping|capping/i.test(errorText);
+     const extractCycleEnd = (text: string): string | null => {
+       try {
+         const m = text.match(/"cycle_end"\s*:\s*"([^"]+)"/i);
+         if (m && m[1]) return new Date(m[1]).toISOString();
+       } catch (_) { /* ignore */ }
+       return null;
+     };
+ 
+     const blockedUntil = extractCycleEnd(errorText);
+     const blockType = isCapping ? "new_chat_capping" : "shadowban";
+ 
+     await supabase
+       .from("warmup_instance_health")
+       .upsert(
+         {
+           instance_ref: instanceDbId,
+           block_type: blockType,
+           blocked_until: blockedUntil,
+           last_detected_at: new Date().toISOString(),
+           detail: errorText.slice(0, 240),
+         },
+         { onConflict: "instance_ref,block_type" }
+       );
+     console.log(`🛡️ Recorded ${blockType} for instance ${instanceDbId}`);
+   } catch (e: any) {
+     console.warn(`  ⚠ Failed to record shadowban health: ${e?.message}`);
+   }
+ };
 
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
