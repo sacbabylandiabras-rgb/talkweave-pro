@@ -450,12 +450,17 @@ const isZapiConfirmed = (payload: any) => {
   const error = String(payload?.error || payload?.message || '').toLowerCase();
   if (error.includes('likely shadow ban')) return false;
 
-  // Status de sucesso de enfileiramento ou envio. 
-  // Consideramos PENDING como sucesso de processamento pela API (Enviado).
-  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
+  // Status de sucesso real de envio. 
+  // Removidos PENDING e QUEUED para evitar falsos positivos de sucesso.
+  // Mensagem deve ter sido efetivamente disparada ou entregue.
+  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
   const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
-  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
+  
+  // Se tiver ID e status de sucesso, confirmamos. 
+  // Sem ID, apenas status não é suficiente para 'confirmed'.
+  return Boolean(ackId) && (successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status));
 };
+
  const isGroupDestination = (phone: string) => (phone.includes('@g.us') || phone.includes('-group')) && !phone.includes('@newsletter') && !phone.includes('-community');
  const isCommunityDestination = (phone: string) => phone.includes('-community');
  const isChannelDestination = (phone: string) => phone.includes('@newsletter');
@@ -1861,9 +1866,11 @@ serve(async (req) => {
           }
           if (pendingForPhone > phoneOccurrencesBefore) {
             console.log(`⏭️ Skipping ${contact.phone} - message is still pending callback.`);
-            results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
+            // No results.push here to keep it from appearing as a success in the UI stats
+            // if it hasn't actually been sent yet in this run.
             return { stop: false };
           }
+
         } else {
           console.log(`🔄 [Force] Re-sending to ${contact.phone} even if already sent (forceSend=true).`);
         }
@@ -2581,7 +2588,7 @@ serve(async (req) => {
 
           // Para identificadores @lid, forçamos o status 'sent' se o HTTP for 200,
           // ignorando erros internos da API ou falta de confirmação imediata.
-          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && (confirmed || (messageIdFromResponse && messageIdFromResponse !== 'false' && messageIdFromResponse !== 'null'))))) {
+          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && confirmed))) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
@@ -2595,8 +2602,8 @@ serve(async (req) => {
                 results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
                 console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
                 await persistCampaignSend(campaignSend, reusableSendId);
-          return { stop: false };
-        }
+                return { stop: false };
+              }
             }
 
             campaignSend.status = 'sent';
@@ -2606,6 +2613,7 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
           } else if (!zapiResponse.ok || (explicitError && !isLidIdentifier(contact.phone)) || (!confirmed && !isLidIdentifier(contact.phone))) {
+
             const isShadowBan = explicitError && (
               explicitError.toLowerCase().includes("shadow ban") || 
               explicitError.toLowerCase().includes("restricted") || 
@@ -2630,9 +2638,11 @@ serve(async (req) => {
             }
 
             if (rateLimitHitsInBatch >= 2) {
-              console.log(`⚠️ Rate-limit detectado em ${campaignId}, mas configurado para continuar enviando.`);
-              rateLimitHitsInBatch = 0;
+              console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
+              await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+              return { stop: true, status: 'paused' };
             }
+
             // Mid-batch disconnection detection desabilitado a pedido do usuário:
             // continuar tentando os próximos contatos mesmo após falha.
           }
