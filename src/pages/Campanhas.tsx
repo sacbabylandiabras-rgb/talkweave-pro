@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { setZapiInstanceOverride, getSelectedCampaignInstanceId } from "@/hooks/useZapi";
+import { setZapiInstanceOverride, getSelectedCampaignInstanceId, setZapiRotateMode, ROTATE_ALL } from "@/hooks/useZapi";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Play, Pause, Trash2, Copy, Users, Calendar, FileText, BarChart3, Plus, XCircle, Edit, Send, CheckCircle, Clock as ClockIcon, RefreshCw, Filter, Download } from "lucide-react";
 import { format } from "date-fns";
@@ -101,7 +101,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     phone: string | null;
     btn_text: string | null;
   }>>([]);
-   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single'>('default');
+   const [instanceSelectionMode, setInstanceSelectionMode] = useState<'default' | 'single' | 'rotate'>('default');
    const [showFilterDialog, setShowFilterDialog] = useState(false);
    const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
    const [removingDuplicates, setRemovingDuplicates] = useState(false);
@@ -988,12 +988,16 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           </AlertDialogHeader>
           <div className="py-2">
             <div className="flex flex-wrap gap-2">
-              <InstanceSelector
+             <InstanceSelector
                 providerFilter="zapi"
-                allowMultiple={false}
+                allowMultiple={true}
                 useSavedSelection={false}
                 onMultiInstanceChange={(ids) => {
-                  if (ids.length === 1) {
+                  if (ids.length > 1) {
+                    const selectedInstances = instances.filter(i => ids.includes(i.id));
+                    setInstanceSelectionMode('rotate');
+                    setZapiRotateMode(selectedInstances);
+                  } else if (ids.length === 1) {
                     const inst = instances.find(i => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode('single');
@@ -1049,10 +1053,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           <div className="py-2 space-y-4">
              <InstanceSelector
                 providerFilter="zapi"
-                allowMultiple={false}
+                allowMultiple={true}
                 useSavedSelection={false}
                 onMultiInstanceChange={(ids) => {
-                  if (ids.length === 1) {
+                  if (ids.length > 1) {
+                    const selectedInstances = instances.filter(i => ids.includes(i.id));
+                    setInstanceSelectionMode('rotate');
+                    setZapiRotateMode(selectedInstances);
+                  } else if (ids.length === 1) {
                     const inst = instances.find(i => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode('single');
