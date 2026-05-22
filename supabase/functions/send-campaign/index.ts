@@ -2532,7 +2532,7 @@ serve(async (req) => {
 
           // Para identificadores @lid, forçamos o status 'sent' se o HTTP for 200,
           // ignorando erros internos da API ou falta de confirmação imediata.
-          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && (confirmed || messageIdFromResponse)))) {
+          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && (confirmed || (messageIdFromResponse && messageIdFromResponse !== 'false' && messageIdFromResponse !== 'null'))))) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
