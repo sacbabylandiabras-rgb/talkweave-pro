@@ -1815,14 +1815,19 @@ serve(async (req) => {
         // Skip check if forceSend is enabled
         if (!(reqPayload as SendCampaignRequest).forceSend) {
           if (successfulForPhone > phoneOccurrencesBefore) {
+            console.log(`⏭️ Skipping ${contact.phone} - already successfully sent in this campaign.`);
             results.push({ phone: contact.phone, success: true, messageId: 'already-sent' });
             return { stop: false };
           }
           if (pendingForPhone > phoneOccurrencesBefore) {
+            console.log(`⏭️ Skipping ${contact.phone} - message is still pending callback.`);
             results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
             return { stop: false };
           }
+        } else {
+          console.log(`🔄 [Force] Re-sending to ${contact.phone} even if already sent (forceSend=true).`);
         }
+
 
         const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
