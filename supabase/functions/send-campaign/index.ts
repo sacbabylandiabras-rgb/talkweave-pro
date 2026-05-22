@@ -1177,7 +1177,7 @@ serve(async (req) => {
     const { 
       campaignId, 
       contacts, 
-      instanceId: requestedInstanceId, 
+      instanceId: requestedInstanceIdRaw, 
       rotationOffset: initialRotationOffset, 
       _isContinuation, 
       _userId,
@@ -1185,6 +1185,11 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
+    const requestedInstanceId = requestedInstanceIdRaw === '__rotate_all__' ? undefined : requestedInstanceIdRaw;
+
+    if (requestedInstanceIdRaw === '__rotate_all__') {
+      console.warn(`⚠️ Campaign ${campaignId}: rotate-all was requested, but campaigns are locked to single-instance mode. Using the selected/default instance only.`);
+    }
 
     if (!_directSendTemplateId && (!campaignId || requestedContacts.length === 0)) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
