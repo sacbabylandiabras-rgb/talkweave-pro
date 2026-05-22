@@ -1479,7 +1479,7 @@ serve(async (req) => {
     };
 
     // Check campaign status or resolve direct template
-    let campaignTemplate: any = null;
+
 
     if (_directSendTemplateId) {
       const { data: directTpl, error: tplErr } = await supabase
