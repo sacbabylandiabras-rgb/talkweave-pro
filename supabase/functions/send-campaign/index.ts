@@ -2121,7 +2121,12 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-            if (isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined) && !isLidIdentifier(contact.phone)) {
+            const isShadowBan = isConfirmedRateLimitHit(uazResult.raw, campaignSend.error_message, undefined);
+            if (isShadowBan && currentInstance.dbId) {
+              await recordShadowBan(admin, currentInstance.dbId, JSON.stringify(uazResult.raw || { message: campaignSend.error_message }));
+            }
+
+            if (isShadowBan && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
             } else {
               rateLimitHitsInBatch = 0;
