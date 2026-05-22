@@ -2588,7 +2588,7 @@ serve(async (req) => {
 
           // Para identificadores @lid, forçamos o status 'sent' se o HTTP for 200,
           // ignorando erros internos da API ou falta de confirmação imediata.
-          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && (confirmed || (messageIdFromResponse && messageIdFromResponse !== 'false' && messageIdFromResponse !== 'null'))))) {
+          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && confirmed))) {
             const isLocationButton = specialTpl?.type === 'uaz_location_button' || 
                                    specialTpl?.type === 'location_button' || 
                                    specialTpl?.type === 'request-location';
@@ -2602,8 +2602,8 @@ serve(async (req) => {
                 results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
                 console.log(`❌ Failed location button follow-up ${contact.phone}: ${campaignSend.error_message}`);
                 await persistCampaignSend(campaignSend, reusableSendId);
-          return { stop: false };
-        }
+                return { stop: false };
+              }
             }
 
             campaignSend.status = 'sent';
@@ -2613,6 +2613,7 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
           } else if (!zapiResponse.ok || (explicitError && !isLidIdentifier(contact.phone)) || (!confirmed && !isLidIdentifier(contact.phone))) {
+
             const isShadowBan = explicitError && (
               explicitError.toLowerCase().includes("shadow ban") || 
               explicitError.toLowerCase().includes("restricted") || 
