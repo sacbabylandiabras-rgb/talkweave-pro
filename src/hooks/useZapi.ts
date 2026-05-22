@@ -3,6 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { isMobileZapiInstance, type ZapiInstance } from '@/hooks/useZapiInstances';
 
+export const ROTATE_ALL = "__rotate_all__";
+
 // Instância override - permite que componentes passem uma instância específica
 let _instanceOverride: ZapiInstance | null = null;
 
