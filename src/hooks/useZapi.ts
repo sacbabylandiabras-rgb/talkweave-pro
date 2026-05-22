@@ -213,7 +213,8 @@ const getZAPIConfig = async () => {
     if (!body.instanceId) {
       try {
         const config = await getZAPIConfig();
-        body.instanceId = config.instanceId;
+        // Prefer the unique DB UUID so the backend never falls back to the default instance
+        body.instanceId = (config as any).dbId || config.instanceId;
       } catch {
         // Let edge function use default
       }
