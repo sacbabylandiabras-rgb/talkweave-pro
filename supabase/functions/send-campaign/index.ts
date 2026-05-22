@@ -1704,6 +1704,9 @@ serve(async (req) => {
                               (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                               getInstanceForIndex(i);
 
+        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+
+
         const res = await processContact(contact, currentInstance, i, false);
         if (res?.stop) {
           return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${res.status || 'paused'}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
