@@ -1680,12 +1680,12 @@ serve(async (req) => {
           const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
           
           // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
-          const currentInstance = forcedRequestedInstance || 
+          const currentInstance = (forcedRequestedInstance && !isRotateMode) ? forcedRequestedInstance : 
                                 (await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId)) || 
                                 (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                                 getInstanceForIndex(contactIdx);
 
-          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
 
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
@@ -1704,12 +1704,12 @@ serve(async (req) => {
         const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
         
         // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
-        const currentInstance = forcedRequestedInstance || 
+        const currentInstance = (forcedRequestedInstance && !isRotateMode) ? forcedRequestedInstance : 
                               (await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId)) || 
                               (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                               getInstanceForIndex(i);
 
-        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
 
 
         const res = await processContact(contact, currentInstance, i, false);
