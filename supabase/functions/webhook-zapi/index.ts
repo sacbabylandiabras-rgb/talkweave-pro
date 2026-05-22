@@ -185,7 +185,8 @@ serve(async (req) => {
       const isShadowBanError = error && (
         error.toLowerCase().includes("shadow ban") || 
         error.toLowerCase().includes("restricted") || 
-        error.toLowerCase().includes("temporary limit")
+        error.toLowerCase().includes("temporary limit") ||
+        error.toLowerCase().includes("unauthorized")
       );
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
