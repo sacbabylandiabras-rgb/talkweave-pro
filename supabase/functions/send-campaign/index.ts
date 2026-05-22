@@ -2666,8 +2666,10 @@ serve(async (req) => {
               explicitError.toLowerCase().includes("capping")
             );
             
-            if (isShadowBan && currentInstance.dbId) {
-              await recordShadowBan(admin, currentInstance.dbId, JSON.stringify(zapiResult));
+            if (isShadowBan) {
+              const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+              const dbId = currentInstance.dbId || (await admin.from('zapi_instances').select('id').or(`zapi_instance_id.eq.${currentInstance.zapiInstanceId},id.eq.${currentInstance.zapiInstanceId}`).eq('user_id', credentials.userId).maybeSingle()).data?.id;
+              if (dbId) await recordShadowBan(admin, dbId, JSON.stringify(zapiResult));
             }
 
             campaignSend.status = 'failed';
