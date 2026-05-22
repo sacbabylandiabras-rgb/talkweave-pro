@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck, ChevronDown, ChevronUp, Smartphone } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
@@ -31,6 +31,8 @@ interface CampaignSendRow {
   created_at: string;
   message_id?: string | null;
   error_message?: string | null;
+  instance_name?: string | null;
+  contact_name?: string | null;
 }
 
 const normalizePhoneKey = (phone?: string | null) => {
@@ -60,6 +62,8 @@ export function SendProgressDialog({
   const [isComplete, setIsComplete] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPausing, setIsPausing] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [sendRows, setSendRows] = useState<CampaignSendRow[]>([]);
   const channelRef = useRef<any>(null);
 
   const resetProgressState = () => {
@@ -104,7 +108,7 @@ export function SendProgressDialog({
       const [{ data: sendRows, error: sendRowsError }, { data: campaignData }] = await Promise.all([
         supabase
           .from("campaign_sends")
-          .select("phone, status, sent_at, delivered_at, created_at, message_id, error_message")
+          .select("phone, status, sent_at, delivered_at, created_at, message_id, error_message, instance_name, contact_name")
           .eq("campaign_id", campaignId)
           .order("created_at", { ascending: true }),
         supabase.from("campaigns").select("status, target_audience").eq("id", campaignId).single(),
@@ -152,6 +156,12 @@ export function SendProgressDialog({
           sendsByPhone.set(phoneKey, send);
         }
       });
+
+      // Save deduped rows for the details list (sorted by most recent activity)
+      const detailRows = Array.from(sendsByPhone.values()).sort(
+        (a, b) => (getSendTimestamp(b) || "").localeCompare(getSendTimestamp(a) || ""),
+      );
+      setSendRows(detailRows);
 
       const allPhoneKeys = new Set<string>([...Array.from(targetPhoneKeys), ...Array.from(sendsByPhone.keys())]);
 
@@ -422,6 +432,56 @@ export function SendProgressDialog({
             <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 p-3 rounded-lg">
               <Pause className="w-4 h-4" />
               <span>Campanha pausada com sucesso</span>
+            </div>
+          )}
+
+          {sendRows.length > 0 && (
+            <div className="border rounded-lg">
+              <button
+                type="button"
+                onClick={() => setShowDetails((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  Detalhes por envio ({sendRows.length})
+                </span>
+                {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {showDetails && (
+                <div className="max-h-64 overflow-y-auto border-t divide-y divide-border/50">
+                  {sendRows.map((row, idx) => {
+                    const statusInfo = (() => {
+                      if (row.status === "delivered")
+                        return { icon: <CheckCheck className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />, label: "Entregue" };
+                      if (row.status === "sent" || (row.status === "pending" && (row.message_id || row.sent_at)))
+                        return { icon: <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />, label: "Enviado" };
+                      if (row.status === "failed")
+                        return { icon: <XCircle className="w-3.5 h-3.5 text-red-500" />, label: "Falhou" };
+                      return { icon: <Clock className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />, label: "Pendente" };
+                    })();
+                    return (
+                      <div key={`${row.phone}-${idx}`} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {statusInfo.icon}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{row.contact_name || row.phone}</div>
+                            <div className="text-muted-foreground truncate">{row.phone}</div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-muted-foreground">{statusInfo.label}</div>
+                          {row.instance_name && (
+                            <div className="text-[10px] text-muted-foreground/70 truncate max-w-[140px]" title={row.instance_name}>
+                              via {row.instance_name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
