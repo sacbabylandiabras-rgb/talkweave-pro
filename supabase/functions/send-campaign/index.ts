@@ -2557,8 +2557,17 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
           } else if (!zapiResponse.ok || (explicitError && !isLidIdentifier(contact.phone)) || (!confirmed && !isLidIdentifier(contact.phone))) {
+            const isShadowBan = explicitError && (
+              explicitError.toLowerCase().includes("shadow ban") || 
+              explicitError.toLowerCase().includes("restricted") || 
+              explicitError.toLowerCase().includes("unauthorized")
+            );
+
             campaignSend.status = 'failed';
-            campaignSend.error_message = explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`);
+            campaignSend.error_message = isShadowBan 
+              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio ou desconectado da API."
+              : (explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`));
+            
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
