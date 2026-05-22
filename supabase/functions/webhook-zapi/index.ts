@@ -256,18 +256,46 @@ serve(async (req) => {
 
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !webhook?.__manual_flow_trigger__)) {
         if (isMessage && fromMe && !isButtonResponse && userId) {
-          await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId,
-            instance_id: instanceId,
-            timestamp: new Date().toISOString(),
-            message_received: null,
-            response_sent: messageRaw,
-            keyword_matched: "__manual_send__",
-          });
+          // Check if we already logged this outgoing message to avoid duplicate logs from Z-API retries
+          const { data: existingLog } = await supabase
+            .from("message_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("phone", chatId)
+            .eq("message_id", messageId)
+            .maybeSingle();
+
+          if (!existingLog) {
+            await supabase.from("message_logs").insert({
+              user_id: userId,
+              phone: chatId,
+              instance_id: instanceId,
+              timestamp: new Date().toISOString(),
+              message_received: null,
+              response_sent: messageRaw,
+              keyword_matched: "__manual_send__",
+              message_id: messageId,
+            });
+          }
         }
         return new Response("ok", { status: 200, headers: corsHeaders });
     }
+
+    // IDEMPOTENCY CHECK: Avoid processing the same inbound message twice
+    if (messageId && userId) {
+      const { data: existingInbound } = await supabase
+        .from("message_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("message_id", messageId)
+        .maybeSingle();
+      
+      if (existingInbound) {
+        console.log(`[Idempotency] Message ${messageId} already processed. Skipping.`);
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+    }
+
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
@@ -366,6 +394,7 @@ serve(async (req) => {
                 message_received: messageRaw,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
                 response_sent: `[Fluxo: ${flow.name}]`,
+                message_id: messageId,
               });
 
               await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
@@ -378,6 +407,7 @@ serve(async (req) => {
               }
 
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
+
             }
           }
         } else if (isButtonResponse) {
@@ -392,7 +422,9 @@ serve(async (req) => {
               message_received: messageRaw,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
+              message_id: messageId,
             });
+
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
             if (!flowStateIsSharedGroup) {
@@ -497,7 +529,9 @@ serve(async (req) => {
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: triggerKey,
+            message_id: messageId,
           });
+
 
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
@@ -510,7 +544,9 @@ serve(async (req) => {
         instance_id: instanceId,
         timestamp: new Date().toISOString(),
         message_received: messageRaw,
+        message_id: messageId,
       });
+
     }
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
