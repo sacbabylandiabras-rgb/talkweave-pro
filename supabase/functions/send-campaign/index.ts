@@ -1866,9 +1866,11 @@ serve(async (req) => {
           }
           if (pendingForPhone > phoneOccurrencesBefore) {
             console.log(`⏭️ Skipping ${contact.phone} - message is still pending callback.`);
-            results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
+            // No results.push here to keep it from appearing as a success in the UI stats
+            // if it hasn't actually been sent yet in this run.
             return { stop: false };
           }
+
         } else {
           console.log(`🔄 [Force] Re-sending to ${contact.phone} even if already sent (forceSend=true).`);
         }
