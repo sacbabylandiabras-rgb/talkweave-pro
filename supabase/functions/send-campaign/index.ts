@@ -2222,38 +2222,50 @@ serve(async (req) => {
                 explicitError.toLowerCase().includes("unauthorized") ||
                 explicitError.toLowerCase().includes("capping"));
 
-            // ✅ CORREÇÃO: era `admin`, agora usa `supabase` corretamente
             if (isShadowBan && currentInstance.dbId) {
               await recordShadowBan(supabase, currentInstance.dbId, JSON.stringify(zapiResult));
             }
 
-            campaignSend.status = "failed";
-            campaignSend.error_message = isShadowBan
-              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio ou desconectado da API."
-              : explicitError ||
-                (!confirmed
-                  ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"
-                  : `HTTP ${zapiResponse.status}`);
-
-            results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-            console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
-
-            if (
-              isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
-              !isLidIdentifier(contact.phone)
-            ) {
-              rateLimitHitsInBatch += 1;
+            // ✅ forceSend=true: ignora shadow ban e trata como enviado se HTTP ok
+            // O Z-API aceitou a requisição mesmo com restrição — deixamos ele decidir
+            if (isShadowBan && (reqPayload as SendCampaignRequest).forceSend && zapiResponse.ok) {
+              console.log(
+                `⚡ [ForceSend] Shadow ban detectado mas forceSend=true. Tratando como enviado para ${contact.phone}.`,
+              );
+              campaignSend.status = "sent";
+              campaignSend.sent_at = new Date().toISOString();
+              const ackId = getZapiAckId(zapiResult);
+              if (ackId) campaignSend.message_id = String(ackId);
+              results.push({ phone: contact.phone, success: true, messageId: ackId });
             } else {
-              rateLimitHitsInBatch = 0;
-            }
+              campaignSend.status = "failed";
+              campaignSend.error_message = isShadowBan
+                ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio ou desconectado da API."
+                : explicitError ||
+                  (!confirmed
+                    ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"
+                    : `HTTP ${zapiResponse.status}`);
 
-            if (rateLimitHitsInBatch >= 2) {
-              console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
-              await supabase
-                .from("campaigns")
-                .update({ status: "paused", updated_at: new Date().toISOString() })
-                .eq("id", campaignId);
-              return { stop: true, status: "paused" };
+              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+              console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
+
+              if (
+                isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
+                !isLidIdentifier(contact.phone)
+              ) {
+                rateLimitHitsInBatch += 1;
+              } else {
+                rateLimitHitsInBatch = 0;
+              }
+
+              if (rateLimitHitsInBatch >= 2) {
+                console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
+                await supabase
+                  .from("campaigns")
+                  .update({ status: "paused", updated_at: new Date().toISOString() })
+                  .eq("id", campaignId);
+                return { stop: true, status: "paused" };
+              }
             }
           }
         }
