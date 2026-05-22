@@ -1680,6 +1680,8 @@ serve(async (req) => {
                                 (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                                 getInstanceForIndex(contactIdx);
 
+          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
             shouldStop = true;
@@ -1701,6 +1703,9 @@ serve(async (req) => {
                               (await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId)) || 
                               (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                               getInstanceForIndex(i);
+
+        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+
 
         const res = await processContact(contact, currentInstance, i, false);
         if (res?.stop) {
@@ -1740,7 +1745,7 @@ serve(async (req) => {
         const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
 
-        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
+        console.log(`🚀 [Dispatch] Executing send to ${contact.phone} via Z-API: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`);
 
         if (isFlowCampaign && flowId) {
           campaignSend = { campaign_id: campaignId, phone: contact.phone, contact_name: contact.name, message_content: `[Fluxo: ${flowId}]`, status: 'pending', user_id: credentials.userId, instance_name: currentInstance.instanceName };
