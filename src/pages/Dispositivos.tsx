@@ -1055,10 +1055,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             )}
             {healthBlock && (() => {
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
+              const isShadowBan = healthBlock.block_type === 'new_chat_capping' || 
+                                 healthBlock.block_type === 'shadowban' ||
+                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban'));
+              
               let label = "";
+              let icon = <AlertCircle className="w-3 h-3 mr-1 inline" />;
               
               if (healthBlock.block_type === 'disconnected') {
                 label = "⚠️ Número com restrição ou desconectado pelo WhatsApp";
+              } else if (isShadowBan) {
+                label = until
+                  ? `Shadowban Ativo · expira em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+                  : "Shadowban Ativo (Restrição de novos chats)";
+                icon = <AlertCircle className="w-3 h-3 mr-1 inline text-orange-600" />;
               } else {
                 label = until
                   ? `Limite de novas conversas atingido · libera em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
@@ -1067,8 +1077,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
               return (
                 <div className="mt-1.5">
-                  <Badge variant="destructive" className="text-[10px] leading-tight whitespace-normal text-left bg-red-100 text-red-700 border-red-200">
-                    <AlertCircle className="w-3 h-3 mr-1 inline" />
+                  <Badge 
+                    variant="destructive" 
+                    className={`text-[10px] leading-tight whitespace-normal text-left ${isShadowBan ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-red-50 text-red-700 border-red-200'}`}
+                  >
+                    {icon}
                     {label}
                   </Badge>
                 </div>
