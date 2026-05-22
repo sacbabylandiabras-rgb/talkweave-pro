@@ -1128,12 +1128,31 @@ serve(async (req) => {
         campaign = campaignData;
       }
 
-      if (campaign.status === "paused" || campaign.status === "completed" || campaign.status === "cancelled") {
+      const isForceSend = (reqPayload as SendCampaignRequest).forceSend === true;
+
+      if (
+        !isForceSend &&
+        (campaign.status === "paused" || campaign.status === "completed" || campaign.status === "cancelled")
+      ) {
         console.log(`🛑 Campaign ${campaignId} is ${campaign.status}. Not processing.`);
         return new Response(
           JSON.stringify({ stopped: true, status: campaign.status, message: `Campaign is ${campaign.status}` }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
         );
+      }
+
+      if (
+        isForceSend &&
+        (campaign.status === "completed" || campaign.status === "cancelled" || campaign.status === "paused")
+      ) {
+        console.log(
+          `⚡ [ForceSend] Ignorando status "${campaign.status}" da campanha ${campaignId} — forçando reenvio.`,
+        );
+        await supabase
+          .from("campaigns")
+          .update({ status: "active", updated_at: new Date().toISOString() })
+          .eq("id", campaign.id)
+          .eq("user_id", credentials.userId);
       }
 
       if (campaign.status === "draft") {
@@ -1459,12 +1478,14 @@ serve(async (req) => {
 
       try {
         const { data: statusCheck } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
-        if (
-          statusCheck?.status === "paused" ||
-          statusCheck?.status === "cancelled" ||
-          statusCheck?.status === "completed"
-        ) {
-          return { stop: true, status: statusCheck?.status };
+        if (!(reqPayload as SendCampaignRequest).forceSend) {
+          if (
+            statusCheck?.status === "paused" ||
+            statusCheck?.status === "cancelled" ||
+            statusCheck?.status === "completed"
+          ) {
+            return { stop: true, status: statusCheck?.status };
+          }
         }
 
         const { data: existingSends } = await supabase
