@@ -2817,12 +2817,14 @@ serve(async (req) => {
         }
       }
 
-      if (totalProcessed === 0 || (actualDeliveries === 0 && awaitingCallbackCount === 0)) {
-        // No sends created or ALL sends failed — mark as paused, not completed
-        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualDeliveries} delivered, ${awaitingCallbackCount} awaiting callback. Pausing instead of completing.`);
+      if (totalProcessed === 0) {
+        console.log(`⚠️ Campaign ${campaignId}: ${totalProcessed} processed. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
       } else if (awaitingCallbackCount > 0) {
         console.log(`⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`);
+      } else if (actualDeliveries === 0 && !(reqPayload as SendCampaignRequest).forceSend) {
+        console.log(`⚠️ Campaign ${campaignId}: 0 real deliveries confirmed. Pausing for safety.`);
+        await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
       } else if (actualDeliveries < effectiveTarget && !(reqPayload as SendCampaignRequest).forceSend) {
         console.log(`⚠️ Campaign ${campaignId}: only ${actualDeliveries}/${effectiveTarget} real deliveries confirmed. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
