@@ -13,6 +13,16 @@
     <meta name="facebook-domain-verification" content="xg8x4s1mnbkc98dqtscd7563f52acu" />
     <meta name="shopify-api-key" content="0a4a4627f4e668ba37162e209e84862a" />
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+      (function() {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('__lovable_sha')) {
+          url.searchParams.delete('__lovable_sha');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+      })();
+    </script>
+
 
     
     
