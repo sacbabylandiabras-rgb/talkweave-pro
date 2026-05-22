@@ -12,7 +12,9 @@ interface SendCampaignRequest {
     variables?: Record<string, string>;
     sourceInstanceId?: string | null;
     sourceInstanceName?: string | null;
+    userId?: string; // Add userId to contact to help with normalization
   }>;
+
   instanceId?: string;
   rotationOffset?: number;
   _isContinuation?: boolean;
