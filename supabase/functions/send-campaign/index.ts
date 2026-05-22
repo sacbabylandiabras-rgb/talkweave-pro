@@ -1199,28 +1199,35 @@ serve(async (req) => {
     if (_isContinuation && _userId) {
       console.log(`🔑 Continuation mode: resolving credentials for user ${_userId} via service role`);
       
-      // If we have a requestedInstanceId, prioritized it even in continuation
       let continuationInstance = null;
       if (requestedInstanceId && requestedInstanceId !== '__rotate_all__') {
         continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId);
       }
       
-      if (!continuationInstance) {
+      if (!continuationInstance && (!requestedInstanceId || requestedInstanceId === '__rotate_all__')) {
         continuationInstance = await resolvePreferredUserInstance(supabase, _userId);
       }
       
+      if (!continuationInstance) {
+        // Se ainda não encontrou e tem requestedInstanceId, tenta fallback z-api puro
+        const { data: fallbackInst } = await supabase.from('zapi_instances').select('*').eq('user_id', _userId).eq('is_active', true).limit(1).maybeSingle();
+        continuationInstance = fallbackInst ? mapResolvedInstance(fallbackInst) : null;
+      }
+
       if (!continuationInstance) throw new Error('Instância ativa não encontrada para continuação');
       credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
       const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
       
-      // Prioritize the requested instance if it exists and is not rotate mode
       let preferredInstance = null;
       if (requestedInstanceId && requestedInstanceId !== '__rotate_all__') {
         preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId);
+        if (!preferredInstance) {
+          console.error(`❌ CRITICAL: Requested instance ${requestedInstanceId} could not be resolved!`);
+        }
       }
       
-      if (!preferredInstance) {
+      if (!preferredInstance && (!requestedInstanceId || requestedInstanceId === '__rotate_all__')) {
         preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
       }
 
@@ -1245,6 +1252,20 @@ serve(async (req) => {
     const isRotateMode = requestedInstanceId === '__rotate_all__';
     let rotatePool: ResolvedInstance[] = [];
     let forcedRequestedInstance: ResolvedInstance | null = null;
+
+    if (!isRotateMode && credentials.instanceId) {
+      forcedRequestedInstance = {
+        zapiInstanceId: credentials.instanceId,
+        zapiToken: credentials.token,
+        zapiClientToken: credentials.clientToken,
+        instanceName: credentials.instanceName,
+        apiProvider: credentials.apiProvider,
+        uazapiUrl: credentials.uazapiUrl,
+        uazapiToken: credentials.uazapiToken,
+      };
+    }
+
+
 
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
