@@ -327,10 +327,12 @@ export function SendProgressDialog({
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wider">Atenção ao Status de Envio</p>
                   <p className="text-sm leading-relaxed">{stats.lastError}</p>
-                  {stats.lastError.toLowerCase().includes("shadow ban") && (
+                  {(stats.lastError.toLowerCase().includes("shadow ban") || stats.lastError.toLowerCase().includes("unauthorized")) && (
                     <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-900/20">
                       <p className="text-xs italic opacity-80">
-                        Dica: Reduza a velocidade de envio ou troque o conteúdo para proteger seu número.
+                        {stats.lastError.toLowerCase().includes("unauthorized") 
+                          ? "Conexão perdida ou instância desconectada. Verifique seu WhatsApp."
+                          : "Dica: Reduza a velocidade de envio ou troque o conteúdo para proteger seu número."}
                       </p>
                     </div>
                   )}

@@ -80,6 +80,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [forceSendOnResume, setForceSendOnResume] = useState(false);
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
@@ -425,6 +426,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
   const handleResumeCampaign = (id: string) => {
     setCampaignToResume(id);
+    setForceSendOnResume(false);
     setResumeDialogOpen(true);
   };
 
@@ -442,7 +444,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       setSendingCampaignId(campaignToResume);
 
       // Start resuming FIRST so status changes to 'active' before dialog polls
-      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId);
+      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId, forceSendOnResume);
       
       // Small delay to let status update propagate, then open dialog
       await new Promise(resolve => setTimeout(resolve, 500));
