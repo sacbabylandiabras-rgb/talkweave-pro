@@ -1253,6 +1253,19 @@ serve(async (req) => {
     let rotatePool: ResolvedInstance[] = [];
     let forcedRequestedInstance: ResolvedInstance | null = null;
 
+    if (!isRotateMode && credentials.instanceId) {
+      forcedRequestedInstance = {
+        zapiInstanceId: credentials.instanceId,
+        zapiToken: credentials.token,
+        zapiClientToken: credentials.clientToken,
+        instanceName: credentials.instanceName,
+        apiProvider: credentials.apiProvider,
+        uazapiUrl: credentials.uazapiUrl,
+        uazapiToken: credentials.uazapiToken,
+      };
+    }
+
+
 
     if (isRotateMode) {
       const { data: allActiveInstances } = await supabase
