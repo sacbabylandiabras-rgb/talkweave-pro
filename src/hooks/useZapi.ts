@@ -30,7 +30,7 @@ export const getSelectedInstanceId = (): string | undefined => {
 
 export const getSelectedCampaignInstanceId = (): string | undefined => {
   if (_rotateInstances.length > 0) {
-    return '__rotate_all__';
+    return `rotate:${_rotateInstances.map(i => i.id).join(',')}`;
   }
 
   return _instanceOverride?.id || undefined;

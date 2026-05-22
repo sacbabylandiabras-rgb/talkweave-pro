@@ -1185,7 +1185,7 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
-    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__';
+    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
     const requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
 
@@ -1199,6 +1199,9 @@ serve(async (req) => {
 
     // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
     let credentials: CampaignCredentials;
+    let forcedRequestedInstance: ResolvedInstance | null = null;
+    let rotatePool: ResolvedInstance[] = [];
+
     if (_isContinuation && _userId) {
       console.log(`🔑 Continuation mode: resolving credentials for user ${_userId} via service role`);
       
@@ -1260,8 +1263,8 @@ serve(async (req) => {
     let zapiClientToken = credentials.clientToken;
 
     // Use already defined isRotateMode
-    let rotatePool: ResolvedInstance[] = [];
-    let forcedRequestedInstance: ResolvedInstance | null = null;
+    // (forcedRequestedInstance and rotatePool are already declared above)
+
 
     if (!isRotateMode && credentials.instanceId) {
       forcedRequestedInstance = {
@@ -1279,13 +1282,22 @@ serve(async (req) => {
 
 
     if (isRotateMode) {
-      const { data: allActiveInstances } = await supabase
+      let query = supabase
         .from('zapi_instances')
         .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
-        .or('api_provider.is.null,api_provider.eq.zapi')
-        .order('created_at', { ascending: true });
+        .or('api_provider.is.null,api_provider.eq.zapi');
+
+      if (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:')) {
+        const specificIds = requestedInstanceIdRaw.replace('rotate:', '').split(',').filter(Boolean);
+        if (specificIds.length > 0) {
+          console.log(`🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances: ${specificIds.join(', ')}`);
+          query = query.in('id', specificIds);
+        }
+      }
+
+      const { data: allActiveInstances } = await query.order('created_at', { ascending: true });
 
       const rawRotatePool: ResolvedInstance[] = (allActiveInstances || [])
         .map((instance: any) => mapResolvedInstance(instance))

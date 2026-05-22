@@ -311,9 +311,10 @@ export const useCampaigns = () => {
         }
       }
 
+      const isRotation = instanceId === '__rotate_all__' || (typeof instanceId === 'string' && instanceId.startsWith('rotate:'));
       const sendConfig = {
-        instanceId: instanceId && instanceId !== '__rotate_all__' ? instanceId : null,
-        rotateAll: instanceId === '__rotate_all__',
+        instanceId: instanceId || null,
+        rotateAll: isRotation,
       };
 
       // Persistir o modo de envio antes de invocar a Edge Function
@@ -531,9 +532,9 @@ export const useCampaigns = () => {
       }
 
       const storedSendConfig = campaign.target_audience?.__sendConfig;
-      const resumeInstanceId = overrideInstanceId || (storedSendConfig?.rotateAll
-        ? '__rotate_all__'
-        : (storedSendConfig?.instanceId || getSelectedCampaignInstanceId()));
+      const resumeInstanceId = overrideInstanceId || 
+        storedSendConfig?.instanceId || 
+        (storedSendConfig?.rotateAll ? '__rotate_all__' : getSelectedCampaignInstanceId());
 
       console.log('=== RESUMING CAMPAIGN ===');
       console.log('Campaign ID:', id);
