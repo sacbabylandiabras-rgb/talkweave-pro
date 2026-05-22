@@ -2622,13 +2622,21 @@ serve(async (req) => {
         results.push({ phone: contact.phone, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
 
-      // Persist campaign_send record immediately after each contact without deleting prior history rows
+      // Persist campaign_send record immediately after each contact
       if (campaignSend) {
+        // Safety check: if we finished processing but it's still pending, mark as failed
+        // unless it's a flow trigger or some other async process.
+        if (campaignSend.status === 'pending' && !isFlowCampaign) {
+          console.log(`⚠️ Contact ${contact.phone} was left as pending. Marking as failed for safety.`);
+          campaignSend.status = 'failed';
+          campaignSend.error_message = campaignSend.error_message || 'Erro desconhecido durante o processamento (timeout ou resposta vazia)';
+        }
         await persistCampaignSend(campaignSend, reusableSendId);
       }
 
       return { stop: false };
     }
+
 
     // If there are remaining contacts, schedule continuation
     if (remainingContacts.length > 0) {
