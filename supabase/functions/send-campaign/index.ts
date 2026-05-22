@@ -1086,17 +1086,29 @@ serve(async (req) => {
     let credentials: CampaignCredentials;
     if (_isContinuation && _userId) {
       console.log(`🔑 Continuation mode: resolving credentials for user ${_userId} via service role`);
-      const continuationInstance = await resolvePreferredUserInstance(supabase, _userId);
+      
+      // If we have a requestedInstanceId, prioritized it even in continuation
+      let continuationInstance = null;
+      if (requestedInstanceId && requestedInstanceId !== '__rotate_all__') {
+        continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId);
+      }
+      
+      if (!continuationInstance) {
+        continuationInstance = await resolvePreferredUserInstance(supabase, _userId);
+      }
+      
       if (!continuationInstance) throw new Error('Instância ativa não encontrada para continuação');
       credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
       const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
       
-      // If we have a requestedInstanceId, we don't need to resolve a preferred one here
-      // because it will be resolved specifically in the logic below.
-      // We only fallback to preferred if requestedInstanceId is NOT provided.
+      // Prioritize the requested instance if it exists and is not rotate mode
       let preferredInstance = null;
-      if (!requestedInstanceId) {
+      if (requestedInstanceId && requestedInstanceId !== '__rotate_all__') {
+        preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId);
+      }
+      
+      if (!preferredInstance) {
         preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
       }
 
