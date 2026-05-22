@@ -452,7 +452,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setResumeDialogOpen(false);
 
     try {
-      const selectedInstanceId = getSelectedCampaignInstanceId();
+      // ✅ Usa o instanceId salvo pelo InstanceSelector (pode ser rotate:id1,id2 ou id único)
+      const selectedInstanceId = (window as any).__campaignInstanceId || getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
 
       const campaign = campaigns.find((c) => c.id === campaignToResume);
@@ -549,7 +550,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setCampaignToSend(null);
 
     try {
-      const selectedInstanceId = getSelectedCampaignInstanceId();
+      // ✅ Usa o instanceId salvo pelo InstanceSelector (pode ser rotate:id1,id2 ou id único)
+      const selectedInstanceId = (window as any).__campaignInstanceId || getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
 
       let contactsToSend = campaign.target_audience?.contacts || [];
@@ -969,11 +971,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     const selectedInstances = instances.filter((i) => ids.includes(i.id));
                     setInstanceSelectionMode("rotate");
                     setZapiRotateMode(selectedInstances);
+                    // ✅ Salva o instanceId rotativo para uso no reenvio
+                    (window as any).__campaignInstanceId = `rotate:${ids.join(",")}`;
                   } else if (ids.length === 1) {
                     const inst = instances.find((i) => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode("single");
                       setZapiInstanceOverride(inst);
+                      (window as any).__campaignInstanceId = ids[0];
                     }
                   }
                 }}
@@ -1046,11 +1051,14 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   const selectedInstances = instances.filter((i) => ids.includes(i.id));
                   setInstanceSelectionMode("rotate");
                   setZapiRotateMode(selectedInstances);
+                  // ✅ Salva o instanceId rotativo para uso no envio
+                  (window as any).__campaignInstanceId = `rotate:${ids.join(",")}`;
                 } else if (ids.length === 1) {
                   const inst = instances.find((i) => i.id === ids[0]);
                   if (inst) {
                     setInstanceSelectionMode("single");
                     setZapiInstanceOverride(inst);
+                    (window as any).__campaignInstanceId = ids[0];
                   }
                 }
               }}
@@ -1132,7 +1140,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 status: CampaignContactStatus;
                 sentAt: string | null;
                 errorMessage: string | null;
-                instanceName: string | null;
                 readAt: string | null;
                 clickedAt: string | null;
               }> = targetContacts.map((contact, index) => {
@@ -1173,7 +1180,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   status,
                   sentAt,
                   errorMessage,
-                  instanceName: (send as any)?.instance_name || null,
                   readAt: (send as any)?.read_at || null,
                   clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
                 };
@@ -1200,7 +1206,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     status,
                     sentAt: send.sent_at || null,
                     errorMessage: send.error_message || null,
-                    instanceName: send.instance_name || null,
                     readAt: (send as any)?.read_at || null,
                     clickedAt: statsDialogClickMap.get(sendKey) || (send as any)?.clicked_at || null,
                   });
@@ -1435,7 +1440,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         "Status",
                         "Lida",
                         ...(statsDialogHasUrlButton ? ["Clique no link"] : []),
-                        "Instância",
                         "Data",
                         "Erro",
                       ];
@@ -1445,7 +1449,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         c.status,
                         c.readAt ? "Sim" : "Não",
                         ...(statsDialogHasUrlButton ? [c.clickedAt ? "Sim" : "Não"] : []),
-                        c.instanceName || "",
                         c.sentAt ? format(new Date(c.sentAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
                         c.errorMessage || "",
                       ]);
@@ -1483,7 +1486,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                           <TableHead>Contato</TableHead>
                           <TableHead>Telefone</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Instância</TableHead>
                           <TableHead>Lida</TableHead>
                           {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
                           <TableHead>Data</TableHead>
@@ -1540,9 +1542,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                                   {formatErrorMessage(contact.errorMessage)}
                                 </p>
                               )}
-                            </TableCell>
-                            <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
-                              {contact.instanceName ? `via ${contact.instanceName}` : "-"}
                             </TableCell>
                             <TableCell>
                               {contact.readAt ? (
