@@ -2202,7 +2202,12 @@ serve(async (req) => {
             `📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${messageIdFromResponse || "none"}`,
           );
 
-          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && confirmed))) {
+          if (
+            zapiResponse.ok &&
+            (isLidIdentifier(contact.phone) ||
+              (!explicitError && confirmed) ||
+              (reqPayload as SendCampaignRequest).forceSend)
+          ) {
             const isLocationButton =
               specialTpl?.type === "uaz_location_button" ||
               specialTpl?.type === "location_button" ||
