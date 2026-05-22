@@ -1653,7 +1653,7 @@ serve(async (req) => {
           const contactIdx = i + chunkIdx;
           const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
           const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
-          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
+          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance && isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
           const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(contactIdx);
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
@@ -1671,7 +1671,7 @@ serve(async (req) => {
       for (let i = 0; i < currentBatch.length; i++) {
         const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
         const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
+        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance && isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
         const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
         const res = await processContact(contact, currentInstance, i, false);
         if (res?.stop) {
