@@ -1391,7 +1391,7 @@ serve(async (req) => {
       }
 
       const status = await fetchDeviceStatusSnapshot(specificInstance);
-      if (!status.connected) {
+      if (!status.connected && !(reqPayload as SendCampaignRequest).forceSend) {
         console.log(`⏸️ Selected instance ${specificInstance.instanceName} is offline. Pausing campaign (no fallback).`);
         await supabase
           .from('campaigns')
@@ -1407,6 +1407,9 @@ serve(async (req) => {
           status: 400,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
+      }
+      if (!status.connected) {
+        console.log(`⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but forceSend=true. Proceeding anyway.`);
       }
 
       forcedRequestedInstance = specificInstance;
@@ -1624,7 +1627,7 @@ serve(async (req) => {
         return second.ok && second.explicitlyDisconnected && !second.connected;
       };
 
-      if (await shouldPause()) {
+      if (!(reqPayload as SendCampaignRequest).forceSend && await shouldPause()) {
         console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
         return new Response(JSON.stringify({
