@@ -351,6 +351,15 @@ export function SendProgressDialog({
               <div className="text-xl font-bold">{effectiveTotal}</div>
             </div>
 
+            {/* Pendentes */}
+            <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pendentes</span>
+              </div>
+              <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
+            </div>
+
             {/* Enviados (1 check) — enviados pelo servidor, aguardando ACK do WhatsApp */}
             <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
               <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
@@ -369,17 +378,8 @@ export function SendProgressDialog({
               <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.delivered}</div>
             </div>
 
-            {/* Pendentes */}
-            <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Pendentes</span>
-              </div>
-              <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
-            </div>
-
             {/* Falhas */}
-            <div className="space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
+            <div className="col-span-2 space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
               <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
                 <XCircle className="w-3.5 h-3.5" />
                 <span>Falhas</span>
@@ -387,6 +387,7 @@ export function SendProgressDialog({
               <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.failed}</div>
             </div>
           </div>
+
 
           {isComplete && stats.total > 0 && (
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">

@@ -338,8 +338,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     (send?.status === 'sent' && (Boolean(send?.message_id) || Boolean(send?.delivered_at)));
 
   const statsDialogStats = {
-    // Envios aceitos pela API são exibidos como entregues imediatamente.
-    sent: statsDialogSends.filter(s => s.status === 'sent' || s.status === 'delivered').length,
+    // Envios aceitos pela API são exibidos como enviados.
+    sent: statsDialogSends.filter(s => s.status === 'sent' || (s.status === 'pending' && Boolean((s as any).message_id || s.sent_at))).length,
     delivered: statsDialogSends.filter(s => s.status === 'delivered').length,
     // "Enviando" é apenas o que ainda está em trânsito/pendente na API.
     sending: 0,
@@ -347,6 +347,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     failed: statsDialogSends.filter(s => isCancelledSendStatus(s.status)).length,
     total: statsDialogSends.length,
   };
+
 
   const openStatsDialog = (campaignId: string, campaignName: string) => {
     setStatsDialogCampaignId(campaignId);
