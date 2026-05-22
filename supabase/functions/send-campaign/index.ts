@@ -1218,9 +1218,12 @@ serve(async (req) => {
       let preferredInstance = null;
       if (requestedInstanceId && requestedInstanceId !== '__rotate_all__') {
         preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId);
+        if (!preferredInstance) {
+          console.error(`❌ CRITICAL: Requested instance ${requestedInstanceId} could not be resolved!`);
+        }
       }
       
-      if (!preferredInstance) {
+      if (!preferredInstance && (!requestedInstanceId || requestedInstanceId === '__rotate_all__')) {
         preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
       }
 
