@@ -353,13 +353,16 @@ const isZapiConfirmed = (payload: any) => {
   const error = String(payload?.error || payload?.message || "").toLowerCase();
   if (error.includes("likely shadow ban")) return false;
 
+  // Se tem erro explícito de negação, não confirma
+  if (payload?.error === true || payload?.success === false) return false;
+
+  // Se tem ackId, o Z-API aceitou a mensagem — confirmado
+  if (Boolean(ackId)) return true;
+
+  // Sem ackId mas com status de sucesso explícito também confirma
   const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
-
-  return (
-    Boolean(ackId) &&
-    (successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status))
-  );
+  return successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
 
 const isGroupDestination = (phone: string) =>
