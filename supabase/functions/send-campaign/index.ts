@@ -291,7 +291,7 @@ const resolveContactInstance = async (
 
   const { data: byZapiInstanceId } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
     .eq('user_id', userId)
     .eq('zapi_instance_id', sourceInstanceId)
     .eq('is_active', true)
