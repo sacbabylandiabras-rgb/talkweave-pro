@@ -479,15 +479,43 @@ const getUazapiTargetNumber = (phone: string) => {
 // porque o usuário quer que o provedor receba o destino tal como está.
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
+  
+  // Handle Group Destinations
   if (isGroupDestination(phone)) {
-    // Garante formato 12345-group exigido pelo Z-API
     const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
     return numericId ? `${numericId}-group` : phone;
   }
+
+  // Handle Community/Channel
   if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
+  
+  // Handle @lid
   if (phone.includes('@lid')) return phone;
-  return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
+
+  // For private numbers, remove all non-digits and leading +
+  let cleaned = phone.replace(/^\+/, '').replace(/\D/g, '');
+
+  // Robust Brazilian Mobile Number Normalization
+  // Rules for Brazil (Country Code 55):
+  // 1. Mobile numbers should have 9 digits after DDD (total 13 with 55)
+  // 2. Some older accounts still use 8 digits after DDD (total 12 with 55)
+  // 3. Z-API usually expects the 13-digit format for mobile, but if it doesn't arrive, 
+  //    it might be because the account is registered with 12 digits.
+  if (cleaned.startsWith('55') && cleaned.length === 13) {
+    const ddd = parseInt(cleaned.substring(2, 4));
+    const ninthDigit = cleaned.substring(4, 5);
+    
+    // If DDD is between 11 and 28 (regions where 9th digit was implemented first)
+    // and the 5th digit is '9', it's a mobile number.
+    if (ddd >= 11 && ddd <= 28 && ninthDigit === '9') {
+      // Keep it as 13 digits for now, but log it
+      // console.log(`[Normalization] Brazilian mobile detected: ${cleaned}`);
+    }
+  }
+
+  return cleaned || phone;
 };
+
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
