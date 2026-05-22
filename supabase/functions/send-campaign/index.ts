@@ -2825,9 +2825,11 @@ serve(async (req) => {
       } else if (actualDeliveries === 0 && !(reqPayload as SendCampaignRequest).forceSend) {
         console.log(`⚠️ Campaign ${campaignId}: 0 real deliveries confirmed. Pausing for safety.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-      } else if (actualDeliveries < effectiveTarget && !(reqPayload as SendCampaignRequest).forceSend) {
+      } else if (actualDeliveries < effectiveTarget && awaitingCallbackCount === 0 && !(reqPayload as SendCampaignRequest).forceSend) {
         console.log(`⚠️ Campaign ${campaignId}: only ${actualDeliveries}/${effectiveTarget} real deliveries confirmed. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+      } else if (actualDeliveries < effectiveTarget && awaitingCallbackCount > 0) {
+        console.log(`⏳ Campaign ${campaignId}: ${actualDeliveries}/${effectiveTarget} delivered, but ${awaitingCallbackCount} still pending callback. Keeping active.`);
       } else {
         console.log(`✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`);
         const { data: finalCampaign } = await supabase.from('campaigns').select('status').eq('id', campaignId).single();
