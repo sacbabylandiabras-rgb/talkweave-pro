@@ -1637,16 +1637,11 @@ serve(async (req) => {
       };
 
       if (!(reqPayload as SendCampaignRequest).forceSend && await shouldPause()) {
-        console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
-        await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        return new Response(JSON.stringify({
-          message: 'Conexão desconectada. Campanha pausada para retomar de onde parou.',
-          stopped: true,
-          paused: true,
-          reason: 'device_disconnected',
-        }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        console.log(`⚠️ DISPOSITIVO DESCONECTADO! Mas continuando conforme nova diretriz de não trocar instância.`);
+        // Removemos a pausa automática aqui para permitir que as falhas apareçam individualmente nos registros de envio,
+        // conforme solicitado: "se o numero tiver algum bloqueio avisa mas nao troca a instancia".
       }
+
     } catch (e) {
       console.error('Device check error:', e);
     }
