@@ -1623,13 +1623,19 @@ serve(async (req) => {
       throw new Error('Campaign template not found');
     }
 
+    const getBatchSizeForDelay = (delayMs: number) => {
+      if (delayMs >= 20000) return 2; // Even smaller batch for very long delays
+      if (delayMs >= 10000) return 4;
+      if (delayMs >= 5000) return 8;
+      return 15; // Slightly smaller default batch
+    };
+
     const isGroupCampaign = campaign.target_audience?.type === 'groups' || campaign.target_audience?.mode === 'groups';
     // Respeita o delay configurado na campanha mesmo para grupos, se houver
     const delayMs = (campaign.delay_seconds || (isGroupCampaign ? 0 : 2)) * 1000;
     // For group campaigns, we allow a much larger batch size and faster processing
-    // For group campaigns, we allow a larger batch size to process more groups before re-invocation.
-    // Since group sends typically have 0 delay, we can process many in one execution.
     const batchSize = isGroupCampaign ? 200 : getBatchSizeForDelay(delayMs);
+
 
     // Split contacts into current batch and remaining
     const currentBatch = executionContacts.slice(0, batchSize);
