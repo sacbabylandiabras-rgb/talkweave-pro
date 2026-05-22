@@ -532,9 +532,9 @@ export const useCampaigns = () => {
       }
 
       const storedSendConfig = campaign.target_audience?.__sendConfig;
-      const resumeInstanceId = overrideInstanceId || (storedSendConfig?.rotateAll
-        ? '__rotate_all__'
-        : (storedSendConfig?.instanceId || getSelectedCampaignInstanceId()));
+      const resumeInstanceId = overrideInstanceId || 
+        storedSendConfig?.instanceId || 
+        (storedSendConfig?.rotateAll ? '__rotate_all__' : getSelectedCampaignInstanceId());
 
       console.log('=== RESUMING CAMPAIGN ===');
       console.log('Campaign ID:', id);
