@@ -256,18 +256,46 @@ serve(async (req) => {
 
     if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !webhook?.__manual_flow_trigger__)) {
         if (isMessage && fromMe && !isButtonResponse && userId) {
-          await supabase.from("message_logs").insert({
-            user_id: userId,
-            phone: chatId,
-            instance_id: instanceId,
-            timestamp: new Date().toISOString(),
-            message_received: null,
-            response_sent: messageRaw,
-            keyword_matched: "__manual_send__",
-          });
+          // Check if we already logged this outgoing message to avoid duplicate logs from Z-API retries
+          const { data: existingLog } = await supabase
+            .from("message_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("phone", chatId)
+            .eq("message_id", messageId)
+            .maybeSingle();
+
+          if (!existingLog) {
+            await supabase.from("message_logs").insert({
+              user_id: userId,
+              phone: chatId,
+              instance_id: instanceId,
+              timestamp: new Date().toISOString(),
+              message_received: null,
+              response_sent: messageRaw,
+              keyword_matched: "__manual_send__",
+              message_id: messageId,
+            });
+          }
         }
         return new Response("ok", { status: 200, headers: corsHeaders });
     }
+
+    // IDEMPOTENCY CHECK: Avoid processing the same inbound message twice
+    if (messageId && userId) {
+      const { data: existingInbound } = await supabase
+        .from("message_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("message_id", messageId)
+        .maybeSingle();
+      
+      if (existingInbound) {
+        console.log(`[Idempotency] Message ${messageId} already processed. Skipping.`);
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+    }
+
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
