@@ -287,7 +287,8 @@ export const useCampaigns = () => {
   const sendCampaign = async (
     campaignId: string,
     contacts: Array<{ phone: string; name?: string; variables?: Record<string, string> }>,
-    instanceId?: string
+    instanceId?: string,
+    forceSend?: boolean
   ) => {
     try {
       // Tentar encontrar a campanha no estado local ou buscar no banco para evitar condições de corrida
@@ -346,6 +347,7 @@ export const useCampaigns = () => {
           campaignId,
           contacts,
           instanceId,
+          forceSend,
         },
       });
 
@@ -524,7 +526,7 @@ export const useCampaigns = () => {
     return result;
   };
 
-  const resumeCampaign = async (id: string, overrideInstanceId?: string) => {
+  const resumeCampaign = async (id: string, overrideInstanceId?: string, forceSend?: boolean) => {
     try {
       const campaign = campaigns.find(c => c.id === id);
       if (!campaign) {
@@ -618,7 +620,7 @@ export const useCampaigns = () => {
 
       [...failedPhones, ...pendingRetryPhones, ...cancelledRetryPhones, ...neverProcessedContacts].forEach((contact) => {
         const phoneKey = normalizeCampaignPhone(contact.phone) || contact.phone;
-        if (!phoneKey || successfulPhones.has(phoneKey)) return;
+        if (!phoneKey || (!forceSend && successfulPhones.has(phoneKey))) return;
         if (!remainingContactsMap.has(phoneKey)) {
           remainingContactsMap.set(phoneKey, contact);
         }
@@ -704,6 +706,7 @@ export const useCampaigns = () => {
           campaignId: id,
           contacts: remainingContacts,
           instanceId: resumeInstanceId,
+          forceSend,
         },
       });
 

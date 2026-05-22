@@ -80,6 +80,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [forceSendOnResume, setForceSendOnResume] = useState(false);
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
@@ -425,6 +426,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
   const handleResumeCampaign = (id: string) => {
     setCampaignToResume(id);
+    setForceSendOnResume(false);
     setResumeDialogOpen(true);
   };
 
@@ -442,7 +444,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       setSendingCampaignId(campaignToResume);
 
       // Start resuming FIRST so status changes to 'active' before dialog polls
-      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId);
+      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId, forceSendOnResume);
       
       // Small delay to let status update propagate, then open dialog
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1021,6 +1023,21 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               className="w-4 h-4 accent-primary cursor-pointer"
               checked={sendDialogRemoveDuplicates}
               onChange={(e) => setSendDialogRemoveDuplicates(e.target.checked)}
+            />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-red-500/5 rounded-lg border border-red-500/20 mt-2">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-red-500" />
+              <div>
+                <p className="text-sm font-medium">Forçar Reenvio</p>
+                <p className="text-[10px] text-muted-foreground">Ignora envios anteriores e reenvia para todos</p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-red-500 cursor-pointer"
+              checked={forceSendOnResume}
+              onChange={(e) => setForceSendOnResume(e.target.checked)}
             />
           </div>
           <AlertDialogFooter>

@@ -17,6 +17,7 @@ interface SendCampaignRequest {
   rotationOffset?: number;
   _isContinuation?: boolean;
   _userId?: string; // Used by service-role re-invocations to bypass JWT auth
+  forceSend?: boolean; // If true, ignore previous successful sends for the same phone in the same campaign
 }
 
 interface CampaignSendRecord {
@@ -1817,13 +1818,16 @@ serve(async (req) => {
         const pendingForPhone = existingSends?.filter(s => s.status === 'pending').length || 0;
         const phoneOccurrencesBefore = currentBatch.slice(0, i).filter((c: any) => c.phone === contact.phone).length;
 
-        if (successfulForPhone > phoneOccurrencesBefore) {
-          results.push({ phone: contact.phone, success: true, messageId: 'already-sent' });
-          return { stop: false };
-        }
-        if (pendingForPhone > phoneOccurrencesBefore) {
-          results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
-          return { stop: false };
+        // Skip check if forceSend is enabled
+        if (!(reqPayload as SendCampaignRequest).forceSend) {
+          if (successfulForPhone > phoneOccurrencesBefore) {
+            results.push({ phone: contact.phone, success: true, messageId: 'already-sent' });
+            return { stop: false };
+          }
+          if (pendingForPhone > phoneOccurrencesBefore) {
+            results.push({ phone: contact.phone, success: true, messageId: 'already-pending' });
+            return { stop: false };
+          }
         }
 
         const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
