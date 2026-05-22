@@ -422,7 +422,9 @@ serve(async (req) => {
               message_received: messageRaw,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
+              message_id: messageId,
             });
+
 
             await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
             if (!flowStateIsSharedGroup) {
