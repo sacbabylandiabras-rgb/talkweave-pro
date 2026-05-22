@@ -70,8 +70,9 @@ export function installChunkLoadRecovery() {
 
 export function clearChunkRecoveryState() {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-  
-  // Clean up the URL query parameter if present
+}
+
+export function clearUrlRecoveryParams() {
   const url = new URL(window.location.href);
   if (url.searchParams.has("__lovable_sha")) {
     url.searchParams.delete("__lovable_sha");
@@ -81,6 +82,9 @@ export function clearChunkRecoveryState() {
 }
 
 export function scheduleChunkRecoveryStateClear(delayMs = 15_000) {
+  // Clear the URL immediately for a better user experience
+  clearUrlRecoveryParams();
+  
   window.setTimeout(() => {
     clearChunkRecoveryState();
   }, delayMs);
