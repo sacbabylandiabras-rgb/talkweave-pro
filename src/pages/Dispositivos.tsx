@@ -985,13 +985,13 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         .order("last_detected_at", { ascending: false })
         .limit(5);
 
-       // Prioritize active blocks
-       const activeBlock = data?.find((b: any) => 
-         b.block_type === 'disconnected' || 
-         b.block_type === 'shadowban' ||
-         b.block_type === 'restriction' ||
-         (b.blocked_until && new Date(b.blocked_until) > new Date())
-       ) || data?.[0];
+       // Prioritize active blocks that have not expired yet
+       const activeBlock = data?.find((b: any) => {
+         const isDisconnected = b.block_type === 'disconnected';
+         const isPermanentShadowban = b.block_type === 'shadowban' && !b.blocked_until;
+         const isActiveTemporaryBlock = b.blocked_until && new Date(b.blocked_until) > new Date();
+         return isDisconnected || isPermanentShadowban || isActiveTemporaryBlock;
+       }) || null;
 
        setHealthBlock(activeBlock || null);
     } catch { /* ignore */ }
