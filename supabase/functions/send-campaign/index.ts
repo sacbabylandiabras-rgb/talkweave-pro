@@ -1175,7 +1175,8 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) throw new Error('Missing Supabase configuration');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const body: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
+    const reqPayload: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
+    const body = reqPayload;
     let { 
       campaignId, 
       contacts, 
