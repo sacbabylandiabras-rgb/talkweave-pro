@@ -1842,8 +1842,28 @@ serve(async (req) => {
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
 
+        // === Meta API ROUTING (short-circuit) ===
+        if (currentInstance.apiProvider === 'meta' || currentInstance.zapiInstanceId?.startsWith("meta:")) {
+          const metaPhoneId = currentInstance.zapiInstanceId.startsWith("meta:") ? currentInstance.zapiInstanceId.split(":")[1] : currentInstance.zapiInstanceId;
+          const metaCreds = await getMetaCredentials(supabase, credentials.userId, metaPhoneId);
+          if (!metaCreds) throw new Error("Credenciais Meta não encontradas ou desconectadas.");
+
+          const metaPayload = buildMetaPayload(campaignTemplate, fullMessage, contact.phone, campaignId, credentials.userId, campaign?.name);
+          const metaResult = await sendMetaMessage(metaCreds as any, metaPayload, contact.phone);
+          
+          campaignSend.status = 'sent';
+          campaignSend.sent_at = new Date().toISOString();
+          const ackId = metaResult?.messages?.[0]?.id;
+          if (ackId) campaignSend.message_id = String(ackId);
+          results.push({ phone: contact.phone, success: true, messageId: ackId });
+          
+          await persistCampaignSend(campaignSend, reusableSendId);
+          return { stop: false };
+        }
+
         // === UAZAPI ROUTING (short-circuit) ===
         if (currentInstance.apiProvider === 'uazapi' && currentInstance.uazapiUrl && currentInstance.uazapiToken) {
+
           if (specialTpl) {
           const uazSpecial = await dispatchUazapiSpecial(currentInstance, contact.phone, specialTpl, supabase, credentials.userId);
             if (uazSpecial.ok) {
