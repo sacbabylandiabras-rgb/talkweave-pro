@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     // Z-API disconnect
     const zapiUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/disconnect`;
     
-    // Z-API disconnect can be GET or POST depending on the version, but GET is common for their URL structure
+    // Z-API disconnect can be GET or POST depending on the version
     const zapiRes = await fetch(zapiUrl, {
       method: 'GET',
       headers: { 
@@ -100,7 +100,20 @@ Deno.serve(async (req) => {
     let zapiData: any = {};
     try { zapiData = JSON.parse(zapiText); } catch { zapiData = { message: zapiText }; }
 
+    // Z-API often returns 400 if the instance is already disconnected or session is invalid.
+    // In these cases, we want to treat it as success from the UI perspective so the user can see it as "disconnected".
     if (!zapiRes.ok) {
+      const errorMsg = (zapiData.message || zapiData.error || '').toLowerCase();
+      const isAlreadyDisconnected = 
+        zapiRes.status === 400 && 
+        (errorMsg.includes('disconnected') || errorMsg.includes('not connected') || errorMsg.includes('invalid instance'));
+
+      if (isAlreadyDisconnected) {
+        return new Response(JSON.stringify({ success: true, message: 'Instância já estava desconectada.', data: zapiData }), {
+          headers: jsonHeaders,
+        });
+      }
+
       // If GET failed, try POST as a fallback
       if (zapiRes.status === 405 || zapiRes.status === 400) {
         const zapiResPost = await fetch(zapiUrl, {
