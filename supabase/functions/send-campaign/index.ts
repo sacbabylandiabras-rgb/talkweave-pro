@@ -2658,13 +2658,19 @@ serve(async (req) => {
             results.push({ phone: contact.phone, success: true, messageId: ackId });
             console.log(`📨 Sent for ${contact.phone} after accepted send`);
           } else if (!zapiResponse.ok || (explicitError && !isLidIdentifier(contact.phone)) || (!confirmed && !isLidIdentifier(contact.phone))) {
+            console.log(`🔍 [ShadowBan Check] phone=${contact.phone}, explicitError="${explicitError}", confirmed=${confirmed}, status=${zapiResponse.status}`);
 
-            const isShadowBan = explicitError && (
-              explicitError.toLowerCase().includes("shadow ban") || 
-              explicitError.toLowerCase().includes("restricted") || 
-              explicitError.toLowerCase().includes("unauthorized") ||
-              explicitError.toLowerCase().includes("capping")
-            );
+            const SHADOW_BAN_PHRASES = [
+              'likely shadow ban',
+              'shadow ban',
+              'shadowban',
+              'capping',
+              'cycle_end'
+            ];
+
+            const isShadowBan = explicitError 
+              ? SHADOW_BAN_PHRASES.some(p => explicitError.toLowerCase().includes(p))
+              : false;
             
             if (isShadowBan) {
               const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -2674,8 +2680,10 @@ serve(async (req) => {
 
             campaignSend.status = 'failed';
             campaignSend.error_message = isShadowBan 
-              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio ou desconectado da API."
-              : (explicitError || (!confirmed ? 'WhatsApp não confirmou o envio (possível shadow ban ou número inválido)' : `HTTP ${zapiResponse.status}`));
+              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio."
+              : (explicitError || (!confirmed 
+                  ? 'WhatsApp não confirmou o envio (número inválido ou instância com problema)' 
+                  : `HTTP ${zapiResponse.status}`));
             
             results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
