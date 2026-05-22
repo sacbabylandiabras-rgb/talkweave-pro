@@ -1185,7 +1185,7 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
-    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__';
+    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
     const requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
 
