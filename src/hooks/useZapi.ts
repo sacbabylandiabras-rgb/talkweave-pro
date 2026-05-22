@@ -42,6 +42,7 @@ const getZAPIConfig = async () => {
     const inst = _rotateInstances[_rotateIndex % _rotateInstances.length];
     _rotateIndex++;
     return {
+      dbId: inst.id,
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
       clientToken: inst.zapi_client_token,
@@ -50,6 +51,7 @@ const getZAPIConfig = async () => {
 
   if (_instanceOverride) {
     return {
+      dbId: _instanceOverride.id,
       instanceId: _instanceOverride.zapi_instance_id,
       token: _instanceOverride.zapi_token,
       clientToken: _instanceOverride.zapi_client_token,
@@ -61,7 +63,7 @@ const getZAPIConfig = async () => {
 
   const { data: instances, error } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
     .eq('user_id', user.id)
     .eq('is_active', true)
       .or('api_provider.is.null,api_provider.eq.zapi')
@@ -84,6 +86,7 @@ const getZAPIConfig = async () => {
     }
 
     return {
+      dbId: undefined as string | undefined,
       instanceId: profile.zapi_instance_id,
       token: profile.zapi_token,
       clientToken: profile.zapi_client_token,
@@ -91,6 +94,7 @@ const getZAPIConfig = async () => {
   }
 
   return {
+    dbId: instance.id,
     instanceId: instance.zapi_instance_id,
     token: instance.zapi_token,
     clientToken: instance.zapi_client_token,
@@ -209,7 +213,8 @@ const getZAPIConfig = async () => {
     if (!body.instanceId) {
       try {
         const config = await getZAPIConfig();
-        body.instanceId = config.instanceId;
+        // Prefer the unique DB UUID so the backend never falls back to the default instance
+        body.instanceId = (config as any).dbId || config.instanceId;
       } catch {
         // Let edge function use default
       }
