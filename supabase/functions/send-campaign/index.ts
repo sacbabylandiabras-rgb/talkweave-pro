@@ -1424,7 +1424,7 @@ serve(async (req) => {
           body: JSON.stringify({
             campaignId,
             contacts: contactsToContinue,
-            instanceId: requestedInstanceId,
+            instanceId: requestedInstanceIdRaw,
             rotationOffset: newRotationOffset,
             _isContinuation: true,
             _userId: credentials.userId,
