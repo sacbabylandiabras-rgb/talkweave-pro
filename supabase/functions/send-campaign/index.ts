@@ -1174,7 +1174,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
-    const { 
+    let { 
       campaignId, 
       contacts, 
       instanceId: requestedInstanceIdRaw, 
@@ -1185,14 +1185,40 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
-    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
-    const requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
+    // Fetch campaign data early to get the most up-to-date configuration from DB
+    // This is critical to override old "zombie" re-invocations if the user changed settings
+    let campaign: any = null;
+    let campaignTemplate: any = null;
+    if (!_directSendTemplateId && campaignId) {
+      const { data: campaignData } = await supabase
+        .from('campaigns')
+        .select('*, template:message_templates(*)')
+        .eq('id', campaignId)
+        .maybeSingle();
+      
+      if (campaignData) {
+        campaign = campaignData;
+        campaignTemplate = campaign.template;
+        const sendConfig = campaign.target_audience?.__sendConfig;
+        
+        // If we have a persisted configuration in the database, it MUST take precedence
+        // over the request body to ensure settings changes are respected globally immediately.
+        if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
+          console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
+          requestedInstanceIdRaw = sendConfig.rotateAll ? '__rotate_all__' : sendConfig.instanceId;
+        }
+      }
+    }
+
+    let isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
+    let requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
     if (!_directSendTemplateId && (!campaignId || requestedContacts.length === 0)) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
+
 
 
     console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
@@ -1478,31 +1504,36 @@ serve(async (req) => {
         delay_seconds: 0
       };
     } else {
-      const { data: campaignData, error: campaignError } = await supabase
-        .from('campaigns')
-        .select(`*, template:message_templates(*)`)
-        .eq('id', campaignId)
-        .eq('user_id', credentials.userId)
-        .single();
+      // If we already fetched the campaign data during early config resolution, use it.
+      // Otherwise fetch it now.
+      if (!campaign) {
+        const { data: campaignData, error: campaignError } = await supabase
+          .from('campaigns')
+          .select(`*, template:message_templates(*)`)
+          .eq('id', campaignId)
+          .eq('user_id', credentials.userId)
+          .single();
 
-      if (campaignError || !campaignData) {
-        console.error(`❌ Campaign not found: ${campaignError?.message}`);
-        throw new Error('Campaign not found');
+        if (campaignError || !campaignData) {
+          console.error(`❌ Campaign not found: ${campaignError?.message}`);
+          throw new Error('Campaign not found');
+        }
+        campaign = campaignData;
       }
 
-      if (campaignData.status === 'paused' || campaignData.status === 'completed' || campaignData.status === 'cancelled') {
-        console.log(`🛑 Campaign ${campaignId} is ${campaignData.status}. Not processing.`);
-        return new Response(JSON.stringify({ stopped: true, status: campaignData.status, message: `Campaign is ${campaignData.status}` }),
+      if (campaign.status === 'paused' || campaign.status === 'completed' || campaign.status === 'cancelled') {
+        console.log(`🛑 Campaign ${campaignId} is ${campaign.status}. Not processing.`);
+        return new Response(JSON.stringify({ stopped: true, status: campaign.status, message: `Campaign is ${campaign.status}` }),
           { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       }
 
-      if (campaignData.status === 'draft') {
-        await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaignId).eq('user_id', credentials.userId);
+      if (campaign.status === 'draft') {
+        await supabase.from('campaigns').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', campaign.id).eq('user_id', credentials.userId);
       }
       
-      campaign = campaignData;
       campaignTemplate = campaign.template;
     }
+
 
     // Fallback for missing template relation - try fetching manually if needed
     if (!campaignTemplate && campaign.template_id) {
@@ -1698,12 +1729,27 @@ serve(async (req) => {
           const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
           
           // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
-          const currentInstance = (forcedRequestedInstance && !isRotateMode) ? forcedRequestedInstance : 
-                                (await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId)) || 
-                                (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
+          let currentInstance;
+          if (forcedRequestedInstance && !isRotateMode) {
+            currentInstance = forcedRequestedInstance;
+          } else {
+            // If contact has a source instance, check if it's acceptable
+            const contactInst = await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+            
+            // If we have a restricted rotation pool, ONLY use the contact's source if it belongs to that pool
+            if (contactInst && isRotateMode && rotatePool.length > 0) {
+              const isInPool = rotatePool.some(p => p.zapiInstanceId === contactInst.zapiInstanceId);
+              if (isInPool) currentInstance = contactInst;
+            }
+            
+            if (!currentInstance) {
+              currentInstance = (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                                 getInstanceForIndex(contactIdx);
+            }
+          }
 
-          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
+          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (currentInstance.zapiInstanceId === item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
+
 
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
@@ -1722,12 +1768,27 @@ serve(async (req) => {
         const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
         
         // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
-        const currentInstance = (forcedRequestedInstance && !isRotateMode) ? forcedRequestedInstance : 
-                              (await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId)) || 
-                              (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
+        let currentInstance;
+        if (forcedRequestedInstance && !isRotateMode) {
+          currentInstance = forcedRequestedInstance;
+        } else {
+          // If contact has a source instance, check if it's acceptable
+          const contactInst = await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
+          
+          // If we have a restricted rotation pool, ONLY use the contact's source if it belongs to that pool
+          if (contactInst && isRotateMode && rotatePool.length > 0) {
+            const isInPool = rotatePool.some(p => p.zapiInstanceId === contactInst.zapiInstanceId);
+            if (isInPool) currentInstance = contactInst;
+          }
+          
+          if (!currentInstance) {
+            currentInstance = (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                               getInstanceForIndex(i);
+          }
+        }
 
-        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
+        console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${(forcedRequestedInstance && !isRotateMode) ? 'Forced Selection' : (currentInstance.zapiInstanceId === currentBatch[i].sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : (isRotateMode ? 'Rotation Mode' : 'Default')))}]`);
+
 
 
         const res = await processContact(contact, currentInstance, i, false);
