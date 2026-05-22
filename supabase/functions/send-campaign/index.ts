@@ -499,24 +499,28 @@ const getZapiTargetPhone = (phone: string) => {
 
   // Robust Brazilian Mobile Number Normalization
   // Rules for Brazil (Country Code 55):
-  // 1. Mobile numbers should have 9 digits after DDD (total 13 with 55)
-  // 2. Some older accounts still use 8 digits after DDD (total 12 with 55)
-  // 3. Z-API usually expects the 13-digit format for mobile, but if it doesn't arrive, 
-  //    it might be because the account is registered with 12 digits.
+  if (cleaned.length === 11 && !cleaned.startsWith('55')) {
+    // If it has 11 digits (e.g. 19999487082) and doesn't start with 55, 
+    // it's likely a Brazilian mobile number (DDD + 9 digits).
+    // Prepend 55 for Z-API.
+    console.log(`[Normalization] Prepended 55 to Brazilian mobile: ${cleaned} -> 55${cleaned}`);
+    cleaned = `55${cleaned}`;
+  } else if (cleaned.length === 10 && !cleaned.startsWith('55')) {
+    // If it has 10 digits (e.g. 1999487082) and doesn't start with 55,
+    // it's likely a Brazilian number without the 9th digit.
+    // Prepend 55.
+    console.log(`[Normalization] Prepended 55 to Brazilian number: ${cleaned} -> 55${cleaned}`);
+    cleaned = `55${cleaned}`;
+  }
+
+  // Handle case where user put 55 but missing DDD or something else
   if (cleaned.startsWith('55') && cleaned.length === 13) {
-    const ddd = parseInt(cleaned.substring(2, 4));
-    const ninthDigit = cleaned.substring(4, 5);
-    
-    // If DDD is between 11 and 28 (regions where 9th digit was implemented first)
-    // and the 5th digit is '9', it's a mobile number.
-    if (ddd >= 11 && ddd <= 28 && ninthDigit === '9') {
-      // Keep it as 13 digits for now, but log it
-      // console.log(`[Normalization] Brazilian mobile detected: ${cleaned}`);
-    }
+    // Correct format: 55 + DDD + 9 digits.
   }
 
   return cleaned || phone;
 };
+
 
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
