@@ -1246,6 +1246,13 @@ serve(async (req) => {
             uazapiUrl: '',
             uazapiToken: '',
           };
+      
+      // If we are in rotate mode, and we have a preferred instance from getUserZAPICredentials, 
+      // we still want to ensure it doesn't leak into forcedRequestedInstance.
+      if (isRotateMode) {
+        forcedRequestedInstance = null;
+        console.log(`🔄 [Mode] Rotate Mode enabled for campaign ${campaignId}. Ignoring preferred instance for forced routing.`);
+      }
     }
 
     let zapiInstanceId = credentials.instanceId;
@@ -1266,6 +1273,7 @@ serve(async (req) => {
         uazapiUrl: credentials.uazapiUrl,
         uazapiToken: credentials.uazapiToken,
       };
+      console.log(`📍 [Mode] Single Instance mode: forcing all sends through ${credentials.instanceName} (${credentials.instanceId})`);
     }
 
 
