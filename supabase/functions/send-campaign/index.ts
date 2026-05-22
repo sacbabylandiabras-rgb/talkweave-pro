@@ -37,6 +37,7 @@ interface CampaignSendRecord {
 }
 
 interface ResolvedInstance {
+  dbId?: string;
   zapiInstanceId: string;
   zapiToken: string;
   zapiClientToken: string;
