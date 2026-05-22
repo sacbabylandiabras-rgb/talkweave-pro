@@ -172,6 +172,7 @@ const normalizePublicRedirectUrlsInText = (text: string) => {
 };
 
 const mapResolvedInstance = (instance: {
+  id?: string;
   zapi_instance_id: string;
   zapi_token: string | null;
   zapi_client_token: string | null;
