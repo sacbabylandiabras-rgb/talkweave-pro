@@ -9,6 +9,7 @@ interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
+  allowMultiple?: boolean;
   /** Restrict to instances of a specific api_provider (e.g. "uazapi"). */
   providerFilter?: "zapi" | "meta" | "all";
 }
@@ -17,7 +18,7 @@ const ROTATE_ALL = "__rotate_all__";
 
 const STORAGE_KEY = "zaplynx_selected_instances";
 
-const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, providerFilter = "all" }: InstanceSelectorProps) => {
+const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, allowMultiple = true, providerFilter = "all" }: InstanceSelectorProps) => {
   const zapiFilter = providerFilter === "all" ? undefined : providerFilter;
   
   const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ 
@@ -39,7 +40,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
   // Restore saved selection from localStorage, fallback to active/default instance
   useEffect(() => {
     if (!initialized && instances.length > 0) {
-      const saved = useSavedSelection ? localStorage.getItem(STORAGE_KEY) : null;
+      const saved = useSavedSelection && allowMultiple ? localStorage.getItem(STORAGE_KEY) : null;
       let idsToSelect: string[];
       const fallbackId = activeInstance?.id || instances.find(i => i.is_default)?.id || instances[0]?.id;
 
@@ -49,7 +50,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
           // Filter to only valid instance IDs that still exist
           const visibleIds = new Set(instances.map((i) => i.id));
           const valid = parsed.filter(id => visibleIds.has(id));
-          idsToSelect = valid.length > 0 ? valid : (fallbackId ? [fallbackId] : []);
+          idsToSelect = valid.length > 0 ? (allowMultiple ? valid : [valid[0]]) : (fallbackId ? [fallbackId] : []);
         } catch {
           idsToSelect = fallbackId ? [fallbackId] : [];
         }
@@ -61,7 +62,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
       setInitialized(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSelect));
 
-      if (idsToSelect.length > 1) {
+      if (allowMultiple && idsToSelect.length > 1) {
         onInstanceChange?.(ROTATE_ALL);
         onMultiInstanceChange?.(idsToSelect);
       } else if (idsToSelect.length === 1) {
@@ -70,9 +71,17 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
         onMultiInstanceChange?.(idsToSelect);
       }
     }
-  }, [instances, initialized, useSavedSelection, activeInstance]);
+  }, [instances, initialized, useSavedSelection, allowMultiple, activeInstance]);
 
   const toggleInstance = (id: string) => {
+    if (!allowMultiple) {
+      setSelectedIds(new Set([id]));
+      selectInstance(id);
+      onInstanceChange?.(id);
+      onMultiInstanceChange?.([id]);
+      return;
+    }
+
     // Toggle multi-seleção: adiciona/remove do conjunto selecionado.
     const next = new Set(selectedIds);
     if (next.has(id)) {
