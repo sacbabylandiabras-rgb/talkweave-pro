@@ -2823,7 +2823,7 @@ serve(async (req) => {
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
       } else if (awaitingCallbackCount > 0) {
         console.log(`⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`);
-      } else if (actualDeliveries < effectiveTarget) {
+      } else if (actualDeliveries < effectiveTarget && !(reqPayload as SendCampaignRequest).forceSend) {
         console.log(`⚠️ Campaign ${campaignId}: only ${actualDeliveries}/${effectiveTarget} real deliveries confirmed. Pausing instead of completing.`);
         await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
       } else {
