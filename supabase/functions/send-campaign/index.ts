@@ -1401,22 +1401,9 @@ serve(async (req) => {
 
       const status = await fetchDeviceStatusSnapshot(specificInstance);
       if (!status.connected && !(reqPayload as SendCampaignRequest).forceSend) {
-        console.log(`⏸️ Selected instance ${specificInstance.instanceName} is offline. Pausing campaign (no fallback).`);
-        await supabase
-          .from('campaigns')
-          .update({ status: 'paused', updated_at: new Date().toISOString() })
-          .eq('id', campaignId)
-          .eq('user_id', credentials.userId);
-        return new Response(JSON.stringify({
-          error: 'A conexão selecionada está desconectada. A campanha foi pausada. Reconecte o número e retome de onde parou.',
-          stopped: true,
-          paused: true,
-          reason: 'device_disconnected',
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+        console.log(`⚠️ Selected instance ${specificInstance.instanceName} is offline. Proceeding to show errors in send logs.`);
       }
+
       if (!status.connected) {
         console.log(`⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but forceSend=true. Proceeding anyway.`);
       }
