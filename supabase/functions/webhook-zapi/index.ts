@@ -529,7 +529,9 @@ serve(async (req) => {
             message_received: messageRaw,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: triggerKey,
+            message_id: messageId,
           });
+
 
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
