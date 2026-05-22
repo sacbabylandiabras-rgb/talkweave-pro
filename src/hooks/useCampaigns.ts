@@ -311,9 +311,10 @@ export const useCampaigns = () => {
         }
       }
 
+      const isRotation = instanceId === '__rotate_all__' || (typeof instanceId === 'string' && instanceId.startsWith('rotate:'));
       const sendConfig = {
-        instanceId: instanceId && instanceId !== '__rotate_all__' ? instanceId : null,
-        rotateAll: instanceId === '__rotate_all__',
+        instanceId: instanceId || null,
+        rotateAll: isRotation,
       };
 
       // Persistir o modo de envio antes de invocar a Edge Function
