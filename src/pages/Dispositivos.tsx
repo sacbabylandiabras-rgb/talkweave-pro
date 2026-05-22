@@ -967,19 +967,30 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     try {
       const phoneDigits = (connectedPhone || "").replace(/\D/g, "");
       const filters: string[] = [`instance_ref.eq.${instance.id}`];
-      if (phoneDigits) filters.push(`phone.eq.${phoneDigits}`);
-       const { data } = await (supabase as any)
-         .from("warmup_instance_health")
-         .select("blocked_until, last_detected_at, block_type, detail")
-         .or(filters.join(","))
-         .order("last_detected_at", { ascending: false })
-         .limit(2);
+      if (phoneDigits) {
+        filters.push(`phone.eq.${phoneDigits}`);
+        // For security, if phone has 8/9 digits mismatch (common in BR), try both
+        if (phoneDigits.length === 11) { // 55 + DDD + 9 digits
+          const withoutNine = phoneDigits.substring(0, 4) + phoneDigits.substring(5);
+          filters.push(`phone.eq.${withoutNine}`);
+        } else if (phoneDigits.length === 10) { // 55 + DDD + 8 digits
+          const withNine = phoneDigits.substring(0, 4) + '9' + phoneDigits.substring(4);
+          filters.push(`phone.eq.${withNine}`);
+        }
+      }
+      const { data } = await (supabase as any)
+        .from("warmup_instance_health")
+        .select("blocked_until, last_detected_at, block_type, detail")
+        .or(filters.join(","))
+        .order("last_detected_at", { ascending: false })
+        .limit(5);
 
        // Prioritize active blocks
        const activeBlock = data?.find((b: any) => 
          b.block_type === 'disconnected' || 
-         (b.block_type === 'new_chat_capping' && (!b.blocked_until || new Date(b.blocked_until) > new Date())) ||
-         b.block_type === 'shadowban'
+         b.block_type === 'shadowban' ||
+         b.block_type === 'restriction' ||
+         (b.blocked_until && new Date(b.blocked_until) > new Date())
        ) || data?.[0];
 
        setHealthBlock(activeBlock || null);
@@ -1055,7 +1066,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
               const isShadowBan = healthBlock.block_type === 'new_chat_capping' || 
                                  healthBlock.block_type === 'shadowban' ||
-                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban'));
+                                 healthBlock.block_type === 'restriction' ||
+                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban')) ||
+                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('restrição'));
               
               let label = "";
               let icon = <AlertCircle className="w-3 h-3 mr-1 inline" />;

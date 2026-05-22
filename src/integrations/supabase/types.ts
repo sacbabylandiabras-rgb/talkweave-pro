@@ -1145,6 +1145,7 @@ export type Database = {
           id: string
           instance_id: string | null
           keyword_matched: string | null
+          message_id: string | null
           message_received: string | null
           phone: string
           response_sent: string | null
@@ -1156,6 +1157,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           keyword_matched?: string | null
+          message_id?: string | null
           message_received?: string | null
           phone: string
           response_sent?: string | null
@@ -1167,6 +1169,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           keyword_matched?: string | null
+          message_id?: string | null
           message_received?: string | null
           phone?: string
           response_sent?: string | null
