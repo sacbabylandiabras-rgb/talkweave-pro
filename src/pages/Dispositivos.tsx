@@ -873,13 +873,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
    const handleDisconnect = async () => {
      try {
-       await withInstance(() => disconnectDevice());
+       await disconnectDevice(instance.id);
        localStorage.removeItem('readConversations');
        setConnectedPhone(null);
        setProfilePicUrl(null);
        setQrCode(null);
        setQrCodeImage(null);
-       toast({ title: "🔌 Instância desconectada", description: "Sessão liberada. Você já pode conectar outro número." });
        setTimeout(fetchDeviceStatus, 1000);
      } catch (err) {
        // Silent catch

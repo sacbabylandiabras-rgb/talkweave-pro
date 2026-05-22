@@ -700,33 +700,27 @@ const getZAPIConfig = async () => {
     }
   };
 
-  const disconnectDevice = async () => {
+  const disconnectDevice = async (instanceDbId?: string) => {
     setLoading(true);
     
     try {
-      const config = await getZAPIConfig();
-      
-      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/disconnect`;
-      console.log('Desconectando dispositivo Z-API:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': config.clientToken
+      // Use override or specific ID if provided
+      const targetId = instanceDbId || _instanceOverride?.id;
+      const targetZapiId = _instanceOverride?.zapi_instance_id;
+
+      const { data, error } = await supabase.functions.invoke('disconnect-instance', {
+        body: { 
+          instanceId: targetId,
+          zapiInstanceId: !targetId ? targetZapiId : undefined
         },
       });
 
-      console.log('Disconnect response status:', response.status);
-      const data = await response.json();
-      console.log('Disconnect data:', data);
+      if (error) {
+        throw new Error(await getInvokeErrorMessage(error, 'Erro ao desconectar'));
+      }
 
-      if (!response.ok) {
-        let errorMessage = `Erro ${response.status}`;
-        if (data.message) errorMessage += `: ${data.message}`;
-        if (data.error) errorMessage += `: ${data.error}`;
-        
-        throw new Error(errorMessage);
+      if (data?.error) {
+        throw new Error(data?.message || data?.error || 'Erro ao desconectar');
       }
 
       toast({
