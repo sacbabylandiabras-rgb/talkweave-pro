@@ -1710,8 +1710,11 @@ serve(async (req) => {
         if (isFlowCampaign && flowId) {
           campaignSend = { campaign_id: campaignId, phone: contact.phone, contact_name: contact.name, message_content: `[Fluxo: ${flowId}]`, status: 'pending', user_id: credentials.userId, instance_name: currentInstance.instanceName };
           try {
+            const isMeta = currentInstance.apiProvider === 'meta' || currentInstance.zapiInstanceId?.startsWith("meta:");
+            const webhookUrl = isMeta ? `${supabaseUrl}/functions/v1/webhook-meta` : `${supabaseUrl}/functions/v1/webhook-zapi`;
             const webhookPayload = { phone: contact.phone, instanceId: currentInstance.zapiInstanceId, __manual_flow_trigger__: true, flowId: flowId, body: { message: { text: { body: `__flow_trigger_${flowId}__` } } }, fromMe: false, __tagId__: campaign.target_audience?.tag_id };
-            const flowResponse = await fetch(`${supabaseUrl}/functions/v1/webhook-zapi`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` }, body: JSON.stringify(webhookPayload) });
+            const flowResponse = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` }, body: JSON.stringify(webhookPayload) });
+
             if (flowResponse.ok) {
               campaignSend.status = 'pending';
               results.push({ phone: contact.phone, success: true, messageId: 'flow-triggered' });
