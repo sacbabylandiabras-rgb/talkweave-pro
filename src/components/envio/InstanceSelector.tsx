@@ -1,4 +1,4 @@
- import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Smartphone, RefreshCw, Check } from "lucide-react";
 import { useZapiInstances, type ZapiInstance } from "@/hooks/useZapiInstances";
@@ -10,65 +10,88 @@ interface InstanceSelectorProps {
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
   allowMultiple?: boolean;
-  /** Restrict to instances of a specific api_provider (e.g. "uazapi"). */
   providerFilter?: "zapi" | "meta" | "all";
 }
 
 const ROTATE_ALL = "__rotate_all__";
-
 const STORAGE_KEY = "zaplynx_selected_instances";
 
-const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSelection = true, allowMultiple = true, providerFilter = "all" }: InstanceSelectorProps) => {
+const InstanceSelector = ({
+  onInstanceChange,
+  onMultiInstanceChange,
+  useSavedSelection = true,
+  allowMultiple = true,
+  providerFilter = "all",
+}: InstanceSelectorProps) => {
   const zapiFilter = providerFilter === "all" ? undefined : providerFilter;
-  
-  const { instances: allInstances, activeInstance: rawActiveInstance, selectInstance, loading } = useZapiInstances({ 
+
+  const {
+    instances: allInstances,
+    activeInstance: rawActiveInstance,
+    selectInstance,
+    loading,
+  } = useZapiInstances({
     provider: zapiFilter,
-    includeMeta: providerFilter === "all" || providerFilter === "meta"
+    includeMeta: providerFilter === "all" || providerFilter === "meta",
   });
-   // Mesma regra: ocultar instâncias UAZAPI doadoras (aquecimento).
-    const { data: metaCreds } = useMetaCredentials();
-    
-    const instances = useMemo(() => {
-      return allInstances;
-    }, [allInstances]);
+
+  const { data: metaCreds } = useMetaCredentials();
+
+  const instances = useMemo(() => allInstances, [allInstances]);
+
   const activeInstance = providerFilter
-    ? (instances.find((i: any) => i.id === rawActiveInstance?.id) || instances.find((i: any) => i.is_default) || instances[0] || null)
+    ? instances.find((i: any) => i.id === rawActiveInstance?.id) ||
+      instances.find((i: any) => i.is_default) ||
+      instances[0] ||
+      null
     : rawActiveInstance;
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
 
-  // Restore saved selection from localStorage, fallback to active/default instance
   useEffect(() => {
     if (!initialized && instances.length > 0) {
-      const saved = useSavedSelection && allowMultiple ? localStorage.getItem(STORAGE_KEY) : null;
-      let idsToSelect: string[];
-      const fallbackId = activeInstance?.id || instances.find(i => i.is_default)?.id || instances[0]?.id;
+      const fallbackId = activeInstance?.id || instances.find((i) => i.is_default)?.id || instances[0]?.id;
 
-      if (saved) {
-        try {
-          const parsed: string[] = JSON.parse(saved);
-          // Filter to only valid instance IDs that still exist
-          const visibleIds = new Set(instances.map((i) => i.id));
-          const valid = parsed.filter(id => visibleIds.has(id));
-          idsToSelect = valid.length > 0 ? (allowMultiple ? valid : [valid[0]]) : (fallbackId ? [fallbackId] : []);
-        } catch {
+      let idsToSelect: string[];
+
+      // ✅ Quando useSavedSelection=false (dialogs de campanha),
+      // apenas pré-seleciona a instância padrão sem chamar callbacks —
+      // evita sobrescrever a seleção que o usuário vai fazer manualmente.
+      if (useSavedSelection && allowMultiple) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed: string[] = JSON.parse(saved);
+            const visibleIds = new Set(instances.map((i) => i.id));
+            const valid = parsed.filter((id) => visibleIds.has(id));
+            idsToSelect = valid.length > 0 ? (allowMultiple ? valid : [valid[0]]) : fallbackId ? [fallbackId] : [];
+          } catch {
+            idsToSelect = fallbackId ? [fallbackId] : [];
+          }
+        } else {
           idsToSelect = fallbackId ? [fallbackId] : [];
         }
+
+        setSelectedIds(new Set(idsToSelect));
+        setInitialized(true);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSelect));
+
+        // Dispara callbacks apenas quando restaura seleção salva
+        if (allowMultiple && idsToSelect.length > 1) {
+          onInstanceChange?.(ROTATE_ALL);
+          onMultiInstanceChange?.(idsToSelect);
+        } else if (idsToSelect.length === 1) {
+          selectInstance(idsToSelect[0]);
+          onInstanceChange?.(idsToSelect[0]);
+          onMultiInstanceChange?.(idsToSelect);
+        }
       } else {
+        // useSavedSelection=false: pré-seleciona visualmente mas NÃO dispara callbacks
+        // O usuário vai clicar manualmente na instância que quer usar
         idsToSelect = fallbackId ? [fallbackId] : [];
-      }
-
-      setSelectedIds(new Set(idsToSelect));
-      setInitialized(true);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSelect));
-
-      if (allowMultiple && idsToSelect.length > 1) {
-        onInstanceChange?.(ROTATE_ALL);
-        onMultiInstanceChange?.(idsToSelect);
-      } else if (idsToSelect.length === 1) {
-        selectInstance(idsToSelect[0]);
-        onInstanceChange?.(idsToSelect[0]);
-        onMultiInstanceChange?.(idsToSelect);
+        setSelectedIds(new Set(idsToSelect));
+        setInitialized(true);
       }
     }
   }, [instances, initialized, useSavedSelection, allowMultiple, activeInstance]);
@@ -82,20 +105,21 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
       return;
     }
 
-    // Toggle multi-seleção: adiciona/remove do conjunto selecionado.
     const next = new Set(selectedIds);
     if (next.has(id)) {
       next.delete(id);
     } else {
       next.add(id);
     }
-    // Garante pelo menos uma instância selecionada
-    if (next.size === 0) {
-      next.add(id);
-    }
+    if (next.size === 0) next.add(id);
+
     setSelectedIds(next);
     const ids = Array.from(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+
+    if (useSavedSelection) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    }
+
     if (ids.length === 1) {
       selectInstance(ids[0]);
       onInstanceChange?.(ids[0]);
@@ -106,9 +130,11 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
   };
 
   const selectAll = () => {
-    const allIds = new Set(instances.map(i => i.id));
+    const allIds = new Set(instances.map((i) => i.id));
     setSelectedIds(allIds);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(allIds)));
+    if (useSavedSelection) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(allIds)));
+    }
     onInstanceChange?.(ROTATE_ALL);
     onMultiInstanceChange?.(Array.from(allIds));
   };
@@ -135,7 +161,9 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Smartphone className="h-4 w-4 text-primary" />
-        <span>Enviando por: <strong className="text-foreground">{instances[0].instance_name}</strong></span>
+        <span>
+          Enviando por: <strong className="text-foreground">{instances[0].instance_name}</strong>
+        </span>
       </div>
     );
   }
@@ -148,9 +176,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
         <Smartphone className="h-4 w-4" />
         Instância de envio
         {selectedIds.size > 1 && (
-          <span className="text-xs text-muted-foreground ml-1">
-            ({selectedIds.size} selecionadas — revezamento)
-          </span>
+          <span className="text-xs text-muted-foreground ml-1">({selectedIds.size} selecionadas — revezamento)</span>
         )}
       </Label>
       <div className="flex flex-wrap gap-2">
@@ -162,7 +188,7 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
               allSelected
                 ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground",
             )}
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -180,16 +206,18 @@ const InstanceSelector = ({ onInstanceChange, onMultiInstanceChange, useSavedSel
                 "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
                 isSelected
                   ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                  : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground",
               )}
             >
               {isSelected && <Check className="h-3.5 w-3.5" />}
               {inst.instance_name}
               {inst.is_default && (
-                <span className={cn(
-                  "text-[10px] px-1 py-0.5 rounded",
-                  isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
-                )}>
+                <span
+                  className={cn(
+                    "text-[10px] px-1 py-0.5 rounded",
+                    isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary",
+                  )}
+                >
                   Padrão
                 </span>
               )}
