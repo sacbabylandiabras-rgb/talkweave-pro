@@ -1680,6 +1680,8 @@ serve(async (req) => {
                                 (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
                                 getInstanceForIndex(contactIdx);
 
+          console.log(`🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId}) [Method: ${forcedRequestedInstance ? 'Forced Selection' : (item.sourceInstanceId ? 'Explicit Source' : (isGroupDestination(contact.phone) ? 'Group Auto-Detect' : 'Default Rotation'))}]`);
+
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
             shouldStop = true;
