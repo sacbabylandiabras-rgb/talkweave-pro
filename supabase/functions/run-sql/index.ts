@@ -1,19 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import postgres from "https://deno.land/x/postgresjs@v3.4.4/mod.js";
 
 serve(async (req) => {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const dbUrl = Deno.env.get("SUPABASE_DB_URL");
+  if (!dbUrl) return new Response("Missing SUPABASE_DB_URL", { status: 500 });
 
-  const { sql } = await req.json();
+  const sql = postgres(dbUrl);
 
-  const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
-  
-  if (error) {
-    // If rpc exec_sql doesn't exist, try a different way or just return the error
-    return new Response(JSON.stringify({ error }), { status: 400 });
+  try {
+    const { query } = await req.json();
+    console.log("Executing query:", query);
+    const result = await sql.unsafe(query);
+    return new Response(JSON.stringify({ result }), { status: 200 });
+  } catch (err) {
+    console.error("SQL Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+  } finally {
+    await sql.end();
   }
-
-  return new Response(JSON.stringify({ data }), { status: 200 });
 });
