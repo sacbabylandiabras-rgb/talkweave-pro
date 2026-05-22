@@ -688,6 +688,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
+      fetchHealth(); // Atualiza também o status de shadowban/saúde
       statusErrorShownRef.current = false;
     } catch (error) {
       const message = await getInvokeErrorMessage(error, 'Erro ao buscar status do dispositivo');
