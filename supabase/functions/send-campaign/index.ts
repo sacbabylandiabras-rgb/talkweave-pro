@@ -12,7 +12,9 @@ interface SendCampaignRequest {
     variables?: Record<string, string>;
     sourceInstanceId?: string | null;
     sourceInstanceName?: string | null;
+    userId?: string; // Add userId to contact to help with normalization
   }>;
+
   instanceId?: string;
   rotationOffset?: number;
   _isContinuation?: boolean;
@@ -479,15 +481,47 @@ const getUazapiTargetNumber = (phone: string) => {
 // porque o usuário quer que o provedor receba o destino tal como está.
 const getZapiTargetPhone = (phone: string) => {
   if (!phone) return phone;
+  
+  // Handle Group Destinations
   if (isGroupDestination(phone)) {
-    // Garante formato 12345-group exigido pelo Z-API
     const numericId = phone.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
     return numericId ? `${numericId}-group` : phone;
   }
+
+  // Handle Community/Channel
   if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
+  
+  // Handle @lid
   if (phone.includes('@lid')) return phone;
-  return phone.replace(/^\+/, '').replace(/\D/g, '') || phone;
+
+  // For private numbers, remove all non-digits and leading +
+  let cleaned = phone.replace(/^\+/, '').replace(/\D/g, '');
+
+  // Robust Brazilian Mobile Number Normalization
+  // Rules for Brazil (Country Code 55):
+  if (cleaned.length === 11 && !cleaned.startsWith('55')) {
+    // If it has 11 digits (e.g. 19999487082) and doesn't start with 55, 
+    // it's likely a Brazilian mobile number (DDD + 9 digits).
+    // Prepend 55 for Z-API.
+    console.log(`[Normalization] Prepended 55 to Brazilian mobile: ${cleaned} -> 55${cleaned}`);
+    cleaned = `55${cleaned}`;
+  } else if (cleaned.length === 10 && !cleaned.startsWith('55')) {
+    // If it has 10 digits (e.g. 1999487082) and doesn't start with 55,
+    // it's likely a Brazilian number without the 9th digit.
+    // Prepend 55.
+    console.log(`[Normalization] Prepended 55 to Brazilian number: ${cleaned} -> 55${cleaned}`);
+    cleaned = `55${cleaned}`;
+  }
+
+  // Handle case where user put 55 but missing DDD or something else
+  if (cleaned.startsWith('55') && cleaned.length === 13) {
+    // Correct format: 55 + DDD + 9 digits.
+  }
+
+  return cleaned || phone;
 };
+
+
 
 const buildTrackedCampaignUrl = (url: string, opts: { campaignId: string; userId: string; phone: string; label: string; campaignName?: string | null; sendId?: string | null }) => {
   const cleanUrl = normalizePublicInviteUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
@@ -1589,13 +1623,19 @@ serve(async (req) => {
       throw new Error('Campaign template not found');
     }
 
+    const getBatchSizeForDelay = (delayMs: number) => {
+      if (delayMs >= 20000) return 2; // Even smaller batch for very long delays
+      if (delayMs >= 10000) return 4;
+      if (delayMs >= 5000) return 8;
+      return 15; // Slightly smaller default batch
+    };
+
     const isGroupCampaign = campaign.target_audience?.type === 'groups' || campaign.target_audience?.mode === 'groups';
     // Respeita o delay configurado na campanha mesmo para grupos, se houver
     const delayMs = (campaign.delay_seconds || (isGroupCampaign ? 0 : 2)) * 1000;
     // For group campaigns, we allow a much larger batch size and faster processing
-    // For group campaigns, we allow a larger batch size to process more groups before re-invocation.
-    // Since group sends typically have 0 delay, we can process many in one execution.
     const batchSize = isGroupCampaign ? 200 : getBatchSizeForDelay(delayMs);
+
 
     // Split contacts into current batch and remaining
     const currentBatch = executionContacts.slice(0, batchSize);
@@ -1877,6 +1917,9 @@ serve(async (req) => {
         if (campaignTemplate.header && !isAudioWithMedia) fullMessage += normalizePublicRedirectUrlsInText(campaignTemplate.header) + '\n\n';
         fullMessage += messageContent;
         if (campaignTemplate.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaignTemplate.footer);
+
+        console.log(`📝 [Content] Message for ${contact.phone}: ${fullMessage.slice(0, 100)}${fullMessage.length > 100 ? '...' : ''}`);
+
 
         // Construct a "visual" version for the message logs
         let visualContent = fullMessage;
@@ -2513,14 +2556,16 @@ serve(async (req) => {
             }
           }
 
-          // Sempre enviar texto + botões juntos na mesma mensagem interativa,
-          // conforme o modelo cadastrado pelo usuário.
+          // [DEBUG] Log the actual URL and payload being sent to Z-API
+          console.log(`🚀 [Dispatch] Z-API URL: ${zapiUrl}`);
+          console.log(`📦 [Dispatch] Z-API Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
             body: JSON.stringify(requestBody),
           });
+
 
           let zapiResult: any = {};
           try {
