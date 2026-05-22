@@ -1673,9 +1673,13 @@ serve(async (req) => {
         await Promise.all(chunk.map(async (item, chunkIdx) => {
           const contactIdx = i + chunkIdx;
           const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
-          const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
-          const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance && isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
-          const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(contactIdx);
+          
+          // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
+          const currentInstance = forcedRequestedInstance || 
+                                (await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId)) || 
+                                (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
+                                getInstanceForIndex(contactIdx);
+
           const res = await processContact(contact, currentInstance, contactIdx, true);
           if (res?.stop) {
             shouldStop = true;
@@ -1691,9 +1695,13 @@ serve(async (req) => {
     } else {
       for (let i = 0; i < currentBatch.length; i++) {
         const contact = { ...currentBatch[i], phone: normalizeGroupPhone(currentBatch[i].phone) };
-        const explicitContactInstance = forcedRequestedInstance ? null : await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId);
-        const inferredGroupInstance = !forcedRequestedInstance && !explicitContactInstance && isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null;
-        const currentInstance = forcedRequestedInstance || explicitContactInstance || inferredGroupInstance || getInstanceForIndex(i);
+        
+        // CRITICAL FIX: FORCED REQUESTED INSTANCE MUST ALWAYS TAKE PRECEDENCE
+        const currentInstance = forcedRequestedInstance || 
+                              (await resolveContactInstance(supabase, credentials.userId, currentBatch[i].sourceInstanceId)) || 
+                              (isGroupDestination(contact.phone) ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone) : null) || 
+                              getInstanceForIndex(i);
+
         const res = await processContact(contact, currentInstance, i, false);
         if (res?.stop) {
           return new Response(JSON.stringify({ success: true, stopped: true, processed: i, message: `Stopped: campaign ${res.status || 'paused'}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
