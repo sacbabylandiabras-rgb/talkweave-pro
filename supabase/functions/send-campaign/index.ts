@@ -54,6 +54,97 @@ type CampaignCredentials = {
 };
 
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
+const WHATSAPP_META_APP_ID = "26985190684454065";
+
+async function getMetaCredentials(supabase: any, userId: string, phoneId?: string) {
+  const query = supabase
+    .from("meta_credentials")
+    .select("access_token, phone_number_id, waba_id")
+    .eq("user_id", userId)
+    .eq("app_id", WHATSAPP_META_APP_ID)
+    .eq("connected", true);
+
+  if (phoneId) {
+    query.eq("phone_number_id", phoneId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
+async function sendMetaMessage(creds: { access_token: string; phone_number_id: string }, payload: any, phone: string) {
+  const to = phone.replace(/\D/g, "");
+  const baseUrl = `https://graph.facebook.com/v21.0/${creds.phone_number_id}/messages`;
+  const headers = {
+    Authorization: `Bearer ${creds.access_token}`,
+    "Content-Type": "application/json",
+  };
+
+  const res = await fetch(baseUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("Meta API error:", data);
+    throw new Error(data?.error?.message || "Erro na Meta API");
+  }
+  return data;
+}
+
+function buildMetaPayload(template: any, fullMessage: string, phone: string, campaignId: string, userId: string, campaignName: string) {
+  const to = phone.replace(/\D/g, "");
+  const { media_url: mediaUrl, buttons, type } = template;
+  let payload: any = { messaging_product: "whatsapp", to };
+
+  const metaButtons = (buttons || []).slice(0, 3).map((btn: any, idx: number) => {
+    const btnType = String(btn.type || 'url').toUpperCase();
+    if (btnType === 'URL') {
+      return {
+        type: "url",
+        url: buildTrackedCampaignUrl(btn.url || btn.value || 'https://z-api.io', {
+          campaignId,
+          userId,
+          phone,
+          label: btn.text || btn.label || "Abrir",
+          campaignName,
+        })
+      };
+    }
+    return {
+      type: "reply",
+      reply: { id: btn.id || String(idx), title: (btn.label || btn.text || "Botão").slice(0, 20) },
+    };
+  });
+
+  const replyButtons = metaButtons.filter((b: any) => b.type === "reply");
+
+  if (replyButtons.length > 0) {
+    payload.type = "interactive";
+    payload.interactive = {
+      type: "button",
+      body: { text: fullMessage || "Escolha uma opção:" },
+      action: { buttons: replyButtons },
+    };
+
+    if (mediaUrl && type?.startsWith("imagem")) {
+      payload.interactive.header = { type: "image", image: { link: mediaUrl } };
+    } else if (mediaUrl && type?.startsWith("video")) {
+      payload.interactive.header = { type: "video", video: { link: mediaUrl } };
+    }
+  } else if (mediaUrl) {
+    const typeMap: Record<string, string> = { image: "image", video: "video", audio: "audio", document: "document" };
+    const mediaType = type?.split('_')[0] || "image";
+    const metaType = typeMap[mediaType] || "document";
+    payload.type = metaType;
+    payload[metaType] = { link: mediaUrl };
+    if (fullMessage && metaType !== "audio") payload[metaType].caption = fullMessage;
+  } else {
+    payload.type = "text";
+    payload.text = { body: fullMessage };
+  }
+
+  return payload;
+}
+
 
 const normalizePublicInviteUrl = (url: string) => {
   try {
