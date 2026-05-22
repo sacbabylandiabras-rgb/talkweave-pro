@@ -1208,7 +1208,7 @@ serve(async (req) => {
         // over the request body to ensure settings changes are respected globally immediately.
         if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
           console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
-          requestedInstanceIdRaw = sendConfig.rotateAll ? '__rotate_all__' : sendConfig.instanceId;
+          requestedInstanceIdRaw = sendConfig.instanceId || (sendConfig.rotateAll ? '__rotate_all__' : null);
         }
       }
     }
@@ -1223,7 +1223,7 @@ serve(async (req) => {
 
 
 
-    console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
+    console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset}, mode: ${isRotateMode ? 'rotate' : 'single'}, target: ${requestedInstanceIdRaw || 'default'})`);
 
     // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
     let credentials: CampaignCredentials;
@@ -1314,15 +1314,20 @@ serve(async (req) => {
         .from('zapi_instances')
         .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
-        .eq('is_active', true)
-        .or('api_provider.is.null,api_provider.eq.zapi');
+        .eq('is_active', true);
 
       if (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:')) {
         const specificIds = requestedInstanceIdRaw.replace('rotate:', '').split(',').filter(Boolean);
         if (specificIds.length > 0) {
           console.log(`🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances: ${specificIds.join(', ')}`);
           query = query.in('id', specificIds);
+        } else {
+          // Fallback to zapi-only if rotate: was empty
+          query = query.or('api_provider.is.null,api_provider.eq.zapi');
         }
+      } else {
+        // For __rotate_all__, default to zapi-only to avoid using experimental/warmup instances
+        query = query.or('api_provider.is.null,api_provider.eq.zapi');
       }
 
       const { data: allActiveInstances } = await query.order('created_at', { ascending: true });
