@@ -679,8 +679,9 @@ export const useCampaigns = () => {
           ...(campaign.target_audience || {}),
           __sendConfig: {
             instanceId: resumeInstanceId && resumeInstanceId !== '__rotate_all__' ? resumeInstanceId : null,
-            rotateAll: resumeInstanceId === '__rotate_all__',
+            rotateAll: resumeInstanceId === '__rotate_all__' || (typeof resumeInstanceId === 'string' && resumeInstanceId.startsWith('rotate:')),
           },
+
         },
       });
       
