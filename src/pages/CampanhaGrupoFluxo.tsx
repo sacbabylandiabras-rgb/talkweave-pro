@@ -82,6 +82,8 @@ export default function CampanhaGrupoFluxo() {
     scheduled_at: "",
     instance_selection_mode: "default" as "default" | "single" | "rotate",
     selected_instance_id: "",
+    selected_instance_ids: [] as string[],
+
   });
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
