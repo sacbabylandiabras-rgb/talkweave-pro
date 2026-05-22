@@ -993,11 +993,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             <div className="flex flex-wrap gap-2">
               <InstanceSelector
                 providerFilter="zapi"
+                allowMultiple={false}
+                useSavedSelection={false}
                 onMultiInstanceChange={(ids) => {
-                  if (ids.length > 1) {
-                    setInstanceSelectionMode('rotate');
-                    setZapiRotateMode(instances.filter(i => ids.includes(i.id)));
-                  } else if (ids.length === 1) {
+                  if (ids.length === 1) {
                     const inst = instances.find(i => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode('single');
@@ -1053,11 +1052,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
           <div className="py-2 space-y-4">
              <InstanceSelector
                 providerFilter="zapi"
+                allowMultiple={false}
+                useSavedSelection={false}
                 onMultiInstanceChange={(ids) => {
-                  if (ids.length > 1) {
-                    setInstanceSelectionMode('rotate');
-                    setZapiRotateMode(instances.filter(i => ids.includes(i.id)));
-                  } else if (ids.length === 1) {
+                  if (ids.length === 1) {
                     const inst = instances.find(i => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode('single');
