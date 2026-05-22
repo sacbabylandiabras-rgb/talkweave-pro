@@ -205,6 +205,7 @@ const mapResolvedInstance = (instance: {
   if (!hasZapiCreds) return null;
 
   return {
+    dbId: instance.id,
     zapiInstanceId: instance.zapi_instance_id,
     zapiToken: instance.zapi_token || '',
     zapiClientToken: instance.zapi_client_token || '',
