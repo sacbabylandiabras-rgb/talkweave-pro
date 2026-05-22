@@ -1327,9 +1327,10 @@ serve(async (req) => {
           query = query.or('api_provider.is.null,api_provider.eq.zapi');
         }
       } else {
-        // For __rotate_all__, default to zapi-only to avoid using experimental/warmup instances
-        query = query.or('api_provider.is.null,api_provider.eq.zapi');
+        // For __rotate_all__, use ALL active instances for this user
+        console.log(`🔄 [Mode] Rotating through all active instances for user ${credentials.userId}`);
       }
+
 
       const { data: allActiveInstances } = await query.order('created_at', { ascending: true });
 
