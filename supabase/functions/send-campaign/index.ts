@@ -450,12 +450,17 @@ const isZapiConfirmed = (payload: any) => {
   const error = String(payload?.error || payload?.message || '').toLowerCase();
   if (error.includes('likely shadow ban')) return false;
 
-  // Status de sucesso de enfileiramento ou envio. 
-  // Consideramos PENDING como sucesso de processamento pela API (Enviado).
-  const successStatuses = ['SENT', 'SUCCESS', 'OK', 'PENDING', 'QUEUED', 'QUEUE', 'WAITING'];
+  // Status de sucesso real de envio. 
+  // Removidos PENDING e QUEUED para evitar falsos positivos de sucesso.
+  // Mensagem deve ter sido efetivamente disparada ou entregue.
+  const successStatuses = ['SENT', 'SUCCESS', 'OK'];
   const deliveryStatuses = ['DELIVERED', 'RECEIVED', 'READ', 'READ_BY_ME'];
-  return Boolean(ackId) || successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
+  
+  // Se tiver ID e status de sucesso, confirmamos. 
+  // Sem ID, apenas status não é suficiente para 'confirmed'.
+  return Boolean(ackId) && (successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status));
 };
+
  const isGroupDestination = (phone: string) => (phone.includes('@g.us') || phone.includes('-group')) && !phone.includes('@newsletter') && !phone.includes('-community');
  const isCommunityDestination = (phone: string) => phone.includes('-community');
  const isChannelDestination = (phone: string) => phone.includes('@newsletter');
