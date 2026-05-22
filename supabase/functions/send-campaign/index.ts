@@ -1208,7 +1208,7 @@ serve(async (req) => {
         // over the request body to ensure settings changes are respected globally immediately.
         if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
           console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
-          requestedInstanceIdRaw = sendConfig.rotateAll ? '__rotate_all__' : sendConfig.instanceId;
+          requestedInstanceIdRaw = sendConfig.instanceId || (sendConfig.rotateAll ? '__rotate_all__' : null);
         }
       }
     }
