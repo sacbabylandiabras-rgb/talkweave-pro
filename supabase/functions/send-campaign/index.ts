@@ -2270,22 +2270,27 @@ serve(async (req) => {
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
               console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-              if (
-                isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
-                !isLidIdentifier(contact.phone)
-              ) {
-                rateLimitHitsInBatch += 1;
-              } else {
-                rateLimitHitsInBatch = 0;
-              }
+              // forceSend=true: nunca pausa por rate limit
+              if (!(reqPayload as SendCampaignRequest).forceSend) {
+                if (
+                  isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
+                  !isLidIdentifier(contact.phone)
+                ) {
+                  rateLimitHitsInBatch += 1;
+                } else {
+                  rateLimitHitsInBatch = 0;
+                }
 
-              if (rateLimitHitsInBatch >= 2) {
-                console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
-                await supabase
-                  .from("campaigns")
-                  .update({ status: "paused", updated_at: new Date().toISOString() })
-                  .eq("id", campaignId);
-                return { stop: true, status: "paused" };
+                if (rateLimitHitsInBatch >= 2) {
+                  console.log(
+                    `🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`,
+                  );
+                  await supabase
+                    .from("campaigns")
+                    .update({ status: "paused", updated_at: new Date().toISOString() })
+                    .eq("id", campaignId);
+                  return { stop: true, status: "paused" };
+                }
               }
             }
           }
