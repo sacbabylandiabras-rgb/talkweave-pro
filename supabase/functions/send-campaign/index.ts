@@ -1346,8 +1346,10 @@ serve(async (req) => {
       );
 
       rotatePool = rotateStatuses
-        .filter(({ status }) => status.connected)
+        // Incluindo todas as instâncias selecionadas, mesmo que pareçam desconectadas,
+        // para que o erro apareça no diálogo de envio ao invés de serem ignoradas silenciosamente.
         .map(({ instance }) => instance);
+
 
       const unavailableInstances = rotateStatuses
         .filter(({ status }) => !status.connected)
