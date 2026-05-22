@@ -1132,6 +1132,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 status: CampaignContactStatus;
                 sentAt: string | null;
                 errorMessage: string | null;
+                instanceName: string | null;
                 readAt: string | null;
                 clickedAt: string | null;
               }> = targetContacts.map((contact, index) => {
@@ -1172,6 +1173,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   status,
                   sentAt,
                   errorMessage,
+                  instanceName: (send as any)?.instance_name || null,
                   readAt: (send as any)?.read_at || null,
                   clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
                 };
@@ -1198,6 +1200,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     status,
                     sentAt: send.sent_at || null,
                     errorMessage: send.error_message || null,
+                    instanceName: send.instance_name || null,
                     readAt: (send as any)?.read_at || null,
                     clickedAt: statsDialogClickMap.get(sendKey) || (send as any)?.clicked_at || null,
                   });
@@ -1432,6 +1435,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         "Status",
                         "Lida",
                         ...(statsDialogHasUrlButton ? ["Clique no link"] : []),
+                        "Instância",
                         "Data",
                         "Erro",
                       ];
@@ -1441,6 +1445,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         c.status,
                         c.readAt ? "Sim" : "Não",
                         ...(statsDialogHasUrlButton ? [c.clickedAt ? "Sim" : "Não"] : []),
+                        c.instanceName || "",
                         c.sentAt ? format(new Date(c.sentAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
                         c.errorMessage || "",
                       ]);
@@ -1478,6 +1483,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                           <TableHead>Contato</TableHead>
                           <TableHead>Telefone</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Instância</TableHead>
                           <TableHead>Lida</TableHead>
                           {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
                           <TableHead>Data</TableHead>
@@ -1534,6 +1540,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                                   {formatErrorMessage(contact.errorMessage)}
                                 </p>
                               )}
+                            </TableCell>
+                            <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {contact.instanceName ? `via ${contact.instanceName}` : "-"}
                             </TableCell>
                             <TableCell>
                               {contact.readAt ? (
