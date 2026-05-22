@@ -53,6 +53,7 @@ type CampaignCredentials = {
   clientToken: string;
   userId: string;
   instanceName: string;
+  dbId?: string;
   apiProvider?: string;
   uazapiUrl?: string;
   uazapiToken?: string;
@@ -166,6 +167,7 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   clientToken: instance.zapiClientToken,
   userId,
   instanceName: instance.instanceName,
+  dbId: instance.dbId,
   apiProvider: instance.apiProvider || "zapi",
   uazapiUrl: instance.uazapiUrl || "",
   uazapiToken: instance.uazapiToken || "",
@@ -912,6 +914,7 @@ serve(async (req) => {
 
     if (!isRotateMode && credentials.instanceId) {
       forcedRequestedInstance = {
+        dbId: credentials.dbId,
         zapiInstanceId: credentials.instanceId,
         zapiToken: credentials.token,
         zapiClientToken: credentials.clientToken,
@@ -1039,6 +1042,7 @@ serve(async (req) => {
         return rotatePool[(index + rotationOffset) % rotatePool.length];
       }
       return {
+        dbId: credentials.dbId,
         zapiInstanceId,
         zapiToken,
         zapiClientToken,
