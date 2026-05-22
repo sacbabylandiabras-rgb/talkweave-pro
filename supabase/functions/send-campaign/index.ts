@@ -2681,16 +2681,20 @@ serve(async (req) => {
             // 🚨 WhatsApp rate-limit (error 463 / temporary restriction):
             // pause the campaign immediately so the remaining contacts stay
             // pending and can be resumed later when the account recovers.
+            // 🚨 WhatsApp rate-limit (error 463 / temporary restriction):
             if (isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) && !isLidIdentifier(contact.phone)) {
               rateLimitHitsInBatch += 1;
             } else {
               rateLimitHitsInBatch = 0;
             }
 
-            if (rateLimitHitsInBatch >= 2) {
+            if (rateLimitHitsInBatch >= 2 && !(reqPayload as SendCampaignRequest).forceSend) {
               console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
               await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
               return { stop: true, status: 'paused' };
+            } else if (rateLimitHitsInBatch >= 2 && (reqPayload as SendCampaignRequest).forceSend) {
+              console.log(`⚠️ Rate-limit detectado mas ignorado devido ao forceSend=true.`);
+              rateLimitHitsInBatch = 0;
             }
 
             // Mid-batch disconnection detection desabilitado a pedido do usuário:
