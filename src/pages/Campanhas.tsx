@@ -1025,6 +1025,21 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               onChange={(e) => setSendDialogRemoveDuplicates(e.target.checked)}
             />
           </div>
+          <div className="flex items-center justify-between p-3 bg-red-500/5 rounded-lg border border-red-500/20 mt-2">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-red-500" />
+              <div>
+                <p className="text-sm font-medium">Forçar Reenvio</p>
+                <p className="text-[10px] text-muted-foreground">Ignora envios anteriores e reenvia para todos</p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-red-500 cursor-pointer"
+              checked={forceSendOnResume}
+              onChange={(e) => setForceSendOnResume(e.target.checked)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmResumeCampaign}>
