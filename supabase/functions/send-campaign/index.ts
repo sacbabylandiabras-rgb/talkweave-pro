@@ -1878,6 +1878,9 @@ serve(async (req) => {
         fullMessage += messageContent;
         if (campaignTemplate.footer) fullMessage += '\n\n' + normalizePublicRedirectUrlsInText(campaignTemplate.footer);
 
+        console.log(`📝 [Content] Message for ${contact.phone}: ${fullMessage.slice(0, 100)}${fullMessage.length > 100 ? '...' : ''}`);
+
+
         // Construct a "visual" version for the message logs
         let visualContent = fullMessage;
         if (campaignTemplate.media_url) {
