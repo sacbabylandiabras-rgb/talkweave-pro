@@ -1174,7 +1174,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
-    const { 
+    let { 
       campaignId, 
       contacts, 
       instanceId: requestedInstanceIdRaw, 
@@ -1185,14 +1185,40 @@ serve(async (req) => {
     } = body;
     const rotationOffset = initialRotationOffset || 0;
     const requestedContacts = Array.isArray(contacts) ? contacts : [];
-    const isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
-    const requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
+    // Fetch campaign data early to get the most up-to-date configuration from DB
+    // This is critical to override old "zombie" re-invocations if the user changed settings
+    let campaign: any = null;
+    let campaignTemplate: any = null;
+    if (!_directSendTemplateId && campaignId) {
+      const { data: campaignData } = await supabase
+        .from('campaigns')
+        .select('*, template:message_templates(*)')
+        .eq('id', campaignId)
+        .maybeSingle();
+      
+      if (campaignData) {
+        campaign = campaignData;
+        campaignTemplate = campaign.template;
+        const sendConfig = campaign.target_audience?.__sendConfig;
+        
+        // If we have a persisted configuration in the database, it MUST take precedence
+        // over the request body to ensure settings changes are respected globally immediately.
+        if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
+          console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
+          requestedInstanceIdRaw = sendConfig.rotateAll ? '__rotate_all__' : sendConfig.instanceId;
+        }
+      }
+    }
+
+    let isRotateMode = requestedInstanceIdRaw === '__rotate_all__' || (typeof requestedInstanceIdRaw === 'string' && requestedInstanceIdRaw.startsWith('rotate:'));
+    let requestedInstanceId = isRotateMode ? undefined : requestedInstanceIdRaw;
 
     if (!_directSendTemplateId && (!campaignId || requestedContacts.length === 0)) {
       return new Response(JSON.stringify({ error: 'Campaign ID and contacts are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
+
 
 
     console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
