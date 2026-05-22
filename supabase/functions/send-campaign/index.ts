@@ -2638,9 +2638,11 @@ serve(async (req) => {
             }
 
             if (rateLimitHitsInBatch >= 2) {
-              console.log(`⚠️ Rate-limit detectado em ${campaignId}, mas configurado para continuar enviando.`);
-              rateLimitHitsInBatch = 0;
+              console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
+              await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
+              return { stop: true, status: 'paused' };
             }
+
             // Mid-batch disconnection detection desabilitado a pedido do usuário:
             // continuar tentando os próximos contatos mesmo após falha.
           }
