@@ -2513,14 +2513,16 @@ serve(async (req) => {
             }
           }
 
-          // Sempre enviar texto + botões juntos na mesma mensagem interativa,
-          // conforme o modelo cadastrado pelo usuário.
+          // [DEBUG] Log the actual URL and payload being sent to Z-API
+          console.log(`🚀 [Dispatch] Z-API URL: ${zapiUrl}`);
+          console.log(`📦 [Dispatch] Z-API Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
           const zapiResponse = await fetch(zapiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Client-Token': instClientToken },
             body: JSON.stringify(requestBody),
           });
+
 
           let zapiResult: any = {};
           try {
