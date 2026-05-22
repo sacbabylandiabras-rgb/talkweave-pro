@@ -72,7 +72,19 @@ export function clearChunkRecoveryState() {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
 }
 
+export function clearUrlRecoveryParams() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("__lovable_sha")) {
+    url.searchParams.delete("__lovable_sha");
+    const newUrl = url.pathname + url.search + url.hash;
+    window.history.replaceState({}, "", newUrl);
+  }
+}
+
 export function scheduleChunkRecoveryStateClear(delayMs = 15_000) {
+  // Clear the URL immediately for a better user experience
+  clearUrlRecoveryParams();
+  
   window.setTimeout(() => {
     clearChunkRecoveryState();
   }, delayMs);
