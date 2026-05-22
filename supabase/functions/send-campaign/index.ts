@@ -1745,7 +1745,7 @@ serve(async (req) => {
         const failedOnly = [...(existingSends || [])].filter(s => s.status === 'failed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         reusableSendId = failedOnly?.id || null;
 
-        console.log(`📤 [${i + 1}/${currentBatch.length}] Sending to: ${contact.phone} via ${currentInstance.instanceName}`);
+        console.log(`🚀 [Dispatch] Executing send to ${contact.phone} via Z-API: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`);
 
         if (isFlowCampaign && flowId) {
           campaignSend = { campaign_id: campaignId, phone: contact.phone, contact_name: contact.name, message_content: `[Fluxo: ${flowId}]`, status: 'pending', user_id: credentials.userId, instance_name: currentInstance.instanceName };
