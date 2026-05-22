@@ -63,7 +63,7 @@ const getZAPIConfig = async () => {
 
   const { data: instances, error } = await supabase
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
     .eq('user_id', user.id)
     .eq('is_active', true)
       .or('api_provider.is.null,api_provider.eq.zapi')
