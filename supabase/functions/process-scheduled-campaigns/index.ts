@@ -51,15 +51,20 @@ serve(async (req) => {
       }
 
       // Resolve instance for this user
-      const { data: defaultInstance } = await supabase
-        .from("zapi_instances")
-        .select("id")
-        .eq("user_id", campaign.user_id)
-        .eq("is_default", true)
-        .eq("is_active", true)
-        .maybeSingle();
+      // Respect the instanceId stored in target_audience if it exists
+      let instanceId = campaign.target_audience?.__sendConfig?.instanceId;
+      
+      if (!instanceId) {
+        const { data: defaultInstance } = await supabase
+          .from("zapi_instances")
+          .select("id")
+          .eq("user_id", campaign.user_id)
+          .eq("is_default", true)
+          .eq("is_active", true)
+          .maybeSingle();
 
-      const instanceId = defaultInstance?.id || "__rotate_all__";
+        instanceId = defaultInstance?.id || "__rotate_all__";
+      }
 
       // Mark as active first
       await supabase
