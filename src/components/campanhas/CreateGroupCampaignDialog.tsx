@@ -189,7 +189,9 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
          // Determinar instância de envio
          let instanceToUse = null;
          if (selectedInstanceId === ROTATE_ALL) {
+           // Use all instances available in this dialog (already filtered for non-UAZAPI/non-meta)
            setZapiRotateMode(instances);
+
          } else if (selectedInstanceId) {
            const inst = instances.find(i => i.id === selectedInstanceId);
            if (inst) {

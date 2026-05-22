@@ -1327,9 +1327,10 @@ serve(async (req) => {
           query = query.or('api_provider.is.null,api_provider.eq.zapi');
         }
       } else {
-        // For __rotate_all__, default to zapi-only to avoid using experimental/warmup instances
-        query = query.or('api_provider.is.null,api_provider.eq.zapi');
+        // For __rotate_all__, use ALL active instances for this user
+        console.log(`🔄 [Mode] Rotating through all active instances for user ${credentials.userId}`);
       }
+
 
       const { data: allActiveInstances } = await query.order('created_at', { ascending: true });
 
@@ -1345,8 +1346,10 @@ serve(async (req) => {
       );
 
       rotatePool = rotateStatuses
-        .filter(({ status }) => status.connected)
+        // Incluindo todas as instâncias selecionadas, mesmo que pareçam desconectadas,
+        // para que o erro apareça no diálogo de envio ao invés de serem ignoradas silenciosamente.
         .map(({ instance }) => instance);
+
 
       const unavailableInstances = rotateStatuses
         .filter(({ status }) => !status.connected)
@@ -1398,22 +1401,9 @@ serve(async (req) => {
 
       const status = await fetchDeviceStatusSnapshot(specificInstance);
       if (!status.connected && !(reqPayload as SendCampaignRequest).forceSend) {
-        console.log(`⏸️ Selected instance ${specificInstance.instanceName} is offline. Pausing campaign (no fallback).`);
-        await supabase
-          .from('campaigns')
-          .update({ status: 'paused', updated_at: new Date().toISOString() })
-          .eq('id', campaignId)
-          .eq('user_id', credentials.userId);
-        return new Response(JSON.stringify({
-          error: 'A conexão selecionada está desconectada. A campanha foi pausada. Reconecte o número e retome de onde parou.',
-          stopped: true,
-          paused: true,
-          reason: 'device_disconnected',
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+        console.log(`⚠️ Selected instance ${specificInstance.instanceName} is offline. Proceeding to show errors in send logs.`);
       }
+
       if (!status.connected) {
         console.log(`⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but forceSend=true. Proceeding anyway.`);
       }
@@ -1634,16 +1624,11 @@ serve(async (req) => {
       };
 
       if (!(reqPayload as SendCampaignRequest).forceSend && await shouldPause()) {
-        console.log(`❌ DISPOSITIVO DESCONECTADO! PAUSANDO campanha ${campaignId}`);
-        await supabase.from('campaigns').update({ status: 'paused', updated_at: new Date().toISOString() }).eq('id', campaignId);
-        return new Response(JSON.stringify({
-          message: 'Conexão desconectada. Campanha pausada para retomar de onde parou.',
-          stopped: true,
-          paused: true,
-          reason: 'device_disconnected',
-        }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        console.log(`⚠️ DISPOSITIVO DESCONECTADO! Mas continuando conforme nova diretriz de não trocar instância.`);
+        // Removemos a pausa automática aqui para permitir que as falhas apareçam individualmente nos registros de envio,
+        // conforme solicitado: "se o numero tiver algum bloqueio avisa mas nao troca a instancia".
       }
+
     } catch (e) {
       console.error('Device check error:', e);
     }
@@ -2619,13 +2604,21 @@ serve(async (req) => {
         results.push({ phone: contact.phone, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
 
-      // Persist campaign_send record immediately after each contact without deleting prior history rows
+      // Persist campaign_send record immediately after each contact
       if (campaignSend) {
+        // Safety check: if we finished processing but it's still pending, mark as failed
+        // unless it's a flow trigger or some other async process.
+        if (campaignSend.status === 'pending' && !isFlowCampaign) {
+          console.log(`⚠️ Contact ${contact.phone} was left as pending. Marking as failed for safety.`);
+          campaignSend.status = 'failed';
+          campaignSend.error_message = campaignSend.error_message || 'Erro desconhecido durante o processamento (timeout ou resposta vazia)';
+        }
         await persistCampaignSend(campaignSend, reusableSendId);
       }
 
       return { stop: false };
     }
+
 
     // If there are remaining contacts, schedule continuation
     if (remainingContacts.length > 0) {

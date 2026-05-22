@@ -997,7 +997,11 @@ const EnviarMensagem = () => {
                if (id === ROTATE_ALL) {
                  setInstanceSelectionMode('rotate');
                  setSelectedInstanceId(null);
-                 setZapiRotateMode(instances);
+                 // If we have specific multi-selection IDs, use them. Otherwise fallback to all.
+                 const rotatePool = selectedInstanceIds.length > 0 
+                   ? instances.filter(i => selectedInstanceIds.includes(i.id))
+                   : instances;
+                 setZapiRotateMode(rotatePool);
                } else {
                  const inst = instances.find(i => i.id === id);
                  if (inst) {
@@ -1008,14 +1012,21 @@ const EnviarMensagem = () => {
                }
              }}
             onMultiInstanceChange={(ids) => {
+              setSelectedInstanceIds(ids);
               if (ids.length > 1) {
                 const selected = instances.filter(i => ids.includes(i.id));
+                setInstanceSelectionMode('rotate');
                 setZapiRotateMode(selected);
-                setSelectedInstanceIds(ids);
-              } else {
-                setSelectedInstanceIds(ids);
+              } else if (ids.length === 1) {
+                const inst = instances.find(i => i.id === ids[0]);
+                if (inst) {
+                  setInstanceSelectionMode('single');
+                  setOverride(inst);
+                  setSelectedInstanceId(ids[0]);
+                }
               }
             }}
+
           />
         </CardContent>
       </Card>

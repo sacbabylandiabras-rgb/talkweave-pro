@@ -82,6 +82,8 @@ export default function CampanhaGrupoFluxo() {
     scheduled_at: "",
     instance_selection_mode: "default" as "default" | "single" | "rotate",
     selected_instance_id: "",
+    selected_instance_ids: [] as string[],
+
   });
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -206,7 +208,11 @@ export default function CampanhaGrupoFluxo() {
         
         let instanceToUse = null;
         if (formData.instance_selection_mode === 'rotate') {
-          setZapiRotateMode(instances);
+          // If we have specific instances selected for rotation, use them
+          const rotatePool = (formData.selected_instance_ids && formData.selected_instance_ids.length > 0)
+            ? instances.filter(i => formData.selected_instance_ids.includes(i.id))
+            : instances;
+          setZapiRotateMode(rotatePool);
         } else if (formData.instance_selection_mode === 'single' && formData.selected_instance_id) {
           const inst = instances.find(i => i.id === formData.selected_instance_id);
           if (inst) {
@@ -214,6 +220,7 @@ export default function CampanhaGrupoFluxo() {
             instanceToUse = formData.selected_instance_id;
           }
         }
+
         
         await sendCampaign(campaign.id, groupContacts, instanceToUse);
       }
