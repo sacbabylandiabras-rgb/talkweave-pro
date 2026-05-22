@@ -434,7 +434,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   };
   const [phoneNumber, setPhoneNumber] = useState("");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
-   const [healthBlock, setHealthBlock] = useState<{ blocked_until: string | null, block_type?: string } | null>(null);
+   const [healthBlock, setHealthBlock] = useState<{ blocked_until: string | null, block_type?: string, detail?: any } | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
