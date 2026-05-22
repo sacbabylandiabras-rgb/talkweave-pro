@@ -1223,7 +1223,7 @@ serve(async (req) => {
 
 
 
-    console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset})`);
+    console.log(`🚀 Campaign ${campaignId}: ${requestedContacts.length} contacts to process (continuation: ${!!_isContinuation}, offset: ${rotationOffset}, mode: ${isRotateMode ? 'rotate' : 'single'}, target: ${requestedInstanceIdRaw || 'default'})`);
 
     // For continuations with _userId, resolve credentials directly via service role (no JWT needed)
     let credentials: CampaignCredentials;
