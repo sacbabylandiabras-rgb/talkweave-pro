@@ -279,6 +279,7 @@ const resolveContactInstance = async (
 
 
   let instance: {
+    id: string;
     zapi_instance_id: string;
     zapi_token: string;
     zapi_client_token: string;
