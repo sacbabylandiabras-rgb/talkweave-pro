@@ -3,7 +3,7 @@ import { Bot, Sparkles, MessageSquare } from "lucide-react";
 
 export function BlocoAgenteIANode({ data }: any) {
   return (
-    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] max-w-[280px] glass-card !overflow-visible z-50">
+    <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[220px] max-w-[300px] glass-card !overflow-visible z-50">
       <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md flex items-center gap-1">
         <Bot className="w-3 h-3" /> Agente IA
       </span>
@@ -19,9 +19,15 @@ export function BlocoAgenteIANode({ data }: any) {
             {data.label || "Agente Inteligente"}
           </div>
           <div className="text-[10px] text-muted-foreground truncate">
-            Processamento via IA
+            {data.model?.includes(':') ? 'Managed Agent' : 'Processamento via IA'}
           </div>
         </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1">
+        <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-[9px] text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+          {data.model || "claude-3-5-sonnet-latest"}
+        </span>
       </div>
 
       {data.prompt && (

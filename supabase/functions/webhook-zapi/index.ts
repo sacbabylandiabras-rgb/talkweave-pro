@@ -1105,6 +1105,7 @@ async function executeFlow(
         }
       });
 
+
       if (agentError) {
         console.error("[Flow:agenteIA] Error calling agent-chat:", JSON.stringify(agentError));
         await sendZapiText(instance, chatId || phone, "Desculpe, tive um erro ao processar sua resposta. Por favor, tente novamente.", [], node.id, "text", "", supabase, userId, flow.name);
