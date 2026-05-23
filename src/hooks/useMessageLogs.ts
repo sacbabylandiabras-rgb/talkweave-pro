@@ -338,11 +338,13 @@ const extractResolvedGroupName = (payload: any): string | null => {
   return null;
 };
 
- const toMillis = (value: string | null | undefined): number => {
-   if (!value) return 0;
-   const ms = new Date(value).getTime();
-   return Number.isFinite(ms) ? ms : 0;
- };
+  const toMillis = (value: string | null | undefined): number => {
+    if (!value) return 0;
+    // Standardize ISO format for cross-browser compatibility (esp. Safari)
+    const normalized = String(value).replace(' ', 'T');
+    const ms = new Date(normalized).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  };
  
 const toZapiPhone = (phone: string): string => {
   if (phone.endsWith('-group')) {
