@@ -73,7 +73,7 @@ export default function PayMyAffiliations() {
     }).format(value / 100);
   };
 
-  const getAffiliateLink = (productId: string, affiliateId: string) => {
+  const getAffiliateLink = (product: Product, affiliateId: string) => {
     let baseUrl = window.location.origin;
     
     // Se estiver no preview do Lovable, tenta usar o domínio de produção
@@ -81,7 +81,12 @@ export default function PayMyAffiliations() {
       baseUrl = "https://talkweave-pro.lovable.app";
     }
     
-    return `${baseUrl}/checkout/${productId}?aff=${affiliateId}`;
+    // Usa o slug do checkout se disponível, senão usa o ID do produto (que pode falhar se não houver checkout com esse ID)
+    const identifier = product.checkouts && product.checkouts.length > 0 
+      ? (product.checkouts[0].slug || product.checkouts[0].id) 
+      : product.id;
+      
+    return `${baseUrl}/pay/${identifier}?aff=${affiliateId}`;
   };
 
   const copyToClipboard = (text: string) => {
