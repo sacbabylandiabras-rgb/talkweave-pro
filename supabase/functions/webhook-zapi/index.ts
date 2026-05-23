@@ -101,28 +101,56 @@ serve(async (req) => {
       type === "DisconnectedCallback" ||
       type === "ReconnectedCallback" ||
       webhook?.instanceStatus === "CONNECTED" ||
-      webhook?.instanceStatus === "DISCONNECTED"
+      webhook?.instanceStatus === "DISCONNECTED" ||
+      webhook?.instanceStatus === "RECONNECTED"
     ) {
       console.log(`📱 Device Webhook (${type}): instance=${instanceId}, status=${webhook?.instanceStatus || type}`);
       
       const isConnected = 
         type === "ConnectedCallback" || 
         type === "ReconnectedCallback" || 
-        webhook?.instanceStatus === "CONNECTED";
+        webhook?.instanceStatus === "CONNECTED" ||
+        webhook?.instanceStatus === "RECONNECTED";
+
+      // Capturar o telefone conectado se disponível no payload de conexão
+      const connectedPhone = webhook?.connectedPhone || webhook?.phone || "";
 
       if (instanceId) {
+        const updatePayload: any = {
+          is_active: isConnected,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (isConnected && connectedPhone) {
+          updatePayload.connected_phone = connectedPhone;
+        }
+
+        const { data: instanceBefore, error: fetchError } = await supabase
+          .from("zapi_instances")
+          .select("id")
+          .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
+          .maybeSingle();
+
         const { error: updateError } = await supabase
           .from("zapi_instances")
-          .update({
-            is_active: isConnected,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`);
 
         if (updateError) {
           console.error(`❌ Error updating instance ${instanceId} status:`, updateError.message);
         } else {
           console.log(`✅ Instance ${instanceId} updated to ${isConnected ? "ACTIVE" : "INACTIVE"}`);
+          
+          // Se desconectou, registrar na saúde da instância
+          if (!isConnected && instanceBefore?.id) {
+            await supabase.from("warmup_instance_health").insert({
+              instance_ref: instanceBefore.id,
+              phone: connectedPhone || "",
+              block_type: "disconnected",
+              detail: `Desconectado via webhook: ${type}`,
+              last_detected_at: new Date().toISOString()
+            });
+          }
         }
       }
       return new Response("ok", { status: 200, headers: corsHeaders });
