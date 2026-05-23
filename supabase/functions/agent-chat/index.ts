@@ -802,13 +802,13 @@ serve(async (req) => {
       }
     }
 
-    // ============ PROVIDER: ANTHROPIC (com tool use loop) ============
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY não configurada.' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // ============ PROVIDER: LOVABLE AI GATEWAY (OpenAI-compatible) ============
+    if (!LOVABLE_API_KEY) {
+      console.warn('[AgentChat] LOVABLE_API_KEY não configurada, tentando usar ANTHROPIC_API_KEY como fallback.')
     }
 
+    const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
+    
     // Carregar ferramentas habilitadas (skip se análise sem config)
     let enabledTools: any[] = []
     if (!skip_config) {
@@ -817,16 +817,11 @@ serve(async (req) => {
         .select('tool_name, enabled')
         .eq('user_id', effectiveUserId)
         .eq('enabled', true)
+      
       if (toolsCfgError) {
-        const toolsErrorMessage = String(toolsCfgError.message || '').toLowerCase()
-        const missingToolsTable = toolsErrorMessage.includes('agent_tools_config') && (
-          toolsErrorMessage.includes('could not find the table') ||
-          toolsErrorMessage.includes('does not exist')
-        )
-        if (!missingToolsTable) {
-          console.error('Erro ao carregar agent_tools_config:', toolsCfgError)
-        }
+        console.error('Erro ao carregar agent_tools_config:', toolsCfgError)
       }
+      
       enabledTools = (toolsCfg || [])
         .map((t: any) => TOOL_DEFS[t.tool_name])
         .filter(Boolean)
@@ -836,15 +831,31 @@ serve(async (req) => {
       }
     }
 
-    const testMode = !phone // chat de teste = sem destino real
-    const model = agentConfig?.model || 'claude-3-5-sonnet-20240620'
+    // Convert Anthropic tools to OpenAI format
+    const openAiTools = enabledTools.map(t => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.input_schema
+      }
+    }))
+
+    const testMode = !phone
+    const model = agentConfig?.model || 'google/gemini-2.5-pro'
 
     console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
-    // Mensagens só user/assistant (system vai à parte na API Anthropic)
-    let convMessages: any[] = (messages || [])
-      .filter((m: any) => m.role === 'user' || m.role === 'assistant')
-      .map((m: any) => ({ role: m.role, content: m.content }))
+    let convMessages: any[] = []
+    // System message
+    convMessages.push({ role: 'system', content: systemPrompt })
+    
+    // History
+    for (const m of (messages || [])) {
+      if (m.role === 'user' || m.role === 'assistant') {
+        convMessages.push({ role: m.role, content: m.content })
+      }
+    }
 
     let finalText = ''
     let finalCta: { label: string; url: string } | null = null
@@ -856,57 +867,53 @@ serve(async (req) => {
 
       const reqBody: any = {
         model,
-        max_tokens: 1024,
-        system: systemPrompt,
         messages: convMessages,
+        max_tokens: 1024,
       }
-      if (enabledTools.length > 0) reqBody.tools = enabledTools
+      if (openAiTools.length > 0) reqBody.tools = openAiTools
 
-      const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetch(GATEWAY_URL, {
         method: 'POST',
-        headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${LOVABLE_API_KEY || ANTHROPIC_API_KEY}`, 
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify(reqBody),
       })
       
-      if (!anthropicResp.ok) {
-        const errText = await anthropicResp.text()
-        console.error(`[AgentChat] Anthropic API Error: ${anthropicResp.status}`, errText)
-        
-        if (anthropicResp.status === 401) return new Response(JSON.stringify({ error: 'Chave Anthropic inválida.' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        if (anthropicResp.status === 429) return new Response(JSON.stringify({ error: 'Rate limit Anthropic excedido.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        
-        return new Response(JSON.stringify({ error: 'Erro Anthropic: ' + errText.substring(0, 200) }), { 
-          status: anthropicResp.status >= 500 ? 500 : anthropicResp.status, 
+      if (!resp.ok) {
+        const errText = await resp.text()
+        console.error(`[AgentChat] Gateway API Error: ${resp.status}`, errText)
+        return new Response(JSON.stringify({ error: 'Erro na IA: ' + errText.substring(0, 200) }), { 
+          status: resp.status >= 500 ? 500 : resp.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         })
       }
 
-      const data = await anthropicResp.json()
-      const stopReason = data.stop_reason
-      const contentBlocks: any[] = data.content || []
-      
-      console.log(`[AgentChat] Anthropic stop_reason: ${stopReason}, blocks: ${contentBlocks.length}`)
+      const data = await resp.json()
+      const message = data.choices?.[0]?.message
+      if (!message) break
 
-      // Coletar texto
-      const textBlocks = contentBlocks.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n')
-      if (textBlocks) finalText = (finalText ? finalText + '\n' : '') + textBlocks
+      const text = message.content
+      if (text) finalText = (finalText ? finalText + '\n' : '') + text
 
-      // Se não pediu tool, terminamos
-      if (stopReason !== 'tool_use') break
+      const toolCalls = message.tool_calls
+      if (!toolCalls || toolCalls.length === 0) break
 
-      const toolUses = contentBlocks.filter((b: any) => b.type === 'tool_use')
-      if (toolUses.length === 0) break
+      // Add assistant message with tool calls to history
+      convMessages.push(message)
 
-      // Adiciona resposta do assistant ao histórico
-      convMessages.push({ role: 'assistant', content: contentBlocks })
-
-      // Executa cada tool e adiciona tool_result
-      const toolResults: any[] = []
-      for (const tu of toolUses) {
-        console.log(`🔧 Tool call: ${tu.name}`, JSON.stringify(tu.input).substring(0, 200))
-        const result = await executeTool(tu.name, tu.input || {}, {
+      // Execute each tool and add results
+      for (const tc of toolCalls) {
+        const name = tc.function.name
+        let args = {}
+        try { args = JSON.parse(tc.function.arguments) } catch { console.error('Error parsing tool arguments:', tc.function.arguments) }
+        
+        console.log(`🔧 Tool call: ${name}`, JSON.stringify(args).substring(0, 200))
+        const result = await executeTool(name, args, {
           supabase, userId: effectiveUserId, phone: phone || null, testMode,
         })
+
         try {
           const parsed = JSON.parse(result)
           const ctaUrl = String(parsed?.cta?.url || parsed?.checkout?.url || '').trim()
@@ -917,9 +924,14 @@ serve(async (req) => {
             }
           }
         } catch {}
-        toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: result })
+
+        convMessages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          name: name,
+          content: result
+        })
       }
-      convMessages.push({ role: 'user', content: toolResults })
     }
 
     const checkoutMatch = finalText.match(/https?:\/\/[^\s)]+/)
