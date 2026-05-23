@@ -203,6 +203,21 @@ const TOOL_DEFS: Record<string, any> = {
       required: ['para', 'nome_template'],
     },
   },
+  atualizar_etapa: {
+    name: 'atualizar_etapa',
+    description: 'Atualiza a etapa atual do lead no funil de vendas. Use quando o cliente avançar de fase (ex: da triagem para o atendimento, ou do atendimento para a conclusão).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        etapa: { 
+          type: 'string', 
+          enum: ['triage', 'service', 'closing'],
+          description: 'A nova etapa do lead: triage (Triagem), service (Atendimento) ou closing (Conclusão/Fechamento).' 
+        },
+      },
+      required: ['etapa'],
+    },
+  },
 }
 
  const WHATSAPP_META_APP_ID = '26985190684454065'
