@@ -211,7 +211,7 @@
     }
 
     [data-theme='white'] .sidebar-logo {
-      filter: brightness(0.1) !important;
+      filter: none !important;
     }
 
     [data-theme='white'] .plan-badge {
