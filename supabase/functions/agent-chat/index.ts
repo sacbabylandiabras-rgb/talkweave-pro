@@ -203,6 +203,21 @@ const TOOL_DEFS: Record<string, any> = {
       required: ['para', 'nome_template'],
     },
   },
+  atualizar_etapa: {
+    name: 'atualizar_etapa',
+    description: 'Atualiza a etapa atual do lead no funil de vendas. Use quando o cliente avançar de fase (ex: da triagem para o atendimento, ou do atendimento para a conclusão).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        etapa: { 
+          type: 'string', 
+          enum: ['triage', 'service', 'closing'],
+          description: 'A nova etapa do lead: triage (Triagem), service (Atendimento) ou closing (Conclusão/Fechamento).' 
+        },
+      },
+      required: ['etapa'],
+    },
+  },
 }
 
  const WHATSAPP_META_APP_ID = '26985190684454065'
@@ -634,6 +649,20 @@ async function executeTool(
         return JSON.stringify({ error: e?.message || 'Falha no envio template Meta' })
       }
     }
+    case 'atualizar_etapa': {
+      if (!phone) return JSON.stringify({ error: 'Sem número de destino para atualizar etapa.' })
+      try {
+        const { error } = await supabase
+          .from('saved_contacts')
+          .update({ agent_stage: input.etapa })
+          .eq('user_id', userId)
+          .eq('phone', phone)
+        if (error) return JSON.stringify({ error: error.message })
+        return JSON.stringify({ ok: true, message: `Etapa do lead atualizada para: ${input.etapa}` })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao atualizar etapa' })
+      }
+    }
     default:
       return JSON.stringify({ error: `Ferramenta desconhecida: ${toolName}` })
   }
@@ -722,6 +751,7 @@ serve(async (req) => {
     systemPrompt += '\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios, mas nunca escreva a URL no texto.'
     systemPrompt += '\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.'
     systemPrompt += '\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.'
+    systemPrompt += '\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.'
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
