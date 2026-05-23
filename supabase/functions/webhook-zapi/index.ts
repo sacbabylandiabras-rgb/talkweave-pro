@@ -663,11 +663,16 @@ serve(async (req) => {
     }
 
     if (!flowStateHandled && (!fromMe || isButtonResponse)) {
-      const { data: flows } = await supabase
+      console.log(`[FlowTrigger] Checking global triggers for message: "${messageRaw}"`);
+      const { data: flows, error: flowsError } = await supabase
         .from("flow_automations")
         .select("*")
         .eq("user_id", userId)
         .eq("active", true);
+
+      if (flowsError) {
+        console.error("[FlowTrigger] Error fetching flows:", flowsError);
+      }
 
       let triggerFound = false;
       const normalizedMessage = normalizeForMatch(messageRaw);
@@ -676,6 +681,7 @@ serve(async (req) => {
         if (triggerFound) break;
 
         if (isGroup && (flow as any).disable_in_groups === true) {
+          console.log(`[FlowTrigger] Flow ${flow.name} disabled in groups. Skipping.`);
           continue;
         }
 
@@ -686,25 +692,31 @@ serve(async (req) => {
         let startNodeId = null;
         let matchedKeyword = "";
 
+        // 1. Check main keywords on the flow
         const mainKeywords = (flow.keyword || "")
           .split(",")
           .map((k: string) => k.trim())
           .filter(Boolean);
+        
         const matchedMain = mainKeywords.find((k: string) => isKeywordMatch(normalizedMessage, k));
+        
         if (matchedMain) {
+          console.log(`[FlowTrigger] Match found in flow ${flow.name} with keyword: ${matchedMain}`);
           shouldTrigger = true;
           matchedKeyword = matchedMain;
           const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           startNodeId = initialNode?.id;
         }
 
+        // 2. Check trigger nodes (blocoGatilho)
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
             const nodeKeyword = tNode.data?.keyword;
             if (nodeKeyword && isKeywordMatch(normalizedMessage, nodeKeyword)) {
+              console.log(`[FlowTrigger] Match found in flow ${flow.name} with trigger node keyword: ${nodeKeyword}`);
               shouldTrigger = true;
               matchedKeyword = nodeKeyword;
-              const edge = (flow.edges || []).find((e: any) => e.source === tNode.id);
+              const edge = (flow.edges || []).find((e: any) => String(e.source) === String(tNode.id));
               startNodeId = edge?.target;
               break;
             }
@@ -713,18 +725,23 @@ serve(async (req) => {
 
         if (shouldTrigger && startNodeId) {
           if (isGroup) {
-            const botNumber = instanceData?.zapi_instance_id;
+            // Fix: Use connected_phone instead of zapi_instance_id for mentions
+            const botPhone = instanceData?.connected_phone || "";
             const wasMentioned =
-              messageRaw.includes(`@${botNumber}`) || webhook?.isMentioned === true || webhook?.isMentioned === "true";
+              (botPhone && messageRaw.includes(`@${botPhone}`)) || 
+              webhook?.isMentioned === true || 
+              webhook?.isMentioned === "true";
+
+            console.log(`[FlowTrigger] Group message: botPhone=${botPhone}, wasMentioned=${wasMentioned}`);
 
             if (!wasMentioned && normalizedMessage.split(" ").length > 5) {
+              console.log(`[FlowTrigger] Group message not mentioning bot and too long. Skipping.`);
               continue;
             }
           }
 
           triggerFound = true;
-
-          const triggerKey = `__flow_trigger__:${flow.id}:${messageId || normalizedMessage}`;
+          const triggerKey = `__flow_trigger__:${flow.id}:${messageId || normalizedMessage.substring(0, 50)}`;
 
           const { data: recentTrigger } = await supabase
             .from("message_logs")
@@ -736,12 +753,12 @@ serve(async (req) => {
             .maybeSingle();
 
           if (recentTrigger) {
-            console.log(
-              `[FlowTrigger] Duplicated trigger detected for flow ${flow.name} (Key: ${triggerKey}). Skipping.`,
-            );
+            console.log(`[FlowTrigger] Duplicated trigger detected for flow ${flow.name} (Key: ${triggerKey}). Skipping.`);
             return new Response("flow_triggered_duplicate", { status: 200, headers: corsHeaders });
           }
 
+          console.log(`[FlowTrigger] ✅ Triggering flow ${flow.name} for ${phone} (Node: ${startNodeId})`);
+          
           await supabase.from("message_logs").insert({
             user_id: userId,
             phone: chatId,
@@ -758,6 +775,10 @@ serve(async (req) => {
         }
       }
 
+      console.log(`[FlowTrigger] No flow matched for message: "${messageRaw}"`);
+
+      // Se nada disparou e o agente global está ativo, podemos chamar o agente global aqui
+      // No entanto, vamos manter apenas o log por enquanto para não mudar o comportamento inesperadamente
       await supabase.from("message_logs").insert({
         user_id: userId,
         phone: chatId,
