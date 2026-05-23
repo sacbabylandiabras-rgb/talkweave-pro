@@ -444,6 +444,70 @@ async function sendNodeContentMeta(
   userId: string,
   flowName: string
 ): Promise<boolean> {
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial' && targetNode.type !== 'agenteIA') return false
+  if (visited.has(targetNode.id)) return false
+  visited.add(targetNode.id)
+
+  if (targetNode.type === 'blocoConteudo' || targetNode.type === 'agenteIA') {
+    // Handle delay before sending content
+    const delaySeconds = Number(targetNode.data.delaySeconds || 0)
+    if (delaySeconds > 0) {
+      const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
+      console.log(`[webhook-meta] Bloco ${targetNode.type} com delay de ${safeDelay}s`)
+      await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
+    }
+  }
+
+  if (targetNode.type === 'agenteIA') {
+    const prompt = targetNode.data.prompt || "Você é um assistente virtual prestativo.";
+    const replaceVars = (text: string) => {
+      return String(text || '')
+        .replace(/\{\{nome\}\}/gi, '')
+        .replace(/\{\{whatsapp\}\}/gi, phone || '')
+        .replace(/\{\{telefone\}\}/gi, phone || '')
+        .replace(/\{\{email\}\}/gi, '')
+    }
+    const resolvedPrompt = replaceVars(prompt);
+    
+    console.log(`[webhook-meta:agenteIA] Calling agent-chat for phone ${phone}`);
+    
+    const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
+      body: {
+        messages: [{ role: "user", content: "Olá" }],
+        user_id: userId,
+        phone: phone,
+        system_prompt: resolvedPrompt,
+        skip_config: true,
+        model: targetNode.data.model || "claude-3-5-sonnet-latest"
+      }
+    });
+
+    if (agentError) {
+      console.error("[webhook-meta:agenteIA] Error calling agent-chat:", JSON.stringify(agentError));
+      await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, "Desculpe, tive um erro ao processar sua resposta com IA.");
+    } else {
+      const aiResponse = agentResponse?.reply || "Não consegui gerar uma resposta no momento.";
+      await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, aiResponse);
+      
+      if (agentResponse.cta) {
+        await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, `🔗 ${agentResponse.cta.label}: ${agentResponse.cta.url}`);
+      }
+    }
+    
+    if (supabase && userId) {
+      await supabase.from('message_logs').insert({
+        phone,
+        message_received: null,
+        response_sent: agentResponse?.reply || "[IA response]",
+        keyword_matched: `__flow_send__:${flowName}`,
+        timestamp: new Date().toISOString(),
+        user_id: userId,
+        instance_id: `meta:${metaCreds.phone_number_id}`,
+      });
+    }
+
+    return false;
+  }
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
