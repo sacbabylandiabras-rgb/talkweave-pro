@@ -2248,10 +2248,11 @@ serve(async (req) => {
             (explicitError && !isLidIdentifier(contact.phone)) ||
             (!confirmed && !isLidIdentifier(contact.phone))
           ) {
+            console.log(`🔍 [ShadowBan Check] phone=${contact.phone}, explicitError="${explicitError}", confirmed=${confirmed}, status=${zapiResponse.status}`);
             const isShadowBan =
               explicitError &&
               (explicitError.toLowerCase().includes("shadow ban") ||
-                explicitError.toLowerCase().includes("restricted") ||
+                explicitError.toLowerCase().includes("restrições de envio") ||
                 explicitError.toLowerCase().includes("unauthorized") ||
                 explicitError.toLowerCase().includes("capping"));
 
