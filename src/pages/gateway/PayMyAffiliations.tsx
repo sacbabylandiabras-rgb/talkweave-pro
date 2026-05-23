@@ -136,7 +136,7 @@ export default function PayMyAffiliations() {
             const product = aff.product;
             if (!product) return null;
             
-            const affiliateLink = getAffiliateLink(product.id, aff.affiliate_id);
+            const affiliateLink = getAffiliateLink(product, aff.affiliate_id);
 
             return (
               <Card key={aff.id} className="overflow-hidden group hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
