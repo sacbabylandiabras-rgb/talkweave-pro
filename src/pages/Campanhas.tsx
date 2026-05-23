@@ -442,6 +442,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   };
 
   const handleResumeCampaign = (id: string) => {
+    // ✅ Limpa seleção anterior ao abrir o dialog
+    (window as any).__campaignInstanceId = undefined;
     setCampaignToResume(id);
     setForceSendOnResume(false);
     setResumeDialogOpen(true);
@@ -452,8 +454,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setResumeDialogOpen(false);
 
     try {
-      // ✅ Usa o instanceId salvo pelo InstanceSelector (pode ser rotate:id1,id2 ou id único)
-      const selectedInstanceId = (window as any).__campaignInstanceId || getSelectedCampaignInstanceId();
+      // ✅ Usa o instanceId salvo pelo InstanceSelector ao clicar (pode ser rotate:id1,id2 ou id único)
+      // Se o usuário não clicou em nenhuma instância, usa getSelectedCampaignInstanceId como fallback
+      const selectedInstanceId = (window as any).__campaignInstanceId ?? getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
 
       const campaign = campaigns.find((c) => c.id === campaignToResume);
@@ -539,6 +542,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       return;
     }
 
+    // ✅ Limpa seleção anterior ao abrir o dialog
+    (window as any).__campaignInstanceId = undefined;
     setCampaignToSend(campaign);
     setSendDialogOpen(true);
   };
@@ -550,8 +555,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setCampaignToSend(null);
 
     try {
-      // ✅ Usa o instanceId salvo pelo InstanceSelector (pode ser rotate:id1,id2 ou id único)
-      const selectedInstanceId = (window as any).__campaignInstanceId || getSelectedCampaignInstanceId();
+      // ✅ Usa o instanceId salvo pelo InstanceSelector ao clicar (pode ser rotate:id1,id2 ou id único)
+      // Se o usuário não clicou em nenhuma instância, usa getSelectedCampaignInstanceId como fallback
+      const selectedInstanceId = (window as any).__campaignInstanceId ?? getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
 
       let contactsToSend = campaign.target_audience?.contacts || [];
