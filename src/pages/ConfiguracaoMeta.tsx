@@ -59,6 +59,26 @@ export default function ConfiguracaoMeta() {
          newParams.delete("connected");
          setSearchParams(newParams, { replace: true });
        }, 1000);
+
+       // If this is a popup opened from the main app, notify opener and close.
+       try {
+         const isPopup = searchParams.get("popup") === "1" || !!window.opener;
+         if (window.opener && !window.opener.closed) {
+           window.opener.postMessage({ type: "META_OAUTH_SUCCESS" }, "*");
+         }
+         // Cross-tab fallback so the main app reacts even without window.opener
+         try {
+           const bc = new BroadcastChannel("meta-oauth");
+           bc.postMessage({ type: "META_OAUTH_SUCCESS" });
+           bc.close();
+         } catch {}
+         localStorage.setItem("meta_oauth_event", `success:${Date.now()}`);
+         if (isPopup) {
+           setTimeout(() => window.close(), 800);
+         }
+       } catch (e) {
+         console.warn("Failed to notify opener of Meta OAuth success", e);
+       }
     } else if (error === "1") {
       toast.error("Erro ao conectar conta Meta. Tente novamente.");
       const newParams = new URLSearchParams(searchParams);
