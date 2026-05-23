@@ -1179,6 +1179,19 @@ async function executeFlow(
         }
         
         await sendZapiText(instance, aiDestination, aiResponse, buttons, node.id, "text", "", supabase, userId, flow.name);
+        
+        const nextEdgeForAgent = edges.find(
+          (e: any) =>
+            String(e.source) === String(node.id) &&
+            (!e.sourceHandle ||
+              e.sourceHandle === "default" ||
+              e.sourceHandle === "output" ||
+              e.sourceHandle.includes("source")),
+        );
+
+        if (!nextEdgeForAgent) {
+          return;
+        }
       }
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
