@@ -43,7 +43,10 @@ export default function PayMyAffiliations() {
           product_id,
           affiliate_id,
           created_at,
-          product:gateway_products (*)
+          product:gateway_products (
+            *,
+            checkouts:gateway_checkouts (id, slug)
+          )
         `)
         .eq("affiliate_id", user.id)
         .order("created_at", { ascending: false });
