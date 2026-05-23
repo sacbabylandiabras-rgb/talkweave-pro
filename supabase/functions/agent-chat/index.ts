@@ -837,7 +837,7 @@ serve(async (req) => {
     }
 
     const testMode = !phone // chat de teste = sem destino real
-    const model = agentConfig?.model || 'claude-sonnet-4-5-20250929'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-20240620'
 
     // Mensagens só user/assistant (system vai à parte na API Anthropic)
     let convMessages: any[] = (messages || [])
