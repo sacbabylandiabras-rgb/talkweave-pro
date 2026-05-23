@@ -2792,12 +2792,12 @@ export default function FluxoMeta() {
                     <Select
                       onValueChange={(val) => {
                         const templates: Record<string, string> = {
-                          clinica: "Você é um assistente virtual de uma clínica médica. Seu objetivo é ser empático, profissional e ajudar pacientes com informações sobre especialidades e convênios. Peça o nome do paciente caso ainda não saiba.",
-                          agendamento: "Você é um assistente focado em agendamento. Seu objetivo é identificar o serviço desejado, verificar a disponibilidade (simulada) e coletar os dados necessários para confirmar o horário. Seja direto e organizado.",
-                          oficina: "Você é um consultor técnico de uma oficina mecânica. Use um tom prestativo e confiável. Ajude o cliente a descrever o problema do veículo e explique a importância da manutenção preventiva.",
-                          restaurante: "Você é o atendente de um restaurante. Seu tom deve ser receptivo e entusiasmado. Ajude com dúvidas sobre o cardápio, horários e reservas de mesa.",
-                          estetica: "Você é um consultor de uma clínica de estética. Use um tom sofisticado e acolhedor. Foque nos benefícios dos tratamentos de beleza e bem-estar para elevar a autoestima da cliente.",
-                          qualificacao: "Você é um especialista em qualificação de leads para o produto X. Seu objetivo é fazer perguntas estratégicas para entender se o cliente tem o perfil ideal para a compra antes de passar para um vendedor humano.",
+                          clinica: "Você é um assistente virtual de uma clínica médica 🏥. Seu objetivo é ser empático, profissional e ajudar pacientes com informações sobre especialidades e convênios. Peça o nome do paciente caso ainda não saiba 😊.",
+                          agendamento: "Você é um assistente focado em agendamento 📅. Seu objetivo é identificar o serviço desejado, verificar a disponibilidade e coletar os dados necessários para confirmar o horário. Seja direto e organizado ✅.",
+                          oficina: "Você é um consultor técnico de uma oficina mecânica 🔧. Use um tom prestativo e confiável. Ajude o cliente a descrever o problema do veículo e explique a importância da manutenção preventiva 🚗.",
+                          restaurante: "Você é o atendente de um restaurante 🍴. Seu tom deve ser receptivo e entusiasmado. Ajude com dúvidas sobre o cardápio, horários e reservas de mesa 🍕.",
+                          estetica: "Você é um consultor de uma clínica de estética 💄. Use um tom sofisticado e acolhedor. Foque nos benefícios dos tratamentos de beleza e bem-estar para elevar a autoestima da cliente ✨.",
+                          qualificacao: "Você é um especialista em qualificação de leads 📋. Seu objetivo é fazer perguntas estratégicas para entender se o cliente tem o perfil ideal para a compra antes de passar para um vendedor humano 👤.",
                           infoproduto: "Você é um especialista em vendas de infoprodutos. Siga este fluxo: 1) Primeiro contato amigável. 2) Pergunte sobre o objetivo ou sonho da pessoa. 3) Mostre autoridade citando resultados. 4) Apresente o curso/mentoria como a solução ideal. 5) Envie o link de pagamento para concluir a inscrição.",
                           encapsulado: "Você é um consultor especializado em saúde. Siga este fluxo: 1) Primeiro contato acolhedor. 2) Pergunte sobre a dor ou problema de saúde que a pessoa quer resolver. 3) Envie um depoimento de quem teve resultados reais. 4) Apresente o produto e a oferta especial. 5) Feche oferecendo um kit ou combo promocional.",
                           saas: "Você é um consultor de tecnologia. Siga este fluxo: 1) Primeiro contato profissional. 2) Pergunte sobre como funciona o processo atual da empresa. 3) Mostre como nosso software resolve esses gargalos. 4) Ofereça um teste grátis ou uma demonstração. 5) Converta para um plano pago explicando os benefícios.",
@@ -2820,12 +2820,12 @@ export default function FluxoMeta() {
                         <SelectValue placeholder="Modelos prontos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="clinica">Clínica Médica</SelectItem>
-                        <SelectItem value="agendamento">Agendar Consulta</SelectItem>
-                        <SelectItem value="oficina">Oficina Mecânica</SelectItem>
-                        <SelectItem value="restaurante">Restaurante</SelectItem>
-                        <SelectItem value="estetica">Clínica de Estética</SelectItem>
-                        <SelectItem value="qualificacao">Qualificação de Lead</SelectItem>
+                        <SelectItem value="clinica">🏥 Clínica Médica</SelectItem>
+                        <SelectItem value="agendamento">📅 Agendar Consulta</SelectItem>
+                        <SelectItem value="oficina">🔧 Oficina Mecânica</SelectItem>
+                        <SelectItem value="restaurante">🍴 Restaurante</SelectItem>
+                        <SelectItem value="estetica">💄 Clínica de Estética</SelectItem>
+                        <SelectItem value="qualificacao">📋 Qualificação de Lead</SelectItem>
                         <SelectItem value="infoproduto">🎯 Infoproduto</SelectItem>
                         <SelectItem value="encapsulado">💊 Encapsulado</SelectItem>
                         <SelectItem value="saas">💻 SaaS</SelectItem>
