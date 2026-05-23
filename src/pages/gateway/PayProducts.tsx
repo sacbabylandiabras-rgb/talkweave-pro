@@ -32,6 +32,10 @@ interface Product {
   image_url?: string | null;
   affiliate_enabled: boolean;
   commission_rate: number;
+  marketplace_visible?: boolean;
+  auto_approve_affiliates?: boolean;
+  buyer_data_access?: boolean;
+  commission_type?: 'percentage' | 'fixed';
 }
 
 interface FormState {
@@ -43,6 +47,10 @@ interface FormState {
   category: string;
   affiliate_enabled: boolean;
   commission_rate: string;
+  marketplace_visible: boolean;
+  auto_approve_affiliates: boolean;
+  buyer_data_access: boolean;
+  commission_type: 'percentage' | 'fixed';
 }
 
 const emptyForm: FormState = { 
@@ -53,7 +61,11 @@ const emptyForm: FormState = {
   sku: "", 
   category: "",
   affiliate_enabled: false,
-  commission_rate: "0"
+  commission_rate: "0",
+  marketplace_visible: true,
+  auto_approve_affiliates: true,
+  buyer_data_access: false,
+  commission_type: 'percentage'
 };
 
 export default function PayProducts() {
@@ -169,6 +181,10 @@ export default function PayProducts() {
       category: product.category || "",
       affiliate_enabled: product.affiliate_enabled || false,
       commission_rate: (product.commission_rate || 0).toString(),
+      marketplace_visible: product.marketplace_visible ?? true,
+      auto_approve_affiliates: product.auto_approve_affiliates ?? true,
+      buyer_data_access: product.buyer_data_access ?? false,
+      commission_type: product.commission_type || 'percentage',
     });
     setImagePreview(product.image_url || null);
     setImageFile(null);
@@ -248,7 +264,11 @@ export default function PayProducts() {
         sku: form.sku || null,
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
-        commission_rate: parseInt(form.commission_rate) || 0,
+        commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
+        marketplace_visible: form.marketplace_visible,
+        auto_approve_affiliates: form.auto_approve_affiliates,
+        buyer_data_access: form.buyer_data_access,
+        commission_type: form.commission_type,
       };
       if (imageUrl !== undefined) updateData.image_url = imageUrl;
 
@@ -275,7 +295,11 @@ export default function PayProducts() {
         sku: form.sku || null,
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
-        commission_rate: parseInt(form.commission_rate) || 0,
+        commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
+        marketplace_visible: form.marketplace_visible,
+        auto_approve_affiliates: form.auto_approve_affiliates,
+        buyer_data_access: form.buyer_data_access,
+        commission_type: form.commission_type,
       };
       if (imageUrl) insertData.image_url = imageUrl;
 
@@ -483,26 +507,78 @@ export default function PayProducts() {
             </div>
 
             {form.affiliate_enabled && (
-              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 space-y-3 animate-in fade-in slide-in-from-top-1">
-                <div className="flex items-center gap-2">
+              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 space-y-4 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 mb-2">
                   <Briefcase className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold">Configurações de Afiliação</span>
                 </div>
-                <div>
-                  <Label>Comissão (%)</Label>
-                  <div className="relative mt-1">
-                    <Input 
-                      type="number"
-                      placeholder="0" 
-                      value={form.commission_rate} 
-                      onChange={e => setForm(p => ({ ...p, commission_rate: e.target.value }))}
-                      className="pr-8"
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm" htmlFor="marketplace-visible">Visível na loja?</Label>
+                      <p className="text-[10px] text-muted-foreground">Mostrar este produto no marketplace</p>
+                    </div>
+                    <Switch 
+                      id="marketplace-visible"
+                      checked={form.marketplace_visible} 
+                      onCheckedChange={v => setForm(p => ({ ...p, marketplace_visible: v }))} 
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Defina a porcentagem que o afiliado receberá por cada venda.
-                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm" htmlFor="auto-approve">Aprovação automática?</Label>
+                      <p className="text-[10px] text-muted-foreground">Aprovar novos afiliados instantaneamente</p>
+                    </div>
+                    <Switch 
+                      id="auto-approve"
+                      checked={form.auto_approve_affiliates} 
+                      onCheckedChange={v => setForm(p => ({ ...p, auto_approve_affiliates: v }))} 
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm" htmlFor="buyer-data">Acesso aos dados do comprador?</Label>
+                      <p className="text-[10px] text-muted-foreground">Afiliados podem ver e-mail e nome dos clientes</p>
+                    </div>
+                    <Switch 
+                      id="buyer-data"
+                      checked={form.buyer_data_access} 
+                      onCheckedChange={v => setForm(p => ({ ...p, buyer_data_access: v }))} 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2 border-t border-primary/10">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tipo de comissão</Label>
+                    <Select value={form.commission_type} onValueChange={v => setForm(p => ({ ...p, commission_type: v as 'percentage' | 'fixed' }))}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                        <SelectItem value="fixed">Valor fixo (R$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">
+                      {form.commission_type === 'percentage' ? 'Porcentagem da comissão' : 'Valor da comissão'}
+                    </Label>
+                    <div className="relative">
+                      <Input 
+                        placeholder="0,00" 
+                        value={form.commission_rate} 
+                        onChange={e => setForm(p => ({ ...p, commission_rate: e.target.value }))}
+                        className="h-9 pr-8"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                        {form.commission_type === 'percentage' ? '%' : 'R$'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -555,7 +631,7 @@ export default function PayProducts() {
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                     {p.affiliate_enabled && (
                       <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                        Afiliados: {p.commission_rate}%
+                        Afiliados: {p.commission_type === 'fixed' ? formatCurrency(p.commission_rate * 100) : `${p.commission_rate}%`}
                       </Badge>
                     )}
                   </div>
