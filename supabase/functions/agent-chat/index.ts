@@ -867,12 +867,18 @@ serve(async (req) => {
         headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody),
       })
+      
       if (!anthropicResp.ok) {
         const errText = await anthropicResp.text()
-        console.error('Anthropic error:', anthropicResp.status, errText)
+        console.error(`[AgentChat] Anthropic API Error: ${anthropicResp.status}`, errText)
+        
         if (anthropicResp.status === 401) return new Response(JSON.stringify({ error: 'Chave Anthropic inválida.' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         if (anthropicResp.status === 429) return new Response(JSON.stringify({ error: 'Rate limit Anthropic excedido.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        return new Response(JSON.stringify({ error: 'Erro Anthropic: ' + errText.substring(0, 200) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        
+        return new Response(JSON.stringify({ error: 'Erro Anthropic: ' + errText.substring(0, 200) }), { 
+          status: anthropicResp.status >= 500 ? 500 : anthropicResp.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        })
       }
 
       const data = await anthropicResp.json()
