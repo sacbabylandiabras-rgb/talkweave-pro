@@ -822,6 +822,16 @@ serve(async (req) => {
     if (knowledge && knowledge.length > 0) {
       systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
       for (const item of knowledge) {
+        // Se estivermos em um fluxo com prompt personalizado (bloco Agente IA),
+        // evitamos misturar a base de conhecimento global da ZapLynx se ela não for relevante.
+        const isZapLynxDoc = (item.title || "").toLowerCase().includes("zaplynx") || 
+                            (item.content || "").toLowerCase().includes("zaplynx");
+        
+        if (customSystemPrompt && isZapLynxDoc) {
+          // Se o prompt personalizado fala de Retinox e o doc é da ZapLynx, ignoramos o doc
+          if (customSystemPrompt.toLowerCase().includes("retinox")) continue;
+        }
+
         if (item.type === "faq") systemPrompt += `\n\nPergunta: ${item.question}\nResposta: ${item.answer}`;
         else if (item.type === "document")
           systemPrompt += `\n\nDocumento "${item.title || "Sem título"}":\n${item.content}`;
