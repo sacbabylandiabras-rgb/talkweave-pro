@@ -247,6 +247,8 @@ const App = () => (
                   <Route path="/gateway-checkout/checkouts/edit/:id" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
                   <Route path="/gateway-checkout/landing-pages" element={<KycWrap><PayLandingPages /></KycWrap>} />
                   <Route path="/gateway-checkout/reports" element={<KycWrap><PayReports /></KycWrap>} />
+                  <Route path="/gateway-checkout/marketplace" element={<KycWrap><PayMarketplace /></KycWrap>} />
+                  <Route path="/gateway-checkout/affiliates" element={<KycWrap><PayAffiliates /></KycWrap>} />
                   <Route path="/gateway-checkout/cart-recovery" element={<KycWrap><PayCartRecovery /></KycWrap>} />
                   <Route path="/gateway-checkout/pixels" element={<KycWrap><PayPixels /></KycWrap>} />
                   <Route path="/gateway-checkout/integrations" element={<KycWrap><PayIntegrations /></KycWrap>} />
