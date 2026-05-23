@@ -279,7 +279,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
     )}>
       {/* Logo + Brand */}
       <div className={cn(
-        "flex items-center px-4 py-4 border-b border-white/10",
+        "flex items-center px-4 py-4 border-b border-black/10 [[data-theme='white']_&]:border-gray-200",
         collapsed && "justify-center px-0"
       )}>
         <LogoImage className={cn(
