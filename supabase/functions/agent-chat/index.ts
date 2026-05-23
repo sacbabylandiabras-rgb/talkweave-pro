@@ -812,8 +812,8 @@ serve(async (req) => {
       systemPrompt += "\n- NUNCA envie textos longos ou listas extensas. Prefira frases curtas e diretas.";
     } else {
       systemPrompt += "\n- Siga o tom de voz e as instruções definidas no PROMPT PERSONALIZADO acima.";
-      systemPrompt += "\n- Se houver um fluxo de passos (ex: 1, 2, 3), você deve executar APENAS o passo atual. Não pule etapas nem envie informações de passos futuros antes do momento certo.";
-      systemPrompt += "\n- Aguarde a interação do usuário para validar o passo atual antes de prosseguir para o próximo.";
+      systemPrompt += "\n- Se houver um fluxo de passos (ex: 1, 2, 3), você deve executar APENAS o passo atual. Analise o histórico da conversa para identificar qual passo já foi concluído e qual é o próximo.";
+      systemPrompt += "\n- Não pule etapas nem envie informações de passos futuros. Aguarde a interação do usuário para validar o passo atual antes de prosseguir.";
     }
 
     systemPrompt += "\n- Use a base de conhecimento abaixo para responder, mas de forma resumida.";
@@ -827,6 +827,7 @@ serve(async (req) => {
       "\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.";
     systemPrompt +=
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
+    systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
