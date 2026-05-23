@@ -47,6 +47,37 @@ export default function PayMarketplace() {
     fetchMarketplaceProducts();
   }, []);
 
+  const handleAffiliate = async (productId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Você precisa estar logado para se afiliar");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("gateway_affiliates" as any)
+        .insert({
+          product_id: productId,
+          affiliate_id: user.id
+        });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("Você já é afiliado deste produto");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast.success("Afiliação realizada com sucesso!");
+    } catch (error: any) {
+      console.error("Error affiliating:", error);
+      toast.error("Erro ao realizar afiliação");
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -138,7 +169,10 @@ export default function PayMarketplace() {
                     </div>
                   </div>
                 </div>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white font-semibold">
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
+                  onClick={() => handleAffiliate(product.id)}
+                >
                   Afiliar-se agora
                 </Button>
               </CardContent>
