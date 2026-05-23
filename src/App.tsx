@@ -66,6 +66,8 @@ const PayIntegrations = lazyWithRecovery(() => import("./pages/gateway/PayIntegr
 const PaySettings = lazyWithRecovery(() => import("./pages/gateway/PaySettings"));
 const PayWithdrawals = lazyWithRecovery(() => import("./pages/gateway/PayWithdrawals"));
 const PayDocs = lazyWithRecovery(() => import("./pages/gateway/PayDocs"));
+const PayMarketplace = lazyWithRecovery(() => import("./pages/gateway/PayMarketplace"));
+const PayAffiliates = lazyWithRecovery(() => import("./pages/gateway/PayAffiliates"));
 const AdminPayDashboard = lazyWithRecovery(() => import("./pages/gateway/AdminDashboard"));
 const AdminCompanies = lazyWithRecovery(() => import("./pages/gateway/AdminCompanies"));
 const AdminAcquirers = lazyWithRecovery(() => import("./pages/gateway/AdminAcquirers"));
