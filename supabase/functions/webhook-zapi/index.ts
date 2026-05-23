@@ -95,6 +95,39 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
+    // Processamento de Webhooks de Dispositivo (Conexão/Desconexão)
+    if (
+      type === "ConnectedCallback" ||
+      type === "DisconnectedCallback" ||
+      type === "ReconnectedCallback" ||
+      webhook?.instanceStatus === "CONNECTED" ||
+      webhook?.instanceStatus === "DISCONNECTED"
+    ) {
+      console.log(`📱 Device Webhook (${type}): instance=${instanceId}, status=${webhook?.instanceStatus || type}`);
+      
+      const isConnected = 
+        type === "ConnectedCallback" || 
+        type === "ReconnectedCallback" || 
+        webhook?.instanceStatus === "CONNECTED";
+
+      if (instanceId) {
+        const { error: updateError } = await supabase
+          .from("zapi_instances")
+          .update({
+            is_active: isConnected,
+            updated_at: new Date().toISOString(),
+          })
+          .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`);
+
+        if (updateError) {
+          console.error(`❌ Error updating instance ${instanceId} status:`, updateError.message);
+        } else {
+          console.log(`✅ Instance ${instanceId} updated to ${isConnected ? "ACTIVE" : "INACTIVE"}`);
+        }
+      }
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     const isMessage =
       !type ||
       type === "OnMessage" ||
