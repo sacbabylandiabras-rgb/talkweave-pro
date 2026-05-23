@@ -1100,11 +1100,13 @@ async function executeFlow(
       
       const userMessage =
         webhook?.buttonsResponseMessage?.message ||
+        webhook?.buttonsResponseMessage?.buttonText ||
         webhook?.buttonResponseMessage?.message ||
+        webhook?.buttonResponseMessage?.buttonText ||
         webhook?.buttonReply?.text ||
         webhook?.text?.message ||
         webhook?.message?.text ||
-        webhook?.text ||
+        (typeof webhook?.text === "string" ? webhook.text : "") ||
         "";
 
       console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone}`);
