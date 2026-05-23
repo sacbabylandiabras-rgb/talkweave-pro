@@ -1113,13 +1113,13 @@ async function executeFlow(
       
       const { data: flowCaptured } = await supabase
         .from("flow_captured_data")
-        .select("chat_history")
+        .select("captured_data")
         .eq("user_id", userId)
         .eq("phone", phone)
         .eq("flow_id", flow.id)
         .maybeSingle();
 
-      const chatHistory = flowCaptured?.chat_history || [];
+      const chatHistory = flowCaptured?.captured_data?.chat_history || [];
       const currentMessages = [
         ...chatHistory,
         { role: "user", content: userMessage || "Olá" }
