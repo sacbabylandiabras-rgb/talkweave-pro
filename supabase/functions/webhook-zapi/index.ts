@@ -1151,12 +1151,14 @@ async function executeFlow(
           { role: "assistant", content: aiResponse }
         ].slice(-10);
 
+        const finalCaptured = { ...(flowState?.captured_data || captured || {}), chat_history: updatedHistory };
+
         await supabase.from("flow_captured_data").upsert(
           {
             user_id: userId,
             flow_id: flow.id,
             phone,
-            chat_history: updatedHistory,
+            captured_data: finalCaptured,
             last_node_id: node.id,
             updated_at: new Date().toISOString(),
           },
