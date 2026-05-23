@@ -730,14 +730,13 @@ serve(async (req) => {
 
         if (shouldTrigger && startNodeId) {
           if (isGroup) {
-            // Fix: Use connected_phone instead of zapi_instance_id for mentions
-            const botPhone = instanceData?.connected_phone || "";
+            // Check if bot was mentioned
             const wasMentioned =
-              (botPhone && messageRaw.includes(`@${botPhone}`)) || 
               webhook?.isMentioned === true || 
-              webhook?.isMentioned === "true";
+              webhook?.isMentioned === "true" ||
+              (messageRaw && messageRaw.includes(`@${instanceData?.zapi_instance_id}`));
 
-            console.log(`[FlowTrigger] Group message: botPhone=${botPhone}, wasMentioned=${wasMentioned}`);
+            console.log(`[FlowTrigger] Group message: wasMentioned=${wasMentioned}`);
 
             if (!wasMentioned && normalizedMessage.split(" ").length > 5) {
               console.log(`[FlowTrigger] Group message not mentioning bot and too long. Skipping.`);
