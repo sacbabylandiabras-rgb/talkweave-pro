@@ -70,15 +70,16 @@
      if (!userId) return;
  
      console.log("[InstagramMessages] Subscribing to realtime updates for user:", userId);
-     const channel = supabase
-       .channel(`instagram_realtime_dm_${userId}`)
-       .on(
-         "postgres_changes",
-         {
-           event: "*", // Listen to all events for better catch-up
-           schema: "public",
-           table: "instagram_events",
-         },
+      const channel = supabase
+        .channel(`instagram_realtime_dm_${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "instagram_events",
+            filter: `user_id=eq.${userId}`
+          },
          (payload) => {
             console.log("[InstagramMessages] Realtime event received:", payload.eventType);
             queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
