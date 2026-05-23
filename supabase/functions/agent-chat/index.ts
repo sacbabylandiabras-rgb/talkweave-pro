@@ -827,6 +827,7 @@ serve(async (req) => {
       "\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.";
     systemPrompt +=
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
+    systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
