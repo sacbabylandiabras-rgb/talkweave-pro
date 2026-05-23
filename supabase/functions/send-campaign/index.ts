@@ -2273,7 +2273,7 @@ serve(async (req) => {
             } else {
               campaignSend.status = "failed";
               campaignSend.error_message = isShadowBan
-                ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio ou desconectado da API."
+                ? "Shadow Ban: número com restrição de envio. Próximos contatos continuarão normalmente."
                 : explicitError ||
                   (!confirmed
                     ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"
@@ -2282,8 +2282,9 @@ serve(async (req) => {
               results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
               console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-              // forceSend=true: nunca pausa por rate limit
-              if (!(reqPayload as SendCampaignRequest).forceSend) {
+              // Shadow ban e forceSend=true: nunca pausam — marca como falha e continua para o próximo
+              // Rate limit real (error 463) só pausa se não for forceSend
+              if (!(reqPayload as SendCampaignRequest).forceSend && !isShadowBan) {
                 if (
                   isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
                   !isLidIdentifier(contact.phone)
