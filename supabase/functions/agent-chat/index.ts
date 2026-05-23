@@ -689,7 +689,7 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { messages, user_id, skip_config, phone } = body
+    const { messages, user_id, skip_config, phone, system_prompt: customSystemPrompt } = body
     const effectiveUserId = user_id || userId
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -733,14 +733,18 @@ serve(async (req) => {
 
     let systemPrompt = `Nome do agente: ${effectiveAgentName}\n\n`
     
-    if (triagePrompt) {
-      systemPrompt += `--- ETAPA 1: TRIAGEM E CLASSIFICAÇÃO ---\n${triagePrompt}\n\n`
-    }
-    
-    systemPrompt += `--- ETAPA 2: ATENDIMENTO ---\n${servicePrompt}\n\n`
-    
-    if (closingPrompt) {
-      systemPrompt += `--- ETAPA 3: CONCLUSÃO E CTA ---\n${closingPrompt}\n\n`
+    if (customSystemPrompt) {
+      systemPrompt += `--- PROMPT PERSONALIZADO ---\n${customSystemPrompt}\n\n`
+    } else {
+      if (triagePrompt) {
+        systemPrompt += `--- ETAPA 1: TRIAGEM E CLASSIFICAÇÃO ---\n${triagePrompt}\n\n`
+      }
+      
+      systemPrompt += `--- ETAPA 2: ATENDIMENTO ---\n${servicePrompt}\n\n`
+      
+      if (closingPrompt) {
+        systemPrompt += `--- ETAPA 3: CONCLUSÃO E CTA ---\n${closingPrompt}\n\n`
+      }
     }
 
     systemPrompt += '--- REGRAS GERAIS ---'
@@ -833,7 +837,7 @@ serve(async (req) => {
     }
 
     const testMode = !phone // chat de teste = sem destino real
-    const model = agentConfig?.model || 'claude-sonnet-4-5-20250929'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-20240620'
 
     // Mensagens só user/assistant (system vai à parte na API Anthropic)
     let convMessages: any[] = (messages || [])
