@@ -1094,17 +1094,32 @@ async function executeFlow(
 
       console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone}`);
       
+      const { data: flowCaptured } = await supabase
+        .from("flow_captured_data")
+        .select("chat_history")
+        .eq("user_id", userId)
+        .eq("phone", phone)
+        .eq("flow_id", flow.id)
+        .maybeSingle();
+
+      const chatHistory = flowCaptured?.chat_history || [];
+      const currentMessages = [
+        ...chatHistory,
+        { role: "user", content: userMessage || "Olá" }
+      ].slice(-10); // Keep last 10 messages for context
+
+      console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone} with history: ${currentMessages.length} msgs`);
+      
       const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
         body: {
-          messages: [{ role: "user", content: userMessage || "Olá" }],
+          messages: currentMessages,
           user_id: userId,
           phone: phone,
           system_prompt: resolvedPrompt,
-          skip_config: true, // Important: we are providing the prompt from the flow node
-          model: node.data.model || "claude-3-5-sonnet-latest"
+          skip_config: true,
+          model: node.data.model || "claude-sonnet-4-6"
         }
       });
-
 
       if (agentError) {
         console.error("[Flow:agenteIA] Error calling agent-chat:", JSON.stringify(agentError));
@@ -1112,6 +1127,24 @@ async function executeFlow(
       } else {
         console.log("[Flow:agenteIA] Agent-chat response received:", JSON.stringify(agentResponse).slice(0, 500));
         const aiResponse = agentResponse?.reply || "Não consegui gerar uma resposta no momento.";
+        
+        // Update history
+        const updatedHistory = [
+          ...currentMessages,
+          { role: "assistant", content: aiResponse }
+        ].slice(-10);
+
+        await supabase.from("flow_captured_data").upsert(
+          {
+            user_id: userId,
+            flow_id: flow.id,
+            phone,
+            chat_history: updatedHistory,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,flow_id,phone" }
+        );
+
         const buttons = agentResponse.cta ? [{
           id: `cta:${node.id}`,
           text: agentResponse.cta.label,
