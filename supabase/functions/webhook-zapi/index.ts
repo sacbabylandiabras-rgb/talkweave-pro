@@ -282,6 +282,7 @@ serve(async (req) => {
       // Detectar shadowban pelos erros reais do Z-API (conforme documentação)
       const errorLower = String(error).toLowerCase();
       const isShadowBanError =
+        webhook?.errorCode === "SHADOW_BAN" ||
         errorLower.includes("shadow ban") ||
         errorLower.includes("likely shadow ban") ||
         errorLower.includes("restricted") ||
@@ -290,13 +291,16 @@ serve(async (req) => {
         errorLower.includes("did not have permission") ||
         errorLower.includes("rejected sending") ||
         errorLower.includes("did not allow") ||
+        errorLower.includes("whatsapp did not allow") ||
+        errorLower.includes("whatsapp rejected") ||
         errorLower.includes("capping");
 
       const isInvalidPhone =
         errorLower.includes("phone number does not exist") ||
         errorLower.includes("invalid phone number") ||
         errorLower.includes("does not exist") ||
-        errorLower.includes("not on whatsapp");
+        errorLower.includes("not on whatsapp") ||
+        errorLower.includes("invalid request params");
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus) && !isErrorStatus) {
         for (const msgId of messageIds) {
@@ -369,7 +373,11 @@ serve(async (req) => {
           if (isShadowBanError) {
             finalErrorMessage = "Shadow Ban: número com restrição de envio. Mensagem não entregue.";
           } else if (isInvalidPhone) {
-            finalErrorMessage = "Número não cadastrado no WhatsApp.";
+            finalErrorMessage = "Número inválido ou não cadastrado no WhatsApp.";
+          } else if (errorLower.includes("media url") || errorLower.includes("media format")) {
+            finalErrorMessage = "Erro na URL da mídia informada.";
+          } else if (errorLower.includes("timeout")) {
+            finalErrorMessage = "Tempo de envio expirado (instabilidade).";
           }
 
           console.log(`❌ Message ${msgId} failed: ${finalErrorMessage}`);
