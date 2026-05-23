@@ -842,7 +842,7 @@ serve(async (req) => {
     }))
 
     const testMode = !phone
-    const model = agentConfig?.model || 'google/gemini-2.5-pro'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-20241022'
 
     console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
@@ -875,7 +875,7 @@ serve(async (req) => {
       const resp = await fetch(GATEWAY_URL, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${LOVABLE_API_KEY || ANTHROPIC_API_KEY}`, 
+          'Authorization': `Bearer ${ANTHROPIC_API_KEY || LOVABLE_API_KEY}`, 
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify(reqBody),
