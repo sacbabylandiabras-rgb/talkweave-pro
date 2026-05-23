@@ -920,11 +920,20 @@ async function callAI(systemPrompt: string, userMessage: string, model: string) 
     });
 
     const data = await response.json();
+    console.log(`[AI Response] Status: ${response.status}, Data:`, JSON.stringify(data).slice(0, 500));
+    
     if (data.error) {
-      console.error("Erro na IA:", data.error);
+      console.error("Erro na IA (Gateway):", data.error);
       return "Desculpe, tive um erro ao processar sua resposta com IA.";
     }
-    return data.choices?.[0]?.message?.content || "Não consegui gerar uma resposta.";
+    
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      console.warn("IA retornou resposta vazia ou sem conteúdo:", JSON.stringify(data));
+      return "Não consegui gerar uma resposta no momento. Por favor, tente novamente.";
+    }
+    
+    return content;
   } catch (error) {
     console.error("Error calling AI Gateway:", error);
     return "Erro ao processar sua solicitação com IA.";
