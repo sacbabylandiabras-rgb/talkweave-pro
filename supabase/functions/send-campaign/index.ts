@@ -820,14 +820,15 @@ serve(async (req) => {
         campaignTemplate = campaign.template;
         const sendConfig = campaign.target_audience?.__sendConfig;
 
-        // Só usa o sendConfig do banco se NÃO foi passado um instanceId na requisição
-        // O instanceId da requisição (escolha do usuário no dialog) tem prioridade absoluta
-        const requestHasInstanceId = Boolean(body.instanceId);
-        if (!requestHasInstanceId && sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
+        // Prioridade absoluta para o instanceId que vem na requisição (escolha do usuário no momento do clique)
+        const requestHasInstanceId = Boolean(reqPayload.instanceId);
+        
+        if (requestHasInstanceId) {
+          console.log(`📋 [Config] Using instanceId from request (direct user selection): ${reqPayload.instanceId}`);
+          requestedInstanceIdRaw = reqPayload.instanceId;
+        } else if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
           console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
           requestedInstanceIdRaw = sendConfig.instanceId || (sendConfig.rotateAll ? "__rotate_all__" : null);
-        } else if (requestHasInstanceId) {
-          console.log(`📋 [Config] Using instanceId from request (user selection): ${body.instanceId}`);
         }
       }
     }
