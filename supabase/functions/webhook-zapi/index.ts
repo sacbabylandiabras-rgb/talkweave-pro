@@ -1098,7 +1098,8 @@ async function executeFlow(
           messages: [{ role: "user", content: userMessage || "Olá" }],
           user_id: userId,
           phone: phone,
-          system_prompt: resolvedPrompt
+          system_prompt: resolvedPrompt,
+          skip_config: true // Important: we are providing the prompt from the flow node
         }
       });
 
