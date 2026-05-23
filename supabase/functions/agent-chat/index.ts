@@ -805,10 +805,14 @@ serve(async (req) => {
     // ============ PROVIDER SELECTION ============
     const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith('sk-ant-');
     
-    // Default model if not specified
-    const model = agentConfig?.model || 'claude-3-5-sonnet-latest';
+    // Check if we are using Managed Agents (claude-3-5-sonnet-20241022-v1:0 or similar)
+    const rawModel = agentConfig?.model || 'claude-3-5-sonnet-latest';
+    const isManagedAgent = rawModel.includes(':');
     
-    console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, Provider: ${isAnthropicKey ? 'Native Anthropic' : 'Lovable AI Gateway'}`)
+    // Format model name correctly if it's a managed agent
+    const model = rawModel;
+    
+    console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, Managed Agent: ${isManagedAgent}, Provider: ${isAnthropicKey ? 'Native Anthropic' : 'Lovable AI Gateway'}`)
 
     const testMode = !phone;
     let convMessages: any[] = []
@@ -848,6 +852,21 @@ serve(async (req) => {
 
       if (isAnthropicKey) {
         // NATIVE ANTHROPIC API
+        const endpoint = isManagedAgent 
+          ? 'https://api.anthropic.com/v1/messages' // Managed agents might use same endpoint or /v1/sessions/user-event
+          : 'https://api.anthropic.com/v1/messages';
+
+        const headers: Record<string, string> = {
+          'x-api-key': ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        };
+
+        // If it's a managed agent, we add the beta header
+        if (isManagedAgent) {
+          headers['anthropic-beta'] = 'managed-agents-2026-04-01';
+        }
+
         const anthropicBody = {
           model: model,
           max_tokens: 1024,
@@ -856,13 +875,9 @@ serve(async (req) => {
           tools: enabledTools.length > 0 ? enabledTools : undefined,
         };
 
-        resp = await fetch('https://api.anthropic.com/v1/messages', {
+        resp = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'x-api-key': ANTHROPIC_API_KEY!,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json'
-          },
+          headers: headers,
           body: JSON.stringify(anthropicBody),
         });
       } else {
