@@ -884,6 +884,8 @@ serve(async (req) => {
       const data = await anthropicResp.json()
       const stopReason = data.stop_reason
       const contentBlocks: any[] = data.content || []
+      
+      console.log(`[AgentChat] Anthropic stop_reason: ${stopReason}, blocks: ${contentBlocks.length}`)
 
       // Coletar texto
       const textBlocks = contentBlocks.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n')
