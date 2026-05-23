@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, Search, Loader2, Link2, ExternalLink, BadgePercent, TrendingUp } from "lucide-react";
+import { ShoppingBag, Search, Loader2, Link2, ExternalLink, BadgePercent, TrendingUp, Copy, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
