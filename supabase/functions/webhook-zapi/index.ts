@@ -781,16 +781,57 @@ serve(async (req) => {
 
       console.log(`[FlowTrigger] No flow matched for message: "${messageRaw}"`);
 
-      // Se nada disparou e o agente global está ativo, podemos chamar o agente global aqui
-      // No entanto, vamos manter apenas o log por enquanto para não mudar o comportamento inesperadamente
-      await supabase.from("message_logs").insert({
-        user_id: userId,
-        phone: chatId,
-        instance_id: instanceId,
-        timestamp: new Date().toISOString(),
-        message_received: messageRaw,
-        message_id: messageId,
-      });
+      // Se nada disparou e o agente global está ativo, vamos chamar o agente global
+      const { data: agentConfig } = await supabase
+        .from("agent_config")
+        .select("active")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (agentConfig?.active) {
+        console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
+        
+        const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
+          body: {
+            messages: [{ role: "user", content: messageRaw || "Olá" }],
+            user_id: userId,
+            phone: phone,
+          }
+        });
+
+        if (!agentError && agentResponse) {
+          const aiResponse = agentResponse.reply;
+          const buttons = agentResponse.cta ? [{
+            id: `global_agent_cta`,
+            text: agentResponse.cta.label,
+            type: "url",
+            value: agentResponse.cta.url
+          }] : [];
+
+          let aiDestination =
+            isGroup && (webhook?.phone || webhook?.chatPhone) ? webhook?.phone || webhook?.chatPhone : chatId || phone;
+          if (isGroup || aiDestination.includes("@g.us")) {
+            const numericId = aiDestination
+              .replace(/@g\.us$/i, "")
+              .replace(/-group$/i, "")
+              .replace(/\D/g, "");
+            aiDestination = numericId ? `${numericId}-group` : aiDestination;
+          }
+
+          await sendZapiText(instance, aiDestination, aiResponse, buttons, "global_agent", "text", "", supabase, userId);
+        } else {
+          console.error("Erro ao chamar agent-chat global:", agentError);
+        }
+      } else {
+        await supabase.from("message_logs").insert({
+          user_id: userId,
+          phone: chatId,
+          instance_id: instanceId,
+          timestamp: new Date().toISOString(),
+          message_received: messageRaw,
+          message_id: messageId,
+        });
+      }
     }
 
     return new Response("ok", { status: 200, headers: corsHeaders });
