@@ -872,10 +872,15 @@ serve(async (req) => {
       }
       if (openAiTools.length > 0) reqBody.tools = openAiTools
 
+      const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith('sk-ant-');
+      const authHeader = isAnthropicKey 
+        ? ANTHROPIC_API_KEY 
+        : (LOVABLE_API_KEY || ANTHROPIC_API_KEY);
+
       const resp = await fetch(GATEWAY_URL, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${ANTHROPIC_API_KEY || LOVABLE_API_KEY}`, 
+          'Authorization': `Bearer ${authHeader}`, 
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify(reqBody),
