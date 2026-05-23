@@ -16,6 +16,7 @@ interface Product {
   image_url: string | null;
   category: string | null;
   commission_rate: number;
+  checkouts?: { id: string; slug: string | null }[];
 }
 
 interface Affiliation {
@@ -43,7 +44,10 @@ export default function PayMyAffiliations() {
           product_id,
           affiliate_id,
           created_at,
-          product:gateway_products (*)
+          product:gateway_products (
+            *,
+            checkouts:gateway_checkouts (id, slug)
+          )
         `)
         .eq("affiliate_id", user.id)
         .order("created_at", { ascending: false });
@@ -69,9 +73,20 @@ export default function PayMyAffiliations() {
     }).format(value / 100);
   };
 
-  const getAffiliateLink = (productId: string, affiliateId: string) => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/checkout/${productId}?aff=${affiliateId}`;
+  const getAffiliateLink = (product: Product, affiliateId: string) => {
+    let baseUrl = window.location.origin;
+    
+    // Se estiver no preview do Lovable, tenta usar o domínio de produção
+    if (baseUrl.includes("lovable.app") && (baseUrl.includes("preview") || baseUrl.includes("id-"))) {
+      baseUrl = "https://talkweave-pro.lovable.app";
+    }
+    
+    // Usa o slug do checkout se disponível, senão usa o ID do produto (que pode falhar se não houver checkout com esse ID)
+    const identifier = product.checkouts && product.checkouts.length > 0 
+      ? (product.checkouts[0].slug || product.checkouts[0].id) 
+      : product.id;
+      
+    return `${baseUrl}/pay/${identifier}?aff=${affiliateId}`;
   };
 
   const copyToClipboard = (text: string) => {
@@ -121,7 +136,7 @@ export default function PayMyAffiliations() {
             const product = aff.product;
             if (!product) return null;
             
-            const affiliateLink = getAffiliateLink(product.id, aff.affiliate_id);
+            const affiliateLink = getAffiliateLink(product, aff.affiliate_id);
 
             return (
               <Card key={aff.id} className="overflow-hidden group hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
