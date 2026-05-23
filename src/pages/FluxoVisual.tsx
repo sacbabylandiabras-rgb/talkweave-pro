@@ -2862,12 +2862,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <SelectValue placeholder="Modelos prontos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="clinica">Clínica Médica</SelectItem>
-                        <SelectItem value="agendamento">Agendar Consulta</SelectItem>
-                        <SelectItem value="oficina">Oficina Mecânica</SelectItem>
-                        <SelectItem value="restaurante">Restaurante</SelectItem>
-                        <SelectItem value="estetica">Clínica de Estética</SelectItem>
-                        <SelectItem value="qualificacao">Qualificação de Lead</SelectItem>
+                        <SelectItem value="clinica">🏥 Clínica Médica</SelectItem>
+                        <SelectItem value="agendamento">📅 Agendar Consulta</SelectItem>
+                        <SelectItem value="oficina">🔧 Oficina Mecânica</SelectItem>
+                        <SelectItem value="restaurante">🍴 Restaurante</SelectItem>
+                        <SelectItem value="estetica">💄 Clínica de Estética</SelectItem>
+                        <SelectItem value="qualificacao">📋 Qualificação de Lead</SelectItem>
                         <SelectItem value="infoproduto">🎯 Infoproduto</SelectItem>
                         <SelectItem value="encapsulado">💊 Encapsulado</SelectItem>
                         <SelectItem value="saas">💻 SaaS</SelectItem>
