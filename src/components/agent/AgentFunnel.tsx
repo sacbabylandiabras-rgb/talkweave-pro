@@ -40,7 +40,7 @@ export const AgentFunnel = () => {
     if (error) return;
 
     const newCounts: Record<string, number> = { triage: 0, service: 0, closing: 0 };
-    data.forEach((contact: any) => {
+    (data as any[]).forEach((contact: any) => {
       const stage = contact.agent_stage || "triage";
       if (newCounts[stage] !== undefined) {
         newCounts[stage]++;
@@ -54,7 +54,7 @@ export const AgentFunnel = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("saved_contacts")
       .select("id, phone, name, agent_stage, updated_at")
       .eq("user_id", session.user.id)
@@ -62,7 +62,7 @@ export const AgentFunnel = () => {
       .order("updated_at", { ascending: false });
 
     if (!error && data) {
-      setLeads(data);
+      setLeads(data as Lead[]);
     }
     setLoadingLeads(false);
   };
@@ -148,7 +148,7 @@ export const AgentFunnel = () => {
                     <div className="text-right">
                       <p className="text-[10px] text-muted-foreground">Última atualização</p>
                       <p className="text-[10px] font-medium">
-                        {format(new Date(lead.updated_at || new Date()), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        {lead.updated_at ? format(new Date(lead.updated_at), "dd/MM 'às' HH:mm", { locale: ptBR }) : '-'}
                       </p>
                     </div>
                   </div>
