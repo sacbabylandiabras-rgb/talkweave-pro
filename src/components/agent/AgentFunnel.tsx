@@ -56,7 +56,7 @@ export const AgentFunnel = () => {
 
     const { data, error } = await supabase
       .from("saved_contacts")
-      .select("*")
+      .select("id, phone, name, agent_stage, updated_at")
       .eq("user_id", session.user.id)
       .eq("agent_stage", stage)
       .order("updated_at", { ascending: false });
