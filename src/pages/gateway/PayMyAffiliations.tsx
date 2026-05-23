@@ -16,6 +16,7 @@ interface Product {
   image_url: string | null;
   category: string | null;
   commission_rate: number;
+  checkouts?: { id: string; slug: string | null }[];
 }
 
 interface Affiliation {
