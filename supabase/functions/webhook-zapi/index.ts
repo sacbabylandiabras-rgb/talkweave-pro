@@ -245,17 +245,17 @@ serve(async (req) => {
 
     const userId = instanceData?.user_id;
 
+    const hasMedia = !!(webhook?.image || webhook?.video || webhook?.audio || webhook?.sticker || webhook?.document);
+    const hasInteractive = !!(webhook?.buttonsResponseMessage || webhook?.buttonReply || webhook?.listResponseMessage || webhook?.interactiveResponseMessage);
+    const hasText = !!(webhook?.text || webhook?.message?.text || messageRaw.trim().length > 0);
+
     const isStatusCallback =
       type === "DeliveryCallback" ||
       type === "MessageStatusCallback" ||
       type === "MessageStatus" ||
       type === "MessageCallback" ||
       type === "OnMessageSend" ||
-      (!!webhook?.status &&
-        !webhook?.text &&
-        !webhook?.buttonsResponseMessage &&
-        !webhook?.buttonReply &&
-        !webhook?.listResponseMessage);
+      (!!webhook?.status && !hasText && !hasMedia && !hasInteractive);
 
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);

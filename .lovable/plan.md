@@ -1,22 +1,21 @@
-I will fix the issue where images and other media (videos, audio, etc.) are not appearing in the chat. The problem is caused by inconsistent message logging formats and missing media handling in the webhooks.
+The user is reporting that recent messages are not appearing in the chat interface. Based on my analysis of the code and logs, I have identified a few potential causes and will apply the following fixes:
 
-### Changes:
+1. **Fix `webhook-zapi` filter logic**: The current `isStatusCallback` logic in the Z-API webhook is too broad. It may be incorrectly identifying media messages (images, videos, etc.) or messages with a `status` field but no `text` as status updates, causing them to be ignored instead of saved to the database. I will refine this logic to ensure all content-bearing messages are processed.
 
-#### 1. Update `send-message` Edge Function:
-- In the Meta API section, update the log format for messages with media to use `[media:type:url]` instead of the descriptive `[Mídia: type]`. This ensures the UI can correctly parse and render the media.
+2. **Improve Realtime sorting and stability in `useMessageLogs`**: I will ensure that the Realtime listener in `useMessageLogs` is more robust and that the `lastLogsRef` synchronization doesn't interfere with UI updates.
 
-#### 2. Update `webhook-zapi` Edge Function:
-- Expand the message type detection to include media callbacks (`ImageCallback`, `VideoCallback`, `AudioCallback`, `StickerCallback`, `DocumentCallback`).
-- Update the content extraction logic to detect media URLs from the webhook payload (e.g., `webhook.image.url`, `webhook.video.url`).
-- Format these as `[media:type:url]` so they appear correctly in the conversation history.
+3. **Check and fix `useMessageLogs` filtering**: Ensure that the hook doesn't accidentally filter out recently received messages due to missing fields or technical identifiers.
 
-#### 3. Update `webhook-meta` Edge Function:
-- Add detection for media message types from the Meta WhatsApp Business API (image, video, audio, document, sticker).
-- Extract media IDs and, where possible, log them so they are recognized as media in the chat (Meta requires an extra step to get URLs from IDs, but I will ensure they are at least identified as media).
+### Technical Details
 
-#### 4. Update `webhook-meta-v2` (if applicable):
-- Apply similar fixes to the v2 version of the Meta webhook to ensure consistency.
+#### `supabase/functions/webhook-zapi/index.ts`
+- Refine `isStatusCallback` to explicitly check for media (`image`, `video`, etc.) and ensure they are not swallowed as status updates.
+- Improve logging to help debug future issues with ignored payloads.
 
-### Technical Details:
-- The UI uses a regex `^\[media:(image|imagem|video|audio|document|sticker|figurinha|gif):(.+?)\]` to identify media in the message content.
-- I will ensure all outgoing and incoming media messages follow this exact format.
+#### `src/hooks/useMessageLogs.ts`
+- Ensure the Realtime subscription correctly handles `INSERT` and `UPDATE` events.
+- Fix any potential sorting issues where messages with identical timestamps might be misordered.
+- Verify the `user_id` filtering in both polling and Realtime.
+
+#### `src/pages/MensagensRecebidas.tsx`
+- Ensure the conversation list correctly triggers a re-render when new messages arrive.
