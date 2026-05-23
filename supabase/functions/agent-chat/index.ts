@@ -717,6 +717,11 @@ serve(async (req) => {
     systemPrompt += '--- REGRAS GERAIS ---'
     systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
     systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
+    systemPrompt += '\n- Se não souber a resposta, use a ferramenta transferir_humano.'
+    systemPrompt += '\n- Se o cliente perguntar sobre plano, preço, assinatura ou quiser pagar, use a ferramenta gateway_buscar_plano_checkout antes de responder.'
+    systemPrompt += '\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios, mas nunca escreva a URL no texto.'
+    systemPrompt += '\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.'
+    systemPrompt += '\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.'
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
