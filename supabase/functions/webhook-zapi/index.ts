@@ -800,7 +800,8 @@ serve(async (req) => {
         });
 
         if (!agentError && agentResponse) {
-          const aiResponse = agentResponse.reply;
+          console.log("[AI Agent] Global agent response received:", JSON.stringify(agentResponse).slice(0, 500));
+          const aiResponse = agentResponse.reply || "Desculpe, não consegui gerar uma resposta.";
           const buttons = agentResponse.cta ? [{
             id: `global_agent_cta`,
             text: agentResponse.cta.label,
@@ -820,7 +821,7 @@ serve(async (req) => {
 
           await sendZapiText(instance, aiDestination, aiResponse, buttons, "global_agent", "text", "", supabase, userId);
         } else {
-          console.error("Erro ao chamar agent-chat global:", agentError);
+          console.error("[AI Agent] Error calling global agent-chat:", JSON.stringify(agentError));
         }
       } else {
         await supabase.from("message_logs").insert({
@@ -1098,15 +1099,17 @@ async function executeFlow(
           messages: [{ role: "user", content: userMessage || "Olá" }],
           user_id: userId,
           phone: phone,
-          system_prompt: resolvedPrompt
+          system_prompt: resolvedPrompt,
+          skip_config: true // Important: we are providing the prompt from the flow node
         }
       });
 
       if (agentError) {
-        console.error("Erro ao chamar agent-chat:", agentError);
+        console.error("[Flow:agenteIA] Error calling agent-chat:", JSON.stringify(agentError));
         await sendZapiText(instance, chatId || phone, "Desculpe, tive um erro ao processar sua resposta. Por favor, tente novamente.", [], node.id, "text", "", supabase, userId, flow.name);
       } else {
-        const aiResponse = agentResponse.reply || "Não consegui gerar uma resposta no momento.";
+        console.log("[Flow:agenteIA] Agent-chat response received:", JSON.stringify(agentResponse).slice(0, 500));
+        const aiResponse = agentResponse?.reply || "Não consegui gerar uma resposta no momento.";
         const buttons = agentResponse.cta ? [{
           id: `cta:${node.id}`,
           text: agentResponse.cta.label,

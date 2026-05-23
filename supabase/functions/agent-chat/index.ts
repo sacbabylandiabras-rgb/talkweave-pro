@@ -837,7 +837,9 @@ serve(async (req) => {
     }
 
     const testMode = !phone // chat de teste = sem destino real
-    const model = agentConfig?.model || 'claude-3-5-sonnet-20240620'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-latest'
+
+    console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
     // Mensagens só user/assistant (system vai à parte na API Anthropic)
     let convMessages: any[] = (messages || [])
@@ -865,17 +867,25 @@ serve(async (req) => {
         headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody),
       })
+      
       if (!anthropicResp.ok) {
         const errText = await anthropicResp.text()
-        console.error('Anthropic error:', anthropicResp.status, errText)
+        console.error(`[AgentChat] Anthropic API Error: ${anthropicResp.status}`, errText)
+        
         if (anthropicResp.status === 401) return new Response(JSON.stringify({ error: 'Chave Anthropic inválida.' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         if (anthropicResp.status === 429) return new Response(JSON.stringify({ error: 'Rate limit Anthropic excedido.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        return new Response(JSON.stringify({ error: 'Erro Anthropic: ' + errText.substring(0, 200) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        
+        return new Response(JSON.stringify({ error: 'Erro Anthropic: ' + errText.substring(0, 200) }), { 
+          status: anthropicResp.status >= 500 ? 500 : anthropicResp.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        })
       }
 
       const data = await anthropicResp.json()
       const stopReason = data.stop_reason
       const contentBlocks: any[] = data.content || []
+      
+      console.log(`[AgentChat] Anthropic stop_reason: ${stopReason}, blocks: ${contentBlocks.length}`)
 
       // Coletar texto
       const textBlocks = contentBlocks.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n')
@@ -919,7 +929,9 @@ serve(async (req) => {
       .replace(/[ \t]+\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim()
-    const replyPayload: Record<string, unknown> = { reply: sanitizedReply || 'Sem resposta.' }
+    
+    console.log(`[AgentChat] Final reply length: ${sanitizedReply.length}`)
+    const replyPayload: Record<string, unknown> = { reply: sanitizedReply || 'Desculpe, não consegui processar uma resposta agora.' }
     if (checkoutUrl) {
       replyPayload.cta = {
         label: finalCta?.label || prefetchedCta?.label || 'Abrir checkout',
