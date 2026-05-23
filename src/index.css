@@ -210,7 +210,7 @@
     }
 
     [data-theme='white'] .sidebar-logo {
-      filter: none !important;
+      filter: brightness(0.1) !important;
     }
 
     [data-theme='white'] .plan-badge {
