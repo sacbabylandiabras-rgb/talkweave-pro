@@ -800,7 +800,8 @@ serve(async (req) => {
         });
 
         if (!agentError && agentResponse) {
-          const aiResponse = agentResponse.reply;
+          console.log("[AI Agent] Global agent response received:", JSON.stringify(agentResponse).slice(0, 500));
+          const aiResponse = agentResponse.reply || "Desculpe, não consegui gerar uma resposta.";
           const buttons = agentResponse.cta ? [{
             id: `global_agent_cta`,
             text: agentResponse.cta.label,
@@ -820,7 +821,7 @@ serve(async (req) => {
 
           await sendZapiText(instance, aiDestination, aiResponse, buttons, "global_agent", "text", "", supabase, userId);
         } else {
-          console.error("Erro ao chamar agent-chat global:", agentError);
+          console.error("[AI Agent] Error calling global agent-chat:", JSON.stringify(agentError));
         }
       } else {
         await supabase.from("message_logs").insert({
