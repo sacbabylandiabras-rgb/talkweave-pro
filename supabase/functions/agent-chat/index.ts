@@ -868,7 +868,7 @@ serve(async (req) => {
       iterations++
 
       const reqBody: any = {
-        model,
+        model: effectiveModel,
         messages: convMessages,
         max_tokens: 1024,
       }
