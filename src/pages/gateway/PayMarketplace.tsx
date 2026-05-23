@@ -73,20 +73,6 @@ export default function PayMarketplace() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Produtos Ativos</p>
-              <h3 className="text-2xl font-bold">{products.length}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Adicionar mais estatísticas aqui se necessário */}
-      </div>
 
       <div className="flex items-center gap-4 bg-card p-4 rounded-lg border">
         <div className="relative flex-1">
