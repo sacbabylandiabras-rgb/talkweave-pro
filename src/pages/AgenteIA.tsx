@@ -99,6 +99,9 @@ const AgenteIA = () => {
   // Config form state
   const [agentName, setAgentName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [promptTriage, setPromptTriage] = useState("");
+  const [promptService, setPromptService] = useState("");
+  const [promptClosing, setPromptClosing] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
@@ -168,6 +171,9 @@ const AgenteIA = () => {
     if (!loading) {
       setAgentName(config.agent_name);
       setSystemPrompt(config.system_prompt);
+      setPromptTriage(config.prompt_triage || "");
+      setPromptService(config.prompt_service || "");
+      setPromptClosing(config.prompt_closing || "");
       setIsActive(config.active);
       setModel(config.model);
     }
@@ -178,7 +184,16 @@ const AgenteIA = () => {
   }, [chatMessages]);
 
   const handleSaveConfig = () => {
-    saveConfig({ agent_name: agentName, system_prompt: systemPrompt, active: isActive, provider, model });
+    saveConfig({ 
+      agent_name: agentName, 
+      system_prompt: systemPrompt, 
+      prompt_triage: promptTriage,
+      prompt_service: promptService,
+      prompt_closing: promptClosing,
+      active: isActive, 
+      provider, 
+      model 
+    });
   };
 
   const handleAddFaq = async () => {
@@ -413,18 +428,57 @@ const AgenteIA = () => {
                     Usando sua chave da Anthropic (ANTHROPIC_API_KEY). Cobrança ocorre direto na sua conta Anthropic.
                   </p>
 
-                  <div className="space-y-2">
-                    <Label>Prompt do Sistema (Instruções)</Label>
-                    <Textarea
-                      value={systemPrompt}
-                      onChange={e => setSystemPrompt(e.target.value)}
-                      placeholder="Descreva como o agente deve se comportar, o tom de voz, regras, etc."
-                      rows={8}
-                      className="resize-none"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Este texto será usado como instrução principal do agente. Inclua informações sobre sua empresa, tom de voz e regras.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-primary" />
+                        Etapa 1: Triagem e Classificação
+                      </Label>
+                      <Textarea
+                        value={promptTriage}
+                        onChange={e => setPromptTriage(e.target.value)}
+                        placeholder="Ex: Identifique se o cliente quer comprar, tirar dúvida ou suporte..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Instruções para o agente identificar o que o cliente deseja.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-primary" />
+                        Etapa 2: Atendimento (Base de Conhecimento)
+                      </Label>
+                      <Textarea
+                        value={promptService}
+                        onChange={e => setPromptService(e.target.value)}
+                        placeholder="Ex: Use a base de conhecimento para responder de forma técnica e prestativa..."
+                        rows={6}
+                        className="resize-none"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Instruções sobre como o agente deve responder usando os documentos e FAQ.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        Etapa 3: Conclusão e CTA
+                      </Label>
+                      <Textarea
+                        value={promptClosing}
+                        onChange={e => setPromptClosing(e.target.value)}
+                        placeholder="Ex: Tente sempre converter em venda enviando o link do checkout ou peça para falar com humano..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Instruções para o fechamento da conversa e chamada para ação.
+                      </p>
+                    </div>
                   </div>
 
                   <Button onClick={handleSaveConfig} disabled={saving} className="w-full">
