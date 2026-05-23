@@ -337,6 +337,23 @@ serve(async (req) => {
           }
         }
       } else if (messageIds.length > 0 && isErrorStatus) {
+        // Se detectamos shadowban, atualizar saúde da instância
+        if (isShadowBanError && instanceData?.id) {
+          console.log(`🛡️ Shadowban detected for instance ${instanceData.id}. Updating health table.`);
+          await supabase.from("warmup_instance_health").insert({
+            instance_ref: instanceData.id,
+            phone: instanceData.connected_phone || "",
+            block_type: "shadowban",
+            detail: `Detectado via erro de envio: ${error || status}`,
+            last_detected_at: new Date().toISOString()
+          });
+
+          // Desativar a instância para evitar mais reijeições
+          await supabase.from("zapi_instances")
+            .update({ is_active: false })
+            .eq("id", instanceData.id);
+        }
+
         for (const msgId of messageIds) {
           let finalErrorMessage = error || status || "Erro desconhecido";
           let finalStatus = "failed";
