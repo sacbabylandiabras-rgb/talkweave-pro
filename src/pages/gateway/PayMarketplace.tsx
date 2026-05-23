@@ -23,9 +23,12 @@ export default function PayMarketplace() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [affiliations, setAffiliations] = useState<string[]>([]);
 
   const fetchMarketplaceProducts = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from("gateway_products" as any)
         .select("*")
@@ -34,6 +37,18 @@ export default function PayMarketplace() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+
+      if (user) {
+        const { data: affData, error: affError } = await supabase
+          .from("gateway_affiliates" as any)
+          .select("product_id")
+          .eq("affiliate_id", user.id);
+        
+        if (!affError && affData) {
+          setAffiliations(affData.map((a: any) => a.product_id));
+        }
+      }
+
       setProducts(data as any[] || []);
     } catch (error: any) {
       console.error("Error fetching marketplace:", error);
@@ -72,6 +87,7 @@ export default function PayMarketplace() {
       }
 
       toast.success("Afiliação realizada com sucesso!");
+      fetchMarketplaceProducts(); // Refresh list to hide the product
     } catch (error: any) {
       console.error("Error affiliating:", error);
       toast.error("Erro ao realizar afiliação");
@@ -85,10 +101,12 @@ export default function PayMarketplace() {
     }).format(value / 100);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.category && p.category.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.category && p.category.toLowerCase().includes(search.toLowerCase()));
+    const isNotAffiliated = !affiliations.includes(p.id);
+    return matchesSearch && isNotAffiliated;
+  });
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500">
