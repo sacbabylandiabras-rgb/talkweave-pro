@@ -114,6 +114,10 @@ serve(async (req) => {
 
       // Capturar o telefone conectado se disponível no payload de conexão
       const connectedPhone = webhook?.connectedPhone || webhook?.phone || "";
+      const reason = webhook?.reason || webhook?.errorMessage || "";
+      const isShadowBanReason = String(reason).toLowerCase().includes("shadow ban") || 
+                               String(reason).toLowerCase().includes("banido") ||
+                               String(reason).toLowerCase().includes("banned");
 
       if (instanceId) {
         const updatePayload: any = {
@@ -141,15 +145,19 @@ serve(async (req) => {
         } else {
           console.log(`✅ Instance ${instanceId} updated to ${isConnected ? "ACTIVE" : "INACTIVE"}`);
           
-          // Se desconectou, registrar na saúde da instância
-          if (!isConnected && instanceBefore?.id) {
+          // Se desconectou ou detectou banimento, registrar na saúde da instância
+          if ((!isConnected || isShadowBanReason) && instanceBefore?.id) {
             await supabase.from("warmup_instance_health").insert({
               instance_ref: instanceBefore.id,
               phone: connectedPhone || "",
-              block_type: "disconnected",
-              detail: `Desconectado via webhook: ${type}`,
+              block_type: isShadowBanReason ? "shadowban" : "disconnected",
+              detail: isShadowBanReason ? `Banimento detectado via webhook: ${reason}` : `Desconectado via webhook: ${type}`,
               last_detected_at: new Date().toISOString()
             });
+            
+            if (isShadowBanReason) {
+              await supabase.from("zapi_instances").update({ is_active: false }).eq("id", instanceBefore.id);
+            }
           }
         }
       }
