@@ -1100,7 +1100,8 @@ async function executeFlow(
           user_id: userId,
           phone: phone,
           system_prompt: resolvedPrompt,
-          skip_config: true // Important: we are providing the prompt from the flow node
+          skip_config: true, // Important: we are providing the prompt from the flow node
+          model: node.data.model || "claude-3-5-sonnet-latest"
         }
       });
 

@@ -559,18 +559,71 @@ async function sendNodeContentMeta(
     flowId?: string;
   }
 ): Promise<boolean> {
-  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial') return false
+  if (targetNode.type !== 'blocoConteudo' && targetNode.type !== 'blocoInicial' && targetNode.type !== 'agenteIA') return false
   if (visited.has(targetNode.id)) return false
   visited.add(targetNode.id)
 
-  if (targetNode.type === 'blocoConteudo') {
+  if (targetNode.type === 'blocoConteudo' || targetNode.type === 'agenteIA') {
     // Handle delay before sending content
     const delaySeconds = Number(targetNode.data.delaySeconds || 0)
     if (delaySeconds > 0) {
       const safeDelay = Math.min(delaySeconds, 50) // Limit to 50s for backend
-      console.log(`[webhook-meta] Bloco de conteúdo com delay de ${safeDelay}s`)
+      console.log(`[webhook-meta] Bloco ${targetNode.type} com delay de ${safeDelay}s`)
       await new Promise(resolve => setTimeout(resolve, safeDelay * 1000))
     }
+  }
+
+  if (targetNode.type === 'agenteIA') {
+    const prompt = targetNode.data.prompt || "Você é um assistente virtual prestativo.";
+    const resolvedPrompt = replaceVars(prompt);
+    
+    // For Meta, we don't have a specific userMessage in the recursion context easily, 
+    // but we can try to get it from a global context or just use a default "Olá"
+    // In Meta v2, the message is processed in the loop above.
+    
+    // Let's try to pass a default message if not available
+    const userMessage = "Olá"; 
+
+    console.log(`[webhook-meta:agenteIA] Calling agent-chat for phone ${phone}`);
+    
+    const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
+      body: {
+        messages: [{ role: "user", content: userMessage }],
+        user_id: userId,
+        phone: phone,
+        system_prompt: resolvedPrompt,
+        skip_config: true,
+        model: targetNode.data.model || "claude-3-5-sonnet-latest"
+      }
+    });
+
+    if (agentError) {
+      console.error("[webhook-meta:agenteIA] Error calling agent-chat:", JSON.stringify(agentError));
+      await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, "Desculpe, tive um erro ao processar sua resposta com IA.");
+    } else {
+      const aiResponse = agentResponse?.reply || "Não consegui gerar uma resposta no momento.";
+      await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, aiResponse);
+      
+      // If there's a CTA, we could send it as well
+      if (agentResponse.cta) {
+        await metaSendText(metaCreds.access_token, metaCreds.phone_number_id, phone, `🔗 ${agentResponse.cta.label}: ${agentResponse.cta.url}`);
+      }
+    }
+    
+    // Log the AI response
+    if (supabase && userId) {
+      await supabase.from('message_logs').insert({
+        phone,
+        message_received: null,
+        response_sent: agentResponse?.reply || "[IA response]",
+        keyword_matched: `__flow_send__:${flowName}`,
+        timestamp: new Date().toISOString(),
+        user_id: userId,
+        instance_id: `meta:${metaCreds.phone_number_id}`,
+      });
+    }
+
+    return false; // AI node doesn't pause by default unless we add button support to it
   }
 
   const contentType = targetNode.data.contentType || 'text'
