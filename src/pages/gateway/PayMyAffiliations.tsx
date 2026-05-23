@@ -38,6 +38,7 @@ export default function PayMyAffiliations() {
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedAffiliation, setSelectedAffiliation] = useState<Affiliation | null>(null);
 
   const fetchMyAffiliations = async () => {
     try {
