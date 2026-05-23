@@ -2811,6 +2811,21 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
 
                 <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Nome do Bloco (Opcional)</Label>
+                  <Input
+                    value={selectedNode.data.label || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, label: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: Agente de Vendas"
+                  />
+                </div>
+
+
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-semibold flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-purple-500" />
