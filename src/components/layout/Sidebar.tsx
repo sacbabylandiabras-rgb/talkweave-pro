@@ -279,13 +279,10 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
     )}>
       {/* Logo + Brand */}
       <div className={cn(
-        "flex items-center px-4 py-4 border-b border-black/10 [[data-theme='white']_&]:border-gray-200",
-        collapsed && "justify-center px-0"
+        "flex items-center gap-2.5 px-0 py-1 border-b border-white/10",
+        collapsed && "justify-center px-1"
       )}>
-        <LogoImage className={cn(
-          "h-8 object-contain transition-all duration-300 sidebar-logo",
-          collapsed ? "w-8" : "w-auto"
-        )} />
+        <LogoImage className="w-full h-auto object-contain shrink-0 scale-110 translate-x-2 drop-shadow-[0_6px_15px_rgba(0,0,0,0.7)] transition-all duration-300 sidebar-logo" />
       </div>
 
       {/* Collapse toggle */}
