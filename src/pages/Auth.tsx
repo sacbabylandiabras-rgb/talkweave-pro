@@ -88,7 +88,7 @@ const Auth = () => {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: 'https://zaplynx.com/gateway-checkout/dashboard',
+          emailRedirectTo: 'https://zaplynx.com/dashboard',
           data: { full_name: fullName.trim(), whatsapp: whatsapp.trim() }
         }
       });
