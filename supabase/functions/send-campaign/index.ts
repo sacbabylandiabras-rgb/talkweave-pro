@@ -820,9 +820,14 @@ serve(async (req) => {
         campaignTemplate = campaign.template;
         const sendConfig = campaign.target_audience?.__sendConfig;
 
-        if (sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
+        // Só usa o sendConfig do banco se NÃO foi passado um instanceId na requisição
+        // O instanceId da requisição (escolha do usuário no dialog) tem prioridade absoluta
+        const requestHasInstanceId = Boolean(body.instanceId);
+        if (!requestHasInstanceId && sendConfig && (sendConfig.instanceId || sendConfig.rotateAll)) {
           console.log(`📋 [Config] Using persisted send configuration from DB for campaign ${campaignId}`);
           requestedInstanceIdRaw = sendConfig.instanceId || (sendConfig.rotateAll ? "__rotate_all__" : null);
+        } else if (requestHasInstanceId) {
+          console.log(`📋 [Config] Using instanceId from request (user selection): ${body.instanceId}`);
         }
       }
     }
@@ -2209,12 +2214,7 @@ serve(async (req) => {
             `📬 Campaign Z-API response for ${contact.phone} via ${currentInstance.instanceName}: status=${zapiResponse.status}, confirmed=${confirmed}, ack=${messageIdFromResponse || "none"}`,
           );
 
-          if (
-            zapiResponse.ok &&
-            (isLidIdentifier(contact.phone) ||
-              (!explicitError && confirmed) ||
-              (reqPayload as SendCampaignRequest).forceSend)
-          ) {
+          if (zapiResponse.ok && (isLidIdentifier(contact.phone) || (!explicitError && confirmed))) {
             const isLocationButton =
               specialTpl?.type === "uaz_location_button" ||
               specialTpl?.type === "location_button" ||
@@ -2259,51 +2259,37 @@ serve(async (req) => {
               await recordShadowBan(supabase, currentInstance.dbId, JSON.stringify(zapiResult));
             }
 
-            // ✅ forceSend=true: ignora shadow ban e trata como enviado se HTTP ok
-            // O Z-API aceitou a requisição mesmo com restrição — deixamos ele decidir
-            if (isShadowBan && (reqPayload as SendCampaignRequest).forceSend && zapiResponse.ok) {
-              console.log(
-                `⚡ [ForceSend] Shadow ban detectado mas forceSend=true. Tratando como enviado para ${contact.phone}.`,
-              );
-              campaignSend.status = "sent";
-              campaignSend.sent_at = new Date().toISOString();
-              const ackId = getZapiAckId(zapiResult);
-              if (ackId) campaignSend.message_id = String(ackId);
-              results.push({ phone: contact.phone, success: true, messageId: ackId });
-            } else {
-              campaignSend.status = "failed";
-              campaignSend.error_message = isShadowBan
-                ? "Shadow Ban: número com restrição de envio. Próximos contatos continuarão normalmente."
-                : explicitError ||
-                  (!confirmed
-                    ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"
-                    : `HTTP ${zapiResponse.status}`);
+            // Shadow ban: sempre marca como falha e continua para o próximo contato
+            // Nunca pausa a campanha por shadow ban — só por rate limit real (error 463)
+            campaignSend.status = "failed";
+            campaignSend.error_message = isShadowBan
+              ? "Shadow Ban: número com restrição de envio. Próximos contatos continuarão normalmente."
+              : explicitError ||
+                (!confirmed
+                  ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"
+                  : `HTTP ${zapiResponse.status}`);
 
-              results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
-              console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
+            results.push({ phone: contact.phone, success: false, error: campaignSend.error_message });
+            console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
-              // Shadow ban e forceSend=true: nunca pausam — marca como falha e continua para o próximo
-              // Rate limit real (error 463) só pausa se não for forceSend
-              if (!(reqPayload as SendCampaignRequest).forceSend && !isShadowBan) {
-                if (
-                  isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
-                  !isLidIdentifier(contact.phone)
-                ) {
-                  rateLimitHitsInBatch += 1;
-                } else {
-                  rateLimitHitsInBatch = 0;
-                }
+            // Shadow ban nunca pausa — só rate limit real (error 463) pausa, e só se não for forceSend
+            if (!isShadowBan && !(reqPayload as SendCampaignRequest).forceSend) {
+              if (
+                isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
+                !isLidIdentifier(contact.phone)
+              ) {
+                rateLimitHitsInBatch += 1;
+              } else {
+                rateLimitHitsInBatch = 0;
+              }
 
-                if (rateLimitHitsInBatch >= 2) {
-                  console.log(
-                    `🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`,
-                  );
-                  await supabase
-                    .from("campaigns")
-                    .update({ status: "paused", updated_at: new Date().toISOString() })
-                    .eq("id", campaignId);
-                  return { stop: true, status: "paused" };
-                }
+              if (rateLimitHitsInBatch >= 2) {
+                console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
+                await supabase
+                  .from("campaigns")
+                  .update({ status: "paused", updated_at: new Date().toISOString() })
+                  .eq("id", campaignId);
+                return { stop: true, status: "paused" };
               }
             }
           }
