@@ -70,7 +70,13 @@ export default function PayMyAffiliations() {
   };
 
   const getAffiliateLink = (productId: string, affiliateId: string) => {
-    const baseUrl = window.location.origin;
+    let baseUrl = window.location.origin;
+    
+    // Se estiver no preview do Lovable, tenta usar o domínio de produção
+    if (baseUrl.includes("lovable.app") && (baseUrl.includes("preview") || baseUrl.includes("id-"))) {
+      baseUrl = "https://talkweave-pro.lovable.app";
+    }
+    
     return `${baseUrl}/checkout/${productId}?aff=${affiliateId}`;
   };
 
