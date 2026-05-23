@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from "@supabase/supabase-js";
+import { AgentFunnel } from "@/components/agent/AgentFunnel";
 import {
   Bot,
   Brain,
@@ -33,6 +34,7 @@ import {
   Search,
   Upload,
   Wrench,
+  BarChart3,
 } from "lucide-react";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -355,24 +357,43 @@ const AgenteIA = () => {
         {/* Left: Config + Knowledge */}
         <div className="xl:col-span-2 space-y-6">
           <Tabs defaultValue="config" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="config" className="flex items-center gap-1.5">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="config" className="flex items-center gap-1.5 text-xs">
                 <Sparkles className="w-3.5 h-3.5" />
                 Configuração
               </TabsTrigger>
-              <TabsTrigger value="tools" className="flex items-center gap-1.5">
+              <TabsTrigger value="flow" className="flex items-center gap-1.5 text-xs">
+                <BarChart3 className="w-3.5 h-3.5" />
+                Fluxo/Leads
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="flex items-center gap-1.5 text-xs">
                 <Wrench className="w-3.5 h-3.5" />
                 Ferramentas
               </TabsTrigger>
-              <TabsTrigger value="faq" className="flex items-center gap-1.5">
+              <TabsTrigger value="faq" className="flex items-center gap-1.5 text-xs">
                 <HelpCircle className="w-3.5 h-3.5" />
                 FAQ
               </TabsTrigger>
-              <TabsTrigger value="docs" className="flex items-center gap-1.5">
+              <TabsTrigger value="docs" className="flex items-center gap-1.5 text-xs">
                 <FileText className="w-3.5 h-3.5" />
                 Documentos
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="flow" className="mt-4">
+              <Card className="border-border/60">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    Fluxo de Conversão (Funil)
+                  </CardTitle>
+                  <CardDescription>Visualize o progresso dos seus leads através das etapas do agente</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AgentFunnel />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="config" className="mt-4">
               <Card className="border-border/60">
