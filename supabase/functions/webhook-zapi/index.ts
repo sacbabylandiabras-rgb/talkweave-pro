@@ -63,22 +63,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
-    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
+    const participantPhone =
+      webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
     let chatId = webhook?.phone || webhook?.chatPhone || "";
 
-    if (isGroup || chatId.includes('@g.us')) {
-      const rawId = chatId.replace(/@g\.us$/i, '').replace(/-group$/i, '');
+    if (isGroup || chatId.includes("@g.us")) {
+      const rawId = chatId.replace(/@g\.us$/i, "").replace(/-group$/i, "");
       if (rawId) {
         chatId = `${rawId}-group`;
       }
     }
 
-    const phone = (isGroup && participantPhone) 
-      ? participantPhone 
-      : chatId;
+    const phone = isGroup && participantPhone ? participantPhone : chatId;
     const instanceId = webhook?.instanceId || "";
-    
-    const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+
+    const type =
+      webhook?.type ||
+      webhook?.notification ||
+      (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
 
     if (
@@ -93,52 +95,59 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    const isMessage = !type || 
-                     type === "OnMessage" || 
-                     type === "MessageCallback" || 
-                     type === "OnText" || 
-                     type === "ReceivedCallback" ||
-                     type === "ButtonsResponseMessage" || 
-                     type === "ButtonReply" ||
-                     type === "ListResponseMessage" ||
-                     type === "ImageCallback" ||
-                     type === "VideoCallback" ||
-                     type === "AudioCallback" ||
-                     type === "StickerCallback" ||
-                     type === "DocumentCallback";
-    
-    const isButtonResponse = type === "ButtonsResponseMessage" || 
-                            type === "ButtonReply" || 
-                            type === "ListResponseMessage" || 
-                            !!webhook?.buttonsResponseMessage ||
-                            !!webhook?.buttonResponseMessage ||
-                            !!webhook?.buttonReply ||
-                            !!webhook?.listResponseMessage;
+    const isMessage =
+      !type ||
+      type === "OnMessage" ||
+      type === "MessageCallback" ||
+      type === "OnText" ||
+      type === "ReceivedCallback" ||
+      type === "ButtonsResponseMessage" ||
+      type === "ButtonReply" ||
+      type === "ListResponseMessage" ||
+      type === "ImageCallback" ||
+      type === "VideoCallback" ||
+      type === "AudioCallback" ||
+      type === "StickerCallback" ||
+      type === "DocumentCallback";
+
+    const isButtonResponse =
+      type === "ButtonsResponseMessage" ||
+      type === "ButtonReply" ||
+      type === "ListResponseMessage" ||
+      !!webhook?.buttonsResponseMessage ||
+      !!webhook?.buttonResponseMessage ||
+      !!webhook?.buttonReply ||
+      !!webhook?.listResponseMessage;
 
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
     const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
     const senderPhone = participantPhone;
 
-    let messageRaw = webhook?.buttonsResponseMessage?.message ||
-                      webhook?.buttonsResponseMessage?.buttonText ||
-                      webhook?.buttonsResponseMessage?.buttonId ||
-                      webhook?.buttonResponseMessage?.message ||
-                      webhook?.buttonResponseMessage?.buttonText ||
-                      webhook?.buttonResponseMessage?.selectedButtonId ||
-                      webhook?.buttonReply?.text ||
-                      webhook?.buttonReply?.buttonId ||
-                      webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                      webhook?.listResponseMessage?.title ||
-                      webhook?.listResponseMessage?.actionLabel ||
-                      webhook?.listResponseMessage?.description ||
-                      webhook?.text?.message || 
-                      webhook?.message?.text || 
-                      webhook?.text || 
-                      webhook?.interactiveResponseMessage?.body ||
-                      "";
+    let messageRaw =
+      webhook?.buttonsResponseMessage?.message ||
+      webhook?.buttonsResponseMessage?.buttonText ||
+      webhook?.buttonsResponseMessage?.buttonId ||
+      webhook?.buttonResponseMessage?.message ||
+      webhook?.buttonResponseMessage?.buttonText ||
+      webhook?.buttonResponseMessage?.selectedButtonId ||
+      webhook?.buttonReply?.text ||
+      webhook?.buttonReply?.buttonId ||
+      webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+      webhook?.listResponseMessage?.title ||
+      webhook?.listResponseMessage?.actionLabel ||
+      webhook?.listResponseMessage?.description ||
+      webhook?.text?.message ||
+      webhook?.message?.text ||
+      webhook?.text ||
+      webhook?.interactiveResponseMessage?.body ||
+      "";
 
-    // Media Handling for Z-API
-    const mediaUrl = webhook?.image?.url || webhook?.video?.url || webhook?.audio?.url || webhook?.sticker?.url || webhook?.document?.url;
+    const mediaUrl =
+      webhook?.image?.url ||
+      webhook?.video?.url ||
+      webhook?.audio?.url ||
+      webhook?.sticker?.url ||
+      webhook?.document?.url;
     if (mediaUrl) {
       let mediaType = "";
       if (webhook.image) mediaType = "image";
@@ -152,8 +161,12 @@ serve(async (req) => {
         messageRaw = messageRaw ? `${mediaTag}\n${messageRaw}` : mediaTag;
       }
     }
-    
-    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
+
+    const fromMe =
+      webhook?.fromMe === true ||
+      webhook?.fromMe === "true" ||
+      webhook?.fromApi === true ||
+      webhook?.fromApi === "true";
 
     const { data: instanceData } = await supabase
       .from("zapi_instances")
@@ -163,38 +176,55 @@ serve(async (req) => {
 
     const userId = instanceData?.user_id;
 
-    const isStatusCallback = type === "DeliveryCallback" || 
-                           type === "MessageStatusCallback" || 
-                           type === "MessageStatus" ||
-                           (!!webhook?.status && !webhook?.text && !webhook?.buttonsResponseMessage && !webhook?.buttonReply && !webhook?.listResponseMessage);
+    const isStatusCallback =
+      type === "DeliveryCallback" ||
+      type === "MessageStatusCallback" ||
+      type === "MessageStatus" ||
+      (!!webhook?.status &&
+        !webhook?.text &&
+        !webhook?.buttonsResponseMessage &&
+        !webhook?.buttonReply &&
+        !webhook?.listResponseMessage);
 
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
       let status = webhook?.status || "";
+      // ✅ CORREÇÃO: campo error vem direto no payload do DeliveryCallback
       const error = webhook?.error;
-      
-      if (!status && type === "DeliveryCallback") {
+
+      if (!status && type === "DeliveryCallback" && !error) {
         status = "DELIVERED";
       }
 
-      console.log(`Processing StatusCallback for messages ${messageIds.join(',')}: status=${status} (type=${type})`);
-      
+      console.log(
+        `Processing StatusCallback for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"} (type=${type})`,
+      );
+
       const upperStatus = status.toUpperCase();
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
       const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
-      
-      console.log(`🔍 [ShadowBan Check Webhook] status=${status}, error="${error}"`);
-      const isShadowBanError = error && (
-        error.toLowerCase().includes("shadow ban") || 
-        error.toLowerCase().includes("restrições de envio") || 
-        error.toLowerCase().includes("temporary limit") ||
-        error.toLowerCase().includes("unauthorized")
-      );
+
+      // ✅ CORREÇÃO: detectar shadowban pelos erros reais do Z-API (conforme documentação)
+      const isShadowBanError =
+        error &&
+        (error.toLowerCase().includes("shadow ban") ||
+          error.toLowerCase().includes("likely shadow ban") ||
+          error.toLowerCase().includes("restricted") ||
+          error.toLowerCase().includes("temporary limit") ||
+          error.toLowerCase().includes("unauthorized") ||
+          error.toLowerCase().includes("did not have permission") ||
+          error.toLowerCase().includes("rejected sending") ||
+          error.toLowerCase().includes("did not allow"));
+
+      const isInvalidPhone =
+        error &&
+        (error.toLowerCase().includes("phone number does not exist") ||
+          error.toLowerCase().includes("invalid phone number"));
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
-          const newStatusLabel = isDeliveredStatus ? 'delivered' : 'sent';
-          
+          const newStatusLabel = isDeliveredStatus ? "delivered" : "sent";
+
           const { data: currentRecord, error: fetchError } = await supabase
             .from("campaign_sends")
             .select("status, id")
@@ -207,15 +237,13 @@ serve(async (req) => {
           }
 
           if (currentRecord) {
-            if (currentRecord.status === 'delivered') {
+            if (currentRecord.status === "delivered") {
               console.log(`✅ Message ${msgId} is already delivered. Skipping update to ${newStatusLabel}.`);
               continue;
             }
 
-            const updateData: any = {
-              status: newStatusLabel
-            };
-            
+            const updateData: any = { status: newStatusLabel };
+
             if (isDeliveredStatus) {
               updateData.delivered_at = new Date().toISOString();
             } else {
@@ -226,9 +254,9 @@ serve(async (req) => {
               .from("campaign_sends")
               .update(updateData)
               .eq("id", currentRecord.id)
-              .select('id')
+              .select("id")
               .maybeSingle();
-            
+
             if (updateError) {
               console.error(`❌ Error updating campaign_send ${currentRecord.id}:`, updateError.message);
             } else if (updated) {
@@ -238,52 +266,86 @@ serve(async (req) => {
             console.log(`🔍 No campaign_send found with message_id ${msgId}`);
           }
         }
-      } else if (messageIds.length > 0 && (upperStatus === "ERROR" || error)) {
+      } else if (messageIds.length > 0 && error) {
+        // ✅ CORREÇÃO: o Z-API manda DeliveryCallback com campo `error` (sem status=ERROR)
+        // Atualiza campaign_sends para failed quando há erro real de entrega
         for (const msgId of messageIds) {
-          const finalErrorMessage = isShadowBanError 
-            ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio."
-            : (error || status);
-            
-          await supabase
+          let finalErrorMessage = error;
+
+          if (isShadowBanError) {
+            finalErrorMessage = "Shadow Ban: número com restrição de envio. Mensagem não entregue.";
+          } else if (isInvalidPhone) {
+            finalErrorMessage = "Número não cadastrado no WhatsApp.";
+          }
+
+          // Busca pelo message_id para encontrar o registro
+          const { data: record } = await supabase
             .from("campaign_sends")
-            .update({
-              status: 'failed',
-              error_message: finalErrorMessage
-            })
-            .eq("message_id", msgId);
+            .select("id, status")
+            .eq("message_id", msgId)
+            .maybeSingle();
+
+          if (record && record.status !== "delivered") {
+            const { error: updateError } = await supabase
+              .from("campaign_sends")
+              .update({
+                status: "failed",
+                error_message: finalErrorMessage,
+              })
+              .eq("id", record.id);
+
+            if (updateError) {
+              console.error(`❌ Error marking campaign_send ${record.id} as failed:`, updateError.message);
+            } else {
+              console.log(
+                `❌ Campaign send ${record.id} marcado como falha via DeliveryCallback: ${finalErrorMessage}`,
+              );
+            }
+          } else if (!record) {
+            // Fallback: tenta pelo message_id direto (sem busca prévia)
+            await supabase
+              .from("campaign_sends")
+              .update({
+                status: "failed",
+                error_message: finalErrorMessage,
+              })
+              .eq("message_id", msgId)
+              .neq("status", "delivered");
+
+            console.log(`❌ Fallback: marcou falha para message_id ${msgId}: ${finalErrorMessage}`);
+          }
+        }
+      }
+
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
+    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !webhook?.__manual_flow_trigger__)) {
+      if (isMessage && fromMe && !isButtonResponse && userId) {
+        const { data: existingLog } = await supabase
+          .from("message_logs")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("phone", chatId)
+          .eq("message_id", messageId)
+          .maybeSingle();
+
+        if (!existingLog) {
+          await supabase.from("message_logs").insert({
+            user_id: userId,
+            phone: chatId,
+            instance_id: instanceId,
+            timestamp: new Date().toISOString(),
+            message_received: null,
+            response_sent: messageRaw,
+            keyword_matched: "__manual_send__",
+            message_id: messageId,
+          });
         }
       }
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    if (!phone || !instanceId || !isMessage || (fromMe && !isButtonResponse && !webhook?.__manual_flow_trigger__)) {
-        if (isMessage && fromMe && !isButtonResponse && userId) {
-          // Check if we already logged this outgoing message to avoid duplicate logs from Z-API retries
-          const { data: existingLog } = await supabase
-            .from("message_logs")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("phone", chatId)
-            .eq("message_id", messageId)
-            .maybeSingle();
-
-          if (!existingLog) {
-            await supabase.from("message_logs").insert({
-              user_id: userId,
-              phone: chatId,
-              instance_id: instanceId,
-              timestamp: new Date().toISOString(),
-              message_received: null,
-              response_sent: messageRaw,
-              keyword_matched: "__manual_send__",
-              message_id: messageId,
-            });
-          }
-        }
-        return new Response("ok", { status: 200, headers: corsHeaders });
-    }
-
-    // IDEMPOTENCY CHECK: Avoid processing the same inbound message twice
     if (messageId && userId) {
       const { data: existingInbound } = await supabase
         .from("message_logs")
@@ -291,13 +353,12 @@ serve(async (req) => {
         .eq("user_id", userId)
         .eq("message_id", messageId)
         .maybeSingle();
-      
+
       if (existingInbound) {
         console.log(`[Idempotency] Message ${messageId} already processed. Skipping.`);
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
     }
-
 
     const normalizedMessage = normalizeForMatch(messageRaw);
 
@@ -312,7 +373,9 @@ serve(async (req) => {
 
     let flowState = participantFlowState?.last_node_id
       ? participantFlowState
-      : (isButtonResponse && participantFlowState?.flow_id ? participantFlowState : null);
+      : isButtonResponse && participantFlowState?.flow_id
+        ? participantFlowState
+        : null;
     let flowStateIsSharedGroup = false;
 
     if (!flowState && isGroup && chatId && chatId !== phone) {
@@ -345,11 +408,7 @@ serve(async (req) => {
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
 
-      const { data: flow } = await supabase
-        .from("flow_automations")
-        .select("*")
-        .eq("id", flowId)
-        .maybeSingle();
+      const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowId).maybeSingle();
 
       if (flow) {
         const nodes = flow.nodes || [];
@@ -357,30 +416,56 @@ serve(async (req) => {
         const lastNode = lastNodeId ? nodes.find((n: any) => n.id === lastNodeId) : null;
 
         if (lastNode) {
-          const isCapture = lastNode.data.collectName || lastNode.data.collectEmail || lastNode.data.collectWhatsapp || lastNode.data.collectCPF;
-          const field = lastNode.data.collectName ? "nome" : (lastNode.data.collectEmail ? "email" : (lastNode.data.collectWhatsapp ? "whatsapp" : (lastNode.data.collectCPF ? "cpf" : null)));
+          const isCapture =
+            lastNode.data.collectName ||
+            lastNode.data.collectEmail ||
+            lastNode.data.collectWhatsapp ||
+            lastNode.data.collectCPF;
+          const field = lastNode.data.collectName
+            ? "nome"
+            : lastNode.data.collectEmail
+              ? "email"
+              : lastNode.data.collectWhatsapp
+                ? "whatsapp"
+                : lastNode.data.collectCPF
+                  ? "cpf"
+                  : null;
 
           if (isCapture && field) {
             flowStateHandled = true;
             const captured = { ...(flowState.captured_data || {}) };
             captured[field] = messageRaw;
 
-            await supabase.from("flow_captured_data").upsert({
-              user_id: userId,
-              flow_id: flowId,
-              flow_name: flow.name,
-              phone,
-              captured_data: captured,
-              [field]: messageRaw,
-              last_node_id: null,
-              source: isGroup ? "whatsapp_group" : "whatsapp",
-              updated_at: new Date().toISOString()
-            }, { onConflict: "user_id,flow_id,phone" });
+            await supabase.from("flow_captured_data").upsert(
+              {
+                user_id: userId,
+                flow_id: flowId,
+                flow_name: flow.name,
+                phone,
+                captured_data: captured,
+                [field]: messageRaw,
+                last_node_id: null,
+                source: isGroup ? "whatsapp_group" : "whatsapp",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id,flow_id,phone" },
+            );
 
             const captureHandle = getCaptureHandle(field);
             const edge = edges.find((e: any) => e.source === lastNodeId && e.sourceHandle === captureHandle);
             if (edge) {
-              await executeFlow(supabase, userId, phone, flow, edge.target, captured, instanceData, chatId, isGroup, webhook);
+              await executeFlow(
+                supabase,
+                userId,
+                phone,
+                flow,
+                edge.target,
+                captured,
+                instanceData,
+                chatId,
+                isGroup,
+                webhook,
+              );
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else {
@@ -399,17 +484,31 @@ serve(async (req) => {
                 message_id: messageId,
               });
 
-              await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+              await executeFlow(
+                supabase,
+                userId,
+                phone,
+                flow,
+                buttonMatch.targetId,
+                flowState.captured_data || {},
+                instanceData,
+                chatId,
+                isGroup,
+                webhook,
+              );
 
               if (!flowStateIsSharedGroup) {
-                await supabase.from("flow_captured_data").update({
-                  last_node_id: null,
-                  updated_at: new Date().toISOString()
-                }).eq("id", flowState.id).eq("last_node_id", lastNodeId);
+                await supabase
+                  .from("flow_captured_data")
+                  .update({
+                    last_node_id: null,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", flowState.id)
+                  .eq("last_node_id", lastNodeId);
               }
 
               return new Response("button_flow_resumed", { status: 200, headers: corsHeaders });
-
             }
           }
         } else if (isButtonResponse) {
@@ -427,46 +526,61 @@ serve(async (req) => {
               message_id: messageId,
             });
 
-
-            await executeFlow(supabase, userId, phone, flow, buttonMatch.targetId, flowState.captured_data || {}, instanceData, chatId, isGroup, webhook);
+            await executeFlow(
+              supabase,
+              userId,
+              phone,
+              flow,
+              buttonMatch.targetId,
+              flowState.captured_data || {},
+              instanceData,
+              chatId,
+              isGroup,
+              webhook,
+            );
             if (!flowStateIsSharedGroup) {
-              await supabase.from("flow_captured_data").update({
-                last_node_id: null,
-                updated_at: new Date().toISOString()
-              }).eq("id", flowState.id);
+              await supabase
+                .from("flow_captured_data")
+                .update({
+                  last_node_id: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", flowState.id);
             }
             return new Response("button_flow_recovered", { status: 200, headers: corsHeaders });
           }
         }
       }
     }
-    
+
     if (!flowStateHandled && (!fromMe || isButtonResponse)) {
       const { data: flows } = await supabase
         .from("flow_automations")
         .select("*")
         .eq("user_id", userId)
         .eq("active", true);
-      
+
       let triggerFound = false;
       const normalizedMessage = normalizeForMatch(messageRaw);
 
-      for (const flow of (flows || [])) {
+      for (const flow of flows || []) {
         if (triggerFound) break;
-        
-        // Skip flow if it's explicitly disabled for groups and the message is from a group
+
         if (isGroup && (flow as any).disable_in_groups === true) {
           continue;
         }
 
         const nodes = flow.nodes || [];
         const triggerNodes = nodes.filter((n: any) => n.type === "blocoGatilho");
-        
+
         let shouldTrigger = false;
         let startNodeId = null;
         let matchedKeyword = "";
-        
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+
+        const mainKeywords = (flow.keyword || "")
+          .split(",")
+          .map((k: string) => k.trim())
+          .filter(Boolean);
         const matchedMain = mainKeywords.find((k: string) => isKeywordMatch(normalizedMessage, k));
         if (matchedMain) {
           shouldTrigger = true;
@@ -474,7 +588,7 @@ serve(async (req) => {
           const initialNode = nodes.find((n: any) => n.type === "blocoInicial");
           startNodeId = initialNode?.id;
         }
-        
+
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
             const nodeKeyword = tNode.data?.keyword;
@@ -489,26 +603,20 @@ serve(async (req) => {
         }
 
         if (shouldTrigger && startNodeId) {
-          // If the message is from a group, additional checks are needed
           if (isGroup) {
-            // 1. If it's a mention-based trigger, ensure the bot was mentioned
-            const botNumber = instanceData?.zapi_instance_id; // Simple heuristic
-            const wasMentioned = messageRaw.includes(`@${botNumber}`) || 
-                                 (webhook?.isMentioned === true || webhook?.isMentioned === "true");
-            
-            // 2. If it's a regular keyword, we might want to be more restrictive
-            // For now, let's allow it but ensure we don't trigger on every word
-            if (!wasMentioned && normalizedMessage.split(' ').length > 5) {
-               // If it's a long message and no mention, it's likely a conversation, not a command
-               continue;
+            const botNumber = instanceData?.zapi_instance_id;
+            const wasMentioned =
+              messageRaw.includes(`@${botNumber}`) || webhook?.isMentioned === true || webhook?.isMentioned === "true";
+
+            if (!wasMentioned && normalizedMessage.split(" ").length > 5) {
+              continue;
             }
           }
 
           triggerFound = true;
-          
-          // CRITICAL: Prevent double trigger by checking for messageId or recent trigger
+
           const triggerKey = `__flow_trigger__:${flow.id}:${messageId || normalizedMessage}`;
-          
+
           const { data: recentTrigger } = await supabase
             .from("message_logs")
             .select("id")
@@ -519,7 +627,9 @@ serve(async (req) => {
             .maybeSingle();
 
           if (recentTrigger) {
-            console.log(`[FlowTrigger] Duplicated trigger detected for flow ${flow.name} (Key: ${triggerKey}). Skipping.`);
+            console.log(
+              `[FlowTrigger] Duplicated trigger detected for flow ${flow.name} (Key: ${triggerKey}). Skipping.`,
+            );
             return new Response("flow_triggered_duplicate", { status: 200, headers: corsHeaders });
           }
 
@@ -534,12 +644,11 @@ serve(async (req) => {
             message_id: messageId,
           });
 
-
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
-      
+
       await supabase.from("message_logs").insert({
         user_id: userId,
         phone: chatId,
@@ -548,8 +657,8 @@ serve(async (req) => {
         message_received: messageRaw,
         message_id: messageId,
       });
-
     }
+
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
     console.error("Erro no webhook:", err);
@@ -558,65 +667,93 @@ serve(async (req) => {
 });
 
 function findButtonMatch(nodes: FlowNode[], edges: FlowEdge[], sourceNodeId: string, message: string, webhook: any) {
-  const node = nodes.find(n => String(n.id) === String(sourceNodeId));
+  const node = nodes.find((n) => String(n.id) === String(sourceNodeId));
   if (!node || !node.data.buttons) return null;
 
-    for (let i = 0; i < node.data.buttons.length; i++) {
-      const btn = node.data.buttons[i];
-      const normalizedBtnText = normalizeForMatch(btn.text);
-      const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
-                                webhook?.buttonsResponseMessage?.buttonId ||
-                                webhook?.buttonsResponseMessage?.selectedButtonId ||
-                                webhook?.buttonResponseMessage?.buttonId ||
-                                webhook?.buttonResponseMessage?.selectedButtonId ||
-                                webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                                "");
-      const expectedIds = [btn.id, btn.value, `${sourceNodeId}-btn-${i}`, String(i + 1), `node:${sourceNodeId}:button:${i}`].filter(Boolean).map(String);
-      console.log(`Checking button ${i} (${btn.text}): expectedIds=${expectedIds.join(',')}, receivedId=${buttonIdFromWebhook}, msg=${message}`);
-      const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
-      const isTextMatch = (normalizedBtnText && message) && (normalizedBtnText === message || message.includes(normalizedBtnText));
-      
-      if (isIdMatch || isTextMatch) {
-        const edge = edges.find(e => String(e.source) === String(sourceNodeId) && (String(e.sourceHandle) === `button-${i}` || String(e.sourceHandle) === String(btn.id) || String(e.sourceHandle) === `node:${sourceNodeId}:button:${i}`));
-        if (edge) return { targetId: edge.target, text: btn.text };
-      }
+  for (let i = 0; i < node.data.buttons.length; i++) {
+    const btn = node.data.buttons[i];
+    const normalizedBtnText = normalizeForMatch(btn.text);
+    const buttonIdFromWebhook = String(
+      webhook?.buttonReply?.buttonId ||
+        webhook?.buttonsResponseMessage?.buttonId ||
+        webhook?.buttonsResponseMessage?.selectedButtonId ||
+        webhook?.buttonResponseMessage?.buttonId ||
+        webhook?.buttonResponseMessage?.selectedButtonId ||
+        webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+        "",
+    );
+    const expectedIds = [
+      btn.id,
+      btn.value,
+      `${sourceNodeId}-btn-${i}`,
+      String(i + 1),
+      `node:${sourceNodeId}:button:${i}`,
+    ]
+      .filter(Boolean)
+      .map(String);
+    console.log(
+      `Checking button ${i} (${btn.text}): expectedIds=${expectedIds.join(",")}, receivedId=${buttonIdFromWebhook}, msg=${message}`,
+    );
+    const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
+    const isTextMatch =
+      normalizedBtnText && message && (normalizedBtnText === message || message.includes(normalizedBtnText));
+
+    if (isIdMatch || isTextMatch) {
+      const edge = edges.find(
+        (e) =>
+          String(e.source) === String(sourceNodeId) &&
+          (String(e.sourceHandle) === `button-${i}` ||
+            String(e.sourceHandle) === String(btn.id) ||
+            String(e.sourceHandle) === `node:${sourceNodeId}:button:${i}`),
+      );
+      if (edge) return { targetId: edge.target, text: btn.text };
     }
+  }
   return null;
 }
 
 function findAnyButtonMatch(nodes: FlowNode[], edges: FlowEdge[], message: string, webhook: any) {
-  const buttonIdFromWebhook = String(webhook?.buttonReply?.buttonId || 
-                            webhook?.buttonsResponseMessage?.buttonId ||
-                            webhook?.buttonsResponseMessage?.selectedButtonId ||
-                            webhook?.buttonResponseMessage?.buttonId ||
-                            webhook?.buttonResponseMessage?.selectedButtonId ||
-                            webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                            "");
+  const buttonIdFromWebhook = String(
+    webhook?.buttonReply?.buttonId ||
+      webhook?.buttonsResponseMessage?.buttonId ||
+      webhook?.buttonsResponseMessage?.selectedButtonId ||
+      webhook?.buttonResponseMessage?.buttonId ||
+      webhook?.buttonResponseMessage?.selectedButtonId ||
+      webhook?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+      "",
+  );
 
   console.log(`[findAnyButtonMatch] Searching match for id="${buttonIdFromWebhook}" message="${message}"`);
 
   for (const edge of edges) {
-    const sourceNode = nodes.find(n => String(n.id) === String(edge.source));
+    const sourceNode = nodes.find((n) => String(n.id) === String(edge.source));
     if (!sourceNode) continue;
-    
+
     const buttons = sourceNode?.data?.buttons || [];
     for (let i = 0; i < buttons.length; i++) {
       const btn = buttons[i];
       const expectedIds = [
-        btn.id, 
-        btn.value, 
-        `${sourceNode.id}-btn-${i}`, 
-        String(i + 1), 
-        `node:${sourceNode.id}:button:${i}`
-      ].filter(Boolean).map(String);
-      
-      const isHandleMatch = String(edge.sourceHandle) === `button-${i}` || String(edge.sourceHandle) === String(btn.id) || String(edge.sourceHandle) === `node:${sourceNode.id}:button:${i}`;
+        btn.id,
+        btn.value,
+        `${sourceNode.id}-btn-${i}`,
+        String(i + 1),
+        `node:${sourceNode.id}:button:${i}`,
+      ]
+        .filter(Boolean)
+        .map(String);
+
+      const isHandleMatch =
+        String(edge.sourceHandle) === `button-${i}` ||
+        String(edge.sourceHandle) === String(btn.id) ||
+        String(edge.sourceHandle) === `node:${sourceNode.id}:button:${i}`;
       const isIdMatch = expectedIds.map(String).includes(String(buttonIdFromWebhook));
       const normalizedBtnText = normalizeForMatch(btn.text);
       const isTextMatch = normalizedBtnText === message || (message && message.includes(normalizedBtnText));
-      
+
       if (isHandleMatch && (isIdMatch || isTextMatch)) {
-        console.log(`[findAnyButtonMatch] ✅ Match found! Node=${sourceNode.id} Button=${btn.text} Target=${edge.target}`);
+        console.log(
+          `[findAnyButtonMatch] ✅ Match found! Node=${sourceNode.id} Button=${btn.text} Target=${edge.target}`,
+        );
         return { targetId: edge.target, text: btn.text };
       }
     }
@@ -636,14 +773,14 @@ async function callAI(systemPrompt: string, userMessage: string, model: string) 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: model,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage || "Olá" }
+          { role: "user", content: userMessage || "Olá" },
         ],
       }),
     });
@@ -660,7 +797,18 @@ async function callAI(systemPrompt: string, userMessage: string, model: string) 
   }
 }
 
-async function executeFlow(supabase: any, userId: string, phone: string, flow: any, nodeId: string, captured: any, instance: any, chatId?: string, isGroup?: boolean, webhook?: any) {
+async function executeFlow(
+  supabase: any,
+  userId: string,
+  phone: string,
+  flow: any,
+  nodeId: string,
+  captured: any,
+  instance: any,
+  chatId?: string,
+  isGroup?: boolean,
+  webhook?: any,
+) {
   const nodes = flow.nodes || [];
   const edges = flow.edges || [];
   let currentNodeId = nodeId;
@@ -669,18 +817,19 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
   while (currentNodeId && !visited.has(String(currentNodeId))) {
     visited.add(String(currentNodeId));
     const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
-    
+
     if (!node) break;
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
       }
 
-      const isCapture = node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp || node.data.collectCPF;
+      const isCapture =
+        node.data.collectName || node.data.collectEmail || node.data.collectWhatsapp || node.data.collectCPF;
       const hasButtons = node.data.buttons?.length > 0;
-      
+
       let content = "";
       if (isCapture) {
         if (node.data.collectName) content = node.data.namePrompt;
@@ -694,10 +843,14 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const resolvedContent = replaceVars(content, captured, phone);
       const contentType = node.data.contentType || "text";
       const mediaUrl = node.data.mediaUrl || "";
-      
-      let destination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-      if (isGroup || destination.includes('@g.us')) {
-        const numericId = destination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+
+      let destination =
+        isGroup && (webhook?.phone || webhook?.chatPhone) ? webhook?.phone || webhook?.chatPhone : chatId || phone;
+      if (isGroup || destination.includes("@g.us")) {
+        const numericId = destination
+          .replace(/@g\.us$/i, "")
+          .replace(/-group$/i, "")
+          .replace(/\D/g, "");
         destination = numericId ? `${numericId}-group` : destination;
       }
 
@@ -707,54 +860,73 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         continue;
       }
 
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, contentType, mediaUrl, supabase, userId, flow.name);
+      await sendZapiText(
+        instance,
+        destination,
+        resolvedContent,
+        node.data.buttons,
+        node.id,
+        contentType,
+        mediaUrl,
+        supabase,
+        userId,
+        flow.name,
+      );
 
       if (isCapture || hasButtons) {
-        await supabase.from("flow_captured_data").upsert({
-          user_id: userId,
-          flow_id: flow.id,
-          flow_name: flow.name,
-          phone,
-          captured_data: captured,
-          last_node_id: node.id,
-          source: isGroup ? "whatsapp_group" : "whatsapp",
-          updated_at: new Date().toISOString()
-        }, { onConflict: "user_id,flow_id,phone" });
+        await supabase.from("flow_captured_data").upsert(
+          {
+            user_id: userId,
+            flow_id: flow.id,
+            flow_name: flow.name,
+            phone,
+            captured_data: captured,
+            last_node_id: node.id,
+            source: isGroup ? "whatsapp_group" : "whatsapp",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,flow_id,phone" },
+        );
         return;
       }
     } else if (node.type === "agenteIA") {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
       }
 
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
       const model = "anthropic/claude-3-5-sonnet";
-      
-      const userMessage = webhook?.buttonsResponseMessage?.message ||
-                        webhook?.buttonResponseMessage?.message ||
-                        webhook?.buttonReply?.text ||
-                        webhook?.text?.message || 
-                        webhook?.message?.text || 
-                        webhook?.text || 
-                        "";
+
+      const userMessage =
+        webhook?.buttonsResponseMessage?.message ||
+        webhook?.buttonResponseMessage?.message ||
+        webhook?.buttonReply?.text ||
+        webhook?.text?.message ||
+        webhook?.message?.text ||
+        webhook?.text ||
+        "";
 
       const resolvedPrompt = replaceVars(prompt, captured, phone);
       const aiResponse = await callAI(resolvedPrompt, userMessage, model);
-      
-      let aiDestination = (isGroup && (webhook?.phone || webhook?.chatPhone)) ? (webhook?.phone || webhook?.chatPhone) : (chatId || phone);
-      if (isGroup || aiDestination.includes('@g.us')) {
-        const numericId = aiDestination.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+
+      let aiDestination =
+        isGroup && (webhook?.phone || webhook?.chatPhone) ? webhook?.phone || webhook?.chatPhone : chatId || phone;
+      if (isGroup || aiDestination.includes("@g.us")) {
+        const numericId = aiDestination
+          .replace(/@g\.us$/i, "")
+          .replace(/-group$/i, "")
+          .replace(/\D/g, "");
         aiDestination = numericId ? `${numericId}-group` : aiDestination;
       }
       await sendZapiText(instance, aiDestination, aiResponse, [], node.id, "text", "", supabase, userId, flow.name);
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
-      
-      if (actionType === "delay" || node.type === "blocoAcao" && actionType === "delay") {
+
+      if (actionType === "delay" || (node.type === "blocoAcao" && actionType === "delay")) {
         const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
         if (seconds > 0) {
-          await new Promise(resolve => setTimeout(resolve, Math.min(seconds, 25) * 1000));
+          await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 25) * 1000));
         }
       } else if (node.type === "blocoAgendamento" || (node.type === "blocoAcao" && actionType === "schedule")) {
         const scheduledAt = node.data.scheduledAt || node.data.actionConfig;
@@ -763,16 +935,21 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           const diffMs = targetDate.getTime() - Date.now();
           if (diffMs > 0) {
             const waitTime = Math.min(diffMs, 25000);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
           }
         }
       }
     }
-    const nextEdge = edges.find((e: any) => 
-      String(e.source) === String(currentNodeId) && 
-      (!e.sourceHandle || e.sourceHandle === "default" || e.sourceHandle === "output" || e.sourceHandle.includes("source"))
+
+    const nextEdge = edges.find(
+      (e: any) =>
+        String(e.source) === String(currentNodeId) &&
+        (!e.sourceHandle ||
+          e.sourceHandle === "default" ||
+          e.sourceHandle === "output" ||
+          e.sourceHandle.includes("source")),
     );
-    
+
     currentNodeId = nextEdge?.target;
   }
 }
@@ -784,12 +961,22 @@ function replaceVars(text: string, captured: any, phone: string) {
     .replace(/\{\{email\}\}/gi, captured.email || "");
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "", supabase?: any, userId?: string, flowName?: string) {
+async function sendZapiText(
+  instance: any,
+  phone: string,
+  message: string,
+  buttons?: any[],
+  nodeId?: string,
+  contentType = "text",
+  mediaUrl = "",
+  supabase?: any,
+  userId?: string,
+  flowName?: string,
+) {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
 
-  // Log outgoing flow message
   if (supabase && userId) {
     try {
       let logContent = message || "";
@@ -798,7 +985,10 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
         logContent = logContent ? `${mediaTag}\n${logContent}` : mediaTag;
       }
       if (buttons && buttons.length > 0) {
-        const buttonLabels = buttons.map(b => b.text).filter(Boolean).join(' | ');
+        const buttonLabels = buttons
+          .map((b) => b.text)
+          .filter(Boolean)
+          .join(" | ");
         if (buttonLabels) {
           logContent = `${logContent}\n\n[Botões: ${buttonLabels}]`;
         }
@@ -834,7 +1024,12 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
       body = { phone, audio: mediaUrl, waveform: true };
     } else if (normalizedType === "document") {
       const cleanUrl = String(mediaUrl).split("?")[0].split("#")[0];
-      const ext = cleanUrl.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+      const ext =
+        cleanUrl
+          .split(".")
+          .pop()
+          ?.toLowerCase()
+          .replace(/[^a-z0-9]/g, "") || "pdf";
       url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-document/${ext}`;
       body = { phone, document: mediaUrl, fileName: message || `arquivo.${ext}` };
     }
@@ -847,22 +1042,22 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
       message,
       buttonActions: buttons.map((btn, idx) => ({
         id: btn.id || `node:${nodeId}:button:${idx}`,
-        type: btn.type === "url" ? "URL" : (btn.type === "call" ? "CALL" : "REPLY"),
+        type: btn.type === "url" ? "URL" : btn.type === "call" ? "CALL" : "REPLY",
         label: btn.text,
         url: btn.type === "url" ? btn.value : undefined,
-        phone: btn.type === "call" ? btn.value : undefined
-      }))
+        phone: btn.type === "call" ? btn.value : undefined,
+      })),
     };
   }
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "Client-Token": clientToken || "" 
+      headers: {
+        "Content-Type": "application/json",
+        "Client-Token": clientToken || "",
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
     return await response.json().catch(() => ({}));
