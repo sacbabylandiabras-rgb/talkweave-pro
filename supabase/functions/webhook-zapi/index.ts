@@ -663,7 +663,12 @@ serve(async (req) => {
     }
 
     if (!flowStateHandled && (!fromMe || isButtonResponse)) {
-      console.log(`[FlowTrigger] Checking global triggers for message: "${messageRaw}"`);
+      if (!userId) {
+        console.error("[FlowTrigger] No user ID found for instance:", instanceId);
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+
+      console.log(`[FlowTrigger] Checking global triggers for message: "${messageRaw}" by user ${userId}`);
       const { data: flows, error: flowsError } = await supabase
         .from("flow_automations")
         .select("*")
