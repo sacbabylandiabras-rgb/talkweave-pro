@@ -902,11 +902,16 @@ export const useMessageLogs = (
                 : [...prev, record];
               
               const sorted = next.sort((a, b) => {
-                const diff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
-                return diff !== 0 ? diff : a.id.localeCompare(b.id);
+                const aTime = toMillis(a.timestamp || a.created_at);
+                const bTime = toMillis(b.timestamp || b.created_at);
+                const timeDiff = aTime - bTime;
+                if (timeDiff !== 0) return timeDiff;
+                const aCreated = toMillis(a.created_at);
+                const bCreated = toMillis(b.created_at);
+                if (aCreated !== bCreated) return aCreated - bCreated;
+                return a.id.localeCompare(b.id);
               });
 
-              // Update lastLogsRef to reflect the current state and prevent polling from reverting to old cached data
               lastLogsRef.current = JSON.stringify(
                 sorted.map((d) => [
                   d.id,
