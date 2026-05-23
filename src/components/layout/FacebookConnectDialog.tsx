@@ -79,9 +79,39 @@ export function FacebookConnectDialog({ open, onOpenChange }: FacebookConnectDia
     };
     window.addEventListener("focus", focusHandler);
 
+    // Cross-tab fallback channels
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("meta-oauth");
+      bc.onmessage = (event) => {
+        if (event.data?.type === "META_OAUTH_SUCCESS") {
+          setConnecting(false);
+          toast.success("Conta Facebook Business conectada com sucesso!");
+          queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+          onOpenChange(false);
+          setActiveWorkspace("meta");
+          setTimeout(() => navigate("/meta/dashboard"), 300);
+        }
+      };
+    } catch {}
+
+    const storageHandler = (event: StorageEvent) => {
+      if (event.key === "meta_oauth_event" && event.newValue?.startsWith("success:")) {
+        setConnecting(false);
+        toast.success("Conta Facebook Business conectada com sucesso!");
+        queryClient.invalidateQueries({ queryKey: ["meta-credentials"] });
+        onOpenChange(false);
+        setActiveWorkspace("meta");
+        setTimeout(() => navigate("/meta/dashboard"), 300);
+      }
+    };
+    window.addEventListener("storage", storageHandler);
+
     return () => {
       window.removeEventListener("message", handler);
       window.removeEventListener("focus", focusHandler);
+      window.removeEventListener("storage", storageHandler);
+      if (bc) bc.close();
     };
   }, [queryClient]);
 
