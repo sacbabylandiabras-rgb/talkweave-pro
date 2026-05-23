@@ -1039,8 +1039,8 @@ async function executeFlow(
       }
 
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
-      const model = "anthropic/claude-3-5-sonnet";
-
+      const resolvedPrompt = replaceVars(prompt, captured, phone);
+      
       const userMessage =
         webhook?.buttonsResponseMessage?.message ||
         webhook?.buttonResponseMessage?.message ||
@@ -1050,19 +1050,41 @@ async function executeFlow(
         webhook?.text ||
         "";
 
-      const resolvedPrompt = replaceVars(prompt, captured, phone);
-      const aiResponse = await callAI(resolvedPrompt, userMessage, model);
+      console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone}`);
+      
+      const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
+        body: {
+          messages: [{ role: "user", content: userMessage || "Olá" }],
+          user_id: userId,
+          phone: phone,
+          system_prompt: resolvedPrompt
+        }
+      });
 
-      let aiDestination =
-        isGroup && (webhook?.phone || webhook?.chatPhone) ? webhook?.phone || webhook?.chatPhone : chatId || phone;
-      if (isGroup || aiDestination.includes("@g.us")) {
-        const numericId = aiDestination
-          .replace(/@g\.us$/i, "")
-          .replace(/-group$/i, "")
-          .replace(/\D/g, "");
-        aiDestination = numericId ? `${numericId}-group` : aiDestination;
+      if (agentError) {
+        console.error("Erro ao chamar agent-chat:", agentError);
+        await sendZapiText(instance, chatId || phone, "Desculpe, tive um erro ao processar sua resposta. Por favor, tente novamente.", [], node.id, "text", "", supabase, userId, flow.name);
+      } else {
+        const aiResponse = agentResponse.reply || "Não consegui gerar uma resposta no momento.";
+        const buttons = agentResponse.cta ? [{
+          id: `cta:${node.id}`,
+          text: agentResponse.cta.label,
+          type: "url",
+          value: agentResponse.cta.url
+        }] : [];
+
+        let aiDestination =
+          isGroup && (webhook?.phone || webhook?.chatPhone) ? webhook?.phone || webhook?.chatPhone : chatId || phone;
+        if (isGroup || aiDestination.includes("@g.us")) {
+          const numericId = aiDestination
+            .replace(/@g\.us$/i, "")
+            .replace(/-group$/i, "")
+            .replace(/\D/g, "");
+          aiDestination = numericId ? `${numericId}-group` : aiDestination;
+        }
+        
+        await sendZapiText(instance, aiDestination, aiResponse, buttons, node.id, "text", "", supabase, userId, flow.name);
       }
-      await sendZapiText(instance, aiDestination, aiResponse, [], node.id, "text", "", supabase, userId, flow.name);
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
 
