@@ -101,28 +101,64 @@ serve(async (req) => {
       type === "DisconnectedCallback" ||
       type === "ReconnectedCallback" ||
       webhook?.instanceStatus === "CONNECTED" ||
-      webhook?.instanceStatus === "DISCONNECTED"
+      webhook?.instanceStatus === "DISCONNECTED" ||
+      webhook?.instanceStatus === "RECONNECTED"
     ) {
       console.log(`📱 Device Webhook (${type}): instance=${instanceId}, status=${webhook?.instanceStatus || type}`);
       
       const isConnected = 
         type === "ConnectedCallback" || 
         type === "ReconnectedCallback" || 
-        webhook?.instanceStatus === "CONNECTED";
+        webhook?.instanceStatus === "CONNECTED" ||
+        webhook?.instanceStatus === "RECONNECTED";
+
+      // Capturar o telefone conectado se disponível no payload de conexão
+      const connectedPhone = webhook?.connectedPhone || webhook?.phone || "";
+      const reason = webhook?.reason || webhook?.errorMessage || "";
+      const isShadowBanReason = String(reason).toLowerCase().includes("shadow ban") || 
+                               String(reason).toLowerCase().includes("banido") ||
+                               String(reason).toLowerCase().includes("banned");
 
       if (instanceId) {
+        const updatePayload: any = {
+          is_active: isConnected,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (isConnected && connectedPhone) {
+          updatePayload.connected_phone = connectedPhone;
+        }
+
+        const { data: instanceBefore, error: fetchError } = await supabase
+          .from("zapi_instances")
+          .select("id")
+          .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
+          .maybeSingle();
+
         const { error: updateError } = await supabase
           .from("zapi_instances")
-          .update({
-            is_active: isConnected,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`);
 
         if (updateError) {
           console.error(`❌ Error updating instance ${instanceId} status:`, updateError.message);
         } else {
           console.log(`✅ Instance ${instanceId} updated to ${isConnected ? "ACTIVE" : "INACTIVE"}`);
+          
+          // Se desconectou ou detectou banimento, registrar na saúde da instância
+          if ((!isConnected || isShadowBanReason) && instanceBefore?.id) {
+            await supabase.from("warmup_instance_health").insert({
+              instance_ref: instanceBefore.id,
+              phone: connectedPhone || "",
+              block_type: isShadowBanReason ? "shadowban" : "disconnected",
+              detail: isShadowBanReason ? `Banimento detectado via webhook: ${reason}` : `Desconectado via webhook: ${type}`,
+              last_detected_at: new Date().toISOString()
+            });
+            
+            if (isShadowBanReason) {
+              await supabase.from("zapi_instances").update({ is_active: false }).eq("id", instanceBefore.id);
+            }
+          }
         }
       }
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -203,7 +239,7 @@ serve(async (req) => {
 
     const { data: instanceData } = await supabase
       .from("zapi_instances")
-      .select("user_id, zapi_instance_id, zapi_token, zapi_client_token")
+      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, connected_phone")
       .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
       .maybeSingle();
 
@@ -309,6 +345,23 @@ serve(async (req) => {
           }
         }
       } else if (messageIds.length > 0 && isErrorStatus) {
+        // Se detectamos shadowban, atualizar saúde da instância
+        if (isShadowBanError && instanceData?.id) {
+          console.log(`🛡️ Shadowban detected for instance ${instanceData.id}. Updating health table.`);
+          await supabase.from("warmup_instance_health").insert({
+            instance_ref: instanceData.id,
+            phone: instanceData.connected_phone || "",
+            block_type: "shadowban",
+            detail: `Detectado via erro de envio: ${error || status}`,
+            last_detected_at: new Date().toISOString()
+          });
+
+          // Desativar a instância para evitar mais reijeições
+          await supabase.from("zapi_instances")
+            .update({ is_active: false })
+            .eq("id", instanceData.id);
+        }
+
         for (const msgId of messageIds) {
           let finalErrorMessage = error || status || "Erro desconhecido";
           let finalStatus = "failed";
