@@ -802,25 +802,36 @@ serve(async (req) => {
       }
     }
 
-    // ============ PROVIDER: LOVABLE AI GATEWAY (OpenAI-compatible) ============
-    if (!LOVABLE_API_KEY) {
-      console.warn('[AgentChat] LOVABLE_API_KEY não configurada, tentando usar ANTHROPIC_API_KEY como fallback.')
+    // ============ PROVIDER SELECTION ============
+    const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith('sk-ant-');
+    
+    // Default model if not specified
+    const model = agentConfig?.model || 'claude-3-5-sonnet-latest';
+    
+    console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, Provider: ${isAnthropicKey ? 'Native Anthropic' : 'Lovable AI Gateway'}`)
+
+    const testMode = !phone;
+    let convMessages: any[] = []
+    let finalText = ''
+    let finalCta: { label: string; url: string } | null = null
+    let iterations = 0
+    const MAX_ITER = 6
+
+    // History
+    for (const m of (messages || [])) {
+      if (m.role === 'user' || m.role === 'assistant') {
+        convMessages.push({ role: m.role, content: m.content })
+      }
     }
 
-    const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
-    
-    // Carregar ferramentas habilitadas (skip se análise sem config)
+    // Carregar ferramentas habilitadas
     let enabledTools: any[] = []
     if (!skip_config) {
-      const { data: toolsCfg, error: toolsCfgError } = await supabase
+      const { data: toolsCfg } = await supabase
         .from('agent_tools_config')
         .select('tool_name, enabled')
         .eq('user_id', effectiveUserId)
         .eq('enabled', true)
-      
-      if (toolsCfgError) {
-        console.error('Erro ao carregar agent_tools_config:', toolsCfgError)
-      }
       
       enabledTools = (toolsCfg || [])
         .map((t: any) => TOOL_DEFS[t.tool_name])
@@ -831,113 +842,165 @@ serve(async (req) => {
       }
     }
 
-    // Convert Anthropic tools to OpenAI format
-    const openAiTools = enabledTools.map(t => ({
-      type: 'function',
-      function: {
-        name: t.name,
-        description: t.description,
-        parameters: t.input_schema
-      }
-    }))
-
-    const testMode = !phone
-    const model = agentConfig?.model || 'claude-3-5-sonnet-latest'
-    // Se o modelo for claude-sonnet-4-20250514 conforme solicitado
-    const effectiveModel = model;
-
-    console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
-
-    let convMessages: any[] = []
-    // System message
-    convMessages.push({ role: 'system', content: systemPrompt })
-    
-    // History
-    for (const m of (messages || [])) {
-      if (m.role === 'user' || m.role === 'assistant') {
-        convMessages.push({ role: m.role, content: m.content })
-      }
-    }
-
-    let finalText = ''
-    let finalCta: { label: string; url: string } | null = null
-    let iterations = 0
-    const MAX_ITER = 6
-
     while (iterations < MAX_ITER) {
       iterations++
+      let resp: Response;
 
-      const reqBody: any = {
-        model: effectiveModel,
-        messages: convMessages,
-        max_tokens: 1024,
+      if (isAnthropicKey) {
+        // NATIVE ANTHROPIC API
+        const anthropicBody = {
+          model: model,
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: convMessages,
+          tools: enabledTools.length > 0 ? enabledTools : undefined,
+        };
+
+        resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_API_KEY!,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(anthropicBody),
+        });
+      } else {
+        // LOVABLE AI GATEWAY (OpenAI-compatible)
+        const openAiTools = enabledTools.map(t => ({
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.input_schema
+          }
+        }));
+
+        const gatewayMessages = [
+          { role: 'system', content: systemPrompt },
+          ...convMessages
+        ];
+
+        const gatewayBody = {
+          model: model,
+          messages: gatewayMessages,
+          max_tokens: 1024,
+          tools: openAiTools.length > 0 ? openAiTools : undefined,
+        };
+
+        resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`, 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify(gatewayBody),
+        });
       }
-      if (openAiTools.length > 0) reqBody.tools = openAiTools
-
-      const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith('sk-ant-');
-      const authHeader = isAnthropicKey 
-        ? ANTHROPIC_API_KEY 
-        : (LOVABLE_API_KEY || ANTHROPIC_API_KEY);
-
-      const resp = await fetch(GATEWAY_URL, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${authHeader}`, 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(reqBody),
-      })
       
       if (!resp.ok) {
         const errText = await resp.text()
-        console.error(`[AgentChat] Gateway API Error: ${resp.status}`, errText)
-        return new Response(JSON.stringify({ error: 'Erro na IA: ' + errText.substring(0, 200) }), { 
+        console.error(`[AgentChat] API Error: ${resp.status}`, errText)
+        return new Response(JSON.stringify({ error: 'Erro na API: ' + errText.substring(0, 200) }), { 
           status: resp.status >= 500 ? 500 : resp.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         })
       }
 
       const data = await resp.json()
-      const message = data.choices?.[0]?.message
-      if (!message) break
+      
+      if (isAnthropicKey) {
+        // Handle Anthropic Response
+        const textContent = data.content.find((c: any) => c.type === 'text');
+        if (textContent) {
+          finalText = (finalText ? finalText + '\n' : '') + textContent.text;
+        }
 
-      const text = message.content
-      if (text) finalText = (finalText ? finalText + '\n' : '') + text
-
-      const toolCalls = message.tool_calls
-      if (!toolCalls || toolCalls.length === 0) break
-
-      // Add assistant message with tool calls to history
-      convMessages.push(message)
-
-      // Execute each tool and add results
-      for (const tc of toolCalls) {
-        const name = tc.function.name
-        let args = {}
-        try { args = JSON.parse(tc.function.arguments) } catch { console.error('Error parsing tool arguments:', tc.function.arguments) }
-        
-        console.log(`🔧 Tool call: ${name}`, JSON.stringify(args).substring(0, 200))
-        const result = await executeTool(name, args, {
-          supabase, userId: effectiveUserId, phone: phone || null, testMode,
-        })
-
-        try {
-          const parsed = JSON.parse(result)
-          const ctaUrl = String(parsed?.cta?.url || parsed?.checkout?.url || '').trim()
-          if (/^https?:\/\//i.test(ctaUrl)) {
-            finalCta = {
-              label: String(parsed?.cta?.label || `Abrir checkout`).trim() || 'Abrir checkout',
-              url: ctaUrl,
-            }
-          }
-        } catch {}
+        const toolUses = data.content.filter((c: any) => c.type === 'tool_use');
+        if (toolUses.length === 0) break;
 
         convMessages.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          name: name,
-          content: result
-        })
+          role: 'assistant',
+          content: data.content
+        });
+
+        const toolResults: any[] = [];
+        for (const tu of toolUses) {
+          const name = tu.name;
+          const args = tu.input;
+          const toolId = tu.id;
+          
+          console.log(`🔧 Tool call (Anthropic): ${name}`, JSON.stringify(args).substring(0, 200))
+          const result = await executeTool(name, args, {
+            supabase, userId: effectiveUserId, phone: phone || null, testMode,
+          })
+
+          try {
+            const parsed = JSON.parse(result)
+            const ctaUrl = String(parsed?.cta?.url || parsed?.checkout?.url || '').trim()
+            if (/^https?:\/\//i.test(ctaUrl)) {
+              finalCta = {
+                label: String(parsed?.cta?.label || `Abrir checkout`).trim() || 'Abrir checkout',
+                url: ctaUrl,
+              }
+            }
+          } catch {}
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolId,
+            content: result
+          });
+        }
+
+        if (toolResults.length > 0) {
+          convMessages.push({
+            role: 'user',
+            content: toolResults
+          });
+        }
+      } else {
+        // Handle OpenAI/Gateway Response
+        const message = data.choices?.[0]?.message
+        if (!message) break
+
+        if (message.content) {
+          finalText = (finalText ? finalText + '\n' : '') + message.content;
+        }
+
+        const toolCalls = message.tool_calls
+        if (!toolCalls || toolCalls.length === 0) break
+
+        convMessages.push(message)
+
+        for (const tc of toolCalls) {
+          const name = tc.function.name
+          let args = {}
+          try { args = JSON.parse(tc.function.arguments) } catch { console.error('Error parsing tool arguments:', tc.function.arguments) }
+          
+          console.log(`🔧 Tool call: ${name}`, JSON.stringify(args).substring(0, 200))
+          const result = await executeTool(name, args, {
+            supabase, userId: effectiveUserId, phone: phone || null, testMode,
+          })
+
+          try {
+            const parsed = JSON.parse(result)
+            const ctaUrl = String(parsed?.cta?.url || parsed?.checkout?.url || '').trim()
+            if (/^https?:\/\//i.test(ctaUrl)) {
+              finalCta = {
+                label: String(parsed?.cta?.label || `Abrir checkout`).trim() || 'Abrir checkout',
+                url: ctaUrl,
+              }
+            }
+          } catch {}
+
+          convMessages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            name: name,
+            content: result
+          })
+        }
       }
     }
 
