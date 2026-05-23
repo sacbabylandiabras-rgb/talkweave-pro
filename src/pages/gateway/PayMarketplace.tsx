@@ -17,6 +17,8 @@ interface Product {
   category: string | null;
   commission_rate: number;
   user_id: string;
+  marketplace_visible?: boolean;
+  commission_type?: 'percentage' | 'fixed';
 }
 
 export default function PayMarketplace() {
@@ -105,7 +107,8 @@ export default function PayMarketplace() {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.category && p.category.toLowerCase().includes(search.toLowerCase()));
     const isNotAffiliated = !affiliations.includes(p.id);
-    return matchesSearch && isNotAffiliated;
+    const isVisible = p.marketplace_visible !== false;
+    return matchesSearch && isNotAffiliated && isVisible;
   });
 
   return (
@@ -183,7 +186,11 @@ export default function PayMarketplace() {
                     <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Comissão</span>
                     <div className="flex items-center gap-1 text-emerald-500 font-bold">
                       <BadgePercent className="w-4 h-4" />
-                      <span>{product.commission_rate}%</span>
+                      <span>
+                        {product.commission_type === 'fixed' 
+                          ? formatCurrency(product.commission_rate * 100) 
+                          : `${product.commission_rate}%`}
+                      </span>
                     </div>
                   </div>
                 </div>
