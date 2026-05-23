@@ -151,6 +151,8 @@ const gatewayMenuItems = [
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
   { id: "pay-landing-pages", label: "Landing Pages", icon: LayoutTemplate, path: "/gateway-checkout/landing-pages" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
+  { id: "pay-marketplace", label: "Marketplace", icon: ShoppingBag, path: "/gateway-checkout/marketplace" },
+  { id: "pay-affiliates", label: "Meus Afiliados", icon: Users, path: "/gateway-checkout/affiliates" },
   { id: "pay-cart-recovery", label: "Recuperação de Carrinhos", icon: ShoppingCart, path: "/gateway-checkout/cart-recovery" },
   { id: "pay-fees", label: "Taxas", icon: Receipt, path: "/gateway-checkout/fees" },
   { id: "pay-pixels", label: "Pixels", icon: Activity, path: "/gateway-checkout/pixels" },
