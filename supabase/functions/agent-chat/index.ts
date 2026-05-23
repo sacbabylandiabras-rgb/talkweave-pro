@@ -842,7 +842,7 @@ serve(async (req) => {
     }))
 
     const testMode = !phone
-    const model = agentConfig?.model || 'google/gemini-2.5-pro'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-20241022'
 
     console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
