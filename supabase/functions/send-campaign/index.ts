@@ -2248,10 +2248,11 @@ serve(async (req) => {
             (explicitError && !isLidIdentifier(contact.phone)) ||
             (!confirmed && !isLidIdentifier(contact.phone))
           ) {
+            console.log(`🔍 [ShadowBan Check] phone=${contact.phone}, explicitError="${explicitError}", confirmed=${confirmed}, status=${zapiResponse.status}`);
             const isShadowBan =
               explicitError &&
               (explicitError.toLowerCase().includes("shadow ban") ||
-                explicitError.toLowerCase().includes("restricted") ||
+                explicitError.toLowerCase().includes("restrições de envio") ||
                 explicitError.toLowerCase().includes("unauthorized") ||
                 explicitError.toLowerCase().includes("capping"));
 
@@ -2263,7 +2264,7 @@ serve(async (req) => {
             // Nunca pausa a campanha por shadow ban — só por rate limit real (error 463)
             campaignSend.status = "failed";
             campaignSend.error_message = isShadowBan
-              ? "Shadow Ban: número com restrição de envio. Próximos contatos continuarão normalmente."
+              ? "Shadow Ban detectado: Seu número WhatsApp está com restrições de envio."
               : explicitError ||
                 (!confirmed
                   ? "WhatsApp não confirmou o envio (possível shadow ban ou número inválido)"

@@ -33,7 +33,7 @@ const isZapiConfirmed = (payload: any) => {
   // Special case: "shadow ban" warning from Z-API
   // Even if they include an ID, if this specific message is present, it's NOT a successful send.
   const error = String(payload?.error || payload?.message || '').toLowerCase();
-  if (error.includes('likely shadow ban')) return false;
+  if (error.includes('likely shadow ban') || error.includes('restrições de envio')) return false;
 
   // Status indicating queued but not delivered
   const queuedStatuses = ['PENDING', 'QUEUED', 'QUEUE', 'WAITING'];

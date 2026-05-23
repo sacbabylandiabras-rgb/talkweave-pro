@@ -182,9 +182,11 @@ serve(async (req) => {
       const upperStatus = status.toUpperCase();
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
       const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
+      
+      console.log(`🔍 [ShadowBan Check Webhook] status=${status}, error="${error}"`);
       const isShadowBanError = error && (
         error.toLowerCase().includes("shadow ban") || 
-        error.toLowerCase().includes("restricted") || 
+        error.toLowerCase().includes("restrições de envio") || 
         error.toLowerCase().includes("temporary limit") ||
         error.toLowerCase().includes("unauthorized")
       );
