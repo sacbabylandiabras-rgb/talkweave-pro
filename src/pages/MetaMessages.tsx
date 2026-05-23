@@ -1910,7 +1910,7 @@ const MetaMessages = () => {
   // Map UI instance id to zapi_instance_id for filtering
   // For Meta API panel, we want ONLY meta instances, so we override the known lists.
   const metaInstances = useMemo(() => instances.filter(i => i.api_provider === 'meta'), [instances]);
-  const knownInstanceIds = useMemo(() => metaInstances.map(i => i.id), [metaInstances]);
+  const knownInstanceIds = useMemo(() => metaInstances.flatMap(i => [i.id, i.zapi_instance_id]).filter(Boolean), [metaInstances]);
   const knownInstanceNames = useMemo(() => metaInstances.map(i => i.instance_name), [metaInstances]);
 
   const selectedInstance = selectedInstanceId === "all" ? undefined : metaInstances.find(i => i.id === selectedInstanceId);
