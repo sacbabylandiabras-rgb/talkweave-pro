@@ -577,6 +577,21 @@ serve(async (req) => {
               );
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
+          } else if (lastNode.type === "agenteIA") {
+            flowStateHandled = true;
+            await executeFlow(
+              supabase,
+              userId,
+              phone,
+              flow,
+              lastNodeId,
+              flowState.captured_data || {},
+              instanceData,
+              chatId,
+              isGroup,
+              webhook,
+            );
+            return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             console.log("Button match result:", JSON.stringify(buttonMatch));
@@ -1140,6 +1155,7 @@ async function executeFlow(
             flow_id: flow.id,
             phone,
             chat_history: updatedHistory,
+            last_node_id: node.id,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id,flow_id,phone" }
