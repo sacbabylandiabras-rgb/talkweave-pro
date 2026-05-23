@@ -689,7 +689,7 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { messages, user_id, skip_config, phone, system_prompt: customSystemPrompt } = body
+    const { messages, user_id, skip_config, phone, system_prompt: customSystemPrompt, model: customModel } = body
     const effectiveUserId = user_id || userId
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -806,7 +806,7 @@ serve(async (req) => {
     const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith('sk-ant-');
     
     // Check if we are using Managed Agents (claude-3-5-sonnet-20241022-v1:0 or similar)
-    const rawModel = agentConfig?.model || 'claude-3-5-sonnet-latest';
+    const rawModel = customModel || agentConfig?.model || 'claude-3-5-sonnet-latest';
     const isManagedAgent = rawModel.includes(':');
     
     // Format model name correctly if it's a managed agent
