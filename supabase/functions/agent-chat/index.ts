@@ -733,14 +733,18 @@ serve(async (req) => {
 
     let systemPrompt = `Nome do agente: ${effectiveAgentName}\n\n`
     
-    if (triagePrompt) {
-      systemPrompt += `--- ETAPA 1: TRIAGEM E CLASSIFICAÇÃO ---\n${triagePrompt}\n\n`
-    }
-    
-    systemPrompt += `--- ETAPA 2: ATENDIMENTO ---\n${servicePrompt}\n\n`
-    
-    if (closingPrompt) {
-      systemPrompt += `--- ETAPA 3: CONCLUSÃO E CTA ---\n${closingPrompt}\n\n`
+    if (customSystemPrompt) {
+      systemPrompt += `--- PROMPT PERSONALIZADO ---\n${customSystemPrompt}\n\n`
+    } else {
+      if (triagePrompt) {
+        systemPrompt += `--- ETAPA 1: TRIAGEM E CLASSIFICAÇÃO ---\n${triagePrompt}\n\n`
+      }
+      
+      systemPrompt += `--- ETAPA 2: ATENDIMENTO ---\n${servicePrompt}\n\n`
+      
+      if (closingPrompt) {
+        systemPrompt += `--- ETAPA 3: CONCLUSÃO E CTA ---\n${closingPrompt}\n\n`
+      }
     }
 
     systemPrompt += '--- REGRAS GERAIS ---'
