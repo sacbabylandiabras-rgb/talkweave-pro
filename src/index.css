@@ -146,17 +146,17 @@
      --sidebar-ring: 37 99 235;
    }
  
-   [data-theme='white'] body {
-     background: #F9FAFB !important;
-     background-image: none !important;
-     color: #111827 !important;
-   }
- 
-   [data-theme='white'] body::before,
-   [data-theme='white'] body::after {
-     display: none !important;
-   }
- 
+    [data-theme='white'] body {
+      background: #F9FAFB !important;
+      background-image: none !important;
+      color: #111827 !important;
+    }
+
+    [data-theme='white'] body::before,
+    [data-theme='white'] body::after {
+      display: none !important;
+    }
+
     [data-theme='white'] .glass-panel,
     [data-theme='white'] .glass-card,
     [data-theme='white'] .glass-stat,
@@ -171,49 +171,38 @@
       overflow: hidden;
     }
 
+    /* Remove the purple border gradient in white theme */
     [data-theme='white'] .glass-panel::before,
     [data-theme='white'] .glass-card::before,
     [data-theme='white'] .glass-stat::before,
     [data-theme='white'] .glass-chart::before,
     [data-theme='white'] [class*="glass-"]:not(.glass-sidebar):not(.glass-topbar)::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      padding: 2px;
-      border-radius: inherit;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.5), transparent, rgba(124, 58, 237, 0.5));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      pointer-events: none;
-      z-index: 5;
+      display: none !important;
     }
- 
+
     [data-theme='white'] .btn-glass-primary {
-      background: #FFFFFF !important;
-      color: #111827 !important;
-      border: 1px solid #E5E7EB !important;
+      background: #2563EB !important;
+      color: #FFFFFF !important;
+      border: none !important;
     }
-  
+
     [data-theme='white'] .btn-glass-primary:hover {
-      background: #F9FAFB !important;
+      background: #1D4ED8 !important;
     }
- 
- 
-   [data-theme='white'] .sidebar-section-label {
-     color: #6B7280 !important;
-   }
- 
-   [data-theme='white'] .glass-topbar {
-     border-bottom: 1px solid #E5E7EB !important;
-   }
- 
-   [data-theme='white'] .dashboard-content {
-     background-image: none !important;
-     background-color: #F9FAFB !important;
-   }
- 
+
+    [data-theme='white'] .sidebar-section-label {
+      color: #6B7280 !important;
+    }
+
+    [data-theme='white'] .glass-topbar {
+      border-bottom: 1px solid #E5E7EB !important;
+    }
+
+    [data-theme='white'] .dashboard-content {
+      background-image: none !important;
+      background-color: #F9FAFB !important;
+    }
+
     [data-theme='white'] .btn-glass-renew {
       background: #EFF6FF !important;
       border: 1px solid #DBEAFE !important;
@@ -221,14 +210,14 @@
     }
 
     [data-theme='white'] .sidebar-logo {
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) !important;
+      filter: none !important;
     }
- 
-   [data-theme='white'] .plan-badge {
-     background: #EFF6FF !important;
-     border: 1px solid #DBEAFE !important;
-     color: #2563EB !important;
-   }
+
+    [data-theme='white'] .plan-badge {
+      background: #EFF6FF !important;
+      border: 1px solid #DBEAFE !important;
+      color: #2563EB !important;
+    }
  
     [data-theme='white'] .spinning-border-outer::before {
       background: conic-gradient(transparent 70%, #7C3AED, transparent);
