@@ -686,8 +686,35 @@ serve(async (req) => {
       .order('created_at', { ascending: true })
 
     const effectiveAgentName = agentConfig?.agent_name || 'Assistente'
-    let systemPrompt = agentConfig?.system_prompt || 'Você é um assistente virtual prestativo.'
-    systemPrompt += '\n\n--- REGRAS ---'
+    let rawPrompt = agentConfig?.system_prompt || 'Você é um assistente virtual prestativo.'
+    let triagePrompt = ''
+    let servicePrompt = rawPrompt
+    let closingPrompt = ''
+
+    if (rawPrompt.startsWith('---STAGES---')) {
+      try {
+        const parts = rawPrompt.split('---STAGES---')[1].split('---PART---')
+        triagePrompt = parts[0] || ''
+        servicePrompt = parts[1] || ''
+        closingPrompt = parts[2] || ''
+      } catch (e) {
+        console.error('Error parsing stages in edge function:', e)
+      }
+    }
+
+    let systemPrompt = `Nome do agente: ${effectiveAgentName}\n\n`
+    
+    if (triagePrompt) {
+      systemPrompt += `--- ETAPA 1: TRIAGEM E CLASSIFICAÇÃO ---\n${triagePrompt}\n\n`
+    }
+    
+    systemPrompt += `--- ETAPA 2: ATENDIMENTO ---\n${servicePrompt}\n\n`
+    
+    if (closingPrompt) {
+      systemPrompt += `--- ETAPA 3: CONCLUSÃO E CTA ---\n${closingPrompt}\n\n`
+    }
+
+    systemPrompt += '--- REGRAS GERAIS ---'
     systemPrompt += '\n- Responda sempre de forma educada e objetiva.'
     systemPrompt += '\n- Use a base de conhecimento abaixo para responder.'
     systemPrompt += '\n- Se não souber a resposta, use a ferramenta transferir_humano.'
@@ -695,7 +722,6 @@ serve(async (req) => {
     systemPrompt += '\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios, mas nunca escreva a URL no texto.'
     systemPrompt += '\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.'
     systemPrompt += '\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.'
-    systemPrompt += `\n- Nome do agente: ${effectiveAgentName}`
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'

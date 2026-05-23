@@ -6,6 +6,9 @@ interface AgentConfig {
   id?: string;
   agent_name: string;
   system_prompt: string;
+  prompt_triage?: string;
+  prompt_service?: string;
+  prompt_closing?: string;
   active: boolean;
   provider: "anthropic";
   model: string;
@@ -51,10 +54,28 @@ export function useAgentConfig() {
         .maybeSingle();
 
       if (data) {
+        let triage = "";
+        let service = data.system_prompt || "";
+        let closing = "";
+
+        if (service.startsWith("---STAGES---")) {
+          try {
+            const parts = service.split("---STAGES---")[1].split("---PART---");
+            triage = parts[0] || "";
+            service = parts[1] || "";
+            closing = parts[2] || "";
+          } catch (e) {
+            console.error("Error parsing stages:", e);
+          }
+        }
+
         setConfig({
           id: data.id,
           agent_name: data.agent_name || "Assistente",
           system_prompt: data.system_prompt || "",
+          prompt_triage: triage,
+          prompt_service: service,
+          prompt_closing: closing,
           active: data.active,
           provider: "anthropic",
           model: data.model || "claude-sonnet-4-5-20250929",
@@ -85,10 +106,20 @@ export function useAgentConfig() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
+      let systemPrompt = newConfig.system_prompt ?? config.system_prompt;
+      
+      // If we are saving using the 3 stages
+      if (newConfig.prompt_triage !== undefined || newConfig.prompt_service !== undefined || newConfig.prompt_closing !== undefined) {
+        const t = newConfig.prompt_triage ?? config.prompt_triage ?? "";
+        const s = newConfig.prompt_service ?? config.prompt_service ?? (newConfig.system_prompt ?? config.system_prompt);
+        const c = newConfig.prompt_closing ?? config.prompt_closing ?? "";
+        systemPrompt = `---STAGES---${t}---PART---${s}---PART---${c}`;
+      }
+
       const payload = {
         user_id: session.user.id,
         agent_name: newConfig.agent_name ?? config.agent_name,
-        system_prompt: newConfig.system_prompt ?? config.system_prompt,
+        system_prompt: systemPrompt,
         active: newConfig.active ?? config.active,
         provider: newConfig.provider ?? config.provider,
         model: newConfig.model ?? config.model,
