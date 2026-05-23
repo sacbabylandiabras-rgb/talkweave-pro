@@ -577,6 +577,21 @@ serve(async (req) => {
               );
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
+          } else if (lastNode.type === "agenteIA") {
+            flowStateHandled = true;
+            await executeFlow(
+              supabase,
+              userId,
+              phone,
+              flow,
+              lastNodeId,
+              flowState.captured_data || {},
+              instanceData,
+              chatId,
+              isGroup,
+              webhook,
+            );
+            return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
             console.log("Button match result:", JSON.stringify(buttonMatch));
@@ -1085,11 +1100,13 @@ async function executeFlow(
       
       const userMessage =
         webhook?.buttonsResponseMessage?.message ||
+        webhook?.buttonsResponseMessage?.buttonText ||
         webhook?.buttonResponseMessage?.message ||
+        webhook?.buttonResponseMessage?.buttonText ||
         webhook?.buttonReply?.text ||
         webhook?.text?.message ||
         webhook?.message?.text ||
-        webhook?.text ||
+        (typeof webhook?.text === "string" ? webhook.text : "") ||
         "";
 
       console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone}`);
@@ -1140,6 +1157,7 @@ async function executeFlow(
             flow_id: flow.id,
             phone,
             chat_history: updatedHistory,
+            last_node_id: node.id,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id,flow_id,phone" }
@@ -1163,6 +1181,19 @@ async function executeFlow(
         }
         
         await sendZapiText(instance, aiDestination, aiResponse, buttons, node.id, "text", "", supabase, userId, flow.name);
+        
+        const nextEdgeForAgent = edges.find(
+          (e: any) =>
+            String(e.source) === String(node.id) &&
+            (!e.sourceHandle ||
+              e.sourceHandle === "default" ||
+              e.sourceHandle === "output" ||
+              e.sourceHandle.includes("source")),
+        );
+
+        if (!nextEdgeForAgent) {
+          return;
+        }
       }
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
