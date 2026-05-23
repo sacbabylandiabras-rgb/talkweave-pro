@@ -68,6 +68,7 @@ const PayWithdrawals = lazyWithRecovery(() => import("./pages/gateway/PayWithdra
 const PayDocs = lazyWithRecovery(() => import("./pages/gateway/PayDocs"));
 const PayMarketplace = lazyWithRecovery(() => import("./pages/gateway/PayMarketplace"));
 const PayAffiliates = lazyWithRecovery(() => import("./pages/gateway/PayAffiliates"));
+const PayMyAffiliations = lazyWithRecovery(() => import("./pages/gateway/PayMyAffiliations"));
 const AdminPayDashboard = lazyWithRecovery(() => import("./pages/gateway/AdminDashboard"));
 const AdminCompanies = lazyWithRecovery(() => import("./pages/gateway/AdminCompanies"));
 const AdminAcquirers = lazyWithRecovery(() => import("./pages/gateway/AdminAcquirers"));
@@ -248,6 +249,7 @@ const App = () => (
                   <Route path="/gateway-checkout/landing-pages" element={<KycWrap><PayLandingPages /></KycWrap>} />
                   <Route path="/gateway-checkout/reports" element={<KycWrap><PayReports /></KycWrap>} />
                   <Route path="/gateway-checkout/marketplace" element={<KycWrap><PayMarketplace /></KycWrap>} />
+                  <Route path="/gateway-checkout/my-affiliations" element={<KycWrap><PayMyAffiliations /></KycWrap>} />
                   <Route path="/gateway-checkout/affiliates" element={<KycWrap><PayAffiliates /></KycWrap>} />
                   <Route path="/gateway-checkout/cart-recovery" element={<KycWrap><PayCartRecovery /></KycWrap>} />
                   <Route path="/gateway-checkout/pixels" element={<KycWrap><PayPixels /></KycWrap>} />

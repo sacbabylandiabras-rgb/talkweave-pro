@@ -402,6 +402,35 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_affiliates: {
+        Row: {
+          affiliate_id: string | null
+          created_at: string | null
+          id: string
+          product_id: string | null
+        }
+        Insert: {
+          affiliate_id?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_affiliates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_checkouts: {
         Row: {
           config: Json
