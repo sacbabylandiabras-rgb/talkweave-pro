@@ -927,7 +927,9 @@ serve(async (req) => {
       .replace(/[ \t]+\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim()
-    const replyPayload: Record<string, unknown> = { reply: sanitizedReply || 'Sem resposta.' }
+    
+    console.log(`[AgentChat] Final reply length: ${sanitizedReply.length}`)
+    const replyPayload: Record<string, unknown> = { reply: sanitizedReply || 'Desculpe, não consegui processar uma resposta agora.' }
     if (checkoutUrl) {
       replyPayload.cta = {
         label: finalCta?.label || prefetchedCta?.label || 'Abrir checkout',
