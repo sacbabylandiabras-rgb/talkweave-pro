@@ -694,7 +694,9 @@ export type Database = {
       }
       gateway_products: {
         Row: {
+          affiliate_enabled: boolean | null
           category: string | null
+          commission_rate: number | null
           created_at: string
           description: string | null
           id: string
@@ -708,7 +710,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          affiliate_enabled?: boolean | null
           category?: string | null
+          commission_rate?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -722,7 +726,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          affiliate_enabled?: boolean | null
           category?: string | null
+          commission_rate?: number | null
           created_at?: string
           description?: string | null
           id?: string
