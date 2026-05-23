@@ -2068,7 +2068,7 @@ const MensagensRecebidas = () => {
     [instances],
   );
   const knownInstanceIds = useMemo(() => 
-    instances.map(i => i.id).filter(Boolean)
+    instances.flatMap(i => [i.id, i.zapi_instance_id]).filter(Boolean)
   , [instances]);
 
   const knownInstanceNames = useMemo(() => 

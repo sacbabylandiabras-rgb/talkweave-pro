@@ -338,11 +338,13 @@ const extractResolvedGroupName = (payload: any): string | null => {
   return null;
 };
 
- const toMillis = (value: string | null | undefined): number => {
-   if (!value) return 0;
-   const ms = new Date(value).getTime();
-   return Number.isFinite(ms) ? ms : 0;
- };
+  const toMillis = (value: string | null | undefined): number => {
+    if (!value) return 0;
+    // Standardize ISO format for cross-browser compatibility (esp. Safari)
+    const normalized = String(value).replace(' ', 'T');
+    const ms = new Date(normalized).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  };
  
 const toZapiPhone = (phone: string): string => {
   if (phone.endsWith('-group')) {
@@ -872,6 +874,10 @@ export const useMessageLogs = (
             const record = payload.new as MessageLog;
             if (!record) return;
             
+            // Ensure record has timestamps for correct sorting
+            if (!record.timestamp) record.timestamp = new Date().toISOString();
+            if (!record.created_at) record.created_at = record.timestamp;
+
             const normalized = normalizeConversationPhone(record.phone);
             if (deletedPhones.has(normalized) || deletedPhones.has(record.phone)) return;
 
@@ -883,8 +889,11 @@ export const useMessageLogs = (
             setMessageLogs(prev => {
               if (payload.eventType === 'INSERT' && record.message_received && !record.keyword_matched?.startsWith('__')) {
                 try {
-                  new Audio('/sounds/notificacao_custom.mp3').play().catch(() => {});
-                } catch {}
+                  const audio = new Audio('/sounds/notificacao_custom.mp3');
+                  audio.play().catch(() => {});
+                } catch (e) {
+                  console.warn('[Realtime] Failed to play notification sound:', e);
+                }
               }
 
               const exists = prev.some(m => m.id === record.id);
@@ -892,19 +901,48 @@ export const useMessageLogs = (
                 ? prev.map(m => m.id === record.id ? record : m)
                 : [...prev, record];
               
-              return next.sort((a, b) => {
+              const sorted = next.sort((a, b) => {
                 const diff = toMillis(a.timestamp || a.created_at) - toMillis(b.timestamp || b.created_at);
                 return diff !== 0 ? diff : a.id.localeCompare(b.id);
               });
+
+              // Update lastLogsRef to reflect the current state and prevent polling from reverting to old cached data
+              lastLogsRef.current = JSON.stringify(
+                sorted.map((d) => [
+                  d.id,
+                  d.timestamp || d.created_at,
+                  d.message_received || '',
+                  d.response_sent || '',
+                  d.instance_id || '',
+                  d.keyword_matched || '',
+                ])
+              );
+
+              return sorted;
             });
           } else if (payload.eventType === 'DELETE') {
             const oldRecord = payload.old as any;
             if (oldRecord?.id) {
-              setMessageLogs(prev => prev.filter(m => m.id !== oldRecord.id));
+              setMessageLogs(prev => {
+                const next = prev.filter(m => m.id !== oldRecord.id);
+                lastLogsRef.current = JSON.stringify(
+                  next.map((d) => [
+                    d.id,
+                    d.timestamp || d.created_at,
+                    d.message_received || '',
+                    d.response_sent || '',
+                    d.instance_id || '',
+                    d.keyword_matched || '',
+                  ])
+                );
+                return next;
+              });
             }
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[Realtime] message_logs subscription status:', status);
+        });
 
       channelRef.current = ch1;
 
@@ -925,15 +963,43 @@ export const useMessageLogs = (
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const isVisible = record.status === 'delivered' || record.status === 'sent' || record.status === 'read';
             setCampaignSends(prev => {
-              if (!isVisible) return prev.filter(s => s.id !== record.id);
-              const exists = prev.some(s => s.id === record.id);
-              return exists ? prev.map(s => s.id === record.id ? record : s) : [...prev, record];
+              const next = !isVisible 
+                ? prev.filter(s => s.id !== record.id)
+                : (() => {
+                    const exists = prev.some(s => s.id === record.id);
+                    return exists ? prev.map(s => s.id === record.id ? record : s) : [...prev, record];
+                  })();
+
+              lastSendsRef.current = JSON.stringify(
+                next.map((d) => [
+                  d.id,
+                  d.sent_at || d.created_at,
+                  d.status || '',
+                  d.instance_name || '',
+                  d.message_content || '',
+                ])
+              );
+              return next;
             });
           } else if (payload.eventType === 'DELETE') {
-            setCampaignSends(prev => prev.filter(s => s.id !== record.id));
+            setCampaignSends(prev => {
+              const next = prev.filter(s => s.id !== record.id);
+              lastSendsRef.current = JSON.stringify(
+                next.map((d) => [
+                  d.id,
+                  d.sent_at || d.created_at,
+                  d.status || '',
+                  d.instance_name || '',
+                  d.message_content || '',
+                ])
+              );
+              return next;
+            });
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[Realtime] campaign_sends subscription status:', status);
+        });
 
       channelRef2.current = ch2;
     };
@@ -1023,18 +1089,18 @@ export const useMessageLogs = (
     // When a specific instance is selected, filter to that one.
     // Otherwise (all/none), restrict to the user's currently known instances so logs from
     // removed/disconnected instances don't pollute the list.
-    const hasKnownInstanceFilter = Array.isArray(knownInstanceIds);
-    const knownIdSet = hasKnownInstanceFilter ? new Set(knownInstanceIds) : null;
+    const hasKnownInstanceFilter = Array.isArray(knownInstanceIds) && knownInstanceIds.length > 0;
     
     const filteredLogs = (() => {
       if (filterInstanceId && filterInstanceId !== 'all') {
+        // Support filtering by both the database ID (UUID) and the provider's instance ID (Hex string)
         return messageLogs.filter(m => m.instance_id === filterInstanceId);
       }
       if (hasKnownInstanceFilter) {
-        // Se não houver instâncias conhecidas, não filtramos por ID de instância para permitir ver mensagens antigas
-        // ou mensagens de instâncias que ainda não foram carregadas no UI
-        if (knownInstanceIds!.length === 0) return messageLogs;
-        return messageLogs.filter(m => m.instance_id && knownIdSet!.has(m.instance_id));
+        const knownIdSet = new Set(knownInstanceIds);
+        // Special case: some pages pass UUIDs, but message_logs stores the provider's instance ID.
+        // We allow both if we can't be sure which one was passed.
+        return messageLogs.filter(m => m.instance_id && knownIdSet.has(m.instance_id));
       }
       return messageLogs;
     })();
