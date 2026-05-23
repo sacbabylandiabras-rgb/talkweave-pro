@@ -74,12 +74,13 @@ export default function PayMyAffiliations() {
   };
 
   const getAffiliateLink = (product: Product, affiliateId: string) => {
-    let baseUrl = window.location.origin;
+    let baseUrl = "https://zaplynx.com";
     
-    // Se estiver no preview do Lovable, tenta usar o domínio de produção
-    if (baseUrl.includes("lovable.app") && (baseUrl.includes("preview") || baseUrl.includes("id-"))) {
-      baseUrl = "https://talkweave-pro.lovable.app";
+    // Fallback para localhost/desenvolvimento se necessário, mas o usuário pediu zaplynx.com
+    if (window.location.hostname === "localhost") {
+      baseUrl = window.location.origin;
     }
+
     
     // Usa o slug do checkout se disponível, senão usa o ID do produto (que pode falhar se não houver checkout com esse ID)
     const identifier = product.checkouts && product.checkouts.length > 0 
