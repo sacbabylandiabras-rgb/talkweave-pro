@@ -1151,7 +1151,7 @@ async function executeFlow(
           { role: "assistant", content: aiResponse }
         ].slice(-10);
 
-        const finalCaptured = { ...(flowState?.captured_data || captured || {}), chat_history: updatedHistory };
+        const finalCaptured = { ...(flowCaptured?.captured_data || captured || {}), chat_history: updatedHistory };
 
         await supabase.from("flow_captured_data").upsert(
           {
