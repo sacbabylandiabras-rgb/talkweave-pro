@@ -231,7 +231,7 @@ serve(async (req) => {
 
     const { data: instanceData } = await supabase
       .from("zapi_instances")
-      .select("user_id, zapi_instance_id, zapi_token, zapi_client_token")
+      .select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, connected_phone")
       .or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`)
       .maybeSingle();
 
