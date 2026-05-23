@@ -842,9 +842,9 @@ serve(async (req) => {
     }))
 
     const testMode = !phone
-    const model = agentConfig?.model || 'claude-3-5-sonnet-20241022'
-    // Se o modelo for claude-sonnet-4-20250514 ou similar, use-o conforme solicitado
-    const effectiveModel = model.includes('claude-sonnet-4') ? 'claude-3-5-sonnet-20241022' : model;
+    const model = agentConfig?.model || 'claude-3-5-sonnet-latest'
+    // Se o modelo for claude-sonnet-4-20250514 conforme solicitado
+    const effectiveModel = model;
 
     console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
