@@ -30,6 +30,8 @@ interface Product {
   sku: string | null;
   category: string | null;
   image_url?: string | null;
+  affiliate_enabled: boolean;
+  commission_rate: number;
 }
 
 interface FormState {
@@ -39,9 +41,20 @@ interface FormState {
   price: string;
   sku: string;
   category: string;
+  affiliate_enabled: boolean;
+  commission_rate: string;
 }
 
-const emptyForm: FormState = { name: "", description: "", type: "digital", price: "", sku: "", category: "" };
+const emptyForm: FormState = { 
+  name: "", 
+  description: "", 
+  type: "digital", 
+  price: "", 
+  sku: "", 
+  category: "",
+  affiliate_enabled: false,
+  commission_rate: "0"
+};
 
 export default function PayProducts() {
   const [search, setSearch] = useState("");
@@ -154,6 +167,8 @@ export default function PayProducts() {
       price: (product.price / 100).toFixed(2).replace(".", ","),
       sku: product.sku || "",
       category: product.category || "",
+      affiliate_enabled: product.affiliate_enabled || false,
+      commission_rate: (product.commission_rate || 0).toString(),
     });
     setImagePreview(product.image_url || null);
     setImageFile(null);
@@ -232,6 +247,8 @@ export default function PayProducts() {
         price: priceInCents,
         sku: form.sku || null,
         category: form.category || null,
+        affiliate_enabled: form.affiliate_enabled,
+        commission_rate: parseInt(form.commission_rate) || 0,
       };
       if (imageUrl !== undefined) updateData.image_url = imageUrl;
 
@@ -257,6 +274,8 @@ export default function PayProducts() {
         price: priceInCents,
         sku: form.sku || null,
         category: form.category || null,
+        affiliate_enabled: form.affiliate_enabled,
+        commission_rate: parseInt(form.commission_rate) || 0,
       };
       if (imageUrl) insertData.image_url = imageUrl;
 
@@ -408,25 +427,13 @@ export default function PayProducts() {
               )}
             </div>
 
-            <div><Label>Nome</Label><Input placeholder="Nome do produto" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><Label>Descrição</Label><Textarea placeholder="Descrição" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Tipo</Label>
-                <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="digital">Digital</SelectItem>
-                    <SelectItem value="physical">Físico</SelectItem>
-                    <SelectItem value="subscription">Assinatura</SelectItem>
-                    <SelectItem value="service">Serviço</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input placeholder="Nome do produto" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
               </div>
-              <div><Label>Preço (R$)</Label><Input placeholder="0,00" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>SKU</Label><Input placeholder="SKU-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></div>
-              <div><Label>Categoria</Label>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
                 <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -446,6 +453,59 @@ export default function PayProducts() {
                 </Select>
               </div>
             </div>
+            <div><Label>Descrição</Label><Textarea placeholder="Descrição" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Tipo</Label>
+                <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="digital">Digital</SelectItem>
+                    <SelectItem value="physical">Físico</SelectItem>
+                    <SelectItem value="subscription">Assinatura</SelectItem>
+                    <SelectItem value="service">Serviço</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Preço (R$)</Label><Input placeholder="0,00" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>SKU</Label><Input placeholder="SKU-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></div>
+              <div className="flex flex-col justify-end">
+                <div className="flex items-center justify-between border rounded-md px-3 py-2 h-10">
+                  <Label className="text-sm cursor-pointer" htmlFor="affiliate-toggle">Ativar afiliação</Label>
+                  <Switch 
+                    id="affiliate-toggle"
+                    checked={form.affiliate_enabled} 
+                    onCheckedChange={v => setForm(p => ({ ...p, affiliate_enabled: v }))} 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {form.affiliate_enabled && (
+              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 space-y-3 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">Configurações de Afiliação</span>
+                </div>
+                <div>
+                  <Label>Comissão (%)</Label>
+                  <div className="relative mt-1">
+                    <Input 
+                      type="number"
+                      placeholder="0" 
+                      value={form.commission_rate} 
+                      onChange={e => setForm(p => ({ ...p, commission_rate: e.target.value }))}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Defina a porcentagem que o afiliado receberá por cada venda.
+                  </p>
+                </div>
+              </div>
+            )}
             <Button className="w-full bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full" onClick={handleSave} disabled={saving || !form.name}>
               {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {uploading ? "Enviando foto..." : editingProduct ? "Atualizar Produto" : "Salvar Produto"}
@@ -490,9 +550,14 @@ export default function PayProducts() {
                     </div>
                     <Switch checked={p.status} onCheckedChange={() => toggleStatus(p.id, p.status)} />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
+                    {p.affiliate_enabled && (
+                      <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                        Afiliados: {p.commission_rate}%
+                      </Badge>
+                    )}
                   </div>
                   {/* Checkout Links */}
                   {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 && (
