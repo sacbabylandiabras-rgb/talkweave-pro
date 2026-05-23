@@ -877,19 +877,25 @@ serve(async (req) => {
 
     // ✅ MODELO ATUALIZADO: claude-3-5-sonnet-latest foi removido (não existe mais)
     // Use sempre strings de modelo válidas da Anthropic
-    const rawModel = customModel || agentConfig?.model || "claude-sonnet-4-20250514";
+    const rawModel = customModel || agentConfig?.model || "claude-sonnet-4-6";
 
     // Managed agents usam formato "model-string:version" com dois pontos
     const isManagedAgent = rawModel.includes(":");
 
-    // Normaliza modelos legados que podem estar salvos no banco
+    // Normaliza modelos legados/deprecados salvos no banco → modelos atuais válidos
+    // Referência: https://platform.claude.com/docs/en/about-claude/models/overview
     const MODEL_ALIASES: Record<string, string> = {
-      "claude-3-5-sonnet-latest": "claude-sonnet-4-20250514",
-      "claude-3-5-sonnet-20241022": "claude-sonnet-4-20250514",
-      "claude-3-5-sonnet-20240620": "claude-sonnet-4-20250514",
-      "claude-3-sonnet-20240229": "claude-sonnet-4-20250514",
-      "claude-3-haiku-20240307": "claude-haiku-4-5-20251001",
-      "claude-3-opus-20240229": "claude-opus-4-20250514",
+      // Claude 3.x → Claude Sonnet 4.6 (atual recomendado)
+      "claude-3-5-sonnet-latest": "claude-sonnet-4-6",
+      "claude-3-5-sonnet-20241022": "claude-sonnet-4-6",
+      "claude-3-5-sonnet-20240620": "claude-sonnet-4-6",
+      "claude-3-sonnet-20240229": "claude-sonnet-4-6",
+      // Claude 4 primeira geração (deprecação prevista 15/jun/2026) → Claude 4.6
+      "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+      "claude-opus-4-20250514": "claude-opus-4-7",
+      // Haiku
+      "claude-3-haiku-20240307": "claude-haiku-4-5",
+      "claude-haiku-4-5-20251001": "claude-haiku-4-5",
     };
     const model = MODEL_ALIASES[rawModel] ?? rawModel;
 
