@@ -812,8 +812,8 @@ serve(async (req) => {
       systemPrompt += "\n- NUNCA envie textos longos ou listas extensas. Prefira frases curtas e diretas.";
     } else {
       systemPrompt += "\n- Siga o tom de voz e as instruções definidas no PROMPT PERSONALIZADO acima.";
-      systemPrompt += "\n- Se houver um fluxo de passos (ex: 1, 2, 3), você deve executar APENAS o passo atual. Não pule etapas nem envie informações de passos futuros antes do momento certo.";
-      systemPrompt += "\n- Aguarde a interação do usuário para validar o passo atual antes de prosseguir para o próximo.";
+      systemPrompt += "\n- Se houver um fluxo de passos (ex: 1, 2, 3), você deve executar APENAS o passo atual. Analise o histórico da conversa para identificar qual passo já foi concluído e qual é o próximo.";
+      systemPrompt += "\n- Não pule etapas nem envie informações de passos futuros. Aguarde a interação do usuário para validar o passo atual antes de prosseguir.";
     }
 
     systemPrompt += "\n- Use a base de conhecimento abaixo para responder, mas de forma resumida.";
