@@ -127,6 +127,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     }>
   >([]);
   const [instanceSelectionMode, setInstanceSelectionMode] = useState<"default" | "single" | "rotate">("default");
+  const [dialogInstanceId, setDialogInstanceId] = useState<string | undefined>(undefined);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
   const [removingDuplicates, setRemovingDuplicates] = useState(false);
@@ -442,8 +443,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   };
 
   const handleResumeCampaign = (id: string) => {
-    // ✅ Limpa seleção anterior ao abrir o dialog
-    (window as any).__campaignInstanceId = undefined;
+    // ✅ Reseta a instância selecionada ao abrir o dialog
+    setDialogInstanceId(undefined);
     setCampaignToResume(id);
     setForceSendOnResume(false);
     setResumeDialogOpen(true);
@@ -454,9 +455,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setResumeDialogOpen(false);
 
     try {
-      // ✅ Usa o instanceId salvo pelo InstanceSelector ao clicar (pode ser rotate:id1,id2 ou id único)
-      // Se o usuário não clicou em nenhuma instância, usa getSelectedCampaignInstanceId como fallback
-      const selectedInstanceId = (window as any).__campaignInstanceId ?? getSelectedCampaignInstanceId();
+      // ✅ Usa a instância selecionada no dialog (state local, resetado a cada abertura)
+      // Se o usuário não clicou em nenhuma, usa getSelectedCampaignInstanceId como fallback
+      const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
 
       const campaign = campaigns.find((c) => c.id === campaignToResume);
@@ -542,8 +543,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
       return;
     }
 
-    // ✅ Limpa seleção anterior ao abrir o dialog
-    (window as any).__campaignInstanceId = undefined;
+    // ✅ Reseta a instância selecionada ao abrir o dialog
+    setDialogInstanceId(undefined);
     setCampaignToSend(campaign);
     setSendDialogOpen(true);
   };
@@ -555,9 +556,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     setCampaignToSend(null);
 
     try {
-      // ✅ Usa o instanceId salvo pelo InstanceSelector ao clicar (pode ser rotate:id1,id2 ou id único)
-      // Se o usuário não clicou em nenhuma instância, usa getSelectedCampaignInstanceId como fallback
-      const selectedInstanceId = (window as any).__campaignInstanceId ?? getSelectedCampaignInstanceId();
+      // ✅ Usa a instância selecionada no dialog (state local, resetado a cada abertura)
+      // Se o usuário não clicou em nenhuma, usa getSelectedCampaignInstanceId como fallback
+      const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId();
       console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
 
       let contactsToSend = campaign.target_audience?.contacts || [];
@@ -977,14 +978,13 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     const selectedInstances = instances.filter((i) => ids.includes(i.id));
                     setInstanceSelectionMode("rotate");
                     setZapiRotateMode(selectedInstances);
-                    // ✅ Salva o instanceId rotativo para uso no reenvio
-                    (window as any).__campaignInstanceId = `rotate:${ids.join(",")}`;
+                    setDialogInstanceId(`rotate:${ids.join(",")}`);
                   } else if (ids.length === 1) {
                     const inst = instances.find((i) => i.id === ids[0]);
                     if (inst) {
                       setInstanceSelectionMode("single");
                       setZapiInstanceOverride(inst);
-                      (window as any).__campaignInstanceId = ids[0];
+                      setDialogInstanceId(ids[0]);
                     }
                   }
                 }}
@@ -1057,14 +1057,13 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   const selectedInstances = instances.filter((i) => ids.includes(i.id));
                   setInstanceSelectionMode("rotate");
                   setZapiRotateMode(selectedInstances);
-                  // ✅ Salva o instanceId rotativo para uso no envio
-                  (window as any).__campaignInstanceId = `rotate:${ids.join(",")}`;
+                  setDialogInstanceId(`rotate:${ids.join(",")}`);
                 } else if (ids.length === 1) {
                   const inst = instances.find((i) => i.id === ids[0]);
                   if (inst) {
                     setInstanceSelectionMode("single");
                     setZapiInstanceOverride(inst);
-                    (window as any).__campaignInstanceId = ids[0];
+                    setDialogInstanceId(ids[0]);
                   }
                 }
               }}
