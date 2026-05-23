@@ -180,6 +180,8 @@ serve(async (req) => {
       type === "DeliveryCallback" ||
       type === "MessageStatusCallback" ||
       type === "MessageStatus" ||
+      type === "MessageCallback" ||
+      type === "OnMessageSend" ||
       (!!webhook?.status &&
         !webhook?.text &&
         !webhook?.buttonsResponseMessage &&
@@ -188,33 +190,38 @@ serve(async (req) => {
 
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
-      let status = webhook?.status || "";
-      // ✅ CORREÇÃO: campo error vem direto no payload do DeliveryCallback
-      const error = webhook?.error;
+      let status = (webhook?.status || "").toUpperCase();
+      const error = webhook?.error || webhook?.errorMessage || "";
+
+      // Se for MessageCallback (on-message-send) e o status for SENT, consideramos enviado
+      if (type === "MessageCallback" || type === "OnMessageSend") {
+        if (!status && !error) status = "SENT";
+      }
 
       if (!status && type === "DeliveryCallback" && !error) {
         status = "DELIVERED";
       }
 
       console.log(
-        `Processing StatusCallback for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"} (type=${type})`,
+        `Processing StatusCallback (${type}) for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"}`
       );
 
-      const upperStatus = status.toUpperCase();
-      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
-      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
+      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
+      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(status);
+      const isErrorStatus = ["ERROR", "FAILED", "REJECTED"].includes(status) || !!error;
 
-      // ✅ CORREÇÃO: detectar shadowban pelos erros reais do Z-API (conforme documentação)
+      // Detectar shadowban pelos erros reais do Z-API (conforme documentação)
+      const errorLower = String(error).toLowerCase();
       const isShadowBanError =
-        error &&
-        (error.toLowerCase().includes("shadow ban") ||
-          error.toLowerCase().includes("likely shadow ban") ||
-          error.toLowerCase().includes("restricted") ||
-          error.toLowerCase().includes("temporary limit") ||
-          error.toLowerCase().includes("unauthorized") ||
-          error.toLowerCase().includes("did not have permission") ||
-          error.toLowerCase().includes("rejected sending") ||
-          error.toLowerCase().includes("did not allow"));
+        errorLower.includes("shadow ban") ||
+        errorLower.includes("likely shadow ban") ||
+        errorLower.includes("restricted") ||
+        errorLower.includes("temporary limit") ||
+        errorLower.includes("unauthorized") ||
+        errorLower.includes("did not have permission") ||
+        errorLower.includes("rejected sending") ||
+        errorLower.includes("did not allow") ||
+        errorLower.includes("capping");
 
       const isInvalidPhone =
         error &&
