@@ -550,9 +550,14 @@ export default function PayProducts() {
                     </div>
                     <Switch checked={p.status} onCheckedChange={() => toggleStatus(p.id, p.status)} />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
+                    {p.affiliate_enabled && (
+                      <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                        Afiliados: {p.commission_rate}%
+                      </Badge>
+                    )}
                   </div>
                   {/* Checkout Links */}
                   {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 && (
