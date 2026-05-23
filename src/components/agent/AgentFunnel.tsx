@@ -11,9 +11,9 @@ import { ptBR } from "date-fns/locale";
 interface Lead {
   id: string;
   phone: string;
-  name: string;
-  agent_stage: string;
-  updated_at: string;
+  name: string | null;
+  agent_stage?: string | null;
+  updated_at?: string;
 }
 
 const STAGES = [
