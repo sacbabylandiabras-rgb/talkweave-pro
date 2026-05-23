@@ -751,6 +751,7 @@ serve(async (req) => {
     systemPrompt += '\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios, mas nunca escreva a URL no texto.'
     systemPrompt += '\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.'
     systemPrompt += '\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.'
+    systemPrompt += '\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.'
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += '\n\n--- BASE DE CONHECIMENTO ---'
