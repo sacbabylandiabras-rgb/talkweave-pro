@@ -837,7 +837,7 @@ serve(async (req) => {
     }
 
     const testMode = !phone // chat de teste = sem destino real
-    const model = agentConfig?.model || 'claude-3-sonnet-20240229'
+    const model = agentConfig?.model || 'claude-3-5-sonnet-20240620'
 
     console.log(`[AgentChat] Starting response generation for user ${effectiveUserId}. Model: ${model}, SkipConfig: ${!!skip_config}`)
 
