@@ -180,6 +180,8 @@ serve(async (req) => {
       type === "DeliveryCallback" ||
       type === "MessageStatusCallback" ||
       type === "MessageStatus" ||
+      type === "MessageCallback" ||
+      type === "OnMessageSend" ||
       (!!webhook?.status &&
         !webhook?.text &&
         !webhook?.buttonsResponseMessage &&
@@ -188,46 +190,52 @@ serve(async (req) => {
 
     if (isStatusCallback) {
       const messageIds = webhook?.ids || (webhook?.messageId ? [webhook.messageId] : []);
-      let status = webhook?.status || "";
-      // ✅ CORREÇÃO: campo error vem direto no payload do DeliveryCallback
-      const error = webhook?.error;
+      let status = (webhook?.status || "").toUpperCase();
+      const error = webhook?.error || webhook?.errorMessage || "";
+
+      // Se for MessageCallback (on-message-send) e o status for SENT, consideramos enviado
+      if (type === "MessageCallback" || type === "OnMessageSend") {
+        if (!status && !error) status = "SENT";
+      }
 
       if (!status && type === "DeliveryCallback" && !error) {
         status = "DELIVERED";
       }
 
       console.log(
-        `Processing StatusCallback for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"} (type=${type})`,
+        `Processing StatusCallback (${type}) for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"}`
       );
 
-      const upperStatus = status.toUpperCase();
-      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(upperStatus);
-      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(upperStatus);
+      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
+      const isSentStatus = ["SENT", "SENT_BY_ME"].includes(status);
+      const isErrorStatus = ["ERROR", "FAILED", "REJECTED"].includes(status) || !!error;
 
-      // ✅ CORREÇÃO: detectar shadowban pelos erros reais do Z-API (conforme documentação)
+      // Detectar shadowban pelos erros reais do Z-API (conforme documentação)
+      const errorLower = String(error).toLowerCase();
       const isShadowBanError =
-        error &&
-        (error.toLowerCase().includes("shadow ban") ||
-          error.toLowerCase().includes("likely shadow ban") ||
-          error.toLowerCase().includes("restricted") ||
-          error.toLowerCase().includes("temporary limit") ||
-          error.toLowerCase().includes("unauthorized") ||
-          error.toLowerCase().includes("did not have permission") ||
-          error.toLowerCase().includes("rejected sending") ||
-          error.toLowerCase().includes("did not allow"));
+        errorLower.includes("shadow ban") ||
+        errorLower.includes("likely shadow ban") ||
+        errorLower.includes("restricted") ||
+        errorLower.includes("temporary limit") ||
+        errorLower.includes("unauthorized") ||
+        errorLower.includes("did not have permission") ||
+        errorLower.includes("rejected sending") ||
+        errorLower.includes("did not allow") ||
+        errorLower.includes("capping");
 
       const isInvalidPhone =
-        error &&
-        (error.toLowerCase().includes("phone number does not exist") ||
-          error.toLowerCase().includes("invalid phone number"));
+        errorLower.includes("phone number does not exist") ||
+        errorLower.includes("invalid phone number") ||
+        errorLower.includes("does not exist") ||
+        errorLower.includes("not on whatsapp");
 
-      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
+      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus) && !isErrorStatus) {
         for (const msgId of messageIds) {
           const newStatusLabel = isDeliveredStatus ? "delivered" : "sent";
 
           const { data: currentRecord, error: fetchError } = await supabase
             .from("campaign_sends")
-            .select("status, id")
+            .select("status, id, phone")
             .eq("message_id", msgId)
             .maybeSingle();
 
@@ -237,8 +245,9 @@ serve(async (req) => {
           }
 
           if (currentRecord) {
-            if (currentRecord.status === "delivered") {
-              console.log(`✅ Message ${msgId} is already delivered. Skipping update to ${newStatusLabel}.`);
+            // Se já está entregue, não volta para "sent"
+            if (currentRecord.status === "delivered" && newStatusLabel === "sent") {
+              console.log(`✅ Message ${msgId} is already delivered. Skipping update back to sent.`);
               continue;
             }
 
@@ -266,17 +275,18 @@ serve(async (req) => {
             console.log(`🔍 No campaign_send found with message_id ${msgId}`);
           }
         }
-      } else if (messageIds.length > 0 && error) {
-        // ✅ CORREÇÃO: o Z-API manda DeliveryCallback com campo `error` (sem status=ERROR)
-        // Atualiza campaign_sends para failed quando há erro real de entrega
+      } else if (messageIds.length > 0 && isErrorStatus) {
         for (const msgId of messageIds) {
-          let finalErrorMessage = error;
+          let finalErrorMessage = error || status || "Erro desconhecido";
+          let finalStatus = "failed";
 
           if (isShadowBanError) {
             finalErrorMessage = "Shadow Ban: número com restrição de envio. Mensagem não entregue.";
           } else if (isInvalidPhone) {
             finalErrorMessage = "Número não cadastrado no WhatsApp.";
           }
+
+          console.log(`❌ Message ${msgId} failed: ${finalErrorMessage}`);
 
           // Busca pelo message_id para encontrar o registro
           const { data: record } = await supabase
@@ -285,7 +295,12 @@ serve(async (req) => {
             .eq("message_id", msgId)
             .maybeSingle();
 
-          if (record && record.status !== "delivered") {
+          if (record) {
+            if (record.status === "delivered") {
+              console.log(`⚠️ Record ${record.id} already marked as delivered. Ignoring error callback.`);
+              continue;
+            }
+
             const { error: updateError } = await supabase
               .from("campaign_sends")
               .update({
@@ -298,11 +313,11 @@ serve(async (req) => {
               console.error(`❌ Error marking campaign_send ${record.id} as failed:`, updateError.message);
             } else {
               console.log(
-                `❌ Campaign send ${record.id} marcado como falha via DeliveryCallback: ${finalErrorMessage}`,
+                `❌ Campaign send ${record.id} marcado como falha via ${type}: ${finalErrorMessage}`,
               );
             }
-          } else if (!record) {
-            // Fallback: tenta pelo message_id direto (sem busca prévia)
+          } else {
+            // Fallback: tenta pelo message_id direto
             await supabase
               .from("campaign_sends")
               .update({
