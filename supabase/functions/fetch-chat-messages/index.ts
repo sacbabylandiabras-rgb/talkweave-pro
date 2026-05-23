@@ -78,6 +78,13 @@ Deno.serve(async (req) => {
 
     if (!phoneRaw) throw new Error("phone is required");
 
+    // Skip non-Z-API instances (e.g. Meta Cloud "meta:xxx") — history is fetched elsewhere.
+    if (instanceRef && (instanceRef.startsWith("meta:") || instanceRef.startsWith("meta-ig-"))) {
+      return new Response(JSON.stringify({ imported: 0, skipped: "meta" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { phone, isGroup, chatid } = cleanPhone(phoneRaw);
 
     // Resolve instance for this user
@@ -98,7 +105,12 @@ Deno.serve(async (req) => {
     }
 
     const { data: instance } = await instanceQuery.limit(1).maybeSingle();
-    if (!instance) throw new Error("Instância não encontrada");
+    if (!instance) {
+      console.log(`[fetch-chat-messages] No active instance for user ${user.id} ref=${instanceRef || 'default'}`);
+      return new Response(JSON.stringify({ imported: 0, skipped: "no_instance" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const apiProvider = (instance.api_provider || "zapi").toLowerCase();
     let messages: any[] = [];
