@@ -2840,10 +2840,28 @@ export default function FluxoMeta() {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Modelo de IA</Label>
-                  <div className="flex items-center gap-2 p-2 rounded border border-purple-200 bg-purple-50 dark:bg-purple-900/10 dark:border-purple-900/30 text-[11px] font-medium text-purple-700 dark:text-purple-400">
-                    <Sparkles className="w-3 h-3" />
-                    Modelo: Claude 3.5 Sonnet (Anthropic)
-                  </div>
+                  <Select
+                    value={selectedNode.data.model || "claude-3-5-sonnet-latest"}
+                    onValueChange={(val) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, model: val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/30">
+                      <SelectValue placeholder="Selecione o modelo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="claude-3-5-sonnet-latest">Claude 3.5 Sonnet (Padrão)</SelectItem>
+                      <SelectItem value="claude-3-5-haiku-latest">Claude 3.5 Haiku (Mais rápido)</SelectItem>
+                      <SelectItem value="claude-3-7-sonnet-latest">Claude 3.7 Sonnet (Mais inteligente)</SelectItem>
+                      <SelectItem value="claude-3-5-sonnet-20241022-v1:0">Managed Agent (Claude 3.5 Sonnet)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    O <strong>Managed Agent</strong> permite delegar tarefas complexas para agentes gerenciados pela Anthropic.
+                  </p>
                 </div>
 
                 <div className="p-3 rounded-lg border border-purple-100 bg-purple-50/50 dark:bg-purple-900/5 dark:border-purple-900/20">
