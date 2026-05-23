@@ -924,6 +924,7 @@ serve(async (req) => {
           content: data.content
         });
 
+        const toolResults: any[] = [];
         for (const tu of toolUses) {
           const name = tu.name;
           const args = tu.input;
@@ -945,15 +946,17 @@ serve(async (req) => {
             }
           } catch {}
 
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolId,
+            content: result
+          });
+        }
+
+        if (toolResults.length > 0) {
           convMessages.push({
             role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: toolId,
-                content: result
-              }
-            ]
+            content: toolResults
           });
         }
       } else {
