@@ -649,6 +649,20 @@ async function executeTool(
         return JSON.stringify({ error: e?.message || 'Falha no envio template Meta' })
       }
     }
+    case 'atualizar_etapa': {
+      if (!phone) return JSON.stringify({ error: 'Sem número de destino para atualizar etapa.' })
+      try {
+        const { error } = await supabase
+          .from('saved_contacts')
+          .update({ agent_stage: input.etapa })
+          .eq('user_id', userId)
+          .eq('phone', phone)
+        if (error) return JSON.stringify({ error: error.message })
+        return JSON.stringify({ ok: true, message: `Etapa do lead atualizada para: ${input.etapa}` })
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || 'Falha ao atualizar etapa' })
+      }
+    }
     default:
       return JSON.stringify({ error: `Ferramenta desconhecida: ${toolName}` })
   }
