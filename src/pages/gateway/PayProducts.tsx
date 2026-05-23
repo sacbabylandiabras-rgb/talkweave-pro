@@ -265,11 +265,15 @@ export default function PayProducts() {
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
         commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
-        marketplace_visible: form.marketplace_visible,
-        auto_approve_affiliates: form.auto_approve_affiliates,
-        buyer_data_access: form.buyer_data_access,
-        commission_type: form.commission_type,
       };
+
+      if (form.affiliate_enabled) {
+        updateData.marketplace_visible = form.marketplace_visible;
+        updateData.auto_approve_affiliates = form.auto_approve_affiliates;
+        updateData.buyer_data_access = form.buyer_data_access;
+        updateData.commission_type = form.commission_type;
+      }
+
       if (imageUrl !== undefined) updateData.image_url = imageUrl;
 
       const { error } = await supabase.from("gateway_products" as any).update(updateData as any).eq("id", editingProduct.id);
@@ -296,11 +300,15 @@ export default function PayProducts() {
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
         commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
-        marketplace_visible: form.marketplace_visible,
-        auto_approve_affiliates: form.auto_approve_affiliates,
-        buyer_data_access: form.buyer_data_access,
-        commission_type: form.commission_type,
       };
+
+      if (form.affiliate_enabled) {
+        insertData.marketplace_visible = form.marketplace_visible;
+        insertData.auto_approve_affiliates = form.auto_approve_affiliates;
+        insertData.buyer_data_access = form.buyer_data_access;
+        insertData.commission_type = form.commission_type;
+      }
+
       if (imageUrl) insertData.image_url = imageUrl;
 
       const { data: createdProductRaw, error: productError } = await supabase
