@@ -844,6 +844,11 @@ export default function PayProducts() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
+                    {p.plan_count && p.plan_count > 0 ? (
+                      <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-400/20 bg-blue-400/5">
+                        {p.plan_count} {p.plan_count === 1 ? "Plano" : "Planos"}
+                      </Badge>
+                    ) : null}
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                     {p.affiliate_enabled && (
                       <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
