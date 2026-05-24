@@ -1125,8 +1125,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               const campaignCancelled = campaign?.status === "cancelled";
               const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
 
-              const getSendPriority = (status?: string | null) => {
-                if (status === "delivered" || status === "sent") return 4;
+              const getSendPriority = (status?: string | null, row?: any) => {
+                if (status === "delivered") return 5;
+                if (status === "failed" || (row?.error_message && status !== "delivered")) return 4;
+                if (status === "sent") return 3;
+                if (status === "pending" && (row?.message_id || row?.sent_at)) return 2.5;
                 if (status === "pending") return 2;
                 if (isCancelledSendStatus(status)) return 1;
                 return 0;
