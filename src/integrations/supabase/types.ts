@@ -408,18 +408,21 @@ export type Database = {
           created_at: string | null
           id: string
           product_id: string | null
+          status: string | null
         }
         Insert: {
           affiliate_id?: string | null
           created_at?: string | null
           id?: string
           product_id?: string | null
+          status?: string | null
         }
         Update: {
           affiliate_id?: string | null
           created_at?: string | null
           id?: string
           product_id?: string | null
+          status?: string | null
         }
         Relationships: [
           {
