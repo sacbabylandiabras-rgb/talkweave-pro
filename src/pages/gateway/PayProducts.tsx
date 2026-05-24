@@ -42,7 +42,7 @@ interface Product {
 export default function PayProducts() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState<(Product & { plan_count?: number })[]>([]);
+  const [products, setProducts] = useState<(Product & { plans: any[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
   const platformCheckoutDomain = "zaplynx.com";
@@ -52,16 +52,17 @@ export default function PayProducts() {
     const { data: productsData, error } = await supabase.from("gateway_products").select("*").order("created_at", { ascending: false });
     
     if (!error && productsData) {
-      const { data: plansData } = await supabase.from("gateway_plans" as any).select("product_id");
-      const planCounts: Record<string, number> = {};
+      const { data: plansData } = await supabase.from("gateway_plans" as any).select("*");
+      const plansMap: Record<string, any[]> = {};
       if (plansData) {
         plansData.forEach((p: any) => {
-          planCounts[p.product_id] = (planCounts[p.product_id] || 0) + 1;
+          if (!plansMap[p.product_id]) plansMap[p.product_id] = [];
+          plansMap[p.product_id].push(p);
         });
       }
       const productsWithPlans = productsData.map((p: any) => ({
         ...p,
-        plan_count: planCounts[p.id] || 0
+        plans: plansMap[p.id] || []
       }));
       setProducts(productsWithPlans as any);
     }
