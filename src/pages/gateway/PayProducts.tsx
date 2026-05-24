@@ -172,9 +172,9 @@ export default function PayProducts() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-lg font-bold text-foreground">{formatCurrency(p.price)}</span>
-                    {p.plan_count && p.plan_count > 0 ? (
+                    {p.plans && p.plans.length > 0 ? (
                       <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-400/20 bg-blue-400/5">
-                        {p.plan_count} {p.plan_count === 1 ? "Plano" : "Planos"}
+                        {p.plans.length} {p.plans.length === 1 ? "Plano" : "Planos"}
                       </Badge>
                     ) : null}
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
@@ -184,39 +184,75 @@ export default function PayProducts() {
                       </Badge>
                     )}
                   </div>
-                  {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Link className="w-3 h-3" /> Links de Checkout
-                      </span>
-                      {checkoutsByProduct[p.id].map((ck) => {
-                        const slugOrId = ck.slug || ck.id;
-                        const platformUrl = buildCheckoutUrl(platformCheckoutDomain, slugOrId);
-                        const hasCustomDomain = Boolean(customCheckoutDomain && customCheckoutDomain !== platformCheckoutDomain);
-                        const customUrl = hasCustomDomain ? buildCheckoutUrl(customCheckoutDomain, slugOrId) : "";
-                        return (
-                          <div key={ck.id} className="space-y-2 bg-muted/50 rounded-md px-2 py-2">
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
-                              <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <div className="flex gap-1.5">
-                                <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={(e) => void copyCheckoutUrl(platformUrl, "Link da plataforma", e)}><Copy className="w-3 h-3 mr-1" /> Plataforma</Button>
-                                <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => window.open(platformUrl, '_blank')} title="Abrir checkout"><ExternalLink className="w-3 h-3" /></Button>
+                  
+                  <div className="space-y-3">
+                    {checkoutsByProduct[p.id] && checkoutsByProduct[p.id].length > 0 ? (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                          <Link className="w-3 h-3" /> Links de Checkout
+                        </span>
+                        {checkoutsByProduct[p.id].map((ck) => {
+                          const slugOrId = ck.slug || ck.id;
+                          const platformUrl = buildCheckoutUrl(platformCheckoutDomain, slugOrId);
+                          const hasCustomDomain = Boolean(customCheckoutDomain && customCheckoutDomain !== platformCheckoutDomain);
+                          const customUrl = hasCustomDomain ? buildCheckoutUrl(customCheckoutDomain, slugOrId) : "";
+                          
+                          return (
+                            <div key={ck.id} className="space-y-2 bg-muted/50 rounded-md px-2 py-2">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <div className={`w-1.5 h-1.5 rounded-full ${ck.status ? "bg-emerald-500" : "bg-red-400"}`} />
+                                <span className="text-[11px] text-foreground truncate flex-1" title={ck.name}>{ck.name}</span>
                               </div>
-                              {hasCustomDomain && (
+                              
+                              <div className="flex flex-col gap-1.5">
                                 <div className="flex gap-1.5">
-                                  <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={(e) => void copyCheckoutUrl(customUrl, "Link personalizado", e)}><Copy className="w-3 h-3 mr-1" /> Personalizado</Button>
-                                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => window.open(customUrl, '_blank')} title="Abrir checkout"><ExternalLink className="w-3 h-3" /></Button>
+                                  <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={(e) => void copyCheckoutUrl(platformUrl, "Link da plataforma", e)}><Copy className="w-3 h-3 mr-1" /> Plataforma</Button>
+                                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => window.open(platformUrl, '_blank')} title="Abrir checkout"><ExternalLink className="w-3 h-3" /></Button>
+                                </div>
+                                {hasCustomDomain && (
+                                  <div className="flex gap-1.5">
+                                    <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={(e) => void copyCheckoutUrl(customUrl, "Link personalizado", e)}><Copy className="w-3 h-3 mr-1" /> Personalizado</Button>
+                                    <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => window.open(customUrl, '_blank')} title="Abrir checkout"><ExternalLink className="w-3 h-3" /></Button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Links para Planos se existirem para este checkout */}
+                              {p.plans && p.plans.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Links dos Planos:</p>
+                                  {p.plans.map((plan) => {
+                                    const planPlatformUrl = `${platformUrl}?plan=${plan.id}`;
+                                    const planCustomUrl = hasCustomDomain ? `${customUrl}?plan=${plan.id}` : "";
+                                    return (
+                                      <div key={plan.id} className="flex items-center justify-between gap-2 p-1 bg-background/50 rounded border border-border/50">
+                                        <span className="text-[10px] truncate flex-1" title={plan.name}>{plan.name}</span>
+                                        <div className="flex gap-1">
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => void copyCheckoutUrl(planPlatformUrl, `Link do plano ${plan.name}`, e)} title="Copiar link do plano">
+                                            <Copy className="w-2.5 h-2.5" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => window.open(planPlatformUrl, '_blank')} title="Abrir plano">
+                                            <ExternalLink className="w-2.5 h-2.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-3 px-2 border border-dashed rounded-md bg-muted/20 flex flex-col items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground text-center">Nenhum checkout criado para este produto.</span>
+                        <Button variant="outline" size="sm" className="h-7 text-[10px] px-3" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
+                          <Plus className="w-3 h-3 mr-1" /> Criar Checkout
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/gateway-checkout/products/edit/${p.id}`)}>
                       <Edit className="w-3 h-3 mr-1" /> Editar
