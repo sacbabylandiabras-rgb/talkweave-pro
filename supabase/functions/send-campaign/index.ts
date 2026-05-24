@@ -62,10 +62,12 @@ type CampaignCredentials = {
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
 
 const normalizePublicInviteUrl = (url: string) => {
+  if (!url || typeof url !== "string") return url || "";
   try {
     const parsed = new URL(url);
     if (parsed.hostname === "pay.zaplynxpro.online") {
-      const slug = parsed.pathname
+      const pathname = parsed.pathname || "";
+      const slug = pathname
         .replace(/^\/invite\//, "/")
         .replace(/^\/+|\/+$/g, "")
         .split("/")[0];
