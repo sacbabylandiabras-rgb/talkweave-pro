@@ -783,6 +783,7 @@ export type Database = {
           price: number
           sku: string | null
           status: boolean
+          thank_you_page_url: string | null
           type: string
           updated_at: string
           user_id: string
@@ -805,6 +806,7 @@ export type Database = {
           price?: number
           sku?: string | null
           status?: boolean
+          thank_you_page_url?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -827,6 +829,7 @@ export type Database = {
           price?: number
           sku?: string | null
           status?: boolean
+          thank_you_page_url?: string | null
           type?: string
           updated_at?: string
           user_id?: string

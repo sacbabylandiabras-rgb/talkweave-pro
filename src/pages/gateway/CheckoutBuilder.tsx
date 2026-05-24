@@ -316,7 +316,9 @@ export default function CheckoutBuilder() {
         ...prev,
         productName: prod.name,
         price: prod.price,
-        productImage: prod.image_url || ""
+        productImage: prod.image_url || "",
+        thankYouUrl: prod.thank_you_page_url || prev.thankYouUrl,
+        thankYouType: prod.thank_you_page_url ? "custom_url" : prev.thankYouType
       }));
     }
   };
