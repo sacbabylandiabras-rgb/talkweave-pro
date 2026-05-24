@@ -33,6 +33,7 @@ interface FormState {
   buyer_data_access: boolean;
   commission_type: 'percentage' | 'fixed';
   affiliate_description: string;
+  thank_you_page_url: string;
   plans: Plan[];
 }
 
@@ -43,6 +44,7 @@ const emptyForm: FormState = {
   price: "", 
   sku: "", 
   category: "",
+  thank_you_page_url: "",
   affiliate_enabled: false,
   commission_rate: "0",
   marketplace_visible: true,
@@ -102,6 +104,7 @@ export default function PayProductManagement() {
           price: (product.price / 100).toFixed(2).replace(".", ","),
           sku: product.sku || "",
           category: product.category || "",
+          thank_you_page_url: product.thank_you_page_url || "",
           affiliate_enabled: product.affiliate_enabled || false,
           marketplace_visible: product.visible_in_store ?? true,
           auto_approve_affiliates: product.auto_approve_affiliates ?? true,
@@ -178,6 +181,7 @@ export default function PayProductManagement() {
       price: priceInCents,
       sku: form.sku || null,
       category: form.category || null,
+      thank_you_page_url: form.thank_you_page_url || null,
       affiliate_enabled: form.affiliate_enabled,
       commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
       commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
@@ -367,6 +371,15 @@ export default function PayProductManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>URL da Página de Obrigado</Label>
+                <Input 
+                  value={form.thank_you_page_url} 
+                  onChange={e => setForm(p => ({ ...p, thank_you_page_url: e.target.value }))} 
+                  placeholder="https://seusite.com/obrigado"
+                />
+                <p className="text-[10px] text-muted-foreground">O cliente será redirecionado para esta página após o pagamento.</p>
               </div>
             </CardContent>
           </Card>
