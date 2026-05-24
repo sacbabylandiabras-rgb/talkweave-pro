@@ -169,6 +169,18 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   uazapiToken: instance.uazapiToken || "",
 });
 
+const getAuthenticatedUserId = async (req: Request, supabaseUrl: string, supabaseServiceKey: string) => {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) throw new Error("No authorization header");
+
+  const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) throw new Error("Unauthorized: " + (error?.message || "User not found"));
+  return user.id;
+};
+
 const resolveContactInstance = async (
   supabase: any,
   userId: string,
