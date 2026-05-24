@@ -173,6 +173,7 @@ const resolveContactInstance = async (
   supabase: any,
   userId: string,
   sourceInstanceId?: string | null,
+  allowInactive = false,
 ): Promise<ResolvedInstance | null> => {
   if (!sourceInstanceId) return null;
 
@@ -188,33 +189,35 @@ const resolveContactInstance = async (
     evolution_api_key?: string | null;
   } | null = null;
 
-  const { data: byZapiInstanceId } = await supabase
+  let byZapiQuery = supabase
     .from("zapi_instances")
     .select(
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
-    .eq("is_active", true)
     .eq("api_provider", "zapi") // Only Z-API
     // EXCLUSION: If user specifically said to stop using "Mobile" instances
-    .not("instance_name", "ilike", "%Mobile%")
-    .maybeSingle();
+    .not("instance_name", "ilike", "%Mobile%");
+
+  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
+  const { data: byZapiInstanceId } = await byZapiQuery.maybeSingle();
 
   instance = byZapiInstanceId;
 
   if (!instance) {
-    const { data: byTableId } = await supabase
+    let byTableQuery = supabase
       .from("zapi_instances")
       .select(
         "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
       )
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
-      .eq("is_active", true)
       .eq("api_provider", "zapi") // Only Z-API
-      .not("instance_name", "ilike", "%Mobile%")
-      .maybeSingle();
+      .not("instance_name", "ilike", "%Mobile%");
+
+    if (!allowInactive) byTableQuery = byTableQuery.eq("is_active", true);
+    const { data: byTableId } = await byTableQuery.maybeSingle();
 
     instance = byTableId;
   }
