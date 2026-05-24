@@ -1005,42 +1005,55 @@ serve(async (req) => {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
 
       if (!specificInstance) {
-        console.log(`⏸️ Requested instance ${requestedInstanceId} not found. Pausing campaign (no fallback).`);
-        await supabase
-          .from("campaigns")
-          .update({ status: "paused", updated_at: new Date().toISOString() })
-          .eq("id", campaignId)
-          .eq("user_id", credentials.userId);
-        return new Response(
-          JSON.stringify({
-            error:
-              "A conexão selecionada não foi encontrada. A campanha foi pausada. Reconecte o número selecionado e retome.",
-            stopped: true,
-            paused: true,
-            reason: "instance_not_found",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          },
-        );
-      }
-
-      const status = await fetchDeviceStatusSnapshot(specificInstance);
-      if (!status.connected) {
         console.log(
-          `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
+          `⚠️ Requested instance ${requestedInstanceId} not found. Falling back to preferred active instance.`,
         );
-      }
+        const fallbackInstance = await resolvePreferredUserInstance(supabase, credentials.userId);
+        if (!fallbackInstance) {
+          await supabase
+            .from("campaigns")
+            .update({ status: "paused", updated_at: new Date().toISOString() })
+            .eq("id", campaignId)
+            .eq("user_id", credentials.userId);
+          return new Response(
+            JSON.stringify({
+              error:
+                "Nenhuma conexão ativa encontrada. A campanha foi pausada. Conecte um número e retome.",
+              stopped: true,
+              paused: true,
+              reason: "no_active_instance",
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            },
+          );
+        }
+        forcedRequestedInstance = fallbackInstance;
+        zapiInstanceId = fallbackInstance.zapiInstanceId;
+        zapiToken = fallbackInstance.zapiToken;
+        zapiClientToken = fallbackInstance.zapiClientToken;
+        credentials = buildCampaignCredentials(credentials.userId, fallbackInstance);
+        console.log(
+          `✅ [Fallback] Using ${fallbackInstance.instanceName} (${fallbackInstance.zapiInstanceId}) instead of stale selection.`,
+        );
+      } else {
+        const status = await fetchDeviceStatusSnapshot(specificInstance);
+        if (!status.connected) {
+          console.log(
+            `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
+          );
+        }
 
-      forcedRequestedInstance = specificInstance;
-      zapiInstanceId = specificInstance.zapiInstanceId;
-      zapiToken = specificInstance.zapiToken;
-      zapiClientToken = specificInstance.zapiClientToken;
-      credentials.apiProvider = specificInstance.apiProvider || "zapi";
-      credentials.uazapiUrl = specificInstance.uazapiUrl || "";
-      credentials.uazapiToken = specificInstance.uazapiToken || "";
-      credentials.instanceName = specificInstance.instanceName;
+        forcedRequestedInstance = specificInstance;
+        zapiInstanceId = specificInstance.zapiInstanceId;
+        zapiToken = specificInstance.zapiToken;
+        zapiClientToken = specificInstance.zapiClientToken;
+        credentials.apiProvider = specificInstance.apiProvider || "zapi";
+        credentials.uazapiUrl = specificInstance.uazapiUrl || "";
+        credentials.uazapiToken = specificInstance.uazapiToken || "";
+        credentials.instanceName = specificInstance.instanceName;
+      }
     }
 
     const getInstanceForIndex = (index: number): ResolvedInstance => {
