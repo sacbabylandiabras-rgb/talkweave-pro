@@ -62,10 +62,12 @@ type CampaignCredentials = {
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
 
 const normalizePublicInviteUrl = (url: string) => {
+  if (!url || typeof url !== "string") return url || "";
   try {
     const parsed = new URL(url);
     if (parsed.hostname === "pay.zaplynxpro.online") {
-      const slug = parsed.pathname
+      const pathname = parsed.pathname || "";
+      const slug = pathname
         .replace(/^\/invite\//, "/")
         .replace(/^\/+|\/+$/g, "")
         .split("/")[0];
@@ -794,6 +796,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const reqPayload: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
     const body = reqPayload;
+    console.log("send-campaign body:", JSON.stringify(body));
     let {
       campaignId,
       contacts,
@@ -1721,7 +1724,8 @@ serve(async (req) => {
 
         if (isLidIdentifier(contact.phone)) {
           console.log(`📞 [Z-API] Enviando @lid: ${contact.phone}`);
-          const cleanLid = contact.phone.split(/[\s\t]+/).pop() || contact.phone;
+          const phoneStr = String(contact.phone || "");
+          const cleanLid = phoneStr.split(/[\s\t]+/).pop() || phoneStr;
           if (cleanLid !== contact.phone) {
             console.log(`🧹 Limpando nome do @lid: ${contact.phone} -> ${cleanLid}`);
             contact.phone = cleanLid;
