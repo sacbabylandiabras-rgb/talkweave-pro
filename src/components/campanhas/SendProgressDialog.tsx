@@ -453,10 +453,10 @@ export function SendProgressDialog({
                     const statusInfo = (() => {
                       if (row.status === "delivered")
                         return { icon: <CheckCheck className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />, label: "Entregue" };
+                      if (row.status === "failed" || (row.error_message && row.status !== "delivered"))
+                        return { icon: <XCircle className="w-3.5 h-3.5 text-red-500" />, label: "Falhou" };
                       if (row.status === "sent" || (row.status === "pending" && (row.message_id || row.sent_at)))
                         return { icon: <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />, label: "Enviado" };
-                      if (row.status === "failed")
-                        return { icon: <XCircle className="w-3.5 h-3.5 text-red-500" />, label: "Falhou" };
                       return { icon: <Clock className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />, label: "Pendente" };
                     })();
                     return (
