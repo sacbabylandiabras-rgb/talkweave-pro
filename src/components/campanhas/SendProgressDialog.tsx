@@ -164,6 +164,7 @@ export function SendProgressDialog({
             sendsByPhone.set(phoneKey, { ...send, error_message: existing.error_message, status: "failed" });
           }
         }
+      });
 
       // Save deduped rows for the details list (sorted by most recent activity)
       const detailRows = Array.from(sendsByPhone.values()).sort(
