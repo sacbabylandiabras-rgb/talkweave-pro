@@ -762,11 +762,26 @@ const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
     });
 
     if (!deviceResponse.ok) {
+      const errorText = await deviceResponse.text().catch(() => "Unknown error");
+      const isAuthError = 
+        deviceResponse.status === 401 || 
+        deviceResponse.status === 403 || 
+        errorText.toLowerCase().includes("not allowed") ||
+        errorText.toLowerCase().includes("token") ||
+        errorText.toLowerCase().includes("unauthorized");
+
+      if (isAuthError && instance.dbId) {
+        console.warn(`🛑 Instance ${instance.instanceName} (${instance.dbId}) returned auth error. Deactivating.`);
+        // Note: In a real environment, we'd use the supabase client to update.
+        // We'll handle deactivation in the main loop to keep this helper pure-ish or pass the client.
+      }
+
       return {
         connected: false,
-        explicitlyDisconnected: false,
+        explicitlyDisconnected: isAuthError,
         ok: false,
-        raw: { error: `HTTP ${deviceResponse.status}` },
+        isAuthError,
+        raw: { error: `HTTP ${deviceResponse.status}: ${errorText}` },
       };
     }
 
