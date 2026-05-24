@@ -55,27 +55,30 @@ interface CampanhasProps {
   mode?: "contacts" | "groups";
 }
 
-const formatErrorMessage = (msg: string | null): string | null => {
+const formatErrorMessage = (msg: any): string | null => {
   if (!msg) return null;
-  const raw = msg.toLowerCase();
+  
+  // Converte para string com segurança caso seja um objeto ou outro tipo
+  const strMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+  const raw = strMsg.toLowerCase();
   
   if (raw.includes("shadow ban") || raw.includes("restrição") || raw.includes("shadowban")) {
     return "⚠️ Shadowban detectado: Seu número está com restrições de envio pelo WhatsApp";
   }
   
-  if (msg === "NOT_FOUND" || raw.includes("user_not_found") || raw.includes("not on whatsapp")) {
+  if (strMsg === "NOT_FOUND" || raw.includes("user_not_found") || raw.includes("not on whatsapp")) {
     return "Número não cadastrado no WhatsApp";
   }
   
   if (
     raw.includes("disconnected") || 
     raw.includes("desconectado") ||
-    msg.includes("Enqueue message is disabled")
+    strMsg.includes("Enqueue message is disabled")
   ) {
     return "Conexão interrompida (WhatsApp desconectado)";
   }
   
-  return msg;
+  return strMsg;
 };
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -1130,10 +1133,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               };
 
               const getSendTimestamp = (send: (typeof statsDialogSends)[number]) =>
-                send.delivered_at || send.sent_at || send.created_at || "";
+                send?.delivered_at || send?.sent_at || send?.created_at || "";
 
               const sendsByPhone = new Map<string, (typeof statsDialogSends)[0]>();
               statsDialogSends.forEach((send) => {
+                if (!send) return;
                 const phoneKey = resolvePhoneKey(send.phone);
                 const existing = sendsByPhone.get(phoneKey);
                 const sendPriority = getSendPriority(send.status);
@@ -1207,6 +1211,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               });
 
               statsDialogSends.forEach((send) => {
+                if (!send) return;
                 const sendKey = resolvePhoneKey(send.phone);
                 const existsInTarget = targetPhoneKeys.has(sendKey);
 

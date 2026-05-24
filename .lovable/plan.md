@@ -1,21 +1,20 @@
-The user is reporting that recent messages are not appearing in the chat interface. Based on my analysis of the code and logs, I have identified a few potential causes and will apply the following fixes:
+Implement safety improvements in the Campaigns page and Realtime hooks to prevent client-side exceptions causing blank screens.
 
-1. **Fix `webhook-zapi` filter logic**: The current `isStatusCallback` logic in the Z-API webhook is too broad. It may be incorrectly identifying media messages (images, videos, etc.) or messages with a `status` field but no `text` as status updates, causing them to be ignored instead of saved to the database. I will refine this logic to ensure all content-bearing messages are processed.
+1. **Safety Enhancements in `useCampaignRealtime.ts`**:
+   - Update `sortSends` to handle cases where `created_at` or the record itself might be undefined.
+   - Limit the length of the `dataKey` hash to prevent potential browser string length issues with massive campaigns.
 
-2. **Improve Realtime sorting and stability in `useMessageLogs`**: I will ensure that the Realtime listener in `useMessageLogs` is more robust and that the `lastLogsRef` synchronization doesn't interfere with UI updates.
+2. **Safety Enhancements in `Campanhas.tsx`**:
+   - Refactor `formatErrorMessage` to safely handle any input type (including objects) by converting to string first.
+   - Wrap the main campaign list and dialogs in additional null/undefined checks.
+   - Ensure `fullContactList` generation in `StatsDialog` is resilient to missing data.
+   - Add a "Try/Catch" block or safe fallback within the `statsDialog` render logic.
 
-3. **Check and fix `useMessageLogs` filtering**: Ensure that the hook doesn't accidentally filter out recently received messages due to missing fields or technical identifiers.
+3. **Duplication Logic Fix**:
+   - Ensure that duplicating a campaign correctly clones the `target_audience` and other metadata without causing reference issues.
 
-### Technical Details
-
-#### `supabase/functions/webhook-zapi/index.ts`
-- Refine `isStatusCallback` to explicitly check for media (`image`, `video`, etc.) and ensure they are not swallowed as status updates.
-- Improve logging to help debug future issues with ignored payloads.
-
-#### `src/hooks/useMessageLogs.ts`
-- Ensure the Realtime subscription correctly handles `INSERT` and `UPDATE` events.
-- Fix any potential sorting issues where messages with identical timestamps might be misordered.
-- Verify the `user_id` filtering in both polling and Realtime.
-
-#### `src/pages/MensagensRecebidas.tsx`
-- Ensure the conversation list correctly triggers a re-render when new messages arrive.
+Technical details:
+- Using `String(msg).toLowerCase()` in `formatErrorMessage`.
+- Adding `isValid` checks to all date formatting calls.
+- Ensuring `Map` lookups handle undefined keys gracefully.
+- Checking for the existence of properties before accessing them in the render phase.

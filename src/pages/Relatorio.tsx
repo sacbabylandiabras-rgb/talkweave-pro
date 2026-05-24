@@ -31,7 +31,7 @@ type ReportSend = {
   error_message: string | null;
 };
 
-const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send.delivered_at || send.sent_at || send.created_at;
+const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send?.delivered_at || send?.sent_at || send?.created_at || "";
 
 const normalizePhone = (phone?: string | null) => {
   if (!phone) return '';
