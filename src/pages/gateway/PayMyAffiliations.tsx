@@ -32,6 +32,7 @@ interface Affiliation {
   id: string;
   product_id: string;
   affiliate_id: string;
+  status: 'approved' | 'pending' | 'rejected';
   created_at: string;
   product: Product;
 }
@@ -53,6 +54,7 @@ export default function PayMyAffiliations() {
           id,
           product_id,
           affiliate_id,
+          status,
           created_at,
           product:gateway_products (
             *,
@@ -167,7 +169,10 @@ export default function PayMyAffiliations() {
                         <ShoppingBag className="w-12 h-12 text-muted-foreground/20" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <Badge className={`${aff.status === 'pending' ? 'bg-yellow-500' : aff.status === 'rejected' ? 'bg-red-500' : 'bg-black/60'} backdrop-blur-md border-none text-white`}>
+                        {aff.status === 'pending' ? 'Pendente' : aff.status === 'rejected' ? 'Recusado' : 'Aprovado'}
+                      </Badge>
                       <Badge className="bg-black/60 backdrop-blur-md border-none text-white">
                         {product.type === "digital" ? "Digital" : "Físico"}
                       </Badge>
@@ -201,30 +206,38 @@ export default function PayMyAffiliations() {
                 </div>
                 <CardContent className="pt-0 space-y-4">
                   <div className="pt-2 space-y-2 border-t">
-                    <div className="text-xs font-medium text-muted-foreground uppercase">Seu link de afiliado:</div>
-                    <div className="flex gap-2">
-                      <Input 
-                        readOnly 
-                        value={affiliateLink} 
-                        className="text-xs bg-muted/50"
-                      />
-                      <Button 
-                        size="icon" 
-                        variant="outline" 
-                        onClick={() => copyToClipboard(affiliateLink)}
-                        title="Copiar link"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="outline" 
-                        onClick={() => window.open(affiliateLink, '_blank')}
-                        title="Abrir no navegador"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
+                    <div className="text-xs font-medium text-muted-foreground uppercase">
+                      {aff.status === 'approved' ? 'Seu link de afiliado:' : 'Link ficará disponível após aprovação'}
                     </div>
+                    {aff.status === 'approved' ? (
+                      <div className="flex gap-2">
+                        <Input 
+                          readOnly 
+                          value={affiliateLink} 
+                          className="text-xs bg-muted/50"
+                        />
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          onClick={() => copyToClipboard(affiliateLink)}
+                          title="Copiar link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          onClick={() => window.open(affiliateLink, '_blank')}
+                          title="Abrir no navegador"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-muted rounded text-xs text-center text-muted-foreground italic">
+                        {aff.status === 'pending' ? 'Aguardando aprovação do produtor' : 'Sua solicitação foi recusada'}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
