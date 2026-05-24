@@ -189,22 +189,21 @@ export function SendProgressDialog({
         } else if (send.status === "delivered") {
           // Confirmado pelo WhatsApp (2 checks)
           delivered += 1;
-          // NÃO soma em sent — mostramos as categorias separadas no UI
+        } else if (send.status === "failed" || (send.error_message && send.status !== "delivered")) {
+          // Falhou ou tem mensagem de erro (e não foi entregue com sucesso depois)
+          failed += 1;
+          if (send.error_message) lastError = send.error_message;
         } else if (send.status === "sent") {
           // Enviado pelo servidor, aguardando confirmação de entrega (1 check)
           sent += 1;
         } else if (send.status === "pending") {
           if (send.message_id || send.sent_at) {
             // Já foi enviado pelo servidor mas ainda está com status "pending" no banco
-            // (o webhook de ACK ainda não chegou) — exibir como enviado
             sent += 1;
           } else {
             // Ainda não foi processado
             pending += 1;
           }
-        } else if (send.status === "failed") {
-          failed += 1;
-          if (send.error_message) lastError = send.error_message;
         } else {
           pending += 1;
         }
