@@ -160,7 +160,7 @@ const Relatorio = () => {
   const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
   const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
   const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
-  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
   const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
 
   // Details dialog stats
