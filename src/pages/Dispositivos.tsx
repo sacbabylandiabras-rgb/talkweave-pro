@@ -1100,7 +1100,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               if (isShadowBan) {
                 label = "⚠️ Número com restrição detectada pelo WhatsApp (Shadowban)";
                 if (until) {
-                if (until) {
                   label += ` · expira em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`;
                 }
                 icon = <AlertCircle className="w-3 h-3 mr-1 inline text-orange-600" />;
