@@ -167,7 +167,7 @@ const Relatorio = () => {
   const detailsStats = {
     sent: countSuccessfulStatuses(detailsLatestSends),
     pending: detailsDbPending + detailsNotProcessed,
-    failed: detailsLatestSends.filter(s => s.status === 'failed').length,
+    failed: detailsLatestSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
     total: detailsTargetCount > 0 ? detailsTargetCount : detailsLatestSends.length,
   };
 
