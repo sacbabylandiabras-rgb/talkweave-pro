@@ -181,6 +181,7 @@ export default function PayProductManagement() {
       price: priceInCents,
       sku: form.sku || null,
       category: form.category || null,
+      thank_you_page_url: form.thank_you_page_url || null,
       affiliate_enabled: form.affiliate_enabled,
       commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
       commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
