@@ -319,7 +319,25 @@ export default function PayProductManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>SKU / Referência</Label><Input value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="Ex: PROD-001" /></div>
-                <div className="space-y-2"><Label>Categoria</Label><Input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} placeholder="Ex: E-book" /></div>
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="E-book">E-book</SelectItem>
+                      <SelectItem value="Curso Online">Curso Online</SelectItem>
+                      <SelectItem value="Mentoria">Mentoria</SelectItem>
+                      <SelectItem value="Software/SaaS">Software/SaaS</SelectItem>
+                      <SelectItem value="Evento/Ingresso">Evento/Ingresso</SelectItem>
+                      <SelectItem value="Saúde e Bem-estar">Saúde e Bem-estar</SelectItem>
+                      <SelectItem value="Finanças">Finanças</SelectItem>
+                      <SelectItem value="Marketing Digital">Marketing Digital</SelectItem>
+                      <SelectItem value="Outros">Outros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
