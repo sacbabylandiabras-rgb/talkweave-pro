@@ -1085,7 +1085,12 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                                  (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban')) ||
                                  (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('restrição'));
               
-              // Se estiver desconectado mas NÃO for shadowban, não mostramos nada
+              // Se o dispositivo está ONLINE, ignoramos blocos de tipo 'disconnected' pois o status atual prevalece
+              if (isOnline && healthBlock.block_type === 'disconnected') {
+                return null;
+              }
+
+              // Se estiver desconectado mas NÃO for shadowban, não mostramos nada (pedido anterior)
               if (healthBlock.block_type === 'disconnected' && !isShadowBan) {
                 return null;
               }
@@ -1094,7 +1099,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               let icon = <AlertCircle className="w-3 h-3 mr-1 inline" />;
               
               if (isShadowBan) {
-                label = "⚠️ Número com restrição ou desconectado pelo WhatsApp";
+                label = isOnline 
+                  ? "⚠️ Número com restrição detectada pelo WhatsApp"
+                  : "⚠️ Número com restrição ou desconectado pelo WhatsApp";
                 if (until) {
                   label += ` · expira em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`;
                 }
