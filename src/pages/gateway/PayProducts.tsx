@@ -39,53 +39,11 @@ interface Product {
   affiliate_description?: string | null;
 }
 
-
-interface FormState {
-  name: string;
-  description: string;
-  type: string;
-  price: string;
-  sku: string;
-  category: string;
-  affiliate_enabled: boolean;
-  commission_rate: string;
-  marketplace_visible: boolean;
-  auto_approve_affiliates: boolean;
-  buyer_data_access: boolean;
-  commission_type: 'percentage' | 'fixed';
-  affiliate_description: string;
-  plans: Plan[];
-}
-
-const emptyForm: FormState = { 
-  name: "", 
-  description: "", 
-  type: "digital", 
-  price: "", 
-  sku: "", 
-  category: "",
-  affiliate_enabled: false,
-  commission_rate: "0",
-  marketplace_visible: true,
-  auto_approve_affiliates: true,
-  buyer_data_access: false,
-  commission_type: 'percentage',
-  affiliate_description: "",
-  plans: []
-};
-
 export default function PayProducts() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<(Product & { plan_count?: number })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [checkoutsByProduct, setCheckoutsByProduct] = useState<Record<string, { id: string; name: string; slug: string | null; status: boolean }[]>>({});
   const platformCheckoutDomain = "zaplynx.com";
   const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
@@ -138,6 +96,7 @@ export default function PayProducts() {
       setCustomCheckoutDomain(storedDomain);
       return;
     }
+
 
     try {
       const { data: profile } = await supabase
