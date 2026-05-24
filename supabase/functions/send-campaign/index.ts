@@ -183,6 +183,7 @@ const resolveContactInstance = async (
     zapi_client_token: string;
     instance_name: string | null;
     api_provider?: string | null;
+    instance_type?: string | null;
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null = null;
@@ -190,7 +191,7 @@ const resolveContactInstance = async (
   const { data: byZapiInstanceId } = await supabase
     .from("zapi_instances")
     .select(
-      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
@@ -206,7 +207,7 @@ const resolveContactInstance = async (
     const { data: byTableId } = await supabase
       .from("zapi_instances")
       .select(
-        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
       )
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
