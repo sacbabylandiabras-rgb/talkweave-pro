@@ -614,6 +614,84 @@ export default function PayProducts() {
               </div>
             </div>
 
+            {/* Plans Section */}
+            <div className="space-y-3 pt-2 border-t border-[#2A2A2A]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-[#a78bfa]" />
+                  <Label className="font-semibold text-sm">Planos / Variações de Preço</Label>
+                </div>
+                <Button variant="outline" size="sm" onClick={addPlan} className="h-7 text-[10px] gap-1">
+                  <Plus className="w-3 h-3" /> Adicionar Plano
+                </Button>
+              </div>
+
+              {form.plans.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-md border border-dashed border-[#2A2A2A]">
+                  Nenhum plano extra adicionado. O produto usará o preço principal definido acima.
+                </p>
+              ) : (
+                <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted">
+                  {form.plans.map((plan, index) => (
+                    <div key={index} className="bg-muted/30 border border-[#2A2A2A] rounded-lg p-3 space-y-3 relative group">
+                      <button 
+                        onClick={() => removePlan(index)}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Nome do Plano</Label>
+                          <Input 
+                            placeholder="Ex: Trimestral, VIP, etc" 
+                            className="h-8 text-xs" 
+                            value={plan.name} 
+                            onChange={e => updatePlan(index, "name", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Preço (R$)</Label>
+                          <Input 
+                            placeholder="0,00" 
+                            className="h-8 text-xs" 
+                            value={plan.price} 
+                            onChange={e => updatePlan(index, "price", e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Ciclo de Faturamento</Label>
+                          <Select value={plan.billing_cycle} onValueChange={v => updatePlan(index, "billing_cycle", v)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="one-time">Pagamento Único</SelectItem>
+                              <SelectItem value="monthly">Mensal</SelectItem>
+                              <SelectItem value="quarterly">Trimestral</SelectItem>
+                              <SelectItem value="semiannual">Semestral</SelectItem>
+                              <SelectItem value="yearly">Anual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Descrição (opcional)</Label>
+                          <Input 
+                            placeholder="Breve descrição" 
+                            className="h-8 text-xs" 
+                            value={plan.description} 
+                            onChange={e => updatePlan(index, "description", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {form.affiliate_enabled && (
               <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 space-y-4 animate-in fade-in slide-in-from-top-1">
                 <div className="flex items-center gap-2 mb-2">
