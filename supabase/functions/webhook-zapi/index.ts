@@ -319,7 +319,10 @@ serve(async (req) => {
               continue;
             }
 
-            const updateData: any = { status: newStatusLabel };
+            const updateData: any = { 
+              status: newStatusLabel,
+              error_message: null // Clear any previous error if we now have a success status
+            };
 
             if (isDeliveredStatus) {
               updateData.delivered_at = new Date().toISOString();

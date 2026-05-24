@@ -139,9 +139,9 @@ export function SendProgressDialog({
         // Prioridade: delivered (4) > sent (3) > pending com message_id (2) > failed (1) > pending (0)
         const getStatusPriority = (s?: string | null, row?: CampaignSendRow) => {
           if (s === "delivered") return 4;
-          if (s === "sent") return 3;
-          if (s === "pending" && (row?.message_id || row?.sent_at)) return 2;
-          if (s === "failed") return 1;
+          if (s === "failed" || (row?.error_message && s !== "delivered")) return 3;
+          if (s === "sent") return 2;
+          if (s === "pending" && (row?.message_id || row?.sent_at)) return 1.5;
           return 0;
         };
 
@@ -189,22 +189,21 @@ export function SendProgressDialog({
         } else if (send.status === "delivered") {
           // Confirmado pelo WhatsApp (2 checks)
           delivered += 1;
-          // NÃO soma em sent — mostramos as categorias separadas no UI
+        } else if (send.status === "failed" || (send.error_message && send.status !== "delivered")) {
+          // Falhou ou tem mensagem de erro (e não foi entregue com sucesso depois)
+          failed += 1;
+          if (send.error_message) lastError = send.error_message;
         } else if (send.status === "sent") {
           // Enviado pelo servidor, aguardando confirmação de entrega (1 check)
           sent += 1;
         } else if (send.status === "pending") {
           if (send.message_id || send.sent_at) {
             // Já foi enviado pelo servidor mas ainda está com status "pending" no banco
-            // (o webhook de ACK ainda não chegou) — exibir como enviado
             sent += 1;
           } else {
             // Ainda não foi processado
             pending += 1;
           }
-        } else if (send.status === "failed") {
-          failed += 1;
-          if (send.error_message) lastError = send.error_message;
         } else {
           pending += 1;
         }
@@ -454,10 +453,10 @@ export function SendProgressDialog({
                     const statusInfo = (() => {
                       if (row.status === "delivered")
                         return { icon: <CheckCheck className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />, label: "Entregue" };
+                      if (row.status === "failed" || (row.error_message && row.status !== "delivered"))
+                        return { icon: <XCircle className="w-3.5 h-3.5 text-red-500" />, label: "Falhou" };
                       if (row.status === "sent" || (row.status === "pending" && (row.message_id || row.sent_at)))
                         return { icon: <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />, label: "Enviado" };
-                      if (row.status === "failed")
-                        return { icon: <XCircle className="w-3.5 h-3.5 text-red-500" />, label: "Falhou" };
                       return { icon: <Clock className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />, label: "Pendente" };
                     })();
                     return (
