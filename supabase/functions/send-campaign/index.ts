@@ -906,6 +906,7 @@ serve(async (req) => {
           .select("*")
           .eq("user_id", _userId)
           .eq("is_active", true)
+          .eq("api_provider", "zapi")
           .limit(1)
           .maybeSingle();
         continuationInstance = fallbackInst ? mapResolvedInstance(fallbackInst) : null;
@@ -973,10 +974,11 @@ serve(async (req) => {
       let query = supabase
         .from("zapi_instances")
         .select(
-          "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+          "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
         )
         .eq("user_id", credentials.userId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("api_provider", "zapi");
 
       if (typeof requestedInstanceIdRaw === "string" && requestedInstanceIdRaw.startsWith("rotate:")) {
         const specificIds = requestedInstanceIdRaw.replace("rotate:", "").split(",").filter(Boolean);
