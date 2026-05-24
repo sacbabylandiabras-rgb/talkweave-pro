@@ -372,6 +372,15 @@ export default function PayProductManagement() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>URL da Página de Obrigado</Label>
+                <Input 
+                  value={form.thank_you_page_url} 
+                  onChange={e => setForm(p => ({ ...p, thank_you_page_url: e.target.value }))} 
+                  placeholder="https://seusite.com/obrigado"
+                />
+                <p className="text-[10px] text-muted-foreground">O cliente será redirecionado para esta página após o pagamento.</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
