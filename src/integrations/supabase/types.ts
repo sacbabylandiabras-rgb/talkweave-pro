@@ -765,6 +765,7 @@ export type Database = {
       gateway_products: {
         Row: {
           access_buyer_data: boolean | null
+          affiliate_description: string | null
           affiliate_enabled: boolean | null
           auto_approve_affiliates: boolean | null
           category: string | null
@@ -786,6 +787,7 @@ export type Database = {
         }
         Insert: {
           access_buyer_data?: boolean | null
+          affiliate_description?: string | null
           affiliate_enabled?: boolean | null
           auto_approve_affiliates?: boolean | null
           category?: string | null
@@ -807,6 +809,7 @@ export type Database = {
         }
         Update: {
           access_buyer_data?: boolean | null
+          affiliate_description?: string | null
           affiliate_enabled?: boolean | null
           auto_approve_affiliates?: boolean | null
           category?: string | null
