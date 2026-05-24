@@ -146,6 +146,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .eq("user_id", userId)
     .eq("is_default", true)
     .eq("is_active", true)
+    .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
 
   const mappedDefault = mapResolvedInstance(defaultInstance);
@@ -156,6 +157,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
+    .not("instance_name", "ilike", "%Mobile%")
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -201,6 +203,8 @@ const resolveContactInstance = async (
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
     .eq("is_active", true)
+    // EXCLUSION: If user specifically said to stop using "Mobile" instances
+    .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
 
   instance = byZapiInstanceId;
@@ -214,6 +218,7 @@ const resolveContactInstance = async (
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
       .eq("is_active", true)
+      .not("instance_name", "ilike", "%Mobile%")
       .maybeSingle();
 
     instance = byTableId;
