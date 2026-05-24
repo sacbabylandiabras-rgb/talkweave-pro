@@ -105,20 +105,9 @@ const mapResolvedInstance = (
 
   const provider = instance.api_provider || "zapi";
 
-  if (provider === "uazapi") {
-    const hasUazapiCreds = Boolean(instance.evolution_api_url && (instance.evolution_api_key || instance.zapi_token));
-    if (!hasUazapiCreds) return null;
-
-    return {
-      dbId: instance.id,
-      zapiInstanceId: instance.zapi_instance_id,
-      zapiToken: instance.zapi_token || instance.evolution_api_key || "",
-      zapiClientToken: instance.zapi_client_token || instance.zapi_token || instance.evolution_api_key || "",
-      instanceName: instance.instance_name || "Instância",
-      apiProvider: "uazapi",
-      uazapiUrl: instance.evolution_api_url || "",
-      uazapiToken: instance.evolution_api_key || instance.zapi_token || "",
-    };
+  // EXCLUSION: Only allow 'zapi' provider for campaigns as requested by user
+  if (provider !== "zapi") {
+    return null;
   }
 
   const hasZapiCreds = Boolean(instance.zapi_instance_id && instance.zapi_token && instance.zapi_client_token);
@@ -146,6 +135,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .eq("user_id", userId)
     .eq("is_default", true)
     .eq("is_active", true)
+    .eq("api_provider", "zapi") // Only Z-API
     .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
 
@@ -157,6 +147,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
+    .eq("api_provider", "zapi") // Only Z-API
     .not("instance_name", "ilike", "%Mobile%")
     .order("created_at", { ascending: true })
     .limit(1)
@@ -203,6 +194,7 @@ const resolveContactInstance = async (
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
     .eq("is_active", true)
+    .eq("api_provider", "zapi") // Only Z-API
     // EXCLUSION: If user specifically said to stop using "Mobile" instances
     .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
@@ -218,6 +210,7 @@ const resolveContactInstance = async (
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
       .eq("is_active", true)
+      .eq("api_provider", "zapi") // Only Z-API
       .not("instance_name", "ilike", "%Mobile%")
       .maybeSingle();
 
