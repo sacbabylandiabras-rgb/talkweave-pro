@@ -1143,8 +1143,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 if (!send) return;
                 const phoneKey = resolvePhoneKey(send.phone);
                 const existing = sendsByPhone.get(phoneKey);
-                const sendPriority = getSendPriority(send.status);
-                const existingPriority = getSendPriority(existing?.status);
+                const sendPriority = getSendPriority(send.status, send);
+                const existingPriority = getSendPriority(existing?.status, existing);
 
                 if (
                   !existing ||
