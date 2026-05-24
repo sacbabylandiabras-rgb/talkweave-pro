@@ -703,6 +703,47 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_plans: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          price: number
+          product_id: string
+          status: boolean | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          product_id: string
+          status?: boolean | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          product_id?: string
+          status?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_plans_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_platform_config: {
         Row: {
           key: string
