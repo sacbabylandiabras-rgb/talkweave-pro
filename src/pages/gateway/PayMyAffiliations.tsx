@@ -392,6 +392,15 @@ export default function PayMyAffiliations() {
                       {selectedAffiliation.product.description || "Este produto não possui uma descrição detalhada cadastrada."}
                     </p>
                   </div>
+
+                  {selectedAffiliation.product.affiliate_description && (
+                    <div>
+                      <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-2 italic">Informações para Afiliados</h4>
+                      <div className="text-sm text-muted-foreground leading-relaxed p-3 bg-primary/5 rounded-lg border border-primary/10">
+                        {selectedAffiliation.product.affiliate_description}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
