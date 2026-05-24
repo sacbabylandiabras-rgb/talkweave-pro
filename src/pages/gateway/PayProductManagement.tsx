@@ -317,6 +317,10 @@ export default function PayProductManagement() {
                 <div className="space-y-2"><Label>Tipo</Label><Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="digital">Digital</SelectItem><SelectItem value="physical">Físico</SelectItem><SelectItem value="subscription">Assinatura</SelectItem><SelectItem value="service">Serviço</SelectItem></SelectContent></Select></div>
                 <div className="space-y-2"><Label>Preço Principal</Label><Input value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} /></div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>SKU / Referência</Label><Input value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="Ex: PROD-001" /></div>
+                <div className="space-y-2"><Label>Categoria</Label><Input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} placeholder="Ex: E-book" /></div>
+              </div>
             </CardContent>
           </Card>
           <Card>
