@@ -33,6 +33,7 @@ interface FormState {
   buyer_data_access: boolean;
   commission_type: 'percentage' | 'fixed';
   affiliate_description: string;
+  thank_you_page_url: string;
   plans: Plan[];
 }
 
