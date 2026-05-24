@@ -1076,6 +1076,10 @@ serve(async (req) => {
         );
       } else {
         const status = await fetchDeviceStatusSnapshot(specificInstance);
+        if ((status as any).isAuthError && specificInstance.dbId) {
+          await deactivateInstance(supabase, specificInstance.dbId, (status as any).raw?.error || "Auth error");
+        }
+
         if (!status.connected) {
           console.log(
             `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
