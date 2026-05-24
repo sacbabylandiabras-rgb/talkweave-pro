@@ -62,8 +62,8 @@ serve(async (req) => {
       if (findError) throw findError;
       if (!toDelete || toDelete.length === 0) {
         return new Response(
-          JSON.stringify({ success: false, deleted: 0, error: 'Instância não encontrada ou sem permissão para apagar.' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: true, deleted: 0, alreadyDeleted: true }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
