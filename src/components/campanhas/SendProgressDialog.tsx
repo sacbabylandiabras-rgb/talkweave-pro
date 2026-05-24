@@ -139,9 +139,9 @@ export function SendProgressDialog({
         // Prioridade: delivered (4) > sent (3) > pending com message_id (2) > failed (1) > pending (0)
         const getStatusPriority = (s?: string | null, row?: CampaignSendRow) => {
           if (s === "delivered") return 4;
-          if (s === "sent") return 3;
-          if (s === "pending" && (row?.message_id || row?.sent_at)) return 2;
-          if (s === "failed") return 1;
+          if (s === "failed" || (row?.error_message && s !== "delivered")) return 3;
+          if (s === "sent") return 2;
+          if (s === "pending" && (row?.message_id || row?.sent_at)) return 1.5;
           return 0;
         };
 
