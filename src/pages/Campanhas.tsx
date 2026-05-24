@@ -57,15 +57,24 @@ interface CampanhasProps {
 
 const formatErrorMessage = (msg: string | null): string | null => {
   if (!msg) return null;
-  if (msg === "NOT_FOUND" || msg.includes("user_not_found")) {
+  const raw = msg.toLowerCase();
+  
+  if (raw.includes("shadow ban") || raw.includes("restrição") || raw.includes("shadowban")) {
+    return "⚠️ Shadowban detectado: Seu número está com restrições de envio pelo WhatsApp";
+  }
+  
+  if (msg === "NOT_FOUND" || raw.includes("user_not_found") || raw.includes("not on whatsapp")) {
     return "Número não cadastrado no WhatsApp";
   }
+  
   if (
-    msg ===
-    "Enqueue message is disabled for this instance when whatsapp is disconnected. You can update this setting on instance configuration."
+    raw.includes("disconnected") || 
+    raw.includes("desconectado") ||
+    msg.includes("Enqueue message is disabled")
   ) {
-    return "Instância desconectada";
+    return "Conexão interrompida (WhatsApp desconectado)";
   }
+  
   return msg;
 };
 
