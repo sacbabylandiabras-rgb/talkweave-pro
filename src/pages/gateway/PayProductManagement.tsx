@@ -354,12 +354,81 @@ export default function PayProductManagement() {
           <Card>
             <CardHeader><CardTitle>Afiliação</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between"><Label>Ativar</Label><Switch checked={form.affiliate_enabled} onCheckedChange={v => setForm(p => ({ ...p, affiliate_enabled: v }))} /></div>
+              <div className="flex items-center justify-between">
+                <Label>Ativar programa de afiliados</Label>
+                <Switch checked={form.affiliate_enabled} onCheckedChange={v => setForm(p => ({ ...p, affiliate_enabled: v }))} />
+              </div>
               {form.affiliate_enabled && (
-                <div className="space-y-2">
-                  <Label className="text-xs">Comissão</Label><Input value={form.commission_rate} onChange={e => setForm(p => ({ ...p, commission_rate: e.target.value }))} />
-                  <div className="flex items-center justify-between mt-4"><Label className="text-sm">Marketplace</Label><Switch checked={form.marketplace_visible} onCheckedChange={v => setForm(p => ({ ...p, marketplace_visible: v }))} /></div>
-                </div>
+                <>
+                  <div className="space-y-3 pt-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Tipo de Comissão</Label>
+                      <Select 
+                        value={form.commission_type} 
+                        onValueChange={(v: any) => setForm(p => ({ ...p, commission_type: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                          <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Valor da Comissão</Label>
+                      <div className="relative">
+                        <Input 
+                          value={form.commission_rate} 
+                          onChange={e => setForm(p => ({ ...p, commission_rate: e.target.value }))}
+                          placeholder="0,00"
+                          className={form.commission_type === 'percentage' ? "pr-8" : "pl-8"}
+                        />
+                        <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground text-sm ${form.commission_type === 'percentage' ? "right-3" : "left-3"}`}>
+                          {form.commission_type === 'percentage' ? "%" : "R$"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Visível no Marketplace</Label>
+                        <p className="text-[10px] text-muted-foreground">Mostrar seu produto na vitrine para outros afiliados</p>
+                      </div>
+                      <Switch checked={form.marketplace_visible} onCheckedChange={v => setForm(p => ({ ...p, marketplace_visible: v }))} />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Aprovação Automática</Label>
+                        <p className="text-[10px] text-muted-foreground">Afiliados são aprovados assim que solicitarem</p>
+                      </div>
+                      <Switch checked={form.auto_approve_affiliates} onCheckedChange={v => setForm(p => ({ ...p, auto_approve_affiliates: v }))} />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Acesso a Dados do Comprador</Label>
+                        <p className="text-[10px] text-muted-foreground">Permitir que o afiliado veja e-mail e nome do comprador</p>
+                      </div>
+                      <Switch checked={form.buyer_data_access} onCheckedChange={v => setForm(p => ({ ...p, buyer_data_access: v }))} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2">
+                    <Label className="text-xs">Descrição para Afiliados</Label>
+                    <Textarea 
+                      placeholder="Regras, materiais de divulgação, etc..."
+                      value={form.affiliate_description}
+                      onChange={e => setForm(p => ({ ...p, affiliate_description: e.target.value }))}
+                      className="min-h-[100px] text-sm"
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
