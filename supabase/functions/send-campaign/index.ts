@@ -349,6 +349,22 @@ const recordShadowBan = async (supabase: any, instanceDbId: string, errorText: s
   }
 };
 
+const deactivateInstance = async (supabase: any, dbId: string, reason: string) => {
+  try {
+    console.warn(`🛑 Deactivating instance ${dbId} due to fatal error: ${reason}`);
+    await supabase
+      .from("zapi_instances")
+      .update({ 
+        is_active: false, 
+        last_error: reason,
+        updated_at: new Date().toISOString() 
+      })
+      .eq("id", dbId);
+  } catch (err) {
+    console.error(`Failed to deactivate instance ${dbId}:`, err);
+  }
+};
+
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || "").toUpperCase();
@@ -2282,6 +2298,19 @@ serve(async (req) => {
             (!confirmed && !isLidIdentifier(contact.phone))
           ) {
             console.log(`🔍 [ShadowBan Check] phone=${contact.phone}, explicitError="${explicitError}", confirmed=${confirmed}, status=${zapiResponse.status}`);
+            const isAuthError = 
+              zapiResponse.status === 401 || 
+              zapiResponse.status === 403 || 
+              (explicitError && (
+                explicitError.toLowerCase().includes("not allowed") ||
+                explicitError.toLowerCase().includes("token") ||
+                explicitError.toLowerCase().includes("unauthorized")
+              ));
+
+            if (isAuthError && currentInstance.dbId) {
+              await deactivateInstance(supabase, currentInstance.dbId, explicitError || `HTTP ${zapiResponse.status}`);
+            }
+
             const isShadowBan =
               explicitError &&
               (explicitError.toLowerCase().includes("shadow ban") ||
