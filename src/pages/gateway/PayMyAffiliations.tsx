@@ -311,8 +311,17 @@ export default function PayMyAffiliations() {
                 </div>
 
                 <div className="space-y-6">
+                  {selectedAffiliation.product.affiliate_description && (
+                    <div>
+                      <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-2">Descrição para Afiliados</h4>
+                      <p className="text-sm text-foreground bg-[#a78bfa]/5 p-3 rounded-lg border border-[#a78bfa]/10 italic">
+                        "{selectedAffiliation.product.affiliate_description}"
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">Links de Divulgação</h4>
+
                     <div className="space-y-4">
                       {/* Se o produto tiver múltiplos checkouts, podemos listar todos */}
                       {selectedAffiliation.product.checkouts && selectedAffiliation.product.checkouts.length > 0 ? (
