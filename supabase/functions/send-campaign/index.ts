@@ -1724,7 +1724,8 @@ serve(async (req) => {
 
         if (isLidIdentifier(contact.phone)) {
           console.log(`📞 [Z-API] Enviando @lid: ${contact.phone}`);
-          const cleanLid = contact.phone.split(/[\s\t]+/).pop() || contact.phone;
+          const phoneStr = String(contact.phone || "");
+          const cleanLid = phoneStr.split(/[\s\t]+/).pop() || phoneStr;
           if (cleanLid !== contact.phone) {
             console.log(`🧹 Limpando nome do @lid: ${contact.phone} -> ${cleanLid}`);
             contact.phone = cleanLid;
