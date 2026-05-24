@@ -87,7 +87,7 @@ const pickPreferredInstance = (instances: any[] | null | undefined) => {
   })[0] || null;
 };
 
-const findUserInstance = async (adminClient: any, userId: string, instanceRef: string) => {
+const findUserInstance = async (adminClient: any, userId: string, instanceRef: string, allowInactive = false) => {
   if (!instanceRef) return null;
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isUuid = UUID_RE.test(instanceRef);
@@ -98,22 +98,24 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
     ? `zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef}`
     : `zapi_instance_id.eq.${instanceRef}`;
 
-  const { data, error } = await adminClient
+  let query = adminClient
     .from('zapi_instances')
     .select(baseSelect)
     .eq('user_id', userId)
-    .eq('is_active', true)
     .or(orFilter);
+  if (!allowInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
 
   if (error) {
     console.error(`❌ Failed to resolve instance ${instanceRef}:`, error);
     // Fallback: try matching by zapi_instance_id only (string col, no UUID cast)
-    const { data: fallback, error: fbError } = await adminClient
+    let fbQuery = adminClient
       .from('zapi_instances')
       .select(baseSelect)
       .eq('user_id', userId)
-      .eq('is_active', true)
       .eq('zapi_instance_id', instanceRef);
+    if (!allowInactive) fbQuery = fbQuery.eq('is_active', true);
+    const { data: fallback, error: fbError } = await fbQuery;
     if (fbError) {
       console.error(`❌ Fallback resolve failed for ${instanceRef}:`, fbError);
       return null;
@@ -368,7 +370,14 @@ serve(async (req) => {
       // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
       let lockedToRequestedInstance = false;
       if (requestedInstanceId) {
-        const requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
+        // Tenta primeiro ativa, depois inativa (pode estar marcada inativa mas com credenciais válidas)
+        let requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId);
+        if (!requestedInstance) {
+          requestedInstance = await findUserInstance(adminClient, userId, requestedInstanceId, true);
+          if (requestedInstance) {
+            console.log(`⚠️ Instância ${requestedInstanceId} está inativa no banco, mas será usada mesmo assim.`);
+          }
+        }
         if (requestedInstance) {
           console.log(`✅ Usando instância solicitada: ${requestedInstance.zapi_instance_id}`);
           instanceId = requestedInstance.zapi_instance_id;
@@ -376,8 +385,8 @@ serve(async (req) => {
           clientToken = requestedInstance.zapi_client_token;
           lockedToRequestedInstance = true;
         } else {
-          console.error(`❌ Instância solicitada ${requestedInstanceId} não encontrada para o usuário ${userId}`);
-          throw new Error('A conexão selecionada não foi encontrada ou não pertence à sua conta.');
+          console.warn(`⚠️ Instância solicitada ${requestedInstanceId} não encontrada — usando credenciais padrão do usuário.`);
+          // Não falha: cai para as credenciais padrão já obtidas via getUserZAPICredentials
         }
       }
 
