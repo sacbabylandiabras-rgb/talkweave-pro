@@ -213,28 +213,57 @@ export default function PayMyAffiliations() {
                       {aff.status === 'approved' ? 'Seu link de afiliado:' : 'Link ficará disponível após aprovação'}
                     </div>
                     {aff.status === 'approved' ? (
-                      <div className="flex gap-2">
-                        <Input 
-                          readOnly 
-                          value={affiliateLink} 
-                          className="text-xs bg-muted/50"
-                        />
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          onClick={() => copyToClipboard(affiliateLink)}
-                          title="Copiar link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          onClick={() => window.open(affiliateLink, '_blank')}
-                          title="Abrir no navegador"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input 
+                            readOnly 
+                            value={affiliateLink} 
+                            className="text-xs bg-muted/50"
+                          />
+                          <Button 
+                            size="icon" 
+                            variant="outline" 
+                            onClick={() => copyToClipboard(affiliateLink)}
+                            title="Copiar link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="outline" 
+                            onClick={() => window.open(affiliateLink, '_blank')}
+                            title="Abrir no navegador"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {product.plans && product.plans.length > 0 && (
+                          <div className="pt-2 border-t border-border/50 space-y-2">
+                            <p className="text-[10px] font-bold text-[#a78bfa] uppercase tracking-tighter">Links dos Planos:</p>
+                            <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                              {product.plans.map((plan) => {
+                                const planLink = `${affiliateLink}${affiliateLink.includes('?') ? '&' : '?'}plan=${plan.id}`;
+                                return (
+                                  <div key={plan.id} className="flex items-center justify-between gap-2 p-1.5 bg-[#a78bfa]/5 rounded border border-[#a78bfa]/10">
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-[10px] font-medium truncate" title={plan.name}>{plan.name}</span>
+                                      <span className="text-[9px] text-muted-foreground">{formatCurrency(plan.price)}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-[#a78bfa]/20" onClick={() => copyToClipboard(planLink)} title="Copiar link do plano">
+                                        <Copy className="w-3 h-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-[#a78bfa]/20" onClick={() => window.open(planLink, '_blank')} title="Abrir plano">
+                                        <ExternalLink className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="p-2 bg-muted rounded text-xs text-center text-muted-foreground italic">
