@@ -8,6 +8,13 @@ export interface UserZAPICredentials {
   instanceName: string;
 }
 
+const isWebZapiInstance = (instance: any) => {
+  const provider = String(instance?.api_provider || 'zapi').toLowerCase();
+  const type = String(instance?.instance_type || '').toLowerCase();
+  const name = String(instance?.instance_name || '').toLowerCase();
+  return provider === 'zapi' && type !== 'mobile' && !name.includes('mobile');
+};
+
 export async function getUserZAPICredentials(
   req: Request,
   supabaseUrl: string,
@@ -33,13 +40,13 @@ export async function getUserZAPICredentials(
   // Fetch only active Z-API instances, explicitly ignoring uazapi
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .neq('api_provider', 'uazapi')
+    .eq('api_provider', 'zapi')
     .order('is_default', { ascending: false });
 
-  const zapi = zapiInstances?.[0];
+  const zapi = zapiInstances?.find(isWebZapiInstance);
   
   if (zapi) {
     console.log(`✅ Found Z-API credentials for user ${user.id}`);
