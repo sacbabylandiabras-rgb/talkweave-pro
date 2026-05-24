@@ -185,7 +185,7 @@ export default function PayProducts() {
     
     // Fetch plans for this product
     const { data: plansData } = await supabase
-      .from("gateway_plans")
+      .from("gateway_plans" as any)
       .select("*")
       .eq("product_id", product.id);
 
