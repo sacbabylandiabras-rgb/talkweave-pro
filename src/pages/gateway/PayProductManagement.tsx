@@ -104,6 +104,7 @@ export default function PayProductManagement() {
           price: (product.price / 100).toFixed(2).replace(".", ","),
           sku: product.sku || "",
           category: product.category || "",
+          thank_you_page_url: product.thank_you_page_url || "",
           affiliate_enabled: product.affiliate_enabled || false,
           marketplace_visible: product.visible_in_store ?? true,
           auto_approve_affiliates: product.auto_approve_affiliates ?? true,
