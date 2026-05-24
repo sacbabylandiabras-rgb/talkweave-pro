@@ -59,7 +59,8 @@ export default function PayMyAffiliations() {
           created_at,
           product:gateway_products (
             *,
-            checkouts:gateway_checkouts (id, slug)
+            checkouts:gateway_checkouts (id, slug),
+            plans:gateway_plans (*)
           )
         `)
         .eq("affiliate_id", user.id)
