@@ -1125,8 +1125,11 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               const campaignCancelled = campaign?.status === "cancelled";
               const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
 
-              const getSendPriority = (status?: string | null) => {
-                if (status === "delivered" || status === "sent") return 4;
+              const getSendPriority = (status?: string | null, row?: any) => {
+                if (status === "delivered") return 5;
+                if (status === "failed" || (row?.error_message && status !== "delivered")) return 4;
+                if (status === "sent") return 3;
+                if (status === "pending" && (row?.message_id || row?.sent_at)) return 2.5;
                 if (status === "pending") return 2;
                 if (isCancelledSendStatus(status)) return 1;
                 return 0;
@@ -1140,8 +1143,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 if (!send) return;
                 const phoneKey = resolvePhoneKey(send.phone);
                 const existing = sendsByPhone.get(phoneKey);
-                const sendPriority = getSendPriority(send.status);
-                const existingPriority = getSendPriority(existing?.status);
+                const sendPriority = getSendPriority(send.status, send);
+                const existingPriority = getSendPriority(existing?.status, existing);
 
                 if (
                   !existing ||
@@ -1178,6 +1181,12 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                   if (send.status === "delivered") {
                     status = "entregue";
                     sentAt = send.delivered_at || send.sent_at || null;
+                  } else if (
+                    send.status === "failed" ||
+                    (send.error_message && send.status !== "delivered")
+                  ) {
+                    status = "cancelado";
+                    errorMessage = send.error_message || null;
                   } else if (
                     send.status === "sent" ||
                     (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))
@@ -1218,6 +1227,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 if (!existsInTarget) {
                   let status: CampaignContactStatus = "pendente";
                   if (send.status === "delivered") status = "entregue";
+                  else if (send.status === "failed" || (send.error_message && send.status !== "delivered"))
+                    status = "cancelado";
                   else if (
                     send.status === "sent" ||
                     (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))

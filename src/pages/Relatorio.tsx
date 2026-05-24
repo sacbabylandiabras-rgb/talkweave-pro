@@ -112,13 +112,13 @@ const Relatorio = () => {
     const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
     totalSent: countSuccessfulStatuses(latestAllSends),
     totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
-    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
+    totalFailed: latestAllSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: effectiveTotalMessages,
     totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
@@ -131,8 +131,8 @@ const Relatorio = () => {
   const campaignReports = campaignList.map((campaign) => {
     const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
     const sent = countSuccessfulStatuses(campaignSends);
-    const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const dbPending = campaignSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+    const failed = campaignSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length;
+    const dbPending = campaignSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
 
     // Calculate real pending: total target contacts - processed sends
     const targetContacts = getTargetContactsCount(campaign.target_audience);
@@ -160,14 +160,14 @@ const Relatorio = () => {
   const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
   const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
   const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
-  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
   const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
 
   // Details dialog stats
   const detailsStats = {
     sent: countSuccessfulStatuses(detailsLatestSends),
     pending: detailsDbPending + detailsNotProcessed,
-    failed: detailsLatestSends.filter(s => s.status === 'failed').length,
+    failed: detailsLatestSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
     total: detailsTargetCount > 0 ? detailsTargetCount : detailsLatestSends.length,
   };
 
@@ -289,7 +289,7 @@ const Relatorio = () => {
           const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
           current.total++;
           if (send.status === 'delivered') current.sent++;
-          else if (send.status === 'failed') current.failed++;
+          else if (send.status === 'failed' || (send.error_message && send.status !== 'delivered')) current.failed++;
           else current.pending++;
           instanceMap.set(name, current);
         });
