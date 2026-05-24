@@ -930,32 +930,35 @@ serve(async (req) => {
       if (!continuationInstance) throw new Error("Instância ativa não encontrada para continuação");
       credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
-      const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      const authenticatedUserId = await getAuthenticatedUserId(req, supabaseUrl, supabaseServiceKey);
 
       let preferredInstance = null;
       if (requestedInstanceId && requestedInstanceId !== "__rotate_all__") {
-        preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId, true);
+        preferredInstance = await resolveContactInstance(supabase, authenticatedUserId, requestedInstanceId, true);
         if (!preferredInstance) {
           console.error(`❌ CRITICAL: Requested instance ${requestedInstanceId} could not be resolved!`);
         }
       }
 
       if (!preferredInstance && (!requestedInstanceId || requestedInstanceId === "__rotate_all__")) {
-        preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
+        preferredInstance = await resolvePreferredUserInstance(supabase, authenticatedUserId);
       }
 
-      credentials = preferredInstance
-        ? buildCampaignCredentials(baseCredentials.userId, preferredInstance)
-        : {
-            instanceId: baseCredentials.instanceId,
-            token: baseCredentials.token,
-            clientToken: baseCredentials.clientToken,
-            userId: baseCredentials.userId,
-            instanceName: baseCredentials.instanceName,
-            apiProvider: "zapi",
-            uazapiUrl: "",
-            uazapiToken: "",
-          };
+      if (preferredInstance) {
+        credentials = buildCampaignCredentials(authenticatedUserId, preferredInstance);
+      } else {
+        const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+        credentials = {
+          instanceId: baseCredentials.instanceId,
+          token: baseCredentials.token,
+          clientToken: baseCredentials.clientToken,
+          userId: baseCredentials.userId,
+          instanceName: baseCredentials.instanceName,
+          apiProvider: "zapi",
+          uazapiUrl: "",
+          uazapiToken: "",
+        };
+      }
 
       if (isRotateMode) {
         forcedRequestedInstance = null;
