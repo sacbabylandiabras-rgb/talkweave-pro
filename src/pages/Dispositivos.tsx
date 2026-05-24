@@ -945,15 +945,17 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
     }
     
     if (prevConnected === true && deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
-      // Confirma a desconexão com uma segunda checagem após 5s para evitar
+      // Confirma a desconexão com uma segunda checagem após 15s para evitar
       // pausar campanhas por causa de uma oscilação momentânea da API de status.
-      setTimeout(async () => {
+      // 15s é o tempo aproximado de um ciclo de refresh da Z-API.
+      const pauseTimeout = setTimeout(async () => {
         try {
           const { data } = await supabase.functions.invoke('get-device-status', {
             body: { instanceId: instance.id },
           });
           const stillDown = data?.connected === false && data?.smartphoneConnected === false;
           if (stillDown) {
+            console.log('⚠️ Dispositivo permanece desconectado após 15s. Pausando campanhas...');
             pauseActiveCampaigns();
           } else {
             console.log('🔄 Falsa desconexão detectada, campanhas mantidas ativas.');
@@ -961,7 +963,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         } catch (e) {
           console.warn('Re-checagem de desconexão falhou, ignorando pausa:', e);
         }
-      }, 5000);
+      }, 15000);
+
+      return () => clearTimeout(pauseTimeout);
     }
     if (deviceStatus?.connected === false && !deviceStatus?.issue) {
       fetchQRCode();
