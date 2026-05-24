@@ -782,7 +782,7 @@ export const useCampaigns = () => {
         name: `${campaign.name} (Cópia)`,
         description: campaign.description,
         template_id: campaign.template_id,
-        target_audience: campaign.target_audience || {},
+        target_audience: campaign.target_audience ? JSON.parse(JSON.stringify(campaign.target_audience)) : {},
         schedule_type: campaign.schedule_type || "immediate",
         scheduled_at: campaign.scheduled_at,
         recurrence_pattern: campaign.recurrence_pattern,
