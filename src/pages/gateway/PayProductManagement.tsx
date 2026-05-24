@@ -237,24 +237,53 @@ export default function PayProductManagement() {
   };
 
   const savePlans = async (productId: string, plans: Plan[]) => {
-    const planIdsToKeep = plans.filter(p => p.id).map(p => p.id);
-    if (planIdsToKeep.length > 0) {
-      await supabase.from("gateway_plans" as any).delete().eq("product_id", productId).not("id", "in", `(${planIdsToKeep.join(",")})`);
-    } else {
-      await supabase.from("gateway_plans" as any).delete().eq("product_id", productId);
-    }
+    try {
+      // Get current plans from database
+      const { data: currentPlans, error: fetchError } = await supabase
+        .from("gateway_plans" as any)
+        .select("id")
+        .eq("product_id", productId);
 
-    const plansToUpsert = plans.map(plan => ({
-      id: plan.id,
-      product_id: productId,
-      name: plan.name,
-      description: plan.description,
-      price: Math.round(parseFloat(plan.price.replace(",", ".")) * 100) || 0,
-      billing_cycle: plan.billing_cycle,
-    }));
+      if (fetchError) throw fetchError;
 
-    if (plansToUpsert.length > 0) {
-      await supabase.from("gateway_plans" as any).upsert(plansToUpsert);
+      const currentIds = (currentPlans as any[] || []).map(p => p.id);
+      const planIdsToKeep = plans.filter(p => p.id).map(p => p.id);
+      
+      // Delete plans that are no longer in the form
+      const idsToDelete = currentIds.filter(id => !planIdsToKeep.includes(id));
+      
+      if (idsToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("gateway_plans" as any)
+          .delete()
+          .in("id", idsToDelete);
+        
+        if (deleteError) throw deleteError;
+      }
+
+      // Prepare plans for upsert
+      const plansToUpsert = plans.map(plan => {
+        const p: any = {
+          product_id: productId,
+          name: plan.name,
+          description: plan.description || "",
+          price: Math.round(parseFloat(plan.price.toString().replace(",", ".")) * 100) || 0,
+          billing_cycle: plan.billing_cycle || "one-time",
+        };
+        if (plan.id) p.id = plan.id;
+        return p;
+      });
+
+      if (plansToUpsert.length > 0) {
+        const { error: upsertError } = await supabase
+          .from("gateway_plans" as any)
+          .upsert(plansToUpsert);
+        
+        if (upsertError) throw upsertError;
+      }
+    } catch (error: any) {
+      console.error("Error saving plans:", error);
+      throw new Error("Erro ao salvar planos: " + error.message);
     }
   };
 
