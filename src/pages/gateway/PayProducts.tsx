@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X, Link, Copy, ExternalLink } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ShoppingCart, Package, Repeat, Briefcase, Loader2, ImagePlus, X, Link, Copy, ExternalLink, Settings2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "./mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
   digital: { label: "Digital", icon: Package, color: "text-blue-400 bg-blue-500/10" },
@@ -19,14 +18,6 @@ const typeConfig: Record<string, { label: string; icon: any; color: string }> = 
   subscription: { label: "Assinatura", icon: Repeat, color: "text-purple-400 bg-purple-500/10" },
   service: { label: "Serviço", icon: Briefcase, color: "text-amber-400 bg-amber-500/10" },
 };
-
-interface Plan {
-  id?: string;
-  name: string;
-  description: string;
-  price: string;
-  billing_cycle: string;
-}
 
 interface Product {
   id: string;
@@ -47,6 +38,7 @@ interface Product {
   commission_value?: number;
   affiliate_description?: string | null;
 }
+
 
 interface FormState {
   name: string;
