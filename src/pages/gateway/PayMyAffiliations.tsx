@@ -23,6 +23,8 @@ interface Product {
   image_url: string | null;
   category: string | null;
   commission_rate: number;
+  commission_type?: 'percentage' | 'fixed';
+  commission_value?: number;
   checkouts?: { id: string; slug: string | null }[];
 }
 
@@ -191,7 +193,7 @@ export default function PayMyAffiliations() {
                         <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Sua Comissão</span>
                         <div className="flex items-center gap-1 text-emerald-500 font-bold">
                           <BadgePercent className="w-4 h-4" />
-                          <span>{product.commission_rate}%</span>
+                          <span>{product.commission_type === 'fixed' ? formatCurrency((product.commission_value || 0) * 100) : `${product.commission_rate}%`}</span>
                         </div>
                       </div>
                     </div>
@@ -275,12 +277,18 @@ export default function PayMyAffiliations() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Sua Comissão</span>
-                      <span className="font-bold text-emerald-500">{selectedAffiliation.product.commission_rate}%</span>
+                      <span className="font-bold text-emerald-500">
+                        {selectedAffiliation.product.commission_type === 'fixed' 
+                          ? formatCurrency((selectedAffiliation.product.commission_value || 0) * 100) 
+                          : `${selectedAffiliation.product.commission_rate}%`}
+                      </span>
                     </div>
                     <div className="pt-2 border-t flex justify-between items-center">
                       <span className="text-sm font-medium">Você ganha até</span>
                       <span className="text-lg font-black text-emerald-600">
-                        {formatCurrency((selectedAffiliation.product.price * selectedAffiliation.product.commission_rate) / 100)}
+                        {selectedAffiliation.product.commission_type === 'fixed' 
+                          ? formatCurrency((selectedAffiliation.product.commission_value || 0) * 100) 
+                          : formatCurrency((selectedAffiliation.product.price * selectedAffiliation.product.commission_rate) / 100)}
                       </span>
                     </div>
                   </div>
