@@ -27,7 +27,7 @@ import {
   Filter,
   Download,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campanhas/CreateCampaignDialog";
 import { CreateGroupCampaignDialog } from "@/components/campanhas/CreateGroupCampaignDialog";
@@ -76,6 +76,13 @@ const formatErrorMessage = (msg: string | null): string | null => {
   }
   
   return msg;
+};
+
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (!isValid(d)) return "Data inválida";
+  return format(d, formatStr, options);
 };
 
 const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
@@ -788,8 +795,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {campaign.schedule_type === "scheduled" && campaign.scheduled_at
-                            ? `Agendada: ${format(new Date(campaign.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
-                            : format(new Date(campaign.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                            ? `Agendada: ${safeFormat(campaign.scheduled_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                            : safeFormat(campaign.created_at, "dd 'de' MMMM, yyyy", { locale: ptBR })}
                         </span>
                       </CardDescription>
                     </div>
@@ -921,7 +928,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                       <span>•</span>
                       <span>
                         Agendado para:{" "}
-                        {format(new Date(campaign.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {safeFormat(campaign.scheduled_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </span>
                     </>
                   )}
@@ -1463,13 +1470,13 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         c.status,
                         c.readAt ? "Sim" : "Não",
                         ...(statsDialogHasUrlButton ? [c.clickedAt ? "Sim" : "Não"] : []),
-                        c.sentAt ? format(new Date(c.sentAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
+                        c.sentAt ? safeFormat(c.sentAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
                         c.errorMessage || "",
                       ]);
                       const brandingRows = [
                         ["ZapLynx - Relatório de Campanha"],
                         ["Campanha", statsDialogCampaignName || ""],
-                        ["Gerado em", format(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
+                        ["Gerado em", safeFormat(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
                         [],
                       ];
                       const csv =
@@ -1479,7 +1486,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                       const a = document.createElement("a");
                       const safeName = (statsDialogCampaignName || "campanha").replace(/[^a-z0-9-_]+/gi, "_");
                       a.href = url;
-                      a.download = `zaplynx_relatorio_${safeName}_${format(new Date(), "yyyyMMdd_HHmm")}.csv`;
+                      a.download = `zaplynx_relatorio_${safeName}_${safeFormat(new Date(), "yyyyMMdd_HHmm")}.csv`;
                       document.body.appendChild(a);
                       a.click();
                       document.body.removeChild(a);
@@ -1603,7 +1610,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                             )}
                             <TableCell className="text-xs text-muted-foreground">
                               {contact.sentAt
-                                ? format(new Date(contact.sentAt), "dd/MM/yy HH:mm", { locale: ptBR })
+                                ? safeFormat(contact.sentAt, "dd/MM/yy HH:mm", { locale: ptBR })
                                 : "-"}
                             </TableCell>
                           </TableRow>
