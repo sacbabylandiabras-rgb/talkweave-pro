@@ -1182,6 +1182,12 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     status = "entregue";
                     sentAt = send.delivered_at || send.sent_at || null;
                   } else if (
+                    send.status === "failed" ||
+                    (send.error_message && send.status !== "delivered")
+                  ) {
+                    status = "cancelado";
+                    errorMessage = send.error_message || null;
+                  } else if (
                     send.status === "sent" ||
                     (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))
                   ) {
