@@ -723,9 +723,13 @@ export type Database = {
       }
       gateway_products: {
         Row: {
+          access_buyer_data: boolean | null
           affiliate_enabled: boolean | null
+          auto_approve_affiliates: boolean | null
           category: string | null
           commission_rate: number | null
+          commission_type: string | null
+          commission_value: number | null
           created_at: string
           description: string | null
           id: string
@@ -737,11 +741,16 @@ export type Database = {
           type: string
           updated_at: string
           user_id: string
+          visible_in_store: boolean | null
         }
         Insert: {
+          access_buyer_data?: boolean | null
           affiliate_enabled?: boolean | null
+          auto_approve_affiliates?: boolean | null
           category?: string | null
           commission_rate?: number | null
+          commission_type?: string | null
+          commission_value?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -753,11 +762,16 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id: string
+          visible_in_store?: boolean | null
         }
         Update: {
+          access_buyer_data?: boolean | null
           affiliate_enabled?: boolean | null
+          auto_approve_affiliates?: boolean | null
           category?: string | null
           commission_rate?: number | null
+          commission_type?: string | null
+          commission_value?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -769,6 +783,7 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+          visible_in_store?: boolean | null
         }
         Relationships: []
       }
