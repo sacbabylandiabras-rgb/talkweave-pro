@@ -97,16 +97,19 @@ const mapResolvedInstance = (
     zapi_client_token: string | null;
     instance_name: string | null;
     api_provider?: string | null;
+    instance_type?: string | null;
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null,
 ): ResolvedInstance | null => {
   if (!instance?.zapi_instance_id) return null;
 
-  const provider = instance.api_provider || "zapi";
+  const provider = String(instance.api_provider || "zapi").toLowerCase();
+  const instanceName = String(instance.instance_name || "").toLowerCase();
+  const instanceType = String(instance.instance_type || "").toLowerCase();
 
   // EXCLUSION: Only allow 'zapi' provider for campaigns as requested by user
-  if (provider !== "zapi") {
+  if (provider !== "zapi" || instanceType === "mobile" || instanceName.includes("mobile")) {
     return null;
   }
 
@@ -127,7 +130,7 @@ const mapResolvedInstance = (
 
 const resolvePreferredUserInstance = async (supabase: any, userId: string): Promise<ResolvedInstance | null> => {
   const selectFields =
-    "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key";
+    "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key";
 
   const { data: defaultInstance } = await supabase
     .from("zapi_instances")
@@ -142,18 +145,16 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
   const mappedDefault = mapResolvedInstance(defaultInstance);
   if (mappedDefault) return mappedDefault;
 
-  const { data: activeInstance } = await supabase
+  const { data: activeInstances } = await supabase
     .from("zapi_instances")
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
     .eq("api_provider", "zapi") // Only Z-API
-    .not("instance_name", "ilike", "%Mobile%")
     .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
 
-  return mapResolvedInstance(activeInstance);
+  return ((activeInstances || []).map((instance: any) => mapResolvedInstance(instance)).find(Boolean) as ResolvedInstance | null) || null;
 };
 
 const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): CampaignCredentials => ({
@@ -168,10 +169,23 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   uazapiToken: instance.uazapiToken || "",
 });
 
+const getAuthenticatedUserId = async (req: Request, supabaseUrl: string, supabaseServiceKey: string) => {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) throw new Error("No authorization header");
+
+  const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) throw new Error("Unauthorized: " + (error?.message || "User not found"));
+  return user.id;
+};
+
 const resolveContactInstance = async (
   supabase: any,
   userId: string,
   sourceInstanceId?: string | null,
+  allowInactive = false,
 ): Promise<ResolvedInstance | null> => {
   if (!sourceInstanceId) return null;
 
@@ -182,37 +196,40 @@ const resolveContactInstance = async (
     zapi_client_token: string;
     instance_name: string | null;
     api_provider?: string | null;
+    instance_type?: string | null;
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null = null;
 
-  const { data: byZapiInstanceId } = await supabase
+  let byZapiQuery = supabase
     .from("zapi_instances")
     .select(
-      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
-    .eq("is_active", true)
     .eq("api_provider", "zapi") // Only Z-API
     // EXCLUSION: If user specifically said to stop using "Mobile" instances
-    .not("instance_name", "ilike", "%Mobile%")
-    .maybeSingle();
+    .not("instance_name", "ilike", "%Mobile%");
+
+  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
+  const { data: byZapiInstanceId } = await byZapiQuery.maybeSingle();
 
   instance = byZapiInstanceId;
 
   if (!instance) {
-    const { data: byTableId } = await supabase
+    let byTableQuery = supabase
       .from("zapi_instances")
       .select(
-        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
       )
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
-      .eq("is_active", true)
       .eq("api_provider", "zapi") // Only Z-API
-      .not("instance_name", "ilike", "%Mobile%")
-      .maybeSingle();
+      .not("instance_name", "ilike", "%Mobile%");
+
+    if (!allowInactive) byTableQuery = byTableQuery.eq("is_active", true);
+    const { data: byTableId } = await byTableQuery.maybeSingle();
 
     instance = byTableId;
   }
@@ -266,7 +283,7 @@ const resolveGroupInstanceFromInboundLogs = async (
   const { data: correctInstance } = await supabase
     .from("zapi_instances")
     .select(
-      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+      "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
     .eq("user_id", userId)
@@ -279,6 +296,7 @@ const resolveGroupInstanceFromInboundLogs = async (
     zapi_client_token?: string | null;
     instance_name?: string | null;
     api_provider?: string | null;
+    instance_type?: string | null;
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null;
@@ -890,7 +908,7 @@ serve(async (req) => {
 
       let continuationInstance = null;
       if (requestedInstanceId && requestedInstanceId !== "__rotate_all__") {
-        continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId);
+        continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId, true);
       }
 
       if (!continuationInstance && (!requestedInstanceId || requestedInstanceId === "__rotate_all__")) {
@@ -903,6 +921,7 @@ serve(async (req) => {
           .select("*")
           .eq("user_id", _userId)
           .eq("is_active", true)
+          .eq("api_provider", "zapi")
           .limit(1)
           .maybeSingle();
         continuationInstance = fallbackInst ? mapResolvedInstance(fallbackInst) : null;
@@ -911,32 +930,35 @@ serve(async (req) => {
       if (!continuationInstance) throw new Error("Instância ativa não encontrada para continuação");
       credentials = buildCampaignCredentials(_userId, continuationInstance);
     } else {
-      const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      const authenticatedUserId = await getAuthenticatedUserId(req, supabaseUrl, supabaseServiceKey);
 
       let preferredInstance = null;
       if (requestedInstanceId && requestedInstanceId !== "__rotate_all__") {
-        preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId);
+        preferredInstance = await resolveContactInstance(supabase, authenticatedUserId, requestedInstanceId, true);
         if (!preferredInstance) {
           console.error(`❌ CRITICAL: Requested instance ${requestedInstanceId} could not be resolved!`);
         }
       }
 
       if (!preferredInstance && (!requestedInstanceId || requestedInstanceId === "__rotate_all__")) {
-        preferredInstance = await resolvePreferredUserInstance(supabase, baseCredentials.userId);
+        preferredInstance = await resolvePreferredUserInstance(supabase, authenticatedUserId);
       }
 
-      credentials = preferredInstance
-        ? buildCampaignCredentials(baseCredentials.userId, preferredInstance)
-        : {
-            instanceId: baseCredentials.instanceId,
-            token: baseCredentials.token,
-            clientToken: baseCredentials.clientToken,
-            userId: baseCredentials.userId,
-            instanceName: baseCredentials.instanceName,
-            apiProvider: "zapi",
-            uazapiUrl: "",
-            uazapiToken: "",
-          };
+      if (preferredInstance) {
+        credentials = buildCampaignCredentials(authenticatedUserId, preferredInstance);
+      } else {
+        const baseCredentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+        credentials = {
+          instanceId: baseCredentials.instanceId,
+          token: baseCredentials.token,
+          clientToken: baseCredentials.clientToken,
+          userId: baseCredentials.userId,
+          instanceName: baseCredentials.instanceName,
+          apiProvider: "zapi",
+          uazapiUrl: "",
+          uazapiToken: "",
+        };
+      }
 
       if (isRotateMode) {
         forcedRequestedInstance = null;
@@ -970,10 +992,11 @@ serve(async (req) => {
       let query = supabase
         .from("zapi_instances")
         .select(
-          "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key",
+          "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
         )
         .eq("user_id", credentials.userId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("api_provider", "zapi");
 
       if (typeof requestedInstanceIdRaw === "string" && requestedInstanceIdRaw.startsWith("rotate:")) {
         const specificIds = requestedInstanceIdRaw.replace("rotate:", "").split(",").filter(Boolean);
@@ -1037,7 +1060,7 @@ serve(async (req) => {
         );
       }
     } else if (requestedInstanceId) {
-      const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
+      const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId, true);
 
       if (!specificInstance) {
         console.log(
@@ -1082,6 +1105,12 @@ serve(async (req) => {
           console.log(
             `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
           );
+        } else if (specificInstance.dbId) {
+          await supabase
+            .from("zapi_instances")
+            .update({ is_active: true, updated_at: new Date().toISOString() })
+            .eq("id", specificInstance.dbId)
+            .eq("user_id", credentials.userId);
         }
 
         forcedRequestedInstance = specificInstance;

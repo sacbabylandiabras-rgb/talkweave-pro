@@ -112,7 +112,6 @@ serve(async (req) => {
         webhook?.instanceStatus === "CONNECTED" ||
         webhook?.instanceStatus === "RECONNECTED";
 
-      // Capturar o telefone conectado se disponível no payload de conexão
       const connectedPhone = webhook?.connectedPhone || webhook?.phone || "";
       const reason = webhook?.reason || webhook?.errorMessage || "";
       const isShadowBanReason = String(reason).toLowerCase().includes("shadow ban") || 
@@ -124,10 +123,6 @@ serve(async (req) => {
           is_active: isConnected,
           updated_at: new Date().toISOString(),
         };
-
-        if (isConnected && connectedPhone) {
-          updatePayload.connected_phone = connectedPhone;
-        }
 
         const { data: instanceBefore, error: fetchError } = await supabase
           .from("zapi_instances")
@@ -354,7 +349,7 @@ serve(async (req) => {
           console.log(`🛡️ Shadowban detected for instance ${instanceData.id}. Updating health table.`);
           await supabase.from("warmup_instance_health").insert({
             instance_ref: instanceData.id,
-            phone: instanceData.connected_phone || "",
+            phone: "",
             block_type: "shadowban",
             detail: `Detectado via erro de envio: ${error || status}`,
             last_detected_at: new Date().toISOString()
