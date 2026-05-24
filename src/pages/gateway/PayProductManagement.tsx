@@ -326,8 +326,26 @@ export default function PayProductManagement() {
                 <div key={index} className="p-4 border rounded-lg relative bg-muted/10">
                   <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 text-red-500" onClick={() => removePlan(index)}><X className="w-4 h-4" /></Button>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1"><Label className="text-xs">Nome</Label><Input value={plan.name} onChange={e => updatePlan(index, "name", e.target.value)} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Preço</Label><Input value={plan.price} onChange={e => updatePlan(index, "price", e.target.value)} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Nome do Plano</Label><Input value={plan.name} onChange={e => updatePlan(index, "name", e.target.value)} placeholder="Ex: Plano Gold" /></div>
+                    <div className="space-y-1"><Label className="text-xs">Preço</Label><Input value={plan.price} onChange={e => updatePlan(index, "price", e.target.value)} placeholder="0,00" /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Frequência</Label>
+                      <Select value={plan.billing_cycle} onValueChange={v => updatePlan(index, "billing_cycle", v)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one-time">Pagamento Único</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="quarterly">Trimestral</SelectItem>
+                          <SelectItem value="semiannual">Semestral</SelectItem>
+                          <SelectItem value="yearly">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1"><Label className="text-xs">Descrição Curta</Label><Input value={plan.description} onChange={e => updatePlan(index, "description", e.target.value)} placeholder="Opcional" className="h-9" /></div>
                   </div>
                 </div>
               ))}
