@@ -143,6 +143,7 @@ export default function PublicCheckout() {
         const result = await res.json();
         const checkout = result.checkout;
         const product = result.product;
+        const plans = result.plans || [];
         const fetchedPixels: PublicPixelConfig[] = Array.isArray(result.pixels) ? result.pixels : [];
         setPixels(fetchedPixels);
         const savedConfig = (checkout.config || {}) as Record<string, any>;
@@ -156,18 +157,26 @@ export default function PublicCheckout() {
         const tenantLogo = tenant?.logo_url || "";
         const tenantColor = tenant?.primary_color || "";
 
+        // Se houver um parâmetro 'plan' na URL, usamos o preço desse plano
+        const selectedPlanId = searchParams.get("plan");
+        const selectedPlan = plans.find((p: any) => p.id === selectedPlanId);
+        
+        const initialPrice = selectedPlan ? Number(selectedPlan.price) : (product?.price ?? savedConfig.price ?? 0);
+        const initialProductName = selectedPlan ? `${resolvedProductName} - ${selectedPlan.name}` : (savedConfig.productName || resolvedProductName);
+
         const mergedConfig: CheckoutConfig = {
           ...defaultConfig,
           ...savedConfig,
           templateId: resolvedTemplateId,
-          productName: savedConfig.productName || resolvedProductName,
-          offerName: savedConfig.offerName || resolvedProductName,
-          price: product?.price ?? savedConfig.price ?? 0,
+          productName: initialProductName,
+          offerName: initialProductName,
+          price: initialPrice,
           productImage: product?.image_url || savedConfig.productImage || "",
           logoUrl: savedConfig.logoUrl || tenantLogo || "",
           faviconUrl: savedConfig.faviconUrl || "",
           pageTitle: savedConfig.pageTitle || "",
           primaryColor: savedConfig.primaryColor || tenantColor || defaultConfig.primaryColor,
+          plans: plans, // Passamos todos os planos para o componente
         };
         setConfig(mergedConfig);
       } catch (e) {
