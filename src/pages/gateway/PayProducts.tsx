@@ -97,7 +97,7 @@ export default function PayProducts() {
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("gateway_products").select("*").order("created_at", { ascending: false });
-    if (!error && data) setProducts(data);
+    if (!error && data) setProducts(data as any);
     setLoading(false);
   };
 
@@ -206,11 +206,10 @@ export default function PayProducts() {
       sku: product.sku || "",
       category: product.category || "",
       affiliate_enabled: product.affiliate_enabled || false,
-      commission_rate: (product.commission_rate || 0).toString(),
       marketplace_visible: product.visible_in_store ?? true,
       auto_approve_affiliates: product.auto_approve_affiliates ?? true,
       buyer_data_access: product.access_buyer_data ?? false,
-      commission_type: product.commission_type || 'percentage',
+      commission_type: product.commission_type as 'percentage' | 'fixed' || 'percentage',
       commission_rate: (product.commission_type === 'fixed' ? (product.commission_value || 0) : (product.commission_rate || 0)).toString().replace(".", ","),
       plans: mappedPlans,
     });
