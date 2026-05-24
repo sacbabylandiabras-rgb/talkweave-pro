@@ -1050,10 +1050,10 @@ serve(async (req) => {
         zapiToken = specificInstance.zapiToken;
         zapiClientToken = specificInstance.zapiClientToken;
         credentials.apiProvider = specificInstance.apiProvider || "zapi";
+        credentials.uazapiUrl = specificInstance.uazapiUrl || "";
+        credentials.uazapiToken = specificInstance.uazapiToken || "";
+        credentials.instanceName = specificInstance.instanceName;
       }
-      credentials.uazapiUrl = specificInstance.uazapiUrl || "";
-      credentials.uazapiToken = specificInstance.uazapiToken || "";
-      credentials.instanceName = specificInstance.instanceName;
     }
 
     const getInstanceForIndex = (index: number): ResolvedInstance => {
