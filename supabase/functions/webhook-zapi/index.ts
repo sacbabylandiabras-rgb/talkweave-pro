@@ -313,16 +313,20 @@ serve(async (req) => {
           }
 
           if (currentRecord) {
-            // Se já está entregue, não volta para "sent"
-            if (currentRecord.status === "delivered" && newStatusLabel === "sent") {
-              console.log(`✅ Message ${msgId} is already delivered. Skipping update back to sent.`);
+            // Se já está entregue ou falhou, não volta para "sent"
+            if ((currentRecord.status === "delivered" || currentRecord.status === "failed") && newStatusLabel === "sent") {
+              console.log(`✅ Message ${msgId} is already ${currentRecord.status}. Skipping update back to sent.`);
               continue;
             }
 
             const updateData: any = { 
-              status: newStatusLabel,
-              error_message: null // Clear any previous error if we now have a success status
+              status: newStatusLabel
             };
+
+            // Only clear error message if it's actually delivered
+            if (isDeliveredStatus) {
+              updateData.error_message = null;
+            }
 
             if (isDeliveredStatus) {
               updateData.delivered_at = new Date().toISOString();
