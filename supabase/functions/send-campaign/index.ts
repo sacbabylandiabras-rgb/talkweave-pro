@@ -896,7 +896,7 @@ serve(async (req) => {
 
       let continuationInstance = null;
       if (requestedInstanceId && requestedInstanceId !== "__rotate_all__") {
-        continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId);
+        continuationInstance = await resolveContactInstance(supabase, _userId, requestedInstanceId, true);
       }
 
       if (!continuationInstance && (!requestedInstanceId || requestedInstanceId === "__rotate_all__")) {
@@ -922,7 +922,7 @@ serve(async (req) => {
 
       let preferredInstance = null;
       if (requestedInstanceId && requestedInstanceId !== "__rotate_all__") {
-        preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId);
+        preferredInstance = await resolveContactInstance(supabase, baseCredentials.userId, requestedInstanceId, true);
         if (!preferredInstance) {
           console.error(`❌ CRITICAL: Requested instance ${requestedInstanceId} could not be resolved!`);
         }
@@ -1045,7 +1045,7 @@ serve(async (req) => {
         );
       }
     } else if (requestedInstanceId) {
-      const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId);
+      const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId, true);
 
       if (!specificInstance) {
         console.log(
@@ -1090,6 +1090,12 @@ serve(async (req) => {
           console.log(
             `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
           );
+        } else if (specificInstance.dbId) {
+          await supabase
+            .from("zapi_instances")
+            .update({ is_active: true, updated_at: new Date().toISOString() })
+            .eq("id", specificInstance.dbId)
+            .eq("user_id", credentials.userId);
         }
 
         forcedRequestedInstance = specificInstance;
