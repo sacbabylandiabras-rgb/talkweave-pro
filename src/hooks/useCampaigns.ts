@@ -792,6 +792,11 @@ export const useCampaigns = () => {
       return await createCampaign(newCampaign);
     } catch (error) {
       console.error("Error duplicating campaign:", error);
+      toast({
+        title: "Erro ao duplicar",
+        description: error instanceof Error ? error.message : "Não foi possível duplicar a campanha",
+        variant: "destructive",
+      });
       throw error;
     }
   };
