@@ -97,16 +97,19 @@ const mapResolvedInstance = (
     zapi_client_token: string | null;
     instance_name: string | null;
     api_provider?: string | null;
+    instance_type?: string | null;
     evolution_api_url?: string | null;
     evolution_api_key?: string | null;
   } | null,
 ): ResolvedInstance | null => {
   if (!instance?.zapi_instance_id) return null;
 
-  const provider = instance.api_provider || "zapi";
+  const provider = String(instance.api_provider || "zapi").toLowerCase();
+  const instanceName = String(instance.instance_name || "").toLowerCase();
+  const instanceType = String(instance.instance_type || "").toLowerCase();
 
   // EXCLUSION: Only allow 'zapi' provider for campaigns as requested by user
-  if (provider !== "zapi") {
+  if (provider !== "zapi" || instanceType === "mobile" || instanceName.includes("mobile")) {
     return null;
   }
 
@@ -127,7 +130,7 @@ const mapResolvedInstance = (
 
 const resolvePreferredUserInstance = async (supabase: any, userId: string): Promise<ResolvedInstance | null> => {
   const selectFields =
-    "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key";
+    "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key";
 
   const { data: defaultInstance } = await supabase
     .from("zapi_instances")
@@ -142,18 +145,16 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
   const mappedDefault = mapResolvedInstance(defaultInstance);
   if (mappedDefault) return mappedDefault;
 
-  const { data: activeInstance } = await supabase
+  const { data: activeInstances } = await supabase
     .from("zapi_instances")
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
     .eq("api_provider", "zapi") // Only Z-API
-    .not("instance_name", "ilike", "%Mobile%")
     .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
 
-  return mapResolvedInstance(activeInstance);
+  return ((activeInstances || []).map((instance: any) => mapResolvedInstance(instance)).find(Boolean) as ResolvedInstance | null) || null;
 };
 
 const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): CampaignCredentials => ({
