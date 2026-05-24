@@ -40,10 +40,11 @@ interface Product {
   image_url?: string | null;
   affiliate_enabled: boolean;
   commission_rate: number;
-  marketplace_visible?: boolean;
+  visible_in_store?: boolean;
   auto_approve_affiliates?: boolean;
-  buyer_data_access?: boolean;
+  access_buyer_data?: boolean;
   commission_type?: 'percentage' | 'fixed';
+  commission_value?: number;
 }
 
 interface FormState {
@@ -95,8 +96,8 @@ export default function PayProducts() {
   const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase.from("gateway_products" as any).select("*").order("created_at", { ascending: false });
-    if (!error && data) setProducts(data as any);
+    const { data, error } = await supabase.from("gateway_products").select("*").order("created_at", { ascending: false });
+    if (!error && data) setProducts(data);
     setLoading(false);
   };
 
@@ -206,10 +207,11 @@ export default function PayProducts() {
       category: product.category || "",
       affiliate_enabled: product.affiliate_enabled || false,
       commission_rate: (product.commission_rate || 0).toString(),
-      marketplace_visible: product.marketplace_visible ?? true,
+      marketplace_visible: product.visible_in_store ?? true,
       auto_approve_affiliates: product.auto_approve_affiliates ?? true,
-      buyer_data_access: product.buyer_data_access ?? false,
+      buyer_data_access: product.access_buyer_data ?? false,
       commission_type: product.commission_type || 'percentage',
+      commission_rate: (product.commission_type === 'fixed' ? (product.commission_value || 0) : (product.commission_rate || 0)).toString().replace(".", ","),
       plans: mappedPlans,
     });
     setImagePreview(product.image_url || null);
@@ -290,13 +292,14 @@ export default function PayProducts() {
         sku: form.sku || null,
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
-        commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
+        commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
+        commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
       };
 
       if (form.affiliate_enabled) {
-        updateData.marketplace_visible = form.marketplace_visible;
+        updateData.visible_in_store = form.marketplace_visible;
         updateData.auto_approve_affiliates = form.auto_approve_affiliates;
-        updateData.buyer_data_access = form.buyer_data_access;
+        updateData.access_buyer_data = form.buyer_data_access;
         updateData.commission_type = form.commission_type;
       }
 
@@ -328,13 +331,14 @@ export default function PayProducts() {
         sku: form.sku || null,
         category: form.category || null,
         affiliate_enabled: form.affiliate_enabled,
-        commission_rate: parseFloat(form.commission_rate.replace(",", ".")) || 0,
+        commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
+        commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
       };
 
       if (form.affiliate_enabled) {
-        insertData.marketplace_visible = form.marketplace_visible;
+        insertData.visible_in_store = form.marketplace_visible;
         insertData.auto_approve_affiliates = form.auto_approve_affiliates;
-        insertData.buyer_data_access = form.buyer_data_access;
+        insertData.access_buyer_data = form.buyer_data_access;
         insertData.commission_type = form.commission_type;
       }
 
@@ -730,7 +734,7 @@ export default function PayProducts() {
                     <Badge variant="outline" className={`text-[10px] ${tc.color} border-0`}>{tc.label}</Badge>
                     {p.affiliate_enabled && (
                       <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                        Afiliados: {p.commission_type === 'fixed' ? formatCurrency(p.commission_rate * 100) : `${p.commission_rate}%`}
+                        Afiliados: {p.commission_type === 'fixed' ? formatCurrency((p.commission_value || 0) * 100) : `${p.commission_rate}%`}
                       </Badge>
                     )}
                   </div>
