@@ -73,23 +73,42 @@ export default function PayMarketplace() {
         return;
       }
 
+      // Buscar configuração de aprovação automática do produto
+      const { data: productData, error: productError } = await supabase
+        .from("gateway_products")
+        .select("auto_approve_affiliates")
+        .eq("id", productId)
+        .single();
+
+      const product = productData as any;
+
+      if (productError) throw productError;
+
+      const status = product?.auto_approve_affiliates ? 'approved' : 'pending';
+
       const { error } = await supabase
         .from("gateway_affiliates" as any)
         .insert({
           product_id: productId,
-          affiliate_id: user.id
+          affiliate_id: user.id,
+          status: status
         });
 
       if (error) {
         if (error.code === "23505") {
-          toast.info("Você já é afiliado deste produto");
+          toast.info("Você já solicitou afiliação para este produto");
         } else {
           throw error;
         }
         return;
       }
 
-      toast.success("Afiliação realizada com sucesso!");
+      if (status === 'pending') {
+        toast.success("Solicitação de afiliação enviada! Aguarde a aprovação do produtor.");
+      } else {
+        toast.success("Afiliação realizada com sucesso!");
+      }
+      
       fetchMarketplaceProducts(); // Refresh list to hide the product
     } catch (error: any) {
       console.error("Error affiliating:", error);
