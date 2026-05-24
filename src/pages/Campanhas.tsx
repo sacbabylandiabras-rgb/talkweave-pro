@@ -1227,6 +1227,8 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 if (!existsInTarget) {
                   let status: CampaignContactStatus = "pendente";
                   if (send.status === "delivered") status = "entregue";
+                  else if (send.status === "failed" || (send.error_message && send.status !== "delivered"))
+                    status = "cancelado";
                   else if (
                     send.status === "sent" ||
                     (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))
