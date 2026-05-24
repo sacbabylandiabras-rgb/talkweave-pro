@@ -74,7 +74,11 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
   const sessionReady = useAuthSessionReady();
 
   const sortSends = (items: CampaignSendRecord[]) => (
-    [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    [...items].sort((a, b) => {
+      const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeA - timeB;
+    })
   );
 
   const fetchSends = useCallback(async () => {
@@ -112,9 +116,10 @@ export const useCampaignSendsRealtime = (campaignId: string | null) => {
       }
     }
 
-    if (allData) {
+    if (allData && allData.length > 0) {
       const sortedData = sortSends(allData);
-      const dataKey = `${sortedData.length}:${sortedData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
+      // Use a more efficient key calculation that doesn't create massive strings for large campaigns
+      const dataKey = `${sortedData.length}:${sortedData[0]?.id || ''}:${sortedData[sortedData.length-1]?.status || ''}`;
       if (dataKey !== lastDataRef.current) {
         lastDataRef.current = dataKey;
         setSends(sortedData);
@@ -292,7 +297,11 @@ export const useAllCampaignSendsRealtime = () => {
   const sessionReady = useAuthSessionReady();
 
   const sortSends = (items: CampaignSendRecord[]) => (
-    [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    [...items].sort((a, b) => {
+      const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeA - timeB;
+    })
   );
 
   const fetchSends = useCallback(async () => {
@@ -330,9 +339,9 @@ export const useAllCampaignSendsRealtime = () => {
       }
     }
 
-    // Always update state - use a hash that includes count + statuses
+    // Always update state - use a hash that includes count + basic markers
     const sortedData = sortSends(allData);
-    const dataKey = `${sortedData.length}:${sortedData.map(d => `${d.id}:${d.status}:${d.sent_at || ''}:${d.delivered_at || ''}`).join(',')}`;
+    const dataKey = `${sortedData.length}:${sortedData[0]?.id || ''}:${sortedData[sortedData.length-1]?.status || ''}`;
     if (dataKey !== lastDataRef.current) {
       lastDataRef.current = dataKey;
       setSends(sortedData);
