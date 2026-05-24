@@ -912,16 +912,25 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         setShowConnect(false);
         toast({ title: "✅ WhatsApp conectado!" });
       }
-      setTimeout(() => {
+      
+      // Delay sync slightly to ensure session is fully initialized at Z-API
+      const syncTimeout = setTimeout(() => {
         toast({ title: "📥 Sincronizando contatos...", description: "Importando conversas desta instância." });
         supabase.functions.invoke('sync-zapi-history', {
           body: { instanceId: instance.id, maxChats: 100 }
         }).then(({ data, error }) => {
           if (error) {
             console.error('Erro ao sincronizar:', error);
-            toast({ title: "❌ Erro ao sincronizar", description: "Não foi possível importar os contatos.", variant: "destructive" });
+            // If it's a transient error, we'll allow retrying later or not show a scary toast
+            // unless it's a hard failure.
+            toast({ 
+              title: "⚠️ Sincronização parcial", 
+              description: "Não foi possível importar todos os contatos agora. O sistema tentará novamente em breve.",
+              variant: "default" 
+            });
           } else if (data?.error === 'disconnected') {
             toast({ title: "⚠️ Sessão indisponível", description: "Não foi possível importar o histórico agora. Tente novamente em instantes." });
+            setHasSynced(false); // Permite tentar novamente na próxima conexão
           } else {
             toast({ 
               title: "✅ Contatos importados!", 
@@ -930,7 +939,9 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             });
           }
         });
-      }, 3000);
+      }, 5000); // Aumentado para 5s para dar tempo da Z-API estabilizar a sessão
+
+      return () => clearTimeout(syncTimeout);
     }
     
     if (prevConnected === true && deviceStatus?.connected === false && deviceStatus?.smartphoneConnected === false) {
