@@ -349,6 +349,22 @@ const recordShadowBan = async (supabase: any, instanceDbId: string, errorText: s
   }
 };
 
+const deactivateInstance = async (supabase: any, dbId: string, reason: string) => {
+  try {
+    console.warn(`🛑 Deactivating instance ${dbId} due to fatal error: ${reason}`);
+    await supabase
+      .from("zapi_instances")
+      .update({ 
+        is_active: false, 
+        last_error: reason,
+        updated_at: new Date().toISOString() 
+      })
+      .eq("id", dbId);
+  } catch (err) {
+    console.error(`Failed to deactivate instance ${dbId}:`, err);
+  }
+};
+
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
   const status = String(payload?.status || payload?.message?.status || "").toUpperCase();
@@ -762,11 +778,26 @@ const fetchDeviceStatusSnapshot = async (instance: ResolvedInstance) => {
     });
 
     if (!deviceResponse.ok) {
+      const errorText = await deviceResponse.text().catch(() => "Unknown error");
+      const isAuthError = 
+        deviceResponse.status === 401 || 
+        deviceResponse.status === 403 || 
+        errorText.toLowerCase().includes("not allowed") ||
+        errorText.toLowerCase().includes("token") ||
+        errorText.toLowerCase().includes("unauthorized");
+
+      if (isAuthError && instance.dbId) {
+        console.warn(`🛑 Instance ${instance.instanceName} (${instance.dbId}) returned auth error. Deactivating.`);
+        // Note: In a real environment, we'd use the supabase client to update.
+        // We'll handle deactivation in the main loop to keep this helper pure-ish or pass the client.
+      }
+
       return {
         connected: false,
-        explicitlyDisconnected: false,
+        explicitlyDisconnected: isAuthError,
         ok: false,
-        raw: { error: `HTTP ${deviceResponse.status}` },
+        isAuthError,
+        raw: { error: `HTTP ${deviceResponse.status}: ${errorText}` },
       };
     }
 
@@ -967,10 +998,13 @@ serve(async (req) => {
         .filter(Boolean) as ResolvedInstance[];
 
       const rotateStatuses = await Promise.all(
-        rawRotatePool.map(async (instance) => ({
-          instance,
-          status: await fetchDeviceStatusSnapshot(instance),
-        })),
+        rawRotatePool.map(async (instance) => {
+          const status = await fetchDeviceStatusSnapshot(instance);
+          if ((status as any).isAuthError && instance.dbId) {
+            await deactivateInstance(supabase, instance.dbId, (status as any).raw?.error || "Auth error");
+          }
+          return { instance, status };
+        }),
       );
 
       rotatePool = rotateStatuses.map(({ instance }) => instance);
@@ -1042,6 +1076,10 @@ serve(async (req) => {
         );
       } else {
         const status = await fetchDeviceStatusSnapshot(specificInstance);
+        if ((status as any).isAuthError && specificInstance.dbId) {
+          await deactivateInstance(supabase, specificInstance.dbId, (status as any).raw?.error || "Auth error");
+        }
+
         if (!status.connected) {
           console.log(
             `⚠️ [Force] Selected instance ${specificInstance.instanceName} appears offline, but proceeding anyway.`,
@@ -2267,6 +2305,19 @@ serve(async (req) => {
             (!confirmed && !isLidIdentifier(contact.phone))
           ) {
             console.log(`🔍 [ShadowBan Check] phone=${contact.phone}, explicitError="${explicitError}", confirmed=${confirmed}, status=${zapiResponse.status}`);
+            const isAuthError = 
+              zapiResponse.status === 401 || 
+              zapiResponse.status === 403 || 
+              (explicitError && (
+                explicitError.toLowerCase().includes("not allowed") ||
+                explicitError.toLowerCase().includes("token") ||
+                explicitError.toLowerCase().includes("unauthorized")
+              ));
+
+            if (isAuthError && currentInstance.dbId) {
+              await deactivateInstance(supabase, currentInstance.dbId, explicitError || `HTTP ${zapiResponse.status}`);
+            }
+
             const isShadowBan =
               explicitError &&
               (explicitError.toLowerCase().includes("shadow ban") ||
