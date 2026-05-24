@@ -1079,8 +1079,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             )}
             {healthBlock && (() => {
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
-              const isShadowBan = healthBlock.block_type === 'new_chat_capping' || 
-                                 healthBlock.block_type === 'shadowban' ||
+              const isShadowBan = healthBlock.block_type === 'shadowban' ||
                                  healthBlock.block_type === 'restriction' ||
                                  (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban')) ||
                                  (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('restrição'));
