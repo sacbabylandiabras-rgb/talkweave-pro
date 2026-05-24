@@ -243,6 +243,8 @@ const App = () => (
                   <Route path="/telegram/links-traqueamento" element={<TelegramLinksTraqueamento />} />
                   <Route path="/telegram/links-utm" element={<TelegramLinksUtm />} />
                   <Route path="/gateway-checkout/products" element={<KycWrap><PayProducts /></KycWrap>} />
+                  <Route path="/gateway-checkout/products/new" element={<KycWrap><PayProductManagement /></KycWrap>} />
+                  <Route path="/gateway-checkout/products/edit/:id" element={<KycWrap><PayProductManagement /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts" element={<KycWrap><PayCheckouts /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/new" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
                   <Route path="/gateway-checkout/checkouts/edit/:id" element={<KycWrap><CheckoutBuilder /></KycWrap>} />
