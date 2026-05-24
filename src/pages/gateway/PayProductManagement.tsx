@@ -44,6 +44,7 @@ const emptyForm: FormState = {
   price: "", 
   sku: "", 
   category: "",
+  thank_you_page_url: "",
   affiliate_enabled: false,
   commission_rate: "0",
   marketplace_visible: true,
