@@ -84,7 +84,7 @@ const emptyForm: FormState = {
 
 export default function PayProducts() {
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<(Product & { plan_count?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,8 +99,28 @@ export default function PayProducts() {
   const [customCheckoutDomain, setCustomCheckoutDomain] = useState("");
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase.from("gateway_products").select("*").order("created_at", { ascending: false });
-    if (!error && data) setProducts(data as any);
+    const { data: productsData, error } = await supabase.from("gateway_products").select("*").order("created_at", { ascending: false });
+    
+    if (!error && productsData) {
+      // Fetch plan counts for each product
+      const { data: plansData } = await supabase
+        .from("gateway_plans" as any)
+        .select("product_id");
+      
+      const planCounts: Record<string, number> = {};
+      if (plansData) {
+        plansData.forEach((p: any) => {
+          planCounts[p.product_id] = (planCounts[p.product_id] || 0) + 1;
+        });
+      }
+
+      const productsWithPlans = productsData.map((p: any) => ({
+        ...p,
+        plan_count: planCounts[p.id] || 0
+      }));
+
+      setProducts(productsWithPlans as any);
+    }
     setLoading(false);
   };
 
