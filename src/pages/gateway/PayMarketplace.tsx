@@ -74,11 +74,13 @@ export default function PayMarketplace() {
       }
 
       // Buscar configuração de aprovação automática do produto
-      const { data: product, error: productError } = await supabase
-        .from("gateway_products" as any)
+      const { data: productData, error: productError } = await supabase
+        .from("gateway_products")
         .select("auto_approve_affiliates")
         .eq("id", productId)
         .single();
+
+      const product = productData as any;
 
       if (productError) throw productError;
 
