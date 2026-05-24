@@ -26,6 +26,7 @@ interface Product {
   commission_type?: 'percentage' | 'fixed';
   commission_value?: number;
   checkouts?: { id: string; slug: string | null }[];
+  plans?: { id: string; name: string; price: number }[];
 }
 
 interface Affiliation {
