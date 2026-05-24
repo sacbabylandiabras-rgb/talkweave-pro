@@ -104,7 +104,6 @@ Deno.serve(async (req) => {
         .from("zapi_instances")
         .select("id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key")
         .eq("user_id", user.id)
-        .eq("is_active", true)
         .or(`id.eq.${body.instanceId},zapi_instance_id.eq.${body.instanceId}`)
         .maybeSingle();
 
