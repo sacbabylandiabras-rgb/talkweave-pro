@@ -1,11 +1,16 @@
+---
+name: video-creator
+description: Cria vídeos e animações curtas de funis de vendas em mockups mobile.
+version: 1.0.0
+---
+
 # Video Creator Skill
 
-This skill allows the agent to generate short animations or videos using code-based tools like Remotion or FFmpeg.
+Esta skill permite a criação de animações de funis de vendas dentro de modelos de celulares.
 
-## Capabilities
-- Generate sales funnel animations.
-- Create mobile-mockup video presentations.
-- Export as MP4 or GIF.
+## Capacidades
+- Gerar vídeos MP4 de funis de vendas.
+- Aplicar mockups de dispositivos móveis.
 
-## Usage
-Request: "Cria um vídeo de um funil de vendas em um celular"
+## Comandos
+- "Crie um vídeo do funil no celular"
