@@ -138,8 +138,8 @@ export function SendProgressDialog({
         const existing = sendsByPhone.get(phoneKey);
         // Prioridade: delivered (4) > sent (3) > pending com message_id (2) > failed (1) > pending (0)
         const getStatusPriority = (s?: string | null, row?: CampaignSendRow) => {
-          if (s === "delivered") return 4;
-          if (s === "failed" || (row?.error_message && s !== "delivered")) return 3;
+          if (s === "delivered") return 5;
+          if (s === "failed" || (row?.error_message && s !== "delivered")) return 4;
           if (s === "sent") return 2;
           if (s === "pending" && (row?.message_id || row?.sent_at)) return 1.5;
           return 0;
@@ -148,12 +148,21 @@ export function SendProgressDialog({
         const nextPriority = getStatusPriority(send.status, send);
         const currentPriority = getStatusPriority(existing?.status, existing);
 
+        // Se o registro existente já é uma falha com erro e o novo é apenas "sent" (sucesso parcial sem confirmação),
+        // mantemos a falha, a menos que o novo seja "delivered" (sucesso total confirmado pelo WhatsApp).
         if (
           !existing ||
           nextPriority > currentPriority ||
           (nextPriority === currentPriority && getSendTimestamp(send) > getSendTimestamp(existing))
         ) {
           sendsByPhone.set(phoneKey, send);
+        } else if (existing && currentPriority === 4 && nextPriority < 4 && nextPriority > 0) {
+          // Se já temos um erro (prioridade 4) e recebemos um status "sent" (prioridade 2), 
+          // preservamos a mensagem de erro no registro para garantir que a UI mostre como falha.
+          if (!send.error_message && existing.error_message) {
+            send.error_message = existing.error_message;
+            sendsByPhone.set(phoneKey, { ...send, error_message: existing.error_message, status: "failed" });
+          }
         }
       });
 
