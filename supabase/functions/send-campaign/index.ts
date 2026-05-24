@@ -796,6 +796,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const reqPayload: SendCampaignRequest & { _directSendTemplateId?: string } = await req.json();
     const body = reqPayload;
+    console.log("send-campaign body:", JSON.stringify(body));
     let {
       campaignId,
       contacts,
