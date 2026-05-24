@@ -289,7 +289,7 @@ const Relatorio = () => {
           const current = instanceMap.get(name) || { sent: 0, failed: 0, pending: 0, total: 0 };
           current.total++;
           if (send.status === 'delivered') current.sent++;
-          else if (send.status === 'failed') current.failed++;
+          else if (send.status === 'failed' || (send.error_message && send.status !== 'delivered')) current.failed++;
           else current.pending++;
           instanceMap.set(name, current);
         });
