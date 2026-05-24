@@ -349,7 +349,7 @@ serve(async (req) => {
           console.log(`🛡️ Shadowban detected for instance ${instanceData.id}. Updating health table.`);
           await supabase.from("warmup_instance_health").insert({
             instance_ref: instanceData.id,
-            phone: instanceData.connected_phone || "",
+            phone: "",
             block_type: "shadowban",
             detail: `Detectado via erro de envio: ${error || status}`,
             last_detected_at: new Date().toISOString()
