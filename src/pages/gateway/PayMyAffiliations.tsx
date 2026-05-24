@@ -27,6 +27,7 @@ interface Product {
   commission_value?: number;
   checkouts?: { id: string; slug: string | null }[];
   plans?: { id: string; name: string; price: number }[];
+  affiliate_description?: string | null;
 }
 
 interface Affiliation {
