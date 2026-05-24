@@ -20,6 +20,14 @@ const typeConfig: Record<string, { label: string; icon: any; color: string }> = 
   service: { label: "Serviço", icon: Briefcase, color: "text-amber-400 bg-amber-500/10" },
 };
 
+interface Plan {
+  id?: string;
+  name: string;
+  description: string;
+  price: string;
+  billing_cycle: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -51,6 +59,7 @@ interface FormState {
   auto_approve_affiliates: boolean;
   buyer_data_access: boolean;
   commission_type: 'percentage' | 'fixed';
+  plans: Plan[];
 }
 
 const emptyForm: FormState = { 
@@ -65,7 +74,8 @@ const emptyForm: FormState = {
   marketplace_visible: true,
   auto_approve_affiliates: true,
   buyer_data_access: false,
-  commission_type: 'percentage'
+  commission_type: 'percentage',
+  plans: []
 };
 
 export default function PayProducts() {
@@ -170,8 +180,23 @@ export default function PayProducts() {
     return urlData.publicUrl;
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = async (product: Product) => {
     setEditingProduct(product);
+    
+    // Fetch plans for this product
+    const { data: plansData } = await supabase
+      .from("gateway_plans")
+      .select("*")
+      .eq("product_id", product.id);
+
+    const mappedPlans = (plansData || []).map((plan: any) => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description || "",
+      price: (plan.price / 100).toFixed(2).replace(".", ","),
+      billing_cycle: plan.billing_cycle || "one-time",
+    }));
+
     setForm({
       name: product.name,
       description: product.description || "",
@@ -185,6 +210,7 @@ export default function PayProducts() {
       auto_approve_affiliates: product.auto_approve_affiliates ?? true,
       buyer_data_access: product.buyer_data_access ?? false,
       commission_type: product.commission_type || 'percentage',
+      plans: mappedPlans,
     });
     setImagePreview(product.image_url || null);
     setImageFile(null);
@@ -277,7 +303,10 @@ export default function PayProducts() {
       if (imageUrl !== undefined) updateData.image_url = imageUrl;
 
       const { error } = await supabase.from("gateway_products" as any).update(updateData as any).eq("id", editingProduct.id);
-      if (error) { toast.error("Erro: " + error.message); return; }
+      if (error) { toast.error("Erro: " + error.message); setSaving(false); return; }
+
+      // Save plans
+      await savePlans(editingProduct.id, form.plans);
 
       try {
         await syncLinkedCheckoutPrices(editingProduct.id, priceInCents);
@@ -324,6 +353,9 @@ export default function PayProducts() {
         toast.error("Erro: " + (productError?.message || "não foi possível criar o produto"));
         return;
       }
+
+      // Save plans
+      await savePlans(createdProduct.id, form.plans);
 
       let checkoutDefaults: Record<string, any> = {};
       const { data: defaultsRow } = await supabase
