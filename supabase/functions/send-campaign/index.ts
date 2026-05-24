@@ -1401,6 +1401,21 @@ serve(async (req) => {
       existingId?: string | null,
     ): Promise<string | null> => {
       if (existingId) {
+        // Se estamos tentando atualizar para "sent" ou "pending" mas o registro atual já é uma falha confirmada,
+        // não sobrescrevemos o status de falha para evitar que o número "volte" a parecer enviado.
+        if (record.status === "sent" || record.status === "pending") {
+          const { data: current } = await supabase
+            .from("campaign_sends")
+            .select("status")
+            .eq("id", existingId)
+            .maybeSingle();
+          
+          if (current?.status === "failed") {
+            console.log(`🛡️ Preserving 'failed' status for ${record.phone} against '${record.status}' update.`);
+            return existingId;
+          }
+        }
+
         const { error: updateError } = await supabase
           .from("campaign_sends")
           .update({
