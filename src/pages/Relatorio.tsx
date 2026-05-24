@@ -112,13 +112,13 @@ const Relatorio = () => {
     const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
     return acc + Math.max(0, targetContacts - processedForCampaign);
   }, 0);
-  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
     totalSent: countSuccessfulStatuses(latestAllSends),
     totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
-    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
+    totalFailed: latestAllSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: effectiveTotalMessages,
     totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
