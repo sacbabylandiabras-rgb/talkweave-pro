@@ -45,6 +45,7 @@ interface Product {
   access_buyer_data?: boolean;
   commission_type?: 'percentage' | 'fixed';
   commission_value?: number;
+  affiliate_description?: string | null;
 }
 
 interface FormState {
@@ -60,6 +61,7 @@ interface FormState {
   auto_approve_affiliates: boolean;
   buyer_data_access: boolean;
   commission_type: 'percentage' | 'fixed';
+  affiliate_description: string;
   plans: Plan[];
 }
 
@@ -76,6 +78,7 @@ const emptyForm: FormState = {
   auto_approve_affiliates: true,
   buyer_data_access: false,
   commission_type: 'percentage',
+  affiliate_description: "",
   plans: []
 };
 
@@ -211,6 +214,7 @@ export default function PayProducts() {
       buyer_data_access: product.access_buyer_data ?? false,
       commission_type: product.commission_type as 'percentage' | 'fixed' || 'percentage',
       commission_rate: (product.commission_type === 'fixed' ? (product.commission_value || 0) : (product.commission_rate || 0)).toString().replace(".", ","),
+      affiliate_description: product.affiliate_description || "",
       plans: mappedPlans,
     });
     setImagePreview(product.image_url || null);
@@ -293,8 +297,9 @@ export default function PayProducts() {
         affiliate_enabled: form.affiliate_enabled,
         commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
         commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
+        affiliate_description: form.affiliate_description || null,
       };
-
+      
       if (form.affiliate_enabled) {
         updateData.visible_in_store = form.marketplace_visible;
         updateData.auto_approve_affiliates = form.auto_approve_affiliates;
@@ -332,6 +337,7 @@ export default function PayProducts() {
         affiliate_enabled: form.affiliate_enabled,
         commission_rate: form.commission_type === 'percentage' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
         commission_value: form.commission_type === 'fixed' ? (parseFloat(form.commission_rate.replace(",", ".")) || 0) : 0,
+        affiliate_description: form.affiliate_description || null,
       };
 
       if (form.affiliate_enabled) {
@@ -680,6 +686,16 @@ export default function PayProducts() {
                         {form.commission_type === 'percentage' ? '%' : 'R$'}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Descrição para Afiliados</Label>
+                    <Textarea 
+                      placeholder="Instruções e detalhes importantes para seus afiliados..." 
+                      value={form.affiliate_description} 
+                      onChange={e => setForm(p => ({ ...p, affiliate_description: e.target.value }))}
+                      className="min-h-[80px] text-xs"
+                    />
                   </div>
                 </div>
               </div>
