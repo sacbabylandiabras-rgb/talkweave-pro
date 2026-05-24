@@ -57,6 +57,7 @@ const ShopifyOAuthCallback = lazyWithRecovery(() => import("./pages/ShopifyOAuth
 const ShopifyEmbedded = lazyWithRecovery(() => import("./pages/ShopifyEmbedded"));
 const PayDashboard = lazyWithRecovery(() => import("./pages/gateway/PayDashboard"));
 const PayProducts = lazyWithRecovery(() => import("./pages/gateway/PayProducts"));
+const PayProductManagement = lazyWithRecovery(() => import("./pages/gateway/PayProductManagement"));
 const PayCheckouts = lazyWithRecovery(() => import("./pages/gateway/PayCheckouts"));
 const PayLandingPages = lazyWithRecovery(() => import("./pages/gateway/PayLandingPages"));
 const PayReports = lazyWithRecovery(() => import("./pages/gateway/PayReports"));
