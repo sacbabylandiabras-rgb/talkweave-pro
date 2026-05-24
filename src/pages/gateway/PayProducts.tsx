@@ -405,6 +405,65 @@ export default function PayProducts() {
     fetchCheckouts();
   };
 
+  const savePlans = async (productId: string, plans: Plan[]) => {
+    // Delete removed plans
+    const planIdsToKeep = plans.filter(p => p.id).map(p => p.id);
+    if (planIdsToKeep.length > 0) {
+      await supabase
+        .from("gateway_plans" as any)
+        .delete()
+        .eq("product_id", productId)
+        .not("id", "in", `(${planIdsToKeep.join(",")})`);
+    } else {
+      await supabase
+        .from("gateway_plans" as any)
+        .delete()
+        .eq("product_id", productId);
+    }
+
+    // Upsert plans
+    const plansToUpsert = plans.map(plan => ({
+      id: plan.id,
+      product_id: productId,
+      name: plan.name,
+      description: plan.description,
+      price: Math.round(parseFloat(plan.price.replace(",", ".")) * 100) || 0,
+      billing_cycle: plan.billing_cycle,
+    }));
+
+    if (plansToUpsert.length > 0) {
+      const { error } = await supabase
+        .from("gateway_plans" as any)
+        .upsert(plansToUpsert);
+      
+      if (error) {
+        console.error("Error saving plans:", error);
+        toast.error("Erro ao salvar alguns planos");
+      }
+    }
+  };
+
+  const addPlan = () => {
+    setForm(p => ({
+      ...p,
+      plans: [...p.plans, { name: "", description: "", price: "", billing_cycle: "one-time" }]
+    }));
+  };
+
+  const removePlan = (index: number) => {
+    setForm(p => ({
+      ...p,
+      plans: p.plans.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updatePlan = (index: number, field: keyof Plan, value: string) => {
+    setForm(p => ({
+      ...p,
+      plans: p.plans.map((plan, i) => i === index ? { ...plan, [field]: value } : plan)
+    }));
+  };
+
   const resetForm = () => {
     setForm(emptyForm);
     setImageFile(null);
