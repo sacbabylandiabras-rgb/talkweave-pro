@@ -110,11 +110,40 @@ export default function PayProducts() {
   };
 
   const deleteProduct = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
     const { error } = await supabase.from("gateway_products" as any).delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir"); return; }
     toast.success("Produto removido");
     fetchProducts();
   };
+
+  const autoCreateCheckout = async (product: Product) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const checkoutSlug = product.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Math.random().toString(36).substring(2, 7);
+      const { error } = await supabase.from("gateway_checkouts" as any).insert({
+        user_id: user.id,
+        product_id: product.id,
+        name: `Checkout - ${product.name}`,
+        slug: checkoutSlug,
+        status: true,
+        config: {
+          productName: product.name,
+          price: product.price,
+          productImage: product.image_url || null
+        }
+      } as any);
+
+      if (error) throw error;
+      toast.success("Checkout criado com sucesso!");
+      fetchCheckouts();
+    } catch (error: any) {
+      toast.error("Erro ao criar checkout: " + error.message);
+    }
+  };
+
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
