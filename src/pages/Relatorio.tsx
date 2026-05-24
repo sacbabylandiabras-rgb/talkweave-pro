@@ -569,7 +569,7 @@ const Relatorio = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {send.delivered_at ? format(new Date(send.delivered_at), "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
+                        {send.delivered_at ? safeFormat(send.delivered_at, "dd/MM/yy HH:mm", { locale: ptBR }) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
