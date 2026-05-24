@@ -239,12 +239,14 @@ export default function PayProductManagement() {
   const savePlans = async (productId: string, plans: Plan[]) => {
     try {
       // Get current plans from database
-      const { data: currentPlans } = await supabase
+      const { data: currentPlans, error: fetchError } = await supabase
         .from("gateway_plans" as any)
         .select("id")
         .eq("product_id", productId);
 
-      const currentIds = (currentPlans || []).map(p => p.id);
+      if (fetchError) throw fetchError;
+
+      const currentIds = (currentPlans as any[] || []).map(p => p.id);
       const planIdsToKeep = plans.filter(p => p.id).map(p => p.id);
       
       // Delete plans that are no longer in the form
