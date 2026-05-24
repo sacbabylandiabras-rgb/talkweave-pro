@@ -200,6 +200,21 @@ export default function PayProductManagement() {
         const { data, error } = await supabase.from("gateway_products").insert(productData).select("id").single();
         if (error) throw error;
         productId = (data as any).id;
+
+        // Create a default checkout for new products
+        const checkoutSlug = form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Math.random().toString(36).substring(2, 7);
+        await supabase.from("gateway_checkouts" as any).insert({
+          user_id: user.id,
+          product_id: productId,
+          name: `Checkout - ${form.name}`,
+          slug: checkoutSlug,
+          status: true,
+          config: {
+            productName: form.name,
+            price: priceInCents,
+            productImage: imageUrl || null
+          }
+        } as any);
       }
 
       await savePlans(productId!, form.plans);

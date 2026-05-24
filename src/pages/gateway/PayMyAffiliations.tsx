@@ -26,6 +26,8 @@ interface Product {
   commission_type?: 'percentage' | 'fixed';
   commission_value?: number;
   checkouts?: { id: string; slug: string | null }[];
+  plans?: { id: string; name: string; price: number }[];
+  affiliate_description?: string | null;
 }
 
 interface Affiliation {
@@ -58,7 +60,8 @@ export default function PayMyAffiliations() {
           created_at,
           product:gateway_products (
             *,
-            checkouts:gateway_checkouts (id, slug)
+            checkouts:gateway_checkouts (id, slug),
+            plans:gateway_plans (*)
           )
         `)
         .eq("affiliate_id", user.id)
@@ -314,27 +317,52 @@ export default function PayMyAffiliations() {
                       {/* Se o produto tiver múltiplos checkouts, podemos listar todos */}
                       {selectedAffiliation.product.checkouts && selectedAffiliation.product.checkouts.length > 0 ? (
                         selectedAffiliation.product.checkouts.map((checkout, index) => {
-                          // Gerar link para cada checkout
-                          let baseUrl = "https://zaplynx.com";
-                          if (window.location.hostname === "localhost") baseUrl = window.location.origin;
                           const identifier = checkout.slug || checkout.id;
-                          const link = `${baseUrl}/pay/${identifier}?aff=${selectedAffiliation.affiliate_id}`;
+                          const checkoutBaseLink = `https://zaplynx.com/pay/${identifier}?aff=${selectedAffiliation.affiliate_id}`;
                           
                           return (
-                            <div key={checkout.id} className="p-3 border rounded-lg bg-card space-y-2 hover:border-primary/50 transition-colors">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs font-bold uppercase text-primary">Checkout {selectedAffiliation.product.checkouts!.length > 1 ? index + 1 : ""}</span>
-                                <Badge variant="outline" className="text-[10px]">Padrão</Badge>
+                            <div key={checkout.id} className="space-y-3">
+                              <div className="p-3 border rounded-lg bg-card space-y-2 hover:border-primary/50 transition-colors">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold uppercase text-primary">Checkout Principal {selectedAffiliation.product.checkouts!.length > 1 ? index + 1 : ""}</span>
+                                  <Badge variant="outline" className="text-[10px]">Padrão</Badge>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Input readOnly value={checkoutBaseLink} className="text-xs h-8" />
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => copyToClipboard(checkoutBaseLink)}>
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(checkoutBaseLink, '_blank')}>
+                                    <ExternalLink className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
-                                <Input readOnly value={link} className="text-xs h-8" />
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => copyToClipboard(link)}>
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(link, '_blank')}>
-                                  <ExternalLink className="w-4 h-4" />
-                                </Button>
-                              </div>
+
+                              {/* Links para Planos se existirem */}
+                              {selectedAffiliation.product.plans && selectedAffiliation.product.plans.length > 0 && (
+                                <div className="pl-4 space-y-2 border-l-2 border-primary/20">
+                                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Links por Plano:</p>
+                                  {selectedAffiliation.product.plans.map((plan) => {
+                                    const planLink = `${checkoutBaseLink}&plan=${plan.id}`;
+                                    return (
+                                      <div key={plan.id} className="p-2 border rounded-md bg-muted/50 space-y-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-[11px] font-medium">{plan.name} - {formatCurrency(Number(plan.price))}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Input readOnly value={planLink} className="text-[10px] h-7" />
+                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyToClipboard(planLink)}>
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </Button>
+                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(planLink, '_blank')}>
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })
@@ -351,6 +379,9 @@ export default function PayMyAffiliations() {
                                <Copy className="w-4 h-4" />
                              </Button>
                            </div>
+                           <p className="text-[10px] text-yellow-600 bg-yellow-50 p-2 rounded italic">
+                             Aviso: Nenhum checkout configurado. Usando link padrão do produto.
+                           </p>
                         </div>
                       )}
                     </div>
@@ -362,6 +393,15 @@ export default function PayMyAffiliations() {
                       {selectedAffiliation.product.description || "Este produto não possui uma descrição detalhada cadastrada."}
                     </p>
                   </div>
+
+                  {selectedAffiliation.product.affiliate_description && (
+                    <div>
+                      <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-2 italic">Informações para Afiliados</h4>
+                      <div className="text-sm text-muted-foreground leading-relaxed p-3 bg-primary/5 rounded-lg border border-primary/10">
+                        {selectedAffiliation.product.affiliate_description}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

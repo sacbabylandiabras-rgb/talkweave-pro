@@ -58,15 +58,24 @@ Deno.serve(async (req) => {
       .update({ visits: (checkout.visits || 0) + 1 })
       .eq("id", checkout.id);
 
-    // Fetch product if linked
+    // Fetch product and plans if linked
     let product = null;
+    let plans = [];
     if (checkout.product_id) {
-      const { data } = await supabase
+      const { data: prod } = await supabase
         .from("gateway_products")
-        .select("name, description, price, image_url")
+        .select("id, name, description, price, image_url")
         .eq("id", checkout.product_id)
         .maybeSingle();
-      product = data;
+      product = prod;
+
+      if (product) {
+        const { data: pls } = await supabase
+          .from("gateway_plans")
+          .select("*")
+          .eq("product_id", product.id);
+        plans = pls || [];
+      }
     }
 
     // Fetch active pixels owned by checkout user (public-safe fields only)
@@ -80,7 +89,7 @@ Deno.serve(async (req) => {
       pixels = pxs || [];
     }
 
-    return new Response(JSON.stringify({ checkout, product, pixels }), {
+    return new Response(JSON.stringify({ checkout, product, plans, pixels }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
