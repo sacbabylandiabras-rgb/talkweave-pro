@@ -276,11 +276,17 @@ export default function PayProducts() {
                     ) : (
                       <div className="py-3 px-2 border border-dashed rounded-md bg-muted/20 flex flex-col items-center gap-2">
                         <span className="text-[10px] text-muted-foreground text-center">Nenhum checkout criado para este produto.</span>
-                        <Button variant="outline" size="sm" className="h-7 text-[10px] px-3" onClick={() => navigate("/gateway-checkout/checkouts/new")}>
-                          <Plus className="w-3 h-3 mr-1" /> Criar Checkout
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-[10px] px-3 border-[#a78bfa]/50 hover:bg-[#a78bfa]/10" 
+                          onClick={() => autoCreateCheckout(p)}
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Gerar Links de Divulgação
                         </Button>
                       </div>
                     )}
+
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/gateway-checkout/products/edit/${p.id}`)}>
