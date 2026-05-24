@@ -940,8 +940,15 @@ serve(async (req) => {
         }
       }
 
-      if (!preferredInstance && (!requestedInstanceId || requestedInstanceId === "__rotate_all__")) {
+      if (!preferredInstance) {
         preferredInstance = await resolvePreferredUserInstance(supabase, authenticatedUserId);
+        if (preferredInstance && requestedInstanceId) {
+          console.log(
+            `↩️ [Fallback] Requested instance ${requestedInstanceId} not resolvable; using preferred active instance ${preferredInstance.instanceName} (${preferredInstance.zapiInstanceId}).`,
+          );
+          // Disable forced-instance routing so downstream block uses our resolved credentials.
+          requestedInstanceId = undefined;
+        }
       }
 
       if (preferredInstance) {
