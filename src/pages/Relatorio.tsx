@@ -131,8 +131,8 @@ const Relatorio = () => {
   const campaignReports = campaignList.map((campaign) => {
     const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
     const sent = countSuccessfulStatuses(campaignSends);
-    const failed = campaignSends.filter(s => s.status === 'failed').length;
-    const dbPending = campaignSends.filter(s => s.status === 'pending' || s.status === 'sent' || !s.status).length;
+    const failed = campaignSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length;
+    const dbPending = campaignSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
 
     // Calculate real pending: total target contacts - processed sends
     const targetContacts = getTargetContactsCount(campaign.target_audience);
