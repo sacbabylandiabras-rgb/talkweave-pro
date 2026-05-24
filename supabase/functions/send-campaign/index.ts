@@ -998,10 +998,13 @@ serve(async (req) => {
         .filter(Boolean) as ResolvedInstance[];
 
       const rotateStatuses = await Promise.all(
-        rawRotatePool.map(async (instance) => ({
-          instance,
-          status: await fetchDeviceStatusSnapshot(instance),
-        })),
+        rawRotatePool.map(async (instance) => {
+          const status = await fetchDeviceStatusSnapshot(instance);
+          if ((status as any).isAuthError && instance.dbId) {
+            await deactivateInstance(supabase, instance.dbId, (status as any).raw?.error || "Auth error");
+          }
+          return { instance, status };
+        }),
       );
 
       rotatePool = rotateStatuses.map(({ instance }) => instance);
