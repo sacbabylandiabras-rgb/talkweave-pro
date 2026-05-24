@@ -9,8 +9,15 @@ import { Progress } from "@/components/ui/progress";
 import { BarChart3, Download, TrendingUp, Users, MessageSquare, Send, Loader2, Eye, CheckCircle, XCircle, Clock as ClockIcon, RefreshCw, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCampaignsRealtime, useAllCampaignSendsRealtime, useCampaignSendsRealtime } from "@/hooks/useCampaignRealtime";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (!isValid(d)) return "Data inválida";
+  return format(d, formatStr, options);
+};
 
 type ReportSend = {
   id: string;
@@ -381,7 +388,7 @@ const Relatorio = () => {
                             <p className="text-sm text-muted-foreground mt-0.5">{campanha.description}</p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(campanha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            {safeFormat(campanha.created_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
                         {campanha.status === 'active' && (

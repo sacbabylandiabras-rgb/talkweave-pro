@@ -782,9 +782,11 @@ export const useCampaigns = () => {
         name: `${campaign.name} (Cópia)`,
         description: campaign.description,
         template_id: campaign.template_id,
-        target_audience: campaign.target_audience,
-        schedule_type: campaign.schedule_type,
+        target_audience: campaign.target_audience || {},
+        schedule_type: campaign.schedule_type || "immediate",
+        scheduled_at: campaign.scheduled_at,
         recurrence_pattern: campaign.recurrence_pattern,
+        delay_seconds: campaign.delay_seconds || 2,
       };
 
       return await createCampaign(newCampaign);
