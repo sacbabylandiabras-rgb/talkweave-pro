@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       const statusData = await statusResp.json().catch(() => ({}));
       console.log(`🔎 Z-API status:`, statusData);
       if (statusResp.ok && statusData?.connected === false) {
-        throw new Error('Instância Z-API desconectada. Conecte o WhatsApp antes de atualizar o perfil.');
+        throw new Error('Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.');
       }
     } catch (preErr) {
       // Se foi a checagem de conectado, propaga; se foi falha de rede no /status, segue tentando
