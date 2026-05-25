@@ -1594,7 +1594,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                     </div>
                     <div className="flex justify-center mt-4 w-full">
                       <Button variant="outline" size="sm" onClick={fetchQRCode} disabled={loading}>
-                        🔄 Renovar QR Code
+                        <RotateCcw className="w-4 h-4 mr-2" /> Renovar QR Code
                       </Button>
                     </div>
                   </div>
@@ -1630,7 +1630,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                       </>
                     )}
                     <div className="flex justify-center mt-2">
-                      <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
+                      <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}><RotateCcw className="w-4 h-4 mr-2" /> Gerar Novo Código</Button>
                     </div>
                   </div>
                 )}
