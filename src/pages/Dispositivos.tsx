@@ -1592,9 +1592,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                       <p>3. Toque em <strong>"Conectar um aparelho"</strong></p>
                       <p>4. Escaneie este código</p>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={fetchQRCode} disabled={loading}>
-                      🔄 Renovar QR Code
-                    </Button>
+                    <div className="flex justify-center mt-4 w-full">
+                      <Button variant="outline" size="sm" onClick={fetchQRCode} disabled={loading}>
+                        🔄 Renovar QR Code
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1627,9 +1629,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                         </div>
                       </>
                     )}
-                    <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
+                    <div className="flex justify-center mt-2">
+                      <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
+                    </div>
                   </div>
-                )}
               </div>
             </TabsContent>
           </Tabs>
