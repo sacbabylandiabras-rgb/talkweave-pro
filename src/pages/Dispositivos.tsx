@@ -1753,44 +1753,66 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
           },
         });
         if (error) {
-          // Tenta extrair mensagem de erro do contexto
-          const ctxMsg = (error as any)?.context?.body
-            ? (() => { try { return JSON.parse((error as any).context.body)?.error; } catch { return null; } })()
-            : null;
-          throw new Error(ctxMsg || (error as any)?.message || 'Falha ao invocar atualização');
-        }
-        if (data?.skipped || data?.fallback) {
+          const body = (error as any)?.context?.body;
+          let remoteError = '';
+          try {
+            remoteError = body ? JSON.parse(body)?.error : null;
+          } catch {
+            remoteError = body;
+          }
+          
+          const msg = remoteError || (error as any)?.message || 'Falha ao invocar atualização';
+          const friendly = /desconect|disconnect|session|token|auth/i.test(msg)
+            ? 'dispositivo desconectado ou erro de credenciais (pulado)'
+            : msg;
+            
           failed++;
-          const skippedMessage = /desconectad/i.test(String(data?.error || ''))
-            ? 'dispositivo desconectado (pulado)'
-            : sanitizeConnectionMessage(data?.error, 'operação pulada');
-          errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${skippedMessage}`);
+          errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${friendly}`);
+          console.warn(`[BulkProfileUpdate] Falha (2xx) em ${inst.instance_name}:`, msg);
           continue;
         }
-        if (data?.error) throw new Error(data.error);
+
+        if (data?.skipped || data?.fallback || data?.error) {
+          failed++;
+          const msg = data?.error || 'operação pulada';
+          const friendly = /desconect|disconnect|session|token|auth/i.test(String(msg))
+            ? 'dispositivo desconectado (pulado)'
+            : sanitizeConnectionMessage(msg, 'operação pulada');
+            
+          errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${friendly}`);
+          continue;
+        }
+
         success++;
         updatedInstanceIds.push(inst.id);
       } catch (err) {
         failed++;
         const msg = err instanceof Error ? err.message : 'Erro desconhecido';
-        const friendly = /desconectad/i.test(msg)
+        const friendly = /desconect|disconnect|session|token|auth/i.test(msg)
           ? 'dispositivo desconectado (pulado)'
           : msg;
         errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${friendly}`);
-        console.error(`[BulkProfileUpdate] Falha em ${inst.instance_name}:`, err);
+        console.error(`[BulkProfileUpdate] Falha (catch) em ${inst.instance_name}:`, err);
       }
     }
 
     setUpdating(false);
-    const description = failed > 0
-      ? `${success} de ${targetInstances.length} atualizada(s), ${failed} com erro:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ''}`
-      : `${success} instância(s) atualizada(s)`;
-    toast({
-      title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro",
-      description,
-      variant: failed === targetInstances.length ? "destructive" : "default",
-      duration: failed > 0 ? 8000 : 3000,
-    });
+    
+    if (success === 0 && failed > 0) {
+      toast({
+        title: "❌ Erro ao atualizar perfil",
+        description: `Todas as ${failed} tentativa(s) falharam ou foram puladas.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: failed > 0 ? "⚠️ Perfil parcialmente atualizado" : "✅ Perfil atualizado",
+        description: failed > 0 
+          ? `${success} instâncias atualizadas, ${failed} falharam ou foram puladas.`
+          : `${success} instâncias atualizadas com sucesso.`,
+        variant: "default",
+      });
+    }
 
     if (type === "picture" && success > 0) {
       window.dispatchEvent(

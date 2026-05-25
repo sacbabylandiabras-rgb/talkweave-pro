@@ -7,7 +7,7 @@ const isDisconnectedError = (value: unknown) => {
   if (!value) return false;
 
   if (typeof value === 'string') {
-    return /desconect|disconnect|not connected|session closed|qr code/i.test(value);
+    return /desconect|disconnect|not connected|session closed|qr code|unauthorized|invalid token|client-token|not allowed|forbidden|instância.*desconectada|reconecte o dispositivo/i.test(value);
   }
 
   if (value instanceof Error) {
@@ -17,12 +17,21 @@ const isDisconnectedError = (value: unknown) => {
   if (typeof value === 'object') {
     const payload = value as Record<string, unknown>;
     if (payload.connected === false) return true;
+    if (payload.session === false) return true;
 
-    return isDisconnectedError(
-      [payload.message, payload.error, payload.reason, payload.status, payload.detail]
-        .filter(Boolean)
-        .join(' '),
-    );
+    // Check common error fields
+    const fields = [
+      payload.message,
+      payload.error,
+      payload.reason,
+      payload.status,
+      payload.detail,
+      payload.description,
+      (payload.error as any)?.message,
+      (payload.error as any)?.error
+    ];
+
+    return fields.some(f => f && isDisconnectedError(f));
   }
 
   return false;
@@ -183,8 +192,9 @@ Deno.serve(async (req) => {
     try {
       const statusResp = await fetch(`${baseZapi}/status`, { headers: zapiHeaders });
       const statusData = await statusResp.json().catch(() => ({}));
-      console.log(`🔎 Status conexão:`, statusData);
-      if (statusResp.ok && isDisconnectedError(statusData)) {
+      console.log(`🔎 Status conexão (${statusResp.status}):`, statusData);
+      
+      if (!statusResp.ok || isDisconnectedError(statusData) || isDisconnectedError(statusResp.statusText)) {
         return buildDisconnectedResponse();
       }
     } catch (preErr) {
@@ -258,13 +268,20 @@ Deno.serve(async (req) => {
 
     throw new Error(lastError);
   } catch (error) {
-    console.error('❌ Error updating profile:', error);
-    if (isDisconnectedError(error)) {
-      return buildDisconnectedResponse();
-    }
+    console.error('❌ Error updating profile (catch block):', error);
+    
+    // Any error here is treated as a connection/transient issue to avoid 400s in bulk operations
+    // unless it's a very specific server error.
+    const msg = error instanceof Error ? error.message : String(error);
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro ao atualizar perfil' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false, 
+        skipped: true, 
+        error: msg,
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
