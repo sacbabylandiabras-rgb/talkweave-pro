@@ -1100,23 +1100,26 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               if (isShadowBan) {
                 label = "⚠️ Número com restrição detectada pelo WhatsApp (Shadowban)";
                 if (until) {
-                  label += ` · expira em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`;
+                  label += ` · Expira em: ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`;
+                } else {
+                  label += " · Restrição por tempo indeterminado";
                 }
                 icon = <AlertCircle className="w-3 h-3 mr-1 inline text-orange-600" />;
               } else {
                 label = until
-                  ? `Limite de novas conversas atingido · libera em ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+                  ? `Limite de novas conversas atingido · Reinicia em: ${until.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
                   : "Limite de novas conversas atingido";
+                icon = <AlertCircle className="w-3 h-3 mr-1 inline text-red-600" />;
               }
 
               return (
                 <div className="mt-1.5">
                   <Badge 
                     variant="destructive" 
-                    className={`text-[10px] leading-tight whitespace-normal text-left ${isShadowBan ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-red-50 text-red-700 border-red-200'}`}
+                    className={`text-[10px] py-1 px-2 leading-tight whitespace-normal text-left shadow-sm border ${isShadowBan ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-red-50 text-red-700 border-red-200'}`}
                   >
                     {icon}
-                    {label}
+                    <span className="font-semibold">{label}</span>
                   </Badge>
                 </div>
               );
