@@ -144,14 +144,21 @@ Deno.serve(async (req) => {
     try {
       const statusResp = await fetch(`${baseZapi}/status`, { headers: zapiHeaders });
       const statusData = await statusResp.json().catch(() => ({}));
-      console.log(`🔎 Z-API status:`, statusData);
+      console.log(`🔎 Status conexão:`, statusData);
       if (statusResp.ok && statusData?.connected === false) {
-        throw new Error('Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.');
+        // Retorna 200 com skipped:true para não estourar erro no client
+        return new Response(
+          JSON.stringify({
+            success: false,
+            skipped: true,
+            reason: 'disconnected',
+            error: 'Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
     } catch (preErr) {
-      // Se foi a checagem de conectado, propaga; se foi falha de rede no /status, segue tentando
-      if (preErr instanceof Error && preErr.message.includes('desconectada')) throw preErr;
-      console.warn('⚠️ Falha ao checar status Z-API (seguindo mesmo assim):', preErr);
+      console.warn('⚠️ Falha ao checar status (seguindo mesmo assim):', preErr);
     }
 
     if (type === 'name') {
