@@ -1079,18 +1079,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             )}
             {healthBlock && (() => {
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
-              const isShadowBan = healthBlock.block_type === 'shadowban' ||
-                                 healthBlock.block_type === 'restriction' ||
-                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban')) ||
-                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('restrição'));
+              const isShadowBan = healthBlock.block_type === 'shadowban' || 
+                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban'));
               
-              // Se o dispositivo está ONLINE, ignoramos blocos de tipo 'disconnected' pois o status atual prevalece
-              if (isOnline && healthBlock.block_type === 'disconnected') {
-                return null;
-              }
-
-              // Se estiver desconectado mas NÃO for shadowban, não mostramos nada (pedido anterior)
-              if (healthBlock.block_type === 'disconnected' && !isShadowBan) {
+              // Only show if the device is ONLINE/CONNECTED and it's a Shadowban
+              if (!isOnline || !isShadowBan) {
                 return null;
               }
 
