@@ -1759,12 +1759,15 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             : null;
           throw new Error(ctxMsg || (error as any)?.message || 'Falha ao invocar atualização');
         }
-        if (data?.error) throw new Error(data.error);
-        if (data?.skipped) {
+        if (data?.skipped || data?.fallback) {
           failed++;
-          errors.push(`${inst.instance_name || inst.zapi_instance_id}: dispositivo desconectado (pulado)`);
+          const skippedMessage = /desconectad/i.test(String(data?.error || ''))
+            ? 'dispositivo desconectado (pulado)'
+            : sanitizeConnectionMessage(data?.error, 'operação pulada');
+          errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${skippedMessage}`);
           continue;
         }
+        if (data?.error) throw new Error(data.error);
         success++;
         updatedInstanceIds.push(inst.id);
       } catch (err) {

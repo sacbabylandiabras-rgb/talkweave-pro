@@ -1,6 +1,45 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+const DISCONNECTED_PROFILE_MESSAGE = 'Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.';
+
+const isDisconnectedError = (value: unknown) => {
+  if (!value) return false;
+
+  if (typeof value === 'string') {
+    return /desconect|disconnect|not connected|session closed|qr code/i.test(value);
+  }
+
+  if (value instanceof Error) {
+    return isDisconnectedError(value.message);
+  }
+
+  if (typeof value === 'object') {
+    const payload = value as Record<string, unknown>;
+    if (payload.connected === false) return true;
+
+    return isDisconnectedError(
+      [payload.message, payload.error, payload.reason, payload.status, payload.detail]
+        .filter(Boolean)
+        .join(' '),
+    );
+  }
+
+  return false;
+};
+
+const buildDisconnectedResponse = () =>
+  new Response(
+    JSON.stringify({
+      success: false,
+      skipped: true,
+      fallback: true,
+      reason: 'disconnected',
+      error: DISCONNECTED_PROFILE_MESSAGE,
+    }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+
 const cleanBase64 = (base64String: string): string => {
   if (!base64String) return "";
   let cleaned = base64String.trim();
@@ -145,17 +184,8 @@ Deno.serve(async (req) => {
       const statusResp = await fetch(`${baseZapi}/status`, { headers: zapiHeaders });
       const statusData = await statusResp.json().catch(() => ({}));
       console.log(`🔎 Status conexão:`, statusData);
-      if (statusResp.ok && statusData?.connected === false) {
-        // Retorna 200 com skipped:true para não estourar erro no client
-        return new Response(
-          JSON.stringify({
-            success: false,
-            skipped: true,
-            reason: 'disconnected',
-            error: 'Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.',
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
+      if (statusResp.ok && isDisconnectedError(statusData)) {
+        return buildDisconnectedResponse();
       }
     } catch (preErr) {
       console.warn('⚠️ Falha ao checar status (seguindo mesmo assim):', preErr);
@@ -171,6 +201,9 @@ Deno.serve(async (req) => {
       });
       const data = await response.json().catch(() => ({}));
       console.log(`✅ Z-API name response ${response.status}`, data);
+      if (isDisconnectedError(data)) {
+        return buildDisconnectedResponse();
+      }
       if (!response.ok || data?.error || data?.value === false) {
         throw new Error(data.message || data.error || (data?.value === false ? 'Z-API retornou value:false (operação não aplicada)' : `Z-API error: ${response.status}`));
       }
@@ -211,6 +244,9 @@ Deno.serve(async (req) => {
       });
       const data = await response.json().catch(() => ({}));
       console.log(`✅ Z-API picture response ${response.status}`, data);
+      if (isDisconnectedError(data)) {
+        return buildDisconnectedResponse();
+      }
       if (response.ok && !data?.error && data?.value !== false) {
         successData = data;
         return new Response(JSON.stringify({ success: true, data }), {
@@ -223,8 +259,11 @@ Deno.serve(async (req) => {
     throw new Error(lastError);
   } catch (error) {
     console.error('❌ Error updating profile:', error);
+    if (isDisconnectedError(error)) {
+      return buildDisconnectedResponse();
+    }
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro ao atualizar perfil' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -904,6 +904,9 @@ const getZAPIConfig = async () => {
       });
 
       if (error) throw new Error(error.message || 'Erro ao atualizar nome');
+      if (data?.skipped || data?.fallback) {
+        throw new Error(data.error || 'Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.');
+      }
       if (data?.error) throw new Error(data.error);
 
       toast({
@@ -944,6 +947,9 @@ const getZAPIConfig = async () => {
       });
 
       if (error) throw new Error(error.message || 'Erro ao atualizar foto');
+      if (data?.skipped || data?.fallback) {
+        throw new Error(data.error || 'Conexão WhatsApp desconectada. Reconecte o dispositivo antes de atualizar o perfil.');
+      }
       if (data?.error) throw new Error(data.error);
 
       toast({
