@@ -1609,10 +1609,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 </div>
                 <Button className="w-full" disabled={!phoneNumber || loading} onClick={fetchPairingCode}>
                   <Phone className="w-4 h-4 mr-2" /> Gerar Código de Pareamento
-                  <div className="w-full flex flex-col items-center text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                </Button>
                 {pairingCode && (
-                  <div className="text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    {pairingCode.startsWith('data:image') ? (
+                  <div className="w-full flex flex-col items-center text-center space-y-3 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    {pairingCode.startsWith("data:image") ? (
                       <>
                         <p className="text-sm text-muted-foreground mb-2">
                           Use o QR Code abaixo para concluir a conexão:
@@ -1633,6 +1633,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                       <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
                     </div>
                   </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
