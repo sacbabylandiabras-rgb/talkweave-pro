@@ -1765,7 +1765,10 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
       } catch (err) {
         failed++;
         const msg = err instanceof Error ? err.message : 'Erro desconhecido';
-        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${msg}`);
+        const friendly = /desconectad/i.test(msg)
+          ? 'dispositivo desconectado (pulado)'
+          : msg;
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${friendly}`);
         console.error(`[BulkProfileUpdate] Falha em ${inst.instance_name}:`, err);
       }
     }
