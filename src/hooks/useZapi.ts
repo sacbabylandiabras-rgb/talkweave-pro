@@ -46,6 +46,7 @@ const getZAPIConfig = async () => {
       instanceId: inst.zapi_instance_id,
       token: inst.zapi_token,
       clientToken: inst.zapi_client_token,
+      provider: inst.api_provider,
     };
   }
 
@@ -55,6 +56,7 @@ const getZAPIConfig = async () => {
       instanceId: _instanceOverride.zapi_instance_id,
       token: _instanceOverride.zapi_token,
       clientToken: _instanceOverride.zapi_client_token,
+      provider: _instanceOverride.api_provider,
     };
   }
 
@@ -66,7 +68,6 @@ const getZAPIConfig = async () => {
     .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
     .eq('user_id', user.id)
     .eq('is_active', true)
-      .or('api_provider.is.null,api_provider.eq.zapi')
     .order('is_default', { ascending: false })
     .limit(10);
 
@@ -90,6 +91,7 @@ const getZAPIConfig = async () => {
       instanceId: profile.zapi_instance_id,
       token: profile.zapi_token,
       clientToken: profile.zapi_client_token,
+      provider: 'zapi',
     };
   }
 
@@ -98,6 +100,7 @@ const getZAPIConfig = async () => {
     instanceId: instance.zapi_instance_id,
     token: instance.zapi_token,
     clientToken: instance.zapi_client_token,
+    provider: instance.api_provider || 'zapi',
   };
 };
 
@@ -900,6 +903,7 @@ const getZAPIConfig = async () => {
           instanceId: config.instanceId,
           token: config.token,
           clientToken: config.clientToken,
+          provider: (config as any).provider,
         },
       });
 
@@ -943,6 +947,7 @@ const getZAPIConfig = async () => {
           instanceId: config.instanceId,
           token: config.token,
           clientToken: config.clientToken,
+          provider: (config as any).provider,
         },
       });
 
