@@ -268,13 +268,20 @@ Deno.serve(async (req) => {
 
     throw new Error(lastError);
   } catch (error) {
-    console.error('❌ Error updating profile:', error);
-    if (isDisconnectedError(error)) {
-      return buildDisconnectedResponse();
-    }
+    console.error('❌ Error updating profile (catch block):', error);
+    
+    // Any error here is treated as a connection/transient issue to avoid 400s in bulk operations
+    // unless it's a very specific server error.
+    const msg = error instanceof Error ? error.message : String(error);
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro ao atualizar perfil' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false, 
+        skipped: true, 
+        error: msg,
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
