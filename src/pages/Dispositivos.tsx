@@ -1760,6 +1760,11 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
           throw new Error(ctxMsg || (error as any)?.message || 'Falha ao invocar atualização');
         }
         if (data?.error) throw new Error(data.error);
+        if (data?.skipped) {
+          failed++;
+          errors.push(`${inst.instance_name || inst.zapi_instance_id}: dispositivo desconectado (pulado)`);
+          continue;
+        }
         success++;
         updatedInstanceIds.push(inst.id);
       } catch (err) {
