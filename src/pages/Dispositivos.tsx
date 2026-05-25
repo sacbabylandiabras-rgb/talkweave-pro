@@ -1080,10 +1080,17 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             {healthBlock && (() => {
               const until = healthBlock.blocked_until ? new Date(healthBlock.blocked_until) : null;
               const isShadowBan = healthBlock.block_type === 'shadowban' || 
-                                 (healthBlock.detail && String(healthBlock.detail).toLowerCase().includes('shadow ban'));
+                                 (healthBlock.detail && (
+                                   String(healthBlock.detail).toLowerCase().includes('shadow ban') ||
+                                   String(healthBlock.detail).toLowerCase().includes('shadowban') ||
+                                   String(healthBlock.detail).toLowerCase().includes('restrição')
+                                 ));
               
-              // Only show if the device is ONLINE/CONNECTED and it's a Shadowban
-              if (!isOnline || !isShadowBan) {
+              // Show shadowban warning always (even if offline), 
+              // but conversation limit only if online
+              if (isShadowBan) {
+                // Show always
+              } else if (!isOnline) {
                 return null;
               }
 
