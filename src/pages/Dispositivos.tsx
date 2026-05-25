@@ -1797,15 +1797,22 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
     }
 
     setUpdating(false);
-    const description = failed > 0
-      ? `${success} de ${targetInstances.length} atualizada(s), ${failed} com erro:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ''}`
-      : `${success} instância(s) atualizada(s)`;
-    toast({
-      title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro",
-      description,
-      variant: failed === targetInstances.length ? "destructive" : "default",
-      duration: failed > 0 ? 8000 : 3000,
-    });
+    
+    if (success === 0 && failed > 0) {
+      toast({
+        title: "❌ Erro ao atualizar perfil",
+        description: `Todas as ${failed} tentativa(s) falharam ou foram puladas.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: failed > 0 ? "⚠️ Perfil parcialmente atualizado" : "✅ Perfil atualizado",
+        description: failed > 0 
+          ? `${success} instâncias atualizadas, ${failed} falharam ou foram puladas.`
+          : `${success} instâncias atualizadas com sucesso.`,
+        variant: "default",
+      });
+    }
 
     if (type === "picture" && success > 0) {
       window.dispatchEvent(
