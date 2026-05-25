@@ -1629,11 +1629,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                         </div>
                       </>
                     )}
-                    <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
-                  </div>
                     <div className="flex justify-center mt-2">
                       <Button variant="outline" size="sm" onClick={fetchPairingCode} disabled={loading}>🔄 Gerar Novo Código</Button>
                     </div>
+                  </div>
               </div>
             </TabsContent>
           </Tabs>
