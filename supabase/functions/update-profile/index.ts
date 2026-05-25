@@ -7,7 +7,7 @@ const isDisconnectedError = (value: unknown) => {
   if (!value) return false;
 
   if (typeof value === 'string') {
-    return /desconect|disconnect|not connected|session closed|qr code/i.test(value);
+    return /desconect|disconnect|not connected|session closed|qr code|unauthorized|invalid token|client-token|not allowed|forbidden|instância.*desconectada|reconecte o dispositivo/i.test(value);
   }
 
   if (value instanceof Error) {
@@ -17,12 +17,21 @@ const isDisconnectedError = (value: unknown) => {
   if (typeof value === 'object') {
     const payload = value as Record<string, unknown>;
     if (payload.connected === false) return true;
+    if (payload.session === false) return true;
 
-    return isDisconnectedError(
-      [payload.message, payload.error, payload.reason, payload.status, payload.detail]
-        .filter(Boolean)
-        .join(' '),
-    );
+    // Check common error fields
+    const fields = [
+      payload.message,
+      payload.error,
+      payload.reason,
+      payload.status,
+      payload.detail,
+      payload.description,
+      (payload.error as any)?.message,
+      (payload.error as any)?.error
+    ];
+
+    return fields.some(f => f && isDisconnectedError(f));
   }
 
   return false;
@@ -183,8 +192,9 @@ Deno.serve(async (req) => {
     try {
       const statusResp = await fetch(`${baseZapi}/status`, { headers: zapiHeaders });
       const statusData = await statusResp.json().catch(() => ({}));
-      console.log(`🔎 Status conexão:`, statusData);
-      if (statusResp.ok && isDisconnectedError(statusData)) {
+      console.log(`🔎 Status conexão (${statusResp.status}):`, statusData);
+      
+      if (!statusResp.ok || isDisconnectedError(statusData) || isDisconnectedError(statusResp.statusText)) {
         return buildDisconnectedResponse();
       }
     } catch (preErr) {
