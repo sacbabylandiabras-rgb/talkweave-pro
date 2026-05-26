@@ -20,6 +20,12 @@ export interface Contact {
   profilePictureUrl?: string;
   lastUpdated?: string;
   agent_stage?: string;
+  deal_value?: number;
+  closing_date?: string | null;
+  priority?: string;
+  description?: string | null;
+  responsible_ids?: string[] | null;
+  deal_metadata?: any;
 }
 
 export interface ContactStats {
