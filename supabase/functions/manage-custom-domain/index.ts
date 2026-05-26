@@ -301,14 +301,14 @@ serve(async (req) => {
       }
 
       // Try to verify if not yet verified
-      let domainData = data;
-      if (!data.verified) {
+      let domainData = vercelData;
+      if (vercelData.name && !vercelData.verified) {
         try {
           const verifyRes = await fetch(
             `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}/verify?${teamQuery.replace(/^&/, "")}`,
             { method: "POST", headers: vercelHeaders }
           );
-          domainData = await verifyRes.json();
+          if (verifyRes.ok) domainData = await verifyRes.json();
         } catch (verifyErr) {
           console.warn("Verify attempt failed:", verifyErr);
         }
