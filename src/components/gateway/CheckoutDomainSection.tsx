@@ -287,10 +287,14 @@ export default function CheckoutDomainSection() {
                     <span className="text-muted-foreground uppercase">Nome/Host</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-primary">
-                        {customDomain ? (customDomain.split('.').length > 2 ? customDomain.split('.')[0] : (customDomain.split('.')[0] === "www" ? "www" : customDomain.split('.')[0])) : "pay"}
+                        {customDomain && customDomain.includes('.') ? (
+                          customDomain.split('.').length > 2 ? customDomain.split('.')[0] : (customDomain.split('.')[0] === "www" ? "www" : pathPrefix)
+                        ) : pathPrefix}
                       </span>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                        const host = customDomain ? (customDomain.split('.').length > 2 ? customDomain.split('.')[0] : customDomain.split('.')[0]) : "pay";
+                        const host = customDomain && customDomain.includes('.') ? (
+                          customDomain.split('.').length > 2 ? customDomain.split('.')[0] : (customDomain.split('.')[0] === "www" ? "www" : pathPrefix)
+                        ) : pathPrefix;
                         copyToClipboard(host);
                       }}>
                         <Copy className="w-3 h-3" />
@@ -311,7 +315,7 @@ export default function CheckoutDomainSection() {
                 <div className="p-3 rounded border border-amber-500/10 bg-amber-500/5 flex gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    <strong>Atenção:</strong> O campo "Nome/Host" deve ser preenchido <strong>apenas</strong> com o subdomínio (ex: <code>{customDomain.split('.')[0] || "pay"}</code>). Não coloque o seu domínio completo aqui.
+                    <strong>Atenção:</strong> O campo "Nome/Host" deve ser preenchido <strong>apenas</strong> com o subdomínio (ex: <code>{pathPrefix}</code>). Não coloque o seu domínio completo aqui.
                   </p>
                 </div>
               </div>
