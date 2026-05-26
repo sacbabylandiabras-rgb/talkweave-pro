@@ -112,7 +112,7 @@ serve(async (req) => {
       if (RESEND_API_KEY) {
         try {
           // Check if already in our DB first
-          const { data: existingV, error: selectError } = await supabase
+          let { data: existingV, error: selectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
@@ -129,7 +129,22 @@ serve(async (req) => {
           }
 
 
+          if (selectError?.code === "PGRST205" || selectError?.message?.includes("not found")) {
+            console.log("Table missing, falling back to direct Resend check by listing domains...");
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((d: any) => d.name === cleanHostname);
+              if (found) {
+                existingV = { resend_domain_id: found.id } as any;
+              }
+            }
+          }
+
           console.log("Existing Resend record check for:", cleanHostname);
+
           if (existingV?.resend_domain_id) {
             console.log("Domain already in Resend DB, fetching latest status...");
             const resendRes = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
@@ -327,14 +342,29 @@ serve(async (req) => {
       let emailVerification = null;
       if (RESEND_API_KEY) {
         try {
-          const { data: evData, error: statusSelectError } = await supabase
+          let { data: evData, error: statusSelectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
             .eq("domain", cleanHostname)
             .maybeSingle();
           
-          if (statusSelectError) console.error("Status check DB error:", JSON.stringify(statusSelectError));
+          if (statusSelectError?.code === "PGRST205" || statusSelectError?.message?.includes("not found")) {
+            console.log("Table missing in status check, falling back to direct Resend check...");
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((d: any) => d.name === cleanHostname);
+              if (found) {
+                evData = { resend_domain_id: found.id } as any;
+              }
+            }
+          }
+          
+          if (statusSelectError && statusSelectError.code !== "PGRST205") console.error("Status check DB error:", JSON.stringify(statusSelectError));
+
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
