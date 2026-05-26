@@ -2346,24 +2346,25 @@ const MensagensRecebidas = () => {
     const phoneParam = searchParams.get("phone");
     const tabParam = searchParams.get("tab");
     
+    // Process tab/active view
     if (tabParam === "pipeline") {
       setActiveTab("pipeline");
     } else {
       setActiveTab("chat");
     }
 
+    // Process specific phone selection
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
-    if (!normalizedPhone || handledPhoneParamRef.current === normalizedPhone) return;
-
-    handledPhoneParamRef.current = normalizedPhone;
-    setSelectedPhone(normalizedPhone);
-    setActiveTab("chat"); 
-    if (normalizedPhone) markAsRead(normalizedPhone);
-
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("phone");
-    // Don't delete tab param yet, let it stay for the state sync if needed
-    setSearchParams(nextParams, { replace: true });
+    if (normalizedPhone && handledPhoneParamRef.current !== normalizedPhone) {
+      handledPhoneParamRef.current = normalizedPhone;
+      setSelectedPhone(normalizedPhone);
+      setActiveTab("chat"); 
+      markAsRead(normalizedPhone);
+      
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("phone");
+      setSearchParams(nextParams, { replace: true });
+    }
   }, [searchParams, setSearchParams]);
 
   // Auto history sync for Z-API to keep the latest live conversations.
