@@ -210,25 +210,30 @@ const ExtractMembers = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {instances.map((inst) => {
-            const isConnected = !!deviceStatus[inst.id];
-            return (
-              <Button 
-                key={inst.id}
-                variant="outline" 
-                size="sm" 
-                className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
-                onClick={() => {
-                  // Passamos o ID da instância para o diálogo
-                  setSelectedInstanceId(inst.id);
-                  setConnectDialogOpen(true);
-                }}
-              >
-                <Wifi className={`w-4 h-4 ${!isConnected ? 'text-primary' : ''}`} />
-                {isConnected ? `Reconectar WhatsApp` : `Conectar WhatsApp`}
-              </Button>
-            );
-          })}
+          {instances
+            .filter((inst, index, self) => 
+              // Garante que não apareçam instâncias duplicadas (mesmo ID ou nome muito similar)
+              self.findIndex(t => t.zapi_instance_id === inst.zapi_instance_id) === index
+            )
+            .map((inst) => {
+              const isConnected = !!deviceStatus[inst.id];
+              return (
+                <Button 
+                  key={inst.id}
+                  variant="outline" 
+                  size="sm" 
+                  className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
+                  onClick={() => {
+                    // Passamos o ID da instância para o diálogo
+                    setSelectedInstanceId(inst.id);
+                    setConnectDialogOpen(true);
+                  }}
+                >
+                  <Wifi className={`w-4 h-4 ${!isConnected ? 'text-primary' : ''}`} />
+                  {isConnected ? `Reconectar WhatsApp` : `Conectar WhatsApp`}
+                </Button>
+              );
+            })}
         </div>
       </div>
 
