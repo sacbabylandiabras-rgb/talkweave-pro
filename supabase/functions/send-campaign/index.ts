@@ -730,7 +730,9 @@ const getBatchSizeForDelay = (delayMs: number) => {
 
 const normalizeCampaignPhoneKey = (phone?: string | null) => {
   if (!phone) return "";
-  return String(phone).replace(/@lid$/i, "").replace(/\D/g, "");
+  const trimmed = String(phone).trim().toLowerCase();
+  if (trimmed.includes("@lid")) return trimmed;
+  return trimmed.replace(/\D/g, "");
 };
 
 const getRemainingAudienceContacts = async (

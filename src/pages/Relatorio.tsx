@@ -62,7 +62,7 @@ const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
 };
 
 const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
-  (send) => send.status === 'delivered'
+  (send) => send.status === 'delivered' || send.status === 'sent'
 ).length;
 
 const Relatorio = () => {
@@ -120,7 +120,7 @@ const Relatorio = () => {
   const stats = {
     totalSent: countSuccessfulStatuses(latestAllSends),
     totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
-    totalFailed: latestAllSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
+    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: effectiveTotalMessages,
     totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
@@ -133,7 +133,7 @@ const Relatorio = () => {
   const campaignReports = campaignList.map((campaign) => {
     const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
     const sent = countSuccessfulStatuses(campaignSends);
-    const failed = campaignSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length;
+    const failed = campaignSends.filter(s => s.status === 'failed').length;
     const dbPending = campaignSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
 
     // Calculate real pending: total target contacts - processed sends
@@ -169,7 +169,7 @@ const Relatorio = () => {
   const detailsStats = {
     sent: countSuccessfulStatuses(detailsLatestSends),
     pending: detailsDbPending + detailsNotProcessed,
-    failed: detailsLatestSends.filter(s => s.status === 'failed' || (s.error_message && s.status !== 'delivered')).length,
+    failed: detailsLatestSends.filter(s => s.status === 'failed').length,
     total: detailsTargetCount > 0 ? detailsTargetCount : detailsLatestSends.length,
   };
 
@@ -555,12 +555,14 @@ const Relatorio = () => {
                       <TableCell>{send.phone}</TableCell>
                       <TableCell>
                         <Badge 
-                          variant={send.status === 'delivered' ? 'default' : send.status === 'pending' || send.status === 'sent' ? 'secondary' : 'destructive'}
+                          variant={send.status === 'delivered' ? 'default' : send.status === 'sent' ? 'secondary' : send.status === 'pending' ? 'outline' : 'destructive'}
                           className="flex items-center gap-1 w-fit"
                         >
                           {send.status === 'delivered' ? (
                             <><CheckCircle className="w-3 h-3" /> Entregue</>
-                          ) : send.status === 'pending' || send.status === 'sent' ? (
+                          ) : send.status === 'sent' ? (
+                            <><CheckCircle className="w-3 h-3 text-green-500" /> Enviado</>
+                          ) : send.status === 'pending' ? (
                             <><ClockIcon className="w-3 h-3" /> Pendente</>
                           ) : (
                             <><XCircle className="w-3 h-3" /> Falhou</>
