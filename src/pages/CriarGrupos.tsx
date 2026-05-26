@@ -24,7 +24,7 @@ import {
   Plus, Link2, Users, Trash2, Copy, Check, ExternalLink, RefreshCw, Shuffle,
   UserPlus, UserMinus, Shield, Loader2, Search, Image, FileText, Settings, Building2,
   MessageSquare, ShieldCheck, ShieldOff, Pencil, Upload, Phone, MousePointerClick, ChevronDown, BarChart3, Workflow, Smartphone,
-  AtSign, UserCheck, UserX
+  AtSign, UserCheck, UserX, Download
 } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { LinkAutomationDialog } from "@/components/grupos/LinkAutomationDialog";
@@ -2489,11 +2489,39 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            Gerenciar Participantes
-          </CardTitle>
-          <CardDescription>Adicione, remova ou promova membros dos seus grupos</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Gerenciar Participantes
+              </CardTitle>
+              <CardDescription>Adicione, remova ou promova membros dos seus grupos</CardDescription>
+            </div>
+            {selectedGroup && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  const text = filteredParticipants.map(p => p.phone).join('\n');
+                  const blob = new Blob([text], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `membros-${selectedGroup.nome.replace(/\s+/g, '-')}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success("Membros extraídos com sucesso!");
+                }}
+                disabled={filteredParticipants.length === 0}
+              >
+                <Download className="w-4 h-4" />
+                Extrair Membros
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {selectedGroup && (
