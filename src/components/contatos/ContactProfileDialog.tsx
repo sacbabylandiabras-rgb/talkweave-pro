@@ -816,7 +816,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                       <SelectValue placeholder="Selecione a etapa" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => (
+                      {pipelineStages.filter(s => s.id !== 'all').map(stage => (
                         <SelectItem key={stage.id} value={stage.id}>
                           <div className="flex items-center gap-2">
                             <div className={cn("w-2 h-2 rounded-full", stage.color)} />
