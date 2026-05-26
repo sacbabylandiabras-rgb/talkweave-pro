@@ -105,7 +105,7 @@ export default function PaySettings() {
     };
     fetchProfile();
     fetchApiKeys();
-    fetchDomainStatus();
+    
     fetchWebhooks();
   }, []);
 
