@@ -2587,81 +2587,84 @@ const MensagensRecebidas = () => {
         />
       )}
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
-        {activeTab === "chat" && showList && (
-          <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-              <ConversationList 
-                conversations={filteredConversations} 
-                selectedPhone={selectedPhone} 
-                onSelect={handleSelectPhone} 
-                searchTerm={searchTerm} 
-                onSearchChange={setSearchTerm} 
-                readPhones={readPhones} 
-                instances={visibleInstances} 
-                selectedInstanceId={selectedInstanceId} 
-                onInstanceChange={setSelectedInstanceId} 
-                syncing={syncing} 
-                onSync={syncHistory} 
-                onFetchPhoto={handleFetchPhoto} 
-                onRefreshPhotos={handleRefreshAll}
-                isSelectionMode={isSelectionMode}
-                selectedPhones={selectedPhones}
-                onToggleSelect={toggleSelectPhone}
-                onToggleSelectionMode={() => {
-                  setIsSelectionMode(!isSelectionMode);
-                  setSelectedPhones(new Set());
+        {activeTab === "chat" && (
+          <>
+            {showList && (
+              <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
+                  <ConversationList 
+                    conversations={filteredConversations} 
+                    selectedPhone={selectedPhone} 
+                    onSelect={handleSelectPhone} 
+                    searchTerm={searchTerm} 
+                    onSearchChange={setSearchTerm} 
+                    readPhones={readPhones} 
+                    instances={visibleInstances} 
+                    selectedInstanceId={selectedInstanceId} 
+                    onInstanceChange={setSelectedInstanceId} 
+                    syncing={syncing} 
+                    onSync={syncHistory} 
+                    onFetchPhoto={handleFetchPhoto} 
+                    onRefreshPhotos={handleRefreshAll}
+                    isSelectionMode={isSelectionMode}
+                    selectedPhones={selectedPhones}
+                    onToggleSelect={toggleSelectPhone}
+                    onToggleSelectionMode={() => {
+                      setIsSelectionMode(!isSelectionMode);
+                      setSelectedPhones(new Set());
+                    }}
+                    onDeleteSelected={handleDeleteSelected}
+                    onDeleteConversation={handleDeleteConversation}
+                    availableTags={pageAvailableTags}
+                    tagColors={pageTagColors}
+                  />
+              </div>
+            )}
+            {showChat && (
+              <ChatView
+                conversation={selectedConversation}
+                onBack={() => setSelectedPhone(null)}
+                isMobile={isMobile}
+                onSaveContact={handleSaveContact}
+                onFetchPhoto={handleFetchPhoto}
+                loadingPhoto={loadingPhoto}
+                onOpenProfile={() => setProfileOpen(true)}
+                onTriggerFlow={(phone) => setProfileOpen(true)}
+                campaignTemplates={campaignTemplates}
+                savedContacts={savedContacts}
+                activeInstance={rawActiveInstance}
+                onSendMessage={async (phone, message, options) => {
+                  await sendMessage(phone, message, options);
+                  toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
                 }}
-                onDeleteSelected={handleDeleteSelected}
-                onDeleteConversation={handleDeleteConversation}
-                availableTags={pageAvailableTags}
-                tagColors={pageTagColors}
-              />
-          </div>
+                onSendCall={async (phone, duration) => {
+                  const cleanPhone = String(phone || '').replace(/\D/g, '');
+                  console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
+                  await sendCallZapi(cleanPhone, duration);
+                }}
+                onForwardMessage={async (phone, messageId) => {
+                  const destination = window.prompt(
+                    'Encaminhar mensagem para qual número? (ex: 5511999998888)',
+                  );
+                  if (!destination) return;
+                  await forwardMessage(phone, messageId, destination);
+                }}
+                 onSendReaction={async (phone, messageId, emoji) => {
+                   await sendReaction(phone, messageId, emoji);
+                 }}
+                  onSendSticker={async (phone, stickerUrl) => {
+                    await sendSticker(phone, stickerUrl);
+                  }}
+                  onSendGif={async (phone, gifUrl, caption) => {
+                    await sendGif(phone, gifUrl, caption);
+                  }}
+                 onDeleteConversation={async (phone) => {
+                   await deleteConversation(phone);
+                 }}
+                 onUpdate={refetch}
+               />
+             )}
+          </>
         )}
-        {activeTab === "chat" && showChat && (
-          <ChatView
-            conversation={selectedConversation}
-            onBack={() => setSelectedPhone(null)}
-            isMobile={isMobile}
-            onSaveContact={handleSaveContact}
-            onFetchPhoto={handleFetchPhoto}
-            loadingPhoto={loadingPhoto}
-            onOpenProfile={() => setProfileOpen(true)}
-            onTriggerFlow={(phone) => setProfileOpen(true)}
-            campaignTemplates={campaignTemplates}
-            savedContacts={savedContacts}
-            activeInstance={rawActiveInstance}
-            onSendMessage={async (phone, message, options) => {
-              await sendMessage(phone, message, options);
-              toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
-            }}
-            onSendCall={async (phone, duration) => {
-              const cleanPhone = String(phone || '').replace(/\D/g, '');
-              console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
-              await sendCallZapi(cleanPhone, duration);
-            }}
-            onForwardMessage={async (phone, messageId) => {
-              const destination = window.prompt(
-                'Encaminhar mensagem para qual número? (ex: 5511999998888)',
-              );
-              if (!destination) return;
-              await forwardMessage(phone, messageId, destination);
-            }}
-             onSendReaction={async (phone, messageId, emoji) => {
-               await sendReaction(phone, messageId, emoji);
-             }}
-              onSendSticker={async (phone, stickerUrl) => {
-                await sendSticker(phone, stickerUrl);
-              }}
-              onSendGif={async (phone, gifUrl, caption) => {
-                await sendGif(phone, gifUrl, caption);
-              }}
-             onDeleteConversation={async (phone) => {
-               await deleteConversation(phone);
-             }}
-             onUpdate={refetch}
-           />
-         )}
-      </div>
         {activeTab === "pipeline" && (
           <div className="flex-1 overflow-auto p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
