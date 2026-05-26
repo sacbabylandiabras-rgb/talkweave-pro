@@ -849,6 +849,23 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
+        // Try group-metadata first since communities-metadata is flaky
+        try {
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
+          if (data && (data.participants || data.subGroups || data.id)) {
+            // Check if this is a group and has participants
+            const parts = extractParticipantArray(data);
+            if (parts.length > 0 || data.subGroups) {
+              console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId} (Parts: ${parts.length})`);
+              return data;
+            }
+          }
+        } catch (error) {
+          console.log(`❌ group-metadata failed for ${candidateId}: ${error.message}`);
+        }
+
         // Try communities-metadata
         try {
           const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
@@ -871,24 +888,6 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
-        }
-
-        // Try group-metadata
-        try {
-          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
-          console.log(`📡 GET ${url}`);
-          const data = await fetchJson(url, headers);
-          if (data && (data.participants || data.subGroups || data.id)) {
-            // Check if this is a group and has participants
-            const parts = extractParticipantArray(data);
-            if (parts.length > 0 || data.subGroups) {
-              console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId} (Parts: ${parts.length})`);
-              return data;
-            }
-            console.log(`ℹ️ group-metadata returned no participants for ${candidateId}`);
-          }
-        } catch (error) {
-          console.log(`❌ group-metadata failed: ${candidateId} - ${error.message}`);
         }
       }
 
