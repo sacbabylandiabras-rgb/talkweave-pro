@@ -327,6 +327,69 @@ export default function CheckoutDomainSection() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Email Configuration Section */}
+            <Card className="border-[#2A2A2A] bg-muted/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
+                  Configuração de E-mail (DKIM)
+                </CardTitle>
+                <CardDescription className="text-[10px]">
+                  Para enviar e-mails de confirmação usando seu domínio, adicione os registros DKIM abaixo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-0">
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
+                  <div className="flex items-center gap-2">
+                    {emailVerification?.status === "verified" ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span className="text-xs font-medium">Status do E-mail</span>
+                  </div>
+                  <Badge variant="outline" className={`text-[10px] ${
+                    emailVerification?.status === "verified" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"
+                  }`}>
+                    {emailVerification?.status === "verified" ? "Verificado" : "Pendente"}
+                  </Badge>
+                </div>
+
+                {emailVerification?.records && emailVerification.records.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Registros DNS Necessários:</p>
+                    <div className="space-y-3">
+                      {emailVerification.records.map((record: any, idx: number) => (
+                        <div key={idx} className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <Badge variant="secondary" className="text-[9px] font-mono">{record.type}</Badge>
+                            <span className="text-[9px] text-muted-foreground font-mono">{record.name}</span>
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            <div className="flex-1 bg-muted/30 p-1.5 rounded text-[10px] font-mono break-all line-clamp-2">
+                              {record.value}
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyToClipboard(record.value)}>
+                              <Copy className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {!emailVerification && (
+                  <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-400">
+                      Integração de e-mail pendente. Certifique-se de que a RESEND_API_KEY está configurada no servidor.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
