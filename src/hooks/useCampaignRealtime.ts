@@ -1,403 +1,353 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-interface CampaignSendRecord {
-  id: string;
-  campaign_id: string;
+export interface Contact {
   phone: string;
-  contact_name: string | null;
-  message_content: string;
-  status: string | null;
-  sent_at: string | null;
-  delivered_at: string | null;
-  read_at: string | null;
-  clicked_at: string | null;
-  error_message: string | null;
-  created_at: string;
-  user_id: string | null;
-  instance_name: string | null;
-  message_id?: string | null;
+  name?: string;
+  lastMessage?: string;
+  lastMessageDate?: string;
+  status: "ativo" | "inativo" | "bloqueado";
+  messageCount: number;
+  firstContactDate?: string;
+  tags: string[];
+  notes?: { id: string; content: string; createdAt: number; lastUpdateAt: number };
+  profilePictureUrl?: string;
+  lastUpdated?: string;
 }
 
-interface CampaignRecord {
-  id: string;
-  name: string;
-  status: string | null;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-  schedule_type: string | null;
-  target_audience: any;
-  template_id: string | null;
-  delay_seconds: number | null;
+export interface ContactStats {
+  total: number;
+  active: number;
+  inactive: number;
+  blocked: number;
 }
 
-// ─── Auth helper ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const useAuthSessionReady = () => {
-  const [sessionReady, setSessionReady] = useState(false);
+const extractProfilePictureUrl = (payload: any): string | null => {
+  if (!payload) return null;
+  if (typeof payload === "string") {
+    const s = payload.trim();
+    if (!s || s.toLowerCase() === "null" || !/^https?:\/\//i.test(s)) return null;
+    return s;
+  }
+  if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
+  const rawUrl =
+    payload?.link ??
+    payload?.imgUrl ??
+    payload?.profilePictureUrl ??
+    payload?.imageUrl ??
+    payload?.data?.link ??
+    payload?.profileThumbnail ??
+    payload?.imagePreview ??
+    payload?.profilePicUrl ??
+    payload?.profilePicture ??
+    payload?.picture ??
+    payload?.image ??
+    payload?.photo ??
+    payload?.preview ??
+    payload?.pictureUrl;
+  return extractProfilePictureUrl(rawUrl);
+};
+
+const extractNameFromPhone = (phone: string): string => {
+  const clean = phone.replace(/\D/g, "");
+  return `Contato ${clean.slice(-4)}`;
+};
+
+const determineStatus = (lastActivity: string): "ativo" | "inativo" | "bloqueado" => {
+  const daysDiff = Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
+  return daysDiff <= 7 ? "ativo" : "inativo";
+};
+
+const determineTags = (keywordMatched?: string): string[] => {
+  if (!keywordMatched) return [];
+  if (keywordMatched === "WELCOME_MESSAGE") return ["Novo"];
+  return ["Resposta Automática"];
+};
+
+const isGroup = (phone: string) => phone.includes("-group") || phone.includes("@g.us");
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+export const useContacts = (options?: { enabled?: boolean }) => {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [stats, setStats] = useState<ContactStats>({ total: 0, active: 0, inactive: 0, blocked: 0 });
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchedPhotosRef = useRef(new Set<string>());
+  const inFlightPhotosRef = useRef(new Set<string>());
+  const mountedRef = useRef(true);
+  const enabled = options?.enabled ?? true;
 
   useEffect(() => {
-    let active = true;
-
-    const syncSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (active) setSessionReady(Boolean(session));
-    };
-
-    syncSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setSessionReady(Boolean(session));
-    });
-
+    mountedRef.current = true;
     return () => {
-      active = false;
-      subscription.unsubscribe();
+      mountedRef.current = false;
     };
   }, []);
 
-  return sessionReady;
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const sortByCreatedAt = (items: CampaignSendRecord[]) =>
-  [...items].sort((a, b) => {
-    const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return tA - tB;
-  });
-
-/**
- * Stable fingerprint of the send list that captures changes anywhere in the
- * array (not just head/tail). Uses a sampled XOR-hash so it stays O(n) and
- * avoids serialising all 3 000 rows to a string.
- */
-const sendsFingerprint = (sends: CampaignSendRecord[]): string => {
-  const sample = [
-    sends[0],
-    sends[Math.floor(sends.length / 4)],
-    sends[Math.floor(sends.length / 2)],
-    sends[Math.floor((3 * sends.length) / 4)],
-    sends[sends.length - 1],
-  ].filter(Boolean);
-
-  const detail = sample.map((s) => `${s.id}:${s.status ?? ""}:${s.delivered_at ?? s.sent_at ?? ""}`).join("|");
-
-  return `${sends.length}::${detail}`;
-};
-
-// ─── useCampaignSendsRealtime ────────────────────────────────────────────────
-
-/**
- * Realtime hook scoped to a single campaign.
- * FIX: dataKey now samples across the full array so changes in the middle are
- * detected. FIX: channelRef cleaned up correctly on every re-mount.
- */
-export const useCampaignSendsRealtime = (campaignId: string | null) => {
-  const [sends, setSends] = useState<CampaignSendRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const lastFingerprintRef = useRef("");
-  const sessionReady = useAuthSessionReady();
-
-  const fetchSends = useCallback(async () => {
-    if (!campaignId || !sessionReady) return;
-
-    let all: CampaignSendRecord[] = [];
-    let from = 0;
-    const batchSize = 1000;
-
-    while (true) {
-      const { data, error } = (await supabase
-        .from("campaign_sends")
-        .select("*")
-        .eq("campaign_id", campaignId)
-        .order("created_at", { ascending: true })
-        .range(from, from + batchSize - 1)) as { data: CampaignSendRecord[] | null; error: any };
-
-      if (error || !data || data.length === 0) break;
-      all = [...all, ...data];
-      if (data.length < batchSize) break;
-      from += batchSize;
-    }
-
-    const sorted = sortByCreatedAt(all);
-    const fp = sendsFingerprint(sorted);
-    if (fp !== lastFingerprintRef.current) {
-      lastFingerprintRef.current = fp;
-      setSends(sorted);
-    }
-    setLoading(false);
-  }, [campaignId, sessionReady]);
-
-  useEffect(() => {
-    if (!campaignId) {
-      setSends([]);
-      setLoading(false);
-      lastFingerprintRef.current = "";
-      return;
-    }
-    if (!sessionReady) {
+  const fetchContacts = useCallback(async () => {
+    try {
       setLoading(true);
-      return;
-    }
 
-    setLoading(true);
-
-    // Always clean up the previous channel before creating a new one
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase
-      .channel(`sends-${campaignId}-${Date.now()}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "campaign_sends",
-          filter: `campaign_id=eq.${campaignId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setSends((prev) => {
-              if (prev.some((s) => s.id === (payload.new as CampaignSendRecord).id)) return prev;
-              return sortByCreatedAt([...prev, payload.new as CampaignSendRecord]);
-            });
-          } else if (payload.eventType === "UPDATE") {
-            setSends((prev) =>
-              sortByCreatedAt(
-                prev.map((s) =>
-                  s.id === (payload.new as CampaignSendRecord).id ? (payload.new as CampaignSendRecord) : s,
-                ),
-              ),
-            );
-          } else if (payload.eventType === "DELETE") {
-            setSends((prev) => prev.filter((s) => s.id !== (payload.old as any).id));
-          }
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") fetchSends();
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [campaignId, fetchSends, sessionReady]);
-
-  const isAccepted = (s: CampaignSendRecord) =>
-    s.status === "sent" || s.status === "delivered" || (s.status === "pending" && Boolean(s.message_id || s.sent_at));
-
-  const stats = {
-    total: sends.length,
-    sent: sends.filter(isAccepted).length,
-    pending: sends.filter((s) => s.status === "pending" && !Boolean(s.message_id || s.sent_at)).length,
-    failed: sends.filter((s) => s.status === "failed").length,
-    delivered: sends.filter((s) => s.status === "delivered").length,
-  };
-
-  return { sends, stats, loading, refetch: fetchSends };
-};
-
-// ─── useCampaignsRealtime ────────────────────────────────────────────────────
-
-export const useCampaignsRealtime = (statusFilter?: string[]) => {
-  const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const lastFingerprintRef = useRef("");
-  const filterKey = statusFilter?.join(",") ?? "all";
-  const sessionReady = useAuthSessionReady();
-
-  const fetchCampaigns = useCallback(async () => {
-    if (!sessionReady) return;
-
-    let query = supabase.from("campaigns").select("*").order("created_at", { ascending: false });
-    if (statusFilter && statusFilter.length > 0) query = query.in("status", statusFilter);
-
-    const { data, error } = await query;
-    if (error) {
-      setLoading(false);
-      return;
-    }
-
-    if (data) {
-      const fp = data.map((d) => `${d.id}:${d.status}:${d.updated_at}`).join("|");
-      if (fp !== lastFingerprintRef.current) {
-        lastFingerprintRef.current = fp;
-        setCampaigns(data);
-      }
-    }
-    setLoading(false);
-  }, [filterKey, sessionReady]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!sessionReady) {
-      setLoading(true);
-      return;
-    }
-
-    setLoading(true);
-    fetchCampaigns();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase
-      .channel(`campaigns-rt-${filterKey}-${Date.now()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "campaigns" }, (payload) => {
-        if (payload.eventType === "UPDATE") {
-          const updated = payload.new as CampaignRecord;
-          setCampaigns((prev) => {
-            if (statusFilter && !statusFilter.includes(updated.status ?? "")) {
-              return prev.filter((c) => c.id !== updated.id);
-            }
-            const exists = prev.some((c) => c.id === updated.id);
-            return exists ? prev.map((c) => (c.id === updated.id ? updated : c)) : [updated, ...prev];
-          });
-        } else if (payload.eventType === "INSERT") {
-          const newC = payload.new as CampaignRecord;
-          if (!statusFilter || statusFilter.includes(newC.status ?? "")) {
-            setCampaigns((prev) => {
-              if (prev.some((c) => c.id === newC.id)) return prev;
-              return [newC, ...prev];
-            });
-          }
-        } else if (payload.eventType === "DELETE") {
-          setCampaigns((prev) => prev.filter((c) => c.id !== (payload.old as any).id));
-        }
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [fetchCampaigns, filterKey, sessionReady]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { campaigns, loading, refetch: fetchCampaigns };
-};
-
-// ─── useAllCampaignSendsRealtime ─────────────────────────────────────────────
-
-/**
- * FIX: now filters by user_id so we never load another tenant's data, and
- * uses the sampled fingerprint instead of the full-array stringify.
- */
-export const useAllCampaignSendsRealtime = () => {
-  const [sends, setSends] = useState<CampaignSendRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const lastFingerprintRef = useRef("");
-  const sessionReady = useAuthSessionReady();
-  const userIdRef = useRef<string | null>(null);
-
-  const fetchSends = useCallback(async () => {
-    if (!sessionReady) return;
-
-    if (!userIdRef.current) {
+      // Explicit user_id filter adds defence-in-depth on top of RLS
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      userIdRef.current = user?.id ?? null;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const [{ data: messageLogs, error: msgErr }, { data: campaignSends, error: campErr }] = await Promise.all([
+        supabase
+          .from("message_logs")
+          .select("phone, message_received, created_at, keyword_matched")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("campaign_sends")
+          .select("phone, contact_name, created_at, status")
+          .eq("user_id", user.id) // FIX: explicit user filter
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (msgErr) throw msgErr;
+      if (campErr) throw campErr;
+      if (!mountedRef.current) return;
+
+      const contactMap = new Map<string, Contact>();
+
+      for (const log of messageLogs ?? []) {
+        if (isGroup(log.phone)) continue;
+        const existing = contactMap.get(log.phone);
+        if (!existing) {
+          contactMap.set(log.phone, {
+            phone: log.phone,
+            name: extractNameFromPhone(log.phone),
+            lastMessage: log.message_received ?? undefined,
+            lastMessageDate: log.created_at,
+            status: determineStatus(log.created_at),
+            messageCount: 1,
+            firstContactDate: log.created_at,
+            tags: determineTags(log.keyword_matched ?? undefined),
+          });
+        } else {
+          existing.messageCount++;
+          if (new Date(log.created_at) > new Date(existing.lastMessageDate ?? "")) {
+            existing.lastMessage = log.message_received ?? undefined;
+            existing.lastMessageDate = log.created_at;
+          }
+          if (new Date(log.created_at) < new Date(existing.firstContactDate ?? "")) {
+            existing.firstContactDate = log.created_at;
+          }
+        }
+      }
+
+      for (const send of campaignSends ?? []) {
+        if (isGroup(send.phone)) continue;
+        const existing = contactMap.get(send.phone);
+        if (!existing) {
+          contactMap.set(send.phone, {
+            phone: send.phone,
+            name: send.contact_name ?? extractNameFromPhone(send.phone),
+            lastMessage: "Recebeu campanha",
+            lastMessageDate: send.created_at,
+            status: determineStatus(send.created_at),
+            messageCount: 0,
+            firstContactDate: send.created_at,
+            tags: ["Campanha"],
+          });
+        } else {
+          if (send.contact_name && !existing.name?.includes("Contato")) {
+            existing.name = send.contact_name;
+          }
+          if (!existing.tags.includes("Campanha")) existing.tags.push("Campanha");
+        }
+      }
+
+      const { data: savedContacts } = await supabase
+        .from("saved_contacts")
+        .select("phone, name, profile_picture_url, updated_at")
+        .eq("user_id", user.id);
+
+      for (const sc of savedContacts ?? []) {
+        const existing = contactMap.get(sc.phone);
+        if (!existing) continue;
+        if (sc.profile_picture_url) existing.profilePictureUrl = sc.profile_picture_url;
+        if (sc.name) existing.name = sc.name;
+        if (sc.updated_at) existing.lastUpdated = sc.updated_at;
+      }
+
+      if (!mountedRef.current) return;
+
+      const list = Array.from(contactMap.values());
+      setContacts(list);
+      setStats({
+        total: list.length,
+        active: list.filter((c) => c.status === "ativo").length,
+        inactive: list.filter((c) => c.status === "inativo").length,
+        blocked: list.filter((c) => c.status === "bloqueado").length,
+      });
+    } catch (err) {
+      console.error("Error fetching contacts:", err);
+      if (!mountedRef.current) return;
+      toast({ title: "Erro", description: "Erro ao carregar contatos.", variant: "destructive" });
+    } finally {
+      if (mountedRef.current) setLoading(false);
     }
-    if (!userIdRef.current) {
+  }, [toast]);
+
+  /**
+   * FIX: immutable update via setContacts functional form instead of
+   * mutating contact objects in-place. Also respects mountedRef.
+   */
+  const autoFetchProfilePictures = useCallback(async (contactsList: Contact[]) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const now = Date.now();
+    const toFetch = contactsList
+      .filter((c) => {
+        if (fetchedPhotosRef.current.has(c.phone)) return false;
+        if (inFlightPhotosRef.current.has(c.phone)) return false;
+        if (c.phone.includes("@lid")) return false;
+        if (!c.profilePictureUrl) return true;
+        if (c.lastUpdated) {
+          const hoursSince = (now - new Date(c.lastUpdated).getTime()) / (1000 * 60 * 60);
+          return hoursSince > 24;
+        }
+        return false;
+      })
+      .slice(0, 20);
+
+    if (toFetch.length === 0) return;
+    toFetch.forEach((c) => inFlightPhotosRef.current.add(c.phone));
+
+    const CHUNK = 3;
+    const updates: Record<string, string> = {};
+
+    for (let i = 0; i < toFetch.length; i += CHUNK) {
+      if (!mountedRef.current) break;
+      const chunk = toFetch.slice(i, i + CHUNK);
+      await Promise.all(
+        chunk.map(async (contact) => {
+          try {
+            const { data, error } = await supabase.functions.invoke("get-profile-picture", {
+              body: { phone: contact.phone },
+            });
+            if (!error) {
+              const url = extractProfilePictureUrl(data?.data ?? data);
+              if (url) {
+                updates[contact.phone] = url;
+                await supabase
+                  .from("saved_contacts")
+                  .upsert(
+                    {
+                      phone: contact.phone,
+                      name: contact.name ?? "",
+                      user_id: session.user.id,
+                      profile_picture_url: url,
+                    },
+                    { onConflict: "phone,user_id" },
+                  );
+              }
+            }
+            fetchedPhotosRef.current.add(contact.phone);
+          } catch {
+            /* ignore */
+          } finally {
+            inFlightPhotosRef.current.delete(contact.phone);
+          }
+        }),
+      );
+    }
+
+    // FIX: immutable update — never mutate the objects inside contactsList
+    if (mountedRef.current && Object.keys(updates).length > 0) {
+      setContacts((prev) => prev.map((c) => (updates[c.phone] ? { ...c, profilePictureUrl: updates[c.phone] } : c)));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) {
       setLoading(false);
       return;
     }
-
-    let all: CampaignSendRecord[] = [];
-    let from = 0;
-    const batchSize = 1000;
-
-    while (all.length < 10_000) {
-      const { data, error } = (await supabase
-        .from("campaign_sends")
-        .select("*")
-        .eq("user_id", userIdRef.current)
-        .order("created_at", { ascending: true })
-        .range(from, from + batchSize - 1)) as { data: CampaignSendRecord[] | null; error: any };
-
-      if (error || !data || data.length === 0) break;
-      all = [...all, ...data];
-      if (data.length < batchSize) break;
-      from += batchSize;
-    }
-
-    const sorted = sortByCreatedAt(all);
-    const fp = sendsFingerprint(sorted);
-    if (fp !== lastFingerprintRef.current) {
-      lastFingerprintRef.current = fp;
-      setSends(sorted);
-    }
-    setLoading(false);
-  }, [sessionReady]);
+    fetchContacts();
+  }, [enabled, fetchContacts]);
 
   useEffect(() => {
-    if (!sessionReady) {
-      setLoading(true);
-      return;
+    if (enabled && !loading && contacts.length > 0) {
+      const timer = setTimeout(() => autoFetchProfilePictures(contacts), 1000);
+      return () => clearTimeout(timer);
     }
+  }, [enabled, loading, contacts.length, autoFetchProfilePictures]);
 
-    setLoading(true);
-    fetchSends();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase
-      .channel(`all-sends-rt-${Date.now()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "campaign_sends" }, (payload) => {
-        if (payload.eventType === "INSERT") {
-          setSends((prev) => {
-            if (prev.some((s) => s.id === (payload.new as CampaignSendRecord).id)) return prev;
-            return sortByCreatedAt([...prev, payload.new as CampaignSendRecord]);
-          });
-        } else if (payload.eventType === "UPDATE") {
-          setSends((prev) =>
-            sortByCreatedAt(
-              prev.map((s) =>
-                s.id === (payload.new as CampaignSendRecord).id ? (payload.new as CampaignSendRecord) : s,
-              ),
-            ),
-          );
-        } else if (payload.eventType === "DELETE") {
-          setSends((prev) => prev.filter((s) => s.id !== (payload.old as any).id));
-        }
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+  const refreshProfilePicture = async (phone: string): Promise<string | null> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return null;
+    try {
+      const { data, error } = await supabase.functions.invoke("get-profile-picture", { body: { phone } });
+      if (error) return null;
+      const url = extractProfilePictureUrl(data?.data ?? data);
+      if (url) {
+        // FIX: immutable update
+        setContacts((prev) =>
+          prev.map((c) =>
+            c.phone === phone ? { ...c, profilePictureUrl: url, lastUpdated: new Date().toISOString() } : c,
+          ),
+        );
+        await supabase
+          .from("saved_contacts")
+          .upsert({ phone, user_id: session.user.id, profile_picture_url: url }, { onConflict: "phone,user_id" });
+        return url;
       }
-    };
-  }, [fetchSends, sessionReady]);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  };
 
-  return { sends, loading, refetch: fetchSends };
+  const forceUpdateAllPhotos = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+    setLoading(true);
+    try {
+      toast({ title: "Atualizando fotos", description: "Buscando fotos de perfil de todos os contatos..." });
+      const uniquePhones = [...new Set(contacts.map((c) => c.phone))];
+      let updatedCount = 0;
+      for (const phone of uniquePhones) {
+        try {
+          const { data, error } = await supabase.functions.invoke("get-profile-picture", { body: { phone } });
+          if (error) continue;
+          const url = extractProfilePictureUrl(data?.data ?? data);
+          if (url) {
+            updatedCount++;
+            await supabase
+              .from("saved_contacts")
+              .upsert({ phone, user_id: session.user.id, profile_picture_url: url }, { onConflict: "phone,user_id" });
+          }
+          await new Promise((r) => setTimeout(r, 100));
+        } catch {
+          /* ignore */
+        }
+      }
+      await fetchContacts();
+      toast({ title: "Atualização concluída", description: `${updatedCount} fotos de perfil foram atualizadas.` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { contacts, stats, loading, refetch: fetchContacts, refreshProfilePicture, forceUpdateAllPhotos };
 };
