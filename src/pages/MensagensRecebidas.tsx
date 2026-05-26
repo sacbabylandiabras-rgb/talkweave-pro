@@ -2578,14 +2578,16 @@ const MensagensRecebidas = () => {
   const showChat = !isMobile || !!selectedPhone;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      <PipelineBar 
-        selectedStage={selectedStage} 
-        onStageSelect={setSelectedStage} 
-        counts={stageCounts}
-      />
-      <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm">
-        {showList && (
+    <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
+      {activeTab === "chat" && (
+        <PipelineBar 
+          selectedStage={selectedStage} 
+          onStageSelect={setSelectedStage} 
+          counts={stageCounts}
+        />
+      )}
+      <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
+        {activeTab === "chat" && showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
               <ConversationList 
                 conversations={filteredConversations} 
@@ -2615,7 +2617,7 @@ const MensagensRecebidas = () => {
               />
           </div>
         )}
-        {showChat && (
+        {activeTab === "chat" && showChat && (
           <ChatView
             conversation={selectedConversation}
             onBack={() => setSelectedPhone(null)}
