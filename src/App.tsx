@@ -201,6 +201,7 @@ const App = () => (
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    
                    <Route path="/agente-ia" element={<AgenteIA />} />
+                   <Route path="/departamento" element={<Departamento />} />
                    <Route path="/meta/dashboard" element={<DashboardMeta />} />
                    <Route path="/meta/mensagens" element={<MetaMessages />} />
                    <Route path="/meta/templates" element={<TemplatesAprovados />} />
