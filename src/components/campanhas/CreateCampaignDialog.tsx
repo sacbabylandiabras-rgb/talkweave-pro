@@ -350,7 +350,14 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             </Button>
           </div>
         </div>
+        
+        <ImportContactsDialog 
+          open={showImportDialog} 
+          onOpenChange={setShowImportDialog}
+          onImport={handleImportedContacts}
+        />
       </DialogContent>
+
     </Dialog>
   );
 }
