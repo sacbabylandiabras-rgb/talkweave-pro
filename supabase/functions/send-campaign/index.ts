@@ -2410,24 +2410,20 @@ serve(async (req) => {
             console.log(`❌ Failed ${contact.phone}: ${campaignSend.error_message}`);
 
             // Shadow ban nunca pausa — só rate limit real (error 463) pausa, e só se não for forceSend
-            if (!isShadowBan && !(reqPayload as SendCampaignRequest).forceSend) {
-              if (
-                isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) &&
-                !isLidIdentifier(contact.phone)
-              ) {
+            if (isConfirmedRateLimitHit(zapiResult, campaignSend.error_message, zapiResponse.status) && !isLidIdentifier(contact.phone)) {
+              if (!(reqPayload as SendCampaignRequest).forceSend) {
                 rateLimitHitsInBatch += 1;
-              } else {
-                rateLimitHitsInBatch = 0;
+                if (rateLimitHitsInBatch >= 2) {
+                  console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
+                  await supabase
+                    .from("campaigns")
+                    .update({ status: "paused", updated_at: new Date().toISOString() })
+                    .eq("id", campaignId);
+                  return { stop: true, status: "paused" };
+                }
               }
-
-              if (rateLimitHitsInBatch >= 2) {
-                console.log(`🚨 Rate-limit detectado e persistente em ${campaignId}. Pausando campanha para proteção.`);
-                await supabase
-                  .from("campaigns")
-                  .update({ status: "paused", updated_at: new Date().toISOString() })
-                  .eq("id", campaignId);
-                return { stop: true, status: "paused" };
-              }
+            } else {
+              rateLimitHitsInBatch = 0;
             }
           }
         }
