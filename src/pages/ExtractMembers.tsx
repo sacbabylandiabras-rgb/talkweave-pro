@@ -208,21 +208,26 @@ const ExtractMembers = () => {
             Gerencie e extraia participantes dos seus grupos e comunidades
           </p>
         </div>
-        {selectedInstance && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isSelectedConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setConnectDialogOpen(true);
-            }}
-          >
-            <Wifi className={`w-4 h-4 ${!isSelectedConnected ? 'text-primary' : ''}`} />
-            {isSelectedConnected ? 'Reconectar WhatsApp' : 'Conectar WhatsApp'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {instances.map((inst) => {
+            const isConnected = !!deviceStatus[inst.id];
+            return (
+              <Button 
+                key={inst.id}
+                variant="outline" 
+                size="sm" 
+                className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
+                onClick={() => {
+                  setSelectedGroupId(""); // Limpa seleção ao trocar/conectar instância
+                  setConnectDialogOpen(true);
+                }}
+              >
+                <Wifi className={`w-4 h-4 ${!isConnected ? 'text-primary' : ''}`} />
+                {isConnected ? `Reconectar ${inst.instance_name}` : `Conectar ${inst.instance_name}`}
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
