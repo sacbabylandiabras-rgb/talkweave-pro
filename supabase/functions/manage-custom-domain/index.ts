@@ -112,7 +112,7 @@ serve(async (req) => {
       if (RESEND_API_KEY) {
         try {
           // Check if already in our DB first
-          const { data: existingV, error: selectError } = await supabase
+          let { data: existingV, error: selectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
