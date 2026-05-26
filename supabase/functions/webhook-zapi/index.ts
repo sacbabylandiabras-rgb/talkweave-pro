@@ -323,8 +323,8 @@ serve(async (req) => {
               status: newStatusLabel
             };
 
-            // Only clear error message if it's actually delivered
-            if (isDeliveredStatus) {
+            // Only clear error message if it's actually delivered or sent
+            if (isDeliveredStatus || isSentStatus) {
               updateData.error_message = null;
             }
 

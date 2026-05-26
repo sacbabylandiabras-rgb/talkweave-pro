@@ -481,9 +481,9 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
     ): CampaignContactStatus => {
       if (!send) return "pendente";
       if (send.status === "delivered") return "entregue";
-      if (send.status === "failed" || ((send as any).error_message && (send.status as string) !== "delivered")) return "cancelado";
       if (send.status === "sent" || (send.status === "pending" && Boolean((send as any).message_id || send.sent_at)))
         return "enviado";
+      if (send.status === "failed" || (send as any).error_message) return "cancelado";
       if (send.status === "pending") return canCancelPending ? "cancelado" : "pendente";
       if (isCancelledSendStatus(send.status)) return "cancelado";
       return "pendente";
