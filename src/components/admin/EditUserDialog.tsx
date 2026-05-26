@@ -158,7 +158,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
            }
          } else if (provider === 'uazapi') {
            if (!newInstanceName.trim() || !newEvolutionUrl.trim() || !newEvolutionKey.trim()) {
-             toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key da Uazapi.", variant: "destructive" });
+             toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key.", variant: "destructive" });
              return;
            }
          }
@@ -346,7 +346,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     }}
                   >
                     <Plus className="w-3 h-3 mr-1" />
-                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Uazapi"}
+                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extrair Membro"}
                   </Button>
                </div>
  
@@ -392,17 +392,17 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   <Card className="border-emerald-500/40">
                     <CardContent className="pt-4 pb-4 space-y-3">
                       <DialogDescription className="text-xs font-semibold uppercase text-emerald-500">
-                        {editingInstanceId ? "Editar Instância Uazapi" : "Nova Instância Uazapi"}
+                        {editingInstanceId ? "Editar Instância" : "Nova Instância (Extrair Membros)"}
                       </DialogDescription>
                      <div className="grid grid-cols-2 gap-3">
                        <div className="space-y-2">
                          <Label>Nome</Label>
                          <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Uazapi 01" />
                        </div>
-                       <div className="space-y-2">
-                         <Label>Tipo</Label>
-                         <Input value="Evolution/Uazapi" disabled className="bg-muted" />
-                       </div>
+                        <div className="space-y-2">
+                          <Label>Finalidade</Label>
+                          <Input value="Extrair Membros" disabled className="bg-muted" />
+                        </div>
                      </div>
                      <div className="space-y-2">
                        <Label>API URL</Label>
@@ -415,7 +415,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                        <div className="flex gap-2 justify-end pt-2">
                          <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
                             <Button size="sm" onClick={() => handleAddZapiInstance('web', 'uazapi')} disabled={instancesLoading}>
-                              {instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Uazapi"}
+                              {instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Configuração"}
                             </Button>
                       </div>
                     </CardContent>
@@ -423,13 +423,17 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                 )}
  
                <div className="space-y-2">
-                  {instances.filter(i => ['zapi', 'uazapi'].includes((i.api_provider || 'zapi').toLowerCase()) && (i.instance_type === 'web' || !i.instance_type) && !isMobileZapiInstance(i)).map((inst) => (
+                  {instances.filter(i => ['zapi', 'uazapi'].includes((i.api_provider || 'zapi').toLowerCase()) && (i.instance_type === 'web' || !i.instance_type) && !isMobileZapiInstance(i)).map((inst) => {
+                    const provider = (inst.api_provider || 'zapi').toLowerCase();
+                    const isExtrairMembro = provider === 'uazapi';
+                    return (
                    <Card key={inst.id} className={cn("border", inst.is_default && "border-emerald-500")}>
                      <CardContent className="pt-3 pb-3 flex items-center justify-between">
                        <div className="min-w-0">
                          <div className="flex items-center gap-2">
                            <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
                            {inst.is_default && <Badge variant="default" className="bg-emerald-500 text-[10px] h-4">Padrão</Badge>}
+                           {isExtrairMembro && <Badge variant="outline" className="text-[10px] h-4 border-emerald-500/50 text-emerald-500">Extrair Membro</Badge>}
                          </div>
                          <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
                        </div>
@@ -437,7 +441,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                           <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
                             <Pencil className="w-3 h-3 text-muted-foreground" />
                           </Button>
-                          {!inst.is_default && (
+                          {!inst.is_default && !isExtrairMembro && (
                            <Button size="sm" variant="ghost" title="Tornar padrão" onClick={() => updateInstance(inst.id, user.id, { is_default: true })}>
                              <Star className="w-3 h-3" />
                            </Button>
@@ -448,7 +452,8 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                        </div>
                      </CardContent>
                    </Card>
-                 ))}
+                    );
+                  })}
                </div>
               </div>
             </div>
