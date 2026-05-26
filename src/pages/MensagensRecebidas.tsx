@@ -2027,7 +2027,7 @@ const MensagensRecebidas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
-  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(searchParams.get("tab") === "pipeline" ? "pipeline" : "chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">("chat");
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -2348,7 +2348,7 @@ const MensagensRecebidas = () => {
     
     if (tabParam === "pipeline") {
       setActiveTab("pipeline");
-    } else if (tabParam === "chat") {
+    } else {
       setActiveTab("chat");
     }
 
@@ -2579,13 +2579,11 @@ const MensagensRecebidas = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
-      {activeTab === "chat" && (
-        <PipelineBar 
-          selectedStage={selectedStage} 
-          onStageSelect={setSelectedStage} 
-          counts={stageCounts}
-        />
-      )}
+      <PipelineBar 
+        selectedStage={selectedStage} 
+        onStageSelect={setSelectedStage} 
+        counts={stageCounts}
+      />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (
           <>
