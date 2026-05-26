@@ -251,12 +251,48 @@ serve(async (req) => {
       const isVerified = domainData.verified === true;
       const sslActive = sslDetails?.certs?.length > 0 && !sslDetails?.misconfigured;
 
+      // Get Resend status if available
+      let emailVerification = null;
+      if (RESEND_API_KEY) {
+        try {
+          const { data: evData } = await supabase
+            .from("email_domain_verifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("domain", cleanHostname)
+            .single();
+          
+          if (evData?.resend_domain_id) {
+            const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (resendRes.ok) {
+              const resendData = await resendRes.json();
+              emailVerification = {
+                id: resendData.id,
+                status: resendData.status,
+                records: resendData.records,
+              };
+              // Update DB
+              await supabase.from("email_domain_verifications").update({
+                status: resendData.status,
+                dkim_records: resendData.records,
+                updated_at: new Date().toISOString(),
+              }).eq("id", evData.id);
+            }
+          }
+        } catch (resendErr) {
+          console.warn("Could not fetch Resend status:", resendErr);
+        }
+      }
+
       return new Response(
         JSON.stringify({
           status: isVerified ? "active" : "pending",
           ssl_status: sslActive ? "active" : isVerified ? "provisioning" : "pending",
           hostname: domainData.name,
           verification: domainData.verification || null,
+          email_verification: emailVerification,
           ssl: {
             active: sslActive,
             https_reachable: httpsReachable,
