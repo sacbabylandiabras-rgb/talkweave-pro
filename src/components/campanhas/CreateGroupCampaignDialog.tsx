@@ -17,7 +17,8 @@ import { useMessageTemplates } from "@/hooks/useMessageTemplates";
  import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar } from "lucide-react";
+import { Users, Loader2, Search, MessageSquare, Link2, Clock, Calendar, Plus } from "lucide-react";
+import { ImportContactsDialog } from "./ImportContactsDialog";
 
 interface CreateGroupCampaignDialogProps {
   open: boolean;
@@ -98,6 +99,9 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
   const [searchQuery, setSearchQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [manualContacts, setManualContacts] = useState<Array<{ phone: string; name?: string }>>([]);
+
   const normalizeGroupTargetPhone = (groupId: string) => {
     const trimmed = groupId.trim();
     if (!trimmed) return trimmed;
@@ -120,10 +124,25 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
        filtered = filtered.filter(g => g.sourceInstanceId === selectedInstanceId);
      }
      
-     return filtered.filter(g =>
-       g.nome.toLowerCase().includes(searchQuery.toLowerCase())
+     // Adicionar contatos manuais/importados como se fossem grupos (para que apareçam na lista)
+     const manualItems = manualContacts.map(c => ({
+       id: c.phone,
+       nome: c.name || c.phone,
+       sourceInstanceId: null,
+       sourceInstanceName: null,
+       membros: 1,
+       participantes: [],
+       isGroup: false,
+       typeLabel: "Contato"
+     }));
+
+     const all = [...manualItems, ...filtered];
+
+     return all.filter(g =>
+       g.nome.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       g.id.toLowerCase().includes(searchQuery.toLowerCase())
      );
-   }, [groups, selectedInstanceId, searchQuery]);
+   }, [groups, selectedInstanceId, searchQuery, manualContacts]);
 
   const toggleGroup = (groupId: string) => {
     setSelectedGroups(prev =>
@@ -140,6 +159,26 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       setSelectedGroups(filteredGroups.map(g => g.id));
     }
   };
+
+   const handleImportedContacts = (newContacts: Array<{ phone: string; name?: string }>) => {
+     setManualContacts(prev => {
+       const all = [...newContacts, ...prev];
+       return all.filter((c, index, self) => 
+         self.findIndex(t => t.phone === c.phone) === index
+       );
+     });
+     
+     // Selecionar automaticamente os novos contatos
+     setSelectedGroups(prev => {
+       const newPhones = newContacts.map(c => c.phone);
+       return Array.from(new Set([...prev, ...newPhones]));
+     });
+
+     toast({
+       title: "Contatos adicionados",
+       description: `${newContacts.length} contatos foram adicionados.`,
+     });
+   };
 
    const handleSubmit = async () => {
     if (!formData.name) {
@@ -163,9 +202,11 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
     try {
       const groupContacts = selectedGroups.map(groupId => {
         const group = groups.find(g => g.id === groupId);
+        const manual = manualContacts.find(c => c.phone === groupId);
+        
         return {
-          phone: normalizeGroupTargetPhone(groupId),
-          name: group?.nome || "Grupo",
+          phone: manual ? manual.phone : normalizeGroupTargetPhone(groupId),
+          name: manual ? (manual.name || manual.phone) : (group?.nome || "Grupo"),
           sourceInstanceId: group?.sourceInstanceId || null,
           sourceInstanceName: group?.sourceInstanceName || null,
         };
@@ -211,6 +252,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       onOpenChange(false);
       setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedGroups([]);
+      setManualContacts([]);
     } catch (error) {
       console.error("Error creating group campaign:", error);
       toast({ title: "Erro", description: "Erro ao criar campanha", variant: "destructive" });
@@ -339,10 +381,21 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
           {/* Seleção de grupos */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Selecionar Grupos ({selectedGroups.length} selecionado{selectedGroups.length !== 1 ? "s" : ""})</Label>
-              <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
-                {selectedGroups.length === filteredGroups.length ? "Desmarcar todos" : "Selecionar todos"}
-              </Button>
+              <Label>Selecionar Destinos ({selectedGroups.length})</Label>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowImportDialog(true)}
+                  className="text-xs h-7 gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Importar Planilha/Manual
+                </Button>
+                <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
+                  {selectedGroups.length === filteredGroups.length ? "Desmarcar todos" : "Selecionar todos"}
+                </Button>
+              </div>
             </div>
 
             <div className="relative mb-2">
@@ -412,11 +465,6 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
                         </div>
                       )}
                       {filteredGroups.map(group => (
-                        (() => {
-                          const memberCount = getMemberCount(group.id, group.membros);
-                          const isCountingMembers = isMemberCountLoading(group.id);
-
-                          return (
                         <label
                           key={group.id}
                           className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
@@ -425,40 +473,14 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
                             checked={selectedGroups.includes(group.id)}
                             onCheckedChange={() => toggleGroup(group.id)}
                           />
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {group.foto ? (
-                              <img src={group.foto} alt="" className="w-8 h-8 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                <Users className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate">{group.nome}</p>
-                               <div className="flex items-center gap-1 mt-0.5">
-                                 {group.typeLabel && (
-                                   <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-primary/5">
-                                     {group.typeLabel}
-                                   </Badge>
-                                 )}
-                                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                   {isCountingMembers ? (
-                                     <>
-                                       <Loader2 className="w-3 h-3 animate-spin" />
-                                       verificando membros...
-                                     </>
-                                   ) : memberCount > 0 ? (
-                                     <>{memberCount} membros</>
-                                   ) : (
-                                     <>membros indisponíveis</>
-                                   )}
-                                 </p>
-                               </div>
-                            </div>
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{group.nome}</p>
+                            <p className="text-xs text-muted-foreground truncate">{group.id}</p>
                           </div>
                         </label>
-                          );
-                        })()
                       ))}
                     </div>
                   )}
@@ -466,16 +488,25 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
               </ScrollArea>
             )}
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : formData.schedule_type === 'scheduled' ? <Clock className="w-4 h-4 mr-1" /> : null}
-            {formData.schedule_type === 'scheduled' ? 'Agendar Campanha' : 'Criar Campanha'}
-          </Button>
-        </DialogFooter>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Criar Campanha
+            </Button>
+          </div>
+        </div>
+        
+        <ImportContactsDialog 
+          open={showImportDialog} 
+          onOpenChange={setShowImportDialog}
+          onImport={handleImportedContacts}
+        />
       </DialogContent>
+
     </Dialog>
   );
 }
