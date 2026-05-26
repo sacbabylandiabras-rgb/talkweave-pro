@@ -316,7 +316,7 @@ export default function CheckoutDomainSection() {
                 <div className="p-3 rounded border border-amber-500/10 bg-amber-500/5 flex gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    <strong>Atenção:</strong> O "Nome/Host" deve ser exatamente o subdomínio que você escolheu (geralmente <code>pay</code> ou <code>checkout</code>). Nunca use "@" ou o domínio principal.
+                    <strong>Atenção:</strong> O campo "Nome/Host" deve ser preenchido <strong>apenas</strong> com o subdomínio (ex: <code>{customDomain.split('.')[0] || "pay"}</code>). Não coloque o seu domínio completo aqui.
                   </p>
                 </div>
               </div>
