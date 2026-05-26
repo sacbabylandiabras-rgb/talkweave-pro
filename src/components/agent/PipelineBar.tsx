@@ -115,7 +115,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
               <button
                 onClick={() => onStageSelect(stage.id)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border pr-8",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border group-hover/btn:pr-8",
                   selectedStage === stage.id
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
