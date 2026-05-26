@@ -54,9 +54,12 @@ interface PipelineBarProps {
   onStageSelect: (stageId: string) => void;
   counts: Record<string, number>;
   onStagesChange?: (stages: Stage[]) => void;
+  /** When provided, the selector becomes a "switch funnel" button that calls this callback
+   *  (typically clearing the active id so the parent renders the chooser page). */
+  onSwitchPipeline?: () => void;
 }
 
-export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange }: PipelineBarProps) => {
+export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange, onSwitchPipeline }: PipelineBarProps) => {
   const { toast } = useToast();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [activeId, setActiveId] = useState<string>("");
