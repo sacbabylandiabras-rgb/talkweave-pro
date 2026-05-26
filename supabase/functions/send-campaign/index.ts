@@ -1591,7 +1591,7 @@ serve(async (req) => {
             { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
           );
         }
-        if (i < currentBatch.length - 1 || remainingContacts.length > 0) {
+        if (i < currentBatch.length - 1) {
           await sleep(delayMs);
         }
       }
