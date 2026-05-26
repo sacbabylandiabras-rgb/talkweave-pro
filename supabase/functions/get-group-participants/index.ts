@@ -845,36 +845,32 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
-        console.log(`📡 Attempting metadata for: ${candidateId}`);
-
         // Try communities-metadata
         try {
-          const data = await fetchJson(
-            `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`,
-            headers,
-          );
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
           if (data && (data.subGroups || data.participants || data.id)) {
             console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
-            console.log(`🔍 DEBUG Payload: ${JSON.stringify(data)}`);
+            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
           }
         } catch (e) {
-          console.log(`❌ communities-metadata failed: ${candidateId}`);
+          console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
         }
 
         // Try group-metadata
         try {
-          const data = await fetchJson(
-            `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`,
-            headers,
-          );
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
             console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId}`);
-            console.log(`🔍 DEBUG Payload: ${JSON.stringify(data)}`);
+            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
           }
         } catch (e) {
-          console.log(`❌ group-metadata failed: ${candidateId}`);
+          console.log(`❌ group-metadata failed: ${candidateId} - ${e.message}`);
         }
       }
 
