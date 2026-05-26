@@ -37,6 +37,7 @@ const GatewayIntegracoes = lazyWithRecovery(() => import("./pages/GatewayIntegra
 const MensagensRecebidas = lazyWithRecovery(() => import("./pages/MensagensRecebidas"));
 
 const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
+const ExtractMembers = lazyWithRecovery(() => import("./pages/ExtractMembers"));
 const AgenteIA = lazyWithRecovery(() => import("./pages/AgenteIA"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
 const NotificacoesApp = lazyWithRecovery(() => import("./pages/NotificacoesApp"));
