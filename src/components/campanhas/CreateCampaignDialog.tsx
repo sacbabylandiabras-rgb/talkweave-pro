@@ -126,7 +126,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     setSubmitting(true);
     try {
       const contactList = selectedPhones.map(phone => {
-        const c = contacts.find(x => x.phone === phone);
+        const c = [...manualContacts, ...contacts].find(x => x.phone === phone);
         return { phone, name: c?.name || "" };
       });
 

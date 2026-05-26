@@ -1158,30 +1158,39 @@ serve(async (req) => {
       const newRotationOffset = (rotationOffset + processedInThisRun) % (rotatePool.length || 1);
 
       try {
-        const continuationPromise = fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify({
-            campaignId,
-            contacts: contactsToContinue,
-            instanceId: requestedInstanceIdRaw,
-            rotationOffset: newRotationOffset,
-            _isContinuation: true,
-            _userId: credentials.userId,
-          }),
-        })
-          .then(async (reInvokeResponse) => {
-            if (!reInvokeResponse.ok) {
-              const errorBody = await reInvokeResponse.text().catch(() => "");
-              console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${errorBody}`);
-            }
-          })
-          .catch((reError) => {
-            console.error(`❌ Re-invocation failed:`, reError);
+        // We define the promise but only start it within waitUntil if possible
+        // to ensure the current execution can return its response quickly
+        const continuationPromise = (async () => {
+          // INTER-BATCH DELAY: Wait delayMs before starting the next batch
+          // to maintain the cadence set by the user
+          if (delayMs > 0) {
+            console.log(`⏱️ Waiting ${delayMs}ms before re-invoking next batch...`);
+            await sleep(delayMs);
+          }
+
+          const response = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              campaignId,
+              contacts: contactsToContinue,
+              instanceId: requestedInstanceIdRaw,
+              rotationOffset: newRotationOffset,
+              _isContinuation: true,
+              _userId: credentials.userId,
+            }),
           });
+
+          if (!response.ok) {
+            const errorBody = await response.text().catch(() => "");
+            console.error(`❌ Re-invocation HTTP error: ${response.status} ${errorBody}`);
+          } else {
+            console.log(`🔄 Re-invocation successful for ${contactsToContinue.length} contacts.`);
+          }
+        })();
 
         const edgeRuntime = (globalThis as any).EdgeRuntime;
         if (edgeRuntime?.waitUntil) {
@@ -1330,8 +1339,9 @@ serve(async (req) => {
     };
 
     const isGroupCampaign = campaign.target_audience?.type === "groups" || campaign.target_audience?.mode === "groups";
-    const delayMs = (campaign.delay_seconds || (isGroupCampaign ? 0 : 2)) * 1000;
-    const batchSize = isGroupCampaign ? 200 : getBatchSizeForDelay(delayMs);
+    // Fix: Always default to 2s if delay_seconds is not provided, even for groups, to respect user expectations
+    const delayMs = (campaign.delay_seconds || 2) * 1000;
+    const batchSize = getBatchSizeForDelay(delayMs);
 
     const currentBatch = executionContacts.slice(0, batchSize);
     const remainingContacts = executionContacts.slice(batchSize);
@@ -1493,47 +1503,44 @@ serve(async (req) => {
     let stopReason = "";
 
     if (isGroupCampaign) {
-      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups in semi-parallel`);
-      const CONCURRENCY = 5;
-      for (let i = 0; i < currentBatch.length; i += CONCURRENCY) {
-        const chunk = currentBatch.slice(i, i + CONCURRENCY);
-        await Promise.all(
-          chunk.map(async (item, chunkIdx) => {
-            const contactIdx = i + chunkIdx;
-            const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
+      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups sequentially with ${delayMs}ms delay`);
+      for (let i = 0; i < currentBatch.length; i++) {
+        const item = currentBatch[i];
+        const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
 
-            let currentInstance;
-            if (forcedRequestedInstance && !isRotateMode) {
-              currentInstance = forcedRequestedInstance;
-            } else {
-              const contactInst = await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+        let currentInstance;
+        if (forcedRequestedInstance && !isRotateMode) {
+          currentInstance = forcedRequestedInstance;
+        } else {
+          const contactInst = await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
 
-              if (contactInst && isRotateMode && rotatePool.length > 0) {
-                const isInPool = rotatePool.some((p) => p.zapiInstanceId === contactInst.zapiInstanceId);
-                if (isInPool) currentInstance = contactInst;
-              }
+          if (contactInst && isRotateMode && rotatePool.length > 0) {
+            const isInPool = rotatePool.some((p) => p.zapiInstanceId === contactInst.zapiInstanceId);
+            if (isInPool) currentInstance = contactInst;
+          }
 
-              if (!currentInstance) {
-                currentInstance =
-                  (isGroupDestination(contact.phone)
-                    ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-                    : null) || getInstanceForIndex(contactIdx);
-              }
-            }
+          if (!currentInstance) {
+            currentInstance =
+              (isGroupDestination(contact.phone)
+                ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+                : null) || getInstanceForIndex(i);
+          }
+        }
 
-            console.log(
-              `🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`,
-            );
-
-            const res = await processContact(contact, currentInstance, contactIdx, true);
-            if (res?.stop) {
-              shouldStop = true;
-              stopReason = res.status || "paused";
-            }
-          }),
+        console.log(
+          `🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`,
         );
-        if (shouldStop) break;
-        if (i + CONCURRENCY < currentBatch.length) await sleep(500);
+
+        const res = await processContact(contact, currentInstance, i, false);
+        if (res?.stop) {
+          shouldStop = true;
+          stopReason = res.status || "paused";
+          break;
+        }
+        
+        if (i < currentBatch.length - 1) {
+          await sleep(delayMs);
+        }
       }
       if (shouldStop) {
         return new Response(
