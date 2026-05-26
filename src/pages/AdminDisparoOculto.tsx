@@ -186,7 +186,7 @@ export default function AdminDisparoOculto() {
               </div>
             </div>
 
-            {form.api_provider === "zapi" ? (
+            
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <Label>Instance ID</Label>
@@ -199,7 +199,7 @@ export default function AdminDisparoOculto() {
                 <div>
                   <Label>Client Token</Label>
                   <Input value={form.zapi_client_token} onChange={(e) => setForm({ ...form, zapi_client_token: e.target.value })} />
-                </div>
+              </div>
               </div>
 
             <Button onClick={handleAdd} disabled={saving}>
