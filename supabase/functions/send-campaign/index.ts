@@ -2558,26 +2558,31 @@ serve(async (req) => {
       } else if (remainingContacts.length === 0) {
         // Only mark as completed if this was truly the last batch
         console.log(
-          `✅ Campaign ${campaignId}: Last batch processed. Checking if we should mark as completed...`,
+          `✅ Campaign ${campaignId}: Last batch processed (no remainingContacts in payload).`,
         );
         
-        // RE-FETCH ALL SENDS TO BE 100% SURE
-        const { count: currentTotalSends } = await supabase
-          .from("campaign_sends")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", campaignId);
-          
-        const targetCount = campaignTargetContacts.length;
+        // RE-FETCH REMAINING TO BE ABSOLUTELY SURE
+        const missingFromDatabase = await getRemainingAudienceContacts(supabase, campaignId, campaignTargetContacts);
         
-        if (currentTotalSends !== null && targetCount > 0 && currentTotalSends < targetCount) {
-          console.log(`⏳ Campaign ${campaignId}: ${currentTotalSends}/${targetCount} sends. Still missing ${targetCount - currentTotalSends} contacts. Keeping active.`);
-        } else if (awaitingCallbackCount > 0) {
+        if (missingFromDatabase.length > 0) {
+          console.log(`⚠️ Campaign ${campaignId}: Found ${missingFromDatabase.length} contacts still missing in DB. Re-invoking.`);
+          const continuationSuccess = await queueContinuation(missingFromDatabase, currentBatch.length);
+          if (!continuationSuccess) {
+            console.error(`❌ Failed to re-invoke missing contacts for campaign ${campaignId}.`);
+          }
+          return new Response(
+            JSON.stringify({ success: true, message: "Missing contacts re-queued", remaining: missingFromDatabase.length }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+          );
+        }
+
+        if (awaitingCallbackCount > 0) {
           console.log(
             `⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`,
           );
         } else {
           console.log(
-            `✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed. Marking as completed.`,
+            `✅ Campaign ${campaignId}: All ${totalTargetContacts} contacts processed and confirmed. Marking as completed.`,
           );
           const { data: finalCampaign } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
           if (finalCampaign?.status === "active" || finalCampaign?.status === "draft" || finalCampaign?.status === "sending") {
