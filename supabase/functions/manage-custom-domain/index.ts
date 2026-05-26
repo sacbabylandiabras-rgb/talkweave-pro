@@ -193,7 +193,7 @@ serve(async (req) => {
             }
           }
         } catch (resendErr) {
-          console.warn("Could not register domain on Resend:", resendErr);
+          console.error("Critical Resend registration error:", resendErr);
         }
       }
 
