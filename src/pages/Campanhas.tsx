@@ -166,11 +166,11 @@ const CampaignProgress = ({ campaignId, totalTarget }: { campaignId: string, tot
   
   const stats = useMemo(() => {
     if (loading) return null;
-    const read = sends.filter(s => s.status === 'read' || (s as any).read_at).length;
-    const delivered = sends.filter(s => s.status === 'delivered' || (s as any).delivered_at || s.status === 'read').length;
-    const sent = sends.filter(s => (s.status === 'sent' || s.sent_at) && (!s.delivered_at && s.status !== 'delivered' && s.status !== 'read')).length;
-    const failed = sends.filter(s => (s.status === 'failed' || (s as any).error_message) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length;
-    const processing = sends.filter(s => s.status === 'pending' && (s.message_id || s.sent_at) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length;
+    const read = sends.filter(s => (s.status as string) === 'read' || Boolean(s.read_at)).length;
+    const delivered = sends.filter(s => (s.status as string) === 'delivered' || Boolean(s.delivered_at) || (s.status as string) === 'read').length;
+    const sent = sends.filter(s => ((s.status as string) === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
+    const failed = sends.filter(s => ((s.status as string) === 'failed' || Boolean(s.error_message)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
+    const processing = sends.filter(s => (s.status as string) === 'pending' && (Boolean(s.message_id) || Boolean(s.sent_at)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
     
     const processed = delivered + sent + failed + processing;
     const total = Math.max(totalTarget, sends.length);
