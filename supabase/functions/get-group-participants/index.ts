@@ -829,7 +829,13 @@ Deno.serve(async (req) => {
 
     console.log(`📱 Fetching participants for group/community: ${groupId} | instance: ${instanceId}`);
 
-    const primaryData = await fetchGroupMetadata(groupId);
+    let primaryData: any = null;
+    try {
+      primaryData = await fetchGroupMetadata(groupId);
+    } catch (metaError) {
+      const msg = metaError instanceof Error ? metaError.message : String(metaError);
+      console.log(`⚠️ group-metadata failed for ${groupId}, will try community path: ${msg}`);
+    }
     let apiParticipants = extractParticipantArray(primaryData);
 
     if (apiParticipants.length === 0) {
