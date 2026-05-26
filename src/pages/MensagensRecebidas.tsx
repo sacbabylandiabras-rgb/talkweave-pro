@@ -2667,8 +2667,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         {activeTab === "pipeline" && (
           <div className="flex-1 overflow-auto p-4 bg-[#f8fafc] dark:bg-slate-950">
             <div className="flex gap-4 min-h-full pb-4">
-              {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => {
+              {pipelineStages.filter(s => s.id !== 'all').map(stage => {
                 const stageConvs = conversations.filter(c => (c.agent_stage || 'triage') === stage.id);
+
                 return (
                   <div 
                     key={stage.id} 
