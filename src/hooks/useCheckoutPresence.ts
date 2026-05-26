@@ -5,23 +5,18 @@ const SESSION_KEY_PREFIX = "gateway-checkout-session:";
 
 export const getCheckoutPresenceChannel = (ownerUserId: string) => `gateway-active-checkouts:${ownerUserId}`;
 
-const createSessionId = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
+const createSessionId = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-};
-
-const getSessionId = (checkoutSlug: string) => {
+const getSessionId = (checkoutSlug: string): string => {
   const storageKey = `${SESSION_KEY_PREFIX}${checkoutSlug}`;
-  const storedSessionId = window.sessionStorage.getItem(storageKey);
-
-  if (storedSessionId) return storedSessionId;
-
-  const nextSessionId = createSessionId();
-  window.sessionStorage.setItem(storageKey, nextSessionId);
-  return nextSessionId;
+  const stored = window.sessionStorage.getItem(storageKey);
+  if (stored) return stored;
+  const id = createSessionId();
+  window.sessionStorage.setItem(storageKey, id);
+  return id;
 };
 
 interface IpInfo {
@@ -33,97 +28,104 @@ interface IpInfo {
   country?: string;
 }
 
-const getCoordinatesByIP = async (): Promise<IpInfo> => {
-  // Provedores ordenados por precisão (bases mais atualizadas primeiro).
-  // ipapi.is e freeipapi.com têm dados de cidade significativamente mais
-  // recentes para BR do que ipwho.is/ip-api/ipapi.co.
-  const providers: Array<() => Promise<IpInfo | null>> = [
-    async () => {
-      const res = await fetch("https://api.ipapi.is/", { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const loc = data?.location;
-      if (loc && typeof loc.latitude === "number" && typeof loc.longitude === "number") {
-        return {
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-          ip: data.ip,
-          city: loc.city,
-          region: loc.state,
-          country: loc.country,
-        };
-      }
-      return null;
-    },
-    async () => {
-      const res = await fetch("https://freeipapi.com/api/json/", { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          ip: data.ipAddress,
-          city: data.cityName,
-          region: data.regionName,
-          country: data.countryName,
-        };
-      }
-      return null;
-    },
-    async () => {
-      const res = await fetch("https://ipwho.is/", { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (data.success && typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          ip: data.ip,
-          city: data.city,
-          region: data.region,
-          country: data.country,
-        };
-      }
-      return null;
-    },
-    async () => {
-      const res = await fetch(
-        "https://ip-api.com/json/?fields=lat,lon,query,city,regionName,country,status",
-        { signal: AbortSignal.timeout(4000) }
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (data.status === "success" && typeof data.lat === "number" && typeof data.lon === "number") {
-        return {
-          latitude: data.lat,
-          longitude: data.lon,
-          ip: data.query,
-          city: data.city,
-          region: data.regionName,
-          country: data.country,
-        };
-      }
-      return null;
-    },
-  ];
+type Provider = () => Promise<IpInfo | null>;
 
-  // Considera resultado "bom" só se vier com cidade (lat/lon sem cidade
-  // costuma ser o ponto central do estado/país, o que polui o globo).
-  let fallback: IpInfo | null = null;
-  for (const provider of providers) {
-    try {
-      const result = await provider();
-      if (!result) continue;
-      if (result.city && String(result.city).trim().length > 0) {
-        return result;
-      }
-      if (!fallback) fallback = result;
-    } catch {
-      continue;
+const PROVIDERS: Provider[] = [
+  async () => {
+    const res = await fetch("https://api.ipapi.is/", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const loc = d?.location;
+    if (loc && typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+      return {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        ip: d.ip,
+        city: loc.city,
+        region: loc.state,
+        country: loc.country,
+      };
     }
-  }
-  return fallback ?? {};
+    return null;
+  },
+  async () => {
+    const res = await fetch("https://freeipapi.com/api/json/", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (typeof d.latitude === "number" && typeof d.longitude === "number") {
+      return {
+        latitude: d.latitude,
+        longitude: d.longitude,
+        ip: d.ipAddress,
+        city: d.cityName,
+        region: d.regionName,
+        country: d.countryName,
+      };
+    }
+    return null;
+  },
+  async () => {
+    const res = await fetch("https://ipwho.is/", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.success && typeof d.latitude === "number" && typeof d.longitude === "number") {
+      return {
+        latitude: d.latitude,
+        longitude: d.longitude,
+        ip: d.ip,
+        city: d.city,
+        region: d.region,
+        country: d.country,
+      };
+    }
+    return null;
+  },
+  async () => {
+    const res = await fetch("https://ip-api.com/json/?fields=lat,lon,query,city,regionName,country,status", {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.status === "success" && typeof d.lat === "number" && typeof d.lon === "number") {
+      return { latitude: d.lat, longitude: d.lon, ip: d.query, city: d.city, region: d.regionName, country: d.country };
+    }
+    return null;
+  },
+];
+
+/**
+ * FIX: run all providers in parallel and take the first one that returns a
+ * result with a city. Previously they ran sequentially which could take 16 s+.
+ */
+const getCoordinatesByIP = async (): Promise<IpInfo> => {
+  // Wrap each provider so it resolves to null on error/timeout instead of rejecting
+  const safe = (fn: Provider) => fn().catch(() => null);
+
+  // First, fire all requests in parallel and take the first "good" result
+  // (has city data). Fall back to any result with coordinates.
+  return new Promise<IpInfo>((resolve) => {
+    let settled = 0;
+    let fallback: IpInfo | null = null;
+
+    const tryResolve = (result: IpInfo | null) => {
+      settled++;
+      if (result) {
+        if (result.city && String(result.city).trim().length > 0) {
+          resolve(result);
+          return;
+        }
+        if (!fallback) fallback = result;
+      }
+      // All providers have responded
+      if (settled === PROVIDERS.length) {
+        resolve(fallback ?? {});
+      }
+    };
+
+    for (const provider of PROVIDERS) {
+      safe(provider).then(tryResolve);
+    }
+  });
 };
 
 export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string | null, productName?: string) {
@@ -133,27 +135,21 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     const sessionId = getSessionId(checkoutSlug);
     const joinedAt = new Date().toISOString();
     const channel = supabase.channel(getCheckoutPresenceChannel(ownerUserId), {
-      config: {
-        presence: {
-          key: sessionId,
-        },
-      },
+      config: { presence: { key: sessionId } },
     });
 
     let isSubscribed = false;
 
     const trackPresence = async () => {
       if (!isSubscribed) return;
-
       const ipInfo = await getCoordinatesByIP();
-
       await channel.track({
         kind: "checkout",
         sessionId,
         checkoutSlug,
         ownerUserId,
         joinedAt,
-        productName: productName || checkoutSlug || "",
+        productName: productName ?? checkoutSlug ?? "",
         latitude: ipInfo.latitude,
         longitude: ipInfo.longitude,
         ip: ipInfo.ip,
@@ -169,9 +165,7 @@ export function useCheckoutPresence(checkoutSlug?: string, ownerUserId?: string 
     };
 
     const handleVisibleTrack = () => {
-      if (document.visibilityState === "visible") {
-        void trackPresence();
-      }
+      if (document.visibilityState === "visible") void trackPresence();
     };
 
     channel.subscribe(async (status) => {
