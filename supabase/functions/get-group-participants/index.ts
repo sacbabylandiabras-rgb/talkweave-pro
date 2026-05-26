@@ -851,6 +851,7 @@ Deno.serve(async (req) => {
             headers,
           );
           console.log(`🏘️ Community metadata loaded for ${candidateId}`);
+          console.log(`🔍 Raw community payload: ${JSON.stringify(data).slice(0, 1500)}`);
           return data;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
