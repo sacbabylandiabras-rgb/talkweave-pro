@@ -24,7 +24,7 @@ import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useMessageLogs } from "@/hooks/useMessageLogs";
-import { PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface ContactProfileDialogProps {
