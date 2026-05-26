@@ -270,7 +270,8 @@ serve(async (req) => {
         `Processing StatusCallback (${type}) for messages ${messageIds.join(",")}: status=${status}, error=${error || "none"}`
       );
 
-      const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
+      const isReadStatus = ["READ", "READ_BY_ME", "PLAYED"].includes(status);
+      const isDeliveredStatus = ["DELIVERED", "RECEIVED"].includes(status) || isReadStatus;
       const isSentStatus = ["SENT", "SENT_BY_ME"].includes(status);
       const isErrorStatus = (["ERROR", "FAILED", "REJECTED"].includes(status) || !!error) && !isSentStatus && !isDeliveredStatus;
 
@@ -299,7 +300,7 @@ serve(async (req) => {
 
       if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
-          const newStatusLabel = isDeliveredStatus ? "delivered" : "sent";
+          const newStatusLabel = isReadStatus ? "read" : (isDeliveredStatus ? "delivered" : "sent");
 
           const { data: currentRecord, error: fetchError } = await supabase
             .from("campaign_sends")
@@ -313,9 +314,13 @@ serve(async (req) => {
           }
 
           if (currentRecord) {
-            // Se já está entregue ou falhou, não volta para "sent"
-            if ((currentRecord.status === "delivered" || currentRecord.status === "failed") && newStatusLabel === "sent") {
-              console.log(`✅ Message ${msgId} is already ${currentRecord.status}. Skipping update back to sent.`);
+            // Se já está lida, não volta para entregue ou enviado. Se está entregue, não volta para enviado.
+            const statusPriority = { "read": 3, "delivered": 2, "sent": 1, "failed": 0, "pending": 0 };
+            const currentPriority = statusPriority[currentRecord.status as keyof typeof statusPriority] || 0;
+            const newPriority = statusPriority[newStatusLabel as keyof typeof statusPriority] || 0;
+
+            if (currentPriority > newPriority && currentRecord.status !== "failed") {
+              console.log(`✅ Message ${msgId} is already ${currentRecord.status} (priority ${currentPriority}). Skipping update to ${newStatusLabel} (priority ${newPriority}).`);
               continue;
             }
 
@@ -328,7 +333,10 @@ serve(async (req) => {
               updateData.error_message = null;
             }
 
-            if (isDeliveredStatus) {
+            if (isReadStatus) {
+              updateData.read_at = new Date().toISOString();
+              if (!currentRecord.delivered_at) updateData.delivered_at = new Date().toISOString();
+            } else if (isDeliveredStatus) {
               updateData.delivered_at = new Date().toISOString();
             } else {
               updateData.sent_at = new Date().toISOString();
@@ -392,8 +400,14 @@ serve(async (req) => {
                 message_id: msgId, // Aproveita para salvar o ID que estava faltando
                 error_message: null
               };
-              if (isDeliveredStatus) updateData.delivered_at = new Date().toISOString();
-              else updateData.sent_at = new Date().toISOString();
+              if (isReadStatus) {
+                updateData.read_at = new Date().toISOString();
+                updateData.delivered_at = new Date().toISOString();
+              } else if (isDeliveredStatus) {
+                updateData.delivered_at = new Date().toISOString();
+              } else {
+                updateData.sent_at = new Date().toISOString();
+              }
 
               await supabase.from("campaign_sends").update(updateData).eq("id", fallbackRecord.id);
             }
