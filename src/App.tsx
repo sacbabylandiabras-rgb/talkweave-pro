@@ -37,6 +37,7 @@ const GatewayIntegracoes = lazyWithRecovery(() => import("./pages/GatewayIntegra
 const MensagensRecebidas = lazyWithRecovery(() => import("./pages/MensagensRecebidas"));
 
 const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
+const ExtractMembers = lazyWithRecovery(() => import("./pages/ExtractMembers"));
 const AgenteIA = lazyWithRecovery(() => import("./pages/AgenteIA"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
 const NotificacoesApp = lazyWithRecovery(() => import("./pages/NotificacoesApp"));
@@ -193,6 +194,7 @@ const App = () => (
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
                   
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
+                  <Route path="/extrair-membros" element={<PaidRouteGuard><ExtractMembers /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    
