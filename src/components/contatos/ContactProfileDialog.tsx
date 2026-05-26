@@ -102,6 +102,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [capturedCPF, setCapturedCPF] = useState<string | null>(null);
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [loadingTags, setLoadingTags] = useState(false);
+    const [dealValue, setDealValue] = useState<number>(0);
+    const [closingDate, setClosingDate] = useState<string>("");
+    const [priority, setPriority] = useState<string>("normal");
+    const [dealDescription, setDealDescription] = useState<string>("");
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -737,10 +741,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                     type="number" 
                     step="0.01" 
                     className="h-8 text-xs font-bold" 
-                    value={(contact as any).deal_value || 0}
-                    onChange={async (e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      await updateContactStage(contact.phone, currentStage, { deal_value: val });
+                    value={dealValue}
+                    onChange={(e) => setDealValue(parseFloat(e.target.value) || 0)}
+                    onBlur={async () => {
+                      if (!contact) return;
+                      await updateContactStage(contact.phone, currentStage, { deal_value: dealValue });
                       onUpdate?.();
                     }}
                   />
@@ -748,8 +753,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase text-muted-foreground">Prioridade</Label>
                   <Select 
-                    value={(contact as any).priority || 'normal'} 
+                    value={priority} 
                     onValueChange={async (val) => {
+                      if (!contact) return;
+                      setPriority(val);
                       await updateContactStage(contact.phone, currentStage, { priority: val });
                       onUpdate?.();
                     }}
@@ -772,9 +779,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <Input 
                     type="date" 
                     className="h-8 text-xs" 
-                    value={(contact as any).closing_date ? new Date((contact as any).closing_date).toISOString().split('T')[0] : ''}
-                    onChange={async (e) => {
-                      await updateContactStage(contact.phone, currentStage, { closing_date: e.target.value });
+                    value={closingDate}
+                    onChange={(e) => setClosingDate(e.target.value)}
+                    onBlur={async () => {
+                      if (!contact) return;
+                      await updateContactStage(contact.phone, currentStage, { closing_date: closingDate });
                       onUpdate?.();
                     }}
                   />
@@ -813,13 +822,11 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                 <textarea
                   className="w-full min-h-[80px] p-3 text-sm rounded-lg border border-border bg-background/50 focus:ring-1 focus:ring-primary outline-none resize-none"
                   placeholder="Descreva o negócio em detalhes..."
-                  value={(contact as any).description || ""}
-                  onChange={async (e) => {
-                    // Update only local state first for performance, or use a debounce if needed
-                    // For now, let's keep it simple
-                  }}
-                  onBlur={async (e) => {
-                    await updateContactStage(contact.phone, currentStage, { description: e.target.value });
+                  value={dealDescription}
+                  onChange={(e) => setDealDescription(e.target.value)}
+                  onBlur={async () => {
+                    if (!contact) return;
+                    await updateContactStage(contact.phone, currentStage, { description: dealDescription });
                     onUpdate?.();
                   }}
                 />
