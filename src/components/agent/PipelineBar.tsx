@@ -115,7 +115,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
               <button
                 onClick={() => onStageSelect(stage.id)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border group-hover/btn:pr-8",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border group-hover/btn:pr-9",
                   selectedStage === stage.id
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
@@ -137,10 +137,11 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
               {stage.id !== 'all' && (
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleDeleteStage(stage.id);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 hover:text-destructive transition-all p-1"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 bg-destructive/10 hover:bg-destructive hover:text-white text-destructive rounded-full transition-all p-1 z-10"
                 >
                   <X className="w-3 h-3" />
                 </button>
