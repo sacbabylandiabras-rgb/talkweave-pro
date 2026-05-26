@@ -292,6 +292,9 @@ export default function CheckoutDomainSection() {
                       </Button>
                     </div>
                   </div>
+                  <div className="flex justify-start pt-1">
+                    <span className="text-[9px] text-muted-foreground italic">Use o nome do seu subdomínio (ex: pay ou checkout)</span>
+                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
                     <div className="flex items-center gap-2">
@@ -306,7 +309,7 @@ export default function CheckoutDomainSection() {
                 <div className="p-3 rounded border border-amber-500/10 bg-amber-500/5 flex gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    <strong>Atenção:</strong> Não utilize "@" como nome. Use exatamente o prefixo escolhido (ex: <code>{customDomain.split('.')[0] || "pay"}</code>).
+                    <strong>Atenção:</strong> O "Nome/Host" deve ser exatamente o subdomínio que você escolheu (geralmente <code>pay</code> ou <code>checkout</code>). Nunca use "@" ou o domínio principal.
                   </p>
                 </div>
               </div>
