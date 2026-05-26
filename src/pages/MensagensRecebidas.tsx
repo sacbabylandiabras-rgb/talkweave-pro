@@ -2348,7 +2348,7 @@ const MensagensRecebidas = () => {
     
     if (tabParam === "pipeline") {
       setActiveTab("pipeline");
-    } else if (tabParam === "chat") {
+    } else {
       setActiveTab("chat");
     }
 
