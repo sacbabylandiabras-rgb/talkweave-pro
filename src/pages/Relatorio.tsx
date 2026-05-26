@@ -27,8 +27,11 @@ type ReportSend = {
   status: string | null;
   sent_at: string | null;
   delivered_at?: string | null;
+  read_at?: string | null;
+  clicked_at?: string | null;
   created_at: string;
   error_message: string | null;
+  message_id?: string | null;
 };
 
 const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send?.delivered_at || send?.sent_at || send?.created_at || "";
@@ -61,8 +64,8 @@ const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
   return Array.from(latestMap.values()).filter((send) => send.campaign_id === campaignId);
 };
 
-const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
-  (send) => send.status === 'delivered' || send.status === 'sent'
+const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status' | 'delivered_at' | 'read_at'>>) => sends.filter(
+  (send) => send.status === 'delivered' || send.status === 'read' || Boolean(send.delivered_at) || Boolean(send.read_at)
 ).length;
 
 const Relatorio = () => {
@@ -118,14 +121,16 @@ const Relatorio = () => {
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
-    totalSent: countSuccessfulStatuses(latestAllSends),
-    totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
-    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
+    totalSent: latestAllSends.filter(s => (s.status === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && s.status !== 'delivered' && s.status !== 'read')).length,
+    totalDelivered: latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length,
+    totalRead: latestAllSends.filter(s => s.status === 'read' || Boolean(s.read_at)).length,
+    totalFailed: latestAllSends.filter(s => (s.status === 'failed' || Boolean(s.error_message)) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: effectiveTotalMessages,
     totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
+    totalClicked: latestAllSends.filter(s => Boolean(s.clicked_at)).length,
     deliveryRate: effectiveTotalMessages > 0
-      ? (countSuccessfulStatuses(latestAllSends) / effectiveTotalMessages) * 100
+      ? (latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length / effectiveTotalMessages) * 100
       : 0,
   };
 
