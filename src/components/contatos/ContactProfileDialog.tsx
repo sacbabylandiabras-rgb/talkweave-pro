@@ -106,6 +106,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [closingDate, setClosingDate] = useState<string>("");
     const [priority, setPriority] = useState<string>("normal");
     const [dealDescription, setDealDescription] = useState<string>("");
+    const [pipelineStages, setPipelineStages] = useState<any[]>(PIPELINE_STAGES);
+
+    useEffect(() => {
+      const fetchStages = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await (supabase as any).from('profiles').select('pipeline_stages').eq('id', user.id).single();
+        if (data?.pipeline_stages) setPipelineStages(data.pipeline_stages);
+      };
+      fetchStages();
+    }, [open]);
+
 
   const loadFlows = async () => {
     setLoadingFlows(true);
