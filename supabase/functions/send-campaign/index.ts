@@ -1158,30 +1158,39 @@ serve(async (req) => {
       const newRotationOffset = (rotationOffset + processedInThisRun) % (rotatePool.length || 1);
 
       try {
-        const continuationPromise = fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify({
-            campaignId,
-            contacts: contactsToContinue,
-            instanceId: requestedInstanceIdRaw,
-            rotationOffset: newRotationOffset,
-            _isContinuation: true,
-            _userId: credentials.userId,
-          }),
-        })
-          .then(async (reInvokeResponse) => {
-            if (!reInvokeResponse.ok) {
-              const errorBody = await reInvokeResponse.text().catch(() => "");
-              console.error(`❌ Re-invocation HTTP error: ${reInvokeResponse.status} ${errorBody}`);
-            }
-          })
-          .catch((reError) => {
-            console.error(`❌ Re-invocation failed:`, reError);
+        // We define the promise but only start it within waitUntil if possible
+        // to ensure the current execution can return its response quickly
+        const continuationPromise = (async () => {
+          // INTER-BATCH DELAY: Wait delayMs before starting the next batch
+          // to maintain the cadence set by the user
+          if (delayMs > 0) {
+            console.log(`⏱️ Waiting ${delayMs}ms before re-invoking next batch...`);
+            await sleep(delayMs);
+          }
+
+          const response = await fetch(`${supabaseUrl}/functions/v1/send-campaign`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              campaignId,
+              contacts: contactsToContinue,
+              instanceId: requestedInstanceIdRaw,
+              rotationOffset: newRotationOffset,
+              _isContinuation: true,
+              _userId: credentials.userId,
+            }),
           });
+
+          if (!response.ok) {
+            const errorBody = await response.text().catch(() => "");
+            console.error(`❌ Re-invocation HTTP error: ${response.status} ${errorBody}`);
+          } else {
+            console.log(`🔄 Re-invocation successful for ${contactsToContinue.length} contacts.`);
+          }
+        })();
 
         const edgeRuntime = (globalThis as any).EdgeRuntime;
         if (edgeRuntime?.waitUntil) {
