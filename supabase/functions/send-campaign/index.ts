@@ -1503,47 +1503,44 @@ serve(async (req) => {
     let stopReason = "";
 
     if (isGroupCampaign) {
-      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups in semi-parallel`);
-      const CONCURRENCY = 5;
-      for (let i = 0; i < currentBatch.length; i += CONCURRENCY) {
-        const chunk = currentBatch.slice(i, i + CONCURRENCY);
-        await Promise.all(
-          chunk.map(async (item, chunkIdx) => {
-            const contactIdx = i + chunkIdx;
-            const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
+      console.log(`🚀 Group campaign detected: processing ${currentBatch.length} groups sequentially with ${delayMs}ms delay`);
+      for (let i = 0; i < currentBatch.length; i++) {
+        const item = currentBatch[i];
+        const contact = { ...item, phone: normalizeGroupPhone(item.phone) };
 
-            let currentInstance;
-            if (forcedRequestedInstance && !isRotateMode) {
-              currentInstance = forcedRequestedInstance;
-            } else {
-              const contactInst = await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
+        let currentInstance;
+        if (forcedRequestedInstance && !isRotateMode) {
+          currentInstance = forcedRequestedInstance;
+        } else {
+          const contactInst = await resolveContactInstance(supabase, credentials.userId, item.sourceInstanceId);
 
-              if (contactInst && isRotateMode && rotatePool.length > 0) {
-                const isInPool = rotatePool.some((p) => p.zapiInstanceId === contactInst.zapiInstanceId);
-                if (isInPool) currentInstance = contactInst;
-              }
+          if (contactInst && isRotateMode && rotatePool.length > 0) {
+            const isInPool = rotatePool.some((p) => p.zapiInstanceId === contactInst.zapiInstanceId);
+            if (isInPool) currentInstance = contactInst;
+          }
 
-              if (!currentInstance) {
-                currentInstance =
-                  (isGroupDestination(contact.phone)
-                    ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
-                    : null) || getInstanceForIndex(contactIdx);
-              }
-            }
+          if (!currentInstance) {
+            currentInstance =
+              (isGroupDestination(contact.phone)
+                ? await resolveGroupInstanceFromInboundLogs(supabase, credentials.userId, contact.phone)
+                : null) || getInstanceForIndex(i);
+          }
+        }
 
-            console.log(
-              `🔍 [Decision] Contact ${contact.phone} (idx ${contactIdx}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`,
-            );
-
-            const res = await processContact(contact, currentInstance, contactIdx, true);
-            if (res?.stop) {
-              shouldStop = true;
-              stopReason = res.status || "paused";
-            }
-          }),
+        console.log(
+          `🔍 [Decision] Contact ${contact.phone} (idx ${i}) will use instance: ${currentInstance.instanceName} (${currentInstance.zapiInstanceId})`,
         );
-        if (shouldStop) break;
-        if (i + CONCURRENCY < currentBatch.length) await sleep(delayMs);
+
+        const res = await processContact(contact, currentInstance, i, false);
+        if (res?.stop) {
+          shouldStop = true;
+          stopReason = res.status || "paused";
+          break;
+        }
+        
+        if (i < currentBatch.length - 1 || remainingContacts.length > 0) {
+          await sleep(delayMs);
+        }
       }
       if (shouldStop) {
         return new Response(
