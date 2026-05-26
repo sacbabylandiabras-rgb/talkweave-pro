@@ -846,6 +846,7 @@ Deno.serve(async (req) => {
 
       for (const candidateId of candidates) {
         try {
+          // Special path for community-metadata
           const data = await fetchJson(
             `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`,
             headers,
@@ -856,6 +857,16 @@ Deno.serve(async (req) => {
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           console.log(`⚠️ Community metadata unavailable for ${candidateId}: ${message}`);
+          
+          // Fallback: try group-metadata for community ID
+          try {
+            const data = await fetchJson(
+              `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`,
+              headers,
+            );
+            console.log(`🏘️ Community loaded via group-metadata fallback for ${candidateId}`);
+            return data;
+          } catch (e) {}
         }
       }
 
