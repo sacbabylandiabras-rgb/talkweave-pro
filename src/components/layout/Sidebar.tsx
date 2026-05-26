@@ -212,8 +212,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const allMenuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
   const allBottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
 
-  const groupItemIds = ["apanhador-grupos", "criar-grupos"];
-  const filteredMenuItems = isPaid
+  const groupItemIds = ["apanhador-grupos", "criar-grupos", "extrair-membros", "comunidades", "canais", "campanhas-grupo", "fluxo-grupos"];
+  const filteredMenuItems = isPaid || isAdmin
     ? allMenuItems
     : allMenuItems.filter(i => !groupItemIds.includes(i.id));
   const menuItems = isNative ? filteredMenuItems.filter(i => dashboardIds.includes(i.id)) : filteredMenuItems;
