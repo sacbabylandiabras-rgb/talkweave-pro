@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
-import { setZapiInstanceOverride, getSelectedCampaignInstanceId, setZapiRotateMode, ROTATE_ALL } from "@/hooks/useZapi";
+import { setZapiInstanceOverride, getSelectedCampaignInstanceId, setZapiRotateMode } from "@/hooks/useZapi";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import {
   Play,
@@ -51,44 +51,113 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface CampanhasProps {
   mode?: "contacts" | "groups";
 }
 
-const formatErrorMessage = (msg: any): string | null => {
+type CampaignContactStatus = "entregue" | "enviado" | "enviando" | "pendente" | "cancelado";
+
+interface ContactEntry {
+  id: string;
+  phone: string;
+  name: string;
+  status: CampaignContactStatus;
+  sentAt: string | null;
+  errorMessage: string | null;
+  readAt: string | null;
+  clickedAt: string | null;
+}
+
+interface LinkClick {
+  id: string;
+  created_at: string;
+  ip: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  user_agent: string | null;
+  phone: string | null;
+  btn_text: string | null;
+}
+
+// ─── Pure helpers (defined outside component — no closure issues) ─────────────
+
+const formatErrorMessage = (msg: unknown): string | null => {
   if (!msg) return null;
-  
-  // Converte para string com segurança caso seja um objeto ou outro tipo
-  const strMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+  const strMsg = typeof msg === "string" ? msg : JSON.stringify(msg);
   const raw = strMsg.toLowerCase();
-  
-  if (raw.includes("shadow ban") || raw.includes("restrição") || raw.includes("shadowban")) {
+  if (raw.includes("shadow ban") || raw.includes("restrição") || raw.includes("shadowban"))
     return "⚠️ Shadowban detectado: Seu número está com restrições de envio pelo WhatsApp";
-  }
-  
-  if (strMsg === "NOT_FOUND" || raw.includes("user_not_found") || raw.includes("not on whatsapp")) {
+  if (strMsg === "NOT_FOUND" || raw.includes("user_not_found") || raw.includes("not on whatsapp"))
     return "Número não cadastrado no WhatsApp";
-  }
-  
-  if (
-    raw.includes("disconnected") || 
-    raw.includes("desconectado") ||
-    strMsg.includes("Enqueue message is disabled")
-  ) {
+  if (raw.includes("disconnected") || raw.includes("desconectado") || strMsg.includes("Enqueue message is disabled"))
     return "Conexão interrompida (WhatsApp desconectado)";
-  }
-  
   return strMsg;
 };
 
-const safeFormat = (date: any, formatStr: string, options?: any) => {
+const safeFormat = (date: unknown, formatStr: string, options?: object) => {
   if (!date) return "";
-  const d = new Date(date);
+  const d = new Date(date as string);
   if (!isValid(d)) return "Data inválida";
   return format(d, formatStr, options);
 };
 
-const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
+const normalizePhoneKey = (phone?: string | null) => (phone ?? "").replace(/\D/g, "");
+
+const normalizeGroupDisplayPhone = (phone?: string | null) => {
+  if (!phone) return "";
+  if (phone.includes("-group@g.us")) return phone.replace(/-group@g\.us$/i, "@g.us");
+  if (phone.endsWith("-group")) return phone.replace(/-group$/i, "@g.us");
+  return phone;
+};
+
+const isCancelledSendStatus = (status?: string | null) =>
+  ["failed", "cancelled", "canceled", "error", "rejected"].includes(status ?? "");
+
+const getSendPriority = (status?: string | null, row?: { message_id?: string; sent_at?: string }) => {
+  if (status === "delivered") return 5;
+  if (status === "failed" || (row && !status)) return 4; // has error_message
+  if (status === "sent") return 3;
+  if (status === "pending" && (row?.message_id || row?.sent_at)) return 2.5;
+  if (status === "pending") return 2;
+  if (isCancelledSendStatus(status)) return 1;
+  return 0;
+};
+
+// ─── Sub-component: shared InstanceSelector block ────────────────────────────
+// FIX #9 — deduplicated from two identical copies in the dialogs
+
+interface InstancePickerProps {
+  instances: ReturnType<typeof useZapiInstances>["instances"];
+  onSelect: (instanceId: string) => void;
+}
+
+const InstancePicker = ({ instances, onSelect }: InstancePickerProps) => (
+  <InstanceSelector
+    providerFilter="zapi"
+    allowMultiple={true}
+    useSavedSelection={false}
+    onMultiInstanceChange={(ids) => {
+      if (ids.length > 1) {
+        const selected = instances.filter((i) => ids.includes(i.id));
+        setZapiRotateMode(selected);
+        onSelect(`rotate:${ids.join(",")}`);
+      } else if (ids.length === 1) {
+        const inst = instances.find((i) => i.id === ids[0]);
+        if (inst) {
+          setZapiInstanceOverride(inst);
+          onSelect(ids[0]);
+        }
+      }
+    }}
+  />
+);
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
   const isGroupsMode = mode === "groups";
   const navigate = useNavigate();
   const {
@@ -106,24 +175,38 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const { toast } = useToast();
   const { instances, activeInstance } = useZapiInstances({ provider: "zapi" });
 
+  // ── Dialog states ──────────────────────────────────────────────────────────
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState<string | null>(null);
-  const [showProgressDialog, setShowProgressDialog] = useState(false);
-  const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
-  const [totalContactsCount, setTotalContactsCount] = useState(0);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
-  const [forceSendOnResume, setForceSendOnResume] = useState(false);
   const [campaignToResume, setCampaignToResume] = useState<string | null>(null);
+  const [forceSendOnResume, setForceSendOnResume] = useState(false);
+
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
   const [sendDialogRemoveDuplicates, setSendDialogRemoveDuplicates] = useState(true);
+
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
+  const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
+  const [totalContactsCount, setTotalContactsCount] = useState(0);
+
+  // FIX #8 — single source of truth for selected instance across both dialogs
+  const [dialogInstanceId, setDialogInstanceId] = useState<string | null>(null);
+
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
+
+  // ── Stats dialog ───────────────────────────────────────────────────────────
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [statsDialogCampaignId, setStatsDialogCampaignId] = useState<string | null>(null);
   const [statsDialogCampaignName, setStatsDialogCampaignName] = useState("");
@@ -132,101 +215,98 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
   const [statsDialogTargetContacts, setStatsDialogTargetContacts] = useState<Array<{ phone: string; name?: string }>>(
     [],
   );
-  const [statsDialogLinkClicks, setStatsDialogLinkClicks] = useState<
-    Array<{
-      id: string;
-      created_at: string;
-      ip: string | null;
-      country: string | null;
-      city: string | null;
-      region: string | null;
-      user_agent: string | null;
-      phone: string | null;
-      btn_text: string | null;
-    }>
-  >([]);
-  const [instanceSelectionMode, setInstanceSelectionMode] = useState<"default" | "single" | "rotate">("default");
-  const [dialogInstanceId, setDialogInstanceId] = useState<string | undefined>(undefined);
-  const [showFilterDialog, setShowFilterDialog] = useState(false);
-  const [removeDuplicatesGlobal, setRemoveDuplicatesGlobal] = useState(true);
+  const [statsDialogLinkClicks, setStatsDialogLinkClicks] = useState<LinkClick[]>([]);
   const [removingDuplicates, setRemovingDuplicates] = useState(false);
   const [removedDuplicates, setRemovedDuplicates] = useState<string[]>([]);
 
-  // Realtime sends para o dialog de estatísticas
+  // FIX #5 — safe destructuring with fallback
   const statsDialogSendsRaw = useCampaignSendsRealtime(statsDialogOpen ? statsDialogCampaignId : null);
-  const statsDialogSends = statsDialogSendsRaw?.sends || [];
-  const statsDialogLoading = statsDialogSendsRaw?.loading || false;
+  const statsDialogSends = statsDialogSendsRaw?.sends ?? [];
+  const statsDialogLoading = statsDialogSendsRaw?.loading ?? false;
 
-  // ✅ BUG 3 CORRIGIDO: removido statsDialogStats (era calculado mas ignorado)
-  // Os contadores agora vêm todos de fullContactList, calculado dentro do JSX
+  // ── Active session tracking ────────────────────────────────────────────────
+  const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
+  // FIX #3 — use a ref to avoid stale closure in campaignStatusKey effect
+  const sessionActiveIdsRef = useRef(sessionActiveIds);
+  sessionActiveIdsRef.current = sessionActiveIds;
 
-  const normalizePhoneKey = (phone?: string | null) => {
-    if (!phone) return "";
-    return phone.replace(/\D/g, "");
-  };
+  const campaignStatusKey = campaigns.map((c) => `${c.id}-${c.status}`).join(",");
 
-  const normalizeGroupDisplayPhone = (phone?: string | null) => {
-    if (!phone) return "";
-    if (phone.includes("-group@g.us")) return phone.replace(/-group@g\.us$/i, "@g.us");
-    if (phone.endsWith("-group")) return phone.replace(/-group$/i, "@g.us");
-    return phone;
-  };
+  useEffect(() => {
+    const currentActiveIds = campaigns.filter((c) => c.status === "active").map((c) => c.id);
+    setSessionActiveIds((prev) => {
+      const next = new Set(prev);
+      currentActiveIds.forEach((id) => next.add(id));
+      return next;
+    });
 
-  const resolvePhoneKey = (phone?: string | null) => normalizePhoneKey(phone);
-  const resolveDisplayPhone = (phone?: string | null) => normalizeGroupDisplayPhone(phone);
+    campaigns.forEach((c) => {
+      if (sessionActiveIdsRef.current.has(c.id) && c.status === "completed") {
+        toast({
+          title: "✅ Campanha Concluída",
+          description: `"${c.name}" terminou de enviar. Disponível em Relatórios.`,
+        });
+        setSessionActiveIds((prev) => {
+          const next = new Set(prev);
+          next.delete(c.id);
+          return next;
+        });
+      }
+    });
+  }, [campaignStatusKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Instance override on mount/unmount ────────────────────────────────────
+  useEffect(() => {
+    if (activeInstance) setZapiInstanceOverride(activeInstance);
+  }, [activeInstance]);
+
+  useEffect(() => () => setZapiInstanceOverride(null), []);
+
+  // ── Stats dialog effects ───────────────────────────────────────────────────
+
+  // Reset click map when dialog closes
   useEffect(() => {
     if (!statsDialogOpen) {
       setStatsDialogClickMap(new Map());
+      setStatsDialogLinkClicks([]);
+      setStatsDialogTargetContacts([]);
+      setStatsDialogHasUrlButton(false);
     }
   }, [statsDialogOpen]);
 
+  // Fetch template buttons
   useEffect(() => {
-    if (!statsDialogOpen || !statsDialogCampaignId) {
-      setStatsDialogHasUrlButton(false);
-      return;
-    }
-
+    if (!statsDialogOpen || !statsDialogCampaignId) return;
     let active = true;
-    const fetchTemplateButtons = async () => {
+    (async () => {
       const { data: campaignRow } = await supabase
         .from("campaigns")
         .select("template_id")
         .eq("id", statsDialogCampaignId)
         .maybeSingle();
-
-      if (!active || !campaignRow?.template_id) {
-        if (active) setStatsDialogHasUrlButton(false);
-        return;
-      }
-
+      if (!active || !campaignRow?.template_id) return;
       const { data: tpl } = await supabase
         .from("message_templates")
         .select("buttons")
         .eq("id", campaignRow.template_id)
         .maybeSingle();
-
       if (!active) return;
       const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
-      const hasUrl = buttons.some((b: any) => {
-        const type = String(b?.type || "").toUpperCase();
-        return type === "URL" || Boolean(b?.url || b?.value);
-      });
-      setStatsDialogHasUrlButton(hasUrl);
-    };
-
-    fetchTemplateButtons();
+      setStatsDialogHasUrlButton(
+        buttons.some((b: any) => {
+          const type = String(b?.type ?? "").toUpperCase();
+          return type === "URL" || Boolean(b?.url || b?.value);
+        }),
+      );
+    })();
     return () => {
       active = false;
     };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
+  // Fetch target contacts
   useEffect(() => {
-    if (!statsDialogOpen || !statsDialogCampaignId) {
-      setStatsDialogTargetContacts([]);
-      return;
-    }
-
+    if (!statsDialogOpen || !statsDialogCampaignId) return;
     let active = true;
     (async () => {
       const { data, error } = await supabase
@@ -234,134 +314,106 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         .select("target_audience")
         .eq("id", statsDialogCampaignId)
         .maybeSingle();
-
       if (!active) return;
       if (error) {
-        console.error("Erro ao carregar audiência da campanha:", error);
-        setStatsDialogTargetContacts([]);
+        console.error("Erro ao carregar audiência:", error);
         return;
       }
-
       const rawContacts = (data?.target_audience as any)?.contacts;
-      const contacts: Array<{ phone: string; name?: string }> = Array.isArray(rawContacts)
-        ? rawContacts
-            .map((c: any) => ({
-              phone: String(c?.phone || "").trim(),
-              name: c?.name ? String(c.name) : undefined,
-            }))
-            .filter((c) => Boolean(c.phone))
-        : [];
-      setStatsDialogTargetContacts(contacts);
+      setStatsDialogTargetContacts(
+        Array.isArray(rawContacts)
+          ? rawContacts
+              .map((c: any) => ({ phone: String(c?.phone ?? "").trim(), name: c?.name ? String(c.name) : undefined }))
+              .filter((c) => Boolean(c.phone))
+          : [],
+      );
     })();
-
     return () => {
       active = false;
     };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
+  // Fetch click map
   useEffect(() => {
-    if (!statsDialogOpen || !statsDialogCampaignId || !statsDialogCampaignName) {
-      setStatsDialogClickMap(new Map());
-      return;
-    }
-
+    if (!statsDialogOpen || !statsDialogCampaignId || !statsDialogCampaignName) return;
     let active = true;
-
-    const fetchCampaignClicks = async () => {
+    (async () => {
       const campaign = campaigns.find((c) => c.id === statsDialogCampaignId);
       const campaignStartedAt = campaign?.created_at;
 
       let query = supabase
         .from("message_logs")
-        .select("phone, created_at, message_received, response_sent")
+        .select("phone, created_at")
         .eq("response_sent", `[Fluxo: ${statsDialogCampaignName}]`)
         .ilike("message_received", "[URL Click]%")
         .order("created_at", { ascending: false })
         .limit(5000);
-
-      if (campaignStartedAt) {
-        query = query.gte("created_at", campaignStartedAt);
-      }
+      if (campaignStartedAt) query = query.gte("created_at", campaignStartedAt);
 
       const { data, error } = await query;
-
       if (error) {
-        console.error("Erro ao carregar cliques reais da campanha:", error);
-        return;
+        console.error("Erro ao carregar cliques:", error);
       }
-
       if (!active) return;
 
       const nextMap = new Map<string, string>();
-      (data || []).forEach((row: any) => {
-        const phoneKey = normalizePhoneKey(row.phone);
-        if (!phoneKey || nextMap.has(phoneKey)) return;
-        nextMap.set(phoneKey, row.created_at);
+      (data ?? []).forEach((row: any) => {
+        const key = normalizePhoneKey(row.phone);
+        if (key && !nextMap.has(key)) nextMap.set(key, row.created_at);
       });
 
-      const { data: linkRows, error: linkError } = await (supabase as any)
-        .from("link_clicks")
+      // Merge link_clicks table
+      const { data: linkRows } = await supabase
+        .from("link_clicks" as any)
         .select("phone, created_at")
         .eq("campaign_id", statsDialogCampaignId)
         .order("created_at", { ascending: false })
         .limit(5000);
 
-      if (linkError) {
-        console.error("Erro ao carregar cliques da campanha:", linkError);
-      }
-
-      (linkRows || []).forEach((row: any) => {
-        const phoneKey = normalizePhoneKey(row.phone);
-        if (!phoneKey || nextMap.has(phoneKey)) return;
-        nextMap.set(phoneKey, row.created_at);
+      if (!active) return;
+      (linkRows ?? []).forEach((row: any) => {
+        const key = normalizePhoneKey(row.phone);
+        if (key && !nextMap.has(key)) nextMap.set(key, row.created_at);
       });
 
       setStatsDialogClickMap(nextMap);
-    };
-
-    fetchCampaignClicks();
-
+    })();
     return () => {
       active = false;
     };
   }, [statsDialogOpen, statsDialogCampaignId, statsDialogCampaignName, campaigns]);
 
+  // FIX #1 — link_clicks realtime subscription: channel is always cleaned up
   useEffect(() => {
-    if (!statsDialogOpen || !statsDialogCampaignId) {
-      setStatsDialogLinkClicks([]);
-      return;
-    }
+    if (!statsDialogOpen || !statsDialogCampaignId) return;
+
     let active = true;
     (async () => {
-      const { data, error } = await (supabase as any)
-        .from("link_clicks")
+      const { data } = await supabase
+        .from("link_clicks" as any)
         .select("id, created_at, ip, country, city, region, user_agent, phone, btn_text")
         .eq("campaign_id", statsDialogCampaignId)
         .order("created_at", { ascending: false })
         .limit(500);
-      if (!active) return;
-      if (error) {
-        console.error("Erro ao carregar link_clicks:", error);
-        setStatsDialogLinkClicks([]);
-        return;
-      }
-      setStatsDialogLinkClicks((data || []) as any);
+      if (active) setStatsDialogLinkClicks((data ?? []) as LinkClick[]);
     })();
 
+    // FIX #1: channel always gets a cleanup regardless of whether statsDialogOpen changes
+    const channelName = `campaign-link-clicks-${statsDialogCampaignId}-${Date.now()}`;
     const channel = supabase
-      .channel(`campaign-link-clicks-${statsDialogCampaignId}-${Date.now()}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "link_clicks", filter: `campaign_id=eq.${statsDialogCampaignId}` },
         (payload) => {
-          const row = payload.new as any;
+          const row = payload.new as LinkClick & { phone?: string };
           setStatsDialogLinkClicks((prev) => [row, ...prev].slice(0, 500));
-          const phoneKey = normalizePhoneKey(row.phone);
-          if (phoneKey) {
+          const key = normalizePhoneKey(row.phone);
+          if (key) {
             setStatsDialogClickMap((prev) => {
-              if (prev.has(phoneKey)) return prev;
+              if (prev.has(key)) return prev;
               const next = new Map(prev);
-              next.set(phoneKey, row.created_at);
+              next.set(key, row.created_at);
               return next;
             });
           }
@@ -375,62 +427,397 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     };
   }, [statsDialogOpen, statsDialogCampaignId]);
 
-  const isCancelledSendStatus = (status?: string | null) =>
-    status === "failed" ||
-    status === "cancelled" ||
-    status === "canceled" ||
-    status === "error" ||
-    status === "rejected";
+  // ── Derived data ───────────────────────────────────────────────────────────
 
-  const openStatsDialog = (campaignId: string, campaignName: string) => {
+  const contactCampaigns = useMemo(() => {
+    return isGroupsMode
+      ? campaigns.filter((c) => {
+          const a = c.target_audience ?? {};
+          return a.type === "groups" || (a.groupIds && Array.isArray(a.groupIds));
+        })
+      : campaigns.filter((c) => {
+          const a = c.target_audience ?? {};
+          return a.type !== "groups" && !(a.groupIds && Array.isArray(a.groupIds));
+        });
+  }, [campaigns, isGroupsMode]);
+
+  // FIX #4 — moved out of JSX IIFE into useMemo so it doesn't re-run on every render
+  const statsData = useMemo(() => {
+    if (!statsDialogOpen || !statsDialogCampaignId) return null;
+
+    const campaign = campaigns.find((c) => c.id === statsDialogCampaignId);
+    const targetContacts: Array<{ phone: string; name?: string }> =
+      statsDialogTargetContacts.length > 0 ? statsDialogTargetContacts : (campaign?.target_audience?.contacts ?? []);
+
+    const campaignCancelled = campaign?.status === "cancelled";
+    const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
+
+    const getSendTimestamp = (send: (typeof statsDialogSends)[number]) =>
+      send?.delivered_at || send?.sent_at || send?.created_at || "";
+
+    // Deduplicate sends: keep the one with highest priority
+    const sendsByPhone = new Map<string, (typeof statsDialogSends)[0]>();
+    for (const send of statsDialogSends) {
+      if (!send) continue;
+      const key = normalizePhoneKey(send.phone);
+      const existing = sendsByPhone.get(key);
+      const p = getSendPriority(send.status, send as any);
+      const ep = getSendPriority(existing?.status, existing as any);
+      if (!existing || p > ep || (p === ep && getSendTimestamp(send) > getSendTimestamp(existing))) {
+        sendsByPhone.set(key, send);
+      }
+    }
+
+    const targetPhoneKeys = new Set(targetContacts.map((c) => normalizePhoneKey(c.phone)).filter(Boolean));
+
+    const toStatus = (
+      send: (typeof statsDialogSends)[0] | undefined,
+      canCancelPending: boolean,
+    ): CampaignContactStatus => {
+      if (!send) return "pendente";
+      if (send.status === "delivered") return "entregue";
+      if (send.status === "failed" || ((send as any).error_message && send.status !== "delivered")) return "cancelado";
+      if (send.status === "sent" || (send.status === "pending" && Boolean((send as any).message_id || send.sent_at)))
+        return "enviado";
+      if (send.status === "pending") return canCancelPending ? "cancelado" : "pendente";
+      if (isCancelledSendStatus(send.status)) return "cancelado";
+      return "pendente";
+    };
+
+    const fullContactList: ContactEntry[] = targetContacts.map((contact, index) => {
+      const key = normalizePhoneKey(contact.phone);
+      const send = sendsByPhone.get(key);
+      const status = toStatus(send, canTreatPendingAsCancelled);
+      return {
+        id: send?.id ?? `target-${index}`,
+        phone: normalizeGroupDisplayPhone(contact.phone) || normalizeGroupDisplayPhone(send?.phone),
+        name: send?.contact_name || contact.name || "",
+        status,
+        sentAt: send?.sent_at || null,
+        errorMessage: (send as any)?.error_message || null,
+        readAt: (send as any)?.read_at || null,
+        clickedAt: statsDialogClickMap.get(key) || (send as any)?.clicked_at || null,
+      };
+    });
+
+    // Append sends not in target list
+    for (const send of statsDialogSends) {
+      if (!send) continue;
+      const key = normalizePhoneKey(send.phone);
+      if (!targetPhoneKeys.has(key)) {
+        const status = toStatus(send, canTreatPendingAsCancelled);
+        fullContactList.push({
+          id: send.id,
+          phone: normalizeGroupDisplayPhone(send.phone),
+          name: send.contact_name || "",
+          status,
+          sentAt: send.sent_at || null,
+          errorMessage: (send as any)?.error_message || null,
+          readAt: (send as any)?.read_at || null,
+          clickedAt: statsDialogClickMap.get(key) || (send as any)?.clicked_at || null,
+        });
+      }
+    }
+
+    const deliveredCount = fullContactList.filter((c) => c.status === "entregue").length;
+    const sentCount = fullContactList.filter((c) => c.status === "enviado" || c.status === "entregue").length;
+    const pendingCount = fullContactList.filter((c) => c.status === "pendente").length;
+    const cancelledCount = fullContactList.filter((c) => c.status === "cancelado").length;
+    const totalCount = fullContactList.length;
+    const readCount = fullContactList.filter((c) => c.readAt).length;
+    const identifiedClickCount = fullContactList.filter((c) => c.clickedAt).length;
+    const clickedCount = Math.max(identifiedClickCount, statsDialogLinkClicks.length);
+    const isLive = pendingCount > 0 && campaign?.status === "active";
+
+    return {
+      fullContactList,
+      deliveredCount,
+      sentCount,
+      pendingCount,
+      cancelledCount,
+      totalCount,
+      readCount,
+      clickedCount,
+      isLive,
+    };
+  }, [
+    statsDialogOpen,
+    statsDialogCampaignId,
+    campaigns,
+    statsDialogTargetContacts,
+    statsDialogSends,
+    statsDialogClickMap,
+    statsDialogLinkClicks,
+    showProgressDialog,
+  ]);
+
+  // ── Callbacks ──────────────────────────────────────────────────────────────
+
+  const openStatsDialog = useCallback((campaignId: string, campaignName: string) => {
     setStatsDialogCampaignId(campaignId);
     setStatsDialogCampaignName(campaignName);
     setStatsDialogOpen(true);
-  };
-
-  useEffect(() => {
-    if (instanceSelectionMode === "default" && activeInstance) {
-      setZapiInstanceOverride(activeInstance);
-    }
-  }, [activeInstance, instanceSelectionMode, instances]);
-
-  useEffect(() => {
-    return () => setZapiInstanceOverride(null);
   }, []);
 
-  const [sessionActiveIds, setSessionActiveIds] = useState<Set<string>>(new Set());
-  const campaignStatusKey = campaigns.map((c) => `${c.id}-${c.status}`).join(",");
+  const handlePauseCampaign = useCallback((id: string) => pauseCampaign(id), [pauseCampaign]);
 
-  useEffect(() => {
-    const currentActiveIds = campaigns.filter((c) => c.status === "active").map((c) => c.id);
-    if (currentActiveIds.length > 0) {
-      setSessionActiveIds((prev) => {
-        const next = new Set(prev);
-        let changed = false;
-        currentActiveIds.forEach((id) => {
-          if (!next.has(id)) {
-            next.add(id);
-            changed = true;
-          }
+  const handleResumeCampaign = useCallback((id: string) => {
+    setDialogInstanceId(null); // FIX #8 — always reset to null, not undefined
+    setCampaignToResume(id);
+    setForceSendOnResume(false);
+    setResumeDialogOpen(true);
+  }, []);
+
+  const confirmResumeCampaign = useCallback(async () => {
+    if (!campaignToResume) return;
+    setResumeDialogOpen(false);
+
+    // FIX #8 — safe fallback with explicit null check
+    const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId() ?? undefined;
+
+    const campaign = campaigns.find((c) => c.id === campaignToResume);
+    setTotalContactsCount(campaign?.target_audience?.contacts?.length ?? 0);
+    setSendingCampaignId(campaignToResume);
+
+    try {
+      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId, forceSendOnResume);
+      await new Promise((r) => setTimeout(r, 500));
+      setShowProgressDialog(true);
+      await resumePromise;
+    } catch (error) {
+      console.error("Error resuming campaign:", error);
+      setShowProgressDialog(false);
+    }
+    setCampaignToResume(null);
+  }, [campaignToResume, dialogInstanceId, campaigns, resumeCampaign, forceSendOnResume]);
+
+  const handleDeleteCampaign = useCallback((id: string) => {
+    setCampaignToDelete(id);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDeleteCampaign = useCallback(async () => {
+    if (!campaignToDelete) return;
+    await deleteCampaign(campaignToDelete);
+    setDeleteDialogOpen(false);
+    setCampaignToDelete(null);
+  }, [campaignToDelete, deleteCampaign]);
+
+  const handleDuplicateCampaign = useCallback((campaign: Campaign) => duplicateCampaign(campaign), [duplicateCampaign]);
+
+  const handleForceStopQueue = useCallback(
+    async (campaignId: string) => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) {
+          toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
+          return;
+        }
+        await supabase.functions.invoke("clear-zapi-queue", {
+          headers: { Authorization: `Bearer ${token}` },
+          body: { clearAllActive: true },
         });
-        return changed ? next : prev;
+        toast({ title: "Fila limpa", description: "Filas de todas as instâncias foram limpas com sucesso." });
+      } catch (error) {
+        console.error("Error clearing queue:", error);
+        toast({ title: "Erro", description: "Erro ao limpar fila de envio", variant: "destructive" });
+      }
+    },
+    [toast],
+  );
+
+  const handleCancelCampaign = useCallback(async () => {
+    if (!campaignToCancel) return;
+    await cancelCampaign(campaignToCancel);
+    setCancelDialogOpen(false);
+    setCampaignToCancel(null);
+  }, [campaignToCancel, cancelCampaign]);
+
+  const openCancelDialog = useCallback((id: string) => {
+    setCampaignToCancel(id);
+    setCancelDialogOpen(true);
+  }, []);
+
+  const handleEditCampaign = useCallback((campaign: Campaign) => {
+    setEditingCampaign(campaign);
+    setShowEditDialog(true);
+  }, []);
+
+  const handleSendCampaign = useCallback(
+    (campaign: Campaign) => {
+      if (!campaign.target_audience?.contacts?.length) {
+        toast({ title: "Erro", description: "Esta campanha não possui contatos configurados", variant: "destructive" });
+        return;
+      }
+      setDialogInstanceId(null);
+      setCampaignToSend(campaign);
+      setSendDialogOpen(true);
+    },
+    [toast],
+  );
+
+  const confirmSendCampaign = useCallback(async () => {
+    if (!campaignToSend) return;
+    const campaign = campaignToSend;
+    setSendDialogOpen(false);
+    setCampaignToSend(null);
+
+    const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId() ?? undefined;
+
+    let contactsToSend = campaign.target_audience?.contacts ?? [];
+    if (sendDialogRemoveDuplicates) {
+      const seen = new Set<string>();
+      const before = contactsToSend.length;
+      contactsToSend = contactsToSend.filter((c: any) => {
+        const key =
+          String(c?.phone ?? "")
+            .replace(/@lid$/i, "")
+            .replace(/\D/g, "") || c?.phone;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
       });
+      const removed = before - contactsToSend.length;
+      if (removed > 0)
+        toast({ title: "Duplicados removidos", description: `${removed} número(s) duplicado(s) foram ignorados.` });
     }
 
-    campaigns.forEach((c) => {
-      if (sessionActiveIds.has(c.id) && c.status === "completed") {
-        toast({
-          title: "✅ Campanha Concluída",
-          description: `"${c.name}" terminou de enviar. Disponível em Relatórios.`,
-        });
-        setSessionActiveIds((prev) => {
-          const next = new Set(prev);
-          next.delete(c.id);
-          return next;
-        });
+    setTotalContactsCount(contactsToSend.length);
+    setSendingCampaignId(campaign.id);
+    setShowProgressDialog(true);
+
+    try {
+      await sendCampaign(campaign.id, contactsToSend, selectedInstanceId);
+    } catch (error) {
+      console.error("Error sending campaign:", error);
+      setShowProgressDialog(false);
+      setSendingCampaignId(null);
+    }
+  }, [campaignToSend, dialogInstanceId, sendDialogRemoveDuplicates, sendCampaign, toast]);
+
+  // FIX #7 — moved out of JSX IIFE into a useCallback
+  const handleRetryCancelled = useCallback(async () => {
+    if (!statsData || !statsDialogCampaignId) return;
+    const cancelledContacts = statsData.fullContactList
+      .filter((c) => c.status === "cancelado")
+      .map((c) => ({ phone: c.phone, name: c.name || undefined }));
+    if (!cancelledContacts.length) return;
+
+    setStatsDialogOpen(false);
+    setStatsDialogCampaignId(null);
+    setTotalContactsCount(cancelledContacts.length);
+    setSendingCampaignId(statsDialogCampaignId);
+    setShowProgressDialog(true);
+
+    try {
+      await sendCampaign(statsDialogCampaignId, cancelledContacts, getSelectedCampaignInstanceId() ?? undefined);
+    } catch (error) {
+      console.error("Error retrying cancelled contacts:", error);
+      toast({ title: "Erro", description: "Erro ao reenviar para contatos cancelados", variant: "destructive" });
+      setShowProgressDialog(false);
+      setSendingCampaignId(null);
+    }
+  }, [statsData, statsDialogCampaignId, sendCampaign, toast]);
+
+  // FIX #7 — moved out of JSX IIFE into a useCallback
+  const handleRemoveDuplicates = useCallback(async () => {
+    if (!statsDialogCampaignId || removingDuplicates) return;
+    setRemovingDuplicates(true);
+    setRemovedDuplicates([]);
+    try {
+      const { data: row } = await supabase
+        .from("campaigns")
+        .select("target_audience")
+        .eq("id", statsDialogCampaignId)
+        .maybeSingle();
+      const ta: any = row?.target_audience ?? {};
+      const contacts: Array<{ phone: string; name?: string }> = Array.isArray(ta?.contacts) ? ta.contacts : [];
+      const seen = new Set<string>();
+      const unique: typeof contacts = [];
+      const removed: string[] = [];
+
+      for (const c of contacts) {
+        const key = String(c?.phone ?? "")
+          .replace(/@lid$/i, "")
+          .replace(/\D/g, "");
+        if (!key) {
+          unique.push(c);
+          continue;
+        }
+        if (seen.has(key)) {
+          removed.push(c.phone);
+          setRemovedDuplicates((prev) => [...prev, c.phone]);
+          await new Promise((r) => setTimeout(r, 15));
+        } else {
+          seen.add(key);
+          unique.push(c);
+        }
       }
-    });
-  }, [campaignStatusKey]);
+
+      if (removed.length === 0) {
+        toast({ title: "Sem duplicados", description: "Nenhum número duplicado foi encontrado." });
+      } else {
+        const { error } = await supabase
+          .from("campaigns")
+          .update({ target_audience: { ...ta, contacts: unique } })
+          .eq("id", statsDialogCampaignId);
+        if (error) throw error;
+        setStatsDialogTargetContacts(unique);
+        await refetchCampaigns();
+        toast({ title: "Duplicados removidos", description: `${removed.length} número(s) duplicado(s) removido(s).` });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e?.message ?? "Falha ao remover duplicados", variant: "destructive" });
+    } finally {
+      setRemovingDuplicates(false);
+    }
+  }, [statsDialogCampaignId, removingDuplicates, refetchCampaigns, toast]);
+
+  const handleExportCsv = useCallback(() => {
+    if (!statsData) return;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = [
+      "Nome",
+      "Telefone",
+      "Status",
+      "Lida",
+      ...(statsDialogHasUrlButton ? ["Clique no link"] : []),
+      "Data",
+      "Erro",
+    ];
+    const rows = statsData.fullContactList.map((c) => [
+      c.name,
+      c.phone,
+      c.status,
+      c.readAt ? "Sim" : "Não",
+      ...(statsDialogHasUrlButton ? [c.clickedAt ? "Sim" : "Não"] : []),
+      c.sentAt ? safeFormat(c.sentAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
+      c.errorMessage ?? "",
+    ]);
+    const branding = [
+      ["ZapLynx - Relatório de Campanha"],
+      ["Campanha", statsDialogCampaignName],
+      ["Gerado em", safeFormat(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
+      [],
+    ];
+    const csv = "\uFEFF" + [...branding, headers, ...rows].map((r) => r.map(escape).join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeName = (statsDialogCampaignName || "campanha").replace(/[^a-z0-9-_]+/gi, "_");
+    a.href = url;
+    a.download = `zaplynx_relatorio_${safeName}_${safeFormat(new Date(), "yyyyMMdd_HHmm")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [statsData, statsDialogHasUrlButton, statsDialogCampaignName]);
+
+  // ── Badge helpers ──────────────────────────────────────────────────────────
 
   const getStatusBadge = (status: string, campaign?: Campaign) => {
     if (status === "draft" && campaign?.schedule_type === "scheduled" && campaign?.scheduled_at) {
@@ -457,174 +844,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
     }
   };
 
-  const handlePauseCampaign = async (id: string) => {
-    await pauseCampaign(id);
-  };
-
-  const handleResumeCampaign = (id: string) => {
-    // ✅ Reseta a instância selecionada ao abrir o dialog
-    setDialogInstanceId(undefined);
-    setCampaignToResume(id);
-    setForceSendOnResume(false);
-    setResumeDialogOpen(true);
-  };
-
-  const confirmResumeCampaign = async () => {
-    if (!campaignToResume) return;
-    setResumeDialogOpen(false);
-
-    try {
-      // ✅ Usa a instância selecionada no dialog (state local, resetado a cada abertura)
-      // Se o usuário não clicou em nenhuma, usa getSelectedCampaignInstanceId como fallback
-      const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId();
-      console.log(`✅ Usuário confirmou retomada da campanha ${campaignToResume} via ${selectedInstanceId}`);
-
-      const campaign = campaigns.find((c) => c.id === campaignToResume);
-      const targetContacts = campaign?.target_audience?.contacts || [];
-      setTotalContactsCount(targetContacts.length);
-      setSendingCampaignId(campaignToResume);
-
-      const resumePromise = resumeCampaign(campaignToResume, selectedInstanceId, forceSendOnResume);
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setShowProgressDialog(true);
-
-      await resumePromise;
-    } catch (error) {
-      console.error("Error resuming campaign:", error);
-      setShowProgressDialog(false);
-    }
-    setCampaignToResume(null);
-  };
-
-  const handleDeleteCampaign = (id: string) => {
-    setCampaignToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteCampaign = async () => {
-    if (campaignToDelete) {
-      await deleteCampaign(campaignToDelete);
-      setDeleteDialogOpen(false);
-      setCampaignToDelete(null);
-    }
-  };
-
-  const handleDuplicateCampaign = async (campaign: any) => {
-    await duplicateCampaign(campaign);
-  };
-
-  const handleForceStopQueue = async (campaignId: string) => {
-    try {
-      const { data: sessionData } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
-        return;
-      }
-      const { supabase } = await import("@/integrations/supabase/client");
-      await supabase.functions.invoke("clear-zapi-queue", {
-        headers: { Authorization: `Bearer ${token}` },
-        body: { clearAllActive: true },
-      });
-      toast({ title: "Fila limpa", description: "Filas de todas as instâncias foram limpas com sucesso." });
-    } catch (error) {
-      console.error("Error clearing queue:", error);
-      toast({ title: "Erro", description: "Erro ao limpar fila de envio", variant: "destructive" });
-    }
-  };
-
-  const handleCancelCampaign = async () => {
-    if (campaignToCancel) {
-      await cancelCampaign(campaignToCancel);
-      setCancelDialogOpen(false);
-      setCampaignToCancel(null);
-    }
-  };
-
-  const openCancelDialog = (campaignId: string) => {
-    setCampaignToCancel(campaignId);
-    setCancelDialogOpen(true);
-  };
-
-  const handleEditCampaign = (campaign: Campaign) => {
-    setEditingCampaign(campaign);
-    setShowEditDialog(true);
-  };
-
-  const handleSendCampaign = async (campaign: Campaign) => {
-    if (!campaign.target_audience?.contacts || campaign.target_audience.contacts.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Esta campanha não possui contatos configurados",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // ✅ Reseta a instância selecionada ao abrir o dialog
-    setDialogInstanceId(undefined);
-    setCampaignToSend(campaign);
-    setSendDialogOpen(true);
-  };
-
-  const confirmSendCampaign = async () => {
-    if (!campaignToSend) return;
-    const campaign = campaignToSend;
-    setSendDialogOpen(false);
-    setCampaignToSend(null);
-
-    try {
-      // ✅ Usa a instância selecionada no dialog (state local, resetado a cada abertura)
-      // Se o usuário não clicou em nenhuma, usa getSelectedCampaignInstanceId como fallback
-      const selectedInstanceId = dialogInstanceId ?? getSelectedCampaignInstanceId();
-      console.log(`✅ Usuário confirmou envio da campanha ${campaign.id} via ${selectedInstanceId}`);
-
-      let contactsToSend = campaign.target_audience?.contacts || [];
-      if (sendDialogRemoveDuplicates) {
-        const seen = new Set<string>();
-        const before = contactsToSend.length;
-        contactsToSend = contactsToSend.filter((c: any) => {
-          const key =
-            String(c?.phone || "")
-              .replace(/@lid$/i, "")
-              .replace(/\D/g, "") || c?.phone;
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        const removed = before - contactsToSend.length;
-        if (removed > 0) {
-          toast({
-            title: "Duplicados removidos",
-            description: `${removed} número(s) duplicado(s) foram ignorados.`,
-          });
-        }
-      }
-
-      setTotalContactsCount(contactsToSend.length);
-      setSendingCampaignId(campaign.id);
-      setShowProgressDialog(true);
-
-      await sendCampaign(campaign.id, contactsToSend, selectedInstanceId);
-    } catch (error) {
-      console.error("Error sending campaign:", error);
-      setShowProgressDialog(false);
-      setSendingCampaignId(null);
-    }
-  };
-
-  const contactCampaigns = useMemo(() => {
-    return isGroupsMode
-      ? campaigns.filter((c) => {
-          const audience = c.target_audience || {};
-          return audience.type === "groups" || (audience.groupIds && Array.isArray(audience.groupIds));
-        })
-      : campaigns.filter((c) => {
-          const audience = c.target_audience || {};
-          return audience.type !== "groups" && !(audience.groupIds && Array.isArray(audience.groupIds));
-        });
-  }, [campaigns, isGroupsMode]);
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -636,6 +856,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">{isGroupsMode ? "Campanhas em Grupo" : "Campanhas"}</h1>
         <div className="flex items-center gap-2">
@@ -681,6 +902,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         onRemoveDuplicatesChange={setRemoveDuplicatesGlobal}
       />
 
+      {/* Delete all dialog */}
       <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -698,9 +920,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                 e.preventDefault();
                 setDeletingAll(true);
                 try {
-                  for (const c of campaigns) {
-                    await deleteCampaign(c.id);
-                  }
+                  for (const c of campaigns) await deleteCampaign(c.id);
                   toast({ title: "Campanhas apagadas", description: "Todas as campanhas foram removidas." });
                   setDeleteAllDialogOpen(false);
                   refetchCampaigns();
@@ -721,20 +941,21 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Create dialogs */}
       {isGroupsMode ? (
         <CreateGroupCampaignDialog
           open={showCreateDialog}
-          onOpenChange={(open) => {
-            setShowCreateDialog(open);
-            if (!open) refetchCampaigns();
+          onOpenChange={(o) => {
+            setShowCreateDialog(o);
+            if (!o) refetchCampaigns();
           }}
         />
       ) : (
         <CreateCampaignDialog
           open={showCreateDialog}
-          onOpenChange={(open) => {
-            setShowCreateDialog(open);
-            if (!open) refetchCampaigns();
+          onOpenChange={(o) => {
+            setShowCreateDialog(o);
+            if (!o) refetchCampaigns();
           }}
         />
       )}
@@ -753,38 +974,27 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         campaignId={sendingCampaignId}
         totalContacts={totalContactsCount}
         onPause={() => {
-          if (sendingCampaignId) {
-            console.log("🛑 Pause triggered from progress dialog");
-          }
+          if (sendingCampaignId) console.log("🛑 Pause triggered");
         }}
       />
 
+      {/* Campaign cards */}
       <div className="grid gap-4">
-        {(() => {
-          const visibleCampaigns = contactCampaigns;
-
-          if (visibleCampaigns.length === 0) {
-            return (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    {isGroupsMode
-                      ? "Nenhuma campanha em grupo. Crie uma nova campanha!"
-                      : "Nenhuma campanha de contatos. Crie uma nova campanha!"}
-                  </p>
-                  <Button
-                    onClick={() => (isGroupsMode ? navigate("/campanhas-grupo/nova") : setShowCreateDialog(true))}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Criar Campanha
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          }
-
-          return visibleCampaigns.map((campaign) => (
+        {contactCampaigns.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">
+                {isGroupsMode ? "Nenhuma campanha em grupo." : "Nenhuma campanha de contatos."} Crie uma nova!
+              </p>
+              <Button onClick={() => (isGroupsMode ? navigate("/campanhas-grupo/nova") : setShowCreateDialog(true))}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Campanha
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          contactCampaigns.map((campaign) => (
             <Card key={campaign.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -811,14 +1021,12 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         Editar
                       </Button>
                     )}
-
                     {campaign.status === "draft" && (
                       <Button variant="default" size="sm" onClick={() => handleSendCampaign(campaign)}>
                         <Send className="w-4 h-4 mr-1" />
                         Enviar
                       </Button>
                     )}
-
                     {campaign.status === "active" && (
                       <>
                         <Button variant="outline" size="sm" onClick={() => handlePauseCampaign(campaign.id)}>
@@ -836,7 +1044,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         </Button>
                       </>
                     )}
-
                     {campaign.status === "paused" && (
                       <>
                         <Button variant="default" size="sm" onClick={() => handleResumeCampaign(campaign.id)}>
@@ -854,14 +1061,18 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         </Button>
                       </>
                     )}
-
                     {campaign.status === "cancelled" && (
-                      <Button variant="default" size="sm" onClick={() => handleResumeCampaign(campaign.id)}>
-                        <Play className="w-4 h-4 mr-1" />
-                        Continuar Envio
-                      </Button>
+                      <>
+                        <Button variant="default" size="sm" onClick={() => handleResumeCampaign(campaign.id)}>
+                          <Play className="w-4 h-4 mr-1" />
+                          Continuar Envio
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDuplicateCampaign(campaign)}>
+                          <Copy className="w-4 h-4 mr-1" />
+                          Duplicar
+                        </Button>
+                      </>
                     )}
-
                     {campaign.status === "completed" && (
                       <>
                         <Button variant="default" size="sm" onClick={() => handleResumeCampaign(campaign.id)}>
@@ -883,14 +1094,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                         </Button>
                       </>
                     )}
-
-                    {campaign.status === "cancelled" && (
-                      <Button variant="outline" size="sm" onClick={() => handleDuplicateCampaign(campaign)}>
-                        <Copy className="w-4 h-4 mr-1" />
-                        Duplicar
-                      </Button>
-                    )}
-
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteCampaign(campaign.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -899,7 +1102,6 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {campaign.description && <p className="text-sm text-muted-foreground">{campaign.description}</p>}
-
                 {campaign.template && (
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
@@ -909,14 +1111,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     <p className="text-sm text-muted-foreground line-clamp-2">{campaign.template.content}</p>
                   </div>
                 )}
-
-                <div className="flex items-center gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => openStatsDialog(campaign.id, campaign.name)}>
-                    <BarChart3 className="w-4 h-4 mr-1" />
-                    Ver Estatísticas
-                  </Button>
-                </div>
-
+                <Button variant="secondary" size="sm" onClick={() => openStatsDialog(campaign.id, campaign.name)}>
+                  <BarChart3 className="w-4 h-4 mr-1" />
+                  Ver Estatísticas
+                </Button>
                 <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                   <span>
                     Tipo:{" "}
@@ -930,25 +1128,24 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
                     <>
                       <span>•</span>
                       <span>
-                        Agendado para:{" "}
-                        {safeFormat(campaign.scheduled_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        Agendado para: {safeFormat(campaign.scheduled_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </span>
                     </>
                   )}
                 </div>
               </CardContent>
             </Card>
-          ));
-        })()}
+          ))
+        )}
       </div>
 
+      {/* Cancel dialog */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Campanha</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar esta campanha? Esta ação não pode ser desfeita. Os envios que já foram
-              realizados não serão afetados.
+              Tem certeza que deseja cancelar esta campanha? Os envios já realizados não serão afetados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -960,6 +1157,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -977,38 +1175,18 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Resume dialog */}
       <AlertDialog open={resumeDialogOpen} onOpenChange={setResumeDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Retomar Campanha</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja realmente retomar esta campanha? A campanha continuará de onde parou e iniciará o envio de
-              mensagens.
+              Deseja realmente retomar esta campanha? A campanha continuará de onde parou.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <div className="flex flex-wrap gap-2">
-              <InstanceSelector
-                providerFilter="zapi"
-                allowMultiple={true}
-                useSavedSelection={false}
-                onMultiInstanceChange={(ids) => {
-                  if (ids.length > 1) {
-                    const selectedInstances = instances.filter((i) => ids.includes(i.id));
-                    setInstanceSelectionMode("rotate");
-                    setZapiRotateMode(selectedInstances);
-                    setDialogInstanceId(`rotate:${ids.join(",")}`);
-                  } else if (ids.length === 1) {
-                    const inst = instances.find((i) => i.id === ids[0]);
-                    if (inst) {
-                      setInstanceSelectionMode("single");
-                      setZapiInstanceOverride(inst);
-                      setDialogInstanceId(ids[0]);
-                    }
-                  }
-                }}
-              />
-            </div>
+            {/* FIX #9 — single reusable InstancePicker */}
+            <InstancePicker instances={instances} onSelect={setDialogInstanceId} />
           </div>
           <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border border-border/50 mt-2">
             <div className="flex items-center gap-2">
@@ -1047,46 +1225,24 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Send dialog */}
       <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Enviar Campanha</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                {campaignToSend && (
-                  <>
-                    Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>?
-                    <br />
-                    👥 Total de contatos: {campaignToSend.target_audience?.contacts?.length || 0}
-                    <br />
-                    <br />
-                    Esta ação não pode ser desfeita!
-                  </>
-                )}
-              </div>
+            {/* FIX #10 — removed asChild+div (invalid HTML); use plain AlertDialogDescription */}
+            <AlertDialogDescription>
+              {campaignToSend && (
+                <>
+                  Deseja realmente enviar a campanha <strong>{campaignToSend.name}</strong>? 👥 Total de contatos:{" "}
+                  {campaignToSend.target_audience?.contacts?.length ?? 0}. Esta ação não pode ser desfeita!
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2 space-y-4">
-            <InstanceSelector
-              providerFilter="zapi"
-              allowMultiple={true}
-              useSavedSelection={false}
-              onMultiInstanceChange={(ids) => {
-                if (ids.length > 1) {
-                  const selectedInstances = instances.filter((i) => ids.includes(i.id));
-                  setInstanceSelectionMode("rotate");
-                  setZapiRotateMode(selectedInstances);
-                  setDialogInstanceId(`rotate:${ids.join(",")}`);
-                } else if (ids.length === 1) {
-                  const inst = instances.find((i) => i.id === ids[0]);
-                  if (inst) {
-                    setInstanceSelectionMode("single");
-                    setZapiInstanceOverride(inst);
-                    setDialogInstanceId(ids[0]);
-                  }
-                }
-              }}
-            />
+          <div className="py-2">
+            {/* FIX #9 — reusing InstancePicker */}
+            <InstancePicker instances={instances} onSelect={setDialogInstanceId} />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1095,7 +1251,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de Estatísticas em Tempo Real */}
+      {/* Stats dialog */}
       <Dialog
         open={statsDialogOpen}
         onOpenChange={(open) => {
@@ -1115,535 +1271,255 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps = {}) => {
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
             </div>
+          ) : !statsData || statsData.totalCount === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Nenhum envio registrado para esta campanha</div>
           ) : (
-            (() => {
-              const campaign = campaigns.find((c) => c.id === statsDialogCampaignId);
-              const targetContacts: Array<{ phone: string; name?: string }> =
-                statsDialogTargetContacts.length > 0
-                  ? statsDialogTargetContacts
-                  : campaign?.target_audience?.contacts || [];
-              const campaignCancelled = campaign?.status === "cancelled";
-              const canTreatPendingAsCancelled = campaignCancelled && !showProgressDialog;
-
-              const getSendPriority = (status?: string | null, row?: any) => {
-                if (status === "delivered") return 5;
-                if (status === "failed" || (row?.error_message && status !== "delivered")) return 4;
-                if (status === "sent") return 3;
-                if (status === "pending" && (row?.message_id || row?.sent_at)) return 2.5;
-                if (status === "pending") return 2;
-                if (isCancelledSendStatus(status)) return 1;
-                return 0;
-              };
-
-              const getSendTimestamp = (send: (typeof statsDialogSends)[number]) =>
-                send?.delivered_at || send?.sent_at || send?.created_at || "";
-
-              const sendsByPhone = new Map<string, (typeof statsDialogSends)[0]>();
-              statsDialogSends.forEach((send) => {
-                if (!send) return;
-                const phoneKey = resolvePhoneKey(send.phone);
-                const existing = sendsByPhone.get(phoneKey);
-                const sendPriority = getSendPriority(send.status, send);
-                const existingPriority = getSendPriority(existing?.status, existing);
-
-                if (
-                  !existing ||
-                  sendPriority > existingPriority ||
-                  (sendPriority === existingPriority && getSendTimestamp(send) > getSendTimestamp(existing))
-                ) {
-                  sendsByPhone.set(phoneKey, send);
-                }
-              });
-
-              const targetPhoneKeys = new Set(
-                targetContacts.map((contact) => resolvePhoneKey(contact.phone)).filter(Boolean),
-              );
-
-              type CampaignContactStatus = "entregue" | "enviado" | "enviando" | "pendente" | "cancelado";
-
-              const fullContactList: Array<{
-                id: string;
-                phone: string;
-                name: string;
-                status: CampaignContactStatus;
-                sentAt: string | null;
-                errorMessage: string | null;
-                readAt: string | null;
-                clickedAt: string | null;
-              }> = targetContacts.map((contact, index) => {
-                const phoneKey = resolvePhoneKey(contact.phone);
-                const send = sendsByPhone.get(phoneKey);
-                let status: CampaignContactStatus = "pendente";
-                let sentAt: string | null = null;
-                let errorMessage: string | null = null;
-
-                if (send) {
-                  if (send.status === "delivered") {
-                    status = "entregue";
-                    sentAt = send.delivered_at || send.sent_at || null;
-                  } else if (
-                    send.status === "failed" ||
-                    (send.error_message && send.status !== "delivered")
-                  ) {
-                    status = "cancelado";
-                    errorMessage = send.error_message || null;
-                  } else if (
-                    send.status === "sent" ||
-                    (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))
-                  ) {
-                    status = "enviado";
-                    sentAt = send.sent_at || null;
-                  } else if (send.status === "pending") {
-                    if (canTreatPendingAsCancelled) {
-                      status = "cancelado";
-                      errorMessage = send.error_message || "Campanha cancelada antes da entrega";
-                    } else {
-                      status = "pendente";
-                      sentAt = send.sent_at || null;
-                    }
-                  } else if (isCancelledSendStatus(send.status)) {
-                    status = "cancelado";
-                    errorMessage = send.error_message || null;
-                  }
-                }
-
-                return {
-                  id: send?.id || `target-${index}`,
-                  phone: resolveDisplayPhone(contact.phone) || resolveDisplayPhone(send?.phone),
-                  name: send?.contact_name || contact.name || "",
-                  status,
-                  sentAt,
-                  errorMessage,
-                  readAt: (send as any)?.read_at || null,
-                  clickedAt: statsDialogClickMap.get(phoneKey) || (send as any)?.clicked_at || null,
-                };
-              });
-
-              statsDialogSends.forEach((send) => {
-                if (!send) return;
-                const sendKey = resolvePhoneKey(send.phone);
-                const existsInTarget = targetPhoneKeys.has(sendKey);
-
-                if (!existsInTarget) {
-                  let status: CampaignContactStatus = "pendente";
-                  if (send.status === "delivered") status = "entregue";
-                  else if (send.status === "failed" || (send.error_message && send.status !== "delivered"))
-                    status = "cancelado";
-                  else if (
-                    send.status === "sent" ||
-                    (send.status === "pending" && Boolean((send as any).message_id || send.sent_at))
-                  )
-                    status = "enviado";
-                  else if (send.status === "pending") status = canTreatPendingAsCancelled ? "cancelado" : "pendente";
-                  else if (isCancelledSendStatus(send.status)) status = "cancelado";
-                  fullContactList.push({
-                    id: send.id,
-                    phone: resolveDisplayPhone(send.phone),
-                    name: send.contact_name || "",
-                    status,
-                    sentAt: send.sent_at || null,
-                    errorMessage: send.error_message || null,
-                    readAt: (send as any)?.read_at || null,
-                    clickedAt: statsDialogClickMap.get(sendKey) || (send as any)?.clicked_at || null,
-                  });
-                }
-              });
-
-              // ✅ BUG 3 CORRIGIDO: todos os contadores vêm de fullContactList
-              const deliveredCount = fullContactList.filter((c) => c.status === "entregue").length;
-              const sentCount = fullContactList.filter((c) => c.status === "enviado" || c.status === "entregue").length;
-              const pendingCount = fullContactList.filter((c) => c.status === "pendente").length;
-              const cancelledCount = fullContactList.filter((c) => c.status === "cancelado").length;
-              const totalCount = fullContactList.length;
-              const readCount = fullContactList.filter((c) => c.readAt).length;
-              const identifiedClickCount = fullContactList.filter((c) => c.clickedAt).length;
-              const clickedCount = Math.max(identifiedClickCount, statsDialogLinkClicks.length);
-              // Badge "Tempo real" aparece quando há pendentes em andamento
-              const isLive = pendingCount > 0 && campaign?.status === "active";
-
-              const handleRetryCancelled = async () => {
-                const cancelledContacts = fullContactList
-                  .filter((c) => c.status === "cancelado")
-                  .map((c) => ({ phone: c.phone, name: c.name || undefined }));
-
-                if (cancelledContacts.length === 0) return;
-
-                try {
-                  const campaignId = statsDialogCampaignId;
-                  setStatsDialogOpen(false);
-                  setStatsDialogCampaignId(null);
-                  setTotalContactsCount(cancelledContacts.length);
-
-                  if (campaignId) {
-                    setSendingCampaignId(campaignId);
-                    setShowProgressDialog(true);
-                    await sendCampaign(campaignId, cancelledContacts, getSelectedCampaignInstanceId());
-                  }
-                } catch (error) {
-                  console.error("Error retrying cancelled contacts:", error);
-                  toast({
-                    title: "Erro",
-                    description: "Erro ao reenviar para contatos cancelados",
-                    variant: "destructive",
-                  });
-                  setShowProgressDialog(false);
-                  setSendingCampaignId(null);
-                }
-              };
-
-              if (totalCount === 0) {
-                return (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Nenhum envio registrado para esta campanha
-                  </div>
-                );
-              }
-
-              return (
-                <>
-                  {/* Progress bar */}
-                  <div>
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span className="flex items-center gap-2">
-                        Progresso do envio
-                        {isLive && (
-                          <Badge variant="secondary" className="animate-pulse text-[10px]">
-                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                            Tempo real
-                          </Badge>
-                        )}
-                      </span>
-                      <span>
-                        {totalCount > 0 ? (((sentCount + cancelledCount) / totalCount) * 100).toFixed(0) : 0}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={totalCount > 0 ? ((sentCount + cancelledCount) / totalCount) * 100 : 0}
-                      className="h-2"
-                    />
-                  </div>
-
-                  {/* Stats grid */}
-                  <div
-                    className={`grid grid-cols-2 ${statsDialogHasUrlButton ? "md:grid-cols-8" : "md:grid-cols-7"} gap-2`}
-                  >
-                    <div className="p-2 bg-muted/50 rounded-lg text-center">
-                      <p className="text-[10px] text-muted-foreground">Total</p>
-                      <p className="font-bold text-md">{totalCount}</p>
-                    </div>
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-center">
-                      <p className="text-[10px] text-blue-600 dark:text-blue-400">Enviados (✓)</p>
-                      <p className="font-bold text-md text-blue-600 dark:text-blue-400">{sentCount}</p>
-                    </div>
-                    <div className="p-2 bg-green-500/10 rounded-lg text-center">
-                      <p className="text-[10px] text-green-600 dark:text-green-400">Entregues (✓✓)</p>
-                      <p className="font-bold text-md text-green-600 dark:text-green-400">{deliveredCount}</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded-lg text-center">
-                      <p className="text-[10px] text-muted-foreground">Em trânsito</p>
-                      <p className="font-bold text-md">0</p>
-                    </div>
-                    <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
-                      <p className="font-bold text-lg text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
-                    </div>
-                    <div className="p-3 bg-red-500/10 rounded-lg text-center">
-                      <p className="text-xs text-red-600 dark:text-red-400">Canceladas</p>
-                      <p className="font-bold text-lg text-red-600 dark:text-red-400">{cancelledCount}</p>
-                    </div>
-                    <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">Lidas</p>
-                      <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{readCount}</p>
-                    </div>
-                    {statsDialogHasUrlButton && (
-                      <div className="p-3 bg-purple-500/10 rounded-lg text-center">
-                        <p className="text-xs text-purple-600 dark:text-purple-400">Cliques</p>
-                        <p className="font-bold text-lg text-purple-600 dark:text-purple-400">{clickedCount}</p>
-                      </div>
+            <>
+              {/* Progress bar */}
+              <div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span className="flex items-center gap-2">
+                    Progresso do envio
+                    {statsData.isLive && (
+                      <Badge variant="secondary" className="animate-pulse text-[10px]">
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        Tempo real
+                      </Badge>
                     )}
+                  </span>
+                  <span>
+                    {statsData.totalCount > 0
+                      ? (((statsData.sentCount + statsData.cancelledCount) / statsData.totalCount) * 100).toFixed(0)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    statsData.totalCount > 0
+                      ? ((statsData.sentCount + statsData.cancelledCount) / statsData.totalCount) * 100
+                      : 0
+                  }
+                  className="h-2"
+                />
+              </div>
+
+              {/* Stats grid */}
+              <div
+                className={`grid grid-cols-2 ${statsDialogHasUrlButton ? "md:grid-cols-8" : "md:grid-cols-7"} gap-2`}
+              >
+                {[
+                  { label: "Total", value: statsData.totalCount, cls: "bg-muted/50" },
+                  {
+                    label: "Enviados (✓)",
+                    value: statsData.sentCount,
+                    cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                  },
+                  {
+                    label: "Entregues (✓✓)",
+                    value: statsData.deliveredCount,
+                    cls: "bg-green-500/10 text-green-600 dark:text-green-400",
+                  },
+                  { label: "Em trânsito", value: 0, cls: "bg-muted/50" },
+                  {
+                    label: "Pendentes",
+                    value: statsData.pendingCount,
+                    cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+                  },
+                  {
+                    label: "Canceladas",
+                    value: statsData.cancelledCount,
+                    cls: "bg-red-500/10 text-red-600 dark:text-red-400",
+                  },
+                  {
+                    label: "Lidas",
+                    value: statsData.readCount,
+                    cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                  },
+                ].map(({ label, value, cls }) => (
+                  <div key={label} className={`p-2 rounded-lg text-center ${cls}`}>
+                    <p className="text-[10px]">{label}</p>
+                    <p className="font-bold text-md">{value}</p>
                   </div>
+                ))}
+                {statsDialogHasUrlButton && (
+                  <div className="p-3 bg-purple-500/10 rounded-lg text-center">
+                    <p className="text-xs text-purple-600 dark:text-purple-400">Cliques</p>
+                    <p className="font-bold text-lg text-purple-600 dark:text-purple-400">{statsData.clickedCount}</p>
+                  </div>
+                )}
+              </div>
 
-                  {/* Retry cancelled */}
-                  {cancelledCount > 0 && (
-                    <Button onClick={handleRetryCancelled} className="w-full" variant="outline">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Reenviar {cancelledCount} contato(s) cancelado(s)
-                    </Button>
-                  )}
+              {/* Actions */}
+              {statsData.cancelledCount > 0 && (
+                <Button onClick={handleRetryCancelled} className="w-full" variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reenviar {statsData.cancelledCount} contato(s) cancelado(s)
+                </Button>
+              )}
 
-                  {/* Remover duplicados */}
-                  <Button
-                    onClick={async () => {
-                      if (!statsDialogCampaignId || removingDuplicates) return;
-                      setRemovingDuplicates(true);
-                      setRemovedDuplicates([]);
-                      try {
-                        const { data: row } = await supabase
-                          .from("campaigns")
-                          .select("target_audience")
-                          .eq("id", statsDialogCampaignId)
-                          .maybeSingle();
-                        const ta: any = row?.target_audience || {};
-                        const contacts: Array<{ phone: string; name?: string }> = Array.isArray(ta?.contacts)
-                          ? ta.contacts
-                          : [];
-                        const seen = new Set<string>();
-                        const unique: typeof contacts = [];
-                        const removed: string[] = [];
-                        for (const c of contacts) {
-                          const key = String(c?.phone || "")
-                            .replace(/@lid$/i, "")
-                            .replace(/\D/g, "");
-                          if (!key) {
-                            unique.push(c);
-                            continue;
-                          }
-                          if (seen.has(key)) {
-                            removed.push(c.phone);
-                            setRemovedDuplicates((prev) => [...prev, c.phone]);
-                            await new Promise((r) => setTimeout(r, 15));
-                          } else {
-                            seen.add(key);
-                            unique.push(c);
-                          }
-                        }
-                        if (removed.length === 0) {
-                          toast({ title: "Sem duplicados", description: "Nenhum número duplicado foi encontrado." });
-                        } else {
-                          const newTa = { ...ta, contacts: unique };
-                          const { error } = await supabase
-                            .from("campaigns")
-                            .update({ target_audience: newTa })
-                            .eq("id", statsDialogCampaignId);
-                          if (error) throw error;
-                          setStatsDialogTargetContacts(unique);
-                          await refetchCampaigns();
-                          toast({
-                            title: "Duplicados removidos",
-                            description: `${removed.length} número(s) duplicado(s) removido(s).`,
-                          });
-                        }
-                      } catch (e: any) {
-                        toast({
-                          title: "Erro",
-                          description: e?.message || "Falha ao remover duplicados",
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setRemovingDuplicates(false);
-                      }
-                    }}
-                    className="w-full"
-                    variant="outline"
-                    disabled={removingDuplicates}
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    {removingDuplicates
-                      ? `Removendo duplicados... (${removedDuplicates.length})`
-                      : "Remover Duplicados"}
-                  </Button>
+              <Button
+                onClick={handleRemoveDuplicates}
+                className="w-full"
+                variant="outline"
+                disabled={removingDuplicates}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                {removingDuplicates ? `Removendo duplicados... (${removedDuplicates.length})` : "Remover Duplicados"}
+              </Button>
 
-                  {(removingDuplicates || removedDuplicates.length > 0) && (
-                    <div className="border rounded-lg p-3 bg-muted/30">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium">Números duplicados removidos ({removedDuplicates.length})</p>
-                        {removingDuplicates && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
-                      </div>
-                      <ScrollArea className="max-h-32">
-                        <div className="flex flex-wrap gap-1">
-                          {removedDuplicates.map((p, i) => (
-                            <Badge key={`${p}-${i}`} variant="secondary" className="text-[10px] font-mono">
-                              {p}
-                            </Badge>
-                          ))}
-                          {removedDuplicates.length === 0 && (
-                            <span className="text-xs text-muted-foreground">Verificando...</span>
-                          )}
-                        </div>
-                      </ScrollArea>
+              {(removingDuplicates || removedDuplicates.length > 0) && (
+                <div className="border rounded-lg p-3 bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium">Números duplicados removidos ({removedDuplicates.length})</p>
+                    {removingDuplicates && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
+                  </div>
+                  <ScrollArea className="max-h-32">
+                    <div className="flex flex-wrap gap-1">
+                      {removedDuplicates.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Verificando...</span>
+                      ) : (
+                        removedDuplicates.map((p, i) => (
+                          <Badge key={`${p}-${i}`} variant="secondary" className="text-[10px] font-mono">
+                            {p}
+                          </Badge>
+                        ))
+                      )}
                     </div>
-                  )}
-
-                  {/* Export CSV */}
-                  <Button
-                    onClick={() => {
-                      const escape = (v: any) => {
-                        const s = v == null ? "" : String(v);
-                        return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-                      };
-                      const headers = [
-                        "Nome",
-                        "Telefone",
-                        "Status",
-                        "Lida",
-                        ...(statsDialogHasUrlButton ? ["Clique no link"] : []),
-                        "Data",
-                        "Erro",
-                      ];
-                      const rows = fullContactList.map((c) => [
-                        c.name || "",
-                        c.phone || "",
-                        c.status,
-                        c.readAt ? "Sim" : "Não",
-                        ...(statsDialogHasUrlButton ? [c.clickedAt ? "Sim" : "Não"] : []),
-                        c.sentAt ? safeFormat(c.sentAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : "",
-                        c.errorMessage || "",
-                      ]);
-                      const brandingRows = [
-                        ["ZapLynx - Relatório de Campanha"],
-                        ["Campanha", statsDialogCampaignName || ""],
-                        ["Gerado em", safeFormat(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })],
-                        [],
-                      ];
-                      const csv =
-                        "\uFEFF" + [...brandingRows, headers, ...rows].map((r) => r.map(escape).join(";")).join("\n");
-                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      const safeName = (statsDialogCampaignName || "campanha").replace(/[^a-z0-9-_]+/gi, "_");
-                      a.href = url;
-                      a.download = `zaplynx_relatorio_${safeName}_${safeFormat(new Date(), "yyyyMMdd_HHmm")}.csv`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Baixar relatório (CSV)
-                  </Button>
-
-                  {/* Tabela de contatos */}
-                  <ScrollArea className="max-h-[60vh]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Contato</TableHead>
-                          <TableHead>Telefone</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Lida</TableHead>
-                          {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
-                          <TableHead>Data</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {fullContactList.map((contact) => (
-                          <TableRow key={contact.id}>
-                            <TableCell className="font-medium">{contact.name || "-"}</TableCell>
-                            <TableCell>{contact.phone}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  contact.status === "entregue"
-                                    ? "default"
-                                    : contact.status === "enviado"
-                                      ? "secondary"
-                                      : contact.status === "cancelado"
-                                        ? "destructive"
-                                        : "secondary"
-                                }
-                                className={`flex items-center gap-1 w-fit ${
-                                  contact.status === "enviado" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" : ""
-                                }`}
-                              >
-                                {contact.status === "entregue" ? (
-                                  <>
-                                    <div className="flex -space-x-1">
-                                      <CheckCircle className="w-3 h-3" />
-                                      <CheckCircle className="w-3 h-3" />
-                                    </div>{" "}
-                                    Entregue
-                                  </>
-                                ) : contact.status === "enviado" ? (
-                                  <>
-                                    <CheckCircle className="w-3 h-3" /> Enviado
-                                  </>
-                                ) : contact.status === "enviando" ? (
-                                  <>
-                                    <RefreshCw className="w-3 h-3 animate-spin" /> Enviando
-                                  </>
-                                ) : contact.status === "pendente" ? (
-                                  <>
-                                    <ClockIcon className="w-3 h-3" /> Pendente
-                                  </>
-                                ) : (
-                                  <>
-                                    <XCircle className="w-3 h-3" /> Cancelado
-                                  </>
-                                )}
-                              </Badge>
-                              {contact.errorMessage && (
-                                <p className="text-xs text-destructive mt-1" title={contact.errorMessage}>
-                                  {formatErrorMessage(contact.errorMessage)}
-                                </p>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {contact.readAt ? (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 flex items-center gap-1 w-fit"
-                                >
-                                  <CheckCircle className="w-3 h-3" /> Lida
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            {statsDialogHasUrlButton && (
-                              <TableCell>
-                                {contact.clickedAt ? (
-                                  (() => {
-                                    const phoneKey = normalizePhoneKey(contact.phone);
-                                    const click = statsDialogLinkClicks.find(
-                                      (c: any) => normalizePhoneKey(c.phone) === phoneKey,
-                                    );
-                                    const loc = click
-                                      ? [click.city, click.region, click.country].filter(Boolean).join(", ")
-                                      : "";
-                                    return (
-                                      <div className="flex flex-col gap-1">
-                                        <Badge
-                                          variant="outline"
-                                          className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit"
-                                        >
-                                          <CheckCircle className="w-3 h-3" /> Clicou
-                                        </Badge>
-                                        {click?.ip && (
-                                          <span className="text-[10px] font-mono text-muted-foreground" title={loc}>
-                                            {click.ip}
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  })()
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                            )}
-                            <TableCell className="text-xs text-muted-foreground">
-                              {contact.sentAt
-                                ? safeFormat(contact.sentAt, "dd/MM/yy HH:mm", { locale: ptBR })
-                                : "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
                   </ScrollArea>
+                </div>
+              )}
 
-                  {statsDialogHasUrlButton && statsDialogLinkClicks.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {statsDialogLinkClicks.length} clique(s) registrado(s). IP e localização aproximada exibidos ao
-                      lado de cada contato que clicou.
-                    </p>
-                  )}
-                </>
-              );
-            })()
+              <Button onClick={handleExportCsv} className="w-full" variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Baixar relatório (CSV)
+              </Button>
+
+              {/* Contacts table */}
+              <ScrollArea className="max-h-[60vh]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Lida</TableHead>
+                      {statsDialogHasUrlButton && <TableHead>Clique no link</TableHead>}
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statsData.fullContactList.map((contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell className="font-medium">{contact.name || "-"}</TableCell>
+                        <TableCell>{contact.phone}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              contact.status === "entregue"
+                                ? "default"
+                                : contact.status === "cancelado"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                            className={`flex items-center gap-1 w-fit ${contact.status === "enviado" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" : ""}`}
+                          >
+                            {contact.status === "entregue" && (
+                              <>
+                                <div className="flex -space-x-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  <CheckCircle className="w-3 h-3" />
+                                </div>{" "}
+                                Entregue
+                              </>
+                            )}
+                            {contact.status === "enviado" && (
+                              <>
+                                <CheckCircle className="w-3 h-3" /> Enviado
+                              </>
+                            )}
+                            {contact.status === "enviando" && (
+                              <>
+                                <RefreshCw className="w-3 h-3 animate-spin" /> Enviando
+                              </>
+                            )}
+                            {contact.status === "pendente" && (
+                              <>
+                                <ClockIcon className="w-3 h-3" /> Pendente
+                              </>
+                            )}
+                            {contact.status === "cancelado" && (
+                              <>
+                                <XCircle className="w-3 h-3" /> Cancelado
+                              </>
+                            )}
+                          </Badge>
+                          {contact.errorMessage && (
+                            <p className="text-xs text-destructive mt-1" title={contact.errorMessage}>
+                              {formatErrorMessage(contact.errorMessage)}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {contact.readAt ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 flex items-center gap-1 w-fit"
+                            >
+                              <CheckCircle className="w-3 h-3" /> Lida
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        {statsDialogHasUrlButton && (
+                          <TableCell>
+                            {contact.clickedAt ? (
+                              (() => {
+                                const phoneKey = normalizePhoneKey(contact.phone);
+                                const click = statsDialogLinkClicks.find(
+                                  (c) => normalizePhoneKey(c.phone) === phoneKey,
+                                );
+                                const loc = click
+                                  ? [click.city, click.region, click.country].filter(Boolean).join(", ")
+                                  : "";
+                                return (
+                                  <div className="flex flex-col gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 flex items-center gap-1 w-fit"
+                                    >
+                                      <CheckCircle className="w-3 h-3" /> Clicou
+                                    </Badge>
+                                    {click?.ip && (
+                                      <span className="text-[10px] font-mono text-muted-foreground" title={loc}>
+                                        {click.ip}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-xs text-muted-foreground">
+                          {contact.sentAt ? safeFormat(contact.sentAt, "dd/MM/yy HH:mm", { locale: ptBR }) : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+
+              {statsDialogHasUrlButton && statsDialogLinkClicks.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {statsDialogLinkClicks.length} clique(s) registrado(s). IP e localização aproximada exibidos ao lado
+                  de cada contato que clicou.
+                </p>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
