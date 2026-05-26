@@ -130,7 +130,9 @@ Deno.serve(async (req) => {
       const statusData = await statusResp.json().catch(() => ({}));
       console.log(`🔎 Status conexão (${statusResp.status}):`, statusData);
       
-      if (!statusResp.ok || isDisconnectedError(statusData) || isDisconnectedError(statusResp.statusText)) {
+      // Se statusData.connected for explicitamente false, retornamos erro de desconexão.
+      // Se for true ou se falhar ao obter, tentamos a operação assim mesmo (fail-soft).
+      if (statusResp.ok && statusData.connected === false) {
         return buildDisconnectedResponse();
       }
     } catch (preErr) {
