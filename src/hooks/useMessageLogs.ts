@@ -61,6 +61,12 @@ export interface SavedContact {
   is_community?: boolean;
   community_id?: string | null;
   agent_stage?: string | null;
+  deal_value?: number;
+  closing_date?: string | null;
+  priority?: string;
+  description?: string | null;
+  responsible_ids?: string[] | null;
+  deal_metadata?: any;
 }
 
 export interface Conversation {
@@ -76,6 +82,12 @@ export interface Conversation {
   isCommunity?: boolean;
   communityId?: string | null;
   agent_stage?: string | null;
+  deal_value?: number;
+  closing_date?: string | null;
+  priority?: string;
+  description?: string | null;
+  responsible_ids?: string[] | null;
+  deal_metadata?: any;
 }
 
 type OutboundButtonAction = {
@@ -301,7 +313,7 @@ const savedContactsApi = {
 
     return allContacts;
   },
-   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null; agent_stage?: string | null }) {
+   async upsert(token: string, data: Partial<SavedContact> & { phone: string; name: string; user_id: string }) {
      const payload = { ...data };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
@@ -1333,7 +1345,14 @@ export const useMessageLogs = (
           preferredInstanceId,
           isCommunity: saved?.is_community || false,
           communityId: saved?.community_id || null,
-          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
+          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone]?.stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
+          deal_value: saved?.deal_value || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.deal_value || 0,
+          closing_date: saved?.closing_date || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.closing_date || null,
+          priority: saved?.priority || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.priority || 'normal',
+          description: saved?.description || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.description || null,
+          responsible_ids: saved?.responsible_ids || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.responsible_ids || null,
+          deal_metadata: saved?.deal_metadata || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.deal_metadata || {},
+
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
@@ -1557,33 +1576,33 @@ export const useMessageLogs = (
      loading, 
      refetch: fetchAll, 
      saveContact, 
-     updateContactStage: async (phone: string, stage: string) => {
-       const token = await getToken();
-       const userId = await getUserId();
-       if (!token || !userId) return;
-       const normalized = normalizeConversationPhone(phone);
-       const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
-        try {
-          const { error } = await supabase
-            .from('saved_contacts')
-            .upsert({
-              phone: normalized,
-              name: saved?.name || '',
-              user_id: userId,
-              agent_stage: stage,
-              profile_picture_url: saved?.profile_picture_url || null,
-            }, { onConflict: 'phone,user_id' });
-          
-          if (error) throw error;
-        } catch (e) {
-         console.warn("Failed to save stage to database, column might be missing:", e);
-         // Fallback: save to localStorage for this session/user
-         const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
-         stages[normalized] = stage;
-         localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
-       }
-       await fetchSavedContacts();
-     },
+      updateContactStage: async (phone: string, stage: string, additionalData?: Partial<SavedContact>) => {
+        const token = await getToken();
+        const userId = await getUserId();
+        if (!token || !userId) return;
+        const normalized = normalizeConversationPhone(phone);
+        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
+         try {
+           const { error } = await (supabase as any)
+             .from('saved_contacts')
+             .upsert({
+               phone: normalized,
+               name: saved?.name || '',
+               user_id: userId,
+               agent_stage: stage,
+               profile_picture_url: saved?.profile_picture_url || null,
+               ...additionalData
+             }, { onConflict: 'phone,user_id' });
+           
+           if (error) throw error;
+         } catch (e) {
+          console.warn("Failed to save stage to database, column might be missing:", e);
+          const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
+          stages[normalized] = { stage, ...additionalData };
+          localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
+        }
+        await fetchSavedContacts();
+      },
      fetchProfilePicture, 
      savedContacts, 
      sendMessage, 

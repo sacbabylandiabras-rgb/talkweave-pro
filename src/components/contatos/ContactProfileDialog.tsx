@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -19,8 +20,8 @@ import type { Contact } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  import { useZapi } from "@/hooks/useZapi";
-  import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapi } from "@/hooks/useZapi";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useMessageLogs } from "@/hooks/useMessageLogs";
 import { PIPELINE_STAGES } from "@/components/agent/PipelineBar";
@@ -718,38 +719,145 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
 
             <Separator />
             
-            {/* Pipeline Stage */}
-            <div className="space-y-3">
+            {/* Business/Deal Details (From Images) */}
+            <div className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Funil de Vendas
+                <FileText className="w-4 h-4" />
+                Detalhamento do Negócio
               </h3>
-              <div className="flex flex-col gap-2">
-                <Select 
-                  value={currentStage} 
-                  onValueChange={async (val) => {
-                    if (!contact) return;
-                    setCurrentStage(val);
-                    await updateContactStage(contact.phone, val);
-                    toast({ title: "Etapa atualizada!" });
-                    if (onUpdate) onUpdate();
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full text-sm">
-                    <SelectValue placeholder="Selecione a etapa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => (
-                      <SelectItem key={stage.id} value={stage.id}>
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-2 h-2 rounded-full", stage.color)} />
-                          {stage.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    className="h-8 text-xs font-bold" 
+                    value={(contact as any).deal_value || 0}
+                    onChange={async (e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      await updateContactStage(contact.phone, currentStage, { deal_value: val });
+                      onUpdate?.();
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Prioridade</Label>
+                  <Select 
+                    value={(contact as any).priority || 'normal'} 
+                    onValueChange={async (val) => {
+                      await updateContactStage(contact.phone, currentStage, { priority: val });
+                      onUpdate?.();
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Previsão de Fechamento</Label>
+                  <Input 
+                    type="date" 
+                    className="h-8 text-xs" 
+                    value={(contact as any).closing_date ? new Date((contact as any).closing_date).toISOString().split('T')[0] : ''}
+                    onChange={async (e) => {
+                      await updateContactStage(contact.phone, currentStage, { closing_date: e.target.value });
+                      onUpdate?.();
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Etapa do Pipeline</Label>
+                  <Select 
+                    value={currentStage} 
+                    onValueChange={async (val) => {
+                      if (!contact) return;
+                      setCurrentStage(val);
+                      await updateContactStage(contact.phone, val);
+                      toast({ title: "Etapa atualizada!" });
+                      if (onUpdate) onUpdate();
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione a etapa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => (
+                        <SelectItem key={stage.id} value={stage.id}>
+                          <div className="flex items-center gap-2">
+                            <div className={cn("w-2 h-2 rounded-full", stage.color)} />
+                            {stage.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase text-muted-foreground">Descrição do Negócio</Label>
+                <textarea
+                  className="w-full min-h-[80px] p-3 text-sm rounded-lg border border-border bg-background/50 focus:ring-1 focus:ring-primary outline-none resize-none"
+                  placeholder="Descreva o negócio em detalhes..."
+                  value={(contact as any).description || ""}
+                  onChange={async (e) => {
+                    // Update only local state first for performance, or use a debounce if needed
+                    // For now, let's keep it simple
+                  }}
+                  onBlur={async (e) => {
+                    await updateContactStage(contact.phone, currentStage, { description: e.target.value });
+                    onUpdate?.();
+                  }}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Tickets & Responsibles Section (Image 3) */}
+            <div className="space-y-4">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    Tickets e Atendimentos
+                  </h3>
+                  <Button variant="ghost" size="sm" className="h-7 text-[10px]">
+                    <Plus className="w-3 h-3 mr-1" /> Criar Ticket
+                  </Button>
+               </div>
+               <div className="bg-muted/30 rounded-lg p-6 border border-dashed border-border flex flex-col items-center justify-center text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Nenhum ticket vinculado</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">Vincule ou crie um ticket para este negócio</p>
+               </div>
+
+               <div className="flex items-center justify-between pt-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <UserCheck className="w-4 h-4" />
+                    Responsáveis
+                  </h3>
+                  <Button variant="ghost" size="sm" className="h-7 text-[10px]">
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  </Button>
+               </div>
+               <div className="bg-muted/30 rounded-lg p-3 border border-border flex items-center gap-2">
+                  <Avatar className="h-6 w-6 border">
+                    <AvatarFallback className="text-[8px]">AD</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold">Sem responsáveis</span>
+                    <span className="text-[9px] text-muted-foreground">Clique em adicionar para atribuir</span>
+                  </div>
+               </div>
             </div>
 
             <Separator />

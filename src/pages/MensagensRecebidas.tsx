@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, CheckCheck, Plus, Phone, PhoneCall, ShieldCheck, Key, MessageCircle } from "lucide-react";
+    import { Search, MessageSquare, ArrowLeft, Loader2, UserPlus, Pencil, Camera, Megaphone, Bot, Send, SendHorizonal, Paperclip, Mic, Square, X, User, RefreshCw, FileText, Video, Reply, Smile, StickyNote, Trash2, Users, LayoutGrid, FileImage, Tag, Palette, Check, CheckCheck, Plus, Phone, PhoneCall, ShieldCheck, Key, MessageCircle, Clock } from "lucide-react";
  import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
  import { useMessageTemplates, type MessageTemplate } from "@/hooks/useMessageTemplates";
  import {
@@ -2683,52 +2683,86 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                         refetch();
                       }
                     }}
-                    className="flex-shrink-0 w-72 bg-muted/40 rounded-xl p-3 border border-border/50 flex flex-col gap-3 min-h-[500px] shadow-sm hover:bg-muted/60 transition-colors"
+                    className="flex-shrink-0 w-80 bg-muted/40 rounded-xl p-3 border border-border/50 flex flex-col gap-3 min-h-[500px] shadow-sm hover:bg-muted/60 transition-colors"
                   >
-                    <div className="flex items-center justify-between border-b border-border/50 pb-2 px-1">
-                      <div className="flex items-center gap-2">
-                        <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", stage.color)} />
-                        <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">{stage.label}</h4>
+                    <div className="flex flex-col border-b border-border/50 pb-2 px-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", stage.color)} />
+                          <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">{stage.label}</h4>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
+                      <div className="text-[13px] font-bold text-primary">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          stageConvs.reduce((acc, curr) => acc + (Number(curr.deal_value) || 0), 0)
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2.5 overflow-y-auto">
-                      {stageConvs.map(conv => (
-                        <div 
-                          key={conv.phone} 
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData("phone", conv.phone);
-                            e.dataTransfer.effectAllowed = "move";
-                          }}
-                          onClick={() => handleSelectPhone(conv.phone)}
-                          className="bg-card p-3 rounded-lg border border-border/60 shadow-sm hover:border-primary/40 hover:shadow-md cursor-grab active:cursor-grabbing transition-all group"
-                        >
-                          <div className="flex items-center gap-2.5 mb-2.5">
-                             <Avatar className="h-8 w-8 border border-border/40 shadow-sm shrink-0">
-                               <AvatarImage src={conv.profilePictureUrl || undefined} />
-                               <AvatarFallback className="text-[10px] bg-muted"><User className="w-4 h-4 text-muted-foreground" /></AvatarFallback>
-                             </Avatar>
-                             <div className="flex flex-col min-w-0">
-                               <span className="text-xs font-bold truncate group-hover:text-primary transition-colors">{conv.contactName || formatPhone(conv.phone)}</span>
-                               <span className="text-[10px] text-muted-foreground">{formatPhone(conv.phone)}</span>
-                             </div>
-                          </div>
-                          <div className="bg-muted/30 p-2 rounded-md border border-border/40">
-                            <p className="text-[10px] text-muted-foreground line-clamp-2 italic leading-relaxed">
-                              {conv.lastMessage || 'Sem mensagens'}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between mt-2.5">
-                            <span className="text-[9px] text-muted-foreground/70 font-medium">
-                              {conv.lastTimestamp ? formatTimestamp(conv.lastTimestamp) : ''}
-                            </span>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MessageCircle className="w-3 h-3 text-primary" />
+                      {stageConvs.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                          <p className="text-[10px] font-medium text-center px-4">Arraste cards para cá</p>
+                        </div>
+                      ) : (
+                        stageConvs.map(conv => (
+                          <div 
+                            key={conv.phone} 
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("phone", conv.phone);
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            onClick={() => handleSelectPhone(conv.phone)}
+                            className="bg-card p-3 rounded-lg border border-border/60 shadow-sm hover:border-primary/40 hover:shadow-md cursor-grab active:cursor-grabbing transition-all group"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                               <div className="text-[12px] font-bold text-primary">
+                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(conv.deal_value) || 0)}
+                               </div>
+                               <div className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded">
+                                 {conv.priority === 'high' ? '🔥 Alta' : conv.priority === 'low' ? '❄️ Baixa' : 'Normal'}
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-2.5 mb-2.5">
+                               <Avatar className="h-8 w-8 border border-border/40 shadow-sm shrink-0">
+                                 <AvatarImage src={conv.profilePictureUrl || undefined} />
+                                 <AvatarFallback className="text-[10px] bg-muted"><User className="w-4 h-4 text-muted-foreground" /></AvatarFallback>
+                               </Avatar>
+                               <div className="flex flex-col min-w-0">
+                                 <span className="text-xs font-bold truncate group-hover:text-primary transition-colors">{conv.contactName || formatPhone(conv.phone)}</span>
+                                 <span className="text-[10px] text-muted-foreground">{formatPhone(conv.phone)}</span>
+                               </div>
+                            </div>
+                            <div className="bg-muted/30 p-2 rounded-md border border-border/40 mb-2">
+                              <p className="text-[10px] text-muted-foreground line-clamp-2 italic leading-relaxed">
+                                {conv.lastMessage || 'Sem mensagens'}
+                              </p>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                              <div className="flex items-center gap-1 text-[9px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                <Clock className="w-2.5 h-2.5" />
+                                {conv.lastTimestamp ? formatTimestamp(conv.lastTimestamp) : 'Sem data'}
+                              </div>
+                              <div className="flex items-center gap-1 text-[9px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                <User className="w-2.5 h-2.5" />
+                                {conv.responsible_ids?.length ? `${conv.responsible_ids.length} resp.` : 'Sem responsável'}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                              <span className="text-[9px] text-muted-foreground/70 font-medium">
+                                {conv.closing_date ? `Fecha em: ${new Date(conv.closing_date).toLocaleDateString('pt-BR')}` : 'Sem tarefa'}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <MessageCircle className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="Ativo" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
                 );
@@ -2748,7 +2782,15 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
             firstContactDate: selectedConversation.messages[0]?.timestamp || null,
             tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl || null,
-          } : null}
+            deal_value: (selectedConversation as any).deal_value,
+            closing_date: (selectedConversation as any).closing_date,
+            priority: (selectedConversation as any).priority,
+            description: (selectedConversation as any).description,
+            responsible_ids: (selectedConversation as any).responsible_ids,
+            deal_metadata: (selectedConversation as any).deal_metadata,
+            lastMessage: selectedConversation.lastMessage,
+            agent_stage: selectedConversation.agent_stage,
+          } as any : null}
           open={profileOpen}
           onOpenChange={setProfileOpen}
           onUpdate={refetch}
