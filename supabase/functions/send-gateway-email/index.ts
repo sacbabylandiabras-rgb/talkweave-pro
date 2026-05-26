@@ -105,7 +105,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, to, data } = await req.json()
+    const { type, to, data, userId } = await req.json()
 
     if (!type || !to) {
       return new Response(JSON.stringify({ error: 'Missing type or to' }), {
