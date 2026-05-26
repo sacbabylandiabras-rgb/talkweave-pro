@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock, Pencil, ShoppingBag } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Plus, Shield, Bell, Building2, Key, Webhook, Loader2, AlertTriangle, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Lock, ShieldCheck, Clock, Pencil, ShoppingBag, Mail } from "lucide-react";
 import CheckoutDefaultsTab from "@/components/gateway/CheckoutDefaultsTab";
 import CheckoutDomainSection from "@/components/gateway/CheckoutDomainSection";
+import CheckoutEmailSection from "@/components/gateway/CheckoutEmailSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -40,8 +41,8 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 export default function PaySettings() {
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "empresa";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "empresa";
 
   const [showSecret, setShowSecret] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -296,10 +297,11 @@ export default function PaySettings() {
         <p className="text-sm text-muted-foreground">Gerencie as configurações da sua conta</p>
       </div>
 
-      <Tabs defaultValue={defaultTab}>
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
         <TabsList className="bg-muted/50">
           <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
           <TabsTrigger value="dominio"><Globe className="w-3.5 h-3.5 mr-1.5" />Domínio</TabsTrigger>
+          <TabsTrigger value="email"><Mail className="w-3.5 h-3.5 mr-1.5" />E-mail</TabsTrigger>
           <TabsTrigger value="api"><Key className="w-3.5 h-3.5 mr-1.5" />API Keys</TabsTrigger>
           <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
           <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
@@ -345,6 +347,10 @@ export default function PaySettings() {
 
         <TabsContent value="dominio" className="mt-4 space-y-4">
           <CheckoutDomainSection />
+        </TabsContent>
+
+        <TabsContent value="email" className="mt-4 space-y-4">
+          <CheckoutEmailSection />
         </TabsContent>
 
         <TabsContent value="api" className="mt-4 space-y-4">
