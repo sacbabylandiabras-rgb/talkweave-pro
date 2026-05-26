@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { PipelineSelector } from "@/components/agent/PipelineSelector";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
