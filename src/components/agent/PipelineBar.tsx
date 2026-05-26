@@ -65,7 +65,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('profiles')
       .update({ pipeline_stages: newStages as any })
       .eq('id', user.id);
