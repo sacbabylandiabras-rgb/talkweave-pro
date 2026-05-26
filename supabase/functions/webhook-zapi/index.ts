@@ -388,13 +388,14 @@ serve(async (req) => {
               .from("campaign_sends")
               .select("id, status")
               .eq("phone", phone)
-              .in("status", ["pending", "sent"])
+              .neq("status", "delivered")
+              .neq("status", "read")
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
 
             if (fallbackRecord) {
-              console.log(`🎯 Fallback found record ${fallbackRecord.id} for phone ${phone}. Updating...`);
+              console.log(`🎯 Fallback found record ${fallbackRecord.id} (status: ${fallbackRecord.status}) for phone ${phone}. Updating...`);
               const updateData: any = { 
                 status: newStatusLabel,
                 message_id: msgId, // Aproveita para salvar o ID que estava faltando
