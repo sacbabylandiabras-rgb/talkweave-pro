@@ -82,6 +82,27 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     }
   };
 
+  const handleImportedContacts = (newContacts: Array<{ phone: string; name?: string }>) => {
+    setManualContacts(prev => {
+      const all = [...newContacts, ...prev];
+      return all.filter((c, index, self) => 
+        self.findIndex(t => t.phone === c.phone) === index
+      );
+    });
+    
+    // Selecionar automaticamente os novos contatos
+    setSelectedPhones(prev => {
+      const newPhones = newContacts.map(c => c.phone);
+      return Array.from(new Set([...prev, ...newPhones]));
+    });
+
+    toast({
+      title: "Contatos adicionados",
+      description: `${newContacts.length} contatos foram adicionados à lista.`,
+    });
+  };
+
+
   const handleSubmit = async () => {
     if (!formData.name) {
       toast({ title: "Erro", description: "Nome da campanha é obrigatório", variant: "destructive" });
