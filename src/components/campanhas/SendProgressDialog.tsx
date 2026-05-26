@@ -192,9 +192,9 @@ export function SendProgressDialog({
       // ─────────────────────────────────────────────────────────────────────────
       let delivered = 0;
       let failed = 0;
-      let sending = 0;
+      let sending = 0;   // Em trânsito
       let pending = 0;
-      let sent = 0;
+      let sent = 0;      // Enviados (não entregues)
       let read = 0;
       let clicked = 0;
       let lastError: string | null = null;
@@ -204,23 +204,27 @@ export function SendProgressDialog({
 
         if (!send) {
           pending += 1;
-        } else if (send.status === "delivered" || send.delivered_at) {
-          delivered += 1;
-          if (send.status === "read" || (send as any).read_at) read += 1;
-          if ((send as any).clicked_at) clicked += 1;
-        } else if (send.status === "failed" || (send.error_message && send.status !== "delivered")) {
-          failed += 1;
-          if (send.error_message) lastError = send.error_message;
-        } else if (send.status === "sent") {
-          sent += 1;
-        } else if (send.status === "pending") {
-          if (send.message_id || send.sent_at) {
+        } else {
+          const isRead = send.status === "read" || Boolean((send as any).read_at);
+          const isDelivered = send.status === "delivered" || Boolean(send.delivered_at) || isRead;
+          const isSent = send.status === "sent" || Boolean(send.sent_at) || isDelivered;
+          const isFailed = send.status === "failed" || (Boolean(send.error_message) && !isDelivered);
+          const isProcessing = send.status === "pending" && (Boolean(send.message_id) || Boolean(send.sent_at)) && !isSent;
+
+          if (isRead) read += 1;
+          if (isDelivered) delivered += 1;
+          if (Boolean((send as any).clicked_at) || Number((send as any).click_count || 0) > 0) clicked += 1;
+          
+          if (isFailed) {
+            failed += 1;
+            if (send.error_message) lastError = send.error_message;
+          } else if (isProcessing) {
             sending += 1;
-          } else {
+          } else if (isSent && !isDelivered) {
+            sent += 1;
+          } else if (send.status === "pending" && !isProcessing) {
             pending += 1;
           }
-        } else {
-          pending += 1;
         }
       });
 
