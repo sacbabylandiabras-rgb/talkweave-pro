@@ -24,6 +24,7 @@ export const isRegularGroupPhone = (phone: string): boolean => {
 };
 
 export const isGroupPhone = (phone: string): boolean => {
+  if (phone.toLowerCase().includes("@lid")) return false;
   const clean = String(phone || '').replace(/\D/g, '');
   
   // @g.us é sempre grupo
@@ -42,6 +43,7 @@ export const isGroupPhone = (phone: string): boolean => {
 };
 
 export const isCommunityPhone = (phone: string): boolean => {
+  if (phone.toLowerCase().includes("@lid")) return false;
   const clean = String(phone || '').replace(/\D/g, '');
   // Comunidades começam com 120363 e têm mais de 16 dígitos
   return /^120363\d{11,}$/.test(clean) || 
@@ -66,6 +68,8 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
 
  export const normalizeConversationPhone = (phone: string): string => {
    if (!phone) return '';
+   const trimmed = phone.trim();
+   if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
    
    // Handle groups first
    if (isGroupPhone(phone)) {
@@ -75,8 +79,8 @@ export const isUsableGroupDisplayName = (value: string | null | undefined): bool
    }
  
   // Handle regular phones - strip common suffixes and standardize to digits
-   const digits = phone.replace(/\D/g, '');
-   if (!digits) return phone;
+   const digits = trimmed.replace(/\D/g, '');
+   if (!digits) return trimmed;
    
   return digits;
  };
