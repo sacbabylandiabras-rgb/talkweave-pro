@@ -141,11 +141,12 @@ export default function CheckoutDomainSection() {
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
           <Globe className="w-4 h-4 text-[#a78bfa]" />
-          Domínio Personalizado
+          Domínio da URL de Checkout
         </CardTitle>
         <CardDescription className="text-xs">
-          Use seu próprio domínio para os links de checkout (ex: pay.seusite.com)
+          Personalize o endereço onde seus clientes realizam o pagamento.
         </CardDescription>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
