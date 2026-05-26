@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { Sparkles, Plus, Trash2, Loader2, FolderOpen, FileText, ArrowLeft, Bot, Search, Settings } from "lucide-react";
+import {
+  Sparkles, Plus, Trash2, Loader2, FolderOpen, FileText, ArrowLeft, Bot, Search, Settings,
+  Paperclip, Image as ImageIcon, Video, Music, File as FileIcon, Upload, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +35,14 @@ type Content = {
   content: string;
   connected_to_agent: boolean;
   created_at: string;
+  attachments?: Attachment[] | null;
+};
+
+type Attachment = {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
 };
 
 const COLOR_OPTIONS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#06b6d4", "#64748b"];
@@ -56,6 +67,7 @@ export default function Skills() {
   const [cTitle, setCTitle] = useState("");
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const loadFolders = async () => {
     setLoading(true);
@@ -187,6 +199,7 @@ export default function Skills() {
         title: editingDetail.title,
         content: editingDetail.content,
         connected_to_agent: editingDetail.connected_to_agent,
+        attachments: editingDetail.attachments || [],
       })
       .eq("id", editingDetail.id);
     setSaving(false);
@@ -197,6 +210,69 @@ export default function Skills() {
     toast({ title: "Salvo" });
     if (activeFolder) loadContents(activeFolder.id);
     setEditingDetail(null);
+  };
+
+  const uploadFiles = async (files: FileList | null) => {
+    if (!files || !editingDetail) return;
+    setUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploading(false); return; }
+    const newAttachments: Attachment[] = [...(editingDetail.attachments || [])];
+    for (const file of Array.from(files)) {
+      if (file.size > 50 * 1024 * 1024) {
+        toast({ title: "Arquivo muito grande", description: `${file.name} excede 50MB.`, variant: "destructive" });
+        continue;
+      }
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `skills/${user.id}/${editingDetail.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
+      if (upErr) {
+        toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" });
+        continue;
+      }
+      const { data: pub } = supabase.storage.from("flow-media").getPublicUrl(path);
+      newAttachments.push({
+        url: pub.publicUrl,
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+      });
+    }
+    setEditingDetail({ ...editingDetail, attachments: newAttachments });
+    // persist immediately
+    await (supabase as any)
+      .from("skill_contents")
+      .update({ attachments: newAttachments })
+      .eq("id", editingDetail.id);
+    setUploading(false);
+    toast({ title: "Upload concluído" });
+  };
+
+  const removeAttachment = async (idx: number) => {
+    if (!editingDetail) return;
+    const next = [...(editingDetail.attachments || [])];
+    next.splice(idx, 1);
+    setEditingDetail({ ...editingDetail, attachments: next });
+    await (supabase as any)
+      .from("skill_contents")
+      .update({ attachments: next })
+      .eq("id", editingDetail.id);
+  };
+
+  const attachmentIcon = (type: string) => {
+    if (type.startsWith("image/")) return <ImageIcon className="w-4 h-4" />;
+    if (type.startsWith("video/")) return <Video className="w-4 h-4" />;
+    if (type.startsWith("audio/")) return <Music className="w-4 h-4" />;
+    return <FileIcon className="w-4 h-4" />;
+  };
+
+  const formatSize = (b: number) => {
+    if (b < 1024) return `${b} B`;
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+    return `${(b / 1024 / 1024).toFixed(1)} MB`;
   };
 
   const toggleConnect = async (c: Content) => {
@@ -263,6 +339,59 @@ export default function Skills() {
               rows={18}
               placeholder="Escreva aqui a resposta, instruções ou conhecimento que o Agente IA deve usar..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5" /> Anexos (vídeo, áudio, foto, documento)
+              </Label>
+              <label className="inline-flex">
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                  onChange={(e) => {
+                    uploadFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted cursor-pointer transition-colors">
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  Enviar arquivos
+                </span>
+              </label>
+            </div>
+
+            {(editingDetail.attachments || []).length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nenhum anexo. Envie imagens, vídeos, áudios ou documentos (até 50MB cada).
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {(editingDetail.attachments || []).map((a, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 bg-muted/30">
+                    <a
+                      href={a.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 min-w-0 flex-1 text-sm hover:text-primary"
+                    >
+                      <span className="text-muted-foreground shrink-0">{attachmentIcon(a.type)}</span>
+                      <span className="truncate">{a.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(a.size)}</span>
+                    </a>
+                    <button
+                      onClick={() => removeAttachment(i)}
+                      className="text-muted-foreground hover:text-destructive p-1 rounded"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       </div>
