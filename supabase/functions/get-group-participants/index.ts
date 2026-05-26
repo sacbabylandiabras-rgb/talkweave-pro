@@ -906,10 +906,23 @@ Deno.serve(async (req) => {
           for (const key of allKeys) {
             const val = communityData[key];
             if (Array.isArray(val)) {
-              const possibleIds = val.map(v => typeof v === 'string' ? v : (v?.id || v?.jid)).filter(v => isLikelyGroupId(v));
+              const possibleIds = val.map(v => typeof v === 'string' ? v : (v?.id || v?.jid || v?.groupJid || v?.groupjid)).filter(v => isLikelyGroupId(v));
               if (possibleIds.length > 0) {
                 console.log(`✅ Found potential subGroups in key "${key}": ${possibleIds.length}`);
                 subGroupIds.push(...possibleIds);
+              }
+            } else if (val && typeof val === 'object') {
+              // Sometimes it's nested
+              const nestedKeys = Object.keys(val);
+              for (const nKey of nestedKeys) {
+                const nVal = val[nKey];
+                if (Array.isArray(nVal)) {
+                  const possibleIds = nVal.map(v => typeof v === 'string' ? v : (v?.id || v?.jid || v?.groupJid)).filter(v => isLikelyGroupId(v));
+                  if (possibleIds.length > 0) {
+                    console.log(`✅ Found potential subGroups in nested key "${key}.${nKey}": ${possibleIds.length}`);
+                    subGroupIds.push(...possibleIds);
+                  }
+                }
               }
             }
           }
@@ -939,6 +952,25 @@ Deno.serve(async (req) => {
             console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${uniqueSubGroupIds.length} subGroups`);
             break;
           }
+        } else if (communityData?.subGroups && typeof communityData.subGroups === 'object') {
+            // Fallback: If subGroups is an object but not an array, try to extract values
+            const subGroupVals = Object.values(communityData.subGroups);
+            const possibleIds = subGroupVals.map((v: any) => typeof v === 'string' ? v : (v?.id || v?.jid)).filter(v => isLikelyGroupId(v));
+            if (possibleIds.length > 0) {
+                console.log(`✅ Found potential subGroups in object-values of "subGroups": ${possibleIds.length}`);
+                // Re-run the loop logic or just process here
+                for (const subGroupId of possibleIds) {
+                    try {
+                        const subGroupData = await fetchGroupMetadata(subGroupId as string);
+                        const subParticipants = extractParticipantArray(subGroupData);
+                        allSubGroupParticipants.push(...subParticipants);
+                    } catch (e) {}
+                }
+                if (allSubGroupParticipants.length > 0) {
+                    apiParticipants = allSubGroupParticipants;
+                    break;
+                }
+            }
         }
 
         console.log(`🔄 Z-API returned no community members from subGroups either.`);
