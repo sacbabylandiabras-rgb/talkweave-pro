@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
 
 const corsHeaders = {
@@ -104,7 +105,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, to, data } = await req.json()
+    const { type, to, data, userId } = await req.json()
 
     if (!type || !to) {
       return new Response(JSON.stringify({ error: 'Missing type or to' }), {
@@ -129,33 +130,79 @@ serve(async (req) => {
         })
     }
 
-    const smtpHost = Deno.env.get('SMTP_HOST') || 'smtp.hostinger.com'
-    const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '465')
-    const smtpUser = Deno.env.get('SMTP_USER') || FROM_EMAIL
-    const smtpPass = Deno.env.get('SMTP_PASS') || ''
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: smtpPort,
-        tls: true,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
+    let sentViaResend = false;
+
+    if (RESEND_API_KEY && userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        const { data: domainData } = await supabase
+          .from('email_domain_verifications')
+          .select('domain, status')
+          .eq('user_id', userId)
+          .eq('status', 'verified')
+          .single()
+
+        if (domainData?.domain) {
+          const from = `${FROM_NAME} <contato@${domainData.domain}>`
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from,
+              to,
+              subject: email.subject,
+              html: email.html,
+            }),
+          })
+
+          if (res.ok) {
+            console.log(`Email sent via Resend: ${type} to ${to} from ${from}`)
+            sentViaResend = true
+          } else {
+            const err = await res.json()
+            console.warn('Resend failed, falling back to SMTP:', err)
+          }
+        }
+      } catch (err) {
+        console.warn('Error checking custom email domain:', err)
+      }
+    }
+
+    if (!sentViaResend) {
+      const smtpHost = Deno.env.get('SMTP_HOST') || 'smtp.hostinger.com'
+      const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '465')
+      const smtpUser = Deno.env.get('SMTP_USER') || FROM_EMAIL
+      const smtpPass = Deno.env.get('SMTP_PASS') || ''
+
+      const client = new SMTPClient({
+        connection: {
+          hostname: smtpHost,
+          port: smtpPort,
+          tls: true,
+          auth: {
+            username: smtpUser,
+            password: smtpPass,
+          },
         },
-      },
-    })
+      })
 
-    await client.send({
-      from: `${FROM_NAME} <${FROM_EMAIL}>`,
-      to,
-      subject: email.subject,
-      html: email.html,
-    })
+      await client.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to,
+        subject: email.subject,
+        html: email.html,
+      })
 
-    await client.close()
-
-    console.log(`Email sent: ${type} to ${to}`)
+      await client.close()
+      console.log(`Email sent via SMTP: ${type} to ${to}`)
+    }
 
     return new Response(JSON.stringify({ ok: true, type, to }), {
       status: 200,

@@ -16,6 +16,7 @@ serve(async (req) => {
     const VERCEL_API_TOKEN = Deno.env.get("VERCEL_API_TOKEN");
     const VERCEL_PROJECT_ID = Deno.env.get("VERCEL_PROJECT_ID");
     const VERCEL_TEAM_ID = Deno.env.get("VERCEL_TEAM_ID");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -110,6 +111,41 @@ serve(async (req) => {
         });
       }
 
+      // Register domain in Resend if API key is available
+      let emailVerification = null;
+      if (RESEND_API_KEY) {
+        try {
+          console.log("Registering domain on Resend:", cleanHostname);
+          const resendRes = await fetch("https://api.resend.com/domains", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: cleanHostname }),
+          });
+          const resendData = await resendRes.json();
+          if (resendRes.ok) {
+            emailVerification = {
+              id: resendData.id,
+              status: resendData.status,
+              records: resendData.records,
+            };
+            // Save to email_domain_verifications
+            await supabase.from("email_domain_verifications").upsert({
+              user_id: user.id,
+              domain: cleanHostname,
+              resend_domain_id: resendData.id,
+              status: resendData.status,
+              dkim_records: resendData.records,
+              updated_at: new Date().toISOString(),
+            });
+          }
+        } catch (resendErr) {
+          console.warn("Could not register domain on Resend:", resendErr);
+        }
+      }
+
       // Save to profile
       try {
         await supabase
@@ -127,6 +163,7 @@ serve(async (req) => {
           status: data.verified ? "active" : "pending",
           ssl_status: data.verified ? "active" : "pending",
           verification: data.verification || null,
+          email_verification: emailVerification,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -214,12 +251,48 @@ serve(async (req) => {
       const isVerified = domainData.verified === true;
       const sslActive = sslDetails?.certs?.length > 0 && !sslDetails?.misconfigured;
 
+      // Get Resend status if available
+      let emailVerification = null;
+      if (RESEND_API_KEY) {
+        try {
+          const { data: evData } = await supabase
+            .from("email_domain_verifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("domain", cleanHostname)
+            .single();
+          
+          if (evData?.resend_domain_id) {
+            const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (resendRes.ok) {
+              const resendData = await resendRes.json();
+              emailVerification = {
+                id: resendData.id,
+                status: resendData.status,
+                records: resendData.records,
+              };
+              // Update DB
+              await supabase.from("email_domain_verifications").update({
+                status: resendData.status,
+                dkim_records: resendData.records,
+                updated_at: new Date().toISOString(),
+              }).eq("id", evData.id);
+            }
+          }
+        } catch (resendErr) {
+          console.warn("Could not fetch Resend status:", resendErr);
+        }
+      }
+
       return new Response(
         JSON.stringify({
           status: isVerified ? "active" : "pending",
           ssl_status: sslActive ? "active" : isVerified ? "provisioning" : "pending",
           hostname: domainData.name,
           verification: domainData.verification || null,
+          email_verification: emailVerification,
           ssl: {
             active: sslActive,
             https_reachable: httpsReachable,
