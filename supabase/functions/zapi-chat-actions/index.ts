@@ -311,11 +311,9 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
         method: 'POST', 
         path: "/business/hours", 
         body: {
-          value: {
-            timezone: data.timezone || "America/Sao_Paulo",
-            mode: data.mode || "open24h",
-            days: data.days || []
-          }
+          timezone: data.timezone || "America/Sao_Paulo",
+          mode: data.mode || "open24h",
+          days: data.days || []
         }
       };
     }
