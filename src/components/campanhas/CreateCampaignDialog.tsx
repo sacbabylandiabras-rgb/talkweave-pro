@@ -161,6 +161,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       onOpenChange(false);
       setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedPhones([]);
+      setManualContacts([]);
+
     } catch (error) {
       console.error("Error creating contact campaign:", error);
       toast({ title: "Erro", description: "Erro ao criar campanha", variant: "destructive" });
