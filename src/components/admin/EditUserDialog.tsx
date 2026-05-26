@@ -174,7 +174,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
              evolution_api_key: provider === 'uazapi' ? newEvolutionKey.trim() : null,
              is_default: newIsDefault,
              instance_type: type,
-             api_provider: provider
+             api_provider: provider as any
            });
          } else {
            ok = await addInstance(user.id, {
@@ -186,7 +186,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
              evolution_api_key: provider === 'uazapi' ? newEvolutionKey.trim() : null,
              is_default: newIsDefault,
              instance_type: type,
-             api_provider: provider
+             api_provider: provider as any
            });
          }
          
