@@ -35,6 +35,8 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   const [stages, setStages] = useState<typeof DEFAULT_PIPELINE_STAGES>(PIPELINE_STAGES);
   const [newStageName, setNewStageName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [newPipelineName, setNewPipelineName] = useState("");
+  const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
 
   useEffect(() => {
     const fetchStages = async () => {
