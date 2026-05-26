@@ -238,32 +238,25 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   // Empty state: no pipelines yet
   if (pipelines.length === 0) {
     return (
-      <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
-        <Popover open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse">
-              <LayoutGrid className="w-4 h-4" />
-              Criar meu Funil de Vendas
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-4" align="start">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <h4 className="font-medium text-xs text-primary">Novo Funil</h4>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">Dê um nome para o seu primeiro funil comercial.</p>
-              </div>
-              <div className="flex gap-2">
-                <Input placeholder="Ex: Vendas Diretas" value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-8 text-xs" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
-                <Button size="sm" className="h-8 shrink-0" onClick={handleCreatePipeline}>Criar</Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <>
+        <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openCreateDialog}
+            className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Criar meu Funil de Vendas
+          </Button>
+        </div>
+        {createDialog}
+      </>
     );
   }
 
   return (
+    <>
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-3">
       {/* Pipeline selector */}
       <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
@@ -288,12 +281,10 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
               </div>
             ))}
             <div className="pt-2 border-t border-border mt-2">
-              <div className="flex gap-1">
-                <Input placeholder="Novo funil..." value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-7 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
-                <Button size="sm" className="h-7 px-2 text-xs" onClick={handleCreatePipeline}>
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" className="w-full h-7 text-xs gap-1" onClick={openCreateDialog}>
+                <Plus className="w-3 h-3" />
+                Novo Funil
+              </Button>
             </div>
           </div>
         </PopoverContent>
@@ -374,6 +365,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
         </PopoverContent>
       </Popover>
     </div>
-
+    {createDialog}
+    </>
   );
 };
