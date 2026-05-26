@@ -64,6 +64,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   const [isAdding, setIsAdding] = useState(false);
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formDepartment, setFormDepartment] = useState("Vendas");
