@@ -41,8 +41,8 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 export default function PaySettings() {
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "empresa";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "empresa";
 
   const [showSecret, setShowSecret] = useState(false);
   const [profile, setProfile] = useState<any>(null);
