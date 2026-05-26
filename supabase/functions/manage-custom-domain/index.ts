@@ -242,14 +242,48 @@ serve(async (req) => {
 
     // STATUS — check domain verification + SSL details
     if (action === "status") {
-      if (!hostname) {
-        return new Response(JSON.stringify({ error: "hostname required" }), {
-          status: 400,
+      let cleanHostname = hostname?.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") || null;
+
+      if (!cleanHostname) {
+        // If no hostname provided, try to find the one from profile or email_domain_verifications
+        const { data: prof } = await supabase.from("profiles").select("custom_domain").eq("id", user.id).single();
+        if (prof?.custom_domain) {
+          cleanHostname = prof.custom_domain;
+        } else {
+          const { data: ev } = await supabase.from("email_domain_verifications").select("domain").eq("id", user.id).maybeSingle();
+          if (ev?.domain) cleanHostname = ev.domain;
+        }
+      }
+
+      if (!cleanHostname) {
+        // Still no hostname? Check if we have any email domains registered at least
+        const { data: evs } = await supabase.from("email_domain_verifications").select("*").eq("user_id", user.id).order('created_at', { ascending: false }).limit(1);
+        if (evs && evs.length > 0) {
+          const evData = evs[0];
+          // If we only have an email domain, we can at least return that status
+          let emailVerification = null;
+          if (RESEND_API_KEY && evData.resend_domain_id) {
+             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+               headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+             });
+             if (resendRes.ok) {
+               const resendData = await resendRes.json();
+               emailVerification = {
+                 id: resendData.id,
+                 status: resendData.status,
+                 records: resendData.records || [],
+                 region: resendData.region || "us-east-1",
+                 hostname: evData.domain
+               };
+             }
+          }
+          return new Response(JSON.stringify({ status: "none", email_verification: emailVerification }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        return new Response(JSON.stringify({ status: "none", error: "No domain configured" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
       // Get domain info from Vercel
       const res = await fetch(
