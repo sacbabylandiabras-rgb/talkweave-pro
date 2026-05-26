@@ -2696,7 +2696,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                           <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", stage.color)} />
                           <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">{stage.label}</h4>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
+                        </div>
                       </div>
                       <div className="text-[13px] font-bold text-primary">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
