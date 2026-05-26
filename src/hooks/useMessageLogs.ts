@@ -82,6 +82,12 @@ export interface Conversation {
   isCommunity?: boolean;
   communityId?: string | null;
   agent_stage?: string | null;
+  deal_value?: number;
+  closing_date?: string | null;
+  priority?: string;
+  description?: string | null;
+  responsible_ids?: string[] | null;
+  deal_metadata?: any;
 }
 
 type OutboundButtonAction = {

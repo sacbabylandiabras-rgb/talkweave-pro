@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -19,8 +20,8 @@ import type { Contact } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  import { useZapi } from "@/hooks/useZapi";
-  import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { useZapi } from "@/hooks/useZapi";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useMessageLogs } from "@/hooks/useMessageLogs";
 import { PIPELINE_STAGES } from "@/components/agent/PipelineBar";
