@@ -59,6 +59,116 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
+    // CREATE_EMAIL — register domain only on Resend
+    if (action === "create_email") {
+      if (!hostname || typeof hostname !== "string") {
+        return new Response(JSON.stringify({ error: "hostname is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!RESEND_API_KEY) {
+        return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+      let emailVerification: any = null;
+
+      try {
+        let { data: existingV, error: selectError } = await supabase
+          .from("email_domain_verifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("domain", cleanHostname)
+          .maybeSingle();
+
+        if (selectError?.code === "PGRST205" || selectError?.message?.includes("not found")) {
+          const listRes = await fetch("https://api.resend.com/domains", {
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+          });
+          if (listRes.ok) {
+            const listData = await listRes.json();
+            const found = listData.data?.find((d: any) => d.name === cleanHostname);
+            if (found) existingV = { resend_domain_id: found.id } as any;
+          }
+        }
+
+        let resendData: any = null;
+        if (existingV?.resend_domain_id) {
+          const r = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+          });
+          if (r.ok) resendData = await r.json();
+        } else {
+          const r = await fetch("https://api.resend.com/domains", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ name: cleanHostname }),
+          });
+          const d = await r.json();
+          if (r.ok) {
+            resendData = d;
+          } else if (d.message?.includes("already exists")) {
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((x: any) => x.name === cleanHostname);
+              if (found) {
+                const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
+                  headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                });
+                if (detailRes.ok) resendData = await detailRes.json();
+              }
+            }
+          } else {
+            console.error("Resend error:", JSON.stringify(d));
+            return new Response(JSON.stringify({ error: d.message || "Resend registration failed" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        if (resendData) {
+          emailVerification = {
+            id: resendData.id,
+            status: resendData.status,
+            records: resendData.records || [],
+            region: resendData.region || "us-east-1",
+            hostname: cleanHostname,
+          };
+          try {
+            await supabase.from("email_domain_verifications").upsert({
+              user_id: user.id,
+              domain: cleanHostname,
+              resend_domain_id: resendData.id,
+              status: resendData.status,
+              dkim_records: resendData.records,
+              updated_at: new Date().toISOString(),
+            });
+          } catch (dbErr) {
+            console.warn("Could not persist email_domain_verifications:", dbErr);
+          }
+        }
+      } catch (resendErr: any) {
+        console.error("Critical Resend registration error:", resendErr);
+        return new Response(JSON.stringify({ error: resendErr.message || "Failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, email_verification: emailVerification }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // CREATE — add domain to Vercel project
     if (action === "create") {
       if (!hostname || typeof hostname !== "string") {
@@ -107,121 +217,6 @@ serve(async (req) => {
         }
       }
 
-      // Register domain in Resend if API key is available
-      let emailVerification = null;
-      if (RESEND_API_KEY && action === "create_email") {
-        try {
-          const rootDomain = cleanHostname.split('.').slice(-2).join('.');
-          console.log("Checking Resend for domain:", cleanHostname);
-
-          let { data: existingV, error: selectError } = await supabase
-            .from("email_domain_verifications")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("domain", cleanHostname)
-            .maybeSingle();
-
-          if (selectError?.code === "PGRST205" || selectError?.message?.includes("not found")) {
-            const listRes = await fetch("https://api.resend.com/domains", {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-            });
-            if (listRes.ok) {
-              const listData = await listRes.json();
-              const found = listData.data?.find((d: any) => d.name === cleanHostname);
-              if (found) existingV = { resend_domain_id: found.id } as any;
-            }
-          }
-
-          if (existingV?.resend_domain_id) {
-            const resendRes = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-            });
-            if (resendRes.ok) {
-              const resendData = await resendRes.json();
-              emailVerification = {
-                id: resendData.id,
-                status: resendData.status,
-                records: resendData.records || [],
-                region: resendData.region || "us-east-1",
-              };
-              await supabase.from("email_domain_verifications").update({
-                status: resendData.status,
-                dkim_records: resendData.records,
-                updated_at: new Date().toISOString(),
-              }).eq("id", existingV.id);
-            }
-          } else {
-            const resendRes = await fetch("https://api.resend.com/domains", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ name: cleanHostname }),
-            });
-            const resendData = await resendRes.json();
-            
-            if (resendRes.ok) {
-              emailVerification = {
-                id: resendData.id,
-                status: resendData.status,
-                records: resendData.records || [],
-                region: resendData.region || "us-east-1",
-              };
-              await supabase.from("email_domain_verifications").upsert({
-                user_id: user.id,
-                domain: cleanHostname,
-                resend_domain_id: resendData.id,
-                status: resendData.status,
-                dkim_records: resendData.records,
-                updated_at: new Date().toISOString(),
-              });
-            } else if (resendData.message?.includes("already exists")) {
-              const listRes = await fetch("https://api.resend.com/domains", {
-                headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-              });
-              if (listRes.ok) {
-                const listData = await listRes.json();
-                const found = listData.data?.find((d: any) => d.name === cleanHostname);
-                if (found) {
-                  const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
-                    headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-                  });
-                  if (detailRes.ok) {
-                    const detailData = await detailRes.json();
-                    emailVerification = {
-                      id: detailData.id,
-                      status: detailData.status,
-                      records: detailData.records || [],
-                      region: detailData.region || "us-east-1",
-                    };
-                    await supabase.from("email_domain_verifications").upsert({
-                      user_id: user.id,
-                      domain: cleanHostname,
-                      resend_domain_id: detailData.id,
-                      status: detailData.status,
-                      dkim_records: detailData.records,
-                      updated_at: new Date().toISOString(),
-                    });
-                  }
-                }
-              }
-            }
-          }
-        } catch (resendErr) {
-          console.error("Critical Resend registration error:", resendErr);
-        }
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            email_verification: emailVerification,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-
       // Save to profile
       try {
         await supabase
@@ -239,7 +234,7 @@ serve(async (req) => {
           status: data.verified ? "active" : "pending",
           ssl_status: data.verified ? "active" : "pending",
           verification: data.verification || null,
-          email_verification: emailVerification,
+          email_verification: null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
