@@ -160,6 +160,39 @@ const InstancePicker = ({ instances, onSelect }: InstancePickerProps) => (
   />
 );
 
+// ─── Sub-component: Campaign Progress ──────────────────────────────────────
+const CampaignProgress = ({ campaignId, totalTarget }: { campaignId: string, totalTarget: number }) => {
+  const { sends, loading } = useCampaignSendsRealtime(campaignId);
+  
+  const stats = useMemo(() => {
+    if (loading) return null;
+    const delivered = sends.filter(s => s.status === 'delivered').length;
+    const sent = sends.filter(s => s.status === 'sent').length;
+    const failed = sends.filter(s => s.status === 'failed' || (s as any).error_message).length;
+    const processed = delivered + sent + failed;
+    const total = Math.max(totalTarget, sends.length);
+    const progress = total > 0 ? (processed / total) * 100 : 0;
+    
+    return { delivered, sent, failed, processed, total, progress };
+  }, [sends, loading, totalTarget]);
+
+  if (loading || !stats || stats.total === 0) return null;
+
+  return (
+    <div className="space-y-1 mt-2">
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>Progresso: {stats.processed}/{stats.total}</span>
+        <span className="flex gap-2">
+          <span className="text-green-600">✓✓ {stats.delivered}</span>
+          <span className="text-blue-600">✓ {stats.sent}</span>
+          {stats.failed > 0 && <span className="text-red-600">✗ {stats.failed}</span>}
+        </span>
+      </div>
+      <Progress value={stats.progress} className="h-1" />
+    </div>
+  );
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
@@ -1117,9 +1150,19 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
                     <p className="text-sm text-muted-foreground line-clamp-2">{campaign.template.content}</p>
                   </div>
                 )}
-                <Button variant="secondary" size="sm" onClick={() => openStatsDialog(campaign.id, campaign.name)}>
+                
+                <CampaignProgress 
+                  campaignId={campaign.id} 
+                  totalTarget={
+                    Array.isArray(campaign.target_audience?.contacts) 
+                      ? campaign.target_audience.contacts.length 
+                      : 0
+                  } 
+                />
+
+                <Button variant="secondary" size="sm" onClick={() => openStatsDialog(campaign.id, campaign.name)} className="w-full mt-2">
                   <BarChart3 className="w-4 h-4 mr-1" />
-                  Ver Estatísticas
+                  Ver Detalhes
                 </Button>
                 <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                   <span>

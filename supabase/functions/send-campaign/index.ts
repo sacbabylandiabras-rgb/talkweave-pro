@@ -312,6 +312,9 @@ const getZapiAckId = (payload: any) =>
   payload?.id ||
   payload?.key?.id ||
   payload?.message?.id ||
+  payload?.messageId ||
+  (payload?.ids && payload.ids[0]) ||
+  (payload?.value && payload.value[0]?.id) ||
   null;
 const getZapiExplicitError = (payload: any) =>
   payload?.error || payload?.erro || (payload?.success === false ? payload?.message : null) || null;
@@ -2554,37 +2557,30 @@ serve(async (req) => {
         }
       }
 
-      if (totalProcessed === 0 || (actualDeliveries === 0 && awaitingCallbackCount === 0)) {
+      if (totalProcessed === 0) {
+        console.log(`⚠️ Campaign ${campaignId}: No messages processed in this batch.`);
+      } else if (remainingContacts.length === 0) {
+        // Only mark as completed if this was truly the last batch
         console.log(
-          `⚠️ Campaign ${campaignId}: ${totalProcessed} processed, ${actualDeliveries} delivered, ${awaitingCallbackCount} awaiting callback. Pausing instead of completing.`,
+          `✅ Campaign ${campaignId}: Last batch processed. Checking if we should mark as completed...`,
         );
-        await supabase
-          .from("campaigns")
-          .update({ status: "paused", updated_at: new Date().toISOString() })
-          .eq("id", campaignId);
-      } else if (awaitingCallbackCount > 0) {
-        console.log(
-          `⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`,
-        );
-      } else if (actualDeliveries < effectiveTarget) {
-        console.log(
-          `⚠️ Campaign ${campaignId}: only ${actualDeliveries}/${effectiveTarget} real deliveries confirmed. Pausing instead of completing.`,
-        );
-        await supabase
-          .from("campaigns")
-          .update({ status: "paused", updated_at: new Date().toISOString() })
-          .eq("id", campaignId);
-      } else {
-        console.log(
-          `✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed out of ${effectiveTarget} target. Marking as completed.`,
-        );
-        const { data: finalCampaign } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
-        if (finalCampaign?.status === "active" || finalCampaign?.status === "draft") {
-          await supabase
-            .from("campaigns")
-            .update({ status: "completed", updated_at: new Date().toISOString() })
-            .eq("id", campaignId);
-          console.log(`✅ Campaign ${campaignId} completed!`);
+        
+        if (awaitingCallbackCount > 0) {
+          console.log(
+            `⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`,
+          );
+        } else {
+          console.log(
+            `✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed. Marking as completed.`,
+          );
+          const { data: finalCampaign } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
+          if (finalCampaign?.status === "active" || finalCampaign?.status === "draft") {
+            await supabase
+              .from("campaigns")
+              .update({ status: "completed", updated_at: new Date().toISOString() })
+              .eq("id", campaignId);
+            console.log(`✅ Campaign ${campaignId} completed!`);
+          }
         }
       }
     }

@@ -345,9 +345,58 @@ serve(async (req) => {
               console.error(`❌ Error updating campaign_send ${currentRecord.id}:`, updateError.message);
             } else if (updated) {
               console.log(`✨ Updated campaign_send ${updated.id} to ${newStatusLabel} via message_id ${msgId}`);
+              
+              // Se foi entregue ou falhou, verificar se a campanha toda terminou
+              if (isDeliveredStatus) {
+                const { data: sendInfo } = await supabase
+                  .from("campaign_sends")
+                  .select("campaign_id")
+                  .eq("id", updated.id)
+                  .single();
+                
+                if (sendInfo?.campaign_id) {
+                  // Verificar se ainda existem pendentes para esta campanha
+                  const { count: pendingCount } = await supabase
+                    .from("campaign_sends")
+                    .select("id", { count: "exact", head: true })
+                    .eq("campaign_id", sendInfo.campaign_id)
+                    .in("status", ["pending", "sent"]);
+                  
+                  if (pendingCount === 0) {
+                    console.log(`🏁 All messages for campaign ${sendInfo.campaign_id} are processed. Marking as completed.`);
+                    await supabase
+                      .from("campaigns")
+                      .update({ status: "completed", updated_at: new Date().toISOString() })
+                      .eq("id", sendInfo.campaign_id)
+                      .in("status", ["active", "paused"]);
+                  }
+                }
+              }
             }
-          } else {
-            console.log(`🔍 No campaign_send found with message_id ${msgId}`);
+          } else if (isDeliveredStatus || isSentStatus) {
+            console.log(`🔍 No campaign_send found with message_id ${msgId}. Attempting fallback by phone...`);
+            // Fallback: Tentar encontrar pelo telefone e status pendente/enviado recentemente
+            const { data: fallbackRecord } = await supabase
+              .from("campaign_sends")
+              .select("id, status")
+              .eq("phone", phone)
+              .in("status", ["pending", "sent"])
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (fallbackRecord) {
+              console.log(`🎯 Fallback found record ${fallbackRecord.id} for phone ${phone}. Updating...`);
+              const updateData: any = { 
+                status: newStatusLabel,
+                message_id: msgId, // Aproveita para salvar o ID que estava faltando
+                error_message: null
+              };
+              if (isDeliveredStatus) updateData.delivered_at = new Date().toISOString();
+              else updateData.sent_at = new Date().toISOString();
+
+              await supabase.from("campaign_sends").update(updateData).eq("id", fallbackRecord.id);
+            }
           }
         }
       } else if (messageIds.length > 0 && isErrorStatus) {
