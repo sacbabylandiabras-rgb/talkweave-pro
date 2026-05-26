@@ -280,9 +280,20 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Selecionar Contatos ({selectedPhones.length})</Label>
-              <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
-                {selectedPhones.length === filteredContacts.length ? "Desmarcar todos" : "Selecionar todos"}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowImportDialog(true)}
+                  className="text-xs h-7 gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Importar Planilha/Manual
+                </Button>
+                <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
+                  {selectedPhones.length === filteredContacts.length ? "Desmarcar todos" : "Selecionar todos"}
+                </Button>
+              </div>
             </div>
 
             <div className="relative mb-2">
@@ -294,6 +305,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                 className="pl-8"
               />
             </div>
+
 
             {loadingContacts ? (
               <div className="flex items-center justify-center py-8">
