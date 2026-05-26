@@ -90,9 +90,9 @@ export default function CheckoutDomainSection() {
       localStorage.setItem("checkout_custom_domain", savedDomain);
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
-      setDomainVerification(data.ownership_verification || null);
+      setDomainVerification(data.verification || null);
       setEmailVerification(data.email_verification || null);
-      toast.success("Domínio registrado! SSL e registros de e-mail sendo provisionados.");
+      toast.success("Domínio e E-mail registrados! Siga as instruções de DNS abaixo.");
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
