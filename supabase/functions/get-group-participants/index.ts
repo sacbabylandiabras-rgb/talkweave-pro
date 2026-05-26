@@ -858,6 +858,12 @@ Deno.serve(async (req) => {
             // Check if subGroups failed even with data
             if (data.subGroups?.success === false) {
               console.log(`⚠️ communities-metadata returned data but subGroups failed: ${data.subGroups.reason}`);
+              // If it fails with "not found community", we should try the next candidate or endpoint
+              if (data.subGroups.reason === "not found community") {
+                console.log(`⏭️ Skipping candidate ${candidateId} due to 'not found community' in subGroups`);
+              } else {
+                 return data;
+              }
             } else {
               console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
               return data;
@@ -876,8 +882,8 @@ Deno.serve(async (req) => {
             console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId}`);
             return data;
           }
-        } catch (e) {
-          console.log(`❌ group-metadata failed: ${candidateId} - ${e.message}`);
+        } catch (error) {
+          console.log(`❌ group-metadata failed: ${candidateId} - ${error.message}`);
         }
       }
 
