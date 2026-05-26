@@ -139,6 +139,14 @@ serve(async (req) => {
     if (RESEND_API_KEY && userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        
+        // Get user profile for sender name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .single()
+
         const { data: domainData } = await supabase
           .from('email_domain_verifications')
           .select('domain, status')
@@ -147,7 +155,8 @@ serve(async (req) => {
           .single()
 
         if (domainData?.domain) {
-          const from = `${FROM_NAME} <contato@${domainData.domain}>`
+          const senderName = profile?.full_name || FROM_NAME
+          const from = `${senderName} <contato@${domainData.domain}>`
           const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {

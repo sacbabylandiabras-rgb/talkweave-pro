@@ -80,9 +80,9 @@ serve(async (req) => {
 
       if (!res.ok) {
         const errCode = data.error?.code;
-        // If domain is already added to this project, treat as success
+        // If domain is already added to this project, treat as success but continue to Resend registration
         if (errCode === "domain_already_in_use" && data.error?.domain) {
-          console.log("Domain already exists in project, treating as success");
+          console.log("Domain already exists in project, continuing to check Resend...");
           // Save to profile
           try {
             await supabase
@@ -92,54 +92,105 @@ serve(async (req) => {
           } catch (dbErr) {
             console.warn("Could not save domain to profile:", dbErr);
           }
-          return new Response(
-            JSON.stringify({
-              success: true,
-              hostname: cleanHostname,
-              status: data.error.domain.verified ? "active" : "pending",
-              ssl_status: data.error.domain.verified ? "active" : "pending",
-              verification: null,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        } else {
+          const errMsg = data.error?.message || "Failed to add domain to Vercel";
+          console.error("Vercel error:", JSON.stringify(data));
+          return new Response(JSON.stringify({ error: errMsg }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
-        const errMsg = data.error?.message || "Failed to add domain to Vercel";
-        console.error("Vercel error:", JSON.stringify(data));
-        return new Response(JSON.stringify({ error: errMsg }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
       // Register domain in Resend if API key is available
       let emailVerification = null;
       if (RESEND_API_KEY) {
         try {
-          console.log("Registering domain on Resend:", cleanHostname);
-          const resendRes = await fetch("https://api.resend.com/domains", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ name: cleanHostname }),
-          });
-          const resendData = await resendRes.json();
-          if (resendRes.ok) {
-            emailVerification = {
-              id: resendData.id,
-              status: resendData.status,
-              records: resendData.records,
-            };
-            // Save to email_domain_verifications
-            await supabase.from("email_domain_verifications").upsert({
-              user_id: user.id,
-              domain: cleanHostname,
-              resend_domain_id: resendData.id,
-              status: resendData.status,
-              dkim_records: resendData.records,
-              updated_at: new Date().toISOString(),
+          // Check if already in our DB first
+          const { data: existingV } = await supabase
+            .from("email_domain_verifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("domain", cleanHostname)
+            .single();
+
+          if (existingV?.resend_domain_id) {
+            console.log("Domain already in Resend DB, fetching latest status...");
+            const resendRes = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
             });
+            if (resendRes.ok) {
+              const resendData = await resendRes.json();
+              emailVerification = {
+                id: resendData.id,
+                status: resendData.status,
+                records: resendData.records,
+              };
+              // Update DB
+              await supabase.from("email_domain_verifications").update({
+                status: resendData.status,
+                dkim_records: resendData.records,
+                updated_at: new Date().toISOString(),
+              }).eq("id", existingV.id);
+            }
+          } else {
+            console.log("Registering domain on Resend:", cleanHostname);
+            const resendRes = await fetch("https://api.resend.com/domains", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${RESEND_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ name: cleanHostname }),
+            });
+            const resendData = await resendRes.json();
+            
+            if (resendRes.ok) {
+              emailVerification = {
+                id: resendData.id,
+                status: resendData.status,
+                records: resendData.records,
+              };
+              // Save to email_domain_verifications
+              await supabase.from("email_domain_verifications").upsert({
+                user_id: user.id,
+                domain: cleanHostname,
+                resend_domain_id: resendData.id,
+                status: resendData.status,
+                dkim_records: resendData.records,
+                updated_at: new Date().toISOString(),
+              });
+            } else if (resendData.message?.includes("already exists")) {
+              // Try to list domains to find the ID
+              const listRes = await fetch("https://api.resend.com/domains", {
+                headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              });
+              if (listRes.ok) {
+                const listData = await listRes.json();
+                const found = listData.data?.find((d: any) => d.name === cleanHostname);
+                if (found) {
+                  const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
+                    headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                  });
+                  if (detailRes.ok) {
+                    const detailData = await detailRes.json();
+                    emailVerification = {
+                      id: detailData.id,
+                      status: detailData.status,
+                      records: detailData.records,
+                    };
+                    await supabase.from("email_domain_verifications").upsert({
+                      user_id: user.id,
+                      domain: cleanHostname,
+                      resend_domain_id: detailData.id,
+                      status: detailData.status,
+                      dkim_records: detailData.records,
+                      updated_at: new Date().toISOString(),
+                    });
+                  }
+                }
+              }
+            }
           }
         } catch (resendErr) {
           console.warn("Could not register domain on Resend:", resendErr);
