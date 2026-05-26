@@ -14,7 +14,9 @@ import { useContacts } from "@/hooks/useContacts";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
-import { Users, Loader2, Search, MessageSquare, Clock, Calendar } from "lucide-react";
+import { Users, Loader2, Search, MessageSquare, Clock, Calendar, FileDown, Plus } from "lucide-react";
+import { ImportContactsDialog } from "./ImportContactsDialog";
+
 
 interface CreateCampaignDialogProps {
   open: boolean;
@@ -32,8 +34,10 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     const provider = (i.api_provider || 'zapi').toLowerCase();
     const name = (i.instance_name || '').toLowerCase();
     if (name.includes('aquecimento') || name.includes('warmup')) return false;
-    return provider !== 'meta';
+    // O usuário solicitou remover UAZAPI da parte de campanhas
+    return provider === 'zapi';
   }), [allInstances]);
+
 
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [formData, setFormData] = useState({
@@ -47,15 +51,26 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const [selectedPhones, setSelectedPhones] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [manualContacts, setManualContacts] = useState<Array<{ phone: string; name?: string }>>([]);
+
 
   const selectedTemplate = templates.find(t => t.id === formData.template_id);
 
   const filteredContacts = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return contacts.filter(c =>
+    const all = [...manualContacts, ...contacts];
+    
+    // Remover duplicados (preferir manualContacts)
+    const unique = all.filter((c, index, self) => 
+      self.findIndex(t => t.phone === c.phone) === index
+    );
+
+    return unique.filter(c =>
       (c.name || "").toLowerCase().includes(q) || (c.phone || "").includes(q)
     );
-  }, [contacts, searchQuery]);
+  }, [contacts, manualContacts, searchQuery]);
+
 
   const togglePhone = (phone: string) => {
     setSelectedPhones(prev => prev.includes(phone) ? prev.filter(p => p !== phone) : [...prev, phone]);
@@ -68,6 +83,27 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       setSelectedPhones(filteredContacts.map(c => c.phone));
     }
   };
+
+  const handleImportedContacts = (newContacts: Array<{ phone: string; name?: string }>) => {
+    setManualContacts(prev => {
+      const all = [...newContacts, ...prev];
+      return all.filter((c, index, self) => 
+        self.findIndex(t => t.phone === c.phone) === index
+      );
+    });
+    
+    // Selecionar automaticamente os novos contatos
+    setSelectedPhones(prev => {
+      const newPhones = newContacts.map(c => c.phone);
+      return Array.from(new Set([...prev, ...newPhones]));
+    });
+
+    toast({
+      title: "Contatos adicionados",
+      description: `${newContacts.length} contatos foram adicionados à lista.`,
+    });
+  };
+
 
   const handleSubmit = async () => {
     if (!formData.name) {
@@ -127,6 +163,8 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
       onOpenChange(false);
       setFormData({ name: "", description: "", template_id: "", delay_seconds: 2, schedule_type: "immediate", scheduled_at: "" });
       setSelectedPhones([]);
+      setManualContacts([]);
+
     } catch (error) {
       console.error("Error creating contact campaign:", error);
       toast({ title: "Erro", description: "Erro ao criar campanha", variant: "destructive" });
@@ -244,9 +282,20 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Selecionar Contatos ({selectedPhones.length})</Label>
-              <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
-                {selectedPhones.length === filteredContacts.length ? "Desmarcar todos" : "Selecionar todos"}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowImportDialog(true)}
+                  className="text-xs h-7 gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Importar Planilha/Manual
+                </Button>
+                <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
+                  {selectedPhones.length === filteredContacts.length ? "Desmarcar todos" : "Selecionar todos"}
+                </Button>
+              </div>
             </div>
 
             <div className="relative mb-2">
@@ -258,6 +307,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
                 className="pl-8"
               />
             </div>
+
 
             {loadingContacts ? (
               <div className="flex items-center justify-center py-8">
@@ -302,7 +352,14 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             </Button>
           </div>
         </div>
+        
+        <ImportContactsDialog 
+          open={showImportDialog} 
+          onOpenChange={setShowImportDialog}
+          onImport={handleImportedContacts}
+        />
       </DialogContent>
+
     </Dialog>
   );
 }
