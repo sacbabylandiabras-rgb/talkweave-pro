@@ -11,11 +11,6 @@ export interface AgentTool {
 }
 
 export const ALL_TOOLS: Omit<AgentTool, "enabled">[] = [
-  // WhatsApp UAZAPI
-  { category: "WhatsApp (UAZAPI)", name: "enviar_botoes", label: "Enviar botões", description: "Envia botões de resposta rápida (até 3) via WhatsApp." },
-  { category: "WhatsApp (UAZAPI)", name: "enviar_lista", label: "Enviar lista", description: "Envia menu em formato de lista (até 10 opções)." },
-  { category: "WhatsApp (UAZAPI)", name: "enviar_imagem", label: "Enviar imagem", description: "Envia imagem com legenda a partir de uma URL." },
-  { category: "WhatsApp (UAZAPI)", name: "enviar_link", label: "Enviar link", description: "Envia mensagem de texto com link/URL." },
   // WhatsApp Meta Cloud API
   { category: "WhatsApp (Meta Cloud API)", name: "meta_enviar_texto", label: "Meta — Enviar texto", description: "Envia mensagem de texto via API oficial Meta (Cloud API)." },
   { category: "WhatsApp (Meta Cloud API)", name: "meta_enviar_template", label: "Meta — Enviar template", description: "Envia template aprovado pela Meta (necessário fora da janela 24h)." },
