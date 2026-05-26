@@ -857,10 +857,10 @@ Deno.serve(async (req) => {
           if (data && (data.subGroups || data.participants || data.id)) {
             // Check if subGroups failed even with data
             if (data.subGroups?.success === false) {
-              console.log(`⚠️ communities-metadata returned data but subGroups failed: ${data.subGroups.reason}`);
-              // If it fails with "not found community", we should try the next candidate or endpoint
+              console.log(`⚠️ communities-metadata returned data but subGroups failed for ${candidateId}: ${data.subGroups.reason}`);
+              // If it fails with "not found community", we should try the next endpoint/candidate
               if (data.subGroups.reason === "not found community") {
-                console.log(`⏭️ Skipping candidate ${candidateId} due to 'not found community' in subGroups`);
+                console.log(`⏭️ Skipping communities-metadata result for ${candidateId} due to 'not found community'`);
               } else {
                  return data;
               }
@@ -879,8 +879,13 @@ Deno.serve(async (req) => {
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
-            console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId}`);
-            return data;
+            // Check if this is a group and has participants
+            const parts = extractParticipantArray(data);
+            if (parts.length > 0 || data.subGroups) {
+              console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId} (Parts: ${parts.length})`);
+              return data;
+            }
+            console.log(`ℹ️ group-metadata returned no participants for ${candidateId}`);
           }
         } catch (error) {
           console.log(`❌ group-metadata failed: ${candidateId} - ${error.message}`);
