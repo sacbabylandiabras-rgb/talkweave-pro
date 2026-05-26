@@ -2353,6 +2353,7 @@ serve(async (req) => {
 
             campaignSend.status = "sent";
             campaignSend.sent_at = new Date().toISOString();
+            campaignSend.error_message = null; // Clear any previous error message on success
             const ackId = getZapiAckId(zapiResult);
             if (ackId) campaignSend.message_id = String(ackId);
             results.push({ phone: contact.phone, success: true, messageId: ackId });
