@@ -2029,6 +2029,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
   const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(mode);
+  const [pipelineActiveId, setPipelineActiveId] = useState<string>(() =>
+    mode === "pipeline" ? (localStorage.getItem("pipeline_active_id") || "") : ""
+  );
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
