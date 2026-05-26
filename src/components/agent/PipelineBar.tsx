@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, X, Check } from "lucide-react";
+import { Plus, Trash2, X, Check, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -54,13 +54,15 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
           PIPELINE_STAGES = customStages;
           if (onStagesChange) onStagesChange(customStages);
         } else {
-          setStages(DEFAULT_PIPELINE_STAGES);
-          PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+          // Instead of defaults, we start empty to show the "Create Pipeline" option
+          setStages([]);
+          PIPELINE_STAGES = [];
+          if (onStagesChange) onStagesChange([]);
         }
       } catch (err) {
-        console.warn("Could not fetch pipeline_stages from database, using defaults:", err);
-        setStages(DEFAULT_PIPELINE_STAGES);
-        PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+        console.warn("Could not fetch pipeline_stages from database:", err);
+        setStages([]);
+        PIPELINE_STAGES = [];
       }
     };
 
@@ -119,48 +121,65 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
     toast({ title: "Sucesso", description: "Etapa excluída com sucesso" });
   };
 
+  const handleCreateDefaultPipeline = () => {
+    saveStages(DEFAULT_PIPELINE_STAGES);
+    toast({ title: "Pipeline criado!", description: "Funil padrão configurado com sucesso." });
+  };
+
   return (
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
       <ScrollArea className="flex-1 whitespace-nowrap">
         <div className="flex gap-2 pb-2">
-          {stages.map((stage) => (
-            <div key={stage.id} className="relative group/btn">
-              <button
-                onClick={() => onStageSelect(stage.id)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border group-hover/btn:pr-9",
-                  selectedStage === stage.id
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
-                )}
-              >
-                <div className={cn("w-2 h-2 rounded-full", stage.color)} />
-                {stage.label}
-                <Badge 
-                  variant={selectedStage === stage.id ? "secondary" : "outline"} 
+          {stages.length === 0 ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
+              onClick={handleCreateDefaultPipeline}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Criar meu Funil de Vendas
+            </Button>
+          ) : (
+            stages.map((stage) => (
+              <div key={stage.id} className="relative group/btn">
+                <button
+                  onClick={() => onStageSelect(stage.id)}
                   className={cn(
-                    "ml-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px]",
-                    selectedStage === stage.id ? "bg-primary-foreground/20 text-primary-foreground border-none" : "bg-muted-foreground/10"
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border group-hover/btn:pr-9",
+                    selectedStage === stage.id
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
                   )}
                 >
-                  {counts[stage.id] || 0}
-                </Badge>
-              </button>
-              
-              {stage.id !== 'all' && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDeleteStage(stage.id);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 bg-destructive/10 hover:bg-destructive hover:text-white text-destructive rounded-full transition-all p-1 z-10"
-                >
-                  <X className="w-3 h-3" />
+                  <div className={cn("w-2 h-2 rounded-full", stage.color)} />
+                  {stage.label}
+                  <Badge 
+                    variant={selectedStage === stage.id ? "secondary" : "outline"} 
+                    className={cn(
+                      "ml-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px]",
+                      selectedStage === stage.id ? "bg-primary-foreground/20 text-primary-foreground border-none" : "bg-muted-foreground/10"
+                    )}
+                  >
+                    {counts[stage.id] || 0}
+                  </Badge>
                 </button>
-              )}
-            </div>
-          ))}
+                
+                {stage.id !== 'all' && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteStage(stage.id);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 bg-destructive/10 hover:bg-destructive hover:text-white text-destructive rounded-full transition-all p-1 z-10"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))
+          )}
         </div>
         <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
