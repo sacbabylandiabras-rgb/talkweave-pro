@@ -155,7 +155,9 @@ serve(async (req) => {
               emailVerification = {
                 id: resendData.id,
                 status: resendData.status,
-                records: resendData.records,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+
               };
               // Update DB
               const { error: updateError } = await supabase.from("email_domain_verifications").update({
@@ -181,7 +183,9 @@ serve(async (req) => {
               emailVerification = {
                 id: resendData.id,
                 status: resendData.status,
-                records: resendData.records,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+
               };
               // Save to email_domain_verifications
               const { error: upsertError } = await supabase.from("email_domain_verifications").upsert({
@@ -211,7 +215,9 @@ serve(async (req) => {
                       emailVerification = {
                         id: detailData.id,
                         status: detailData.status,
-                        records: detailData.records,
+                        records: detailData.records || [],
+                        region: detailData.region || "us-east-1",
+
                       };
                       const { error: upsertError2 } = await supabase.from("email_domain_verifications").upsert({
                         user_id: user.id,
@@ -375,7 +381,9 @@ serve(async (req) => {
               emailVerification = {
                 id: resendData.id,
                 status: resendData.status,
-                records: resendData.records,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+
               };
               // Update DB
               await supabase.from("email_domain_verifications").update({
