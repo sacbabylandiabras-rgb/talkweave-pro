@@ -348,6 +348,34 @@ export default function CheckoutDomainSection() {
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
                     )}
                     <span className="text-xs font-medium">Status do E-mail</span>
+                    {statusChecking && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground ml-1" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={handleRefreshDomainStatus}
+                      disabled={statusChecking}
+                      title="Atualizar status do e-mail"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${statusChecking ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Badge variant="outline" className={`text-[10px] ${
+                      emailVerification?.status === "verified" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"
+                    }`}>
+                      {emailVerification?.status === "verified" ? "Verificado" : "Pendente"}
+                    </Badge>
+                  </div>
+                </div>
+
+                  <div className="flex items-center gap-2">
+                    {emailVerification?.status === "verified" ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span className="text-xs font-medium">Status do E-mail</span>
                   </div>
                   <Badge variant="outline" className={`text-[10px] ${
                     emailVerification?.status === "verified" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"
