@@ -28,7 +28,7 @@ const detectIsCommunity = (group: { id: string; isCommunity?: boolean; isChannel
 // ─── component ────────────────────────────────────────────────────────────────
 
 const ExtractMembers = () => {
-  const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: "zapi" });
+  const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: "zapi_no_warmup_meta" });
 
   // Only show groups / communities / channels (filter out raw contacts etc.)
   const groups = useMemo(
@@ -48,7 +48,7 @@ const ExtractMembers = () => {
     [allGroups],
   );
 
-  const { instances } = useZapiInstances({ provider: "zapi" });
+  const { instances } = useZapiInstances({ provider: "zapi_no_warmup_meta" });
   const { fetchMemberCount, isMemberCountLoading } = useGroupMemberCount();
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
