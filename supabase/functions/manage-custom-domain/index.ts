@@ -129,7 +129,22 @@ serve(async (req) => {
           }
 
 
+          if (selectError?.code === "PGRST205" || selectError?.message?.includes("not found")) {
+            console.log("Table missing, falling back to direct Resend check by listing domains...");
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((d: any) => d.name === cleanHostname);
+              if (found) {
+                existingV = { resend_domain_id: found.id } as any;
+              }
+            }
+          }
+
           console.log("Existing Resend record check for:", cleanHostname);
+
           if (existingV?.resend_domain_id) {
             console.log("Domain already in Resend DB, fetching latest status...");
             const resendRes = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
