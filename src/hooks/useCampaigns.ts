@@ -813,6 +813,11 @@ export const useCampaigns = () => {
     const channel = supabase
       .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "campaigns" }, (payload) => {
+        const currentCampaignId = (window as any)._currentViewingCampaignId;
+        if (payload.new && (payload.new as any).id === currentCampaignId) {
+           console.log("🔄 Ignorando atualização automática para campanha em visualização ativa");
+           return;
+        }
         console.log("🔄 Mudança detectada na tabela campaigns:", payload.eventType);
         loadCampaigns(true);
       })
