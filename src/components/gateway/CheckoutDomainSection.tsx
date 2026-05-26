@@ -55,6 +55,7 @@ export default function CheckoutDomainSection() {
       setDomainSslStatus(data?.ssl_status || "");
       setDomainVerification(data?.verification || null);
       setSslInfo(data?.ssl || null);
+      setEmailVerification(data?.email_verification || null);
     } catch (err) {
       console.error("Error checking domain status:", err);
       setDomainStatus("pending");
