@@ -297,11 +297,6 @@ export default function CheckoutDomainSection() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex justify-start pt-1">
-                    <span className="text-[9px] text-muted-foreground italic font-medium text-[#a78bfa]">
-                      Apenas o prefixo (ex: {customDomain.split('.')[0] || "pay"})
-                    </span>
-                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
                     <div className="flex items-center gap-2">
