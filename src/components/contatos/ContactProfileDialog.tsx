@@ -208,6 +208,10 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     setNote(contact.notes?.content || (contact as any).notes?.content || "");
     setNewName(contact.name || '');
     setCurrentStage((contact as any).agent_stage || 'triage');
+    setDealValue((contact as any).deal_value || 0);
+    setClosingDate((contact as any).closing_date ? new Date((contact as any).closing_date).toISOString().split('T')[0] : '');
+    setPriority((contact as any).priority || 'normal');
+    setDealDescription((contact as any).description || '');
     
     loadFlows();
     loadAvailableTags();
