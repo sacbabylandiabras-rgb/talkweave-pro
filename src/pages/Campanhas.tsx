@@ -166,26 +166,30 @@ const CampaignProgress = ({ campaignId, totalTarget }: { campaignId: string, tot
   
   const stats = useMemo(() => {
     if (loading) return null;
-    const delivered = sends.filter(s => s.status === 'delivered').length;
-    const sent = sends.filter(s => s.status === 'sent').length;
-    const failed = sends.filter(s => s.status === 'failed' || (s as any).error_message).length;
-    const processed = delivered + sent + failed;
+    const read = sends.filter(s => (s.status as string) === 'read' || Boolean(s.read_at)).length;
+    const delivered = sends.filter(s => (s.status as string) === 'delivered' || Boolean(s.delivered_at) || (s.status as string) === 'read').length;
+    const sent = sends.filter(s => ((s.status as string) === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
+    const failed = sends.filter(s => ((s.status as string) === 'failed' || Boolean(s.error_message)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
+    const processing = sends.filter(s => (s.status as string) === 'pending' && (Boolean(s.message_id) || Boolean(s.sent_at)) && (!s.delivered_at && (s.status as string) !== 'delivered' && (s.status as string) !== 'read')).length;
+    
+    const processed = delivered + sent + failed + processing;
     const total = Math.max(totalTarget, sends.length);
     const progress = total > 0 ? (processed / total) * 100 : 0;
     
-    return { delivered, sent, failed, processed, total, progress };
+    return { delivered, sent, failed, processed, total, progress, read };
   }, [sends, loading, totalTarget]);
 
   if (loading || !stats || stats.total === 0) return null;
 
   return (
     <div className="space-y-1 mt-2">
-      <div className="flex justify-between text-[10px] text-muted-foreground">
+      <div className="flex justify-between text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
         <span>Progresso: {stats.processed}/{stats.total}</span>
         <span className="flex gap-2">
-          <span className="text-green-600">✓✓ {stats.delivered}</span>
-          <span className="text-blue-600">✓ {stats.sent}</span>
-          {stats.failed > 0 && <span className="text-red-600">✗ {stats.failed}</span>}
+          <span className="text-indigo-600" title="Lidas">👀 {stats.read}</span>
+          <span className="text-green-600" title="Entregues">✓✓ {stats.delivered}</span>
+          <span className="text-blue-600" title="Enviadas">✓ {stats.sent}</span>
+          {stats.failed > 0 && <span className="text-red-600" title="Canceladas">✗ {stats.failed}</span>}
         </span>
       </div>
       <Progress value={stats.progress} className="h-1" />

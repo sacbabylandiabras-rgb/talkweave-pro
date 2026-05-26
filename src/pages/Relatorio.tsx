@@ -27,8 +27,11 @@ type ReportSend = {
   status: string | null;
   sent_at: string | null;
   delivered_at?: string | null;
+  read_at?: string | null;
+  clicked_at?: string | null;
   created_at: string;
   error_message: string | null;
+  message_id?: string | null;
 };
 
 const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send?.delivered_at || send?.sent_at || send?.created_at || "";
@@ -61,8 +64,8 @@ const getLatestCampaignSends = (campaignId: string, sends: ReportSend[]) => {
   return Array.from(latestMap.values()).filter((send) => send.campaign_id === campaignId);
 };
 
-const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status'>>) => sends.filter(
-  (send) => send.status === 'delivered' || send.status === 'sent'
+const countSuccessfulStatuses = (sends: Array<Pick<ReportSend, 'status' | 'delivered_at' | 'read_at'>>) => sends.filter(
+  (send) => send.status === 'delivered' || send.status === 'read' || Boolean(send.delivered_at) || Boolean(send.read_at)
 ).length;
 
 const Relatorio = () => {
@@ -118,14 +121,16 @@ const Relatorio = () => {
   const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
 
   const stats = {
-    totalSent: countSuccessfulStatuses(latestAllSends),
-    totalDelivered: latestAllSends.filter(s => s.status === 'delivered').length,
-    totalFailed: latestAllSends.filter(s => s.status === 'failed').length,
+    totalSent: latestAllSends.filter(s => (s.status === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && s.status !== 'delivered' && s.status !== 'read')).length,
+    totalDelivered: latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length,
+    totalRead: latestAllSends.filter(s => s.status === 'read' || Boolean(s.read_at)).length,
+    totalFailed: latestAllSends.filter(s => (s.status === 'failed' || Boolean(s.error_message)) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length,
     totalPending: dbPendingCount + globalNotProcessed,
     totalMessages: effectiveTotalMessages,
     totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
+    totalClicked: latestAllSends.filter(s => Boolean(s.clicked_at)).length,
     deliveryRate: effectiveTotalMessages > 0
-      ? (countSuccessfulStatuses(latestAllSends) / effectiveTotalMessages) * 100
+      ? (latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length / effectiveTotalMessages) * 100
       : 0,
   };
 
@@ -190,10 +195,10 @@ const Relatorio = () => {
   const hasActiveCampaigns = campaignReports.some(c => c.status === 'active');
 
   const metricas = [
-    { titulo: "Total de Mensagens", valor: stats.totalMessages.toLocaleString('pt-BR'), icon: Send, periodo: "Total de envios" },
-    { titulo: "Taxa de Entrega", valor: `${stats.deliveryRate.toFixed(1)}%`, icon: TrendingUp, periodo: "Sucesso nos envios" },
-    { titulo: "Contatos Alcançados", valor: stats.totalContacts.toLocaleString('pt-BR'), icon: Users, periodo: "Únicos" },
-    { titulo: "Pendentes", valor: stats.totalPending.toLocaleString('pt-BR'), icon: ClockIcon, periodo: "Aguardando envio" },
+    { titulo: "Total de Mensagens", valor: stats.totalMessages.toLocaleString('pt-BR'), icon: Send, periodo: "Todos os números" },
+    { titulo: "Entregues", valor: stats.totalDelivered.toLocaleString('pt-BR'), icon: CheckCircle, periodo: "Recebidas no celular" },
+    { titulo: "Lidas", valor: stats.totalRead.toLocaleString('pt-BR'), icon: Eye, periodo: "Abertas" },
+    { titulo: "Cliques", valor: stats.totalClicked.toLocaleString('pt-BR'), icon: Smartphone, periodo: "Links clicados" },
   ];
 
   return (
@@ -245,33 +250,45 @@ const Relatorio = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/10">
               <div>
-                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues com Sucesso</h3>
+                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues</h3>
                 <p className="text-sm text-muted-foreground">Confirmadas pelo WhatsApp</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-green-600 dark:text-green-400">
-                  {stats.totalSent.toLocaleString('pt-BR')}
+                  {stats.totalDelivered.toLocaleString('pt-BR')}
                 </p>
                 <p className="text-sm text-muted-foreground">de {stats.totalMessages.toLocaleString('pt-BR')}</p>
               </div>
             </div>
 
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-500/10">
+              <div>
+                <h3 className="font-medium text-indigo-600 dark:text-indigo-400">Lidas</h3>
+                <p className="text-sm text-muted-foreground">Abertas pelo cliente</p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-2xl text-indigo-600 dark:text-indigo-400">
+                  {stats.totalRead.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-500/10">
               <div>
-                <h3 className="font-medium text-yellow-600 dark:text-yellow-400">Pendentes</h3>
-                <p className="text-sm text-muted-foreground">Aguardando envio</p>
+                <h3 className="font-medium text-yellow-600 dark:text-yellow-400">Pendentes / Em Trânsito</h3>
+                <p className="text-sm text-muted-foreground">Aguardando envio ou processando</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-yellow-600 dark:text-yellow-400">
-                  {stats.totalPending.toLocaleString('pt-BR')}
+                  {(stats.totalPending + stats.totalSent).toLocaleString('pt-BR')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-between p-4 border rounded-lg bg-red-500/10">
               <div>
-                <h3 className="font-medium text-red-600 dark:text-red-400">Falhas no Envio</h3>
-                <p className="text-sm text-muted-foreground">Mensagens que falharam</p>
+                <h3 className="font-medium text-red-600 dark:text-red-400">Cancelados</h3>
+                <p className="text-sm text-muted-foreground">Erros no envio</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-red-600 dark:text-red-400">
