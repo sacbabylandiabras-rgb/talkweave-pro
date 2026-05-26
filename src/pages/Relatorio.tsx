@@ -34,8 +34,10 @@ type ReportSend = {
 const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'created_at'>) => send?.delivered_at || send?.sent_at || send?.created_at || "";
 
 const normalizePhone = (phone?: string | null) => {
-  if (!phone) return '';
-  return phone.replace(/@lid$/i, '').replace(/\D/g, '');
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+  return trimmed.replace(/\D/g, "");
 };
 
 const buildLatestSendsMap = (sends: ReportSend[]) => {

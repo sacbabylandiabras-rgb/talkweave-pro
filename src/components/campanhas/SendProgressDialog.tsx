@@ -37,7 +37,9 @@ interface CampaignSendRow {
 
 const normalizePhoneKey = (phone?: string | null) => {
   if (!phone) return "";
-  return phone.replace(/@lid$/i, "").replace(/\D/g, "");
+  const trimmed = phone.trim();
+  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+  return trimmed.replace(/\D/g, "");
 };
 
 const getSendTimestamp = (send?: Pick<CampaignSendRow, "delivered_at" | "sent_at" | "created_at"> | null) =>
