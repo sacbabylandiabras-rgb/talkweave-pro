@@ -732,7 +732,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                     setCurrentStage(val);
                     await updateContactStage(contact.phone, val);
                     toast({ title: "Etapa atualizada!" });
-                    onUpdate?.();
+                    if (onUpdate) onUpdate();
                   }}
                 >
                   <SelectTrigger className="h-9 w-full text-sm">

@@ -2675,8 +2675,11 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                       e.preventDefault();
                       const phone = e.dataTransfer.getData("phone");
                       if (phone) {
+                        // Otimismo: atualiza local primeiro para feedback imediato
+                        setActiveTab("pipeline"); 
                         await updateContactStage(phone, stage.id);
                         toast({ title: `Movido para ${stage.label}` });
+                        // Recarrega os dados para garantir sincronia com o banco
                         refetch();
                       }
                     }}

@@ -1563,15 +1563,19 @@ export const useMessageLogs = (
        if (!token || !userId) return;
        const normalized = normalizeConversationPhone(phone);
        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
-       try {
-         await savedContactsApi.upsert(token, {
-           phone: normalized,
-           name: saved?.name || '',
-           user_id: userId,
-           agent_stage: stage,
-           profile_picture_url: saved?.profile_picture_url || null,
-         });
-       } catch (e) {
+        try {
+          const { error } = await supabase
+            .from('saved_contacts')
+            .upsert({
+              phone: normalized,
+              name: saved?.name || '',
+              user_id: userId,
+              agent_stage: stage,
+              profile_picture_url: saved?.profile_picture_url || null,
+            }, { onConflict: 'phone,user_id' });
+          
+          if (error) throw error;
+        } catch (e) {
          console.warn("Failed to save stage to database, column might be missing:", e);
          // Fallback: save to localStorage for this session/user
          const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
