@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Plus, Trash2, Loader2, FolderOpen, FileText, ArrowLeft, Bot, Search, Settings,
   Paperclip, Image as ImageIcon, Video, Music, File as FileIcon, Upload, X,
