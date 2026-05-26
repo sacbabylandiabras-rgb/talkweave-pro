@@ -244,6 +244,8 @@ const extractCommunitySubGroupIds = (payload: any) => {
     payload?.data?.groups,
     payload?.result?.subGroups,
     payload?.result?.groups,
+    payload?.defaultSubgroupId, // Added
+    payload?.parentGroupJid, // Added
   ];
 
   const communityIdsToIgnore = new Set(
@@ -252,6 +254,7 @@ const extractCommunitySubGroupIds = (payload: any) => {
       normalizeCommunityId(payload?.phone),
       normalizeCommunityId(payload?.communityId),
       normalizeCommunityId(payload?.parentCommunityId),
+      normalizeCommunityId(payload?.jid),
     ]),
   );
 
