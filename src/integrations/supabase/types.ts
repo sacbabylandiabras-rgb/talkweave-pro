@@ -437,6 +437,33 @@ export type Database = {
           },
         ]
       }
+      gateway_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          public_key: string
+          secret_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          public_key: string
+          secret_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          public_key?: string
+          secret_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_checkouts: {
         Row: {
           config: Json

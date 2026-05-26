@@ -1,20 +1,14 @@
-Implement safety improvements in the Campaigns page and Realtime hooks to prevent client-side exceptions causing blank screens.
+Para implementar o sistema de disparos de e-mail usando o domínio customizado do usuário, seguiremos estes passos técnicos:
 
-1. **Safety Enhancements in `useCampaignRealtime.ts`**:
-   - Update `sortSends` to handle cases where `created_at` or the record itself might be undefined.
-   - Limit the length of the `dataKey` hash to prevent potential browser string length issues with massive campaigns.
+1. **Infraestrutura de E-mail**: Utilizaremos a integração nativa do Lovable para configurar o domínio.
+2. **Interface de Configuração**: Adicionaremos uma nova seção em `Configurações > Domínio` para gerenciar a verificação de e-mail do domínio customizado.
+3. **Template de E-mail**: Criaremos templates profissionais para confirmação de compra e notificações transacionais.
+4. **Disparo Automático**: Configuraremos uma Edge Function que será disparada após o sucesso de um pagamento, utilizando o domínio do vendedor como remetente.
 
-2. **Safety Enhancements in `Campanhas.tsx`**:
-   - Refactor `formatErrorMessage` to safely handle any input type (including objects) by converting to string first.
-   - Wrap the main campaign list and dialogs in additional null/undefined checks.
-   - Ensure `fullContactList` generation in `StatsDialog` is resilient to missing data.
-   - Add a "Try/Catch" block or safe fallback within the `statsDialog` render logic.
+### Detalhes Técnicos
 
-3. **Duplication Logic Fix**:
-   - Ensure that duplicating a campaign correctly clones the `target_audience` and other metadata without causing reference issues.
+- **Interface**: Adição de botões para iniciar a verificação de e-mail (DKIM/SPF) dentro do componente `CheckoutDomainSection`.
+- **Edge Function**: Nova função `send-transactional-email` que identifica o domínio vinculado ao `user_id` do vendedor e realiza o envio via API do Lovable.
+- **Banco de Dados**: Verificação e atualização da tabela `profiles` ou `custom_domains` para rastrear o status de verificação de e-mail de cada domínio.
 
-Technical details:
-- Using `String(msg).toLowerCase()` in `formatErrorMessage`.
-- Adding `isValid` checks to all date formatting calls.
-- Ensuring `Map` lookups handle undefined keys gracefully.
-- Checking for the existence of properties before accessing them in the render phase.
+Deseja que eu comece pela interface de configuração do DNS de e-mail ou pela lógica de disparo?
