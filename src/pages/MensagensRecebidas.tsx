@@ -2027,6 +2027,7 @@ const MensagensRecebidas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
+  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(searchParams.get("tab") === "pipeline" ? "pipeline" : "chat");
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -2340,18 +2341,28 @@ const MensagensRecebidas = () => {
     if (normalizedPhone) markAsRead(normalizedPhone);
   };
 
-  // Auto-select phone from URL query param
+  // Auto-select phone or tab from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
+    const tabParam = searchParams.get("tab");
+    
+    if (tabParam === "pipeline") {
+      setActiveTab("pipeline");
+    } else if (tabParam === "chat") {
+      setActiveTab("chat");
+    }
+
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
     if (!normalizedPhone || handledPhoneParamRef.current === normalizedPhone) return;
 
     handledPhoneParamRef.current = normalizedPhone;
     setSelectedPhone(normalizedPhone);
+    setActiveTab("chat"); // Se selecionou um telefone, vai pro chat
     if (normalizedPhone) markAsRead(normalizedPhone);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("phone");
+    nextParams.delete("tab");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
