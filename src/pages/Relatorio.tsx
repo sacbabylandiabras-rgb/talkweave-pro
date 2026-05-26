@@ -250,33 +250,45 @@ const Relatorio = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/10">
               <div>
-                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues com Sucesso</h3>
+                <h3 className="font-medium text-green-600 dark:text-green-400">Entregues</h3>
                 <p className="text-sm text-muted-foreground">Confirmadas pelo WhatsApp</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-green-600 dark:text-green-400">
-                  {stats.totalSent.toLocaleString('pt-BR')}
+                  {stats.totalDelivered.toLocaleString('pt-BR')}
                 </p>
                 <p className="text-sm text-muted-foreground">de {stats.totalMessages.toLocaleString('pt-BR')}</p>
               </div>
             </div>
 
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-500/10">
+              <div>
+                <h3 className="font-medium text-indigo-600 dark:text-indigo-400">Lidas</h3>
+                <p className="text-sm text-muted-foreground">Abertas pelo cliente</p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-2xl text-indigo-600 dark:text-indigo-400">
+                  {stats.totalRead.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-500/10">
               <div>
-                <h3 className="font-medium text-yellow-600 dark:text-yellow-400">Pendentes</h3>
-                <p className="text-sm text-muted-foreground">Aguardando envio</p>
+                <h3 className="font-medium text-yellow-600 dark:text-yellow-400">Pendentes / Em Trânsito</h3>
+                <p className="text-sm text-muted-foreground">Aguardando envio ou processando</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-yellow-600 dark:text-yellow-400">
-                  {stats.totalPending.toLocaleString('pt-BR')}
+                  {(stats.totalPending + stats.totalSent).toLocaleString('pt-BR')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-between p-4 border rounded-lg bg-red-500/10">
               <div>
-                <h3 className="font-medium text-red-600 dark:text-red-400">Falhas no Envio</h3>
-                <p className="text-sm text-muted-foreground">Mensagens que falharam</p>
+                <h3 className="font-medium text-red-600 dark:text-red-400">Cancelados</h3>
+                <p className="text-sm text-muted-foreground">Erros no envio</p>
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-red-600 dark:text-red-400">
