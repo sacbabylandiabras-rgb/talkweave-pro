@@ -2,14 +2,17 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, X, Check, LayoutGrid } from "lucide-react";
+import { Plus, Trash2, X, Check, LayoutGrid, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export const DEFAULT_PIPELINE_STAGES = [
+type Stage = { id: string; label: string; color: string };
+type Pipeline = { id: string; name: string; stages: Stage[] };
+
+export const DEFAULT_PIPELINE_STAGES: Stage[] = [
   { id: "all", label: "TODOS", color: "bg-gray-500" },
   { id: "triage", label: "AGUARDANDO", color: "bg-slate-500" },
   { id: "in_service", label: "EM ATENDIMENTO", color: "bg-blue-500" },
@@ -20,26 +23,39 @@ export const DEFAULT_PIPELINE_STAGES = [
   { id: "lost", label: "PERDIDO", color: "bg-slate-800" },
 ];
 
-export let PIPELINE_STAGES = [...DEFAULT_PIPELINE_STAGES];
+export let PIPELINE_STAGES: Stage[] = [...DEFAULT_PIPELINE_STAGES];
 
+const LS_ACTIVE_KEY = "pipeline_active_id";
 
 interface PipelineBarProps {
   selectedStage: string;
   onStageSelect: (stageId: string) => void;
   counts: Record<string, number>;
-  onStagesChange?: (stages: typeof DEFAULT_PIPELINE_STAGES) => void;
+  onStagesChange?: (stages: Stage[]) => void;
 }
 
 export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange }: PipelineBarProps) => {
   const { toast } = useToast();
-  const [stages, setStages] = useState<typeof DEFAULT_PIPELINE_STAGES>(PIPELINE_STAGES);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
   const [newStageName, setNewStageName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newPipelineName, setNewPipelineName] = useState("");
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const activePipeline = pipelines.find(p => p.id === activeId) || null;
+  const stages = activePipeline?.stages || [];
+
+  // Notify parent whenever the active stages change
+  useEffect(() => {
+    PIPELINE_STAGES = stages;
+    if (onStagesChange) onStagesChange(stages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, pipelines]);
 
   useEffect(() => {
-    const fetchStages = async () => {
+    const fetchPipelines = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -50,64 +66,108 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
           .eq('id', user.id)
           .single();
 
-        if (!error && data?.pipeline_stages && Array.isArray(data.pipeline_stages) && data.pipeline_stages.length > 0) {
-          const customStages = data.pipeline_stages as typeof DEFAULT_PIPELINE_STAGES;
-          setStages(customStages);
-          PIPELINE_STAGES = customStages;
-          if (onStagesChange) onStagesChange(customStages);
-        } else {
-          // Instead of defaults, we start empty to show the "Create Pipeline" option
-          setStages([]);
-          PIPELINE_STAGES = [];
-          if (onStagesChange) onStagesChange([]);
+        if (error) throw error;
+        const raw = data?.pipeline_stages;
+
+        let loaded: Pipeline[] = [];
+        if (Array.isArray(raw) && raw.length > 0) {
+          // Detect legacy flat shape [{id,label,color}] vs new [{id,name,stages}]
+          if ((raw[0] as any).stages) {
+            loaded = raw as Pipeline[];
+          } else {
+            loaded = [{
+              id: `pipeline_${Date.now()}`,
+              name: "Funil de Vendas",
+              stages: raw as Stage[],
+            }];
+          }
+        }
+        setPipelines(loaded);
+
+        const savedActive = localStorage.getItem(LS_ACTIVE_KEY) || "";
+        const chosen = loaded.find(p => p.id === savedActive) || loaded[0];
+        if (chosen) {
+          setActiveId(chosen.id);
+          localStorage.setItem(LS_ACTIVE_KEY, chosen.id);
         }
       } catch (err) {
-        console.warn("Could not fetch pipeline_stages from database:", err);
-        setStages([]);
-        PIPELINE_STAGES = [];
+        console.warn("Could not fetch pipelines:", err);
+        setPipelines([]);
       }
     };
 
-    fetchStages();
-  }, [onStagesChange]);
+    fetchPipelines();
+  }, []);
 
-  const saveStages = async (newStages: typeof DEFAULT_PIPELINE_STAGES) => {
+  const savePipelines = async (next: Pipeline[]) => {
+    setPipelines(next);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     try {
-      const { error } = await (supabase as any)
+      await (supabase as any)
         .from('profiles')
-        .update({ pipeline_stages: newStages as any })
+        .update({ pipeline_stages: next as any })
         .eq('id', user.id);
-
-      if (error) throw error;
-      
-      setStages(newStages);
-      PIPELINE_STAGES = newStages;
-      if (onStagesChange) onStagesChange(newStages);
     } catch (err) {
-      console.error("Error saving pipeline_stages:", err);
-      // Fallback: update local state anyway so it works in the current session
-      setStages(newStages);
-      PIPELINE_STAGES = newStages;
-      if (onStagesChange) onStagesChange(newStages);
-      toast({ title: "Aviso", description: "As alterações foram aplicadas localmente mas pode haver um erro no banco de dados." });
+      console.error("Error saving pipelines:", err);
+      toast({ title: "Aviso", description: "Alterações aplicadas localmente." });
     }
   };
 
-  const handleAddStage = () => {
-    if (!newStageName.trim()) return;
-    const newId = newStageName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
-    
-    const newStage = {
-      id: newId,
-      label: newStageName.toUpperCase(),
-      color: "bg-slate-400"
-    };
+  const handleSelectPipeline = (id: string) => {
+    setActiveId(id);
+    localStorage.setItem(LS_ACTIVE_KEY, id);
+    onStageSelect('all');
+    setIsPickerOpen(false);
+  };
 
-    const updatedStages = [...stages, newStage];
-    saveStages(updatedStages);
+  const handleCreatePipeline = () => {
+    const name = newPipelineName.trim();
+    if (!name) {
+      toast({ title: "Atenção", description: "Digite um nome para o seu funil.", variant: "destructive" });
+      return;
+    }
+    const newPipe: Pipeline = {
+      id: `pipeline_${Date.now()}`,
+      name,
+      stages: [...DEFAULT_PIPELINE_STAGES],
+    };
+    const next = [...pipelines, newPipe];
+    savePipelines(next);
+    setActiveId(newPipe.id);
+    localStorage.setItem(LS_ACTIVE_KEY, newPipe.id);
+    setNewPipelineName("");
+    setIsCreatingPipeline(false);
+    onStageSelect('all');
+    toast({ title: "Pipeline criado!", description: `Funil "${name}" pronto para uso.` });
+  };
+
+  const handleDeletePipeline = (id: string) => {
+    const pipe = pipelines.find(p => p.id === id);
+    if (!pipe) return;
+    if (!window.confirm(`Apagar o funil "${pipe.name}"? Esta ação não pode ser desfeita.`)) return;
+    const next = pipelines.filter(p => p.id !== id);
+    savePipelines(next);
+    if (activeId === id) {
+      const fallback = next[0]?.id || "";
+      setActiveId(fallback);
+      if (fallback) localStorage.setItem(LS_ACTIVE_KEY, fallback);
+      else localStorage.removeItem(LS_ACTIVE_KEY);
+    }
+    toast({ title: "Funil excluído" });
+  };
+
+  const updateActiveStages = (newStages: Stage[]) => {
+    if (!activePipeline) return;
+    const next = pipelines.map(p => p.id === activeId ? { ...p, stages: newStages } : p);
+    savePipelines(next);
+  };
+
+  const handleAddStage = () => {
+    if (!newStageName.trim() || !activePipeline) return;
+    const newId = newStageName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+    const newStage: Stage = { id: newId, label: newStageName.toUpperCase(), color: "bg-slate-400" };
+    updateActiveStages([...stages, newStage]);
     setNewStageName("");
     setIsAdding(false);
     toast({ title: "Sucesso", description: "Etapa criada com sucesso" });
@@ -115,69 +175,82 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
 
   const handleDeleteStage = (id: string) => {
     if (id === 'all') return;
-    if (!window.confirm("Deseja realmente apagar esta etapa? Os leads nela não serão apagados, apenas a etapa sumirá do visual.")) return;
-    
-    const updatedStages = stages.filter(s => s.id !== id);
-    saveStages(updatedStages);
+    if (!window.confirm("Deseja realmente apagar esta etapa?")) return;
+    updateActiveStages(stages.filter(s => s.id !== id));
     if (selectedStage === id) onStageSelect('all');
-    toast({ title: "Sucesso", description: "Etapa excluída com sucesso" });
+    toast({ title: "Etapa excluída" });
   };
 
-  const handleCreateDefaultPipeline = () => {
-    if (!newPipelineName.trim()) {
-      toast({ title: "Atenção", description: "Digite um nome para o seu funil.", variant: "destructive" });
-      return;
-    }
-    // Set the first stage label as the pipeline name if desired, or just use defaults
-    const initialStages = [...DEFAULT_PIPELINE_STAGES];
-    saveStages(initialStages);
-    setIsCreatingPipeline(false);
-    toast({ title: "Pipeline criado!", description: `Funil "${newPipelineName}" configurado com sucesso.` });
-  };
+  // Empty state: no pipelines yet
+  if (pipelines.length === 0) {
+    return (
+      <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
+        <Popover open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse">
+              <LayoutGrid className="w-4 h-4" />
+              Criar meu Funil de Vendas
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-4" align="start">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <h4 className="font-medium text-xs text-primary">Novo Funil</h4>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">Dê um nome para o seu primeiro funil comercial.</p>
+              </div>
+              <div className="flex gap-2">
+                <Input placeholder="Ex: Vendas Diretas" value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-8 text-xs" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
+                <Button size="sm" className="h-8 shrink-0" onClick={handleCreatePipeline}>Criar</Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
+    <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-3">
+      {/* Pipeline selector */}
+      <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-2 shrink-0 max-w-[200px]">
+            <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
+            <span className="truncate text-xs font-semibold">{activePipeline?.name || "Selecionar Funil"}</span>
+            <ChevronDown className="w-3 h-3 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-2" align="start">
+          <div className="space-y-1">
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Meus Funis</div>
+            {pipelines.map(p => (
+              <div key={p.id} className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer group", p.id === activeId && "bg-primary/10")}>
+                <button className="flex-1 text-left text-xs font-medium truncate" onClick={() => handleSelectPipeline(p.id)}>
+                  {p.name}
+                </button>
+                <button onClick={() => handleDeletePipeline(p.id)} className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 rounded p-1 transition-all">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-border mt-2">
+              <div className="flex gap-1">
+                <Input placeholder="Novo funil..." value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-7 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
+                <Button size="sm" className="h-7 px-2 text-xs" onClick={handleCreatePipeline}>
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <div className="h-6 w-px bg-border shrink-0" />
+
       <ScrollArea className="flex-1 whitespace-nowrap">
         <div className="flex gap-2 pb-2">
-          {stages.length === 0 ? (
-            <Popover open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Criar meu Funil de Vendas
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-4" align="start">
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h4 className="font-medium text-xs text-primary">Novo Funil</h4>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Dê um nome para o seu funil comercial e comece a organizar seus leads.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Nome do Funil (Ex: Vendas Diretas)" 
-                      value={newPipelineName} 
-                      onChange={(e) => setNewPipelineName(e.target.value)}
-                      className="h-8 text-xs"
-                      autoFocus
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreateDefaultPipeline()}
-                    />
-                    <Button size="sm" className="h-8 shrink-0" onClick={handleCreateDefaultPipeline}>
-                      Criar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            stages.map((stage) => (
-              <div key={stage.id} className="relative group/btn">
+          {stages.map((stage) => (
+            <div key={stage.id} className="relative group/btn">
                 <button
                   onClick={() => onStageSelect(stage.id)}
                   className={cn(
@@ -212,9 +285,8 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
                     <X className="w-3 h-3" />
                   </button>
                 )}
-              </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
         <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
