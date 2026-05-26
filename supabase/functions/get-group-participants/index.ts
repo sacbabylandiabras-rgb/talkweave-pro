@@ -1135,9 +1135,21 @@ Deno.serve(async (req) => {
 
     // If it's a community and we still have 0 members, try one last desperation logic:
     // Some Z-API instances return members in a different field for communities
-    if (uniqueParticipants.length === 0 && isCommunity && primaryData?.subGroups) {
-      console.log("Desperation logic: extracting participants from subGroups directly if aggregation failed");
-      // ... already tried aggregating subGroups, but maybe they were returned in a single array elsewhere
+    if (uniqueParticipants.length === 0 && isCommunity && primaryData?.subGroups && typeof primaryData.subGroups === 'object') {
+      console.log("Desperation logic: extracting participants from subGroups keys directly");
+      const desperationList: any[] = [];
+      Object.values(primaryData.subGroups).forEach((val: any) => {
+        if (Array.isArray(val)) {
+          desperationList.push(...val);
+        } else if (val && typeof val === 'object' && val.id) {
+          desperationList.push(val);
+        }
+      });
+      
+      if (desperationList.length > 0) {
+        console.log(`Found ${desperationList.length} potential members in subGroups object`);
+        // ... process these if needed, but the current extractCommunitySubGroupIds should already handle this
+      }
     }
 
     return new Response(
