@@ -214,26 +214,41 @@ export default function Skills() {
   };
 
   const uploadFiles = async (files: FileList | null) => {
-    if (!files || !editingDetail) return;
+    console.log("[Skills] uploadFiles called", { files, editingDetail });
+    if (!files || files.length === 0) {
+      console.warn("[Skills] no files selected");
+      return;
+    }
+    if (!editingDetail) {
+      toast({ title: "Erro", description: "Salve o conteúdo antes de anexar arquivos.", variant: "destructive" });
+      return;
+    }
     setUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setUploading(false); return; }
+    if (!user) {
+      setUploading(false);
+      toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
+      return;
+    }
     const newAttachments: Attachment[] = [...(editingDetail.attachments || [])];
     for (const file of Array.from(files)) {
       if (file.size > 50 * 1024 * 1024) {
         toast({ title: "Arquivo muito grande", description: `${file.name} excede 50MB.`, variant: "destructive" });
         continue;
       }
-      const ext = file.name.split(".").pop() || "bin";
+      const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
       const path = `skills/${user.id}/${editingDetail.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
+      console.log("[Skills] uploading", path, file.type, file.size);
+      const { data: upData, error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
         contentType: file.type || undefined,
         upsert: false,
       });
       if (upErr) {
+        console.error("[Skills] upload error", upErr);
         toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" });
         continue;
       }
+      console.log("[Skills] upload ok", upData);
       const { data: pub } = supabase.storage.from("flow-media").getPublicUrl(path);
       newAttachments.push({
         url: pub.publicUrl,
@@ -242,14 +257,20 @@ export default function Skills() {
         size: file.size,
       });
     }
+    console.log("[Skills] persisting attachments", newAttachments);
     setEditingDetail({ ...editingDetail, attachments: newAttachments });
-    // persist immediately
-    await (supabase as any)
+    const { error: updErr } = await (supabase as any)
       .from("skill_contents")
       .update({ attachments: newAttachments })
       .eq("id", editingDetail.id);
+    if (updErr) {
+      console.error("[Skills] update error", updErr);
+      toast({ title: "Erro ao salvar", description: updErr.message, variant: "destructive" });
+    }
     setUploading(false);
-    toast({ title: "Upload concluído" });
+    if (newAttachments.length > (editingDetail.attachments?.length || 0)) {
+      toast({ title: "Upload concluído", description: `${newAttachments.length - (editingDetail.attachments?.length || 0)} arquivo(s) adicionado(s).` });
+    }
   };
 
   const removeAttachment = async (idx: number) => {
