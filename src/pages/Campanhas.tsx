@@ -395,7 +395,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
         .eq("campaign_id", statsDialogCampaignId)
         .order("created_at", { ascending: false })
         .limit(500);
-      if (active) setStatsDialogLinkClicks((data ?? []) as LinkClick[]);
+      if (active) setStatsDialogLinkClicks((data ?? []) as unknown as LinkClick[]);
     })();
 
     // FIX #1: channel always gets a cleanup regardless of whether statsDialogOpen changes
