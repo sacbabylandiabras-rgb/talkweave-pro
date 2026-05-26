@@ -2459,7 +2459,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = { all: 0 };
-    PIPELINE_STAGES.forEach(s => counts[s.id] = 0);
+    pipelineStages.forEach(s => counts[s.id] = 0);
     
     conversations.forEach(conv => {
       const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
