@@ -91,7 +91,8 @@ export default function CheckoutDomainSection() {
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.ownership_verification || null);
-      toast.success("Domínio registrado no Vercel! SSL sendo provisionado automaticamente.");
+      setEmailVerification(data.email_verification || null);
+      toast.success("Domínio registrado! SSL e registros de e-mail sendo provisionados.");
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
