@@ -369,20 +369,6 @@ export default function CheckoutDomainSection() {
                   </div>
                 </div>
 
-                  <div className="flex items-center gap-2">
-                    {emailVerification?.status === "verified" ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : (
-                      <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    )}
-                    <span className="text-xs font-medium">Status do E-mail</span>
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    emailVerification?.status === "verified" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"
-                  }`}>
-                    {emailVerification?.status === "verified" ? "Verificado" : "Pendente"}
-                  </Badge>
-                </div>
 
                 {emailVerification?.records && emailVerification.records.length > 0 && (
                   <div className="space-y-3">
