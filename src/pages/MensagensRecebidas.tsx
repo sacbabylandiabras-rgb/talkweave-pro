@@ -2346,10 +2346,12 @@ const MensagensRecebidas = () => {
     const phoneParam = searchParams.get("phone");
     const tabParam = searchParams.get("tab");
     
+    console.log('[MensagensRecebidas] Processing URL params:', { phoneParam, tabParam });
+
     // 1) Update activeTab state directly from URL param
     if (tabParam === "pipeline") {
       setActiveTab("pipeline");
-    } else {
+    } else if (tabParam === "chat") {
       setActiveTab("chat");
     }
 
@@ -2361,12 +2363,12 @@ const MensagensRecebidas = () => {
       setActiveTab("chat"); 
       markAsRead(normalizedPhone);
       
-      // Clean up phone from URL but keep the tab if needed (though selection usually goes to chat)
+      // Clean up phone from URL but keep the tab if needed
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("phone");
       setSearchParams(nextParams, { replace: true });
     }
-  }, [searchParams.get("phone"), searchParams.get("tab")]); // Watch specific params only to avoid loops
+  }, [searchParams]); // Re-enable full searchParams watch to catch all changes
 
   // Auto history sync for Z-API to keep the latest live conversations.
   useEffect(() => {
