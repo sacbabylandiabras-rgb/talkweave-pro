@@ -374,7 +374,13 @@ export default function CheckoutDomainSection() {
                 {emailVerification?.records && emailVerification.records.length > 0 && (
                   <div className="space-y-3">
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Registros DNS Necessários:</p>
+                    <div className="p-2.5 rounded border border-blue-500/10 bg-blue-500/5 mb-3">
+                      <p className="text-[10px] text-blue-400">
+                        <strong>Dica:</strong> Copie os valores abaixo e cole nas configurações de DNS do seu domínio (ex: Hostinger). Todos os dados foram integrados automaticamente com o Resend.
+                      </p>
+                    </div>
                     <div className="space-y-3">
+
                       {emailVerification.records.map((record: any, idx: number) => (
                         <div key={idx} className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50 space-y-2">
                           <div className="flex justify-between items-center">
@@ -434,7 +440,7 @@ export default function CheckoutDomainSection() {
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">2</span>
                 <div className="text-[11px] text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">Configure o E-mail (DNS do Resend)</p>
-                  <p className="mb-2">Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> que aparecerão na seção "Configuração de E-mail" acima. Isso garante que seus e-mails não caiam no SPAM.</p>
+                  <p className="mb-2">Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> que aparecerão na seção "Configuração de E-mail" acima. Isso garante que seus e-mails não caiam no SPAM. O sistema já enviou seu domínio para o Resend automaticamente.</p>
                 </div>
               </div>
 
