@@ -838,7 +838,6 @@ Deno.serve(async (req) => {
     };
 
     const fetchCommunityMetadata = async (communityId: string) => {
-      // 1) List of candidates to try
       const candidates = uniqueStrings([
         normalizeCommunityId(communityId),
         normalizeGroupId(communityId),
@@ -846,6 +845,8 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
+        console.log(`📡 Trying community metadata for: ${candidateId}`);
+        
         // Try communities-metadata endpoint
         try {
           const data = await fetchJson(
@@ -853,12 +854,13 @@ Deno.serve(async (req) => {
             headers,
           );
           if (data && (data.subGroups || data.participants || data.id)) {
-            console.log(`🏘️ Community metadata loaded for ${candidateId}`);
-            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
+            console.log(`🏘️ Community metadata LOADED for ${candidateId}`);
+            console.log(`🔍 Payload Sample: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
           }
+          console.log(`ℹ️ communities-metadata returned empty/invalid data for ${candidateId}`);
         } catch (error) {
-          console.log(`⚠️ communities-metadata failed for ${candidateId}`);
+          console.log(`⚠️ communities-metadata failed for ${candidateId}: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         // Try group-metadata endpoint as fallback for this ID
@@ -868,12 +870,13 @@ Deno.serve(async (req) => {
             headers,
           );
           if (data && (data.participants || data.subGroups || data.id)) {
-            console.log(`🏘️ Group metadata (as community) loaded for ${candidateId}`);
-            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
+            console.log(`🏘️ Group metadata (fallback) LOADED for ${candidateId}`);
+            console.log(`🔍 Payload Sample: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
           }
+          console.log(`ℹ️ group-metadata returned empty/invalid data for ${candidateId}`);
         } catch (error) {
-          console.log(`⚠️ group-metadata failed for ${candidateId}`);
+          console.log(`⚠️ group-metadata failed for ${candidateId}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
