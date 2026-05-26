@@ -272,7 +272,7 @@ serve(async (req) => {
 
       const isDeliveredStatus = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME", "PLAYED"].includes(status);
       const isSentStatus = ["SENT", "SENT_BY_ME"].includes(status);
-      const isErrorStatus = ["ERROR", "FAILED", "REJECTED"].includes(status) || !!error;
+      const isErrorStatus = (["ERROR", "FAILED", "REJECTED"].includes(status) || !!error) && !isSentStatus && !isDeliveredStatus;
 
       // Detectar shadowban pelos erros reais do Z-API (conforme documentação)
       const errorLower = String(error).toLowerCase();
@@ -297,7 +297,7 @@ serve(async (req) => {
         errorLower.includes("not on whatsapp") ||
         errorLower.includes("invalid request params");
 
-      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus) && !isErrorStatus) {
+      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
           const newStatusLabel = isDeliveredStatus ? "delivered" : "sent";
 
