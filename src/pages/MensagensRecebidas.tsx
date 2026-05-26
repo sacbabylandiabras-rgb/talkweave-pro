@@ -2661,7 +2661,46 @@ const MensagensRecebidas = () => {
              onUpdate={refetch}
            />
          )}
-       </div>
+      </div>
+        {activeTab === "pipeline" && (
+          <div className="flex-1 overflow-auto p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => {
+                const stageConvs = conversations.filter(c => (c.agent_stage || 'triage') === stage.id);
+                return (
+                  <div key={stage.id} className="bg-muted/30 rounded-lg p-3 border border-border flex flex-col gap-3 min-h-[500px]">
+                    <div className="flex items-center justify-between border-b border-border pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-3 h-3 rounded-full", stage.color)} />
+                        <h4 className="font-bold text-xs uppercase">{stage.label}</h4>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">{stageConvs.length}</Badge>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {stageConvs.map(conv => (
+                        <div 
+                          key={conv.phone} 
+                          onClick={() => handleSelectPhone(conv.phone)}
+                          className="bg-card p-3 rounded-md border border-border shadow-sm hover:border-primary/50 cursor-pointer transition-colors"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                             <Avatar className="h-6 w-6 border border-border/50">
+                               <AvatarImage src={conv.profilePictureUrl || undefined} />
+                               <AvatarFallback className="text-[10px]"><User className="w-3 h-3" /></AvatarFallback>
+                             </Avatar>
+                             <span className="text-xs font-semibold truncate">{conv.contactName || formatPhone(conv.phone)}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2 italic">"{conv.lastMessage || 'Sem mensagens'}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
         <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
 
         <ContactProfileDialog
