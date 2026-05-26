@@ -11,8 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function CheckoutDomainSection() {
   const [customDomain, setCustomDomain] = useState("");
+  const [emailDomain, setEmailDomain] = useState("");
   const [pathPrefix, setPathPrefix] = useState(() => localStorage.getItem("checkout_path_prefix") || "pay");
   const [domainSaving, setDomainSaving] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
   const [domainDeleting, setDomainDeleting] = useState(false);
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
   const [domainSslStatus, setDomainSslStatus] = useState<string>("");
@@ -36,8 +38,10 @@ export default function CheckoutDomainSection() {
     if (!domain) {
       domain = localStorage.getItem("checkout_custom_domain") || "";
     }
-    if (!domain) return;
+    
     setCustomDomain(domain);
+    if (!domain) return;
+    
     setDomainStatus("pending");
     setStatusChecking(true);
     try {
@@ -56,6 +60,9 @@ export default function CheckoutDomainSection() {
       setDomainVerification(data?.verification || null);
       setSslInfo(data?.ssl || null);
       setEmailVerification(data?.email_verification || null);
+      if (data?.email_verification?.hostname) {
+        setEmailDomain(data.email_verification.hostname);
+      }
     } catch (err) {
       console.error("Error checking domain status:", err);
       setDomainStatus("pending");
@@ -76,14 +83,7 @@ export default function CheckoutDomainSection() {
       });
       if (error) throw error;
       if (data?.error) {
-        if (data.cname_target) {
-          toast.error(`CNAME não encontrado! Aponte "${domain}" para "${data.cname_target}" no seu DNS antes de ativar.`, { duration: 8000 });
-        } else {
-          throw new Error(data.error);
-        }
-        setDomainStatus("error");
-        setDomainSaving(false);
-        return;
+        throw new Error(data.error);
       }
       const savedDomain = data.hostname || domain;
       setCustomDomain(savedDomain);
@@ -91,8 +91,8 @@ export default function CheckoutDomainSection() {
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.verification || null);
-      setEmailVerification(data.email_verification || null);
-      toast.success("Domínio e E-mail registrados! Siga as instruções de DNS abaixo.");
+      toast.success("Domínio do checkout registrado!");
+      fetchDomainStatus();
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
@@ -100,6 +100,27 @@ export default function CheckoutDomainSection() {
     }
     setDomainSaving(false);
   };
+
+  const handleSaveEmailDomain = async () => {
+    const domain = emailDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    if (!domain) {
+      toast.error("Informe um domínio para o e-mail");
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "create_email", hostname: domain },
+      });
+      if (error) throw error;
+      setEmailVerification(data.email_verification);
+      toast.success("Domínio de e-mail enviado para o Resend!");
+    } catch (err: any) {
+      toast.error("Erro ao registrar e-mail: " + err.message);
+    }
+    setEmailSaving(false);
+  };
+
 
   const handleDeleteDomain = async () => {
     setDomainDeleting(true);
