@@ -18,6 +18,7 @@ export default function CheckoutDomainSection() {
   const [domainSslStatus, setDomainSslStatus] = useState<string>("");
   const [domainVerification, setDomainVerification] = useState<any>(null);
   const [sslInfo, setSslInfo] = useState<any>(null);
+  const [emailVerification, setEmailVerification] = useState<any>(null);
   const [statusChecking, setStatusChecking] = useState(false);
 
   useEffect(() => {
