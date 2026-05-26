@@ -292,6 +292,9 @@ export default function CheckoutDomainSection() {
                       </Button>
                     </div>
                   </div>
+                  <div className="flex justify-start pt-1">
+                    <span className="text-[9px] text-muted-foreground italic">Use o nome do seu subdomínio (ex: pay ou checkout)</span>
+                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
                     <div className="flex items-center gap-2">
