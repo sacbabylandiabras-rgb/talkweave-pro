@@ -69,6 +69,7 @@ export default function Skills() {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFolders = async () => {
     setLoading(true);
