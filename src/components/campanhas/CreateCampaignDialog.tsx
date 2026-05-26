@@ -57,10 +57,18 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
 
   const filteredContacts = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return contacts.filter(c =>
+    const all = [...manualContacts, ...contacts];
+    
+    // Remover duplicados (preferir manualContacts)
+    const unique = all.filter((c, index, self) => 
+      self.findIndex(t => t.phone === c.phone) === index
+    );
+
+    return unique.filter(c =>
       (c.name || "").toLowerCase().includes(q) || (c.phone || "").includes(q)
     );
-  }, [contacts, searchQuery]);
+  }, [contacts, manualContacts, searchQuery]);
+
 
   const togglePhone = (phone: string) => {
     setSelectedPhones(prev => prev.includes(phone) ? prev.filter(p => p !== phone) : [...prev, phone]);
