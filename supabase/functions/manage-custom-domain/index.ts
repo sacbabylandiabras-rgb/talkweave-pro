@@ -118,7 +118,6 @@ serve(async (req) => {
             console.error("Error selecting from email_domain_verifications:", JSON.stringify(selectError));
           }
 
-
           console.log("Existing Resend record check for:", cleanHostname);
           if (existingV?.resend_domain_id) {
             console.log("Domain already in Resend DB, fetching latest status...");
@@ -139,7 +138,6 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
               }).eq("id", existingV.id);
               if (updateError) console.error("Error updating domain in DB:", JSON.stringify(updateError));
-
             }
           } else {
             console.log("Registering domain on Resend:", cleanHostname);
@@ -169,38 +167,36 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
               });
               if (upsertError) console.error("Error upserting domain to DB:", JSON.stringify(upsertError));
-
             } else {
               console.error("Resend API error detail:", JSON.stringify(resendData));
               if (resendData.message?.includes("already exists")) {
-              // Try to list domains to find the ID
-              const listRes = await fetch("https://api.resend.com/domains", {
-                headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-              });
-              if (listRes.ok) {
-                const listData = await listRes.json();
-                const found = listData.data?.find((d: any) => d.name === cleanHostname);
-                if (found) {
-                  const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
-                    headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-                  });
-                  if (detailRes.ok) {
-                    const detailData = await detailRes.json();
-                    emailVerification = {
-                      id: detailData.id,
-                      status: detailData.status,
-                      records: detailData.records,
-                    };
-                    const { error: upsertError2 } = await supabase.from("email_domain_verifications").upsert({
-                      user_id: user.id,
-                      domain: cleanHostname,
-                      resend_domain_id: detailData.id,
-                      status: detailData.status,
-                      dkim_records: detailData.records,
-                      updated_at: new Date().toISOString(),
+                const listRes = await fetch("https://api.resend.com/domains", {
+                  headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                });
+                if (listRes.ok) {
+                  const listData = await listRes.json();
+                  const found = listData.data?.find((d: any) => d.name === cleanHostname);
+                  if (found) {
+                    const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
+                      headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
                     });
-                    if (upsertError2) console.error("Error upserting existing domain to DB:", JSON.stringify(upsertError2));
-
+                    if (detailRes.ok) {
+                      const detailData = await detailRes.json();
+                      emailVerification = {
+                        id: detailData.id,
+                        status: detailData.status,
+                        records: detailData.records,
+                      };
+                      const { error: upsertError2 } = await supabase.from("email_domain_verifications").upsert({
+                        user_id: user.id,
+                        domain: cleanHostname,
+                        resend_domain_id: detailData.id,
+                        status: detailData.status,
+                        dkim_records: detailData.records,
+                        updated_at: new Date().toISOString(),
+                      });
+                      if (upsertError2) console.error("Error upserting existing domain to DB:", JSON.stringify(upsertError2));
+                    }
                   }
                 }
               }
@@ -328,7 +324,6 @@ serve(async (req) => {
             .maybeSingle();
           
           if (statusSelectError) console.error("Status check DB error:", JSON.stringify(statusSelectError));
-
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
