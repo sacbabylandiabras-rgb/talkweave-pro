@@ -124,8 +124,15 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   const handleCreateDefaultPipeline = () => {
-    saveStages(DEFAULT_PIPELINE_STAGES);
-    toast({ title: "Pipeline criado!", description: "Funil padrão configurado com sucesso." });
+    if (!newPipelineName.trim()) {
+      toast({ title: "Atenção", description: "Digite um nome para o seu funil.", variant: "destructive" });
+      return;
+    }
+    // Set the first stage label as the pipeline name if desired, or just use defaults
+    const initialStages = [...DEFAULT_PIPELINE_STAGES];
+    saveStages(initialStages);
+    setIsCreatingPipeline(false);
+    toast({ title: "Pipeline criado!", description: `Funil "${newPipelineName}" configurado com sucesso.` });
   };
 
   return (
