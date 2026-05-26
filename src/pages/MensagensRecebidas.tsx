@@ -2579,13 +2579,11 @@ const MensagensRecebidas = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
-      {activeTab === "chat" && (
-        <PipelineBar 
-          selectedStage={selectedStage} 
-          onStageSelect={setSelectedStage} 
-          counts={stageCounts}
-        />
-      )}
+      <PipelineBar 
+        selectedStage={selectedStage} 
+        onStageSelect={setSelectedStage} 
+        counts={stageCounts}
+      />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (
           <>
