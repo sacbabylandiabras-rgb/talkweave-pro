@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
+import { PipelineBar, PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
@@ -2024,6 +2025,7 @@ const ChatView = (props: ChatViewProps) => {
 const MensagensRecebidas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -2433,8 +2435,31 @@ const MensagensRecebidas = () => {
       // Include if it's NOT a meta instance and doesn't have messages from meta
       const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
                    conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
-      return !isMeta;
+      if (isMeta) return false;
+      
+      // Filter by stage
+      if (selectedStage !== "all") {
+        return conv.agent_stage === selectedStage;
+      }
+      
+      return true;
     });
+  }, [conversations, selectedStage]);
+
+  const stageCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    PIPELINE_STAGES.forEach(s => counts[s.id] = 0);
+    
+    conversations.forEach(conv => {
+      const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
+                   conv.messages.some(m => m.externalMessageId?.startsWith('meta:') || m.content.includes('[sender:meta:'));
+      if (isMeta) return;
+
+      counts.all++;
+      const stage = conv.agent_stage || 'triage';
+      counts[stage] = (counts[stage] || 0) + 1;
+    });
+    return counts;
   }, [conversations]);
 
   const filteredConversations = zapiConversations.filter((conv) => {
@@ -2542,8 +2567,13 @@ const MensagensRecebidas = () => {
   const showChat = !isMobile || !!selectedPhone;
 
   return (
-    <>
-      <div className="h-[calc(100vh-120px)] flex rounded-lg border border-border overflow-hidden bg-background shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      <PipelineBar 
+        selectedStage={selectedStage} 
+        onStageSelect={setSelectedStage} 
+        counts={stageCounts}
+      />
+      <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm">
         {showList && (
           <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
               <ConversationList 
@@ -2637,8 +2667,8 @@ const MensagensRecebidas = () => {
           onUpdate={refetch}
           preferredInstanceId={selectedInstanceId === 'all' ? undefined : filterZapiInstanceId}
         />
-      </>
-   );
- };
+    </div>
+  );
+};
 
 export default MensagensRecebidas;

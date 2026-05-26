@@ -60,6 +60,7 @@ export interface SavedContact {
   updated_at?: string | null;
   is_community?: boolean;
   community_id?: string | null;
+  agent_stage?: string | null;
 }
 
 export interface Conversation {
@@ -74,6 +75,7 @@ export interface Conversation {
   preferredInstanceId?: string | null;
   isCommunity?: boolean;
   communityId?: string | null;
+  agent_stage?: string | null;
 }
 
 type OutboundButtonAction = {
@@ -278,7 +280,7 @@ const savedContactsApi = {
     let hasMore = true;
 
     while (hasMore && allContacts.length < 5000) {
-      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*&order=phone.asc`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*,agent_stage&order=phone.asc`, {
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${token}`,
@@ -299,7 +301,7 @@ const savedContactsApi = {
 
     return allContacts;
   },
-   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null; agent_stage?: string | null }) {
      const payload = { ...data };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
@@ -1322,7 +1324,7 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-         profilePictureUrl,
+          profilePictureUrl,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
@@ -1331,6 +1333,7 @@ export const useMessageLogs = (
           preferredInstanceId,
           isCommunity: saved?.is_community || false,
           communityId: saved?.community_id || null,
+          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
@@ -1554,6 +1557,29 @@ export const useMessageLogs = (
      loading, 
      refetch: fetchAll, 
      saveContact, 
+     updateContactStage: async (phone: string, stage: string) => {
+       const token = await getToken();
+       const userId = await getUserId();
+       if (!token || !userId) return;
+       const normalized = normalizeConversationPhone(phone);
+       const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
+       try {
+         await savedContactsApi.upsert(token, {
+           phone: normalized,
+           name: saved?.name || '',
+           user_id: userId,
+           agent_stage: stage,
+           profile_picture_url: saved?.profile_picture_url || null,
+         });
+       } catch (e) {
+         console.warn("Failed to save stage to database, column might be missing:", e);
+         // Fallback: save to localStorage for this session/user
+         const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
+         stages[normalized] = stage;
+         localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
+       }
+       await fetchSavedContacts();
+     },
      fetchProfilePicture, 
      savedContacts, 
      sendMessage, 
