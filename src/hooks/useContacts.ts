@@ -140,7 +140,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       });
 
       // Buscar contatos salvos para fotos de perfil e nomes
-      const { data: savedContacts } = await supabase
+      const { data: savedContacts } = await (supabase as any)
         .from('saved_contacts')
         .select('phone, name, profile_picture_url, updated_at, agent_stage');
 

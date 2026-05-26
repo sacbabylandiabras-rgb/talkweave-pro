@@ -280,7 +280,7 @@ const savedContactsApi = {
     let hasMore = true;
 
     while (hasMore && allContacts.length < 5000) {
-      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*&order=phone.asc`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=*,agent_stage&order=phone.asc`, {
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${token}`,
