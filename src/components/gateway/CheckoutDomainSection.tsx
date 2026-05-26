@@ -186,8 +186,9 @@ export default function CheckoutDomainSection() {
             )}
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
-            Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Vercel.
+            <strong>Exemplo:</strong> <code>pay.seusite.com</code> ou <code>checkout.seusite.com</code>. Não inclua http:// ou https://.
           </p>
+
         </div>
 
         <div>
@@ -333,12 +334,11 @@ export default function CheckoutDomainSection() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-                  Configuração de E-mail (DKIM)
+                  Configuração de E-mail (DKIM & SPF)
                 </CardTitle>
                 <CardDescription className="text-[10px]">
-                  Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> abaixo no seu provedor para validar o envio.
+                  Configuração obrigatória para garantir que os e-mails de confirmação cheguem na caixa de entrada.
                 </CardDescription>
-
               </CardHeader>
               <CardContent className="space-y-4 pt-0">
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
@@ -370,30 +370,28 @@ export default function CheckoutDomainSection() {
                   </div>
                 </div>
 
-
-                {emailVerification?.records && emailVerification.records.length > 0 && (
+                {emailVerification?.records && emailVerification.records.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Registros DNS Necessários:</p>
-                    <div className="p-2.5 rounded border border-blue-500/10 bg-blue-500/5 mb-3">
+                    <div className="p-2.5 rounded border border-blue-500/10 bg-blue-500/5">
                       <p className="text-[10px] text-blue-400">
-                        <strong>Dica:</strong> Adicione os registros abaixo no seu DNS. Para o <strong>SPF (MX e TXT)</strong>, se o campo "Nome" for "send", use <code>send</code> no host. Se for vazio, use <code>@</code>.
+                        <strong>Ação Necessária:</strong> Copie os registros abaixo e crie-os exatamente no seu DNS (Ex: Hostinger/Cloudflare).
                       </p>
-
                     </div>
                     <div className="space-y-3">
-
                       {emailVerification.records.map((record: any, idx: number) => (
                         <div key={idx} className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50 space-y-2">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-[9px] font-mono">{record.type}</Badge>
+                              <Badge variant="secondary" className="text-[9px] font-mono uppercase">{record.type}</Badge>
                               {record.priority && <Badge variant="outline" className="text-[9px]">Prioridade: {record.priority}</Badge>}
                             </div>
-                            <span className="text-[9px] text-muted-foreground font-mono">{record.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] text-muted-foreground font-mono">Host/Nome:</span>
+                              <span className="text-[9px] font-mono text-foreground font-medium">{record.name}</span>
+                            </div>
                           </div>
-
                           <div className="flex gap-2 items-start">
-                            <div className="flex-1 bg-muted/30 p-1.5 rounded text-[10px] font-mono break-all line-clamp-2">
+                            <div className="flex-1 bg-muted/30 p-2 rounded text-[10px] font-mono break-all line-clamp-3 leading-relaxed border border-[#2A2A2A]">
                               {record.value}
                             </div>
                             <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyToClipboard(record.value)}>
@@ -404,9 +402,7 @@ export default function CheckoutDomainSection() {
                       ))}
                     </div>
                   </div>
-                )}
-                
-                {!emailVerification && (
+                ) : (
                   <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 flex items-start gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-amber-400">
@@ -416,6 +412,7 @@ export default function CheckoutDomainSection() {
                 )}
               </CardContent>
             </Card>
+
           </div>
         )}
 
