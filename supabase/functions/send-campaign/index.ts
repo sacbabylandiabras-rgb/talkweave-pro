@@ -408,7 +408,7 @@ const isGroupDestination = (phone: string) =>
 const isCommunityDestination = (phone: string) => phone.includes("-community");
 const isChannelDestination = (phone: string) => phone.includes("@newsletter");
 const isLidIdentifier = (phone?: string | null) =>
-  Boolean(phone && phone.includes("@lid") && !isGroupDestination(phone));
+  Boolean(phone && phone.toLowerCase().includes("@lid") && !isGroupDestination(phone));
 
 const SPECIAL_TEMPLATE_PREFIX = "__SPECIAL_TEMPLATE__:";
 
@@ -425,7 +425,7 @@ const getZapiTargetPhone = (phone: string) => {
 
   if (isCommunityDestination(phone) || isChannelDestination(phone)) return phone;
 
-  if (phone.includes("@lid")) return phone;
+  if (phone.toLowerCase().includes("@lid")) return phone;
 
   let cleaned = phone.replace(/^\+/, "").replace(/\D/g, "");
 
@@ -458,7 +458,7 @@ const buildTrackedCampaignUrl = (
     url: cleanUrl,
     cid: opts.campaignId,
     uid: opts.userId,
-    ph: opts.phone.replace(/\D/g, ""),
+    ph: opts.phone.toLowerCase().includes("@lid") ? opts.phone : opts.phone.replace(/\D/g, ""),
     btn: opts.label,
     flow: opts.campaignName || "Campanha",
     src: "campaign",
