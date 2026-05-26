@@ -205,6 +205,57 @@ export default function PaySettings() {
     if (!error) fetchWebhooks();
   };
 
+  const fetchApiKeys = async () => {
+    setKeysLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-api-keys", {
+        body: { action: "get" },
+      });
+      if (error) throw error;
+      if (data) setApiKeys(data);
+    } catch (err: any) {
+      console.error("Erro ao buscar API keys:", err);
+    }
+    setKeysLoading(false);
+  };
+
+  const handleRegenerateKeys = async () => {
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-api-keys", {
+        body: { action: "regenerate" },
+      });
+      if (error) throw error;
+      if (data) {
+        setApiKeys(data);
+        toast.success("Chaves regeneradas com sucesso!");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao regenerar chaves: " + err.message);
+    }
+    setRegenerating(false);
+  };
+
+  const handleSave = async () => {
+    if (!profile) return;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: formData.full_name,
+      whatsapp: formData.whatsapp,
+    }).eq("id", profile.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      toast.success("Dados salvos com sucesso!");
+    }
+  };
+
+  const copyToClipboard = (value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success("Copiado!");
+  };
+
   // Domain management is handled via the CheckoutDomainSection component
 
   const formatSslExpiry = (dateStr: string | null) => {
