@@ -2027,6 +2027,7 @@ const MensagensRecebidas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
+  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(searchParams.get("tab") === "pipeline" ? "pipeline" : "chat");
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -2340,18 +2341,28 @@ const MensagensRecebidas = () => {
     if (normalizedPhone) markAsRead(normalizedPhone);
   };
 
-  // Auto-select phone from URL query param
+  // Auto-select phone or tab from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
+    const tabParam = searchParams.get("tab");
+    
+    if (tabParam === "pipeline") {
+      setActiveTab("pipeline");
+    } else if (tabParam === "chat") {
+      setActiveTab("chat");
+    }
+
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
     if (!normalizedPhone || handledPhoneParamRef.current === normalizedPhone) return;
 
     handledPhoneParamRef.current = normalizedPhone;
     setSelectedPhone(normalizedPhone);
+    setActiveTab("chat"); // Se selecionou um telefone, vai pro chat
     if (normalizedPhone) markAsRead(normalizedPhone);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("phone");
+    nextParams.delete("tab");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -2567,88 +2578,131 @@ const MensagensRecebidas = () => {
   const showChat = !isMobile || !!selectedPhone;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      <PipelineBar 
-        selectedStage={selectedStage} 
-        onStageSelect={setSelectedStage} 
-        counts={stageCounts}
-      />
-      <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm">
-        {showList && (
-          <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
-              <ConversationList 
-                conversations={filteredConversations} 
-                selectedPhone={selectedPhone} 
-                onSelect={handleSelectPhone} 
-                searchTerm={searchTerm} 
-                onSearchChange={setSearchTerm} 
-                readPhones={readPhones} 
-                instances={visibleInstances} 
-                selectedInstanceId={selectedInstanceId} 
-                onInstanceChange={setSelectedInstanceId} 
-                syncing={syncing} 
-                onSync={syncHistory} 
-                onFetchPhoto={handleFetchPhoto} 
-                onRefreshPhotos={handleRefreshAll}
-                isSelectionMode={isSelectionMode}
-                selectedPhones={selectedPhones}
-                onToggleSelect={toggleSelectPhone}
-                onToggleSelectionMode={() => {
-                  setIsSelectionMode(!isSelectionMode);
-                  setSelectedPhones(new Set());
+    <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
+      {activeTab === "chat" && (
+        <PipelineBar 
+          selectedStage={selectedStage} 
+          onStageSelect={setSelectedStage} 
+          counts={stageCounts}
+        />
+      )}
+      <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
+        {activeTab === "chat" && (
+          <>
+            {showList && (
+              <div className={cn("flex-shrink-0", isMobile ? "w-full" : "w-[480px]")}>
+                  <ConversationList 
+                    conversations={filteredConversations} 
+                    selectedPhone={selectedPhone} 
+                    onSelect={handleSelectPhone} 
+                    searchTerm={searchTerm} 
+                    onSearchChange={setSearchTerm} 
+                    readPhones={readPhones} 
+                    instances={visibleInstances} 
+                    selectedInstanceId={selectedInstanceId} 
+                    onInstanceChange={setSelectedInstanceId} 
+                    syncing={syncing} 
+                    onSync={syncHistory} 
+                    onFetchPhoto={handleFetchPhoto} 
+                    onRefreshPhotos={handleRefreshAll}
+                    isSelectionMode={isSelectionMode}
+                    selectedPhones={selectedPhones}
+                    onToggleSelect={toggleSelectPhone}
+                    onToggleSelectionMode={() => {
+                      setIsSelectionMode(!isSelectionMode);
+                      setSelectedPhones(new Set());
+                    }}
+                    onDeleteSelected={handleDeleteSelected}
+                    onDeleteConversation={handleDeleteConversation}
+                    availableTags={pageAvailableTags}
+                    tagColors={pageTagColors}
+                  />
+              </div>
+            )}
+            {showChat && (
+              <ChatView
+                conversation={selectedConversation}
+                onBack={() => setSelectedPhone(null)}
+                isMobile={isMobile}
+                onSaveContact={handleSaveContact}
+                onFetchPhoto={handleFetchPhoto}
+                loadingPhoto={loadingPhoto}
+                onOpenProfile={() => setProfileOpen(true)}
+                onTriggerFlow={(phone) => setProfileOpen(true)}
+                campaignTemplates={campaignTemplates}
+                savedContacts={savedContacts}
+                activeInstance={rawActiveInstance}
+                onSendMessage={async (phone, message, options) => {
+                  await sendMessage(phone, message, options);
+                  toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
                 }}
-                onDeleteSelected={handleDeleteSelected}
-                onDeleteConversation={handleDeleteConversation}
-                availableTags={pageAvailableTags}
-                tagColors={pageTagColors}
-              />
+                onSendCall={async (phone, duration) => {
+                  const cleanPhone = String(phone || '').replace(/\D/g, '');
+                  console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
+                  await sendCallZapi(cleanPhone, duration);
+                }}
+                onForwardMessage={async (phone, messageId) => {
+                  const destination = window.prompt(
+                    'Encaminhar mensagem para qual número? (ex: 5511999998888)',
+                  );
+                  if (!destination) return;
+                  await forwardMessage(phone, messageId, destination);
+                }}
+                 onSendReaction={async (phone, messageId, emoji) => {
+                   await sendReaction(phone, messageId, emoji);
+                 }}
+                  onSendSticker={async (phone, stickerUrl) => {
+                    await sendSticker(phone, stickerUrl);
+                  }}
+                  onSendGif={async (phone, gifUrl, caption) => {
+                    await sendGif(phone, gifUrl, caption);
+                  }}
+                 onDeleteConversation={async (phone) => {
+                   await deleteConversation(phone);
+                 }}
+                 onUpdate={refetch}
+               />
+             )}
+          </>
+        )}
+        {activeTab === "pipeline" && (
+          <div className="flex-1 overflow-auto p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => {
+                const stageConvs = conversations.filter(c => (c.agent_stage || 'triage') === stage.id);
+                return (
+                  <div key={stage.id} className="bg-muted/30 rounded-lg p-3 border border-border flex flex-col gap-3 min-h-[500px]">
+                    <div className="flex items-center justify-between border-b border-border pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-3 h-3 rounded-full", stage.color)} />
+                        <h4 className="font-bold text-xs uppercase">{stage.label}</h4>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">{stageConvs.length}</Badge>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {stageConvs.map(conv => (
+                        <div 
+                          key={conv.phone} 
+                          onClick={() => handleSelectPhone(conv.phone)}
+                          className="bg-card p-3 rounded-md border border-border shadow-sm hover:border-primary/50 cursor-pointer transition-colors"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                             <Avatar className="h-6 w-6 border border-border/50">
+                               <AvatarImage src={conv.profilePictureUrl || undefined} />
+                               <AvatarFallback className="text-[10px]"><User className="w-3 h-3" /></AvatarFallback>
+                             </Avatar>
+                             <span className="text-xs font-semibold truncate">{conv.contactName || formatPhone(conv.phone)}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2 italic">"{conv.lastMessage || 'Sem mensagens'}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
-        {showChat && (
-          <ChatView
-            conversation={selectedConversation}
-            onBack={() => setSelectedPhone(null)}
-            isMobile={isMobile}
-            onSaveContact={handleSaveContact}
-            onFetchPhoto={handleFetchPhoto}
-            loadingPhoto={loadingPhoto}
-            onOpenProfile={() => setProfileOpen(true)}
-            onTriggerFlow={(phone) => setProfileOpen(true)}
-            campaignTemplates={campaignTemplates}
-            savedContacts={savedContacts}
-            activeInstance={rawActiveInstance}
-            onSendMessage={async (phone, message, options) => {
-              await sendMessage(phone, message, options);
-              toast({ title: "Mensagem enviada", description: "Mensagem enviada com sucesso." });
-            }}
-            onSendCall={async (phone, duration) => {
-              const cleanPhone = String(phone || '').replace(/\D/g, '');
-              console.log(`[MensagensRecebidas] Iniciando chamada para ${cleanPhone} (Duração: ${duration}s)`);
-              await sendCallZapi(cleanPhone, duration);
-            }}
-            onForwardMessage={async (phone, messageId) => {
-              const destination = window.prompt(
-                'Encaminhar mensagem para qual número? (ex: 5511999998888)',
-              );
-              if (!destination) return;
-              await forwardMessage(phone, messageId, destination);
-            }}
-             onSendReaction={async (phone, messageId, emoji) => {
-               await sendReaction(phone, messageId, emoji);
-             }}
-              onSendSticker={async (phone, stickerUrl) => {
-                await sendSticker(phone, stickerUrl);
-              }}
-              onSendGif={async (phone, gifUrl, caption) => {
-                await sendGif(phone, gifUrl, caption);
-              }}
-             onDeleteConversation={async (phone) => {
-               await deleteConversation(phone);
-             }}
-             onUpdate={refetch}
-           />
-         )}
-       </div>
         <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
 
         <ContactProfileDialog
@@ -2667,6 +2721,7 @@ const MensagensRecebidas = () => {
           onUpdate={refetch}
           preferredInstanceId={selectedInstanceId === 'all' ? undefined : filterZapiInstanceId}
         />
+      </div>
     </div>
   );
 };
