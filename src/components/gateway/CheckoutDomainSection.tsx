@@ -376,17 +376,22 @@ export default function CheckoutDomainSection() {
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Registros DNS Necessários:</p>
                     <div className="p-2.5 rounded border border-blue-500/10 bg-blue-500/5 mb-3">
                       <p className="text-[10px] text-blue-400">
-                        <strong>Dica:</strong> Copie os valores abaixo e cole nas configurações de DNS do seu domínio (ex: Hostinger). Todos os dados foram integrados automaticamente com o Resend.
+                        <strong>Dica:</strong> Adicione os registros abaixo no seu DNS. Para o <strong>SPF (MX e TXT)</strong>, se o campo "Nome" for "send", use <code>send</code> no host. Se for vazio, use <code>@</code>.
                       </p>
+
                     </div>
                     <div className="space-y-3">
 
                       {emailVerification.records.map((record: any, idx: number) => (
                         <div key={idx} className="p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50 space-y-2">
                           <div className="flex justify-between items-center">
-                            <Badge variant="secondary" className="text-[9px] font-mono">{record.type}</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[9px] font-mono">{record.type}</Badge>
+                              {record.priority && <Badge variant="outline" className="text-[9px]">Prioridade: {record.priority}</Badge>}
+                            </div>
                             <span className="text-[9px] text-muted-foreground font-mono">{record.name}</span>
                           </div>
+
                           <div className="flex gap-2 items-start">
                             <div className="flex-1 bg-muted/30 p-1.5 rounded text-[10px] font-mono break-all line-clamp-2">
                               {record.value}
