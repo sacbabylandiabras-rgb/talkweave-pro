@@ -19,6 +19,7 @@ export interface Contact {
   };
   profilePictureUrl?: string;
   lastUpdated?: string;
+  agent_stage?: string;
 }
 
 export interface ContactStats {
@@ -141,7 +142,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       // Buscar contatos salvos para fotos de perfil e nomes
       const { data: savedContacts } = await supabase
         .from('saved_contacts')
-        .select('phone, name, profile_picture_url, updated_at');
+        .select('phone, name, profile_picture_url, updated_at, agent_stage');
 
       // Mesclar dados dos contatos salvos
       if (savedContacts) {
@@ -151,6 +152,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
            if (sc.profile_picture_url) existing.profilePictureUrl = sc.profile_picture_url;
             if (sc.name) existing.name = sc.name;
             if (sc.updated_at) existing.lastUpdated = sc.updated_at;
+            if (sc.agent_stage) existing.agent_stage = sc.agent_stage;
           }
         });
       }
