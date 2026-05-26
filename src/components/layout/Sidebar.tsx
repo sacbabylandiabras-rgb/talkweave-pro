@@ -149,6 +149,7 @@ const gatewayMenuItems = [
   { id: "painel-gateway", label: "Dashboard", icon: LayoutDashboard, path: "/gateway-checkout/dashboard" },
   { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
+  { id: "pay-domain", label: "Domínio e E-mail", icon: Globe, path: "/gateway-checkout/settings?tab=dominio" },
   { id: "pay-landing-pages", label: "Landing Pages", icon: LayoutTemplate, path: "/gateway-checkout/landing-pages" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
   { id: "pay-marketplace", label: "Marketplace", icon: ShoppingBag, path: "/gateway-checkout/marketplace" },
@@ -160,7 +161,6 @@ const gatewayMenuItems = [
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
   { id: "pay-withdrawals", label: "Saques", icon: Wallet, path: "/gateway-checkout/withdrawals" },
   { id: "pay-settings", label: "Configurações", icon: Settings, path: "/gateway-checkout/settings" },
-  { id: "pay-domain", label: "Domínio e E-mail", icon: Globe, path: "/gateway-checkout/settings?tab=dominio" },
 ];
 
 
