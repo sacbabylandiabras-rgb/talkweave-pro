@@ -140,15 +140,41 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
       <ScrollArea className="flex-1 whitespace-nowrap">
         <div className="flex gap-2 pb-2">
           {stages.length === 0 ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
-              onClick={handleCreateDefaultPipeline}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Criar meu Funil de Vendas
-            </Button>
+            <Popover open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Criar meu Funil de Vendas
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-4" align="start">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-xs text-primary">Novo Funil</h4>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      Dê um nome para o seu funil comercial e comece a organizar seus leads.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Nome do Funil (Ex: Vendas Diretas)" 
+                      value={newPipelineName} 
+                      onChange={(e) => setNewPipelineName(e.target.value)}
+                      className="h-8 text-xs"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreateDefaultPipeline()}
+                    />
+                    <Button size="sm" className="h-8 shrink-0" onClick={handleCreateDefaultPipeline}>
+                      Criar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           ) : (
             stages.map((stage) => (
               <div key={stage.id} className="relative group/btn">
