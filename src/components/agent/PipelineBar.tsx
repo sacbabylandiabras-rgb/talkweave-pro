@@ -27,9 +27,85 @@ interface PipelineBarProps {
   selectedStage: string;
   onStageSelect: (stageId: string) => void;
   counts: Record<string, number>;
+  onStagesChange?: (stages: typeof DEFAULT_PIPELINE_STAGES) => void;
 }
 
-export const PipelineBar = ({ selectedStage, onStageSelect, counts }: PipelineBarProps) => {
+export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange }: PipelineBarProps) => {
+  const { toast } = useToast();
+  const [stages, setStages] = useState<typeof DEFAULT_PIPELINE_STAGES>(PIPELINE_STAGES);
+  const [newStageName, setNewStageName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    const fetchStages = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('pipeline_stages')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data?.pipeline_stages) {
+        const customStages = data.pipeline_stages as typeof DEFAULT_PIPELINE_STAGES;
+        setStages(customStages);
+        PIPELINE_STAGES = customStages;
+        if (onStagesChange) onStagesChange(customStages);
+      } else {
+        setStages(DEFAULT_PIPELINE_STAGES);
+        PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+      }
+    };
+
+    fetchStages();
+  }, [onStagesChange]);
+
+  const saveStages = async (newStages: typeof DEFAULT_PIPELINE_STAGES) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ pipeline_stages: newStages as any })
+      .eq('id', user.id);
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      setStages(newStages);
+      PIPELINE_STAGES = newStages;
+      if (onStagesChange) onStagesChange(newStages);
+    }
+  };
+
+  const handleAddStage = () => {
+    if (!newStageName.trim()) return;
+    const newId = newStageName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+    
+    const newStage = {
+      id: newId,
+      label: newStageName.toUpperCase(),
+      color: "bg-slate-400"
+    };
+
+    const updatedStages = [...stages, newStage];
+    saveStages(updatedStages);
+    setNewStageName("");
+    setIsAdding(false);
+    toast({ title: "Sucesso", description: "Etapa criada com sucesso" });
+  };
+
+  const handleDeleteStage = (id: string) => {
+    if (id === 'all') return;
+    if (!window.confirm("Deseja realmente apagar esta etapa? Os leads nela não serão apagados, apenas a etapa sumirá do visual.")) return;
+    
+    const updatedStages = stages.filter(s => s.id !== id);
+    saveStages(updatedStages);
+    if (selectedStage === id) onStageSelect('all');
+    toast({ title: "Sucesso", description: "Etapa excluída com sucesso" });
+  };
+
   return (
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm">
       <ScrollArea className="w-full whitespace-nowrap">
