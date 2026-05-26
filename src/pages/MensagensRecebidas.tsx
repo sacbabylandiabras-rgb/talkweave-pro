@@ -2703,7 +2703,6 @@ const MensagensRecebidas = () => {
             </div>
           </div>
         )}
-      </div>
         <SaveContactDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} phone={saveDialogPhone} currentName={saveDialogName} onSave={handleDoSave} />
 
         <ContactProfileDialog
