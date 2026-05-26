@@ -44,6 +44,18 @@ const formatCommunityLid = (value: string) => {
 };
 
 const CriarGrupos = () => {
+  const location = useLocation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (location.hash === "#participantes" && scrollRef.current) {
+      const element = document.getElementById("participantes-section");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
+
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden">
       {/* Header Fixo */}
@@ -56,7 +68,7 @@ const CriarGrupos = () => {
       </div>
 
       {/* Conteúdo com Scroll Independente */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
         <section>
           <GerenciarGrupoTab />
         </section>
@@ -65,7 +77,7 @@ const CriarGrupos = () => {
           <LinksRotativosTab />
         </section>
         
-        <section>
+        <section id="participantes-section">
           <ParticipantesTab />
         </section>
       </div>
