@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,24 @@ const formatCommunityLid = (value: string) => {
 };
 
 const ExtractMembers = () => {
-  const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
+  const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: 'zapi' });
+  
+  const groups = useMemo(() => {
+    return allGroups.filter((g) => {
+      const id = String(g.id || "");
+      const isManageableType =
+        g.isGroup ||
+        g.isCommunity ||
+        g.isChannel ||
+        id.includes("-group") ||
+        id.includes("@g.us") ||
+        id.includes("@newsletter") ||
+        id.includes("-community");
+
+      return isManageableType;
+    });
+  }, [allGroups]);
+
   const { instances } = useZapiInstances({ provider: 'zapi' });
   const { fetchMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
