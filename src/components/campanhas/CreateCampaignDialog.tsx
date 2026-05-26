@@ -14,7 +14,9 @@ import { useContacts } from "@/hooks/useContacts";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { ROTATE_ALL } from "@/components/envio/InstanceSelector";
 import { setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
-import { Users, Loader2, Search, MessageSquare, Clock, Calendar } from "lucide-react";
+import { Users, Loader2, Search, MessageSquare, Clock, Calendar, FileDown, Plus } from "lucide-react";
+import { ImportContactsDialog } from "./ImportContactsDialog";
+
 
 interface CreateCampaignDialogProps {
   open: boolean;
