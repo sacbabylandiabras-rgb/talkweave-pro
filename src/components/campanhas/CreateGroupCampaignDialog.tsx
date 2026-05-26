@@ -35,10 +35,12 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
    
    const instances = useMemo(() => allInstances.filter(i => {
      const provider = (i.api_provider || 'zapi').toLowerCase();
-      const name = (i.instance_name || '').toLowerCase();
+     const name = (i.instance_name || '').toLowerCase();
      if (name.includes('aquecimento') || name.includes('warmup')) return false;
-     return provider !== 'meta';
+     // O usuário solicitou remover UAZAPI da parte de campanhas
+     return provider === 'zapi';
    }), [allInstances]);
+
  
    const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const { fetchMemberCount, getMemberCount, isLoading: isMemberCountLoading } = useGroupMemberCount();
