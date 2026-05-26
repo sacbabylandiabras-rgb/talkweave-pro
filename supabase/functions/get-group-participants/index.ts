@@ -30,6 +30,7 @@ const normalizeCommunityId = (value: string | null | undefined) => {
   return String(value || "")
     .trim()
     .replace(/@g\.us$/i, "")
+    .replace(/@newsletter$/i, "")
     .replace(/-group$/i, "");
 };
 
@@ -38,7 +39,8 @@ const normalizeLidValue = (value: string | null | undefined) => {
   if (!raw) return "";
   if (raw.includes("@lid")) return raw;
   const digits = raw.replace(/\D/g, "");
-  return digits ? `${digits}@lid` : raw;
+  // LID is usually longer than 13 digits
+  return digits.length >= 14 ? `${digits}@lid` : raw;
 };
 
 const normalizeRealPhoneValue = (value: any) => {
