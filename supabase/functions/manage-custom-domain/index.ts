@@ -107,12 +107,17 @@ serve(async (req) => {
       if (RESEND_API_KEY) {
         try {
           // Check if already in our DB first
-          const { data: existingV } = await supabase
+          const { data: existingV, error: selectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
             .eq("domain", cleanHostname)
-            .single();
+            .maybeSingle();
+
+          if (selectError) {
+            console.error("Error selecting from email_domain_verifications:", JSON.stringify(selectError));
+          }
+
 
           console.log("Existing Resend record check for:", cleanHostname);
           if (existingV?.resend_domain_id) {
@@ -128,11 +133,13 @@ serve(async (req) => {
                 records: resendData.records,
               };
               // Update DB
-              await supabase.from("email_domain_verifications").update({
+              const { error: updateError } = await supabase.from("email_domain_verifications").update({
                 status: resendData.status,
                 dkim_records: resendData.records,
                 updated_at: new Date().toISOString(),
               }).eq("id", existingV.id);
+              if (updateError) console.error("Error updating domain in DB:", JSON.stringify(updateError));
+
             }
           } else {
             console.log("Registering domain on Resend:", cleanHostname);
@@ -153,7 +160,7 @@ serve(async (req) => {
                 records: resendData.records,
               };
               // Save to email_domain_verifications
-              await supabase.from("email_domain_verifications").upsert({
+              const { error: upsertError } = await supabase.from("email_domain_verifications").upsert({
                 user_id: user.id,
                 domain: cleanHostname,
                 resend_domain_id: resendData.id,
@@ -161,6 +168,8 @@ serve(async (req) => {
                 dkim_records: resendData.records,
                 updated_at: new Date().toISOString(),
               });
+              if (upsertError) console.error("Error upserting domain to DB:", JSON.stringify(upsertError));
+
             } else {
               console.error("Resend API error detail:", JSON.stringify(resendData));
               if (resendData.message?.includes("already exists")) {
@@ -182,7 +191,7 @@ serve(async (req) => {
                       status: detailData.status,
                       records: detailData.records,
                     };
-                    await supabase.from("email_domain_verifications").upsert({
+                    const { error: upsertError2 } = await supabase.from("email_domain_verifications").upsert({
                       user_id: user.id,
                       domain: cleanHostname,
                       resend_domain_id: detailData.id,
@@ -190,6 +199,8 @@ serve(async (req) => {
                       dkim_records: detailData.records,
                       updated_at: new Date().toISOString(),
                     });
+                    if (upsertError2) console.error("Error upserting existing domain to DB:", JSON.stringify(upsertError2));
+
                   }
                 }
               }
@@ -309,12 +320,15 @@ serve(async (req) => {
       let emailVerification = null;
       if (RESEND_API_KEY) {
         try {
-          const { data: evData } = await supabase
+          const { data: evData, error: statusSelectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
             .eq("domain", cleanHostname)
-            .single();
+            .maybeSingle();
+          
+          if (statusSelectError) console.error("Status check DB error:", JSON.stringify(statusSelectError));
+
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
