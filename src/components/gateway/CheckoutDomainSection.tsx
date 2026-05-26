@@ -263,9 +263,21 @@ export default function CheckoutDomainSection() {
               </CardContent>
             </Card>
 
-            <Card className="border-[#2A2A2A] bg-muted/20">
-              <CardContent className="pt-4 pb-4 space-y-3">
-                <p className="text-xs font-medium text-foreground">Aponte o Domínio no DNS:</p>
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px]">1</span>
+                Acesse o seu provedor de DNS
+              </h4>
+              <p className="text-[10px] text-muted-foreground px-7">
+                Vá até a Hostinger, GoDaddy, Cloudflare ou onde seu domínio está registrado.
+              </p>
+
+              <h4 className="text-xs font-semibold flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px]">2</span>
+                Adicione o seguinte registro CNAME
+              </h4>
+              
+              <div className="px-7 space-y-3">
                 <div className="bg-background border border-[#2A2A2A] rounded p-3 font-mono text-[10px] space-y-2">
                   <div className="flex justify-between items-center pb-2 border-b border-[#2A2A2A]">
                     <span className="text-muted-foreground uppercase">Tipo</span>
@@ -273,7 +285,12 @@ export default function CheckoutDomainSection() {
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-[#2A2A2A]">
                     <span className="text-muted-foreground uppercase">Nome/Host</span>
-                    <span className="font-bold text-primary">{customDomain.split('.')[0]}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-primary">{customDomain.split('.')[0] || "pay"}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(customDomain.split('.')[0] || "pay")}>
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
@@ -285,8 +302,23 @@ export default function CheckoutDomainSection() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="p-3 rounded border border-amber-500/10 bg-amber-500/5 flex gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <strong>Atenção:</strong> Não utilize "@" como nome. Use exatamente o prefixo escolhido (ex: <code>{customDomain.split('.')[0] || "pay"}</code>).
+                  </p>
+                </div>
+              </div>
+
+              <h4 className="text-xs font-semibold flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px]">3</span>
+                Aguarde a propagação
+              </h4>
+              <p className="text-[10px] text-muted-foreground px-7 italic">
+                A verificação pode levar de alguns minutos até 24 horas. Clique no botão de atualizar acima para checar o status.
+              </p>
+            </div>
           </div>
         )}
 
