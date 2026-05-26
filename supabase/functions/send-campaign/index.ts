@@ -2565,7 +2565,17 @@ serve(async (req) => {
           `✅ Campaign ${campaignId}: Last batch processed. Checking if we should mark as completed...`,
         );
         
-        if (awaitingCallbackCount > 0) {
+        // RE-FETCH ALL SENDS TO BE 100% SURE
+        const { count: currentTotalSends } = await supabase
+          .from("campaign_sends")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId);
+          
+        const targetCount = campaignTargetContacts.length;
+        
+        if (currentTotalSends !== null && targetCount > 0 && currentTotalSends < targetCount) {
+          console.log(`⏳ Campaign ${campaignId}: ${currentTotalSends}/${targetCount} sends. Still missing ${targetCount - currentTotalSends} contacts. Keeping active.`);
+        } else if (awaitingCallbackCount > 0) {
           console.log(
             `⏳ Campaign ${campaignId}: ${awaitingCallbackCount} message(s) still waiting real WhatsApp delivery callback. Keeping active.`,
           );
@@ -2574,7 +2584,7 @@ serve(async (req) => {
             `✅ Campaign ${campaignId}: ${actualDeliveries} delivered / ${totalProcessed} processed. Marking as completed.`,
           );
           const { data: finalCampaign } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
-          if (finalCampaign?.status === "active" || finalCampaign?.status === "draft") {
+          if (finalCampaign?.status === "active" || finalCampaign?.status === "draft" || finalCampaign?.status === "sending") {
             await supabase
               .from("campaigns")
               .update({ status: "completed", updated_at: new Date().toISOString() })
