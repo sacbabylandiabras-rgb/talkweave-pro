@@ -234,7 +234,7 @@ serve(async (req) => {
           status: data.verified ? "active" : "pending",
           ssl_status: data.verified ? "active" : "pending",
           verification: data.verification || null,
-          email_verification: emailVerification,
+          email_verification: null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
