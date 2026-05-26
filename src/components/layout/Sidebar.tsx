@@ -91,6 +91,7 @@ const zapiMenuItems = [
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
   { id: "departamento", label: "Departamento", icon: Building2, path: "/departamento" },
+  { id: "skills", label: "Skills", icon: Sparkles, path: "/skills" },
   
  ];
 
