@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
