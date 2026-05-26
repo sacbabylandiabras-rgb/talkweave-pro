@@ -216,7 +216,7 @@ const ExtractMembers = () => {
             onClick={() => setConnectDialogOpen(true)}
           >
             <Wifi className="w-4 h-4" />
-            Conectar Dispositivo
+            Conectar WhatsApp
           </Button>
         )}
       </div>
