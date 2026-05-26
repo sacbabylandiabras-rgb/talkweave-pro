@@ -407,22 +407,28 @@ export default function Skills() {
               <Label className="text-xs flex items-center gap-1.5">
                 <Paperclip className="w-3.5 h-3.5" /> Anexos (vídeo, áudio, foto, documento)
               </Label>
-              <label className="inline-flex">
+              <>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   multiple
-                  className="hidden"
+                  style={{ display: "none" }}
                   accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                   onChange={(e) => {
                     uploadFiles(e.target.files);
                     e.target.value = "";
                   }}
                 />
-                <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted cursor-pointer transition-colors">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted cursor-pointer transition-colors disabled:opacity-60"
+                >
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   Enviar arquivos
-                </span>
-              </label>
+                </button>
+              </>
             </div>
 
             {(editingDetail.attachments || []).length === 0 ? (
