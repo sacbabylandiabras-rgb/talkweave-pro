@@ -2,6 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+console.log("🚀 get-group-participants loaded");
+
 interface Participant {
   phone: string;
   isAdmin: boolean;
@@ -19,6 +21,7 @@ interface GroupCredentials {
 const normalizeGroupId = (value: string | null | undefined) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
+  console.log(`🔍 normalizeGroupId input: ${raw}`);
   if (raw.includes("@g.us")) return raw.replace("@g.us", "-group");
   return raw;
 };
