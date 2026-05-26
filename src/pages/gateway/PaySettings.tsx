@@ -297,7 +297,7 @@ export default function PaySettings() {
         <p className="text-sm text-muted-foreground">Gerencie as configurações da sua conta</p>
       </div>
 
-      <Tabs defaultValue={defaultTab}>
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
         <TabsList className="bg-muted/50">
           <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
           <TabsTrigger value="dominio"><Globe className="w-3.5 h-3.5 mr-1.5" />Domínio</TabsTrigger>
