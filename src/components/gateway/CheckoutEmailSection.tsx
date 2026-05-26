@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, RefreshCw, Loader2, CheckCircle2, ShieldCheck, Clock, Mail } from "lucide-react";
+import { Copy, RefreshCw, Loader2, CheckCircle2, ShieldCheck, Clock, Mail, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export default function CheckoutEmailSection() {
   const [emailDomain, setEmailDomain] = useState("");
@@ -26,11 +27,12 @@ export default function CheckoutEmailSection() {
     if (!user) return;
     
     // Fetch profile for sender info
-    const { data: profile } = await supabase.from("profiles").select("email_sender_name, email_sender_address").eq("id", user.id).single();
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (profile) {
-      setSenderName(profile.email_sender_name || "");
-      setSenderEmail(profile.email_sender_address || "");
+      setSenderName((profile as any).email_sender_name || "");
+      setSenderEmail((profile as any).email_sender_address || "");
     }
+
 
     fetchEmailStatus();
   };
@@ -85,7 +87,8 @@ export default function CheckoutEmailSection() {
       const { error } = await supabase.from("profiles").update({
         email_sender_name: senderName,
         email_sender_address: senderEmail,
-      }).eq("id", user.id);
+      } as any).eq("id", user.id);
+
       
       if (error) throw error;
       toast.success("Informações de remetente salvas!");
