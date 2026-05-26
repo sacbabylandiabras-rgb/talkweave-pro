@@ -40,7 +40,7 @@ const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
 const AgenteIA = lazyWithRecovery(() => import("./pages/AgenteIA"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
 const NotificacoesApp = lazyWithRecovery(() => import("./pages/NotificacoesApp"));
-const AdminAquecimento = lazyWithRecovery(() => import("./pages/AdminAquecimento"));
+
 const InvitePage = lazyWithRecovery(() => import("./pages/InvitePage"));
 const NotFound = lazyWithRecovery(() => import("./pages/NotFound"));
 const TemplatesAprovados = lazyWithRecovery(() => import("./pages/TemplatesAprovados"));
@@ -197,15 +197,6 @@ const App = () => (
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    
                    <Route path="/agente-ia" element={<AgenteIA />} />
-                  <Route path="/aquecimento" element={<AquecimentoNumero />} />
-                  <Route
-                    path="/admin/aquecimento"
-                    element={
-                      <AdminRouteGuard>
-                        <AdminAquecimento />
-                      </AdminRouteGuard>
-                    }
-                  />
                    <Route path="/meta/dashboard" element={<DashboardMeta />} />
                    <Route path="/meta/mensagens" element={<MetaMessages />} />
                    <Route path="/meta/templates" element={<TemplatesAprovados />} />
