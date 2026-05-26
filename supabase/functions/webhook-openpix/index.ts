@@ -182,6 +182,7 @@ serve(async (req) => {
             body: JSON.stringify({
               type: 'approved',
               to: customerEmail,
+              userId: tx.user_id,
               data: {
                 customerName: charge.customer?.name || tx.customer_name || 'Cliente',
                 amount: charge.value || tx.amount || 0,
