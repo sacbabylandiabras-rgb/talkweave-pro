@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, X, Check } from "lucide-react";
+import { Plus, Trash2, X, Check, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -54,13 +54,15 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
           PIPELINE_STAGES = customStages;
           if (onStagesChange) onStagesChange(customStages);
         } else {
-          setStages(DEFAULT_PIPELINE_STAGES);
-          PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+          // Instead of defaults, we start empty to show the "Create Pipeline" option
+          setStages([]);
+          PIPELINE_STAGES = [];
+          if (onStagesChange) onStagesChange([]);
         }
       } catch (err) {
-        console.warn("Could not fetch pipeline_stages from database, using defaults:", err);
-        setStages(DEFAULT_PIPELINE_STAGES);
-        PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+        console.warn("Could not fetch pipeline_stages from database:", err);
+        setStages([]);
+        PIPELINE_STAGES = [];
       }
     };
 
