@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, X, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-export const PIPELINE_STAGES = [
+export const DEFAULT_PIPELINE_STAGES = [
   { id: "all", label: "TODOS", color: "bg-gray-500" },
   { id: "triage", label: "AGUARDANDO", color: "bg-slate-500" },
   { id: "in_service", label: "EM ATENDIMENTO", color: "bg-blue-500" },
