@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -177,8 +177,8 @@ const Relatorio = () => {
 
   const { stats, campaignReports, latestAllSends } = computedData;
 
-  const detailsStats = useMemo(() => {
-    if (!detailsOpen || !detailsCampaignId) return { sent: 0, pending: 0, failed: 0, total: 0 };
+  const detailsStatsData = useMemo(() => {
+    if (!detailsOpen || !detailsCampaignId) return { sent: 0, pending: 0, failed: 0, total: 0, latestSends: [] };
     
     const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
     const targetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
@@ -192,8 +192,11 @@ const Relatorio = () => {
       pending: dbPending + notProcessed,
       failed: campaignSends.filter(s => s.status === 'failed' || (Boolean(s.error_message) && s.status !== 'delivered' && s.status !== 'read')).length,
       total: targetCount > 0 ? targetCount : campaignSends.length,
+      latestSends: campaignSends
     };
   }, [detailsOpen, detailsCampaignId, detailsSends, campaignList]);
+
+  const { latestSends: detailsLatestSends, ...detailsStats } = detailsStatsData;
 
   const openDetails = (campaignId: string, campaignName: string) => {
     setDetailsCampaignId(campaignId);
