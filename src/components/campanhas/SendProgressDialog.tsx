@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck, ChevronDown, ChevronUp, Smartphone } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck, ChevronDown, ChevronUp, Smartphone, Users, Eye } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
@@ -61,6 +61,8 @@ export function SendProgressDialog({
     sent: 0,
     delivered: 0,
     failed: 0,
+    read: 0,
+    clicked: 0,
     lastError: null,
   });
   const [isComplete, setIsComplete] = useState(false);
