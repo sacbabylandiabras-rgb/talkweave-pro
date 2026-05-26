@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, QrCode, Phone, RotateCcw, Smartphone } from "lucide-react";
+import { Loader2, QrCode, Phone, RotateCcw, Smartphone, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';
@@ -91,6 +91,7 @@ export function UazapiDeviceConnectDialog({ instanceId, open, onOpenChange }: Pr
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">🔗 Conectar WhatsApp</DialogTitle>
+          <DialogDescription>Conecte seu aparelho para habilitar a extração de membros.</DialogDescription>
         </DialogHeader>
         
         <Tabs value={connectionTab} onValueChange={setConnectionTab} className="w-full">
