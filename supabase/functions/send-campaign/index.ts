@@ -1341,7 +1341,7 @@ serve(async (req) => {
     const isGroupCampaign = campaign.target_audience?.type === "groups" || campaign.target_audience?.mode === "groups";
     // Fix: Always default to 2s if delay_seconds is not provided, even for groups, to respect user expectations
     const delayMs = (campaign.delay_seconds || 2) * 1000;
-    const batchSize = isGroupCampaign ? Math.max(15, getBatchSizeForDelay(delayMs) * 2) : getBatchSizeForDelay(delayMs);
+    const batchSize = getBatchSizeForDelay(delayMs);
 
     const currentBatch = executionContacts.slice(0, batchSize);
     const remainingContacts = executionContacts.slice(batchSize);
