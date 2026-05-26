@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Sparkles, Plus, Trash2, Loader2, FolderOpen, FileText, ArrowLeft, Bot, Search, Settings,
   Paperclip, Image as ImageIcon, Video, Music, File as FileIcon, Upload, X,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -339,6 +340,45 @@ export default function Skills() {
               rows={18}
               placeholder="Escreva aqui a resposta, instruções ou conhecimento que o Agente IA deve usar..."
             />
+          </div>
+
+          {/* Guia para respostas mais precisas */}
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-amber-500 text-sm font-medium">
+              <Lightbulb className="w-4 h-4" />
+              A IA precisa de mais contexto para responder bem.
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tente responder às perguntas abaixo — quanto mais detalhado, mais exata será a resposta.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Qual tarefa exata essa skill deve resolver? (em 1 frase)",
+                "Em qual contexto ela será usada? (tema, etapa do funil, tipo de agente)",
+                "Qual habilidade/conhecimento o agente precisa dominar para executar essa skill?",
+                "Quais pré-requisitos existem antes de usar a skill? (dados, permissões, integrações)",
+                "Qual é o passo a passo mínimo que o agente deve seguir para executar corretamente?",
+                "Quais regras obrigatórias não podem ser violadas? (limites, segurança, políticas)",
+                "Quais erros/confusões mais comuns o agente deve evitar?",
+                "Como validar que a skill funcionou? (critério de sucesso objetivo)",
+              ].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    const current = editingDetail.content || "";
+                    const prefix = current && !current.endsWith("\n") ? "\n\n" : current ? "\n" : "";
+                    setEditingDetail({
+                      ...editingDetail,
+                      content: `${current}${prefix}❓ ${q}\n→ `,
+                    });
+                  }}
+                  className="text-[11px] px-2.5 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors text-left"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">
