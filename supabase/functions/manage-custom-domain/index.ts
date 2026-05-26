@@ -381,7 +381,9 @@ serve(async (req) => {
               emailVerification = {
                 id: resendData.id,
                 status: resendData.status,
-                records: resendData.records,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+
               };
               // Update DB
               await supabase.from("email_domain_verifications").update({
