@@ -114,6 +114,7 @@ serve(async (req) => {
             .eq("domain", cleanHostname)
             .single();
 
+          console.log("Existing Resend record check for:", cleanHostname);
           if (existingV?.resend_domain_id) {
             console.log("Domain already in Resend DB, fetching latest status...");
             const resendRes = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
@@ -160,7 +161,9 @@ serve(async (req) => {
                 dkim_records: resendData.records,
                 updated_at: new Date().toISOString(),
               });
-            } else if (resendData.message?.includes("already exists")) {
+            } else {
+              console.error("Resend API error detail:", JSON.stringify(resendData));
+              if (resendData.message?.includes("already exists")) {
               // Try to list domains to find the ID
               const listRes = await fetch("https://api.resend.com/domains", {
                 headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
