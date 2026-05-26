@@ -941,7 +941,7 @@ Deno.serve(async (req) => {
         }
 
         // Z-API communities-metadata returns subGroups but not members directly.
-        // Iterate through each subGroup and fetch participants from each one.
+        // Even if success is false, we try to extract whatever IDs are present
         const subGroupIds = extractCommunitySubGroupIds(communityData);
 
         if (subGroupIds.length === 0) {
