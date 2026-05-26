@@ -838,6 +838,7 @@ Deno.serve(async (req) => {
     };
 
     const fetchCommunityMetadata = async (communityId: string) => {
+      // 1) List of candidates to try
       const candidates = uniqueStrings([
         normalizeCommunityId(communityId),
         normalizeGroupId(communityId),
@@ -845,28 +846,34 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
+        // Try communities-metadata endpoint
         try {
-          // Special path for community-metadata
           const data = await fetchJson(
             `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`,
             headers,
           );
-          console.log(`🏘️ Community metadata loaded for ${candidateId}`);
-          console.log(`🔍 Raw community payload: ${JSON.stringify(data).slice(0, 1500)}`);
-          return data;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          console.log(`⚠️ Community metadata unavailable for ${candidateId}: ${message}`);
-          
-          // Fallback: try group-metadata for community ID
-          try {
-            const data = await fetchJson(
-              `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`,
-              headers,
-            );
-            console.log(`🏘️ Community loaded via group-metadata fallback for ${candidateId}`);
+          if (data && (data.subGroups || data.participants || data.id)) {
+            console.log(`🏘️ Community metadata loaded for ${candidateId}`);
+            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
-          } catch (e) {}
+          }
+        } catch (error) {
+          console.log(`⚠️ communities-metadata failed for ${candidateId}`);
+        }
+
+        // Try group-metadata endpoint as fallback for this ID
+        try {
+          const data = await fetchJson(
+            `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`,
+            headers,
+          );
+          if (data && (data.participants || data.subGroups || data.id)) {
+            console.log(`🏘️ Group metadata (as community) loaded for ${candidateId}`);
+            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
+            return data;
+          }
+        } catch (error) {
+          console.log(`⚠️ group-metadata failed for ${candidateId}`);
         }
       }
 
