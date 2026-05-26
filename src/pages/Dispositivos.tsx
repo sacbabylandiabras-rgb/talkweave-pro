@@ -2615,18 +2615,20 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
                       specific_hours: 'specificHours',
                     };
                     const payload: any = {
-                      timezone: "America/Sao_Paulo",
-                      mode: modeMap[businessHoursType] || 'open24h',
+                      value: {
+                        timezone: "America/Sao_Paulo",
+                        mode: modeMap[businessHoursType] || 'open24h',
+                        days: businessHoursType === 'specific_hours' 
+                          ? Object.entries(days)
+                              .filter(([, cfg]: [string, any]) => cfg.open)
+                              .map(([day, cfg]: [string, any]) => ({
+                                dayOfWeek: day.toUpperCase(),
+                                openTime: cfg.start,
+                                closeTime: cfg.end,
+                              }))
+                          : []
+                      }
                     };
-                    if (businessHoursType === 'specific_hours') {
-                      payload.days = Object.entries(days)
-                        .filter(([, cfg]: [string, any]) => cfg.open)
-                        .map(([day, cfg]: [string, any]) => ({
-                          dayOfWeek: day.toUpperCase(),
-                          openTime: cfg.start,
-                          closeTime: cfg.end,
-                        }));
-                    }
                     applyToAll('business-hours', payload, 'Horário de Funcionamento');
                   }} 
                   disabled={!!submitting || selectedIds.length === 0}

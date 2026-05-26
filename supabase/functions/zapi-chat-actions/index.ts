@@ -304,13 +304,13 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'company-address':
       return { method: 'POST', path: "/business/company-address", body: { value: payload?.address ?? payload?.value } };
      case 'company-websites':
-       return { method: 'POST', path: "/business/company-websites", body: { websites: payload?.websites || (payload?.value ? [payload.value] : []) } };
+       return { method: 'POST', path: "/business/company-websites", body: { value: payload?.websites || (payload?.value ? [payload.value] : []) } };
     case 'business-hours':
       return { method: 'POST', path: "/business/hours", body: payload };
     case 'available-categories':
       return { method: 'GET', path: "/business/available-categories" };
     case 'company-categories':
-      return { method: 'POST', path: "/business/categories", body: payload };
+      return { method: 'POST', path: "/business/categories", body: { value: payload?.categories || payload?.value || [] } };
      case 'business-profile':
        return { method: 'GET', path: "/business/profile" };
       case 'list-products':
