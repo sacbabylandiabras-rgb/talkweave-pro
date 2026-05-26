@@ -67,22 +67,41 @@ export const emptyDefaults: CheckoutDefaults = {
   sendEmail: true,
 };
 
+/**
+ * FIX: removed the hardcoded JWT anon token that was used as a fallback.
+ * The session token from supabase.auth.getSession() is always used instead.
+ * The API key env var is kept for the REST apikey header (public, non-secret).
+ */
 async function callEdgeFunction(action: string, defaults?: CheckoutDefaults) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) return null;
 
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1/save-checkout-defaults`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8",
-      },
-      body: JSON.stringify({ action, defaults }),
-    }
-  );
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+  if (!supabaseUrl || !anonKey) {
+    console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY env vars");
+    return null;
+  }
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/save-checkout-defaults`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // User JWT — never fall back to a hardcoded token
+      Authorization: `Bearer ${session.access_token}`,
+      // Public anon key is safe to embed and only used as the REST API key header
+      apikey: anonKey,
+    },
+    body: JSON.stringify({ action, defaults }),
+  });
+
+  if (!res.ok) {
+    console.error(`save-checkout-defaults returned ${res.status}`);
+    return null;
+  }
 
   return res.json();
 }
@@ -99,40 +118,42 @@ export function useCheckoutDefaults() {
         if (result?.value) {
           try {
             const parsed = JSON.parse(result.value);
-            setDefaults(prev => ({ ...prev, ...parsed }));
-          } catch {}
+            setDefaults((prev) => ({ ...prev, ...parsed }));
+          } catch {
+            // ignore malformed stored value
+          }
         }
       } catch (err) {
         console.error("Error loading checkout defaults:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, []);
 
-  const saveDefaults = async (newDefaults: CheckoutDefaults) => {
+  const saveDefaults = async (newDefaults: CheckoutDefaults): Promise<boolean> => {
     setSaving(true);
     try {
       const result = await callEdgeFunction("save", newDefaults);
       if (result?.success) {
         setDefaults(newDefaults);
-        setSaving(false);
         return true;
       }
       console.error("Save error:", result?.error);
-      setSaving(false);
       return false;
     } catch (err) {
       console.error("Save error:", err);
-      setSaving(false);
       return false;
+    } finally {
+      setSaving(false);
     }
   };
 
-  const applyToAllCheckouts = async (newDefaults: CheckoutDefaults) => {
+  const applyToAllCheckouts = async (newDefaults: CheckoutDefaults): Promise<number> => {
     try {
       const result = await callEdgeFunction("apply_all", newDefaults);
-      return result?.updated || 0;
+      return result?.updated ?? 0;
     } catch {
       return 0;
     }
