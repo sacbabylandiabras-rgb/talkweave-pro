@@ -24,7 +24,7 @@ import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useMessageLogs } from "@/hooks/useMessageLogs";
-import { PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface ContactProfileDialogProps {
@@ -106,6 +106,18 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [closingDate, setClosingDate] = useState<string>("");
     const [priority, setPriority] = useState<string>("normal");
     const [dealDescription, setDealDescription] = useState<string>("");
+    const [pipelineStages, setPipelineStages] = useState<any[]>(DEFAULT_PIPELINE_STAGES);
+
+    useEffect(() => {
+      const fetchStages = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await (supabase as any).from('profiles').select('pipeline_stages').eq('id', user.id).single();
+        if (data?.pipeline_stages) setPipelineStages(data.pipeline_stages);
+      };
+      fetchStages();
+    }, [open]);
+
 
   const loadFlows = async () => {
     setLoadingFlows(true);
@@ -804,7 +816,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                       <SelectValue placeholder="Selecione a etapa" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => (
+                      {pipelineStages.filter(s => s.id !== 'all').map(stage => (
                         <SelectItem key={stage.id} value={stage.id}>
                           <div className="flex items-center gap-2">
                             <div className={cn("w-2 h-2 rounded-full", stage.color)} />

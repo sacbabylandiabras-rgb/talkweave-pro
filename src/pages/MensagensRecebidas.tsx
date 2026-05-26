@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
-import { PipelineBar, PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
@@ -2057,6 +2057,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
   const [pageTagColors, setPageTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
   const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
+  const [pipelineStages, setPipelineStages] = useState<any[]>(DEFAULT_PIPELINE_STAGES);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
   // Show data from connected instances. If none are online yet (e.g., new instance still pending QR scan),
@@ -2458,7 +2459,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = { all: 0 };
-    PIPELINE_STAGES.forEach(s => counts[s.id] = 0);
+    pipelineStages.forEach(s => counts[s.id] = 0);
     
     conversations.forEach(conv => {
       const isMeta = conv.preferredInstanceId?.startsWith('meta:') || 
@@ -2582,6 +2583,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         selectedStage={selectedStage} 
         onStageSelect={setSelectedStage} 
         counts={stageCounts}
+        onStagesChange={setPipelineStages}
       />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (
@@ -2665,8 +2667,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         {activeTab === "pipeline" && (
           <div className="flex-1 overflow-auto p-4 bg-[#f8fafc] dark:bg-slate-950">
             <div className="flex gap-4 min-h-full pb-4">
-              {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => {
+              {pipelineStages.filter(s => s.id !== 'all').map(stage => {
                 const stageConvs = conversations.filter(c => (c.agent_stage || 'triage') === stage.id);
+
                 return (
                   <div 
                     key={stage.id} 
@@ -2678,7 +2681,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                         // Otimismo: atualiza local primeiro para feedback imediato
                         setActiveTab("pipeline"); 
                         await updateContactStage(phone, stage.id);
-                        toast({ title: `Movido para ${stage.label}` });
+                         toast({ title: `Movido para ${stage.label}` });
+                         // Atualiza o contador localmente para evitar flicker
+                         setPipelineStages(prev => [...prev]);
                         // Recarrega os dados para garantir sincronia com o banco
                         refetch();
                       }
@@ -2691,7 +2696,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                           <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", stage.color)} />
                           <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">{stage.label}</h4>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-background/50">{stageConvs.length}</Badge>
+                        </div>
                       </div>
                       <div className="text-[13px] font-bold text-primary">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
