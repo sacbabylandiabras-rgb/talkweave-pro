@@ -107,36 +107,79 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   return (
-    <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm">
-      <ScrollArea className="w-full whitespace-nowrap">
+    <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
+      <ScrollArea className="flex-1 whitespace-nowrap">
         <div className="flex gap-2 pb-2">
-          {PIPELINE_STAGES.map((stage) => (
-            <button
-              key={stage.id}
-              onClick={() => onStageSelect(stage.id)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border",
-                selectedStage === stage.id
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
-              )}
-            >
-              <div className={cn("w-2 h-2 rounded-full", stage.color)} />
-              {stage.label}
-              <Badge 
-                variant={selectedStage === stage.id ? "secondary" : "outline"} 
+          {stages.map((stage) => (
+            <div key={stage.id} className="relative group/btn">
+              <button
+                onClick={() => onStageSelect(stage.id)}
                 className={cn(
-                  "ml-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px]",
-                  selectedStage === stage.id ? "bg-primary-foreground/20 text-primary-foreground border-none" : "bg-muted-foreground/10"
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border pr-8",
+                  selectedStage === stage.id
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:border-border"
                 )}
               >
-                {counts[stage.id] || 0}
-              </Badge>
-            </button>
+                <div className={cn("w-2 h-2 rounded-full", stage.color)} />
+                {stage.label}
+                <Badge 
+                  variant={selectedStage === stage.id ? "secondary" : "outline"} 
+                  className={cn(
+                    "ml-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px]",
+                    selectedStage === stage.id ? "bg-primary-foreground/20 text-primary-foreground border-none" : "bg-muted-foreground/10"
+                  )}
+                >
+                  {counts[stage.id] || 0}
+                </Badge>
+              </button>
+              
+              {stage.id !== 'all' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteStage(stage.id);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 hover:text-destructive transition-all p-1"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
         <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
+
+      <Popover open={isAdding} onOpenChange={setIsAdding}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-1 rounded-full border-dashed shrink-0">
+            <Plus className="w-4 h-4" />
+            Nova Etapa
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-3" align="end">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <h4 className="font-medium text-xs">Criar nova etapa</h4>
+              <p className="text-[10px] text-muted-foreground">Defina o nome da sua nova coluna do funil.</p>
+            </div>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Ex: Pós-venda" 
+                value={newStageName} 
+                onChange={(e) => setNewStageName(e.target.value)}
+                className="h-8 text-xs"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddStage()}
+              />
+              <Button size="sm" className="h-8 w-8 p-0" onClick={handleAddStage}>
+                <Check className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
+
   );
 };
