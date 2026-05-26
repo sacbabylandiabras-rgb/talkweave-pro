@@ -204,8 +204,10 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
         const group = groups.find(g => g.id === groupId);
         const manual = manualContacts.find(c => c.phone === groupId);
         
-        // Mantemos o identificador original (pode ser @lid ou numero limpo)
         const targetPhone = manual ? manual.phone : normalizeGroupTargetPhone(groupId);
+        
+        return {
+          phone: targetPhone,
           name: manual ? (manual.name || manual.phone) : (group?.nome || "Grupo"),
           sourceInstanceId: group?.sourceInstanceId || null,
           sourceInstanceName: group?.sourceInstanceName || null,
