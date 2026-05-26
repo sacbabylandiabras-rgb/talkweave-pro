@@ -6,11 +6,14 @@ import { Plus, Trash2, X, Check, LayoutGrid, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = { id: string; label: string; color: string };
-type Pipeline = { id: string; name: string; stages: Stage[] };
+type Pipeline = { id: string; name: string; department?: string; currency?: string; stages: Stage[] };
 
 export const DEFAULT_PIPELINE_STAGES: Stage[] = [
   { id: "all", label: "TODOS", color: "bg-gray-500" },
@@ -27,6 +30,24 @@ export let PIPELINE_STAGES: Stage[] = [...DEFAULT_PIPELINE_STAGES];
 
 const LS_ACTIVE_KEY = "pipeline_active_id";
 
+const CURRENCY_OPTIONS = [
+  { value: "BRL", label: "Real Brasileiro (R$)" },
+  { value: "USD", label: "Dólar Americano (US$)" },
+  { value: "EUR", label: "Euro (€)" },
+  { value: "GBP", label: "Libra Esterlina (£)" },
+  { value: "ARS", label: "Peso Argentino ($)" },
+];
+
+const DEPARTMENT_OPTIONS = [
+  "Vendas",
+  "Pré-Vendas",
+  "Pós-Vendas",
+  "Suporte",
+  "Marketing",
+  "Financeiro",
+  "Outro",
+];
+
 interface PipelineBarProps {
   selectedStage: string;
   onStageSelect: (stageId: string) => void;
@@ -40,9 +61,37 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   const [activeId, setActiveId] = useState<string>("");
   const [newStageName, setNewStageName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [newPipelineName, setNewPipelineName] = useState("");
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const [formName, setFormName] = useState("");
+  const [formDepartment, setFormDepartment] = useState("Vendas");
+  const [formCurrency, setFormCurrency] = useState("BRL");
+  const [formStages, setFormStages] = useState<Stage[]>([...DEFAULT_PIPELINE_STAGES]);
+  const [formNewStage, setFormNewStage] = useState("");
+
+  const openCreateDialog = () => {
+    setFormName("");
+    setFormDepartment("Vendas");
+    setFormCurrency("BRL");
+    setFormStages([...DEFAULT_PIPELINE_STAGES]);
+    setFormNewStage("");
+    setIsCreatingPipeline(true);
+    setIsPickerOpen(false);
+  };
+
+  const addFormStage = () => {
+    const label = formNewStage.trim();
+    if (!label) return;
+    const id = label.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+    setFormStages(prev => [...prev, { id, label: label.toUpperCase(), color: "bg-slate-400" }]);
+    setFormNewStage("");
+  };
+
+  const removeFormStage = (id: string) => {
+    if (id === 'all') return;
+    setFormStages(prev => prev.filter(s => s.id !== id));
+  };
 
   const activePipeline = pipelines.find(p => p.id === activeId) || null;
   const stages = activePipeline?.stages || [];
@@ -122,21 +171,26 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   const handleCreatePipeline = () => {
-    const name = newPipelineName.trim();
+    const name = formName.trim();
     if (!name) {
       toast({ title: "Atenção", description: "Digite um nome para o seu funil.", variant: "destructive" });
+      return;
+    }
+    if (formStages.length === 0) {
+      toast({ title: "Atenção", description: "Adicione ao menos uma etapa.", variant: "destructive" });
       return;
     }
     const newPipe: Pipeline = {
       id: `pipeline_${Date.now()}`,
       name,
-      stages: [...DEFAULT_PIPELINE_STAGES],
+      department: formDepartment,
+      currency: formCurrency,
+      stages: formStages,
     };
     const next = [...pipelines, newPipe];
     savePipelines(next);
     setActiveId(newPipe.id);
     localStorage.setItem(LS_ACTIVE_KEY, newPipe.id);
-    setNewPipelineName("");
     setIsCreatingPipeline(false);
     onStageSelect('all');
     toast({ title: "Pipeline criado!", description: `Funil "${name}" pronto para uso.` });
