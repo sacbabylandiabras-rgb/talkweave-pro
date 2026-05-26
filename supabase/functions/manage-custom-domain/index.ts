@@ -20,12 +20,17 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    if (!RESEND_API_KEY) {
+      console.warn("RESEND_API_KEY is not configured in environment variables");
+    }
+
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
       return new Response(
         JSON.stringify({ error: "Vercel credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Auth
     const authHeader = req.headers.get("Authorization");
@@ -116,7 +121,13 @@ serve(async (req) => {
 
           if (selectError) {
             console.error("Error selecting from email_domain_verifications:", JSON.stringify(selectError));
+            
+            // If table missing, we try to at least return what we can from Resend directly
+            if (selectError.code === "PGRST204" || selectError.message?.includes("not found")) {
+              console.log("Table missing, falling back to direct Resend check...");
+            }
           }
+
 
           console.log("Existing Resend record check for:", cleanHostname);
           if (existingV?.resend_domain_id) {
