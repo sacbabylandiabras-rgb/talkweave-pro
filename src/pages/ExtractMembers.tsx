@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, UserPlus, UserMinus, Shield, Loader2, Search, Download, RefreshCw, Smartphone, QrCode } from "lucide-react";
+import { Users, UserPlus, UserMinus, Shield, Loader2, Search, Download, RefreshCw, Smartphone, QrCode, Wifi } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UazapiConnectDialog } from "@/components/dispositivos/UazapiConnectDialog";
+import { UazapiDeviceConnectDialog } from "@/components/dispositivos/UazapiDeviceConnectDialog";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,8 +59,35 @@ const ExtractMembers = () => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [deviceStatus, setDeviceStatus] = useState<Record<string, boolean>>({});
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
+
+  useEffect(() => {
+    const checkStatuses = async () => {
+      const uids = [...new Set(instances.map(i => i.id))];
+      if (uids.length === 0) return;
+      
+      const statuses: Record<string, boolean> = {};
+      await Promise.all(uids.map(async (id) => {
+        try {
+          const { data } = await supabase.functions.invoke('get-device-status', { body: { instanceId: id } });
+          statuses[id] = data?.data?.connected || data?.connected || false;
+        } catch {
+          statuses[id] = false;
+        }
+      }));
+      setDeviceStatus(statuses);
+    };
+    if (instances.length > 0) checkStatuses();
+  }, [instances]);
+
+  const selectedInstance = useMemo(() => {
+    if (!selectedGroup) return null;
+    return instances.find(i => i.zapi_instance_id === selectedGroup.sourceInstanceId);
+  }, [selectedGroup, instances]);
+
+  const isSelectedConnected = selectedInstance ? !!deviceStatus[selectedInstance.id] : false;
 
   // ─── fetch participants ────────────────────────────────────────────────────
 
@@ -181,15 +208,17 @@ const ExtractMembers = () => {
             Gerencie e extraia participantes dos seus grupos e comunidades
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="gap-2 border-primary/20 hover:bg-primary/5"
-          onClick={() => setConnectDialogOpen(true)}
-        >
-          <QrCode className="w-4 h-4" />
-          Conectar Uazapi
-        </Button>
+        {selectedInstance && !isSelectedConnected && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 border-primary/20 hover:bg-primary/5"
+            onClick={() => setConnectDialogOpen(true)}
+          >
+            <Wifi className="w-4 h-4" />
+            Conectar WhatsApp
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
@@ -456,14 +485,13 @@ const ExtractMembers = () => {
         </div>
       </div>
 
-      <UazapiConnectDialog 
-        open={connectDialogOpen} 
-        onOpenChange={setConnectDialogOpen} 
-        onSuccess={() => {
-          refetch();
-          refetchInstances();
-        }}
-      />
+      {selectedInstance && (
+        <UazapiDeviceConnectDialog 
+          open={connectDialogOpen} 
+          onOpenChange={setConnectDialogOpen} 
+          instanceId={selectedInstance.id}
+        />
+      )}
     </div>
   );
 };
