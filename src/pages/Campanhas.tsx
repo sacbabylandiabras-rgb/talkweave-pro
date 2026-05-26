@@ -104,7 +104,12 @@ const safeFormat = (date: unknown, formatStr: string, options?: object) => {
   return format(d, formatStr, options);
 };
 
-const normalizePhoneKey = (phone?: string | null) => (phone ?? "").replace(/\D/g, "");
+const normalizePhoneKey = (phone?: string | null) => {
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+  return trimmed.replace(/\D/g, "");
+};
 
 const normalizeGroupDisplayPhone = (phone?: string | null) => {
   if (!phone) return "";
@@ -670,10 +675,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
       const seen = new Set<string>();
       const before = contactsToSend.length;
       contactsToSend = contactsToSend.filter((c: any) => {
-        const key =
-          String(c?.phone ?? "")
-            .replace(/@lid$/i, "")
-            .replace(/\D/g, "") || c?.phone;
+        const phone = String(c?.phone ?? "");
+        const key = phone.toLowerCase().includes("@lid") 
+          ? phone.toLowerCase() 
+          : phone.replace(/\D/g, "");
         if (!key || seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -738,9 +743,10 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
       const removed: string[] = [];
 
       for (const c of contacts) {
-        const key = String(c?.phone ?? "")
-          .replace(/@lid$/i, "")
-          .replace(/\D/g, "");
+        const phone = String(c?.phone ?? "");
+        const key = phone.toLowerCase().includes("@lid") 
+          ? phone.toLowerCase() 
+          : phone.replace(/\D/g, "");
         if (!key) {
           unique.push(c);
           continue;

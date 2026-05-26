@@ -53,7 +53,7 @@ const phoneSchema = z.string()
 
 const normalizePhoneInput = (value: string) => {
   const trimmed = value.trim();
-  if (/^\d+@lid$/i.test(trimmed)) return trimmed.toLowerCase();
+  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
   return trimmed.replace(/\D/g, '');
 };
 

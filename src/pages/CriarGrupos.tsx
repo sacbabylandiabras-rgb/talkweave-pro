@@ -686,10 +686,16 @@ const CriarGrupos = () => {
                           });
                           if (error) throw error;
                           const pend = (data?.pendingParticipants || data?.pending || data?.participantsPending || []) as any[];
-                          const list = pend.map((p: any) => ({
-                            phone: String(p?.phone || p?.id || p?.jid || "").replace(/\D/g, ""),
-                            name: p?.name || p?.pushname || "",
-                          })).filter((p) => p.phone);
+                          const list = pend.map((p: any) => {
+                            const rawPhone = String(p?.phone || p?.id || p?.jid || "");
+                            const phone = rawPhone.toLowerCase().includes("@lid") 
+                              ? rawPhone.toLowerCase() 
+                              : rawPhone.replace(/\D/g, "");
+                            return {
+                              phone,
+                              name: p?.name || p?.pushname || "",
+                            };
+                          }).filter((p) => p.phone);
                           setPendingList(list);
                           setPendingOpen(true);
                           if (list.length === 0) toast.info("Nenhum participante pendente");
@@ -1431,10 +1437,14 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
     }
   };
 
-  const normalizePhoneCandidate = (value: unknown) => String(value || "")
-    .replace("@c.us", "")
-    .replace("@s.whatsapp.net", "")
-    .replace(/\D/g, "");
+  const normalizePhoneCandidate = (value: unknown) => {
+    const str = String(value || "");
+    if (str.toLowerCase().includes("@lid")) return str.toLowerCase();
+    return str
+      .replace("@c.us", "")
+      .replace("@s.whatsapp.net", "")
+      .replace(/\D/g, "");
+  };
 
   const inferCountryCode = (value: unknown) => {
     const digits = normalizePhoneCandidate(value);

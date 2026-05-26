@@ -243,7 +243,10 @@ const isGroupMembershipLog = (log: Pick<MessageLog, 'message_received' | 'keywor
 
 const resolveGroupMembershipContent = (log: Pick<MessageLog, 'phone' | 'response_sent' | 'keyword_matched'>) => {
   const joinedName = String(log.response_sent || '').trim();
-  const joinedPhone = String(log.phone || '').replace(/\D/g, '');
+  const phone = String(log.phone || '');
+  const joinedPhone = phone.toLowerCase().includes("@lid") 
+    ? phone.toLowerCase() 
+    : phone.replace(/\D/g, '');
   const action = log.keyword_matched === '__group_leave__' ? 'saiu do grupo' : 'entrou no grupo';
   return `${joinedName || (joinedPhone ? `+${joinedPhone}` : 'Membro')} ${action}`;
 };
@@ -354,6 +357,7 @@ const toZapiPhone = (phone: string): string => {
 };
 
 const isLikelyTechnicalIdentifier = (phone: string): boolean => {
+  if (phone.toLowerCase().includes("@lid")) return false;
   const clean = phone.replace(/\D/g, '');
   return !phone.includes('@') && !phone.includes('-group') && /^\d{14,16}$/.test(clean) && !clean.startsWith('55');
 };

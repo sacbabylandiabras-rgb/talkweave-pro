@@ -32,6 +32,7 @@ interface ContactProfileDialogProps {
 }
 
 const formatPhone = (phone: string) => {
+  if (phone.toLowerCase().includes("@lid")) return phone.toLowerCase();
   const clean = phone.replace(/\D/g, '');
   if (clean.length === 13 && clean.startsWith('55')) {
     const ddd = clean.slice(2, 4);
