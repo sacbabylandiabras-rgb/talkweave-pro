@@ -30,6 +30,7 @@ const detectIsCommunity = (group: { id: string; isCommunity?: boolean; isChannel
 
 const ExtractMembers = () => {
   const { groups: allGroups, loading, refetch } = useWhatsAppGroups({ provider: "uazapi" });
+  const { instances, refetch: refetchInstances } = useZapiInstances({ provider: "uazapi" });
 
   // Only show groups / communities / channels (filter out raw contacts etc.)
   const groups = useMemo(
@@ -49,7 +50,6 @@ const ExtractMembers = () => {
     [allGroups],
   );
 
-  const { instances, refetch: refetchInstances } = useZapiInstances({ provider: "uazapi" });
   const { fetchMemberCount, isMemberCountLoading } = useGroupMemberCount();
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -213,7 +213,11 @@ const ExtractMembers = () => {
             variant="outline" 
             size="sm" 
             className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isSelectedConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
-            onClick={() => setConnectDialogOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setConnectDialogOpen(true);
+            }}
           >
             <Wifi className={`w-4 h-4 ${!isSelectedConnected ? 'text-primary' : ''}`} />
             {isSelectedConnected ? 'Reconectar WhatsApp' : 'Conectar WhatsApp'}
