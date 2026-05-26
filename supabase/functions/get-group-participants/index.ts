@@ -197,11 +197,21 @@ const extractParticipantArray = (payload: any) => {
     payload?.result?.participants,
     payload?.result?.participantes,
     payload?.result?.members,
+    payload?.participants?.list,
+    payload?.data?.participants?.list,
   ];
 
   for (const candidate of candidates) {
-    if (!Array.isArray(candidate)) continue;
-    const normalized = normalizeParticipantEntries(candidate);
+    if (!candidate) continue;
+    
+    // Support { list: [...] } or { members: [...] }
+    const actualArray = Array.isArray(candidate) 
+      ? candidate 
+      : (Array.isArray(candidate?.list) ? candidate.list : (Array.isArray(candidate?.members) ? candidate.members : null));
+    
+    if (!actualArray) continue;
+    
+    const normalized = normalizeParticipantEntries(actualArray);
     if (normalized.length > 0) return normalized;
   }
 
@@ -886,18 +896,28 @@ Deno.serve(async (req) => {
         // Iterate through each subGroup and fetch participants from each one.
         const subGroupIds = extractCommunitySubGroupIds(communityData);
 
-        if (subGroupIds.length === 0 && communityData?.subGroups) {
-          console.log(
-            `⚠️ subGroups found but no ids extracted for ${candidateCommunityId}. Sample: ${JSON.stringify(communityData.subGroups).slice(0, 1200)}`,
-          );
+        if (subGroupIds.length === 0) {
+          console.log(`⚠️ No subGroup found for community ${candidateCommunityId}, trying metadata keys...`);
+          // Try to see if there's any other field containing group-like strings
+          const allKeys = Object.keys(communityData || {});
+          for (const key of allKeys) {
+            const val = communityData[key];
+            if (Array.isArray(val)) {
+              const possibleIds = val.map(v => typeof v === 'string' ? v : (v?.id || v?.jid)).filter(v => isLikelyGroupId(v));
+              if (possibleIds.length > 0) {
+                console.log(`✅ Found potential subGroups in key "${key}": ${possibleIds.length}`);
+                subGroupIds.push(...possibleIds);
+              }
+            }
+          }
         }
 
         if (subGroupIds.length > 0) {
           console.log(`📂 Community has ${subGroupIds.length} subGroups, fetching participants from each...`);
-          console.log(`🧩 Resolved subGroup ids: ${subGroupIds.slice(0, 10).join(", ")}`);
           const allSubGroupParticipants: any[] = [];
+          const uniqueSubGroupIds = Array.from(new Set(subGroupIds));
 
-          for (const subGroupId of subGroupIds) {
+          for (const subGroupId of uniqueSubGroupIds) {
             if (!subGroupId || !isLikelyGroupId(subGroupId)) continue;
 
             try {
@@ -913,7 +933,7 @@ Deno.serve(async (req) => {
 
           if (allSubGroupParticipants.length > 0) {
             apiParticipants = allSubGroupParticipants;
-            console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${subGroupIds.length} subGroups`);
+            console.log(`✅ Aggregated ${allSubGroupParticipants.length} participants from ${uniqueSubGroupIds.length} subGroups`);
             break;
           }
         }
