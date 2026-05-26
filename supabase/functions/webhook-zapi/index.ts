@@ -297,7 +297,7 @@ serve(async (req) => {
         errorLower.includes("not on whatsapp") ||
         errorLower.includes("invalid request params");
 
-      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus) && !isErrorStatus) {
+      if (messageIds.length > 0 && (isDeliveredStatus || isSentStatus)) {
         for (const msgId of messageIds) {
           const newStatusLabel = isDeliveredStatus ? "delivered" : "sent";
 
