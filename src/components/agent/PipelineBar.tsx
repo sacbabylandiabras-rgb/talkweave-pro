@@ -236,6 +236,107 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   // Empty state: no pipelines yet
+  const createDialog = (
+    <Dialog open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Criar Pipeline de Vendas</DialogTitle>
+          <DialogDescription className="text-xs">
+            Configure as informações básicas e as etapas do seu novo funil.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nome</Label>
+            <Input
+              placeholder="Ex: Vendas Diretas"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="h-9"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={formDepartment} onValueChange={setFormDepartment}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENT_OPTIONS.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Moeda</Label>
+              <Select value={formCurrency} onValueChange={setFormCurrency}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Estágios</Label>
+            <div className="flex flex-wrap gap-1.5 p-2 border border-border rounded-md max-h-40 overflow-y-auto bg-muted/30">
+              {formStages.length === 0 && (
+                <span className="text-[11px] text-muted-foreground">Nenhuma etapa. Adicione abaixo.</span>
+              )}
+              {formStages.map(s => (
+                <Badge key={s.id} variant="secondary" className="gap-1 pr-1">
+                  <div className={cn("w-2 h-2 rounded-full", s.color)} />
+                  <span className="text-[10px]">{s.label}</span>
+                  {s.id !== 'all' && (
+                    <button
+                      onClick={() => removeFormStage(s.id)}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nome do estágio"
+                value={formNewStage}
+                onChange={(e) => setFormNewStage(e.target.value)}
+                className="h-8 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addFormStage();
+                  }
+                }}
+              />
+              <Button type="button" size="sm" variant="outline" className="h-8" onClick={addFormStage}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsCreatingPipeline(false)}>Cancelar</Button>
+          <Button onClick={handleCreatePipeline}>Criar Pipeline</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (pipelines.length === 0) {
     return (
       <>
