@@ -1345,7 +1345,14 @@ export const useMessageLogs = (
           preferredInstanceId,
           isCommunity: saved?.is_community || false,
           communityId: saved?.community_id || null,
-          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
+          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone]?.stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
+          deal_value: saved?.deal_value || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.deal_value || 0,
+          closing_date: saved?.closing_date || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.closing_date || null,
+          priority: saved?.priority || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.priority || 'normal',
+          description: saved?.description || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.description || null,
+          responsible_ids: saved?.responsible_ids || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.responsible_ids || null,
+          deal_metadata: saved?.deal_metadata || (JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] as any)?.deal_metadata || {},
+
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));

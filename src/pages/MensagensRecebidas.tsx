@@ -2782,15 +2782,15 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
             firstContactDate: selectedConversation.messages[0]?.timestamp || null,
             tags: [],
             profilePictureUrl: selectedConversation.profilePictureUrl || null,
-            lastMessage: selectedConversation.lastMessage,
-            agent_stage: selectedConversation.agent_stage,
             deal_value: (selectedConversation as any).deal_value,
             closing_date: (selectedConversation as any).closing_date,
             priority: (selectedConversation as any).priority,
             description: (selectedConversation as any).description,
             responsible_ids: (selectedConversation as any).responsible_ids,
             deal_metadata: (selectedConversation as any).deal_metadata,
-          } : null}
+            lastMessage: selectedConversation.lastMessage,
+            agent_stage: selectedConversation.agent_stage,
+          } as any : null}
           open={profileOpen}
           onOpenChange={setProfileOpen}
           onUpdate={refetch}
