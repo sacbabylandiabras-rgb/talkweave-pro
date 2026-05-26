@@ -1324,7 +1324,7 @@ export const useMessageLogs = (
         return {
           phone,
           contactName: resolvedContactName,
-         profilePictureUrl,
+          profilePictureUrl,
           lastPictureSync: saved?.updated_at || null,
           lastMessage: typeof lastVisibleMessage?.content === 'string' ? lastVisibleMessage.content : '',
           lastTimestamp: last?.timestamp || new Date(0).toISOString(),
@@ -1333,6 +1333,7 @@ export const useMessageLogs = (
           preferredInstanceId,
           isCommunity: saved?.is_community || false,
           communityId: saved?.community_id || null,
+          agent_stage: saved?.agent_stage || 'triage',
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
@@ -1556,6 +1557,21 @@ export const useMessageLogs = (
      loading, 
      refetch: fetchAll, 
      saveContact, 
+     updateContactStage: async (phone: string, stage: string) => {
+       const token = await getToken();
+       const userId = await getUserId();
+       if (!token || !userId) return;
+       const normalized = normalizeConversationPhone(phone);
+       const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
+       await savedContactsApi.upsert(token, {
+         phone: normalized,
+         name: saved?.name || '',
+         user_id: userId,
+         agent_stage: stage,
+         profile_picture_url: saved?.profile_picture_url || null,
+       });
+       await fetchSavedContacts();
+     },
      fetchProfilePicture, 
      savedContacts, 
      sendMessage, 
