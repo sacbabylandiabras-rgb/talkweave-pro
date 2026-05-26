@@ -215,7 +215,9 @@ serve(async (req) => {
                       emailVerification = {
                         id: detailData.id,
                         status: detailData.status,
-                        records: detailData.records,
+                        records: detailData.records || [],
+                        region: detailData.region || "us-east-1",
+
                       };
                       const { error: upsertError2 } = await supabase.from("email_domain_verifications").upsert({
                         user_id: user.id,
