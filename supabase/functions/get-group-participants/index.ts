@@ -845,6 +845,7 @@ Deno.serve(async (req) => {
         normalizeCommunityId(communityId),
         normalizeGroupId(communityId),
         communityId,
+        communityId.includes("-group") ? communityId.replace("-group", "@g.us") : `${communityId}@g.us`,
       ]);
 
       for (const candidateId of candidates) {
@@ -854,9 +855,13 @@ Deno.serve(async (req) => {
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.subGroups || data.participants || data.id)) {
-            console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
-            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
-            return data;
+            // Check if subGroups failed even with data
+            if (data.subGroups?.success === false) {
+              console.log(`⚠️ communities-metadata returned data but subGroups failed: ${data.subGroups.reason}`);
+            } else {
+              console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
+              return data;
+            }
           }
         } catch (e) {
           console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
@@ -869,7 +874,6 @@ Deno.serve(async (req) => {
           const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
             console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId}`);
-            console.log(`🔍 Payload: ${JSON.stringify(data).slice(0, 1000)}`);
             return data;
           }
         } catch (e) {
