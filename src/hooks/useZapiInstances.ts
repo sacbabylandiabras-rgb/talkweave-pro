@@ -63,10 +63,8 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     const isMobile = isMobileZapiInstance(item);
     const provider = (item.api_provider || 'zapi').toLowerCase();
     const isWarmup = provider.includes('warmup') || 
-                    provider === 'uazapi_warmup' ||
                     item.instance_name?.toLowerCase().includes('aquecimento') || 
                     item.instance_name?.toLowerCase().includes('warmup');
-    const isUazapi = provider.includes('uazapi');
 
     if (isMobile) return false;
 
@@ -78,9 +76,6 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     if (providerFilter) {
       return provider === providerFilter.toLowerCase();
     }
-
-    // Por padrão (sem providerFilter), excluímos instâncias que pertencem a outros módulos específicos
-    if (isUazapi && !provider.includes("zapi")) return false;
 
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;
@@ -277,7 +272,7 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
-      api_provider?: 'zapi' | 'uazapi' | 'uazapi_warmup';
+      api_provider?: 'zapi';
       evolution_api_url?: string;
       evolution_api_key?: string;
     instance_type?: 'web';
@@ -332,7 +327,7 @@ export const useAdminZapiInstances = (userId?: string) => {
 
    const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
      instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-       api_provider: 'zapi' | 'uazapi' | 'uazapi_warmup';
+       api_provider: 'zapi';
        evolution_api_url: string;
        evolution_api_key: string;
          instance_type: 'web';
