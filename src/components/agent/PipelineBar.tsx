@@ -41,18 +41,24 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await (supabase as any)
-        .from('profiles')
-        .select('pipeline_stages')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data, error } = await (supabase as any)
+          .from('profiles')
+          .select('pipeline_stages')
+          .eq('id', user.id)
+          .single();
 
-      if (!error && data?.pipeline_stages) {
-        const customStages = data.pipeline_stages as typeof DEFAULT_PIPELINE_STAGES;
-        setStages(customStages);
-        PIPELINE_STAGES = customStages;
-        if (onStagesChange) onStagesChange(customStages);
-      } else {
+        if (!error && data?.pipeline_stages && Array.isArray(data.pipeline_stages) && data.pipeline_stages.length > 0) {
+          const customStages = data.pipeline_stages as typeof DEFAULT_PIPELINE_STAGES;
+          setStages(customStages);
+          PIPELINE_STAGES = customStages;
+          if (onStagesChange) onStagesChange(customStages);
+        } else {
+          setStages(DEFAULT_PIPELINE_STAGES);
+          PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
+        }
+      } catch (err) {
+        console.warn("Could not fetch pipeline_stages from database, using defaults:", err);
         setStages(DEFAULT_PIPELINE_STAGES);
         PIPELINE_STAGES = DEFAULT_PIPELINE_STAGES;
       }
@@ -65,17 +71,24 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await (supabase as any)
-      .from('profiles')
-      .update({ pipeline_stages: newStages as any })
-      .eq('id', user.id);
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ pipeline_stages: newStages as any })
+        .eq('id', user.id);
 
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
+      if (error) throw error;
+      
       setStages(newStages);
       PIPELINE_STAGES = newStages;
       if (onStagesChange) onStagesChange(newStages);
+    } catch (err) {
+      console.error("Error saving pipeline_stages:", err);
+      // Fallback: update local state anyway so it works in the current session
+      setStages(newStages);
+      PIPELINE_STAGES = newStages;
+      if (onStagesChange) onStagesChange(newStages);
+      toast({ title: "Aviso", description: "As alterações foram aplicadas localmente mas pode haver um erro no banco de dados." });
     }
   };
 
