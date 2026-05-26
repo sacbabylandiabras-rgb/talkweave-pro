@@ -434,7 +434,7 @@ export default function CheckoutDomainSection() {
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">2</span>
                 <div className="text-[11px] text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">Configure o E-mail (DNS do Resend)</p>
-                  <p className="mb-2">Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> que aparecerão na seção "Configuração de E-mail" acima. Isso garante que seus e-mails não caiam no SPAM.</p>
+                  <p className="mb-2">Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> que aparecerão na seção "Configuração de E-mail" acima. Isso garante que seus e-mails não caiam no SPAM. O sistema já enviou seu domínio para o Resend automaticamente.</p>
                 </div>
               </div>
 
