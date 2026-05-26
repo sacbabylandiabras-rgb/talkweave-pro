@@ -434,14 +434,15 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
           <Button
             variant="outline"
             size="sm"
-            onClick={openCreateDialog}
+            onClick={() => setIsManageOpen(true)}
             className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
           >
             <LayoutGrid className="w-4 h-4" />
-            Criar meu Funil de Vendas
+            Gerenciar Pipelines de Vendas
           </Button>
         </div>
         {createDialog}
+        {manageDialog}
       </>
     );
   }
@@ -449,37 +450,17 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   return (
     <>
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-3">
-      {/* Pipeline selector */}
-      <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-2 shrink-0 max-w-[200px]">
-            <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
-            <span className="truncate text-xs font-semibold">{activePipeline?.name || "Selecionar Funil"}</span>
-            <ChevronDown className="w-3 h-3 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72 p-2" align="start">
-          <div className="space-y-1">
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Meus Funis</div>
-            {pipelines.map(p => (
-              <div key={p.id} className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer group", p.id === activeId && "bg-primary/10")}>
-                <button className="flex-1 text-left text-xs font-medium truncate" onClick={() => handleSelectPipeline(p.id)}>
-                  {p.name}
-                </button>
-                <button onClick={() => handleDeletePipeline(p.id)} className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 rounded p-1 transition-all">
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            <div className="pt-2 border-t border-border mt-2">
-              <Button size="sm" variant="outline" className="w-full h-7 text-xs gap-1" onClick={openCreateDialog}>
-                <Plus className="w-3 h-3" />
-                Novo Funil
-              </Button>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+      {/* Pipeline selector - opens management dialog */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 gap-2 shrink-0 max-w-[240px]"
+        onClick={() => setIsManageOpen(true)}
+      >
+        <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
+        <span className="truncate text-xs font-semibold">{activePipeline?.name || "Selecionar Funil"}</span>
+        <ChevronDown className="w-3 h-3 opacity-50" />
+      </Button>
 
       <div className="h-6 w-px bg-border shrink-0" />
 
@@ -557,6 +538,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
       </Popover>
     </div>
     {createDialog}
+    {manageDialog}
     </>
   );
 };
