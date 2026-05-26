@@ -220,6 +220,8 @@ const buildCommunityCandidates = (groupId: string, primaryData: any) => {
 };
 
 const extractCommunitySubGroupIds = (payload: any) => {
+  console.log("🔍 Extracting subGroup IDs from payload keys:", Object.keys(payload || {}));
+  
   const candidates = [
     payload?.subGroups,
     payload?.SubGroups,
@@ -286,13 +288,19 @@ const extractCommunitySubGroupIds = (payload: any) => {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
+    
+    // Log candidate type to debug if it's an object/array
+    console.log(`📋 Checking candidate for subGroups: ${typeof candidate} (isArray: ${Array.isArray(candidate)})`);
 
     const ids = extractGroupIdsRecursively(candidate).filter((entry) => {
       const normalizedEntry = normalizeCommunityId(entry);
       return normalizedEntry && !communityIdsToIgnore.has(normalizedEntry);
     });
 
-    if (ids.length > 0) return ids;
+    if (ids.length > 0) {
+      console.log(`✅ Found ${ids.length} subGroup IDs`);
+      return ids;
+    }
   }
 
   return [];
@@ -640,7 +648,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          const isLid = normalizedId.includes("@lid") || Boolean(lidCandidate) || isCommunity;
+          const isLid = normalizedId.includes("@lid") || Boolean(lidCandidate);
 
           if (isLid) {
             const lidId = normalizeLidValue(lidCandidate || normalizedId);
@@ -662,6 +670,18 @@ Deno.serve(async (req) => {
               isSuperAdmin: Boolean(p.isSuperAdmin || p.superAdmin),
               name: p.name || p.short || p.notify || p.pushName || "",
             });
+          } else if (isCommunity) {
+            // In community mode, even if no real phone, treat it as a potential LID
+            const lidId = normalizeLidValue(normalizedId);
+            if (lidId) {
+              lidParticipants.push(lidId);
+              unresolvedLidParticipants.push({
+                phone: lidId,
+                isAdmin: Boolean(p.isAdmin || p.admin),
+                isSuperAdmin: Boolean(p.isSuperAdmin || p.superAdmin),
+                name: p.name || p.short || p.notify || p.pushName || "",
+              });
+            }
           }
         }
 
