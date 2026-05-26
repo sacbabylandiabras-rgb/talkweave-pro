@@ -305,8 +305,20 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
       return { method: 'POST', path: "/business/company-address", body: { value: payload?.address ?? payload?.value } };
      case 'company-websites':
        return { method: 'POST', path: "/business/company-websites", body: { value: payload?.websites || (payload?.value ? [payload.value] : []) } };
-    case 'business-hours':
-      return { method: 'POST', path: "/business/hours", body: payload };
+    case 'business-hours': {
+      const data = payload?.value || payload;
+      return { 
+        method: 'POST', 
+        path: "/business/hours", 
+        body: {
+          value: {
+            timezone: data.timezone || "America/Sao_Paulo",
+            mode: data.mode || "open24h",
+            days: data.days || []
+          }
+        }
+      };
+    }
     case 'available-categories':
       return { method: 'GET', path: "/business/available-categories" };
     case 'company-categories':
