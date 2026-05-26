@@ -435,8 +435,95 @@ serve(async (req) => {
       );
     }
 
+    // EMAIL_STATUS — check Resend status only
+    if (action === "email_status") {
+      let cleanHostname = hostname?.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") || null;
+
+      if (!cleanHostname) {
+        const { data: evs } = await supabase.from("email_domain_verifications").select("*").eq("user_id", user.id).order('created_at', { ascending: false }).limit(1);
+        if (evs && evs.length > 0) {
+          cleanHostname = evs[0].domain;
+        }
+      }
+
+      if (!cleanHostname) {
+        return new Response(JSON.stringify({ status: "none", error: "No email domain configured" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let emailVerification = null;
+      if (RESEND_API_KEY) {
+        try {
+          const { data: evData } = await supabase
+            .from("email_domain_verifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("domain", cleanHostname)
+            .maybeSingle();
+          
+          if (evData?.resend_domain_id) {
+            const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (resendRes.ok) {
+              const resendData = await resendRes.json();
+              emailVerification = {
+                id: resendData.id,
+                status: resendData.status,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+                hostname: cleanHostname
+              };
+              // Update DB
+              await supabase.from("email_domain_verifications").update({
+                status: resendData.status,
+                dkim_records: resendData.records,
+                updated_at: new Date().toISOString(),
+              }).eq("id", evData.id);
+            }
+          } else {
+            // Check if it exists in Resend even if not in DB
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((d: any) => d.name === cleanHostname);
+              if (found) {
+                const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
+                  headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                });
+                if (detailRes.ok) {
+                  const resendData = await detailRes.json();
+                  emailVerification = {
+                    id: resendData.id,
+                    status: resendData.status,
+                    records: resendData.records || [],
+                    region: resendData.region || "us-east-1",
+                    hostname: cleanHostname
+                  };
+                }
+              }
+            }
+          }
+        } catch (resendErr) {
+          console.warn("Could not fetch Resend status:", resendErr);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: emailVerification?.status || "none",
+          email_verification: emailVerification,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // DELETE — remove domain from Vercel project
     if (action === "delete") {
+
       if (!hostname) {
         return new Response(JSON.stringify({ error: "hostname required" }), {
           status: 400,
