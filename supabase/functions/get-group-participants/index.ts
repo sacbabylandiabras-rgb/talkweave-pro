@@ -849,12 +849,29 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
-        // Log attempt
-        console.log(`📡 Fetching metadata for candidate: ${candidateId}`);
+        // Try communities-metadata FIRST
+        try {
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
+          if (data && (data.subGroups || data.participants || data.id)) {
+            // Check success reason
+            const subGroupsPayload = data.subGroups;
+            if (subGroupsPayload?.success === false && subGroupsPayload.reason === "not found community") {
+              console.log(`⏭️ Skipping communities-metadata result for ${candidateId} (not a community parent)`);
+            } else {
+              console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
+              return data;
+            }
+          }
+        } catch (e) {
+          console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
+        }
 
-        // Try group-metadata FIRST (higher success rate for participant list)
+        // Try group-metadata
         try {
           const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
             const parts = extractParticipantArray(data);
@@ -864,25 +881,7 @@ Deno.serve(async (req) => {
             }
           }
         } catch (error) {
-          console.log(`❌ group-metadata failed for ${candidateId}`);
-        }
-
-        // Try communities-metadata
-        try {
-          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
-          const data = await fetchJson(url, headers);
-          if (data && (data.subGroups || data.participants || data.id)) {
-            // Check success reason
-            const subGroupsPayload = data.subGroups;
-            if (subGroupsPayload?.success === false && subGroupsPayload.reason === "not found community") {
-              console.log(`⏭️ Skipping communities-metadata result for ${candidateId} (not a community parent)`);
-            } else {
-              console.log(`🏘️ [COMMUNITY-METADATA] SUCCESS for ${candidateId}`);
-              return data;
-            }
-          }
-        } catch (e) {
-          console.log(`❌ communities-metadata failed for ${candidateId}`);
+          console.log(`❌ group-metadata failed for ${candidateId}: ${error.message}`);
         }
       }
 
