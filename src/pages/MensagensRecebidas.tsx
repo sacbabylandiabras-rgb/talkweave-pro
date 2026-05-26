@@ -2357,12 +2357,12 @@ const MensagensRecebidas = () => {
 
     handledPhoneParamRef.current = normalizedPhone;
     setSelectedPhone(normalizedPhone);
-    setActiveTab("chat"); // Se selecionou um telefone, vai pro chat
+    setActiveTab("chat"); 
     if (normalizedPhone) markAsRead(normalizedPhone);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("phone");
-    nextParams.delete("tab");
+    // Don't delete tab param yet, let it stay for the state sync if needed
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
