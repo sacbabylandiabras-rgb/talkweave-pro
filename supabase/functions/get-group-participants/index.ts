@@ -845,7 +845,6 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
-        // Log all attempts
         console.log(`📡 Attempting metadata for: ${candidateId}`);
 
         // Try communities-metadata
@@ -856,6 +855,7 @@ Deno.serve(async (req) => {
           );
           if (data && (data.subGroups || data.participants || data.id)) {
             console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
+            console.log(`🔍 DEBUG Payload: ${JSON.stringify(data)}`);
             return data;
           }
         } catch (e) {
@@ -870,6 +870,7 @@ Deno.serve(async (req) => {
           );
           if (data && (data.participants || data.subGroups || data.id)) {
             console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId}`);
+            console.log(`🔍 DEBUG Payload: ${JSON.stringify(data)}`);
             return data;
           }
         } catch (e) {
