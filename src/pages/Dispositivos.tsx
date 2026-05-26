@@ -271,7 +271,7 @@ const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
   }
 
   return text
-    .replace(/z-api|uazapi|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
+    .replace(/z-api|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
     .replace(/client-token\s+[\w-]+/gi, 'token de segurança');
 };
 
@@ -2666,10 +2666,10 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances({ provider: 'zapi' });
-    // Exibir apenas instâncias de uso (Z-API Web), ocultando legados Mobile e instâncias UAZAPI (Apanhador)
+    // Exibir apenas instâncias de uso (Z-API Web), ocultando legados Mobile
     const instances = useMemo(() => {
       return allInstances.filter(
-         (i) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i) && !(i.api_provider || '').includes('uazapi')
+         (i) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)
       );
     }, [allInstances]);
 

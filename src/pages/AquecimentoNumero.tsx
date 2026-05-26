@@ -75,11 +75,9 @@ export default function AquecimentoNumero() {
      return allInstances.filter((i) => {
        const provider = (i.api_provider || "").toLowerCase();
        // No aquecimento, queremos apenas instâncias normais para serem aquecidas.
-       // Removemos Meta, Uazapi (Extrator) e as Doadoras (uazapi_warmup).
+       // Removemos Meta e qualquer instância que tenha warmup no nome/provedor.
        return (
          provider !== "meta" &&
-         provider !== "uazapi" &&
-         provider !== "uazapi_warmup" &&
          !provider.includes("warmup")
        );
      });

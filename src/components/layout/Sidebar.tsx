@@ -78,7 +78,7 @@ const zapiMenuItems = [
   
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
-  { id: "apanhador-grupos", label: "Extrair membros", icon: UserPlus, path: "/apanhador-grupos" },
+  
    { id: "criar-grupos", label: "Links de redirecionamento", icon: Link2, path: "/criar-grupos" },
   { id: "comunidades", label: "Comunidades", icon: Building2, path: "/comunidades" },
   { id: "canais", label: "Canais", icon: Hash, path: "/canais" },
@@ -86,7 +86,7 @@ const zapiMenuItems = [
   { id: "fluxo-grupos", label: "Fluxo Grupos", icon: Workflow, path: "/fluxo-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
-  { id: "aquecimento", label: "Aquecimento de Número", icon: Flame, path: "/aquecimento" },
+  
  ];
 
  const instagramMenuItems = [
@@ -165,7 +165,7 @@ const gatewayMenuItems = [
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
   { id: "admin", label: "Admin", icon: ShieldCheck, path: "/admin", adminOnly: true },
-  { id: "admin-aquecimento", label: "Aquecimento Admin", icon: Flame, path: "/admin/aquecimento", adminOnly: true },
+  
 ];
 
 const metaBottomItems = [

@@ -2039,11 +2039,11 @@ const MensagensRecebidas = () => {
   const instances = useMemo(() => 
     allInstances.filter((i: any) => {
       const provider = (i.api_provider || "zapi").toLowerCase();
-      return provider === "zapi" || provider === "uazapi";
+      return provider === "zapi";
     }), [allInstances]);
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
-    const isSupported = provider === "zapi" || provider === "uazapi";
+    const isSupported = provider === "zapi";
     
     return (rawActiveInstance && isSupported
       ? rawActiveInstance

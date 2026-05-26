@@ -27,7 +27,7 @@ interface HiddenInstance {
 
 const empty = {
   name: "",
-  api_provider: "zapi" as "zapi" | "uazapi",
+  api_provider: "zapi" as "zapi",
   zapi_instance_id: "",
   zapi_token: "",
   zapi_client_token: "",
@@ -163,7 +163,7 @@ export default function AdminDisparoOculto() {
         <div>
           <h1 className="text-2xl font-bold">Disparo Oculto — Instâncias (Admin)</h1>
           <p className="text-sm text-muted-foreground">
-            Cadastre as instâncias Z-API/UAZAPI usadas em <code>/disparo-oculto</code>. Visíveis para todos os usuários logados.
+            Cadastre as instâncias Z-API usadas em <code>/disparo-oculto</code>. Visíveis para todos os usuários logados.
           </p>
         </div>
 
@@ -181,13 +181,12 @@ export default function AdminDisparoOculto() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="zapi">Z-API</SelectItem>
-                    <SelectItem value="uazapi">UAZAPI / Evolution</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {form.api_provider === "zapi" ? (
+            
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <Label>Instance ID</Label>
@@ -200,20 +199,8 @@ export default function AdminDisparoOculto() {
                 <div>
                   <Label>Client Token</Label>
                   <Input value={form.zapi_client_token} onChange={(e) => setForm({ ...form, zapi_client_token: e.target.value })} />
-                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label>API URL</Label>
-                  <Input value={form.evolution_api_url} onChange={(e) => setForm({ ...form, evolution_api_url: e.target.value })} placeholder="https://meu-uazapi.com" />
-                </div>
-                <div>
-                  <Label>API Token</Label>
-                  <Input value={form.evolution_api_key} onChange={(e) => setForm({ ...form, evolution_api_key: e.target.value })} />
-                </div>
               </div>
-            )}
 
             <Button onClick={handleAdd} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}

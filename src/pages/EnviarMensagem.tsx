@@ -104,7 +104,7 @@ const EnviarMensagem = () => {
    const instances = useMemo(() => {
      return allInstances.filter(i => {
        const provider = (i.api_provider || 'zapi').toLowerCase();
-       // Allow uazapi and meta instances to be selected
+       // Allow meta instances to be selected
        return true;
      });
    }, [allInstances]);

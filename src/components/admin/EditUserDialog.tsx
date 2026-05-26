@@ -15,7 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
  import { isMobileZapiInstance, useAdminZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
  import { useAdminWebInstances } from "@/hooks/useAdminWebInstances";
- import { useAdminUazapi } from "@/hooks/useAdminUazapi";
+ 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,11 +54,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
      fetchUserInstances
    } = useAdminZapiInstances(user?.id);
  
-   const { 
-     addUazapiInstance, 
-     toggleUazapiType, 
-     addingInstance: addingUazapi 
-   } = useAdminUazapi(user?.id, () => user?.id && fetchUserInstances(user.id));
  
 
    const {
@@ -67,14 +62,14 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
    } = useAdminWebInstances(user?.id, instances, () => user?.id && fetchUserInstances(user.id));
 
   // Add instance form
-    const [showAddForm, setShowAddForm] = useState<'zapi' | 'uazapi' | 'uazapi_warmup' | null>(null);
+    const [showAddForm, setShowAddForm] = useState<'zapi' | null>(null);
   const [addingInstance, setAddingInstance] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceId, setNewInstanceId] = useState('');
   const [newInstanceToken, setNewInstanceToken] = useState('');
   const [newClientToken, setNewClientToken] = useState('');
   const [newIsDefault, setNewIsDefault] = useState(false);
-   const [newProvider, setNewProvider] = useState<'zapi' | 'uazapi' | 'uazapi_warmup'>('zapi');
+   const [newProvider, setNewProvider] = useState<'zapi'>('zapi');
    const [newEvolutionUrl, setNewEvolutionUrl] = useState('');
    const [newEvolutionKey, setNewEvolutionKey] = useState('');
      const [newInstanceType, setNewInstanceType] = useState<'web'>('web');
@@ -312,189 +307,6 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               </p>
             </div>
 
-            {/* Seção UAZAPI - Extração */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-primary flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" />
-                  Instâncias de Extração (UAZAPI)
-                </h3>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setNewProvider('uazapi');
-                    setShowAddForm(showAddForm === 'uazapi' ? null : 'uazapi');
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extração"}
-                </Button>
-              </div>
-
-              {showAddForm === 'uazapi' && (
-                <Card className="border-primary/40">
-                  <CardContent className="pt-4 pb-4 space-y-3">
-                    <DialogDescription className="text-xs font-semibold uppercase text-primary">
-                      {editingInstanceId ? "Editar Instância de Extração" : "Nova Instância de Extração"}
-                    </DialogDescription>
-                    <div className="space-y-2">
-                      <Label>Nome da Instância (Extração)</Label>
-                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Extração 01" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>URL da API</Label>
-                      <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
-                    </div>
-                     <div className="flex gap-2 justify-end pt-2">
-                       <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
-                       <Button 
-                         size="sm" 
-                         onClick={async () => {
-                           const payload = {
-                             instance_name: newInstanceName.trim(),
-                             evolution_api_url: newEvolutionUrl.trim(),
-                             evolution_api_key: newEvolutionKey.trim(),
-                             api_provider: 'uazapi' as const,
-                             is_default: false
-                           };
-                           let ok = false;
-                           if (editingInstanceId) {
-                             ok = await updateInstance(editingInstanceId, user.id, payload);
-                           } else {
-                             ok = await addUazapiInstance(payload);
-                           }
-                           if (ok) { resetAddForm(); setShowAddForm(null); }
-                         }} 
-                         disabled={addingUazapi || instancesLoading}
-                       >
-                         {addingUazapi || instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Extração"}
-                       </Button>
-                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="space-y-2">
-                {instances.filter(i => i.api_provider === 'uazapi').map((inst) => (
-                  <Card key={inst.id} className="border">
-                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
-                      </div>
-                       <div className="flex items-center gap-1">
-                         <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
-                           <Pencil className="w-3 h-3 text-muted-foreground" />
-                         </Button>
-                         <Button size="sm" variant="ghost" title="Mover para Aquecimento" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
-                           <ArrowRightLeft className="w-3 h-3 text-primary" />
-                         </Button>
-                          <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de extração?')) deleteInstance(inst.id, user.id, inst.zapi_instance_id); }}>
-                           <Trash2 className="w-3 h-3 text-destructive" />
-                         </Button>
-                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Seção UAZAPI - Aquecimento */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-orange-500 flex items-center gap-2">
-                  <Flame className="w-4 h-4" />
-                  Pool de Aquecimento (UAZAPI)
-                </h3>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setNewProvider('uazapi_warmup');
-                    setShowAddForm(showAddForm === 'uazapi_warmup' ? null : 'uazapi_warmup');
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {showAddForm === 'uazapi_warmup' ? "Fechar" : "Adicionar Aquecimento"}
-                </Button>
-              </div>
-
-              {showAddForm === 'uazapi_warmup' && (
-                <Card className="border-orange-500/40">
-                  <CardContent className="pt-4 pb-4 space-y-3">
-                    <DialogDescription className="text-xs font-semibold uppercase text-orange-500">
-                      {editingInstanceId ? "Editar Instância de Aquecimento" : "Nova Instância de Aquecimento"}
-                    </DialogDescription>
-                    <div className="space-y-2">
-                      <Label>Nome da Instância (Aquecimento)</Label>
-                      <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Aquecimento 01" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>URL da API</Label>
-                      <Input value={newEvolutionUrl} onChange={(e) => setNewEvolutionUrl(e.target.value)} placeholder="https://api.uazapi.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input value={newEvolutionKey} onChange={(e) => setNewEvolutionKey(e.target.value)} placeholder="Token de autenticação" type="password" />
-                    </div>
-                      <div className="flex gap-2 justify-end pt-2">
-                        <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
-                        <Button 
-                          size="sm" 
-                          onClick={async () => {
-                            const payload = {
-                              instance_name: newInstanceName.trim(),
-                              evolution_api_url: newEvolutionUrl.trim(),
-                              evolution_api_key: newEvolutionKey.trim(),
-                              api_provider: 'uazapi_warmup' as const,
-                              is_default: false
-                            };
-                            let ok = false;
-                            if (editingInstanceId) {
-                              ok = await updateInstance(editingInstanceId, user.id, payload);
-                            } else {
-                              ok = await addUazapiInstance(payload);
-                            }
-                            if (ok) { resetAddForm(); setShowAddForm(null); }
-                          }} 
-                          disabled={addingUazapi || instancesLoading}
-                        >
-                          {addingUazapi || instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Aquecimento"}
-                        </Button>
-                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="space-y-2">
-                {instances.filter(i => i.api_provider === 'uazapi_warmup').map((inst) => (
-                  <Card key={inst.id} className="border">
-                    <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate">{inst.zapi_instance_id}</p>
-                      </div>
-                       <div className="flex items-center gap-1">
-                         <Button size="sm" variant="ghost" title="Editar dados" onClick={() => handleEditClick(inst)}>
-                           <Pencil className="w-3 h-3 text-muted-foreground" />
-                         </Button>
-                         <Button size="sm" variant="ghost" title="Mover para Extração" onClick={() => toggleUazapiType(inst.id, inst.api_provider)}>
-                           <ArrowRightLeft className="w-3 h-3 text-orange-500" />
-                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm('Remover instância de aquecimento?')) deleteInstance(inst.id, user.id, inst.zapi_instance_id); }}>
-                           <Trash2 className="w-3 h-3 text-destructive" />
-                         </Button>
-                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
 
              <div className="space-y-3">
                <div className="flex items-center justify-between">
