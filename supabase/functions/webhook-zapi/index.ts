@@ -398,7 +398,6 @@ serve(async (req) => {
               await supabase.from("campaign_sends").update(updateData).eq("id", fallbackRecord.id);
             }
           }
-          }
         }
       } else if (messageIds.length > 0 && isErrorStatus) {
         // Se detectamos shadowban, atualizar saúde da instância
