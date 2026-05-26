@@ -150,8 +150,13 @@ export default function CheckoutDomainSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label className="text-xs">Domínio do Checkout</Label>
-          <div className="flex gap-2 mt-1">
+          <div className="flex justify-between items-center mb-1.5">
+            <Label className="text-xs">Domínio do Checkout</Label>
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-[#2A2A2A]">
+              Recomendado: <span className="text-[#a78bfa] font-medium">pay</span> ou <span className="text-[#a78bfa] font-medium">checkout</span>
+            </span>
+          </div>
+          <div className="flex gap-2">
             <Input
               value={customDomain}
               onChange={e => setCustomDomain(e.target.value)}
