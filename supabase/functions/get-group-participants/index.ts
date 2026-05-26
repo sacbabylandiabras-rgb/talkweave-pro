@@ -39,8 +39,10 @@ const normalizeLidValue = (value: string | null | undefined) => {
   if (!raw) return "";
   if (raw.includes("@lid")) return raw;
   const digits = raw.replace(/\D/g, "");
-  // LID is usually longer than 13 digits
-  return digits.length >= 14 ? `${digits}@lid` : raw;
+  // Se já tem @c.us ou @s.whatsapp.net, retorna limpo
+  if (raw.includes("@c.us") || raw.includes("@s.whatsapp.net")) return digits;
+  // LID costuma ter 15+ dígitos
+  return digits.length >= 15 ? `${digits}@lid` : digits;
 };
 
 const normalizeRealPhoneValue = (value: any) => {
