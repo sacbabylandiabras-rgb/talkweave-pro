@@ -208,15 +208,15 @@ const ExtractMembers = () => {
             Gerencie e extraia participantes dos seus grupos e comunidades
           </p>
         </div>
-        {selectedInstance && !isSelectedConnected && (
+        {selectedInstance && (
           <Button 
             variant="outline" 
             size="sm" 
-            className="gap-2 border-primary/20 hover:bg-primary/5"
+            className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isSelectedConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
             onClick={() => setConnectDialogOpen(true)}
           >
-            <Wifi className="w-4 h-4" />
-            Conectar WhatsApp
+            <Wifi className={`w-4 h-4 ${!isSelectedConnected ? 'text-primary' : ''}`} />
+            {isSelectedConnected ? 'Reconectar WhatsApp' : 'Conectar WhatsApp'}
           </Button>
         )}
       </div>
