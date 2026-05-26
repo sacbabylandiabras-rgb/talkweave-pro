@@ -2583,6 +2583,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         selectedStage={selectedStage} 
         onStageSelect={setSelectedStage} 
         counts={stageCounts}
+        onStagesChange={setPipelineStages}
       />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (
