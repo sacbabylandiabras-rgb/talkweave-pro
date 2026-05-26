@@ -195,10 +195,10 @@ const Relatorio = () => {
   const hasActiveCampaigns = campaignReports.some(c => c.status === 'active');
 
   const metricas = [
-    { titulo: "Total de Mensagens", valor: stats.totalMessages.toLocaleString('pt-BR'), icon: Send, periodo: "Total de envios" },
-    { titulo: "Taxa de Entrega", valor: `${stats.deliveryRate.toFixed(1)}%`, icon: TrendingUp, periodo: "Sucesso nos envios" },
-    { titulo: "Contatos Alcançados", valor: stats.totalContacts.toLocaleString('pt-BR'), icon: Users, periodo: "Únicos" },
-    { titulo: "Pendentes", valor: stats.totalPending.toLocaleString('pt-BR'), icon: ClockIcon, periodo: "Aguardando envio" },
+    { titulo: "Total de Mensagens", valor: stats.totalMessages.toLocaleString('pt-BR'), icon: Send, periodo: "Todos os números" },
+    { titulo: "Entregues", valor: stats.totalDelivered.toLocaleString('pt-BR'), icon: CheckCircle, periodo: "Recebidas no celular" },
+    { titulo: "Lidas", valor: stats.totalRead.toLocaleString('pt-BR'), icon: Eye, periodo: "Abertas" },
+    { titulo: "Cliques", valor: stats.totalClicked.toLocaleString('pt-BR'), icon: Smartphone, periodo: "Links clicados" },
   ];
 
   return (
