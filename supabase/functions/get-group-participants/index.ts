@@ -849,16 +849,16 @@ Deno.serve(async (req) => {
       ]);
 
       for (const candidateId of candidates) {
-        // Try group-metadata first since communities-metadata is flaky
+        // Try group-metadata FIRST - it is often more reliable than communities-metadata
         try {
           const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
-            // Check if this is a group and has participants
+            // Check if this result actually has something
             const parts = extractParticipantArray(data);
-            if (parts.length > 0 || data.subGroups) {
-              console.log(`🏘️ [GROUP-METADATA] Match: ${candidateId} (Parts: ${parts.length})`);
+            if (parts.length > 0 || (data.subGroups && data.subGroups.length > 0)) {
+              console.log(`🏘️ [GROUP-METADATA] SUCCESS for ${candidateId} (Participants: ${parts.length})`);
               return data;
             }
           }
@@ -866,23 +866,17 @@ Deno.serve(async (req) => {
           console.log(`❌ group-metadata failed for ${candidateId}: ${error.message}`);
         }
 
-        // Try communities-metadata
+        // Try communities-metadata as fallback
         try {
           const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.subGroups || data.participants || data.id)) {
-            // Check if subGroups failed even with data
-            if (data.subGroups?.success === false) {
-              console.log(`⚠️ communities-metadata returned data but subGroups failed for ${candidateId}: ${data.subGroups.reason}`);
-              // If it fails with "not found community", we should try the next endpoint/candidate
-              if (data.subGroups.reason === "not found community") {
-                console.log(`⏭️ Skipping communities-metadata result for ${candidateId} due to 'not found community'`);
-              } else {
-                 return data;
-              }
+            // If it explicitly says "not found community", skip it
+            if (data.subGroups?.success === false && data.subGroups.reason === "not found community") {
+              console.log(`⏭️ Skipping communities-metadata result for ${candidateId} (Reason: not found community)`);
             } else {
-              console.log(`🏘️ [COMMUNITY-METADATA] Match: ${candidateId}`);
+              console.log(`🏘️ [COMMUNITY-METADATA] SUCCESS for ${candidateId}`);
               return data;
             }
           }
