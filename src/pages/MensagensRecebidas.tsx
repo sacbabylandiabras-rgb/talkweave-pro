@@ -2713,7 +2713,10 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                               e.dataTransfer.setData("phone", conv.phone);
                               e.dataTransfer.effectAllowed = "move";
                             }}
-                            onClick={() => handleSelectPhone(conv.phone)}
+                            onClick={() => {
+                              setSelectedPhone(conv.phone);
+                              setProfileOpen(true);
+                            }}
                             className="bg-card p-3 rounded-lg border border-border/60 shadow-sm hover:border-primary/40 hover:shadow-md cursor-grab active:cursor-grabbing transition-all group"
                           >
                             <div className="flex items-center justify-between mb-2">
