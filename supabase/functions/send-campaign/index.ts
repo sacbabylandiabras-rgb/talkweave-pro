@@ -2585,12 +2585,14 @@ serve(async (req) => {
             `✅ Campaign ${campaignId}: All ${totalTargetContacts} contacts processed and confirmed. Marking as completed.`,
           );
           const { data: finalCampaign } = await supabase.from("campaigns").select("status").eq("id", campaignId).single();
-          if (finalCampaign?.status === "active" || finalCampaign?.status === "draft" || finalCampaign?.status === "sending") {
+          if (finalCampaign?.status === "active" || finalCampaign?.status === "sending") {
             await supabase
               .from("campaigns")
               .update({ status: "completed", updated_at: new Date().toISOString() })
               .eq("id", campaignId);
             console.log(`✅ Campaign ${campaignId} completed!`);
+          } else {
+            console.log(`⚠️ Campaign ${campaignId} status is ${finalCampaign?.status}, skipping completion update.`);
           }
         }
       }

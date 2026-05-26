@@ -107,8 +107,13 @@ export function SendProgressDialog({
   useEffect(() => {
     if (!open || !campaignId) {
       resetProgressState();
+      if ((window as any)._currentViewingCampaignId === campaignId) {
+        (window as any)._currentViewingCampaignId = null;
+      }
       return;
     }
+
+    (window as any)._currentViewingCampaignId = campaignId;
 
     resetProgressState();
 
@@ -309,6 +314,9 @@ export function SendProgressDialog({
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+      }
+      if ((window as any)._currentViewingCampaignId === campaignId) {
+        (window as any)._currentViewingCampaignId = null;
       }
     };
   }, [open, campaignId, totalContacts]);
