@@ -27,7 +27,6 @@ export function useWhatsAppGroups(options?: { provider?: 'zapi' | 'zapi_no_warmu
     setLoading(true);
     try {
       const provider = options?.provider || 'zapi';
-      console.log(`📡 Fetching groups for provider: ${provider}`);
       const { data, error } = await supabase.functions.invoke('get-whatsapp-groups', {
         body: {
           provider,

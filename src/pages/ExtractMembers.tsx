@@ -225,7 +225,7 @@ const ExtractMembers = () => {
                 }}
               >
                 <Wifi className={`w-4 h-4 ${!isConnected ? 'text-primary' : ''}`} />
-                {isConnected ? `Reconectar ${inst.instance_name}` : `Conectar ${inst.instance_name}`}
+                {isConnected ? `Reconectar WhatsApp` : `Conectar WhatsApp`}
               </Button>
             );
           })}
