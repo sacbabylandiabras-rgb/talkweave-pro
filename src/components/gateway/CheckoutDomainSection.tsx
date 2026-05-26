@@ -442,15 +442,8 @@ export default function CheckoutDomainSection() {
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">3</span>
                 <div className="text-[11px] text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">Verificação</p>
-                  <p className="mb-1">Após salvar no seu provedor, clique em <strong>"Ativar"</strong> acima. A propagação pode levar de alguns minutos até 24h.</p>
+                  <p className="mb-1">Após salvar no seu provedor, clique em <strong>"Ativar"</strong> acima. O SSL é provisionado automaticamente. A propagação pode levar de alguns minutos até 24h.</p>
                 </div>
-              </div>
-            </div>
-
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">3</span>
-                <p className="text-[11px] text-muted-foreground">O SSL é provisionado automaticamente pelo Vercel. Aguarde alguns minutos e use o botão de refresh para verificar.</p>
               </div>
             </div>
           </CardContent>
@@ -475,3 +468,4 @@ export default function CheckoutDomainSection() {
     </Card>
   );
 }
+
