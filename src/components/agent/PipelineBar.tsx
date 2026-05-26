@@ -6,11 +6,14 @@ import { Plus, Trash2, X, Check, LayoutGrid, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = { id: string; label: string; color: string };
-type Pipeline = { id: string; name: string; stages: Stage[] };
+type Pipeline = { id: string; name: string; department?: string; currency?: string; stages: Stage[] };
 
 export const DEFAULT_PIPELINE_STAGES: Stage[] = [
   { id: "all", label: "TODOS", color: "bg-gray-500" },
@@ -27,6 +30,24 @@ export let PIPELINE_STAGES: Stage[] = [...DEFAULT_PIPELINE_STAGES];
 
 const LS_ACTIVE_KEY = "pipeline_active_id";
 
+const CURRENCY_OPTIONS = [
+  { value: "BRL", label: "Real Brasileiro (R$)" },
+  { value: "USD", label: "Dólar Americano (US$)" },
+  { value: "EUR", label: "Euro (€)" },
+  { value: "GBP", label: "Libra Esterlina (£)" },
+  { value: "ARS", label: "Peso Argentino ($)" },
+];
+
+const DEPARTMENT_OPTIONS = [
+  "Vendas",
+  "Pré-Vendas",
+  "Pós-Vendas",
+  "Suporte",
+  "Marketing",
+  "Financeiro",
+  "Outro",
+];
+
 interface PipelineBarProps {
   selectedStage: string;
   onStageSelect: (stageId: string) => void;
@@ -40,9 +61,37 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   const [activeId, setActiveId] = useState<string>("");
   const [newStageName, setNewStageName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [newPipelineName, setNewPipelineName] = useState("");
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const [formName, setFormName] = useState("");
+  const [formDepartment, setFormDepartment] = useState("Vendas");
+  const [formCurrency, setFormCurrency] = useState("BRL");
+  const [formStages, setFormStages] = useState<Stage[]>([...DEFAULT_PIPELINE_STAGES]);
+  const [formNewStage, setFormNewStage] = useState("");
+
+  const openCreateDialog = () => {
+    setFormName("");
+    setFormDepartment("Vendas");
+    setFormCurrency("BRL");
+    setFormStages([...DEFAULT_PIPELINE_STAGES]);
+    setFormNewStage("");
+    setIsCreatingPipeline(true);
+    setIsPickerOpen(false);
+  };
+
+  const addFormStage = () => {
+    const label = formNewStage.trim();
+    if (!label) return;
+    const id = label.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+    setFormStages(prev => [...prev, { id, label: label.toUpperCase(), color: "bg-slate-400" }]);
+    setFormNewStage("");
+  };
+
+  const removeFormStage = (id: string) => {
+    if (id === 'all') return;
+    setFormStages(prev => prev.filter(s => s.id !== id));
+  };
 
   const activePipeline = pipelines.find(p => p.id === activeId) || null;
   const stages = activePipeline?.stages || [];
@@ -122,21 +171,26 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   const handleCreatePipeline = () => {
-    const name = newPipelineName.trim();
+    const name = formName.trim();
     if (!name) {
       toast({ title: "Atenção", description: "Digite um nome para o seu funil.", variant: "destructive" });
+      return;
+    }
+    if (formStages.length === 0) {
+      toast({ title: "Atenção", description: "Adicione ao menos uma etapa.", variant: "destructive" });
       return;
     }
     const newPipe: Pipeline = {
       id: `pipeline_${Date.now()}`,
       name,
-      stages: [...DEFAULT_PIPELINE_STAGES],
+      department: formDepartment,
+      currency: formCurrency,
+      stages: formStages,
     };
     const next = [...pipelines, newPipe];
     savePipelines(next);
     setActiveId(newPipe.id);
     localStorage.setItem(LS_ACTIVE_KEY, newPipe.id);
-    setNewPipelineName("");
     setIsCreatingPipeline(false);
     onStageSelect('all');
     toast({ title: "Pipeline criado!", description: `Funil "${name}" pronto para uso.` });
@@ -182,34 +236,128 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   };
 
   // Empty state: no pipelines yet
+  const createDialog = (
+    <Dialog open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Criar Pipeline de Vendas</DialogTitle>
+          <DialogDescription className="text-xs">
+            Configure as informações básicas e as etapas do seu novo funil.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nome</Label>
+            <Input
+              placeholder="Ex: Vendas Diretas"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="h-9"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={formDepartment} onValueChange={setFormDepartment}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENT_OPTIONS.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Moeda</Label>
+              <Select value={formCurrency} onValueChange={setFormCurrency}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Estágios</Label>
+            <div className="flex flex-wrap gap-1.5 p-2 border border-border rounded-md max-h-40 overflow-y-auto bg-muted/30">
+              {formStages.length === 0 && (
+                <span className="text-[11px] text-muted-foreground">Nenhuma etapa. Adicione abaixo.</span>
+              )}
+              {formStages.map(s => (
+                <Badge key={s.id} variant="secondary" className="gap-1 pr-1">
+                  <div className={cn("w-2 h-2 rounded-full", s.color)} />
+                  <span className="text-[10px]">{s.label}</span>
+                  {s.id !== 'all' && (
+                    <button
+                      onClick={() => removeFormStage(s.id)}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nome do estágio"
+                value={formNewStage}
+                onChange={(e) => setFormNewStage(e.target.value)}
+                className="h-8 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addFormStage();
+                  }
+                }}
+              />
+              <Button type="button" size="sm" variant="outline" className="h-8" onClick={addFormStage}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsCreatingPipeline(false)}>Cancelar</Button>
+          <Button onClick={handleCreatePipeline}>Criar Pipeline</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (pipelines.length === 0) {
     return (
-      <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
-        <Popover open={isCreatingPipeline} onOpenChange={setIsCreatingPipeline}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse">
-              <LayoutGrid className="w-4 h-4" />
-              Criar meu Funil de Vendas
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-4" align="start">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <h4 className="font-medium text-xs text-primary">Novo Funil</h4>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">Dê um nome para o seu primeiro funil comercial.</p>
-              </div>
-              <div className="flex gap-2">
-                <Input placeholder="Ex: Vendas Diretas" value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-8 text-xs" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
-                <Button size="sm" className="h-8 shrink-0" onClick={handleCreatePipeline}>Criar</Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <>
+        <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openCreateDialog}
+            className="h-8 gap-2 rounded-full bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary animate-pulse"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Criar meu Funil de Vendas
+          </Button>
+        </div>
+        {createDialog}
+      </>
     );
   }
 
   return (
+    <>
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-3">
       {/* Pipeline selector */}
       <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
@@ -234,12 +382,10 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
               </div>
             ))}
             <div className="pt-2 border-t border-border mt-2">
-              <div className="flex gap-1">
-                <Input placeholder="Novo funil..." value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className="h-7 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()} />
-                <Button size="sm" className="h-7 px-2 text-xs" onClick={handleCreatePipeline}>
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" className="w-full h-7 text-xs gap-1" onClick={openCreateDialog}>
+                <Plus className="w-3 h-3" />
+                Novo Funil
+              </Button>
             </div>
           </div>
         </PopoverContent>
@@ -320,6 +466,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
         </PopoverContent>
       </Popover>
     </div>
-
+    {createDialog}
+    </>
   );
 };
