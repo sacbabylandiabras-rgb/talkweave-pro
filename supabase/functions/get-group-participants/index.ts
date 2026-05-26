@@ -2,6 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getUserZAPICredentials } from "../_shared/user-credentials.ts";
 
+console.log("🚀 get-group-participants loaded");
+
 interface Participant {
   phone: string;
   isAdmin: boolean;
@@ -19,6 +21,7 @@ interface GroupCredentials {
 const normalizeGroupId = (value: string | null | undefined) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
+  console.log(`🔍 normalizeGroupId input: ${raw}`);
   if (raw.includes("@g.us")) return raw.replace("@g.us", "-group");
   return raw;
 };
@@ -841,19 +844,44 @@ Deno.serve(async (req) => {
       const candidates = uniqueStrings([
         normalizeCommunityId(communityId),
         normalizeGroupId(communityId),
+        communityId,
+        communityId.includes("-group") ? communityId.replace("-group", "@g.us") : `${communityId}@g.us`,
       ]);
 
       for (const candidateId of candidates) {
+        // Try communities-metadata FIRST
         try {
-          const data = await fetchJson(
-            `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`,
-            headers,
-          );
-          console.log(`🏘️ Community metadata loaded for ${candidateId}`);
-          return data;
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
+          if (data && (data.subGroups || data.participants || data.id)) {
+            // Check success reason
+            const subGroupsPayload = data.subGroups;
+            if (subGroupsPayload?.success === false && subGroupsPayload.reason === "not found community") {
+              console.log(`⏭️ Skipping communities-metadata result for ${candidateId} (Reason: not found community)`);
+            } else {
+              console.log(`🏘️ [COMMUNITY-METADATA] SUCCESS for ${candidateId}`);
+              return data;
+            }
+          }
+        } catch (e) {
+          console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
+        }
+
+        // Try group-metadata
+        try {
+          const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/group-metadata/${candidateId}`;
+          console.log(`📡 GET ${url}`);
+          const data = await fetchJson(url, headers);
+          if (data && (data.participants || data.subGroups || data.id)) {
+            const parts = extractParticipantArray(data);
+            if (parts.length > 0 || (data.subGroups && data.subGroups.length > 0)) {
+              console.log(`🏘️ [GROUP-METADATA] SUCCESS for ${candidateId} (${parts.length} members)`);
+              return data;
+            }
+          }
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          console.log(`⚠️ Community metadata unavailable for ${candidateId}: ${message}`);
+          console.log(`❌ group-metadata failed for ${candidateId}: ${error.message}`);
         }
       }
 
@@ -864,7 +892,24 @@ Deno.serve(async (req) => {
 
     let primaryData: any = null;
     try {
-      primaryData = await fetchGroupMetadata(groupId);
+      const normalizedGroupId = normalizeGroupId(groupId);
+      const candidates = uniqueStrings([
+        groupId,
+        normalizedGroupId,
+        normalizedGroupId.replace(/-group$/i, "@g.us"),
+        groupId.replace(/@g\.us$/i, "-group"),
+      ]);
+
+      let lastMetaError: any = null;
+      for (const cid of candidates) {
+        try {
+          primaryData = await fetchGroupMetadata(cid);
+          if (primaryData) break;
+        } catch (e) {
+          lastMetaError = e;
+        }
+      }
+      if (!primaryData && lastMetaError) throw lastMetaError;
     } catch (metaError) {
       const msg = metaError instanceof Error ? metaError.message : String(metaError);
       console.log(`⚠️ group-metadata failed for ${groupId}, will try community path: ${msg}`);
@@ -881,7 +926,7 @@ Deno.serve(async (req) => {
         if (!communityData) continue;
 
         console.log(
-          `🔍 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
+          `🔍 Community payload for ${candidateCommunityId}: ${JSON.stringify(communityData).slice(0, 2000)}`,
         );
 
         // First try direct participants from community metadata
