@@ -2027,7 +2027,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
-  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(searchParams.get("tab") === "pipeline" ? "pipeline" : "chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(mode);
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
