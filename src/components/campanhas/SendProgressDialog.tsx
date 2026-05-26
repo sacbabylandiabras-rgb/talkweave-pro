@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck, ChevronDown, ChevronUp, Smartphone } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Send, Pause, Check, CheckCheck, ChevronDown, ChevronUp, Smartphone, Users, Eye } from "lucide-react";
 
 interface SendProgressDialogProps {
   open: boolean;
@@ -15,11 +15,13 @@ interface SendProgressDialogProps {
 
 interface Stats {
   total: number;
-  sending: number;
-  pending: number;
-  sent: number; // status === 'sent' (1 checkmark, sem confirmação de entrega)
-  delivered: number; // status === 'delivered' (2 checkmarks, confirmado pelo WhatsApp)
-  failed: number;
+  sending: number;      // Em trânsito (processando no momento)
+  pending: number;      // Pendentes (ainda não processados)
+  sent: number;         // Enviados (enviados mas não entregues/lidos)
+  delivered: number;    // Entregues (recebidos no celular)
+  failed: number;       // Cancelados (erros)
+  read: number;         // Lidas (abertas)
+  clicked: number;      // Cliques (link clicado)
   lastError?: string | null;
 }
 
@@ -59,6 +61,8 @@ export function SendProgressDialog({
     sent: 0,
     delivered: 0,
     failed: 0,
+    read: 0,
+    clicked: 0,
     lastError: null,
   });
   const [isComplete, setIsComplete] = useState(false);
@@ -76,6 +80,8 @@ export function SendProgressDialog({
       sent: 0,
       delivered: 0,
       failed: 0,
+      read: 0,
+      clicked: 0,
     });
     setIsComplete(false);
     setIsPaused(false);
@@ -189,30 +195,28 @@ export function SendProgressDialog({
       let sending = 0;
       let pending = 0;
       let sent = 0;
+      let read = 0;
+      let clicked = 0;
       let lastError: string | null = null;
 
       allPhoneKeys.forEach((phoneKey) => {
         const send = sendsByPhone.get(phoneKey);
 
         if (!send) {
-          // Contato alvo sem nenhum registro ainda
           pending += 1;
-        } else if (send.status === "delivered") {
-          // Confirmado pelo WhatsApp (2 checks)
+        } else if (send.status === "delivered" || send.delivered_at) {
           delivered += 1;
+          if (send.status === "read" || (send as any).read_at) read += 1;
+          if ((send as any).clicked_at) clicked += 1;
         } else if (send.status === "failed" || (send.error_message && send.status !== "delivered")) {
-          // Falhou ou tem mensagem de erro (e não foi entregue com sucesso depois)
           failed += 1;
           if (send.error_message) lastError = send.error_message;
         } else if (send.status === "sent") {
-          // Enviado pelo servidor, aguardando confirmação de entrega (1 check)
           sent += 1;
         } else if (send.status === "pending") {
           if (send.message_id || send.sent_at) {
-            // Já foi enviado pelo servidor mas ainda está com status "pending" no banco
-            sent += 1;
+            sending += 1;
           } else {
-            // Ainda não foi processado
             pending += 1;
           }
         } else {
@@ -230,6 +234,8 @@ export function SendProgressDialog({
         sent,
         delivered,
         failed,
+        read,
+        clicked,
         lastError,
       };
       setStats(newStats);
@@ -306,11 +312,11 @@ export function SendProgressDialog({
   const effectiveTotal = Math.max(stats.total, totalContacts);
 
   // Barra de progresso: conta tudo que foi processado (enviado + entregue + falhas)
-  const processed = stats.sent + stats.delivered + stats.failed;
+  const processed = stats.sent + stats.delivered + stats.failed + stats.sending;
   const progress = effectiveTotal > 0 ? (processed / effectiveTotal) * 100 : 0;
 
-  // Taxa de sucesso final: (enviados + entregues) / total
-  const successCount = stats.sent + stats.delivered;
+  // Taxa de sucesso final: entregues / total
+  const successCount = stats.delivered;
   const successRate = stats.total > 0 ? Math.round((successCount / stats.total) * 100) : 0;
 
   return (
@@ -361,50 +367,77 @@ export function SendProgressDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 relative">
+          <div className="grid grid-cols-2 gap-3 relative">
             {/* Total */}
             <div className="space-y-1 p-2 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Send className="w-3.5 h-3.5" />
-                <span>Total</span>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                <Users className="w-3.5 h-3.5" />
+                <span>TOTAL</span>
               </div>
               <div className="text-xl font-bold">{effectiveTotal}</div>
             </div>
 
             {/* Pendentes */}
-            <div className="space-y-1 p-2 bg-yellow-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+            <div className="space-y-1 p-2 bg-slate-500/10 rounded-lg border border-slate-500/20">
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-medium">
                 <Clock className="w-3.5 h-3.5" />
-                <span>Pendentes</span>
+                <span>PENDENTES</span>
               </div>
-              <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
+              <div className="text-xl font-bold">{stats.pending}</div>
             </div>
 
-            {/* Enviados (1 check) — enviados pelo servidor, aguardando ACK do WhatsApp */}
-            <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+            {/* Em Trânsito */}
+            <div className="space-y-1 p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+              <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>EM TRÂNSITO</span>
+              </div>
+              <div className="text-xl font-bold">{stats.sending}</div>
+            </div>
+
+            {/* Enviados */}
+            <div className="space-y-1 p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
                 <Check className="w-4 h-4" />
-                <span>Enviados (✓)</span>
+                <span>ENVIADOS</span>
               </div>
-              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.sent}</div>
+              <div className="text-xl font-bold">{stats.sent}</div>
             </div>
 
-            {/* Entregues (2 checks) — confirmados pelo WhatsApp via webhook */}
-            <div className="space-y-1 p-2 bg-green-500/10 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+            {/* Entregues */}
+            <div className="space-y-1 p-2 bg-green-500/10 rounded-lg border border-green-500/20">
+              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 font-medium">
                 <CheckCheck className="w-4 h-4" />
-                <span>Entregues (✓✓)</span>
+                <span>ENTREGUES</span>
               </div>
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.delivered}</div>
+              <div className="text-xl font-bold">{stats.delivered}</div>
             </div>
 
-            {/* Falhas */}
-            <div className="col-span-2 space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-200/50 dark:border-red-500/20">
-              <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+            {/* Cancelados/Falhas */}
+            <div className="space-y-1 p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+              <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 font-medium">
                 <XCircle className="w-3.5 h-3.5" />
-                <span>Falhas</span>
+                <span>CANCELADOS</span>
               </div>
-              <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.failed}</div>
+              <div className="text-xl font-bold">{stats.failed}</div>
+            </div>
+
+            {/* Lidas */}
+            <div className="space-y-1 p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+              <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                <Eye className="w-3.5 h-3.5" />
+                <span>LIDAS</span>
+              </div>
+              <div className="text-xl font-bold">{stats.read}</div>
+            </div>
+
+            {/* Cliques */}
+            <div className="space-y-1 p-2 bg-pink-500/10 rounded-lg border border-pink-500/20">
+              <div className="flex items-center gap-2 text-xs text-pink-600 dark:text-pink-400 font-medium">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>CLIQUES</span>
+              </div>
+              <div className="text-xl font-bold">{stats.clicked}</div>
             </div>
           </div>
 
