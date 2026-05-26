@@ -186,8 +186,9 @@ export default function CheckoutDomainSection() {
             )}
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
-            Insira sem http://. Ex: pay.meudominio.com — o SSL é provisionado automaticamente via Vercel.
+            <strong>Exemplo:</strong> <code>pay.seusite.com</code> ou <code>checkout.seusite.com</code>. Não inclua http:// ou https://.
           </p>
+
         </div>
 
         <div>
