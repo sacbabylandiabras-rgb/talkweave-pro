@@ -1543,7 +1543,7 @@ serve(async (req) => {
           }),
         );
         if (shouldStop) break;
-        if (i + CONCURRENCY < currentBatch.length) await sleep(500);
+        if (i + CONCURRENCY < currentBatch.length) await sleep(delayMs);
       }
       if (shouldStop) {
         return new Response(
