@@ -37,7 +37,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
      const provider = (i.api_provider || 'zapi').toLowerCase();
       const name = (i.instance_name || '').toLowerCase();
      if (name.includes('aquecimento') || name.includes('warmup')) return false;
-     return provider !== 'uazapi' && provider !== 'meta';
+     return provider !== 'meta';
    }), [allInstances]);
  
    const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
