@@ -631,6 +631,7 @@ async function processOpenPix(supabase: any, checkout: any, amountCents: number,
         body: JSON.stringify({
           type: 'pix_generated',
           to: customerEmail,
+          userId: checkout.user_id,
           data: {
             customerName: customerName || 'Cliente',
             amount: amountCents,
