@@ -190,7 +190,8 @@ const App = () => (
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/enviar" element={<EnviarMensagem />} />
-                  <Route path="/mensagens" element={<MensagensRecebidas />} />
+                   <Route path="/mensagens" element={<MensagensRecebidas mode="chat" />} />
+                  <Route path="/pipeline" element={<MensagensRecebidas mode="pipeline" />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
                   
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />

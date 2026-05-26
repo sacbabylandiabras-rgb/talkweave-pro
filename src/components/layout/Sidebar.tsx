@@ -73,7 +73,7 @@ const zapiMenuItems = [
   { id: "perfil-empresa", label: "Perfil Empresa", icon: Building2, path: "/perfil-empresa" },
    { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
-  { id: "pipeline", label: "Pipeline (CRM)", icon: Kanban, path: "/mensagens?tab=pipeline" },
+  { id: "pipeline", label: "Pipeline (CRM)", icon: Kanban, path: "/pipeline" },
   { id: "etiquetas", label: "Etiquetas", icon: Tag, path: "/etiquetas" },
     { id: "modelos", label: "Modelos", icon: FileText, path: "/modelos" },
   { id: "fluxo-visual", label: "Fluxo Visual", icon: Workflow, path: "/fluxo-visual" },
@@ -267,16 +267,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                 {linkContent}
               </a>
             ) : (
-              <Link 
-                to={item.path} 
-                className={className}
-                onClick={(e) => {
-                  if (item.id === 'mensagens' || item.id === 'pipeline') {
-                    // Force refresh or state update if already on the page
-                    window.location.href = item.path;
-                  }
-                }}
-              >
+              <Link to={item.path} className={className}>
                 {linkContent}
               </Link>
             )}

@@ -2022,7 +2022,7 @@ const ChatView = (props: ChatViewProps) => {
   );
 };
 
-const MensagensRecebidas = () => {
+const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
@@ -2341,21 +2341,15 @@ const MensagensRecebidas = () => {
     if (normalizedPhone) markAsRead(normalizedPhone);
   };
 
-  // Auto-select phone or tab from URL query param
+  useEffect(() => {
+    setActiveTab(mode);
+  }, [mode]);
+
+  // Auto-select phone from URL query param
   useEffect(() => {
     const phoneParam = searchParams.get("phone");
-    const tabParam = searchParams.get("tab");
     
-    console.log('[MensagensRecebidas] Processing URL params:', { phoneParam, tabParam });
-
-    // 1) Update activeTab state directly from URL param
-    if (tabParam === "pipeline") {
-      setActiveTab("pipeline");
-    } else if (tabParam === "chat") {
-      setActiveTab("chat");
-    }
-
-    // 2) Process specific phone selection (redirects to chat if a phone is provided)
+    // Process specific phone selection (redirects to chat if a phone is provided)
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
     if (normalizedPhone && handledPhoneParamRef.current !== normalizedPhone) {
       handledPhoneParamRef.current = normalizedPhone;
@@ -2368,7 +2362,7 @@ const MensagensRecebidas = () => {
       nextParams.delete("phone");
       setSearchParams(nextParams, { replace: true });
     }
-  }, [searchParams]); // Re-enable full searchParams watch to catch all changes
+  }, [searchParams]);
 
   // Auto history sync for Z-API to keep the latest live conversations.
   useEffect(() => {
