@@ -90,6 +90,7 @@ const zapiMenuItems = [
   { id: "fluxo-grupos", label: "Fluxo Grupos", icon: Workflow, path: "/fluxo-grupos" },
   { id: "gateway", label: "Integração", icon: Webhook, path: "/gateway" },
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
+  { id: "departamento", label: "Departamento", icon: Building2, path: "/departamento" },
   
  ];
 
