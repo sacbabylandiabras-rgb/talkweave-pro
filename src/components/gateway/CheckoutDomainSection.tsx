@@ -293,7 +293,7 @@ export default function CheckoutDomainSection() {
                     </div>
                   </div>
                   <div className="flex justify-start pt-1">
-                    <span className="text-[9px] text-muted-foreground italic">Use o nome do seu subdomínio (ex: pay ou checkout)</span>
+                    <span className="text-[9px] text-muted-foreground italic">Insira apenas o subdomínio (ex: pay ou checkout)</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
