@@ -1576,34 +1576,33 @@ export const useMessageLogs = (
      loading, 
      refetch: fetchAll, 
      saveContact, 
-     updateContactStage: async (phone: string, stage: string, additionalData?: Partial<SavedContact>) => {
-       const token = await getToken();
-       const userId = await getUserId();
-       if (!token || !userId) return;
-       const normalized = normalizeConversationPhone(phone);
-       const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
-        try {
-          const { error } = await supabase
-            .from('saved_contacts')
-            .upsert({
-              phone: normalized,
-              name: saved?.name || '',
-              user_id: userId,
-              agent_stage: stage,
-              profile_picture_url: saved?.profile_picture_url || null,
-              ...additionalData
-            }, { onConflict: 'phone,user_id' });
-          
-          if (error) throw error;
-        } catch (e) {
-         console.warn("Failed to save stage to database, column might be missing:", e);
-         // Fallback: save to localStorage for this session/user
-         const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
-         stages[normalized] = { stage, ...additionalData };
-         localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
-       }
-       await fetchSavedContacts();
-     },
+      updateContactStage: async (phone: string, stage: string, additionalData?: Partial<SavedContact>) => {
+        const token = await getToken();
+        const userId = await getUserId();
+        if (!token || !userId) return;
+        const normalized = normalizeConversationPhone(phone);
+        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
+         try {
+           const { error } = await (supabase as any)
+             .from('saved_contacts')
+             .upsert({
+               phone: normalized,
+               name: saved?.name || '',
+               user_id: userId,
+               agent_stage: stage,
+               profile_picture_url: saved?.profile_picture_url || null,
+               ...additionalData
+             }, { onConflict: 'phone,user_id' });
+           
+           if (error) throw error;
+         } catch (e) {
+          console.warn("Failed to save stage to database, column might be missing:", e);
+          const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
+          stages[normalized] = { stage, ...additionalData };
+          localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
+        }
+        await fetchSavedContacts();
+      },
      fetchProfilePicture, 
      savedContacts, 
      sendMessage, 
