@@ -239,6 +239,249 @@ const TOOL_DEFS: Record<string, any> = {
       required: ["etapa"],
     },
   },
+  agente_tool: {
+    name: "agente_tool",
+    description: "Sub-agente que processa como tool e retorna resultado.",
+    input_schema: {
+      type: "object",
+      properties: {
+        instrucao: { type: "string", description: "Instrução para o sub-agente" },
+        contexto: { type: "string", description: "Contexto adicional" },
+      },
+      required: ["instrucao"],
+    },
+  },
+  expert_tool: {
+    name: "expert_tool",
+    description: "Sub-expert que processa e retorna JSON estruturado.",
+    input_schema: {
+      type: "object",
+      properties: {
+        instrucao: { type: "string", description: "Instrução para o expert" },
+        formato: { type: "string", description: "Descrição do formato JSON esperado" },
+      },
+      required: ["instrucao", "formato"],
+    },
+  },
+  rag_documentos: {
+    name: "rag_documentos",
+    description: "Busca semântica avançada em documentos e base de conhecimento.",
+    input_schema: {
+      type: "object",
+      properties: {
+        termo: { type: "string", description: "Termo de busca" },
+      },
+      required: ["termo"],
+    },
+  },
+  buscar_produtos: {
+    name: "buscar_produtos",
+    description: "Consulta catálogo de produtos disponíveis.",
+    input_schema: {
+      type: "object",
+      properties: {
+        termo: { type: "string", description: "Nome ou categoria do produto" },
+      },
+    },
+  },
+  politicas_regras: {
+    name: "politicas_regras",
+    description: "Acessa regras e políticas da empresa para garantir conformidade.",
+    input_schema: { type: "object", properties: {} },
+  },
+  consultar_transacoes: {
+    name: "consultar_transacoes",
+    description: "Consulta histórico de compras do lead atual.",
+    input_schema: { type: "object", properties: {} },
+  },
+  enviar_transacao: {
+    name: "enviar_transacao",
+    description: "Envia mensagem de pagamento ou status pelo transaction_id.",
+    input_schema: {
+      type: "object",
+      properties: {
+        transaction_id: { type: "string", description: "ID da transação" },
+        mensagem: { type: "string", description: "Mensagem personalizada" },
+      },
+      required: ["transaction_id"],
+    },
+  },
+  ler_anexo: {
+    name: "ler_anexo",
+    description: "Lê texto de PDF, TXT ou planilha a partir da URL do anexo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "URL do anexo" },
+      },
+      required: ["url"],
+    },
+  },
+  consulta_api_ia: {
+    name: "consulta_api_ia",
+    description: "Chamada HTTP externa com decisão por IA.",
+    input_schema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "URL da API" },
+        metodo: { type: "string", enum: ["GET", "POST"], default: "GET" },
+        dados: { type: "object", description: "Dados para enviar" },
+      },
+      required: ["url"],
+    },
+  },
+  acessar_links: {
+    name: "acessar_links",
+    description: "Acessa e extrai conteúdo de URLs mencionadas na conversa.",
+    input_schema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "URL para acessar" },
+      },
+      required: ["url"],
+    },
+  },
+  mcp_connect: {
+    name: "mcp_connect",
+    description: "Conexão Model Context Protocol para recursos externos.",
+    input_schema: {
+      type: "object",
+      properties: {
+        resource: { type: "string", description: "Recurso a acessar" },
+      },
+      required: ["resource"],
+    },
+  },
+  horario_atual: {
+    name: "horario_atual",
+    description: "Retorna data/hora atual, timezone e dia da semana.",
+    input_schema: { type: "object", properties: {} },
+  },
+  transferir_fila: {
+    name: "transferir_fila",
+    description: "Envia lead para uma fila de atendimento humano específica.",
+    input_schema: {
+      type: "object",
+      properties: {
+        fila_id: { type: "string", description: "ID da fila" },
+      },
+    },
+  },
+  transferir_estrategia: {
+    name: "transferir_estrategia",
+    description: "Muda o atendimento para outra estratégia ou agente.",
+    input_schema: {
+      type: "object",
+      properties: {
+        agente_id: { type: "string", description: "ID do novo agente/estratégia" },
+      },
+      required: ["agente_id"],
+    },
+  },
+  chats_antigos: {
+    name: "chats_antigos",
+    description: "Acessa conversas anteriores do lead para contexto histórico.",
+    input_schema: { type: "object", properties: {} },
+  },
+  gerenciar_ticket_crm: {
+    name: "gerenciar_ticket_crm",
+    description: "Lista e edita tickets em um pipeline de suporte.",
+    input_schema: {
+      type: "object",
+      properties: {
+        acao: { type: "string", enum: ["listar", "criar", "editar"] },
+        ticket_id: { type: "string" },
+        dados: { type: "object" },
+      },
+      required: ["acao"],
+    },
+  },
+  listar_equipe: {
+    name: "listar_equipe",
+    description: "Lista IDs dos membros da equipe para atribuições.",
+    input_schema: { type: "object", properties: {} },
+  },
+  adicionar_tag: {
+    name: "adicionar_tag",
+    description: "Adiciona uma etiqueta ao contato atual.",
+    input_schema: {
+      type: "object",
+      properties: {
+        tag: { type: "string", description: "Nome da tag" },
+      },
+      required: ["tag"],
+    },
+  },
+  finalizar_atendimento: {
+    name: "finalizar_atendimento",
+    description: "Encerra o atendimento atual com o lead.",
+    input_schema: { type: "object", properties: {} },
+  },
+  extrair_dados: {
+    name: "extrair_dados",
+    description: "Extrai e salva informações estruturadas da conversa.",
+    input_schema: {
+      type: "object",
+      properties: {
+        dados: { type: "object", description: "Informações extraídas" },
+      },
+      required: ["dados"],
+    },
+  },
+  agenda_eventos: {
+    name: "agenda_eventos",
+    description: "Agenda eventos ou compromissos para o lead.",
+    input_schema: {
+      type: "object",
+      properties: {
+        data: { type: "string", description: "Data e hora do evento" },
+        titulo: { type: "string" },
+      },
+      required: ["data", "titulo"],
+    },
+  },
+  atualizar_memoria: {
+    name: "atualizar_memoria",
+    description: "Atualiza campos da memória de atendimento de longo prazo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        campos: { type: "object", description: "Campos e valores para atualizar" },
+      },
+      required: ["campos"],
+    },
+  },
+  criar_tarefa_crm: {
+    name: "criar_tarefa_crm",
+    description: "Cria tarefas no CRM vinculadas ao lead.",
+    input_schema: {
+      type: "object",
+      properties: {
+        titulo: { type: "string" },
+        vencimento: { type: "string" },
+        atribuido_a: { type: "string" },
+      },
+      required: ["titulo"],
+    },
+  },
+  consultar_crm_ia: {
+    name: "consultar_crm_ia",
+    description: "Consulta dados detalhados do CRM sobre o lead.",
+    input_schema: { type: "object", properties: {} },
+  },
+  gerenciar_negocio_crm: {
+    name: "gerenciar_negocio_crm",
+    description: "Gerencia negócios (cards) no pipeline de vendas.",
+    input_schema: {
+      type: "object",
+      properties: {
+        acao: { type: "string", enum: ["listar", "criar", "mover"] },
+        negocio_id: { type: "string" },
+        etapa: { type: "string" },
+      },
+      required: ["acao"],
+    },
+  },
 };
 
 const WHATSAPP_META_APP_ID = "26985190684454065";
