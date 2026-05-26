@@ -183,7 +183,9 @@ serve(async (req) => {
               emailVerification = {
                 id: resendData.id,
                 status: resendData.status,
-                records: resendData.records,
+                records: resendData.records || [],
+                region: resendData.region || "us-east-1",
+
               };
               // Save to email_domain_verifications
               const { error: upsertError } = await supabase.from("email_domain_verifications").upsert({
