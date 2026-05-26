@@ -409,34 +409,44 @@ export default function CheckoutDomainSection() {
         )}
 
         <Card className="border-[#2A2A2A] bg-muted/20">
-          <CardContent className="pt-4 pb-4 space-y-3">
-            <p className="text-xs font-medium text-foreground">📋 Como configurar (Vercel):</p>
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">1</span>
+          <CardContent className="pt-4 pb-4 space-y-4">
+            <p className="text-xs font-medium text-foreground">📋 Guia de Configuração Passo a Passo:</p>
+            
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">1</span>
                 <div className="text-[11px] text-muted-foreground">
-                  <p className="mb-1">No DNS do seu domínio, adicione o registro adequado:</p>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <strong>Subdomínio</strong> (ex: pay.dominio.com) → <strong>CNAME</strong> para:
-                      <code className="bg-background border border-[#2A2A2A] rounded px-1.5 py-0.5 font-mono text-[11px]">cname.vercel-dns.com</code>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("cname.vercel-dns.com")}>
-                        <Copy className="w-3 h-3" />
-                      </Button>
+                  <p className="font-medium text-foreground mb-1">Aponte o Domínio (Site)</p>
+                  <p className="mb-2">No seu provedor (Ex: Hostinger, Cloudflare), crie um registro <strong>CNAME</strong> para o seu subdomínio:</p>
+                  <div className="bg-background border border-[#2A2A2A] rounded p-2 font-mono text-[10px] flex items-center justify-between gap-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-muted-foreground">Host: pay (ou o seu subdomínio)</span>
+                      <span>cname.vercel-dns.com</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <strong>Domínio raiz</strong> (ex: dominio.com) → <strong>A</strong> para:
-                      <code className="bg-background border border-[#2A2A2A] rounded px-1.5 py-0.5 font-mono text-[11px]">76.76.21.21</code>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard("76.76.21.21")}>
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard("cname.vercel-dns.com")}>
+                      <Copy className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">2</span>
-                <p className="text-[11px] text-muted-foreground">Digite o domínio acima e clique em <strong>Ativar</strong> — o domínio será registrado automaticamente no Vercel.</p>
+
+              <div className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">2</span>
+                <div className="text-[11px] text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">Configure o E-mail (DNS do Resend)</p>
+                  <p className="mb-2">Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> que aparecerão na seção "Configuração de E-mail" acima. Isso garante que seus e-mails não caiam no SPAM.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0 mt-0.5">3</span>
+                <div className="text-[11px] text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">Verificação</p>
+                  <p className="mb-1">Após salvar no seu provedor, clique em <strong>"Ativar"</strong> acima. A propagação pode levar de alguns minutos até 24h.</p>
+                </div>
+              </div>
+            </div>
+
               </div>
               <div className="flex items-start gap-2">
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-[10px] font-bold shrink-0">3</span>
