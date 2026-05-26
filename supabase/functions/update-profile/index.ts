@@ -16,8 +16,10 @@ const isDisconnectedError = (value: unknown) => {
 
   if (typeof value === 'object') {
     const payload = value as Record<string, unknown>;
+    // Primary check: if connected is explicitly false, it's disconnected.
+    // We ignore 'session: false' if 'connected: true' is present.
     if (payload.connected === false) return true;
-    if (payload.session === false) return true;
+    if (payload.connected === undefined && payload.session === false) return true;
 
     // Check common error fields
     const fields = [
