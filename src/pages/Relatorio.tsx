@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,75 +108,95 @@ const Relatorio = () => {
     return 0;
   };
 
-  // Compute stats from realtime data
-  // Calculate total pending including contacts not yet processed
-  const latestAllSends = Array.from(buildLatestSendsMap(allSends as ReportSend[]).values());
+  // Compute stats from realtime data using useMemo to avoid O(N*M) complexity
+  const computedData = useMemo(() => {
+    // Group sends by campaign first
+    const sendsByCampaign = new Map<string, ReportSend[]>();
+    const latestSendsMap = buildLatestSendsMap(allSends as ReportSend[]);
+    const latestAllSends = Array.from(latestSendsMap.values());
 
-  const globalNotProcessed = campaignList.reduce((acc, campaign) => {
-    const targetContacts = getTargetContactsCount(campaign.target_audience);
-    const processedForCampaign = latestAllSends.filter(s => s.campaign_id === campaign.id).length;
-    return acc + Math.max(0, targetContacts - processedForCampaign);
-  }, 0);
-  const dbPendingCount = latestAllSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
-  const effectiveTotalMessages = latestAllSends.length + globalNotProcessed;
+    latestAllSends.forEach(send => {
+      if (!sendsByCampaign.has(send.campaign_id)) {
+        sendsByCampaign.set(send.campaign_id, []);
+      }
+      sendsByCampaign.get(send.campaign_id)!.push(send);
+    });
 
-  const stats = {
-    totalSent: latestAllSends.filter(s => (s.status === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && s.status !== 'delivered' && s.status !== 'read')).length,
-    totalDelivered: latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length,
-    totalRead: latestAllSends.filter(s => s.status === 'read' || Boolean(s.read_at)).length,
-    totalFailed: latestAllSends.filter(s => (s.status === 'failed' || Boolean(s.error_message)) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length,
-    totalPending: dbPendingCount + globalNotProcessed,
-    totalMessages: effectiveTotalMessages,
-    totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
-    totalClicked: latestAllSends.filter(s => Boolean(s.clicked_at)).length,
-    deliveryRate: effectiveTotalMessages > 0
-      ? (latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length / effectiveTotalMessages) * 100
-      : 0,
-  };
+    const globalNotProcessed = campaignList.reduce((acc, campaign) => {
+      const targetContacts = getTargetContactsCount(campaign.target_audience);
+      const processedForCampaign = sendsByCampaign.get(campaign.id)?.length || 0;
+      return acc + Math.max(0, targetContacts - processedForCampaign);
+    }, 0);
 
-  // Compute campaign reports from realtime data
-  const campaignReports = campaignList.map((campaign) => {
-    const campaignSends = getLatestCampaignSends(campaign.id, allSends as ReportSend[]);
-    const sent = countSuccessfulStatuses(campaignSends);
-    const failed = campaignSends.filter(s => s.status === 'failed').length;
+    const dbPendingCount = latestAllSends.filter(s => 
+      s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status
+    ).length;
+
+    const stats = {
+      totalSent: latestAllSends.filter(s => (s.status === 'sent' || Boolean(s.sent_at)) && (!s.delivered_at && s.status !== 'delivered' && s.status !== 'read')).length,
+      totalDelivered: latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length,
+      totalRead: latestAllSends.filter(s => s.status === 'read' || Boolean(s.read_at)).length,
+      totalFailed: latestAllSends.filter(s => (s.status === 'failed' || Boolean(s.error_message)) && !s.delivered_at && s.status !== 'delivered' && s.status !== 'read').length,
+      totalPending: dbPendingCount + globalNotProcessed,
+      totalMessages: latestAllSends.length + globalNotProcessed,
+      totalContacts: new Set(latestAllSends.map(s => normalizePhone(s.phone) || s.phone)).size,
+      totalClicked: latestAllSends.filter(s => Boolean(s.clicked_at)).length,
+      deliveryRate: (latestAllSends.length + globalNotProcessed) > 0
+        ? (latestAllSends.filter(s => s.status === 'delivered' || Boolean(s.delivered_at) || s.status === 'read' || Boolean(s.read_at)).length / (latestAllSends.length + globalNotProcessed)) * 100
+        : 0,
+    };
+
+    const campaignReports = campaignList.map((campaign) => {
+      const campaignSends = sendsByCampaign.get(campaign.id) || [];
+      const sent = countSuccessfulStatuses(campaignSends);
+      const failed = campaignSends.filter(s => s.status === 'failed' || (Boolean(s.error_message) && s.status !== 'delivered' && s.status !== 'read')).length;
+      const dbPending = campaignSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
+
+      const targetContacts = getTargetContactsCount(campaign.target_audience);
+      const totalTarget = targetContacts > 0 ? targetContacts : campaignSends.length;
+      const notYetProcessed = Math.max(0, totalTarget - campaignSends.length);
+      const pending = dbPending + notYetProcessed;
+      
+      return {
+        id: campaign.id,
+        name: campaign.name,
+        description: campaign.description,
+        created_at: campaign.created_at,
+        status: campaign.status || 'draft',
+        sent,
+        failed,
+        pending,
+        total: totalTarget,
+        deliveryRate: totalTarget > 0 ? (sent / totalTarget) * 100 : 0,
+        schedule_type: campaign.schedule_type,
+      };
+    });
+
+    return { stats, campaignReports, latestAllSends };
+  }, [allSends, campaignList]);
+
+  const { stats, campaignReports, latestAllSends } = computedData;
+
+  const detailsStatsData = useMemo(() => {
+    if (!detailsOpen || !detailsCampaignId) return { sent: 0, pending: 0, failed: 0, total: 0, latestSends: [] };
+    
+    const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
+    const targetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
+    const campaignSends = getLatestCampaignSends(detailsCampaignId, detailsSends as ReportSend[]);
+    
     const dbPending = campaignSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
-
-    // Calculate real pending: total target contacts - processed sends
-    const targetContacts = getTargetContactsCount(campaign.target_audience);
-    const totalTarget = targetContacts > 0 ? targetContacts : campaignSends.length;
-    const notYetProcessed = Math.max(0, totalTarget - campaignSends.length);
-    const pending = dbPending + notYetProcessed;
-    const total = totalTarget;
-    const rate = total > 0 ? (sent / total) * 100 : 0;
+    const notProcessed = Math.max(0, targetCount - campaignSends.length);
 
     return {
-      id: campaign.id,
-      name: campaign.name,
-      description: campaign.description,
-      created_at: campaign.created_at,
-      status: campaign.status || 'draft',
-      sent,
-      failed,
-      pending,
-      total,
-      deliveryRate: rate,
-      schedule_type: campaign.schedule_type,
+      sent: countSuccessfulStatuses(campaignSends),
+      pending: dbPending + notProcessed,
+      failed: campaignSends.filter(s => s.status === 'failed' || (Boolean(s.error_message) && s.status !== 'delivered' && s.status !== 'read')).length,
+      total: targetCount > 0 ? targetCount : campaignSends.length,
+      latestSends: campaignSends
     };
-  });
+  }, [detailsOpen, detailsCampaignId, detailsSends, campaignList]);
 
-  const selectedDetailsCampaign = campaignList.find(c => c.id === detailsCampaignId);
-  const detailsTargetCount = getTargetContactsCount(selectedDetailsCampaign?.target_audience);
-  const detailsLatestSends = getLatestCampaignSends(detailsCampaignId || '', detailsSends as ReportSend[]);
-  const detailsDbPending = detailsLatestSends.filter(s => s.status === 'pending' || (s.status === 'sent' && !s.error_message) || !s.status).length;
-  const detailsNotProcessed = Math.max(0, detailsTargetCount - detailsLatestSends.length);
-
-  // Details dialog stats
-  const detailsStats = {
-    sent: countSuccessfulStatuses(detailsLatestSends),
-    pending: detailsDbPending + detailsNotProcessed,
-    failed: detailsLatestSends.filter(s => s.status === 'failed').length,
-    total: detailsTargetCount > 0 ? detailsTargetCount : detailsLatestSends.length,
-  };
+  const { latestSends: detailsLatestSends, ...detailsStats } = detailsStatsData;
 
   const openDetails = (campaignId: string, campaignName: string) => {
     setDetailsCampaignId(campaignId);

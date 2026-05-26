@@ -89,7 +89,7 @@ export function useAllCampaignSendsRealtime() {
         .from("campaign_sends")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(5000);
+        .limit(10000);
       if (active) {
         setSends((data as any) || []);
         setLoading(false);

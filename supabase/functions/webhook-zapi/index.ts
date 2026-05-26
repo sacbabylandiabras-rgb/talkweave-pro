@@ -384,17 +384,27 @@ serve(async (req) => {
           } else if (isDeliveredStatus || isSentStatus) {
             console.log(`🔍 No campaign_send found with message_id ${msgId}. Attempting fallback by phone...`);
             // Fallback: Tentar encontrar pelo telefone e status pendente/enviado recentemente
-            const { data: fallbackRecord } = await supabase
+            const cleanPhone = String(phone || "").replace(/\D/g, "");
+            const lidVariant = String(phone || "").toLowerCase().includes("@lid") ? phone : null;
+            
+            let query = supabase
               .from("campaign_sends")
               .select("id, status")
-              .eq("phone", phone)
-              .in("status", ["pending", "sent"])
+              .neq("status", "read"); // Se já está lida, não precisa fallback
+
+            if (lidVariant) {
+              query = query.eq("phone", lidVariant);
+            } else {
+              query = query.ilike("phone", `%${cleanPhone}%`);
+            }
+
+            const { data: fallbackRecord } = await query
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
 
             if (fallbackRecord) {
-              console.log(`🎯 Fallback found record ${fallbackRecord.id} for phone ${phone}. Updating...`);
+              console.log(`🎯 Fallback found record ${fallbackRecord.id} (status: ${fallbackRecord.status}) for phone ${phone}. Updating...`);
               const updateData: any = { 
                 status: newStatusLabel,
                 message_id: msgId, // Aproveita para salvar o ID que estava faltando
