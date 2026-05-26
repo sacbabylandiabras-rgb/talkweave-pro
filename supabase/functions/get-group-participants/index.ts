@@ -854,15 +854,12 @@ Deno.serve(async (req) => {
           const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/communities-metadata/${candidateId}`;
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
-          if (data && (data.subGroups || data.participants || data.id)) {
-            // Check success reason
-            const subGroupsPayload = data.subGroups;
-            if (subGroupsPayload?.success === false && subGroupsPayload.reason === "not found community") {
-              console.log(`⏭️ Skipping communities-metadata result for ${candidateId} (Reason: not found community)`);
-            } else {
-              console.log(`🏘️ [COMMUNITY-METADATA] SUCCESS for ${candidateId}`);
-              return data;
-            }
+          
+          // FORCE extraction even if subGroups reports failure (often happens for non-admins)
+          // Z-API might still return partial data or IDs in the main payload
+          if (data && (data.id || data.participants || data.subGroups)) {
+            console.log(`🏘️ [COMMUNITY-METADATA] Force match for: ${candidateId}`);
+            return data;
           }
         } catch (e) {
           console.log(`❌ communities-metadata failed: ${candidateId} - ${e.message}`);
@@ -874,11 +871,8 @@ Deno.serve(async (req) => {
           console.log(`📡 GET ${url}`);
           const data = await fetchJson(url, headers);
           if (data && (data.participants || data.subGroups || data.id)) {
-            const parts = extractParticipantArray(data);
-            if (parts.length > 0 || (data.subGroups && data.subGroups.length > 0)) {
-              console.log(`🏘️ [GROUP-METADATA] SUCCESS for ${candidateId} (${parts.length} members)`);
-              return data;
-            }
+            console.log(`🏘️ [GROUP-METADATA] Force match for: ${candidateId}`);
+            return data;
           }
         } catch (error) {
           console.log(`❌ group-metadata failed for ${candidateId}: ${error.message}`);
