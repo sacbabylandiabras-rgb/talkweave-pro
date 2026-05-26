@@ -173,6 +173,7 @@ export type Database = {
       campaign_sends: {
         Row: {
           campaign_id: string
+          click_count: number
           clicked_at: string | null
           contact_name: string | null
           created_at: string
@@ -190,6 +191,7 @@ export type Database = {
         }
         Insert: {
           campaign_id: string
+          click_count?: number
           clicked_at?: string | null
           contact_name?: string | null
           created_at?: string
@@ -207,6 +209,7 @@ export type Database = {
         }
         Update: {
           campaign_id?: string
+          click_count?: number
           clicked_at?: string | null
           contact_name?: string | null
           created_at?: string
@@ -1707,6 +1710,36 @@ export type Database = {
         }
         Relationships: []
       }
+      report_push_logs: {
+        Row: {
+          created_at: string
+          id: string
+          messages_sent: number | null
+          sales_amount: number | null
+          sales_count: number | null
+          slot_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          sales_amount?: number | null
+          sales_count?: number | null
+          slot_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          sales_amount?: number | null
+          sales_count?: number | null
+          slot_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_contacts: {
         Row: {
           community_id: string | null
@@ -2274,9 +2307,9 @@ export type Database = {
           is_default: boolean
           updated_at: string
           user_id: string
-          zapi_client_token: string
-          zapi_instance_id: string
-          zapi_token: string
+          zapi_client_token: string | null
+          zapi_instance_id: string | null
+          zapi_token: string | null
         }
         Insert: {
           api_provider?: string
@@ -2290,9 +2323,9 @@ export type Database = {
           is_default?: boolean
           updated_at?: string
           user_id: string
-          zapi_client_token: string
-          zapi_instance_id: string
-          zapi_token: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Update: {
           api_provider?: string
@@ -2306,9 +2339,9 @@ export type Database = {
           is_default?: boolean
           updated_at?: string
           user_id?: string
-          zapi_client_token?: string
-          zapi_instance_id?: string
-          zapi_token?: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Relationships: []
       }
