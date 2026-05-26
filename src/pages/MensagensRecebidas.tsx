@@ -2721,6 +2721,7 @@ const MensagensRecebidas = () => {
           onUpdate={refetch}
           preferredInstanceId={selectedInstanceId === 'all' ? undefined : filterZapiInstanceId}
         />
+      </div>
     </div>
   );
 };
