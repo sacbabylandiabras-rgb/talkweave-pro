@@ -59,6 +59,7 @@ const ExtractMembers = () => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<Record<string, boolean>>({});
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
@@ -218,7 +219,8 @@ const ExtractMembers = () => {
                 size="sm" 
                 className={`gap-2 border-primary/20 hover:bg-primary/5 ${!isConnected ? 'animate-pulse bg-primary/10 border-primary/50' : ''}`}
                 onClick={() => {
-                  setSelectedGroupId(""); // Limpa seleção ao trocar/conectar instância
+                  // Passamos o ID da instância para o diálogo
+                  setSelectedInstanceId(inst.id);
                   setConnectDialogOpen(true);
                 }}
               >
@@ -494,11 +496,11 @@ const ExtractMembers = () => {
         </div>
       </div>
 
-      {selectedInstance && (
+      {selectedInstanceId && (
         <UazapiDeviceConnectDialog 
           open={connectDialogOpen} 
           onOpenChange={setConnectDialogOpen} 
-          instanceId={selectedInstance.id}
+          instanceId={selectedInstanceId}
         />
       )}
     </div>
