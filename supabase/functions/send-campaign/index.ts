@@ -1871,6 +1871,7 @@ serve(async (req) => {
             ) {
               campaignSend.status = "sent";
               campaignSend.sent_at = new Date().toISOString();
+              campaignSend.error_message = null;
               const ackId = getZapiAckId(zapiResult);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -1939,6 +1940,7 @@ serve(async (req) => {
 
           campaignSend.status = "sent";
           campaignSend.sent_at = new Date().toISOString();
+          campaignSend.error_message = null;
           results.push({ phone: contact.phone, success: true, messageId: "carousel-sent" });
 
           await persistCampaignSend(campaignSend, reusableSendId);
@@ -1974,6 +1976,7 @@ serve(async (req) => {
               const result = await listResponse.json();
               campaignSend.status = "sent";
               campaignSend.sent_at = new Date().toISOString();
+              campaignSend.error_message = null;
               const ackId = getZapiAckId(result);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -2086,6 +2089,7 @@ serve(async (req) => {
               if (isZapiConfirmed(result)) {
                 campaignSend.status = "sent";
                 campaignSend.sent_at = new Date().toISOString();
+                campaignSend.error_message = null;
                 const ackId = getZapiAckId(result);
                 if (ackId) campaignSend.message_id = String(ackId);
                 results.push({ phone: contact.phone, success: true, messageId: ackId });
@@ -2140,6 +2144,7 @@ serve(async (req) => {
               const result = await listResponse.json();
               campaignSend.status = "sent";
               campaignSend.sent_at = new Date().toISOString();
+              campaignSend.error_message = null;
               const ackId = getZapiAckId(result);
               if (ackId) campaignSend.message_id = String(ackId);
               results.push({ phone: contact.phone, success: true, messageId: ackId });
