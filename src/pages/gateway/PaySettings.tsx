@@ -292,22 +292,26 @@ export default function PaySettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-        <p className="text-sm text-muted-foreground">Gerencie as configurações da sua conta</p>
-      </div>
+      {activeTab !== "dominio" && activeTab !== "email" && (
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
+          <p className="text-sm text-muted-foreground">Gerencie as configurações da sua conta</p>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
-          <TabsTrigger value="dominio"><Globe className="w-3.5 h-3.5 mr-1.5" />Domínio</TabsTrigger>
-          <TabsTrigger value="email"><Mail className="w-3.5 h-3.5 mr-1.5" />E-mail</TabsTrigger>
-          <TabsTrigger value="api"><Key className="w-3.5 h-3.5 mr-1.5" />API Keys</TabsTrigger>
-          <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
-          <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
-          <TabsTrigger value="seguranca"><Shield className="w-3.5 h-3.5 mr-1.5" />Segurança</TabsTrigger>
-          <TabsTrigger value="checkout"><ShoppingBag className="w-3.5 h-3.5 mr-1.5" />Checkout Padrão</TabsTrigger>
-        </TabsList>
+        {activeTab !== "dominio" && activeTab !== "email" && (
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
+            <TabsTrigger value="dominio"><Globe className="w-3.5 h-3.5 mr-1.5" />Domínio</TabsTrigger>
+            <TabsTrigger value="email"><Mail className="w-3.5 h-3.5 mr-1.5" />E-mail</TabsTrigger>
+            <TabsTrigger value="api"><Key className="w-3.5 h-3.5 mr-1.5" />API Keys</TabsTrigger>
+            <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
+            <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
+            <TabsTrigger value="seguranca"><Shield className="w-3.5 h-3.5 mr-1.5" />Segurança</TabsTrigger>
+            <TabsTrigger value="checkout"><ShoppingBag className="w-3.5 h-3.5 mr-1.5" />Checkout Padrão</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="empresa" className="mt-4 space-y-4">
           <Card className="border-[#2A2A2A]">
