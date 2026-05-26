@@ -2681,7 +2681,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                         // Otimismo: atualiza local primeiro para feedback imediato
                         setActiveTab("pipeline"); 
                         await updateContactStage(phone, stage.id);
-                        toast({ title: `Movido para ${stage.label}` });
+                         toast({ title: `Movido para ${stage.label}` });
+                         // Atualiza o contador localmente para evitar flicker
+                         setPipelineStages(prev => [...prev]);
                         // Recarrega os dados para garantir sincronia com o banco
                         refetch();
                       }
