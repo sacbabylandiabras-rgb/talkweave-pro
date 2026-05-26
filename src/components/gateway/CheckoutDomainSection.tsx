@@ -286,14 +286,21 @@ export default function CheckoutDomainSection() {
                   <div className="flex justify-between items-center pb-2 border-b border-[#2A2A2A]">
                     <span className="text-muted-foreground uppercase">Nome/Host</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-primary">{customDomain.split('.')[0] || "pay"}</span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(customDomain.split('.')[0] || "pay")}>
+                      <span className="font-bold text-primary">
+                        {customDomain ? (customDomain.split('.').length > 2 ? customDomain.split('.')[0] : (customDomain.split('.')[0] === "www" ? "www" : customDomain.split('.')[0])) : "pay"}
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                        const host = customDomain ? (customDomain.split('.').length > 2 ? customDomain.split('.')[0] : customDomain.split('.')[0]) : "pay";
+                        copyToClipboard(host);
+                      }}>
                         <Copy className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
                   <div className="flex justify-start pt-1">
-                    <span className="text-[9px] text-muted-foreground italic">Insira apenas o subdomínio (ex: pay ou checkout)</span>
+                    <span className="text-[9px] text-muted-foreground italic font-medium text-[#a78bfa]">
+                      Apenas o prefixo (ex: {customDomain.split('.')[0] || "pay"})
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground uppercase">Valor</span>
@@ -309,7 +316,7 @@ export default function CheckoutDomainSection() {
                 <div className="p-3 rounded border border-amber-500/10 bg-amber-500/5 flex gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    <strong>Atenção:</strong> O "Nome/Host" deve ser exatamente o subdomínio que você escolheu (geralmente <code>pay</code> ou <code>checkout</code>). Nunca use "@" ou o domínio principal.
+                    <strong>Atenção:</strong> O campo "Nome/Host" deve ser preenchido <strong>apenas</strong> com o subdomínio (ex: <code>{customDomain.split('.')[0] || "pay"}</code>). Não coloque o seu domínio completo aqui.
                   </p>
                 </div>
               </div>
