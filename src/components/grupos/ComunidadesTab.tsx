@@ -43,9 +43,10 @@ interface Community {
 
 const normalizePhone = (raw: string) => {
   const value = String(raw || "").trim();
+  if (value.toLowerCase().includes("@lid")) return value.toLowerCase();
   const digits = value.replace(/\D/g, "").replace(/^0+/, "");
   if (!digits) return "";
-  if (/@lid$/i.test(value) || digits.length > 13) return `${digits}@lid`;
+  if (digits.length > 13) return `${digits}@lid`;
   // Auto-corrige celular BR sem o 9: 55 + DDD(2) + 8 dígitos = 12 → insere 9
   if (digits.length === 12 && digits.startsWith("55")) {
     const ddd = digits.slice(2, 4);
