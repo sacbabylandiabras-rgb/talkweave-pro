@@ -35,8 +35,8 @@ const getSendTimestamp = (send: Pick<ReportSend, 'delivered_at' | 'sent_at' | 'c
 
 const normalizePhone = (phone?: string | null) => {
   if (!phone) return "";
-  const trimmed = phone.trim();
-  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+  const trimmed = phone.trim().toLowerCase();
+  if (trimmed.includes("@lid")) return trimmed;
   return trimmed.replace(/\D/g, "");
 };
 
