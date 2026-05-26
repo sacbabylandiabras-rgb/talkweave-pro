@@ -11,8 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function CheckoutDomainSection() {
   const [customDomain, setCustomDomain] = useState("");
+  const [emailDomain, setEmailDomain] = useState("");
   const [pathPrefix, setPathPrefix] = useState(() => localStorage.getItem("checkout_path_prefix") || "pay");
   const [domainSaving, setDomainSaving] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
   const [domainDeleting, setDomainDeleting] = useState(false);
   const [domainStatus, setDomainStatus] = useState<"none" | "pending" | "active" | "error">("none");
   const [domainSslStatus, setDomainSslStatus] = useState<string>("");
@@ -36,8 +38,10 @@ export default function CheckoutDomainSection() {
     if (!domain) {
       domain = localStorage.getItem("checkout_custom_domain") || "";
     }
-    if (!domain) return;
+    
     setCustomDomain(domain);
+    if (!domain) return;
+    
     setDomainStatus("pending");
     setStatusChecking(true);
     try {
@@ -56,6 +60,9 @@ export default function CheckoutDomainSection() {
       setDomainVerification(data?.verification || null);
       setSslInfo(data?.ssl || null);
       setEmailVerification(data?.email_verification || null);
+      if (data?.email_verification?.hostname) {
+        setEmailDomain(data.email_verification.hostname);
+      }
     } catch (err) {
       console.error("Error checking domain status:", err);
       setDomainStatus("pending");
@@ -76,14 +83,7 @@ export default function CheckoutDomainSection() {
       });
       if (error) throw error;
       if (data?.error) {
-        if (data.cname_target) {
-          toast.error(`CNAME não encontrado! Aponte "${domain}" para "${data.cname_target}" no seu DNS antes de ativar.`, { duration: 8000 });
-        } else {
-          throw new Error(data.error);
-        }
-        setDomainStatus("error");
-        setDomainSaving(false);
-        return;
+        throw new Error(data.error);
       }
       const savedDomain = data.hostname || domain;
       setCustomDomain(savedDomain);
@@ -91,8 +91,8 @@ export default function CheckoutDomainSection() {
       setDomainStatus("pending");
       setDomainSslStatus(data.ssl_status || "");
       setDomainVerification(data.verification || null);
-      setEmailVerification(data.email_verification || null);
-      toast.success("Domínio e E-mail registrados! Siga as instruções de DNS abaixo.");
+      toast.success("Domínio do checkout registrado!");
+      fetchDomainStatus();
     } catch (err: any) {
       console.error("Domain error:", err);
       toast.error("Erro: " + (err.message || "Falha ao registrar domínio"));
@@ -100,6 +100,27 @@ export default function CheckoutDomainSection() {
     }
     setDomainSaving(false);
   };
+
+  const handleSaveEmailDomain = async () => {
+    const domain = emailDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    if (!domain) {
+      toast.error("Informe um domínio para o e-mail");
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "create_email", hostname: domain },
+      });
+      if (error) throw error;
+      setEmailVerification(data.email_verification);
+      toast.success("Domínio de e-mail enviado para o Resend!");
+    } catch (err: any) {
+      toast.error("Erro ao registrar e-mail: " + err.message);
+    }
+    setEmailSaving(false);
+  };
+
 
   const handleDeleteDomain = async () => {
     setDomainDeleting(true);
@@ -334,13 +355,30 @@ export default function CheckoutDomainSection() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-                  Configuração de E-mail (DKIM & SPF)
+                  Configuração de E-mail (Resend)
                 </CardTitle>
                 <CardDescription className="text-[10px]">
-                  Configuração obrigatória para garantir que os e-mails de confirmação cheguem na caixa de entrada.
+                  Envie e-mails usando seu próprio domínio. Digite o domínio desejado e clique em Registrar.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-0">
+                <div className="flex gap-2 mb-4">
+                  <Input 
+                    value={emailDomain}
+                    onChange={e => setEmailDomain(e.target.value)}
+                    placeholder="seusite.com"
+                    className="font-mono text-xs"
+                  />
+                  <Button 
+                    className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-4 text-xs"
+                    onClick={handleSaveEmailDomain}
+                    disabled={emailSaving || !emailDomain.trim()}
+                  >
+                    {emailSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                    Registrar
+                  </Button>
+                </div>
+
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
                   <div className="flex items-center gap-2">
                     {emailVerification?.status === "verified" ? (
@@ -371,10 +409,10 @@ export default function CheckoutDomainSection() {
                 </div>
 
                 {emailVerification?.records && emailVerification.records.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 mt-4">
                     <div className="p-2.5 rounded border border-blue-500/10 bg-blue-500/5">
                       <p className="text-[10px] text-blue-400">
-                        <strong>Ação Necessária:</strong> Copie os registros abaixo e crie-os exatamente no seu DNS (Ex: Hostinger/Cloudflare).
+                        <strong>Ação Necessária:</strong> Adicione os registros DKIM e SPF abaixo no seu DNS (Ex: Hostinger).
                       </p>
                     </div>
                     <div className="space-y-3">
@@ -402,16 +440,10 @@ export default function CheckoutDomainSection() {
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 flex items-start gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-amber-400">
-                      Integração de e-mail pendente. Certifique-se de que a RESEND_API_KEY está configurada no servidor.
-                    </p>
-                  </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
+
 
           </div>
         )}
