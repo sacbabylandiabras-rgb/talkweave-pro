@@ -881,7 +881,7 @@ Deno.serve(async (req) => {
         if (!communityData) continue;
 
         console.log(
-          `🔍 Community payload keys for ${candidateCommunityId}: ${Object.keys(communityData || {}).join(", ")}`,
+          `🔍 Community payload for ${candidateCommunityId}: ${JSON.stringify(communityData).slice(0, 2000)}`,
         );
 
         // First try direct participants from community metadata
