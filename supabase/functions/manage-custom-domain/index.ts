@@ -342,14 +342,29 @@ serve(async (req) => {
       let emailVerification = null;
       if (RESEND_API_KEY) {
         try {
-          const { data: evData, error: statusSelectError } = await supabase
+          let { data: evData, error: statusSelectError } = await supabase
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)
             .eq("domain", cleanHostname)
             .maybeSingle();
           
-          if (statusSelectError) console.error("Status check DB error:", JSON.stringify(statusSelectError));
+          if (statusSelectError?.code === "PGRST205" || statusSelectError?.message?.includes("not found")) {
+            console.log("Table missing in status check, falling back to direct Resend check...");
+            const listRes = await fetch("https://api.resend.com/domains", {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const found = listData.data?.find((d: any) => d.name === cleanHostname);
+              if (found) {
+                evData = { resend_domain_id: found.id } as any;
+              }
+            }
+          }
+          
+          if (statusSelectError && statusSelectError.code !== "PGRST205") console.error("Status check DB error:", JSON.stringify(statusSelectError));
+
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
