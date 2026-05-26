@@ -66,5 +66,5 @@ export function useGroupMemberCount() {
   /** Renamed from isLoading → isMemberCountLoading to match callers */
   const isMemberCountLoading = useCallback((groupId: string): boolean => cache[groupId]?.loading ?? false, [cache]);
 
-  return { fetchMemberCount, getMemberCount, isMemberCountLoading };
+  return { fetchMemberCount, getMemberCount, isMemberCountLoading, isLoading: isMemberCountLoading };
 }
