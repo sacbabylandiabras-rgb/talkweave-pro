@@ -112,7 +112,12 @@ serve(async (req) => {
       if (RESEND_API_KEY) {
         try {
           // Check if already in our DB first
+          // For logging/tracking purposes we use the first domain as the base
+          const rootDomain = cleanHostname.split('.').slice(-2).join('.');
+          console.log("Checking Resend for domain:", cleanHostname, "Root domain:", rootDomain);
+
           let { data: existingV, error: selectError } = await supabase
+
             .from("email_domain_verifications")
             .select("*")
             .eq("user_id", user.id)

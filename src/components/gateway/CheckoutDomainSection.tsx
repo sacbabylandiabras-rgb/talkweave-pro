@@ -336,8 +336,9 @@ export default function CheckoutDomainSection() {
                   Configuração de E-mail (DKIM)
                 </CardTitle>
                 <CardDescription className="text-[10px]">
-                  Para enviar e-mails de confirmação usando seu domínio, adicione os registros DKIM abaixo.
+                  Adicione os registros <strong>DKIM</strong> e <strong>SPF</strong> abaixo no seu provedor para validar o envio.
                 </CardDescription>
+
               </CardHeader>
               <CardContent className="space-y-4 pt-0">
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#2A2A2A] bg-background/50">
