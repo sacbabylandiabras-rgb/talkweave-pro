@@ -35,7 +35,9 @@ export interface CampaignSend {
 
 const normalizeCampaignPhone = (phone?: string | null) => {
   if (!phone) return "";
-  return phone.replace(/@lid$/i, "").replace(/\D/g, "");
+  const trimmed = phone.trim();
+  if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+  return trimmed.replace(/\D/g, "");
 };
 
 const getCampaignSendPriority = (status?: string | null) => {

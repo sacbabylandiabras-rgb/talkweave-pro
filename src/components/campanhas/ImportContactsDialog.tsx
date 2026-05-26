@@ -22,7 +22,9 @@ export function ImportContactsDialog({ open, onOpenChange, onImport }: ImportCon
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cleanPhone = (phone: string) => {
-    return phone.replace(/\D/g, "");
+    const trimmed = phone.trim();
+    if (trimmed.toLowerCase().includes("@lid")) return trimmed.toLowerCase();
+    return trimmed.replace(/\D/g, "");
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,7 +48,7 @@ export function ImportContactsDialog({ open, onOpenChange, onImport }: ImportCon
             const phoneStr = String(row.phone || row.telefone || row.celular || Object.values(row)[0] || "");
             const nameStr = String(row.name || row.nome || Object.values(row)[1] || "");
             const phone = cleanPhone(phoneStr);
-            return phone.length >= 8 ? { phone, name: nameStr } : null;
+            return (phone.length >= 8 || phone.includes("@lid")) ? { phone, name: nameStr } : null;
           })
           .filter(Boolean) as Array<{ phone: string; name?: string }>;
 
@@ -84,7 +86,7 @@ export function ImportContactsDialog({ open, onOpenChange, onImport }: ImportCon
         const parts = line.split(/[;,]/);
         const phone = cleanPhone(parts[0]);
         const name = parts[1]?.trim();
-        return phone.length >= 8 ? { phone, name } : null;
+        return (phone.length >= 8 || phone.includes("@lid")) ? { phone, name } : null;
       })
       .filter(Boolean) as Array<{ phone: string; name?: string }>;
 
