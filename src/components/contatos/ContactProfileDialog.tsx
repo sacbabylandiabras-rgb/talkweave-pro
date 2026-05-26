@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   import { useZapi } from "@/hooks/useZapi";
   import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
+import { useMessageLogs } from "@/hooks/useMessageLogs";
+import { PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface ContactProfileDialogProps {
@@ -82,12 +84,14 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
   const [newTag, setNewTag] = useState("");
   const [addingTag, setAddingTag] = useState(false);
   const [localTags, setLocalTags] = useState<string[]>([]);
+  const [currentStage, setCurrentStage] = useState<string>("triage");
   const [selectedFlow, setSelectedFlow] = useState("");
   const [flows, setFlows] = useState<{ id: string; name: string; keyword: string }[]>([]);
   const [loadingFlows, setLoadingFlows] = useState(false);
    const [sendingFlow, setSendingFlow] = useState(false);
    const [localPreferredInstance, setLocalPreferredInstance] = useState<string>("");
    const { instances: zapiInstancesList } = useZapiInstances();
+   const { updateContactStage } = useMessageLogs();
    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
@@ -201,6 +205,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     setLocalTags([...(contact.tags || [])]);
     setNote(contact.notes?.content || (contact as any).notes?.content || "");
     setNewName(contact.name || '');
+    setCurrentStage((contact as any).agent_stage || 'triage');
     
     loadFlows();
     loadAvailableTags();
