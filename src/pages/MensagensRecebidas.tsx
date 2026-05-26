@@ -2057,6 +2057,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const [pageAvailableTags, setPageAvailableTags] = useState<{ id: string; name: string; color: number }[]>([]);
   const [pageTagColors, setPageTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
   const [connectedUiInstanceIds, setConnectedUiInstanceIds] = useState<string[] | null>(null);
+  const [pipelineStages, setPipelineStages] = useState<any[]>(PIPELINE_STAGES);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
   // Show data from connected instances. If none are online yet (e.g., new instance still pending QR scan),
