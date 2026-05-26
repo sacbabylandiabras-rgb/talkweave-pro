@@ -286,19 +286,19 @@ serve(async (req) => {
       }
 
       // Get domain info from Vercel
-      const res = await fetch(
-        `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}?${teamQuery.replace(/^&/, "")}`,
-        { headers: vercelHeaders }
-      );
-
-      if (res.status === 404) {
-        return new Response(
-          JSON.stringify({ status: "not_found" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      let vercelData: any = { status: "not_found" };
+      try {
+        const res = await fetch(
+          `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(cleanHostname)}?${teamQuery.replace(/^&/, "")}`,
+          { headers: vercelHeaders }
         );
-      }
 
-      const data = await res.json();
+        if (res.ok) {
+          vercelData = await res.json();
+        }
+      } catch (vErr) {
+        console.warn("Vercel fetch error:", vErr);
+      }
 
       // Try to verify if not yet verified
       let domainData = data;
