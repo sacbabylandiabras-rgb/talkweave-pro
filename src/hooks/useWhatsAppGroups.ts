@@ -19,7 +19,7 @@ export interface WhatsAppGroup {
   typeLabel?: string;
 }
 
-export function useWhatsAppGroups(options?: { provider?: 'zapi' | 'zapi_no_warmup_meta'; source?: 'profile' }) {
+export function useWhatsAppGroups(options?: { provider?: 'zapi' | 'zapi_no_warmup_meta' | 'uazapi'; source?: 'profile' }) {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [loading, setLoading] = useState(false);
 
