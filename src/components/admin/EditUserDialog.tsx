@@ -158,7 +158,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
            }
          } else if (provider === 'uazapi') {
            if (!newInstanceName.trim() || !newEvolutionUrl.trim() || !newEvolutionKey.trim()) {
-             toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key da Uazapi.", variant: "destructive" });
+             toast({ title: "Campos obrigatórios", description: "Preencha nome, URL e API Key.", variant: "destructive" });
              return;
            }
          }
@@ -346,7 +346,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     }}
                   >
                     <Plus className="w-3 h-3 mr-1" />
-                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Uazapi"}
+                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extrair Membro"}
                   </Button>
                </div>
  
@@ -392,17 +392,17 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   <Card className="border-emerald-500/40">
                     <CardContent className="pt-4 pb-4 space-y-3">
                       <DialogDescription className="text-xs font-semibold uppercase text-emerald-500">
-                        {editingInstanceId ? "Editar Instância Uazapi" : "Nova Instância Uazapi"}
+                        {editingInstanceId ? "Editar Instância" : "Nova Instância (Extrair Membros)"}
                       </DialogDescription>
                      <div className="grid grid-cols-2 gap-3">
                        <div className="space-y-2">
                          <Label>Nome</Label>
                          <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Uazapi 01" />
                        </div>
-                       <div className="space-y-2">
-                         <Label>Tipo</Label>
-                         <Input value="Evolution/Uazapi" disabled className="bg-muted" />
-                       </div>
+                        <div className="space-y-2">
+                          <Label>Finalidade</Label>
+                          <Input value="Extrair Membros" disabled className="bg-muted" />
+                        </div>
                      </div>
                      <div className="space-y-2">
                        <Label>API URL</Label>
@@ -415,7 +415,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                        <div className="flex gap-2 justify-end pt-2">
                          <Button size="sm" variant="ghost" onClick={() => { resetAddForm(); setShowAddForm(null); }}>Cancelar</Button>
                             <Button size="sm" onClick={() => handleAddZapiInstance('web', 'uazapi')} disabled={instancesLoading}>
-                              {instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Uazapi"}
+                              {instancesLoading ? "Salvando..." : editingInstanceId ? "Salvar Alterações" : "Salvar Configuração"}
                             </Button>
                       </div>
                     </CardContent>
