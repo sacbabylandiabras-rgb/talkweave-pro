@@ -2027,7 +2027,7 @@ const MensagensRecebidas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
-  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(searchParams.get("tab") === "pipeline" ? "pipeline" : "chat");
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -2346,14 +2346,14 @@ const MensagensRecebidas = () => {
     const phoneParam = searchParams.get("phone");
     const tabParam = searchParams.get("tab");
     
-    // Process tab/active view
+    // 1) Update activeTab state directly from URL param
     if (tabParam === "pipeline") {
       setActiveTab("pipeline");
     } else {
       setActiveTab("chat");
     }
 
-    // Process specific phone selection
+    // 2) Process specific phone selection (redirects to chat if a phone is provided)
     const normalizedPhone = normalizeSelectedConversationPhone(phoneParam);
     if (normalizedPhone && handledPhoneParamRef.current !== normalizedPhone) {
       handledPhoneParamRef.current = normalizedPhone;
@@ -2361,11 +2361,12 @@ const MensagensRecebidas = () => {
       setActiveTab("chat"); 
       markAsRead(normalizedPhone);
       
+      // Clean up phone from URL but keep the tab if needed (though selection usually goes to chat)
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("phone");
       setSearchParams(nextParams, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams.get("phone"), searchParams.get("tab")]); // Watch specific params only to avoid loops
 
   // Auto history sync for Z-API to keep the latest live conversations.
   useEffect(() => {
