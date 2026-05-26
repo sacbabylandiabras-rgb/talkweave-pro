@@ -34,8 +34,10 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
     const provider = (i.api_provider || 'zapi').toLowerCase();
     const name = (i.instance_name || '').toLowerCase();
     if (name.includes('aquecimento') || name.includes('warmup')) return false;
-    return provider !== 'meta';
+    // O usuário solicitou remover UAZAPI da parte de campanhas
+    return provider === 'zapi';
   }), [allInstances]);
+
 
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [formData, setFormData] = useState({
