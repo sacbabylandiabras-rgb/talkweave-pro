@@ -160,7 +160,9 @@ const gatewayMenuItems = [
   { id: "pay-integrations", label: "Integrações", icon: PlugZap, path: "/gateway-checkout/integrations" },
   { id: "pay-withdrawals", label: "Saques", icon: Wallet, path: "/gateway-checkout/withdrawals" },
   { id: "pay-settings", label: "Configurações", icon: Settings, path: "/gateway-checkout/settings" },
+  { id: "pay-domain", label: "Domínio e E-mail", icon: Globe, path: "/gateway-checkout/settings?tab=dominio" },
 ];
+
 
 const zapiBottomItems = [
   { id: "perfil", label: "Perfil", icon: UserCircle, path: "/perfil", adminOnly: false },
