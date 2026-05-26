@@ -716,6 +716,42 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
             </div>
 
             <Separator />
+            
+            {/* Pipeline Stage */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Funil de Vendas
+              </h3>
+              <div className="flex flex-col gap-2">
+                <Select 
+                  value={currentStage} 
+                  onValueChange={async (val) => {
+                    if (!contact) return;
+                    setCurrentStage(val);
+                    await updateContactStage(contact.phone, val);
+                    toast({ title: "Etapa atualizada!" });
+                    onUpdate?.();
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full text-sm">
+                    <SelectValue placeholder="Selecione a etapa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PIPELINE_STAGES.filter(s => s.id !== 'all').map(stage => (
+                      <SelectItem key={stage.id} value={stage.id}>
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-2 h-2 rounded-full", stage.color)} />
+                          {stage.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
 
             {/* Quick Actions */}
             <div className="space-y-3">
