@@ -1835,6 +1835,7 @@ export type Database = {
       }
       skill_contents: {
         Row: {
+          attachments: Json
           connected_to_agent: boolean
           content: string
           created_at: string
@@ -1845,6 +1846,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           connected_to_agent?: boolean
           content?: string
           created_at?: string
@@ -1855,6 +1857,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           connected_to_agent?: boolean
           content?: string
           created_at?: string

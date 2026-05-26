@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Sparkles, Plus, Trash2, Loader2, FolderOpen, FileText, ArrowLeft, Bot, Search, Settings,
   Paperclip, Image as ImageIcon, Video, Music, File as FileIcon, Upload, X,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
