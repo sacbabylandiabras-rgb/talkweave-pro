@@ -80,9 +80,9 @@ serve(async (req) => {
 
       if (!res.ok) {
         const errCode = data.error?.code;
-        // If domain is already added to this project, treat as success
+        // If domain is already added to this project, treat as success but continue to Resend registration
         if (errCode === "domain_already_in_use" && data.error?.domain) {
-          console.log("Domain already exists in project, treating as success");
+          console.log("Domain already exists in project, continuing to check Resend...");
           // Save to profile
           try {
             await supabase
@@ -92,23 +92,14 @@ serve(async (req) => {
           } catch (dbErr) {
             console.warn("Could not save domain to profile:", dbErr);
           }
-          return new Response(
-            JSON.stringify({
-              success: true,
-              hostname: cleanHostname,
-              status: data.error.domain.verified ? "active" : "pending",
-              ssl_status: data.error.domain.verified ? "active" : "pending",
-              verification: null,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        } else {
+          const errMsg = data.error?.message || "Failed to add domain to Vercel";
+          console.error("Vercel error:", JSON.stringify(data));
+          return new Response(JSON.stringify({ error: errMsg }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
-        const errMsg = data.error?.message || "Failed to add domain to Vercel";
-        console.error("Vercel error:", JSON.stringify(data));
-        return new Response(JSON.stringify({ error: errMsg }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
       // Register domain in Resend if API key is available
