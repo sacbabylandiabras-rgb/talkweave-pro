@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
