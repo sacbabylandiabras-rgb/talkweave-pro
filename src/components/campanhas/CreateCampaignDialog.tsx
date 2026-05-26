@@ -49,6 +49,9 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const [selectedPhones, setSelectedPhones] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [manualContacts, setManualContacts] = useState<Array<{ phone: string; name?: string }>>([]);
+
 
   const selectedTemplate = templates.find(t => t.id === formData.template_id);
 
