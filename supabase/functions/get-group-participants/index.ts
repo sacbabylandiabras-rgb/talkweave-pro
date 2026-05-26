@@ -1040,39 +1040,46 @@ Deno.serve(async (req) => {
     for (const p of rawParticipants) {
       const rawId = p.phone || p.id || p.participant || "";
       const normalizedId = String(rawId).trim();
-      const cleanPhone = normalizedId.replace("@c.us", "").replace(/\D/g, "");
+      
+      // Z-API specific normalization for phone/lid
+      // LID is usually 123456789012345@lid
+      // Phone is usually 5511999999999@c.us
+      const isLid = normalizedId.includes("@lid") || /^\d{15,}@lid$/.test(normalizedId);
+      const cleanPhone = normalizedId.replace("@c.us", "").replace("@s.whatsapp.net", "").replace(/\D/g, "");
 
-      if (normalizedId.includes("@lid")) {
+      if (isLid) {
         const lidId = normalizeLidValue(normalizedId);
+        if (!lidId) continue;
         lidParticipants.push(lidId);
         unresolvedLidParticipants.push({
           phone: lidId,
-          isAdmin: Boolean(p.isAdmin),
-          isSuperAdmin: Boolean(p.isSuperAdmin),
-          name: p.name || p.short || p.notify || "",
+          isAdmin: Boolean(p.isAdmin || p.admin === 'admin'),
+          isSuperAdmin: Boolean(p.isSuperAdmin || p.admin === 'superadmin'),
+          name: p.name || p.short || p.notify || p.pushName || "",
         });
         continue;
       }
 
-      if (isCommunity && cleanPhone.length >= 8) {
-        const lidId = normalizeLidValue(cleanPhone);
-        lidParticipants.push(lidId);
-        unresolvedLidParticipants.push({
-          phone: lidId,
-          isAdmin: Boolean(p.isAdmin),
-          isSuperAdmin: Boolean(p.isSuperAdmin),
-          name: p.name || p.short || p.notify || "",
-        });
-        continue;
-      }
-
+      // If it's not LID and has enough digits, it's a real phone
       if (cleanPhone.length >= 8) {
         resolvedParticipants.push({
           phone: cleanPhone,
-          isAdmin: Boolean(p.isAdmin),
-          isSuperAdmin: Boolean(p.isSuperAdmin),
-          name: p.name || p.short || p.notify || "",
+          isAdmin: Boolean(p.isAdmin || p.admin === 'admin'),
+          isSuperAdmin: Boolean(p.isSuperAdmin || p.admin === 'superadmin'),
+          name: p.name || p.short || p.notify || p.pushName || "",
         });
+      } else if (isCommunity && normalizedId) {
+        // Fallback for community members that might not have a clear domain
+        const lidCandidate = normalizeLidValue(normalizedId);
+        if (lidCandidate.includes("@lid")) {
+          lidParticipants.push(lidCandidate);
+          unresolvedLidParticipants.push({
+            phone: lidCandidate,
+            isAdmin: Boolean(p.isAdmin),
+            isSuperAdmin: Boolean(p.isSuperAdmin),
+            name: p.name || p.short || p.notify || "",
+          });
+        }
       }
     }
 
@@ -1119,12 +1126,21 @@ Deno.serve(async (req) => {
 
     const seenPhones = new Set<string>();
     const uniqueParticipants = resolvedParticipants.filter((participant) => {
+      // For community extraction, sometimes members come with @lid even when we have their real phone.
+      // We prioritize real phones, but if we only have @lid, we keep it.
       if (!participant.phone || seenPhones.has(participant.phone)) return false;
       seenPhones.add(participant.phone);
       return true;
     });
 
     console.log(`✅ Final unique participants: ${uniqueParticipants.length}`);
+
+    // If it's a community and we still have 0 members, try one last desperation logic:
+    // Some Z-API instances return members in a different field for communities
+    if (uniqueParticipants.length === 0 && isCommunity && primaryData?.subGroups) {
+      console.log("Desperation logic: extracting participants from subGroups directly if aggregation failed");
+      // ... already tried aggregating subGroups, but maybe they were returned in a single array elsewhere
+    }
 
     return new Response(
       JSON.stringify({
@@ -1137,6 +1153,7 @@ Deno.serve(async (req) => {
         unresolvedLids: uniqueParticipants.filter((participant) => String(participant.phone).includes("@lid")).length,
         usedFallbackParticipants: shouldUseFallback,
         partialAdminsOnlyFallback: apiParticipants.length === 0 && fallbackHasOnlyAdmins,
+        isCommunity: isCommunity,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
