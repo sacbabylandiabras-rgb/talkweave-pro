@@ -431,25 +431,48 @@ export default function Skills() {
                 Nenhum anexo. Envie imagens, vídeos, áudios ou documentos (até 50MB cada).
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {(editingDetail.attachments || []).map((a, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 bg-muted/30">
-                    <a
-                      href={a.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 min-w-0 flex-1 text-sm hover:text-primary"
-                    >
-                      <span className="text-muted-foreground shrink-0">{attachmentIcon(a.type)}</span>
-                      <span className="truncate">{a.name}</span>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(a.size)}</span>
-                    </a>
-                    <button
-                      onClick={() => removeAttachment(i)}
-                      className="text-muted-foreground hover:text-destructive p-1 rounded"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                  <div key={i} className="rounded-md border border-border p-2 bg-muted/30 space-y-2">
+                    {a.type.startsWith("image/") && (
+                      <a href={a.url} target="_blank" rel="noreferrer" className="block rounded overflow-hidden bg-background">
+                        <img src={a.url} alt={a.name} className="w-full max-h-48 object-contain" />
+                      </a>
+                    )}
+                    {a.type.startsWith("video/") && (
+                      <video src={a.url} controls className="w-full max-h-48 rounded bg-background" />
+                    )}
+                    {a.type.startsWith("audio/") && (
+                      <audio src={a.url} controls className="w-full" />
+                    )}
+                    {!a.type.startsWith("image/") && !a.type.startsWith("video/") && !a.type.startsWith("audio/") && (
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-2 h-24 rounded bg-background text-muted-foreground hover:text-primary"
+                      >
+                        <FileIcon className="w-8 h-8" />
+                      </a>
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 min-w-0 flex-1 text-xs hover:text-primary"
+                      >
+                        <span className="text-muted-foreground shrink-0">{attachmentIcon(a.type)}</span>
+                        <span className="truncate">{a.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(a.size)}</span>
+                      </a>
+                      <button
+                        onClick={() => removeAttachment(i)}
+                        className="text-muted-foreground hover:text-destructive p-1 rounded"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
