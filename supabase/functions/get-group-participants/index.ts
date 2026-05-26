@@ -835,6 +835,8 @@ Deno.serve(async (req) => {
     } catch (metaError) {
       const msg = metaError instanceof Error ? metaError.message : String(metaError);
       console.log(`⚠️ group-metadata failed for ${groupId}, will try community path: ${msg}`);
+      // If group-metadata fails, we still need an object for basic fields
+      primaryData = { subject: "", name: "", description: "", owner: "" };
     }
     let apiParticipants = extractParticipantArray(primaryData);
 
