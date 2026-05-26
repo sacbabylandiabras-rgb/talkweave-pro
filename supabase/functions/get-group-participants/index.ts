@@ -866,7 +866,24 @@ Deno.serve(async (req) => {
 
     let primaryData: any = null;
     try {
-      primaryData = await fetchGroupMetadata(groupId);
+      const normalizedGroupId = normalizeGroupId(groupId);
+      const candidates = uniqueStrings([
+        groupId,
+        normalizedGroupId,
+        normalizedGroupId.replace(/-group$/i, "@g.us"),
+        groupId.replace(/@g\.us$/i, "-group"),
+      ]);
+
+      let lastMetaError: any = null;
+      for (const cid of candidates) {
+        try {
+          primaryData = await fetchGroupMetadata(cid);
+          if (primaryData) break;
+        } catch (e) {
+          lastMetaError = e;
+        }
+      }
+      if (!primaryData && lastMetaError) throw lastMetaError;
     } catch (metaError) {
       const msg = metaError instanceof Error ? metaError.message : String(metaError);
       console.log(`⚠️ group-metadata failed for ${groupId}, will try community path: ${msg}`);
