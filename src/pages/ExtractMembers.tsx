@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, UserPlus, UserMinus, Shield, Loader2, Search, Download, RefreshCw } from "lucide-react";
+import { Users, UserPlus, UserMinus, Shield, Loader2, Search, Download, RefreshCw, Smartphone, QrCode } from "lucide-react";
 import { useWhatsAppGroups } from "@/hooks/useWhatsAppGroups";
 import { useGroupMemberCount } from "@/hooks/useGroupMemberCount";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { UazapiConnectDialog } from "@/components/dispositivos/UazapiConnectDialog";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ const ExtractMembers = () => {
     [allGroups],
   );
 
-  const { instances } = useZapiInstances({ provider: "zapi_no_warmup_meta" });
+  const { instances, refetch: refetchInstances } = useZapiInstances({ provider: "uazapi" });
   const { fetchMemberCount, isMemberCountLoading } = useGroupMemberCount();
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -57,6 +58,7 @@ const ExtractMembers = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
 
@@ -169,14 +171,25 @@ const ExtractMembers = () => {
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/10 shrink-0">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Users className="w-6 h-6 text-primary" />
-          Extrair Membros
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Gerencie e extraia participantes dos seus grupos e comunidades
-        </p>
+      <div className="px-6 py-4 border-b border-white/10 shrink-0 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            Extrair Membros
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Gerencie e extraia participantes dos seus grupos e comunidades
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2 border-primary/20 hover:bg-primary/5"
+          onClick={() => setConnectDialogOpen(true)}
+        >
+          <QrCode className="w-4 h-4" />
+          Conectar Uazapi
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20 scrollbar-thin scrollbar-thumb-white/10">
@@ -442,6 +455,15 @@ const ExtractMembers = () => {
           </Card>
         </div>
       </div>
+
+      <UazapiConnectDialog 
+        open={connectDialogOpen} 
+        onOpenChange={setConnectDialogOpen} 
+        onSuccess={() => {
+          refetch();
+          refetchInstances();
+        }}
+      />
     </div>
   );
 };
