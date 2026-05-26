@@ -60,6 +60,7 @@ export interface SavedContact {
   updated_at?: string | null;
   is_community?: boolean;
   community_id?: string | null;
+  agent_stage?: string | null;
 }
 
 export interface Conversation {
@@ -74,6 +75,7 @@ export interface Conversation {
   preferredInstanceId?: string | null;
   isCommunity?: boolean;
   communityId?: string | null;
+  agent_stage?: string | null;
 }
 
 type OutboundButtonAction = {
@@ -299,7 +301,7 @@ const savedContactsApi = {
 
     return allContacts;
   },
-   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null }) {
+   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null; agent_stage?: string | null }) {
      const payload = { ...data };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
