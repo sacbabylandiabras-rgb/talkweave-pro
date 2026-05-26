@@ -339,6 +339,94 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
     </Dialog>
   );
 
+  const manageDialog = (
+    <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle>Pipelines de Vendas</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Gerencie seus pipelines de vendas e organize em pastas
+                </DialogDescription>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="gap-1"
+              onClick={() => {
+                setIsManageOpen(false);
+                openCreateDialog();
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Criar Pipeline de Vendas
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="border border-border rounded-md overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-[10px] uppercase tracking-wider">Nome</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">Negócios</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">Departamento</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">Moeda</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">Etapas</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pipelines.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">
+                    Nenhum pipeline criado ainda.
+                  </TableCell>
+                </TableRow>
+              )}
+              {pipelines.map((p) => {
+                const dealsCount = p.stages.reduce((acc, s) => acc + (counts[s.id] || 0), 0);
+                const isActive = p.id === activeId;
+                return (
+                  <TableRow
+                    key={p.id}
+                    className={cn("cursor-pointer", isActive && "bg-primary/5")}
+                    onClick={() => {
+                      handleSelectPipeline(p.id);
+                      setIsManageOpen(false);
+                    }}
+                  >
+                    <TableCell className="text-xs font-medium">{p.name}</TableCell>
+                    <TableCell className="text-xs">{dealsCount}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{p.department || "-"}</TableCell>
+                    <TableCell className="text-xs">{p.currency || "-"}</TableCell>
+                    <TableCell className="text-xs">{p.stages.filter(s => s.id !== 'all').length}</TableCell>
+                    <TableCell>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePipeline(p.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive p-1 rounded"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (pipelines.length === 0) {
     return (
       <>
