@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { PipelineSelector } from "@/components/agent/PipelineSelector";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
@@ -2028,6 +2029,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const [selectedStage, setSelectedStage] = useState("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(() => normalizeSelectedConversationPhone(searchParams.get("phone")));
   const [activeTab, setActiveTab] = useState<"chat" | "pipeline">(mode);
+  const [pipelineActiveId, setPipelineActiveId] = useState<string>(() =>
+    mode === "pipeline" ? (localStorage.getItem("pipeline_active_id") || "") : ""
+  );
   const handledPhoneParamRef = useRef<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogPhone, setSaveDialogPhone] = useState("");
@@ -2577,13 +2581,27 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const showList = !isMobile || !selectedPhone;
   const showChat = !isMobile || !!selectedPhone;
 
+  // When viewing /pipeline and no pipeline has been chosen yet, show the selector page.
+  if (mode === "pipeline" && !pipelineActiveId) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
+        <PipelineSelector onSelect={(id) => setPipelineActiveId(id)} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
-      <PipelineBar 
+      <PipelineBar
+        key={pipelineActiveId || "default"}
         selectedStage={selectedStage} 
         onStageSelect={setSelectedStage} 
         counts={stageCounts}
         onStagesChange={setPipelineStages}
+        onSwitchPipeline={mode === "pipeline" ? () => {
+          localStorage.removeItem("pipeline_active_id");
+          setPipelineActiveId("");
+        } : undefined}
       />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (

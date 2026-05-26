@@ -54,9 +54,12 @@ interface PipelineBarProps {
   onStageSelect: (stageId: string) => void;
   counts: Record<string, number>;
   onStagesChange?: (stages: Stage[]) => void;
+  /** When provided, the selector becomes a "switch funnel" button that calls this callback
+   *  (typically clearing the active id so the parent renders the chooser page). */
+  onSwitchPipeline?: () => void;
 }
 
-export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange }: PipelineBarProps) => {
+export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChange, onSwitchPipeline }: PipelineBarProps) => {
   const { toast } = useToast();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -451,6 +454,18 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
     <>
     <div className="w-full bg-card border-b border-border py-2 px-4 shadow-sm flex items-center gap-3">
       {/* Pipeline selector - opens management dialog */}
+      {onSwitchPipeline ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-2 shrink-0 max-w-[240px]"
+          onClick={onSwitchPipeline}
+        >
+          <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
+          <span className="truncate text-xs font-semibold">{activePipeline?.name || "Selecionar Funil"}</span>
+          <ChevronDown className="w-3 h-3 opacity-50" />
+        </Button>
+      ) : (
       <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -515,6 +530,7 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
           </div>
         </PopoverContent>
       </Popover>
+      )}
 
       <div className="h-6 w-px bg-border shrink-0" />
 
