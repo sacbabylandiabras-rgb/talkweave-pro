@@ -106,7 +106,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     const [closingDate, setClosingDate] = useState<string>("");
     const [priority, setPriority] = useState<string>("normal");
     const [dealDescription, setDealDescription] = useState<string>("");
-    const [pipelineStages, setPipelineStages] = useState<any[]>(PIPELINE_STAGES);
+    const [pipelineStages, setPipelineStages] = useState<any[]>(DEFAULT_PIPELINE_STAGES);
 
     useEffect(() => {
       const fetchStages = async () => {
