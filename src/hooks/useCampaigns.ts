@@ -26,9 +26,12 @@ export interface CampaignSend {
   phone: string;
   contact_name?: string;
   message_content: string;
-  status: "pending" | "sent" | "delivered" | "failed";
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
   sent_at?: string;
   delivered_at?: string;
+  read_at?: string;
+  clicked_at?: string;
+  message_id?: string;
   error_message?: string;
   created_at: string;
 }
