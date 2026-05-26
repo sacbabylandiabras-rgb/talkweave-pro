@@ -35,7 +35,7 @@ const FluxoMeta = lazyWithRecovery(() => import("./pages/FluxoMeta"));
 const FluxoGrupos = lazyWithRecovery(() => import("./pages/FluxoGrupos"));
 const GatewayIntegracoes = lazyWithRecovery(() => import("./pages/GatewayIntegracoes"));
 const MensagensRecebidas = lazyWithRecovery(() => import("./pages/MensagensRecebidas"));
-const ApanhadorGrupos = lazyWithRecovery(() => import("./pages/ApanhadorGrupos"));
+
 const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
 const AgenteIA = lazyWithRecovery(() => import("./pages/AgenteIA"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
@@ -119,7 +119,7 @@ const TelegramLinksUtm = lazyWithRecovery(() => import("./pages/telegram/Telegra
  const ModelosInstagram = lazyWithRecovery(() => import("./pages/instagram/ModelosInstagram"));
 const EnviarInstagram = lazyWithRecovery(() => import("./pages/instagram/EnviarInstagram"));
  const InstagramMessages = lazyWithRecovery(() => import("./pages/instagram/InstagramMessages"));
-const ExtrairComunidade = lazyWithRecovery(() => import("./pages/ExtrairComunidade"));
+
 const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
@@ -191,11 +191,11 @@ const App = () => (
                   <Route path="/enviar" element={<EnviarMensagem />} />
                   <Route path="/mensagens" element={<MensagensRecebidas />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
-                  <Route path="/apanhador-grupos" element={<PaidRouteGuard><ApanhadorGrupos /></PaidRouteGuard>} />
+                  
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
-                   <Route path="/extrair-comunidade" element={<ExtrairComunidade />} />
+                   
                    <Route path="/agente-ia" element={<AgenteIA />} />
                   <Route path="/aquecimento" element={<AquecimentoNumero />} />
                   <Route
