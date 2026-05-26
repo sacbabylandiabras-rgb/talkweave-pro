@@ -16,6 +16,7 @@ serve(async (req) => {
     const VERCEL_API_TOKEN = Deno.env.get("VERCEL_API_TOKEN");
     const VERCEL_PROJECT_ID = Deno.env.get("VERCEL_PROJECT_ID");
     const VERCEL_TEAM_ID = Deno.env.get("VERCEL_TEAM_ID");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
