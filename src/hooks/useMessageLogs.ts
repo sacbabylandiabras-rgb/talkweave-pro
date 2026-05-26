@@ -61,6 +61,12 @@ export interface SavedContact {
   is_community?: boolean;
   community_id?: string | null;
   agent_stage?: string | null;
+  deal_value?: number;
+  closing_date?: string | null;
+  priority?: string;
+  description?: string | null;
+  responsible_ids?: string[] | null;
+  deal_metadata?: any;
 }
 
 export interface Conversation {
@@ -301,7 +307,7 @@ const savedContactsApi = {
 
     return allContacts;
   },
-   async upsert(token: string, data: { phone: string; name: string; user_id: string; profile_picture_url?: string | null; agent_stage?: string | null }) {
+   async upsert(token: string, data: Partial<SavedContact> & { phone: string; name: string; user_id: string }) {
      const payload = { ...data };
     await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
       method: 'POST',
@@ -1557,7 +1563,7 @@ export const useMessageLogs = (
      loading, 
      refetch: fetchAll, 
      saveContact, 
-     updateContactStage: async (phone: string, stage: string) => {
+     updateContactStage: async (phone: string, stage: string, additionalData?: Partial<SavedContact>) => {
        const token = await getToken();
        const userId = await getUserId();
        if (!token || !userId) return;
@@ -1572,6 +1578,7 @@ export const useMessageLogs = (
               user_id: userId,
               agent_stage: stage,
               profile_picture_url: saved?.profile_picture_url || null,
+              ...additionalData
             }, { onConflict: 'phone,user_id' });
           
           if (error) throw error;
@@ -1579,7 +1586,7 @@ export const useMessageLogs = (
          console.warn("Failed to save stage to database, column might be missing:", e);
          // Fallback: save to localStorage for this session/user
          const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
-         stages[normalized] = stage;
+         stages[normalized] = { stage, ...additionalData };
          localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
        }
        await fetchSavedContacts();
