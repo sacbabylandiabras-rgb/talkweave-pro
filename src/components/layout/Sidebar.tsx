@@ -49,6 +49,7 @@ import {
   Building2,
   Camera,
   Tag,
+  Mail,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
