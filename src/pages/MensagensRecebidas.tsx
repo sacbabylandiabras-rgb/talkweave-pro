@@ -2581,13 +2581,27 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const showList = !isMobile || !selectedPhone;
   const showChat = !isMobile || !!selectedPhone;
 
+  // When viewing /pipeline and no pipeline has been chosen yet, show the selector page.
+  if (mode === "pipeline" && !pipelineActiveId) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
+        <PipelineSelector onSelect={(id) => setPipelineActiveId(id)} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-background">
-      <PipelineBar 
+      <PipelineBar
+        key={pipelineActiveId || "default"}
         selectedStage={selectedStage} 
         onStageSelect={setSelectedStage} 
         counts={stageCounts}
         onStagesChange={setPipelineStages}
+        onSwitchPipeline={mode === "pipeline" ? () => {
+          localStorage.removeItem("pipeline_active_id");
+          setPipelineActiveId("");
+        } : undefined}
       />
       <div className="flex-1 flex rounded-b-lg border border-t-0 border-border overflow-hidden bg-background shadow-sm relative">
         {activeTab === "chat" && (
