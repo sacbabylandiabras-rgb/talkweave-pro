@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
-import { PipelineBar, PIPELINE_STAGES } from "@/components/agent/PipelineBar";
+import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
