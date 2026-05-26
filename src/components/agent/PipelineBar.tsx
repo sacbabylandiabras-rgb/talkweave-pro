@@ -20,6 +20,9 @@ export const DEFAULT_PIPELINE_STAGES = [
   { id: "lost", label: "PERDIDO", color: "bg-slate-800" },
 ];
 
+export let PIPELINE_STAGES = [...DEFAULT_PIPELINE_STAGES];
+
+
 interface PipelineBarProps {
   selectedStage: string;
   onStageSelect: (stageId: string) => void;
