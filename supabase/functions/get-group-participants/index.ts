@@ -841,6 +841,7 @@ Deno.serve(async (req) => {
       const candidates = uniqueStrings([
         normalizeCommunityId(communityId),
         normalizeGroupId(communityId),
+        communityId,
       ]);
 
       for (const candidateId of candidates) {
