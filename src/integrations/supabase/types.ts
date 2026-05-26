@@ -1833,6 +1833,77 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_contents: {
+        Row: {
+          connected_to_agent: boolean
+          content: string
+          created_at: string
+          folder_id: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_to_agent?: boolean
+          content?: string
+          created_at?: string
+          folder_id: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_to_agent?: boolean
+          content?: string
+          created_at?: string
+          folder_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_contents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "skill_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_folders: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           active: boolean
