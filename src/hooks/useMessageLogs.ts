@@ -1333,7 +1333,7 @@ export const useMessageLogs = (
           preferredInstanceId,
           isCommunity: saved?.is_community || false,
           communityId: saved?.community_id || null,
-          agent_stage: saved?.agent_stage || 'triage',
+          agent_stage: saved?.agent_stage || JSON.parse(localStorage.getItem('temp_contact_stages') || '{}')[normalizedPhone] || 'triage',
         };
       })
       .sort((a, b) => toMillis(b.lastTimestamp) - toMillis(a.lastTimestamp));
@@ -1563,13 +1563,21 @@ export const useMessageLogs = (
        if (!token || !userId) return;
        const normalized = normalizeConversationPhone(phone);
        const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
-       await savedContactsApi.upsert(token, {
-         phone: normalized,
-         name: saved?.name || '',
-         user_id: userId,
-         agent_stage: stage,
-         profile_picture_url: saved?.profile_picture_url || null,
-       });
+       try {
+         await savedContactsApi.upsert(token, {
+           phone: normalized,
+           name: saved?.name || '',
+           user_id: userId,
+           agent_stage: stage,
+           profile_picture_url: saved?.profile_picture_url || null,
+         });
+       } catch (e) {
+         console.warn("Failed to save stage to database, column might be missing:", e);
+         // Fallback: save to localStorage for this session/user
+         const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
+         stages[normalized] = stage;
+         localStorage.setItem('temp_contact_stages', JSON.stringify(stages));
+       }
        await fetchSavedContacts();
      },
      fetchProfilePicture, 
