@@ -267,7 +267,16 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                 {linkContent}
               </a>
             ) : (
-              <Link to={item.path} className={className}>
+              <Link 
+                to={item.path} 
+                className={className}
+                onClick={(e) => {
+                  if (item.id === 'mensagens' || item.id === 'pipeline') {
+                    // Force refresh or state update if already on the page
+                    window.location.href = item.path;
+                  }
+                }}
+              >
                 {linkContent}
               </Link>
             )}
