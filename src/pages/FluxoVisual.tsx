@@ -55,6 +55,7 @@ import { AdicionarMsgChatEditor } from "@/components/flow/AdicionarMsgChatEditor
 import { EnviarEmailEditor } from "@/components/flow/EnviarEmailEditor";
 import { TrocarDepartamentoEditor } from "@/components/flow/TrocarDepartamentoEditor";
 import { DirecionarFilaEditor } from "@/components/flow/DirecionarFilaEditor";
+import { TrocarEstrategiaEditor } from "@/components/flow/TrocarEstrategiaEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5125,6 +5126,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/direcionar\s*para\s*fila/i.test(label)) {
                   return (
                     <DirecionarFilaEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/trocar\s*estrat[ée]gia/i.test(label)) {
+                  return (
+                    <TrocarEstrategiaEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
