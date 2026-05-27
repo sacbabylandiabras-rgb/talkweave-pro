@@ -900,7 +900,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const normalizedNode =
-      node.type === "blocoConteudo" && node.data?.label === "Mensagem em Áudio"
+      isMensagemAudioBlock(node)
         ? { ...node, data: { ...node.data, contentType: "audio" } }
         : node;
     setSelectedNode(normalizedNode);
