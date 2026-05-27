@@ -22,6 +22,7 @@ function handleDragStart(event: React.DragEvent, block: AgentToolBlock, onToolDr
       label: block.label,
       description: block.description,
       category: block.category,
+      instructions: block.instructions,
     })
   );
   event.dataTransfer.effectAllowed = "move";
