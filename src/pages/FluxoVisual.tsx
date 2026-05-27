@@ -1480,29 +1480,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
 
           {/* Row 2: Draggable Blocks */}
-          <div className="flex items-center gap-2 px-4 py-2 border-t border-border overflow-x-auto">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider shrink-0">Blocos:</p>
-            {blocosDisponiveis.map((bloco) => (
-              <div
-                key={bloco.type}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-secondary/30 cursor-grab hover:bg-accent/50 hover:border-primary/30 transition-all active:cursor-grabbing shrink-0"
-                draggable
-                onDragStart={(e) => onDragStart(e, bloco.type)}
-              >
-                <div className="p-1 rounded-md bg-primary/10">
-                  <bloco.icon className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-xs">{bloco.label}</h3>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{bloco.description}</p>
-                </div>
-                <GripVertical className="h-3 w-3 text-muted-foreground/40" />
-              </div>
-            ))}
+          <div className="flex items-center gap-2 px-4 py-2 border-t border-border">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              onClick={() => setShowAddBlockDialog(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar bloco
+            </Button>
+            <span className="text-[10px] text-muted-foreground">
+              Escolha um bloco padrão ou uma ferramenta do agente para inserir no fluxo.
+            </span>
           </div>
-
-          {/* Row 3: Agent Tool Blocks */}
-          <AgentToolsBar />
         </div>
 
         {/* Canvas */}
