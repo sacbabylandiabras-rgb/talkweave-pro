@@ -1117,7 +1117,44 @@ async function executeTool(
       });
     }
     case "transferir_fila": {
-      return await executeTool("transferir_humano", { motivo: `Fila: ${input.fila_id || "Geral"}` }, ctx);
+      try {
+        const { data: cfg } = await supabase
+          .from("agent_tools_config")
+          .select("config")
+          .eq("user_id", userId)
+          .eq("tool_name", "transferir_fila")
+          .maybeSingle();
+        const c: any = cfg?.config || {};
+        const ids: string[] = Array.isArray(c.departmentIds) ? c.departmentIds : [];
+        let chosen: { id: string; name: string } | null = null;
+        if (ids.length) {
+          const pick = c.queueRandom ? ids[Math.floor(Math.random() * ids.length)] : ids[0];
+          const { data: dep } = await supabase
+            .from("departments")
+            .select("id, name")
+            .eq("id", pick)
+            .maybeSingle();
+          if (dep) chosen = { id: dep.id, name: dep.name };
+        }
+        try {
+          await supabase.from("agent_handoff").insert({
+            user_id: userId,
+            phone: phone || "test",
+            reason: chosen ? `Fila: ${chosen.name}` : `Fila: ${input.fila_id || "Geral"}`,
+            department_id: chosen?.id || null,
+          });
+        } catch (_) {}
+        return JSON.stringify({
+          ok: true,
+          department: chosen,
+          end_flow: !!c.queueEndFlow,
+          message: chosen
+            ? `Conversa transferida para a fila ${chosen.name}.`
+            : "Conversa transferida para atendimento humano.",
+        });
+      } catch (e: any) {
+        return JSON.stringify({ ok: false, error: String(e?.message || e) });
+      }
     }
     case "transferir_estrategia": {
       return JSON.stringify({ ok: true, message: `Atendimento transferido para estratégia/agente: ${input.agente_id}` });

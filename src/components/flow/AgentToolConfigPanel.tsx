@@ -1113,6 +1113,137 @@ function McpPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => v
 }
 
 function AgentToolConfigPanelInner({ node, setNode }: Props) {
+  return <AgentToolConfigPanelInnerImpl node={node} setNode={setNode} />;
+}
+
+type Dept = { id: string; name: string; color?: string | null };
+
+function TransferirFilaPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const departmentIds: string[] = Array.isArray(node.data?.departmentIds) ? node.data.departmentIds : [];
+  const queueRandom = !!node.data?.queueRandom;
+  const queueEndFlow = !!node.data?.queueEndFlow;
+  const [allDepts, setAllDepts] = useState<Dept[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data } = await (supabase as any)
+          .from("departments")
+          .select("id, name, color")
+          .eq("user_id", session.user.id)
+          .order("name", { ascending: true });
+        setAllDepts(data || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Auto-save config so the executor can pick it up
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const config = {
+          description: node.data?.description || "",
+          departmentIds,
+          queueRandom,
+          queueEndFlow,
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "transferir_fila", enabled: true, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save transferir_fila", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.data?.description, JSON.stringify(departmentIds), queueRandom, queueEndFlow]);
+
+  const toggle = (id: string, checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...departmentIds, id]))
+      : departmentIds.filter((x) => x !== id);
+    setData(node, setNode, { departmentIds: next });
+  };
+
+  return (
+    <>
+      {Header}
+      <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Transferir para Fila" />
+      <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+        <div>
+          <Label htmlFor="queue-random" className="cursor-pointer">Modo Random</Label>
+          <p className="text-[11px] text-muted-foreground">
+            Alterna entre os departamentos selecionados aleatoriamente.
+          </p>
+        </div>
+        <Switch
+          id="queue-random"
+          checked={queueRandom}
+          onCheckedChange={(c) => setData(node, setNode, { queueRandom: !!c })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Departamentos disponíveis</Label>
+        {loading ? (
+          <p className="text-[11px] text-muted-foreground italic">Carregando...</p>
+        ) : allDepts.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">
+            Nenhum departamento criado. Cadastre em Configurações &gt; Departamentos.
+          </p>
+        ) : (
+          <div className="space-y-1 max-h-56 overflow-y-auto rounded-md border border-border p-2">
+            {allDepts.map((d) => (
+              <label key={d.id} className="flex items-center gap-2 text-[12px] cursor-pointer hover:bg-accent rounded px-1 py-0.5">
+                <Checkbox
+                  checked={departmentIds.includes(d.id)}
+                  onCheckedChange={(c) => toggle(d.id, !!c)}
+                />
+                {d.color && (
+                  <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                )}
+                <span className="flex-1">{d.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Selecione para salvar automaticamente"}
+        </p>
+      </div>
+      <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+        <div>
+          <Label htmlFor="queue-end" className="cursor-pointer">Encerrar fluxo após a transferência</Label>
+          <p className="text-[11px] text-muted-foreground">
+            Não gera nova mensagem do agente nem segue para o próximo nó do grafo — útil quando a fila já responde ao cliente.
+          </p>
+        </div>
+        <Switch
+          id="queue-end"
+          checked={queueEndFlow}
+          onCheckedChange={(c) => setData(node, setNode, { queueEndFlow: !!c })}
+        />
+      </div>
+    </>
+  );
+}
+
+function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   const navigate = useNavigate();
   const toolName: string = node.data?.toolName || "";
   const block = findAgentToolBlock(toolName);
@@ -2140,53 +2271,7 @@ function AgentToolConfigPanelInner({ node, setNode }: Props) {
 
   // --- MODAL 21: Transferir para Fila ---
   if (toolName === "transferir_fila") {
-    const depts: string[] = Array.isArray(node.data?.departments) ? node.data.departments : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Transferir para Fila" />
-        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
-          <div>
-            <Label htmlFor="queue-random" className="cursor-pointer">Modo Random</Label>
-            <p className="text-[11px] text-muted-foreground">
-              Alterna entre os departamentos selecionados aleatoriamente.
-            </p>
-          </div>
-          <Switch
-            id="queue-random"
-            checked={!!node.data?.queueRandom}
-            onCheckedChange={(c) => setData(node, setNode, { queueRandom: c })}
-          />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Departamento</Label>
-            <Button variant="outline" size="sm">Selecionar</Button>
-          </div>
-          {depts.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">Nenhum departamento definido</p>
-          ) : (
-            <ul className="text-[12px] space-y-1">
-              {depts.map((d, i) => <li key={i}>• {d}</li>)}
-            </ul>
-          )}
-        </div>
-        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
-          <div>
-            <Label htmlFor="queue-end" className="cursor-pointer">Encerrar fluxo após a transferência</Label>
-            <p className="text-[11px] text-muted-foreground">
-              Não gera nova mensagem do agente nem segue para o próximo nó do grafo — útil quando a
-              fila já responde ao cliente.
-            </p>
-          </div>
-          <Switch
-            id="queue-end"
-            checked={!!node.data?.queueEndFlow}
-            onCheckedChange={(c) => setData(node, setNode, { queueEndFlow: c })}
-          />
-        </div>
-      </>
-    );
+    return <TransferirFilaPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 22: Agente Tool ---
