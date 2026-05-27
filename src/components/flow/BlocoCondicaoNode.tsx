@@ -53,14 +53,22 @@ export function BlocoCondicaoNode({ data }: any) {
   const isIfElse = (data.label || "").toLowerCase().includes("if/else");
 
   if (!isIfElse) {
+    const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
+      ? data.branches
+      : [
+          { label: "Verdadeiro", value: data.condition || "" },
+          { label: "Falso", value: "" },
+        ];
+    const branchHandleId = (i: number) => (i === 0 ? "a" : i === 1 ? "b" : `branch-${i}`);
+    const ROW = 28;
     return (
-      <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[200px] glass-card !overflow-visible z-50">
+      <div className="relative pt-5 pb-2 shadow-md rounded-2xl border border-border/40 bg-card min-w-[220px] glass-card !overflow-visible z-50">
         <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md">
           Condição
         </span>
         <Handle type="target" position={Position.Left} id="target-left" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ left: -8 }} />
         <Handle type="target" position={Position.Top} id="target-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-4">
           <div className="p-1.5 rounded bg-primary/10">
             <GitBranch className="h-4 w-4 text-primary" />
           </div>
@@ -68,16 +76,54 @@ export function BlocoCondicaoNode({ data }: any) {
             <div className="text-sm font-semibold text-card-foreground">
               {data.label}
             </div>
-            {data.condition && (
+            {data.variable && (
               <div className="text-xs text-muted-foreground mt-1">
-                {data.condition}
+                <code className="font-mono text-primary">{data.variable}</code>
               </div>
             )}
           </div>
         </div>
-        <Handle type="source" position={Position.Right} id="a" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: "35%", right: -8 }} />
-        <Handle type="source" position={Position.Right} id="b" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: "65%", right: -8 }} />
-        <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ bottom: -8 }} />
+        <div className="mt-2 py-1">
+          {branches.map((b: any, i: number) => (
+            <div
+              key={i}
+              className="relative flex items-center gap-2 px-3 text-[11px] text-card-foreground/90 border-b border-border/30 last:border-0"
+              style={{ height: ROW }}
+            >
+              <span className="inline-flex items-center justify-center min-w-[22px] h-4 px-1 rounded text-[9px] font-bold bg-muted text-foreground">
+                {i + 1}
+              </span>
+              <span className="truncate flex-1">
+                <span className="text-muted-foreground mr-1">se =</span>
+                <span className="font-medium">"{b.value ?? ""}"</span>
+                {b.label && <span className="ml-1 text-muted-foreground">→ {b.label}</span>}
+              </span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={branchHandleId(i)}
+                className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto !cursor-crosshair hover:!bg-blue-400"
+                style={{ right: -8, top: "50%", transform: "translateY(-50%)" }}
+              />
+            </div>
+          ))}
+          <div
+            className="relative flex items-center gap-2 px-3 mt-1 mx-2 mb-1 rounded-md bg-orange-500/15 border border-orange-500/40 text-[11px] text-orange-200"
+            style={{ height: ROW }}
+          >
+            <span className="inline-flex items-center justify-center h-4 px-1.5 rounded text-[9px] font-bold bg-orange-500/80 text-white">
+              ELSE (Padrão)
+            </span>
+            <span className="ml-auto text-[10px] text-orange-300/80">caminho padrão →</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="source-bottom"
+              className="!w-4 !h-4 !bg-orange-500 !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto !cursor-crosshair hover:!bg-orange-400"
+              style={{ right: -16, top: "50%", transform: "translateY(-50%)" }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
