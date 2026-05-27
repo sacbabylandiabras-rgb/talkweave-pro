@@ -2400,35 +2400,26 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
           label="Descrição da ferramenta — Finalizar Atendimento"
           placeholder="Ex: quando o cliente confirmar que a dúvida foi resolvida ou pedir para encerrar..."
         />
-        <div className="flex items-center gap-2 rounded-lg border border-border p-3">
-          <Checkbox
-            id="finalize-flag"
-            checked={node.data?.finalizeEnabled !== false}
-            onCheckedChange={(c) => setData(node, setNode, { finalizeEnabled: !!c })}
-          />
-          <Label htmlFor="finalize-flag" className="cursor-pointer">
-            Finalizar atendimento (tool)
-          </Label>
-        </div>
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] flex gap-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-          <p>
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-[13px] font-semibold">
+            <CheckCircle2 className="h-4 w-4 text-amber-500" />
+            <span>Finalizar atendimento (tool)</span>
+          </div>
+          <p className="text-[12px] text-foreground/90 leading-relaxed">
             Quando o agente chamar esta ferramenta, o atendimento será encerrado imediatamente.
             Use a descrição acima para orientar quando a IA deve finalizar (ex: após resolver a
             dúvida, quando o cliente confirmar que não precisa de mais nada).
           </p>
         </div>
-        <InfoBlock>
-          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
-            Comportamento
-          </div>
-          <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-            <li>O agente decide quando chamar com base na descrição da ferramenta.</li>
-            <li>O atendimento é encerrado e o lead sai da fila.</li>
-            <li>Nenhuma mensagem adicional é enviada automaticamente.</li>
-            <li>O fluxo do grafo continua após a tool (diferente do bloco Finalizar Atendimento).</li>
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="text-[12px] font-medium mb-2">Comportamento:</div>
+          <ul className="list-disc pl-4 space-y-1 text-[11px] text-muted-foreground">
+            <li>O agente decide quando chamar com base na descrição da ferramenta</li>
+            <li>O atendimento é encerrado e o lead sai da fila</li>
+            <li>Nenhuma mensagem adicional é enviada automaticamente</li>
+            <li>O fluxo do grafo continua após a tool (diferente do bloco Finalizar Atendimento)</li>
           </ul>
-        </InfoBlock>
+        </div>
       </>
     );
   }
