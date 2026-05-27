@@ -37,6 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import {
   PlayCircle,
@@ -3857,16 +3858,78 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <>
                 <div>
                   <Label>Variável a verificar</Label>
-                  <Input
-                    value={selectedNode.data.variable || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, variable: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: {{node:2:output:resultado}}"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={selectedNode.data.variable || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, variable: e.target.value },
+                        })
+                      }
+                      placeholder="Ex: {{lead.name}}"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="shrink-0">
+                          + Variável
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-80 p-0">
+                        <ScrollArea className="max-h-80">
+                          <div className="p-3 space-y-3">
+                            {[
+                              {
+                                title: "Variáveis do Lead",
+                                items: [
+                                  { v: "{{lead.id}}", d: "ID do lead" },
+                                  { v: "{{lead.code}}", d: "Código do lead" },
+                                  { v: "{{lead.name}}", d: "Nome completo do lead" },
+                                  { v: "{{lead.first_name}}", d: "Primeiro nome do lead" },
+                                  { v: "{{lead.phone}}", d: "Telefone" },
+                                  { v: "{{lead.email}}", d: "E-mail" },
+                                ],
+                              },
+                              {
+                                title: "Campos personalizados",
+                                items: [
+                                  { v: "{{lead.origen}}", d: "Origen" },
+                                ],
+                              },
+                            ].map((group) => (
+                              <div key={group.title}>
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                                  {group.title}
+                                </p>
+                                <div className="space-y-1">
+                                  {group.items.map((it) => (
+                                    <button
+                                      key={it.v}
+                                      type="button"
+                                      onClick={() => {
+                                        const current = selectedNode.data.variable || "";
+                                        setSelectedNode({
+                                          ...selectedNode,
+                                          data: {
+                                            ...selectedNode.data,
+                                            variable: current ? `${current} ${it.v}` : it.v,
+                                          },
+                                        });
+                                      }}
+                                      className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted text-xs"
+                                    >
+                                      <code className="font-mono text-primary">{it.v}</code>
+                                      <p className="text-[11px] text-muted-foreground">{it.d}</p>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Use variáveis dinâmicas do fluxo.
                   </p>
