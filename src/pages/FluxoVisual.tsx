@@ -2628,7 +2628,54 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {(["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
+                {selectedNode.data.label === "Mensagem em Áudio" && (
+                  <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-3">
+                    <div>
+                      <Label>Nome do áudio</Label>
+                      <Input
+                        value={selectedNode.data.audioName || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, audioName: e.target.value, contentType: "audio" },
+                          })
+                        }
+                        placeholder="Ex: áudio de boas-vindas"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Upar áudio</Label>
+                      <div className="mt-2">
+                        <label htmlFor="audio-file-upload" className="cursor-pointer">
+                          <div className="flex items-center justify-center w-full p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
+                            <div className="text-center">
+                              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">
+                                {uploadingFile ? "Enviando..." : "Clique para selecionar o áudio"}
+                              </p>
+                              {selectedNode.data.mediaUrl && (
+                                <p className="text-xs text-primary mt-1">
+                                  ✓ Áudio carregado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Input
+                            id="audio-file-upload"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            disabled={uploadingFile}
+                            accept="audio/*"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNode.data.label !== "Mensagem em Áudio" && (["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
                   <>
                     <div>
                       <Label>
