@@ -54,6 +54,7 @@ import { DelayEditor } from "@/components/flow/DelayEditor";
 import { AdicionarMsgChatEditor } from "@/components/flow/AdicionarMsgChatEditor";
 import { EnviarEmailEditor } from "@/components/flow/EnviarEmailEditor";
 import { TrocarDepartamentoEditor } from "@/components/flow/TrocarDepartamentoEditor";
+import { DirecionarFilaEditor } from "@/components/flow/DirecionarFilaEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5111,6 +5112,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/trocar\s*departamento/i.test(label)) {
                   return (
                     <TrocarDepartamentoEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/direcionar\s*para\s*fila/i.test(label)) {
+                  return (
+                    <DirecionarFilaEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
