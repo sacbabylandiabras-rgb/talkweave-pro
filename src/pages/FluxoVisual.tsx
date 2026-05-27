@@ -1059,17 +1059,41 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       toast.error("Digite o texto a ser narrado");
       return;
     }
-    const voice = selectedNode.data.ttsVoice || "alloy";
-    const speed = Number(selectedNode.data.ttsSpeed) || 1;
-    const instructions = (selectedNode.data.ttsInstructions || "").trim();
+    const apiKey = (selectedNode.data.ttsApiKey || "").trim();
+    const voiceId = (selectedNode.data.ttsVoiceId || "EXAVITQu4vr4xnSDxMaL").trim();
+    const stability = Number(selectedNode.data.ttsStability ?? 0.95);
+    const similarityBoost = Number(selectedNode.data.ttsSimilarityBoost ?? 0.75);
+    const style = Number(selectedNode.data.ttsStyle ?? 0.08);
+    const speed = Number(selectedNode.data.ttsSpeed ?? 1);
+    const useSpeakerBoost = selectedNode.data.ttsUseSpeakerBoost !== false;
     const audioName = (selectedNode.data.audioName || "").trim();
+
+    if (!apiKey) {
+      toast.error("Informe o Token API Key do ElevenLabs");
+      return;
+    }
+    if (!voiceId) {
+      toast.error("Informe o Voice ID");
+      return;
+    }
 
     if (mode === "preview") setPreviewingTts(true);
     else setGeneratingTts(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
-        body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
+        body: {
+          text,
+          apiKey,
+          voiceId,
+          stability,
+          similarityBoost,
+          style,
+          speed,
+          useSpeakerBoost,
+          audioName,
+          preview: mode === "preview",
+        },
       });
       if (error || data?.error) {
         const friendlyError = await parseVoiceGenerationError(error, data);
@@ -2795,7 +2819,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        <Label className="text-sm font-medium">Gerar áudio com voz por IA</Label>
+                        <Label className="text-sm font-medium">ElevenLabs Audio</Label>
                       </div>
 
                       <div>
@@ -2818,73 +2842,135 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </div>
 
                       <div>
-                        <Label className="text-xs">Instruções para geração do áudio (opcional)</Label>
-                        <Textarea
-                          value={selectedNode.data.ttsInstructions || ""}
+                        <Label className="text-xs">Token API Key</Label>
+                        <Input
+                          type="password"
+                          value={selectedNode.data.ttsApiKey || ""}
                           onChange={(e) =>
                             setSelectedNode({
                               ...selectedNode,
-                              data: { ...selectedNode.data, ttsInstructions: e.target.value },
+                              data: { ...selectedNode.data, ttsApiKey: e.target.value },
                             })
                           }
-                          placeholder="Ex: tom amigável e empolgado, sotaque brasileiro"
-                          rows={2}
-                          maxLength={500}
+                          placeholder="sk_..."
                         />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Chave da API do ElevenLabs para autenticação
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Voice ID</Label>
+                        <Input
+                          value={selectedNode.data.ttsVoiceId || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, ttsVoiceId: e.target.value },
+                            })
+                          }
+                          placeholder="EXAVITQu4vr4xnSDxMaL"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          ID da voz que será utilizada para síntese
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <Label className="text-xs">Voz</Label>
-                          <Select
-                            value={selectedNode.data.ttsVoice || "alloy"}
-                            onValueChange={(v) =>
-                              setSelectedNode({
-                                ...selectedNode,
-                                data: { ...selectedNode.data, ttsVoice: v },
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="alloy">Alloy</SelectItem>
-                              <SelectItem value="echo">Echo</SelectItem>
-                              <SelectItem value="fable">Fable</SelectItem>
-                              <SelectItem value="onyx">Onyx</SelectItem>
-                              <SelectItem value="nova">Nova</SelectItem>
-                              <SelectItem value="shimmer">Shimmer</SelectItem>
-                              <SelectItem value="ash">Ash</SelectItem>
-                              <SelectItem value="coral">Coral</SelectItem>
-                              <SelectItem value="sage">Sage</SelectItem>
-                              <SelectItem value="verse">Verse</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
                           <Label className="text-xs">
-                            Velocidade — {(Number(selectedNode.data.ttsSpeed) || 1).toFixed(2)}x
+                            Stability: {(Number(selectedNode.data.ttsStability ?? 0.95)).toFixed(2)}
                           </Label>
                           <div className="pt-3">
                             <Slider
-                              value={[Number(selectedNode.data.ttsSpeed) || 1]}
-                              min={0.25}
-                              max={4}
-                              step={0.05}
+                              value={[Number(selectedNode.data.ttsStability ?? 0.95)]}
+                              min={0} max={1} step={0.01}
                               onValueChange={([v]) =>
-                                setSelectedNode({
-                                  ...selectedNode,
-                                  data: { ...selectedNode.data, ttsSpeed: v },
-                                })
+                                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ttsStability: v } })
                               }
                             />
                             <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                              <span>0.25x</span>
-                              <span>1x</span>
-                              <span>4x</span>
+                              <span>0</span><span>0.5</span><span>1</span>
                             </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Controla a estabilidade da voz (0 = mais variação, 1 = mais estável)
+                            </p>
                           </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">
+                            Similarity Boost: {(Number(selectedNode.data.ttsSimilarityBoost ?? 0.75)).toFixed(2)}
+                          </Label>
+                          <div className="pt-3">
+                            <Slider
+                              value={[Number(selectedNode.data.ttsSimilarityBoost ?? 0.75)]}
+                              min={0} max={1} step={0.01}
+                              onValueChange={([v]) =>
+                                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ttsSimilarityBoost: v } })
+                              }
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>0</span><span>0.5</span><span>1</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Amplifica a similaridade com a voz original
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">
+                            Style: {(Number(selectedNode.data.ttsStyle ?? 0.08)).toFixed(2)}
+                          </Label>
+                          <div className="pt-3">
+                            <Slider
+                              value={[Number(selectedNode.data.ttsStyle ?? 0.08)]}
+                              min={0} max={1} step={0.01}
+                              onValueChange={([v]) =>
+                                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ttsStyle: v } })
+                              }
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>0</span><span>0.5</span><span>1</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Controla o estilo e expressividade da voz
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">
+                            Speed: {(Number(selectedNode.data.ttsSpeed ?? 1)).toFixed(1)}
+                          </Label>
+                          <div className="pt-3">
+                            <Slider
+                              value={[Number(selectedNode.data.ttsSpeed ?? 1)]}
+                              min={0.7} max={1.2} step={0.05}
+                              onValueChange={([v]) =>
+                                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ttsSpeed: v } })
+                              }
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>0.7x</span><span>1x</span><span>1.2x</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Ajusta a velocidade da voz (1.0 = velocidade padrão)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 rounded-md border border-border bg-background/40 p-2">
+                        <Switch
+                          checked={selectedNode.data.ttsUseSpeakerBoost !== false}
+                          onCheckedChange={(v) =>
+                            setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ttsUseSpeakerBoost: v } })
+                          }
+                        />
+                        <div className="flex-1">
+                          <Label className="text-xs font-medium">Use Speaker Boost</Label>
+                          <p className="text-[10px] text-muted-foreground">
+                            Melhora a qualidade e clareza da voz gerada
+                          </p>
                         </div>
                       </div>
 
