@@ -95,7 +95,8 @@ export default function Produtos() {
       }
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
-      toast({ title: "Erro no upload", description: e.message, variant: "destructive" });
+      console.error("[Produtos] upload error", e);
+      toast({ title: "Erro no upload", description: e?.message || String(e), variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -133,7 +134,8 @@ export default function Produtos() {
       reset();
       load();
     } catch (e: any) {
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+      console.error("[Produtos] save error", e);
+      toast({ title: "Erro ao salvar", description: e?.message || String(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -293,7 +295,7 @@ export default function Produtos() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || uploading}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editing ? "Salvar" : "Criar"}
             </Button>
