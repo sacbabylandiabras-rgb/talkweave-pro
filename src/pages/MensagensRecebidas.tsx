@@ -2685,8 +2685,18 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         {activeTab === "pipeline" && (
           <div className="flex-1 overflow-auto p-4 bg-[#f8fafc] dark:bg-slate-950">
             <div className="flex gap-4 min-h-full pb-4">
-              {pipelineStages.filter(s => s.id !== 'all').map(stage => {
+              {(() => {
+                const visibleStages = pipelineStages.filter(s => s.id !== 'all');
+                const countsByStage: Record<string, number> = {};
+                visibleStages.forEach(s => {
+                  countsByStage[s.id] = conversations.filter(c => (c.agent_stage || 'triage') === s.id).length;
+                });
+                const firstCount = countsByStage[visibleStages[0]?.id] || 0;
+                return visibleStages.map((stage, idx) => {
                 const stageConvs = conversations.filter(c => (c.agent_stage || 'triage') === stage.id);
+                const prevCount = idx === 0 ? 0 : (countsByStage[visibleStages[idx - 1].id] || 0);
+                const convPct = idx === 0 ? null : (prevCount > 0 ? Math.round((stageConvs.length / prevCount) * 100) : 0);
+                const totalPct = firstCount > 0 ? Math.round((stageConvs.length / firstCount) * 100) : null;
 
                 return (
                   <div 
@@ -2721,6 +2731,19 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                       <div className="text-[13px] font-bold text-primary">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                           stageConvs.reduce((acc, curr) => acc + (Number(curr.deal_value) || 0), 0)
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-foreground">
+                        {convPct !== null && (
+                          <span title="Conversão a partir da etapa anterior" className={cn(
+                            "px-1.5 py-0.5 rounded font-semibold",
+                            convPct >= 50 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                            convPct >= 20 ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" :
+                            "bg-red-500/10 text-red-600 dark:text-red-400"
+                          )}>↳ {convPct}%</span>
+                        )}
+                        {totalPct !== null && idx > 0 && (
+                          <span title="% do total que chegou aqui">de {totalPct}% do topo</span>
                         )}
                       </div>
                     </div>
@@ -2794,7 +2817,8 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                     </div>
                   </div>
                 );
-              })}
+                });
+              })()}
             </div>
           </div>
         )}
