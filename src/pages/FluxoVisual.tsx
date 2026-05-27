@@ -85,6 +85,7 @@ import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
 import { BlocoAgentToolNode } from "@/components/flow/BlocoAgentToolNode";
 import { AGENT_TOOL_DRAG_KEY } from "@/components/flow/agentToolBlocks";
+import { AgentToolConfigPanel } from "@/components/flow/AgentToolConfigPanel";
 import { AddBlockDialog, type AddBlockSelection } from "@/components/flow/AddBlockDialog";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
@@ -3282,81 +3283,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "agentTool" && (
               <>
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    Ferramenta do Agente
-                  </div>
-                  <div className="text-sm font-semibold">{selectedNode.data?.label}</div>
-                  {selectedNode.data?.toolName && (
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      {selectedNode.data.toolName}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label>Nome exibido</Label>
-                  <Input
-                    value={selectedNode.data?.label || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, label: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: Consultar Pedido"
-                  />
-                </div>
-
-                <div>
-                  <Label>Descrição</Label>
-                  <Textarea
-                    value={selectedNode.data?.description || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, description: e.target.value },
-                      })
-                    }
-                    placeholder="O que esta ferramenta faz e quando o agente deve usá-la"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label>Instruções para o agente</Label>
-                  <Textarea
-                    value={selectedNode.data?.instructions || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, instructions: e.target.value },
-                      })
-                    }
-                    placeholder="Detalhes de como, quando e com quais parâmetros chamar esta ferramenta"
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label>Parâmetros (JSON opcional)</Label>
-                  <Textarea
-                    value={selectedNode.data?.parameters || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, parameters: e.target.value },
-                      })
-                    }
-                    placeholder='{"campo": "valor"}'
-                    rows={3}
-                    className="font-mono text-xs"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Configurações específicas que o agente passará ao executar a ferramenta.
-                  </p>
-                </div>
-
+                <AgentToolConfigPanel node={selectedNode} setNode={setSelectedNode} />
                 <div className="flex items-center justify-between rounded-lg border border-border p-3">
                   <div>
                     <div className="text-sm font-medium">Ferramenta ativa</div>
