@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +34,10 @@ import {
   Plug,
   Clock,
   AlertTriangle,
+  X,
+  History,
+  SlidersHorizontal,
+  Lightbulb,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Bot, Sparkles, BookOpen, ArrowRightLeft, ChevronRight } from "lucide-react";
@@ -42,6 +47,245 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+const CLAUDE_MODELS = [
+  { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", in: "3,00", out: "15,00", cache: "0,30" },
+  { value: "claude-opus-4-1", label: "Claude Opus 4.1", in: "15,00", out: "75,00", cache: "1,50" },
+  { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", in: "3,00", out: "15,00", cache: "0,30" },
+  { value: "claude-3-5-haiku", label: "Claude 3.5 Haiku", in: "0,80", out: "4,00", cache: "0,08" },
+];
+
+function ModelSelectClaude({ node, setNode }: Props) {
+  const value = node.data?.aiModel && CLAUDE_MODELS.some(m => m.value === node.data.aiModel)
+    ? node.data.aiModel
+    : "claude-sonnet-4-5";
+  const current = CLAUDE_MODELS.find(m => m.value === value)!;
+  return (
+    <div className="space-y-2">
+      <Label>Modelo de IA</Label>
+      <Select value={value} onValueChange={(v) => setData(node, setNode, { aiModel: v })}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {CLAUDE_MODELS.map(m => (
+            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-[10px] text-muted-foreground">
+        Tokens de entrada: {current.in}$/Milhão · Tokens de saída: {current.out}$/Milhão · Cache: {current.cache}$/Milhão
+      </p>
+    </div>
+  );
+}
+
+function AdvancedDialog({ node, setNode, open, onOpenChange }: Props & { open: boolean; onOpenChange: (b: boolean) => void }) {
+  const temperature = node.data?.temperature ?? 0.7;
+  const maxTokens = node.data?.maxTokens ?? 2048;
+  const topP = node.data?.topP ?? 1;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" /> Configurações Avançadas</DialogTitle>
+          <DialogDescription>Ajuste os parâmetros do modelo de IA para este sub-agente.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Temperature: {temperature.toFixed(2)}</Label>
+            <Slider min={0} max={1} step={0.05} value={[temperature]} onValueChange={(v) => setData(node, setNode, { temperature: v[0] })} className="mt-2" />
+            <p className="text-[11px] text-muted-foreground mt-1">Controla a criatividade. Valores baixos = mais determinístico.</p>
+          </div>
+          <div>
+            <Label>Top P: {topP.toFixed(2)}</Label>
+            <Slider min={0} max={1} step={0.05} value={[topP]} onValueChange={(v) => setData(node, setNode, { topP: v[0] })} className="mt-2" />
+          </div>
+          <div>
+            <Label>Máximo de tokens de saída</Label>
+            <Input type="number" min={1} max={8192} value={maxTokens} onChange={(e) => setData(node, setNode, { maxTokens: Number(e.target.value) || 0 })} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PromptHistoryDialog({ node, setNode, open, onOpenChange }: Props & { open: boolean; onOpenChange: (b: boolean) => void }) {
+  const history: Array<{ prompt: string; savedAt: string }> = Array.isArray(node.data?.promptHistory) ? node.data.promptHistory : [];
+  const current: string = node.data?.systemPrompt || "";
+  const save = () => {
+    if (!current.trim()) {
+      toast({ title: "Prompt vazio", description: "Escreva um system prompt antes de salvar.", variant: "destructive" });
+      return;
+    }
+    const next = [{ prompt: current, savedAt: new Date().toISOString() }, ...history].slice(0, 20);
+    setData(node, setNode, { promptHistory: next });
+    toast({ title: "Prompt salvo no histórico" });
+  };
+  const restore = (p: string) => {
+    setData(node, setNode, { systemPrompt: p });
+    toast({ title: "Prompt restaurado" });
+    onOpenChange(false);
+  };
+  const remove = (i: number) => {
+    const next = history.filter((_, idx) => idx !== i);
+    setData(node, setNode, { promptHistory: next });
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><History className="h-4 w-4" /> Histórico de Prompts</DialogTitle>
+          <DialogDescription>Salve versões do system prompt e restaure quando quiser.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+          <Button variant="outline" size="sm" onClick={save} className="w-full">
+            + Salvar prompt atual no histórico
+          </Button>
+          {history.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground italic text-center py-4">Nenhum prompt salvo ainda.</p>
+          ) : history.map((h, i) => (
+            <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>{new Date(h.savedAt).toLocaleString("pt-BR")}</span>
+                <button onClick={() => remove(i)} className="hover:text-destructive"><X className="h-3 w-3" /></button>
+              </div>
+              <p className="text-[12px] line-clamp-3 whitespace-pre-wrap">{h.prompt}</p>
+              <Button size="sm" variant="outline" onClick={() => restore(h.prompt)} className="w-full h-7 text-[11px]">Restaurar este prompt</Button>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function LinkSkillsDialog({ node, setNode, open, onOpenChange }: Props & { open: boolean; onOpenChange: (b: boolean) => void }) {
+  const [folders, setFolders] = useState<Array<{ id: string; name: string; description: string | null; color: string | null }>>([]);
+  const [loading, setLoading] = useState(false);
+  const linked: string[] = Array.isArray(node.data?.linkedSkillIds) ? node.data.linkedSkillIds : [];
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any).from("skill_folders").select("id, name, description, color").order("created_at", { ascending: false });
+      if (error) {
+        toast({ title: "Erro ao carregar skills", description: error.message, variant: "destructive" });
+      } else {
+        setFolders(data || []);
+      }
+      setLoading(false);
+    })();
+  }, [open]);
+  const toggle = (id: string) => {
+    const next = linked.includes(id) ? linked.filter(x => x !== id) : [...linked, id];
+    setData(node, setNode, { linkedSkillIds: next });
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Lightbulb className="h-4 w-4" /> Vincular Skills</DialogTitle>
+          <DialogDescription>Selecione as skills que este sub-agente deve usar como contexto.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {loading ? (
+            <p className="text-[12px] text-muted-foreground text-center py-4">Carregando…</p>
+          ) : folders.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground italic text-center py-4">Nenhuma skill cadastrada. Acesse /skills para criar.</p>
+          ) : folders.map(f => {
+            const checked = linked.includes(f.id);
+            return (
+              <label key={f.id} className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/50">
+                <Checkbox checked={checked} onCheckedChange={() => toggle(f.id)} className="mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {f.color && <span className="w-2 h-2 rounded-full" style={{ background: f.color }} />}
+                    <span className="text-sm font-medium truncate">{f.name}</span>
+                  </div>
+                  {f.description && <p className="text-[11px] text-muted-foreground line-clamp-2">{f.description}</p>}
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Concluir</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SubAgentExtras({ node, setNode }: Props) {
+  const [advOpen, setAdvOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const linked: string[] = Array.isArray(node.data?.linkedSkillIds) ? node.data.linkedSkillIds : [];
+  const [linkedNames, setLinkedNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (linked.length === 0) return;
+    (async () => {
+      const { data } = await (supabase as any).from("skill_folders").select("id, name").in("id", linked);
+      const map: Record<string, string> = {};
+      (data || []).forEach((r: any) => { map[r.id] = r.name; });
+      setLinkedNames(map);
+    })();
+  }, [linked.join(",")]);
+  return {
+    headerButtons: (
+      <div className="flex gap-1">
+        <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAdvOpen(true)}>Avançado</Button>
+        <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setHistOpen(true)}>HISTÓRICO DE PROMPTS</Button>
+      </div>
+    ),
+    skillsBlock: (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Skills</Label>
+          <Button variant="outline" size="sm" onClick={() => setSkillsOpen(true)}>+ Vincular Skill</Button>
+        </div>
+        {linked.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma skill vinculada</p>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {linked.map(id => (
+              <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px]">
+                <Lightbulb className="h-3 w-3" />
+                {linkedNames[id] || id.slice(0, 6)}
+                <button
+                  onClick={() => setData(node, setNode, { linkedSkillIds: linked.filter(x => x !== id) })}
+                  className="hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
+    dialogs: (
+      <>
+        <AdvancedDialog node={node} setNode={setNode} open={advOpen} onOpenChange={setAdvOpen} />
+        <PromptHistoryDialog node={node} setNode={setNode} open={histOpen} onOpenChange={setHistOpen} />
+        <LinkSkillsDialog node={node} setNode={setNode} open={skillsOpen} onOpenChange={setSkillsOpen} />
+      </>
+    ),
+  };
+}
 
 interface Props {
   node: any;
