@@ -3052,58 +3052,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 13: Atualizar Memória Atendimento ---
   if (toolName === "atualizar_memoria") {
-    const fields: string[] = Array.isArray(node.data?.memoryFields) ? node.data.memoryFields : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Atualizar Memória Atendimento" />
-        <div className="space-y-2">
-          <Label>Estrutura da Memória</Label>
-          <Button variant="outline" size="sm" className="w-full">
-            <Brain className="h-4 w-4 mr-2" /> Editar Estrutura da Memória de Atendimento
-          </Button>
-          <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
-            Estrutura não definida — Clique em "Editar Estrutura" para definir os campos da memória.
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Campos que a IA pode Atualizar</Label>
-            <Button variant="outline" size="sm">+ Adicionar Campo</Button>
-          </div>
-          {fields.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
-              Nenhum campo habilitado. Use o botão "Adicionar Campo" para selecionar campos que a IA poderá atualizar.
-            </div>
-          ) : (
-            <ul className="text-[12px] space-y-1">
-              {fields.map((f, i) => <li key={i}>• {f}</li>)}
-            </ul>
-          )}
-        </div>
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px]">
-          <strong>Diferença do operador "Salvar Memória":</strong> No operador, você define o valor
-          fixo (ex: <code>{"{{sale_ai_output_plan}}"}</code>). Aqui na tool, a IA decide
-          dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
-        </div>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="how">
-            <AccordionTrigger className="text-sm">Como funciona</AccordionTrigger>
-            <AccordionContent>
-              <p className="text-[12px] mb-2">
-                Esta tool é registrada dinamicamente no agente com os campos que você selecionar. A IA recebe:
-              </p>
-              <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                <li>Nome do campo como nome do parâmetro</li>
-                <li>Tipo do schema (string, number, array, object...) como tipo do parâmetro</li>
-                <li>Descrição do schema como description do parâmetro</li>
-                <li>Quando a IA chamar a tool, os valores serão salvos na memória do atendimento em <code>{"{{memory.campo}}"}</code>.</li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </>
-    );
+    return <MemoriaAtendimentoPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 14: Consulta API (IA) ---
