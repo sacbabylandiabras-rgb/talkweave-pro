@@ -33,9 +33,10 @@ interface AddBlockDialogProps {
   onOpenChange: (open: boolean) => void;
   baseBlocks: BaseBlockOption[];
   onSelect: (selection: AddBlockSelection) => void;
+  showAgentTools?: boolean;
 }
 
-export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect }: AddBlockDialogProps) {
+export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showAgentTools = false }: AddBlockDialogProps) {
   const [query, setQuery] = useState("");
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -129,7 +130,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect }: Add
               </section>
             )}
 
-            {filteredToolsByCategory.length > 0 && (
+            {showAgentTools && filteredToolsByCategory.length > 0 && (
               <section>
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Ferramentas do Agente
@@ -166,7 +167,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect }: Add
               </section>
             )}
 
-            {filteredBase.length === 0 && filteredToolsByCategory.length === 0 && (
+            {filteredBase.length === 0 && (!showAgentTools || filteredToolsByCategory.length === 0) && (
               <div className="text-center text-sm text-muted-foreground py-8">
                 Nenhum bloco encontrado.
               </div>
