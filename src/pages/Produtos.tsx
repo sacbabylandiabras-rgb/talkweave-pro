@@ -260,30 +260,29 @@ export default function Produtos() {
                       )}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+                  <div
+                    className={`relative w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition ${uploading ? "opacity-50" : ""}`}
                   >
                     {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                    <span className="text-[10px] mt-1">Adicionar</span>
-                  </button>
+                    <span className="text-[10px] mt-1 pointer-events-none">Adicionar</span>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={uploading}
+                      onClick={() => console.log("[Produtos] file input clicked")}
+                      onChange={(e) => {
+                        const fs = e.target.files;
+                        console.log("[Produtos] file input change", { count: fs?.length });
+                        if (fs && fs.length > 0) handleUpload(fs);
+                        e.target.value = "";
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      title="Adicionar foto"
+                    />
+                  </div>
                 </div>
-                <input
-                  ref={fileRef}
-                  id="produto-fotos-input"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
-                  onChange={(e) => {
-                    const fs = e.target.files;
-                    console.log("[Produtos] file input change", { count: fs?.length });
-                    if (fs && fs.length > 0) handleUpload(fs);
-                    e.target.value = "";
-                  }}
-                />
                 <p className="text-xs text-muted-foreground">A primeira imagem será usada como capa.</p>
               </div>
             </div>
