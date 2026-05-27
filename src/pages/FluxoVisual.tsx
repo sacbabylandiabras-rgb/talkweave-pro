@@ -1071,8 +1071,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
         body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
       });
-      if (error) throw new Error(error.message || "Falha ao gerar áudio");
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        const friendlyError = await parseVoiceGenerationError(error, data);
+        toast.error(friendlyError.title, { description: friendlyError.description, duration: 9000 });
+        return;
+      }
 
       if (mode === "preview") {
         if (!data?.audioBase64) throw new Error("Sem áudio retornado");
@@ -1097,7 +1100,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }
     } catch (err) {
       console.error("TTS error", err);
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar áudio");
+      const friendlyError = await parseVoiceGenerationError(err);
+      toast.error(friendlyError.title, { description: friendlyError.description, duration: 9000 });
     } finally {
       setGeneratingTts(false);
       setPreviewingTts(false);
