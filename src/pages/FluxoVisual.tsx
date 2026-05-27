@@ -4081,6 +4081,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoCondicao" && !(selectedNode.data?.label || "").toLowerCase().includes("if/else") && (
               <>
+                {(() => {
+                  const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
+                  if (isSplit) return null;
+                  return (
                 <div>
                   <Label>Variável a verificar</Label>
                   <div className="flex gap-2 mt-1">
@@ -4128,12 +4132,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     Selecione uma variável pronta ou digite a sua própria.
                   </p>
                 </div>
+                  );
+                })()}
                 {(() => {
+                  const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
                   const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
                     ? selectedNode.data.branches
                     : [
-                        { label: "Verdadeiro", value: selectedNode.data.condition || "" },
-                        { label: "Falso", value: "" },
+                        { label: isSplit ? "Caminho 1" : "Verdadeiro", value: selectedNode.data.condition || "" },
+                        { label: isSplit ? "Caminho 2" : "Falso", value: "" },
                       ];
                   const updateBranches = (next: any[]) => {
                     setSelectedNode({
@@ -4143,9 +4150,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   };
                   return (
                     <div className="space-y-2">
-                      <Label>Caminhos (valores comparados)</Label>
+                      <Label>{isSplit ? "Caminhos paralelos" : "Caminhos (valores comparados)"}</Label>
                       <p className="text-[10px] text-muted-foreground -mt-1">
-                        Cada caminho gera uma saída no bloco. Se nenhum valor bater, o ELSE (Padrão) é usado.
+                        {isSplit
+                          ? "Cada caminho gera uma saída paralela. Todos serão executados ao mesmo tempo."
+                          : "Cada caminho gera uma saída no bloco. Se nenhum valor bater, o ELSE (Padrão) é usado."}
                       </p>
                       {branches.map((b: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-2 rounded-md border bg-card px-2 py-2">
@@ -4159,17 +4168,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                               updateBranches(next);
                             }}
                             placeholder="Nome do caminho"
-                            className="w-32"
+                            className={isSplit ? "flex-1" : "w-32"}
                           />
-                          <Input
-                            value={b.value || ""}
-                            onChange={(e) => {
-                              const next = branches.map((x, i) => i === idx ? { ...x, value: e.target.value } : x);
-                              updateBranches(next);
-                            }}
-                            placeholder="Valor (ex: sim)"
-                            className="flex-1"
-                          />
+                          {!isSplit && (
+                            <Input
+                              value={b.value || ""}
+                              onChange={(e) => {
+                                const next = branches.map((x, i) => i === idx ? { ...x, value: e.target.value } : x);
+                                updateBranches(next);
+                              }}
+                              placeholder="Valor (ex: sim)"
+                              className="flex-1"
+                            />
+                          )}
                           <button
                             type="button"
                             onClick={() => updateBranches(branches.filter((_, i) => i !== idx))}
@@ -4181,19 +4192,21 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           </button>
                         </div>
                       ))}
-                      <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
-                        <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
-                          ELSE (Padrão)
-                        </span>
-                        <span className="text-xs text-foreground/80">
-                          Executado quando nenhum valor acima for atendido
-                        </span>
-                      </div>
+                      {!isSplit && (
+                        <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+                          <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
+                            ELSE (Padrão)
+                          </span>
+                          <span className="text-xs text-foreground/80">
+                            Executado quando nenhum valor acima for atendido
+                          </span>
+                        </div>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full justify-center"
-                        onClick={() => updateBranches([...branches, { label: `Caminho ${branches.length + 1}`, value: "" }])}
+                        onClick={() => updateBranches([...branches, { label: `Caminho ${branches.length + 1}`, value: isSplit ? `path-${branches.length + 1}` : "" }])}
                       >
                         <Plus className="h-4 w-4 mr-1" /> Adicionar novo caminho
                       </Button>
