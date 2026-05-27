@@ -1059,17 +1059,41 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       toast.error("Digite o texto a ser narrado");
       return;
     }
-    const voice = selectedNode.data.ttsVoice || "alloy";
-    const speed = Number(selectedNode.data.ttsSpeed) || 1;
-    const instructions = (selectedNode.data.ttsInstructions || "").trim();
+    const apiKey = (selectedNode.data.ttsApiKey || "").trim();
+    const voiceId = (selectedNode.data.ttsVoiceId || "EXAVITQu4vr4xnSDxMaL").trim();
+    const stability = Number(selectedNode.data.ttsStability ?? 0.95);
+    const similarityBoost = Number(selectedNode.data.ttsSimilarityBoost ?? 0.75);
+    const style = Number(selectedNode.data.ttsStyle ?? 0.08);
+    const speed = Number(selectedNode.data.ttsSpeed ?? 1);
+    const useSpeakerBoost = selectedNode.data.ttsUseSpeakerBoost !== false;
     const audioName = (selectedNode.data.audioName || "").trim();
+
+    if (!apiKey) {
+      toast.error("Informe o Token API Key do ElevenLabs");
+      return;
+    }
+    if (!voiceId) {
+      toast.error("Informe o Voice ID");
+      return;
+    }
 
     if (mode === "preview") setPreviewingTts(true);
     else setGeneratingTts(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
-        body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
+        body: {
+          text,
+          apiKey,
+          voiceId,
+          stability,
+          similarityBoost,
+          style,
+          speed,
+          useSpeakerBoost,
+          audioName,
+          preview: mode === "preview",
+        },
       });
       if (error || data?.error) {
         const friendlyError = await parseVoiceGenerationError(error, data);
