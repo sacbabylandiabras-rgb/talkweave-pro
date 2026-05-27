@@ -2817,6 +2817,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     )}
                   </div>
                 )}
+                {selectedNode.data.contentType !== "audio" && (
                 <div>
                   <Label>
                     {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}
@@ -2857,6 +2858,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </button>
                   </div>
                 </div>
+                )}
 
                 <Separator />
 
