@@ -71,11 +71,18 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
   };
 
   const handleSelectTool = (toolName: string, label: string, description: string, category: string) => {
+    const block = AGENT_TOOL_BLOCKS.find((b) => b.toolName === toolName);
     onSelect({
       type: "agentTool",
       label,
       description,
-      extraData: { toolName, label, description, category },
+      extraData: {
+        toolName,
+        label,
+        description,
+        category,
+        instructions: block?.instructions ?? "",
+      },
     });
     onOpenChange(false);
   };
