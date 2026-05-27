@@ -5067,70 +5067,32 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                  )}
  
                   {selectedNode.data.actionType === "tag" && (
-                    <div>
-                       <div className="flex items-center justify-between mb-1">
-                         <Label>Escolher Etiqueta</Label>
-                         <Button 
-                           variant="ghost" 
-                           size="icon" 
-                           className="h-6 w-6" 
-                           onClick={fetchTagsForEditor}
-                           disabled={loadingTags}
-                         >
-                           <RefreshCw className={`h-3 w-3 ${loadingTags ? "animate-spin" : ""}`} />
-                         </Button>
-                       </div>
-                       <div className="flex gap-2 mb-2">
-                        <Select
-                          value={availableTags.includes(selectedNode.data.actionConfig || "") ? selectedNode.data.actionConfig : "manual"}
-                          onValueChange={(value) => {
-                            if (value !== "manual") {
-                              setSelectedNode({
-                                ...selectedNode,
-                                data: { ...selectedNode.data, actionConfig: value },
-                              });
-                            } else if (availableTags.includes(selectedNode.data.actionConfig || "")) {
-                              // Se selecionou manual mas o valor atual é uma tag conhecida, limpa o campo
-                              setSelectedNode({
-                                ...selectedNode,
-                                data: { ...selectedNode.data, actionConfig: "" },
-                              });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={loadingTags ? "Carregando etiquetas..." : "Selecione uma etiqueta..."} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manual">-- Digitar manualmente --</SelectItem>
-                            {availableTags.map((tag) => (
-                              <SelectItem key={tag} value={tag}>
-                                {tag}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {(!availableTags.includes(selectedNode.data.actionConfig || "") || selectedNode.data.actionConfig === "") && (
-                        <div className="mt-2">
-                          <Label className="text-[11px]">Ou digite o nome da etiqueta:</Label>
-                          <Input
-                            value={selectedNode.data.actionConfig || ""}
-                            onChange={(e) =>
-                              setSelectedNode({
-                                ...selectedNode,
-                                data: { ...selectedNode.data, actionConfig: e.target.value },
-                              })
-                            }
-                            placeholder="Ex: Interessado"
-                          />
-                        </div>
-                      )}
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Esta etiqueta será adicionada ao contato no WhatsApp.
-                      </p>
-                    </div>
+                    (() => {
+                      const raw = selectedNode.data.tags;
+                      const tags: string[] = Array.isArray(raw)
+                        ? raw
+                        : typeof selectedNode.data.actionConfig === "string" && selectedNode.data.actionConfig.trim()
+                        ? selectedNode.data.actionConfig.split(",").map((s: string) => s.trim()).filter(Boolean)
+                        : [];
+                      return (
+                        <AdicionarTagsEditor
+                          value={tags}
+                          availableTags={availableTags}
+                          loading={loadingTags}
+                          onRefresh={fetchTagsForEditor}
+                          onChange={(next) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: {
+                                ...selectedNode.data,
+                                tags: next,
+                                actionConfig: next.join(","),
+                              },
+                            })
+                          }
+                        />
+                      );
+                    })()
                   )}
 
                   {["variable", "webhook"].includes(selectedNode.data.actionType || "") && (
