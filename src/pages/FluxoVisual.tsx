@@ -4086,7 +4086,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro) return null;
+                  const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4142,6 +4143,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
+                  const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
