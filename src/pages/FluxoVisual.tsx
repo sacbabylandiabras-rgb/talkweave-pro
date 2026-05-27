@@ -1500,6 +1500,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               </div>
             ))}
           </div>
+
+          {/* Row 3: Agent Tool Blocks */}
+          <AgentToolsBar />
         </div>
 
         {/* Canvas */}
