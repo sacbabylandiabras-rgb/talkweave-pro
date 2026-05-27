@@ -4039,6 +4039,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     </div>
                   )}
               </>
+              );
+              })()
             )}
 
             {selectedNode?.type === "blocoAgendamento" && (
