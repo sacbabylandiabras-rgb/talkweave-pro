@@ -99,7 +99,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect }: Add
           />
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 pr-3 -mr-3">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 -mr-2">
           <div className="space-y-6 pb-2">
             {filteredBase.length > 0 && (
               <section>
@@ -172,7 +172,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect }: Add
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
