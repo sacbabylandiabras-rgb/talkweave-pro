@@ -3687,6 +3687,48 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             )}
 
             {selectedNode?.type === "agenteIA" && (
+              (() => {
+                const agLabel = String(selectedNode.data.label || "").toLowerCase();
+                if (/leader\s*ia/.test(agLabel)) {
+                  return (
+                    <LeaderIAEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/expert\s*ia/.test(agLabel)) {
+                  return (
+                    <ExpertIAEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/supervisor/.test(agLabel)) {
+                  return (
+                    <SupervisorEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                return (
               <div className="space-y-4">
                 <div className="p-3 bg-purple-500/5 border border-purple-500/10 rounded-lg space-y-3">
                   <div className="flex items-center gap-2">
@@ -3816,6 +3858,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                    </p>
                 </div>
               </div>
+                );
+              })()
             )}
 
             {selectedNode?.type === "blocoCondicao" && (selectedNode.data?.label || "").toLowerCase().includes("if/else") && (
