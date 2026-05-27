@@ -1289,6 +1289,125 @@ function buildMemoryPreview(fields: MemoryField[]) {
   return JSON.stringify(obj, null, 2);
 }
 
+function MemoryEnabledFields({
+  node,
+  setNode,
+  stored,
+}: {
+  node: any;
+  setNode: (updater: (prev: any) => any) => void;
+  stored: MemoryField[];
+}) {
+  const enabled: string[] = Array.isArray(node.data?.memoryEnabledFields)
+    ? node.data.memoryEnabledFields
+    : [];
+  const [open, setOpen] = useState(false);
+
+  const available = stored.filter((f) => f.name && !enabled.includes(f.name));
+  const enabledFields = enabled
+    .map((n) => stored.find((f) => f.name === n))
+    .filter((f): f is MemoryField => !!f);
+
+  const toggle = (name: string, on: boolean) => {
+    const next = on
+      ? Array.from(new Set([...enabled, name]))
+      : enabled.filter((n) => n !== name);
+    setData(node, setNode, { memoryEnabledFields: next });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Campos que a IA pode Atualizar</Label>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          disabled={stored.length === 0}
+        >
+          + Adicionar Campo
+        </Button>
+      </div>
+
+      {stored.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+          Defina primeiro a Estrutura da Memória acima para liberar campos.
+        </div>
+      ) : enabledFields.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+          Nenhum campo habilitado. Use "Adicionar Campo" para selecionar campos que a IA poderá
+          atualizar.
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {enabledFields.map((f) => (
+            <li
+              key={f.name}
+              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2"
+            >
+              <span className="text-[12px]">
+                <code className="font-mono text-foreground">{f.name}</code>{" "}
+                <span className="text-muted-foreground">
+                  {f.type === "string" && "texto (string)"}
+                  {f.type === "number" && "número (number)"}
+                  {f.type === "boolean" && "booleano (boolean)"}
+                  {f.type === "object" && "objeto (object)"}
+                  {f.type === "array" && "array (array)"}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => toggle(f.name, false)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Campo</DialogTitle>
+            <DialogDescription>
+              Selecione um campo da estrutura para permitir que a IA atualize.
+            </DialogDescription>
+          </DialogHeader>
+          {available.length === 0 ? (
+            <div className="rounded-md border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+              Todos os campos já foram adicionados.
+            </div>
+          ) : (
+            <ul className="space-y-1 max-h-[40vh] overflow-y-auto">
+              {available.map((f) => (
+                <li key={f.name}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggle(f.name, true);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 hover:bg-muted/40 text-left"
+                  >
+                    <span className="text-[12px]">
+                      <code className="font-mono">{f.name}</code>{" "}
+                      <span className="text-muted-foreground">({f.type})</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function MemoriaAtendimentoPanel({
   node,
   setNode,
@@ -1383,6 +1502,33 @@ function MemoriaAtendimentoPanel({
         fixo (ex: <code>{"{{sale_ai_output_plan}}"}</code>). Aqui na tool, a IA decide
         dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
       </div>
+
+      <MemoryEnabledFields node={node} setNode={setNode} stored={stored} />
+
+      <Accordion type="single" collapsible>
+        <AccordionItem value="how">
+          <AccordionTrigger className="text-sm">
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" /> Como funciona
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[12px] mb-2">
+              Esta tool é registrada dinamicamente no agente com os campos que você selecionar
+              acima. A IA recebe:
+            </p>
+            <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+              <li>Nome do campo como nome do parâmetro</li>
+              <li>Tipo do schema (string, number, array, object...) como tipo do parâmetro</li>
+              <li>Descrição do schema como description do parâmetro</li>
+              <li>
+                Quando a IA chamar a tool, os valores serão salvos na memória do atendimento em{" "}
+                <code>{"{{memory.campo}}"}</code>.
+              </li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl">
