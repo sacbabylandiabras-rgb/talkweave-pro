@@ -2121,6 +2121,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           <div className="space-y-4">
             {selectedNode?.type === "blocoConteudo" && (
               <>
+                {selectedNode.data.label !== "Mensagem em Áudio" && (
                 <div>
                   <Label>Tipo de Conteúdo</Label>
                   <Select
@@ -2164,6 +2165,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     </SelectContent>
                   </Select>
                 </div>
+                )}
 
                 {/* === UAZAPI: configurações específicas por tipo de mensagem === */}
                 {selectedNode.data.contentType === "contact" && (
