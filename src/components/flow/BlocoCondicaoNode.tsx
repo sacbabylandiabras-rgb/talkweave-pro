@@ -56,6 +56,15 @@ export function BlocoCondicaoNode({ data }: any) {
     const isSplit = (data.label || "").toLowerCase().includes("split");
     const isTags = (data.label || "").toLowerCase().includes("tag");
     const isHorario = (data.label || "").toLowerCase().includes("horário") || (data.label || "").toLowerCase().includes("horario");
+    const isFiltroCadastro = (data.label || "").toLowerCase().includes("filtro por cadastro");
+    const filtroOperatorShort: Record<string, string> = {
+      equals: "=",
+      greater: ">",
+      less: "<",
+      is_null: "é nulo",
+      is_empty: "está vazio",
+    };
+    const filtroNoValueOps = new Set(["is_null", "is_empty"]);
     const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
       ? data.branches
       : isHorario
@@ -113,6 +122,14 @@ export function BlocoCondicaoNode({ data }: any) {
                   <>
                     <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${b.value === "out" ? "bg-orange-500" : "bg-emerald-500"}`} />
                     <span className="font-medium">{b.label}</span>
+                  </>
+                ) : isFiltroCadastro ? (
+                  <>
+                    <code className="font-mono text-primary text-[10px]">{b.field || "—"}</code>
+                    <span className="mx-1 text-muted-foreground">{filtroOperatorShort[b.operator] || "="}</span>
+                    {!filtroNoValueOps.has(b.operator) && (
+                      <span className="font-medium">"{b.value ?? ""}"</span>
+                    )}
                   </>
                 ) : (
                   <>
