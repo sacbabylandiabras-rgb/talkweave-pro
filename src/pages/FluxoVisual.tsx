@@ -2860,6 +2860,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
                 )}
 
+                {selectedNode.data.contentType !== "audio" && (
+                <>
                 <Separator />
 
                 {/* Capturar Dados do Lead */}
