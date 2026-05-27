@@ -1559,6 +1559,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
   // --- MODAL 24: RAG ---
   if (toolName === "rag_documentos") {
     const limit = node.data?.ragLimit ?? 5;
+    const rag = RagControls({ node, setNode });
     return (
       <>
         {Header}
@@ -1584,13 +1585,15 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => rag.openAdd()}>
             <BookOpen className="h-4 w-4 mr-2" /> + Adicionar informações
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => rag.openLink()}>
             <Link2 className="h-4 w-4 mr-2" /> Vincular RAG existente
           </Button>
         </div>
+        {rag.linkedBlock}
+        {rag.dialogs}
       </>
     );
   }
