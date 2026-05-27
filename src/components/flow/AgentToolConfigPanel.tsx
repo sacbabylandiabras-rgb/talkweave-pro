@@ -1498,6 +1498,123 @@ function AdicionarTagPanel({ node, setNode, Header }: { node: any; setNode: (n: 
   );
 }
 
+const DEFAULT_EXTRACT_FIELDS = [
+  { key: "name", label: "name", desc: "Campo padrão" },
+  { key: "phone", label: "phone", desc: "Campo padrão" },
+  { key: "email", label: "email", desc: "Campo padrão" },
+  { key: "origem", label: "origem", desc: "Origem" },
+];
+
+const EXTRACT_TYPES = [
+  { value: "string", label: "Texto (string)" },
+  { value: "number", label: "Número (number)" },
+  { value: "boolean", label: "Booleano (boolean)" },
+  { value: "date", label: "Data (date)" },
+  { value: "array", label: "Lista (array)" },
+  { value: "object", label: "Objeto (object)" },
+];
+
+function ExtrairDadosPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const field: string = node.data?.extractField || "";
+  const type: string = node.data?.extractType || "string";
+
+  const filtered = DEFAULT_EXTRACT_FIELDS.filter((f) =>
+    f.label.toLowerCase().includes(query.trim().toLowerCase()) ||
+    f.desc.toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — Extração de Dados"
+        placeholder="Ex: quando o cliente informar um dado que deve ser salvo no cadastro..."
+      />
+      <div className="space-y-2">
+        <Label className="text-[12px]">Selecione o dado que deseja extrair:</Label>
+        <div className="grid grid-cols-[1fr_180px] gap-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Selecionar</Label>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="w-full h-10 flex items-center justify-between rounded-md border border-border bg-background px-3 text-sm text-left"
+            >
+              <span className={field ? "" : "text-muted-foreground"}>
+                {field || "Selecione..."}
+              </span>
+              <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Tipo</Label>
+            <Select value={type} onValueChange={(v) => setData(node, setNode, { extractType: v })}>
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {EXTRACT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle>Selecionar dado para extrair</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por chave ou rótulo..."
+                className="pl-7 h-9 text-sm"
+              />
+            </div>
+          </div>
+          <ScrollArea className="max-h-72">
+            <div className="p-2 pt-0 space-y-1">
+              {filtered.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">Nenhum campo encontrado</p>
+              )}
+              {filtered.map((f) => {
+                const selected = field === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => {
+                      setData(node, setNode, { extractField: f.key });
+                      setOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left text-sm transition-colors ${
+                      selected ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-accent"
+                    }`}
+                  >
+                    <span className="h-6 w-6 shrink-0 rounded-md bg-muted text-muted-foreground flex items-center justify-center text-[11px] font-semibold uppercase">
+                      {f.label.charAt(0)}
+                    </span>
+                    <span className="font-medium">{f.label}</span>
+                    <span className="text-xs text-muted-foreground">{f.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function ListarEquipePanel({ node, setNode, Header, id }: { node: any; setNode: (n: any) => void; Header: ReactNode; id: string }) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
