@@ -3261,6 +3261,32 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         flowId={currentFluxoId}
         flowName={nomeFluxo}
       />
+      <AddBlockDialog
+        open={showAddBlockDialog}
+        onOpenChange={setShowAddBlockDialog}
+        baseBlocks={blocosDisponiveis}
+        onSelect={(sel) => {
+          const position = reactFlowInstance
+            ? reactFlowInstance.screenToFlowPosition({
+                x: (reactFlowWrapper.current?.clientWidth ?? 600) / 2,
+                y: (reactFlowWrapper.current?.clientHeight ?? 400) / 2,
+              })
+            : { x: 250, y: 200 };
+          const newNode: Node = {
+            id: `${Date.now()}`,
+            type: sel.type,
+            position,
+            data: {
+              label: sel.label,
+              content: "",
+              ...(sel.description ? { description: sel.description } : {}),
+              ...(sel.extraData || {}),
+            },
+          };
+          setNodes((nds) => nds.concat(newNode));
+          toast.success("Bloco adicionado ao fluxo!");
+        }}
+      />
     </>
   );
 }
