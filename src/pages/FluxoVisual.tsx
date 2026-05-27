@@ -53,6 +53,7 @@ import { VincularRecursoCrmEditor } from "@/components/flow/VincularRecursoCrmEd
 import { DelayEditor } from "@/components/flow/DelayEditor";
 import { AdicionarMsgChatEditor } from "@/components/flow/AdicionarMsgChatEditor";
 import { EnviarEmailEditor } from "@/components/flow/EnviarEmailEditor";
+import { TrocarDepartamentoEditor } from "@/components/flow/TrocarDepartamentoEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
