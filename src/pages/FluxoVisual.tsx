@@ -4088,7 +4088,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
                   const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus) return null;
+                  const isFiltroSessao = (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessão") || (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessao");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus || isFiltroSessao) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4146,6 +4147,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
                   const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
+                  const isFiltroSessao = (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessão") || (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessao");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
