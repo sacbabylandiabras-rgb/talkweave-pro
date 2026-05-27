@@ -1460,14 +1460,14 @@ function GerenciarTicketCrmPanel({ node, setNode, Header }: { node: any; setNode
 
   const perm = (k: string, locked = false) => (locked ? true : !!perms[k]);
 
-  const PERMS = [
+  const PERMS: Array<{ k: string; label: string; icon: any; desc: string; locked?: boolean; requiresScope?: boolean }> = [
     { k: "list", label: "Listar tickets", icon: ClipboardList, desc: "Consultar tickets dentro do escopo. Ativará assim que você definir pipeline e ao menos uma coluna em escopo.", locked: true },
     { k: "move", label: "Mover entre colunas", icon: ArrowRightLeft, desc: "Transfere o ticket para outra coluna deste mesmo pipeline. A lista de destinos permitidos aparece na descrição desta ferramenta para o modelo saber onde pode enviar." },
     { k: "edit", label: "Editar título e descrição", icon: Lightbulb, desc: "Altera o assunto (título) e o texto principal do ticket quando o modelo precisar corrigir ou complementar informações." },
     { k: "notes", label: "Registrar observações", icon: History, desc: "Grava observações/comentários no histórico do ticket, visível para a equipe no CRM." },
     { k: "email", label: "E-mail do ticket", icon: Briefcase, desc: "Defina pipeline e colunas em escopo na etapa 1 para validar o ticket antes de buscar o e-mail do ticket.", requiresScope: true },
     { k: "create", label: "Criar novo ticket", icon: CheckCircle2, desc: "Defina ao menos uma coluna em escopo na etapa 1 para habilitar a criação de tickets.", requiresScope: true },
-  ] as const;
+  ];
 
   const activeCount = PERMS.filter((p) => perm(p.k, p.locked)).length;
 
