@@ -3792,24 +3792,148 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             )}
 
             {selectedNode?.type === "blocoCondicao" && (
+              (() => {
+                const dataType = selectedNode.data.dataType || "string";
+                const operator = selectedNode.data.operator || "equals";
+                const operatorsByType: Record<string, { value: string; label: string }[]> = {
+                  string: [
+                    { value: "equals", label: "Igual a" },
+                    { value: "not_equals", label: "Diferente de" },
+                    { value: "contains", label: "Contém" },
+                    { value: "not_contains", label: "Não contém" },
+                    { value: "starts_with", label: "Começa com" },
+                    { value: "ends_with", label: "Termina com" },
+                    { value: "is_empty", label: "Está vazio" },
+                    { value: "is_not_empty", label: "Não está vazio" },
+                    { value: "matches_regex", label: "Corresponde ao padrão" },
+                    { value: "not_matches_regex", label: "Não corresponde ao padrão" },
+                    { value: "length_equals", label: "Tamanho igual a" },
+                    { value: "length_greater", label: "Tamanho maior que" },
+                    { value: "length_less", label: "Tamanho menor que" },
+                    { value: "is_numeric", label: "É numérico" },
+                  ],
+                  number: [
+                    { value: "equals", label: "Igual a" },
+                    { value: "not_equals", label: "Diferente de" },
+                    { value: "greater", label: "Maior que" },
+                    { value: "greater_equals", label: "Maior ou igual a" },
+                    { value: "less", label: "Menor que" },
+                    { value: "less_equals", label: "Menor ou igual a" },
+                    { value: "between", label: "Entre" },
+                    { value: "is_empty", label: "Está vazio" },
+                    { value: "is_not_empty", label: "Não está vazio" },
+                  ],
+                  boolean: [
+                    { value: "is_true", label: "É verdadeiro" },
+                    { value: "is_false", label: "É falso" },
+                  ],
+                  array: [
+                    { value: "contains", label: "Contém" },
+                    { value: "not_contains", label: "Não contém" },
+                    { value: "is_empty", label: "Está vazia" },
+                    { value: "is_not_empty", label: "Não está vazia" },
+                    { value: "length_equals", label: "Tamanho igual a" },
+                    { value: "length_greater", label: "Tamanho maior que" },
+                    { value: "length_less", label: "Tamanho menor que" },
+                  ],
+                  date: [
+                    { value: "equals", label: "Igual a" },
+                    { value: "before", label: "Antes de" },
+                    { value: "after", label: "Depois de" },
+                    { value: "between", label: "Entre" },
+                    { value: "is_empty", label: "Está vazio" },
+                    { value: "is_not_empty", label: "Não está vazio" },
+                  ],
+                };
+                const currentOperators = operatorsByType[dataType] || operatorsByType.string;
+                const needsValue = ![
+                  "is_empty",
+                  "is_not_empty",
+                  "is_numeric",
+                  "is_true",
+                  "is_false",
+                ].includes(operator);
+                return (
               <>
                 <div>
-                  <Label>Palavra-chave para este caminho</Label>
+                  <Label>Variável a verificar</Label>
                   <Input
-                    value={selectedNode.data.condition || ""}
+                    value={selectedNode.data.variable || ""}
                     onChange={(e) =>
                       setSelectedNode({
                         ...selectedNode,
-                        data: { ...selectedNode.data, condition: e.target.value },
+                        data: { ...selectedNode.data, variable: e.target.value },
                       })
                     }
-                    placeholder="Ex: sim, não, 1, 2"
+                    placeholder="Ex: {{node:2:output:resultado}}"
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Se a mensagem recebida contém essa palavra, segue por este caminho
+                    Use variáveis dinâmicas do fluxo.
                   </p>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Tipo de dado</Label>
+                    <Select
+                      value={dataType}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, dataType: v, operator: (operatorsByType[v] || operatorsByType.string)[0].value },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">Texto (String)</SelectItem>
+                        <SelectItem value="number">Número</SelectItem>
+                        <SelectItem value="boolean">Booleano (Verdadeiro/Falso)</SelectItem>
+                        <SelectItem value="array">Lista (Array)</SelectItem>
+                        <SelectItem value="date">Data</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Operador</Label>
+                    <Select
+                      value={operator}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, operator: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {currentOperators.map((op) => (
+                          <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {needsValue && (
+                  <div>
+                    <Label>Valor para comparar</Label>
+                    <Input
+                      value={selectedNode.data.compareValue ?? selectedNode.data.condition ?? ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, compareValue: e.target.value, condition: e.target.value },
+                        })
+                      }
+                      placeholder="Ex: sucesso"
+                      type={dataType === "date" ? "datetime-local" : dataType === "number" ? "number" : "text"}
+                    />
+                  </div>
+                )}
               </>
+                );
+              })()
             )}
 
             {selectedNode?.type === "blocoGatilho" && (
