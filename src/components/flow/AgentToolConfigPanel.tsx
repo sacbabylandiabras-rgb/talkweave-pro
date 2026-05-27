@@ -2500,49 +2500,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 12: Agenda ---
   if (toolName === "agenda_eventos") {
-    const calendars: string[] = Array.isArray(node.data?.calendars) ? node.data.calendars : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Agenda" />
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Agendas selecionadas</Label>
-            <Button variant="outline" size="sm">+ Adicionar</Button>
-          </div>
-          {calendars.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">Nenhuma agenda selecionada</p>
-          ) : (
-            <ul className="text-[12px] space-y-1">
-              {calendars.map((c, i) => <li key={i}>• {c}</li>)}
-            </ul>
-          )}
-          <Button variant="outline" size="sm" className="w-full">
-            <Users className="h-4 w-4 mr-2" /> Gerenciar Equipe
-          </Button>
-        </div>
-        <InfoBlock>
-          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
-            Modalidades de agendamento
-          </div>
-          <ul className="space-y-1 text-[11px]">
-            <li><strong>Hora marcada:</strong> um lead por horário, igual a uma reunião tradicional.</li>
-            <li><strong>Ordem de chegada:</strong> janela diária com fila — vários leads compartilham o mesmo período até atingir o limite configurado.</li>
-            <li><strong>Grupo:</strong> mesmo horário ocupado por vários leads (até o limite), criando um único evento compartilhado.</li>
-          </ul>
-        </InfoBlock>
-        <FuncList
-          items={[
-            { name: `agenda_${id}_list_calendars`, desc: "lista os calendários disponíveis para agendamento, com regras de horário e responsáveis." },
-            { name: `agenda_${id}_list_available_time_slots`, desc: "lista os próximos horários livres, com suporte a filtro por calendário e paginação." },
-            { name: `agenda_${id}_list_future_appointments`, desc: "lista compromissos futuros do cliente em qualquer calendário." },
-            { name: `agenda_${id}_add_appointment`, desc: "cria um novo compromisso para o lead na agenda selecionada." },
-            { name: `agenda_${id}_cancel_appointment`, desc: "cancela um compromisso existente do lead." },
-            { name: `agenda_${id}_reschedule_appointment`, desc: "remarca um compromisso, criando o novo horário e cancelando o antigo." },
-          ]}
-        />
-      </>
-    );
+    return <AgendaPanel node={node} setNode={setNode} Header={Header} id={id} />;
   }
 
   // --- MODAL 13: Atualizar Memória Atendimento ---
