@@ -1359,6 +1359,145 @@ function TransferirEstrategiaPanel({ node, setNode, Header }: { node: any; setNo
 }
 
 type TeamMember = { id: string; name: string; email: string };
+
+const DEFAULT_TAGS = [
+  "abandonou-carrinho","abmex","active-campaign","aguardando-pagamento","appmax","ativo-whatsapp",
+  "b4you","braip","calendly","cancelado","cartao-credito","cartpanda","compra-realizada","custom",
+  "digital_guru","disputando","doppus","eduzz","email","email-cold","email-hot","email-warm",
+  "estornou","evermart","facebook","form","gerou-boleto","gerou-pix","greenn","grupo-whats",
+  "grupo-whatsapp","herospark","hotmart","hotwebinar","importado-csv","import-contact",
+  "iniciou-pagamento-cartao","irroba","iset","kirvano","kiwify","lastlink","leadster",
+  "loja_integrada","manychat","melldin","monetizze","neemo","notazz","nuvemshop","pagarme",
+  "payt","pepper","perfect-pay","proaluno","rd_station_marketing","sacoleiroapp","sellflux",
+  "sellfront","shopify","telefone","ticto","tictov2","tray","unbounce","vnda","voomp","wbuy",
+  "wix","woocommerce","wordpress","yampi",
+];
+
+function AdicionarTagPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const selected: string[] = Array.isArray(node.data?.tags) ? node.data.tags : [];
+  const custom: string[] = Array.isArray(node.data?.customTags) ? node.data.customTags : [];
+  const all = Array.from(new Set([...DEFAULT_TAGS, ...custom])).sort();
+  const [query, setQuery] = useState("");
+  const [newTag, setNewTag] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const filtered = all.filter((t) => t.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const toggle = (t: string) => {
+    const next = selected.includes(t) ? selected.filter((x) => x !== t) : [...selected, t];
+    setData(node, setNode, { tags: next });
+  };
+
+  const addNew = () => {
+    const v = newTag.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!v) return;
+    const nextCustom = custom.includes(v) || DEFAULT_TAGS.includes(v) ? custom : [...custom, v];
+    const nextSelected = selected.includes(v) ? selected : [...selected, v];
+    setData(node, setNode, { customTags: nextCustom, tags: nextSelected });
+    setNewTag("");
+    setShowNew(false);
+  };
+
+  return (
+    <>
+      {Header}
+      <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Adicionar tag" />
+      <div className="space-y-2">
+        <Label>Tags</Label>
+        <div className="flex gap-2">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex-1 flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm text-left"
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  {selected.length === 0 ? (
+                    <span className="text-muted-foreground">Selecionar tags</span>
+                  ) : (
+                    <span className="truncate">{selected.length} tag(s) selecionada(s)</span>
+                  )}
+                </span>
+                <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+              <div className="p-2 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar tags..."
+                    className="pl-7 h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <ScrollArea className="h-64">
+                <div className="p-1">
+                  {filtered.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhuma tag</p>
+                  )}
+                  {filtered.map((t) => (
+                    <label
+                      key={t}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm"
+                    >
+                      <Checkbox checked={selected.includes(t)} onCheckedChange={() => toggle(t)} />
+                      <span className="truncate">{t}</span>
+                    </label>
+                  ))}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNew((v) => !v)}
+            className="gap-1"
+          >
+            + Nova
+          </Button>
+        </div>
+
+        {showNew && (
+          <div className="flex gap-2">
+            <Input
+              autoFocus
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              placeholder="Nome da nova tag"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); addNew(); }
+              }}
+            />
+            <Button type="button" size="sm" onClick={addNew}>Adicionar</Button>
+          </div>
+        )}
+
+        {selected.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {selected.map((t) => (
+              <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px]">
+                <Tag className="h-3 w-3" /> {t}
+                <button
+                  type="button"
+                  className="ml-1 hover:text-destructive"
+                  onClick={() => toggle(t)}
+                >×</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function ListarEquipePanel({ node, setNode, Header, id }: { node: any; setNode: (n: any) => void; Header: ReactNode; id: string }) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
