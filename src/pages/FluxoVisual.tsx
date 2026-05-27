@@ -4087,7 +4087,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem) return null;
+                  const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4144,6 +4145,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
+                  const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
@@ -4364,6 +4366,42 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         >
                           <Plus className="h-4 w-4 mr-1" /> Adicionar campo personalizado
                         </Button>
+                      </div>
+                    );
+                  }
+                  if (isFiltroStatus) {
+                    const STATUSES = [
+                      { value: "queue", label: "Na Fila", desc: "Atendimento aguardando na fila", color: "bg-amber-500" },
+                      { value: "human", label: "Humano", desc: "Em atendimento com atendente humano", color: "bg-blue-500" },
+                      { value: "agent", label: "Agente", desc: "Em atendimento conduzido pela IA", color: "bg-violet-500" },
+                      { value: "done", label: "Finalizado", desc: "Atendimento encerrado", color: "bg-emerald-500" },
+                    ];
+                    if (!Array.isArray(selectedNode.data.branches) || selectedNode.data.branches.length !== 4) {
+                      setTimeout(() => {
+                        setSelectedNode((prev: any) => prev ? ({
+                          ...prev,
+                          data: {
+                            ...prev.data,
+                            branches: STATUSES.map((s) => ({ label: s.label, value: s.value })),
+                          },
+                        }) : prev);
+                      }, 0);
+                    }
+                    return (
+                      <div className="space-y-2">
+                        <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
+                          Conecte cada saída no canvas ao fluxo correspondente. O ramo é escolhido automaticamente conforme o status do atendimento no momento da execução.
+                        </div>
+                        <Label>Saídas fixas</Label>
+                        {STATUSES.map((s) => (
+                          <div key={s.value} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
+                            <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold">{s.label}</div>
+                              <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     );
                   }
