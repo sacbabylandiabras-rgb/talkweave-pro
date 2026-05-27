@@ -983,7 +983,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
       setSelectedNode({
         ...selectedNode,
-        data: { ...selectedNode.data, mediaUrl: publicUrl, audioName: file.name },
+        data: {
+          ...selectedNode.data,
+          mediaUrl: publicUrl,
+          ...(selectedNode.data.contentType === "audio" ? { audioName: selectedNode.data.audioName || file.name } : {}),
+        },
       });
 
       toast.success("Arquivo enviado com sucesso!");
