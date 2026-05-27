@@ -79,14 +79,14 @@ export default function Produtos() {
     setOpen(true);
   };
 
-  const handleUpload = async (files: FileList) => {
+  const handleUpload = async (files: File[]) => {
     console.log("[Produtos] handleUpload start", { count: files?.length });
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Você precisa estar logado para enviar fotos.");
       const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         console.log("[Produtos] uploading", { path, size: file.size, type: file.type });
@@ -279,8 +279,9 @@ export default function Produtos() {
                     onChange={(e) => {
                       const fs = e.target.files;
                       console.log("[Produtos] file input change", { count: fs?.length });
-                      if (fs && fs.length > 0) handleUpload(fs);
+                      const arr = fs ? Array.from(fs) : [];
                       e.target.value = "";
+                      if (arr.length > 0) handleUpload(arr);
                     }}
                   />
                 </div>
