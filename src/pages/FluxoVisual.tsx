@@ -52,6 +52,7 @@ import { ListarDadosCrmEditor } from "@/components/flow/ListarDadosCrmEditor";
 import { VincularRecursoCrmEditor } from "@/components/flow/VincularRecursoCrmEditor";
 import { DelayEditor } from "@/components/flow/DelayEditor";
 import { AdicionarMsgChatEditor } from "@/components/flow/AdicionarMsgChatEditor";
+import { EnviarEmailEditor } from "@/components/flow/EnviarEmailEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5083,6 +5084,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/adicionar\s*msg\s*ao\s*chat/i.test(label)) {
                   return (
                     <AdicionarMsgChatEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/enviar\s*email/i.test(label)) {
+                  return (
+                    <EnviarEmailEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
