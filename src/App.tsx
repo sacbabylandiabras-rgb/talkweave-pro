@@ -205,6 +205,7 @@ const App = () => (
                    <Route path="/agente-ia" element={<AgenteIA />} />
                    <Route path="/departamento" element={<Departamento />} />
                    <Route path="/skills" element={<Skills />} />
+                   <Route path="/produtos" element={<Produtos />} />
                    <Route path="/meta/dashboard" element={<DashboardMeta />} />
                    <Route path="/meta/mensagens" element={<MetaMessages />} />
                    <Route path="/meta/templates" element={<TemplatesAprovados />} />

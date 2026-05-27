@@ -92,7 +92,7 @@ const zapiMenuItems = [
   { id: "agente-ia", label: "Agente IA", icon: Bot, path: "/agente-ia" },
   { id: "departamento", label: "Departamento", icon: Building2, path: "/departamento" },
   { id: "skills", label: "Skills", icon: Sparkles, path: "/skills" },
-  
+  { id: "produtos", label: "Produtos", icon: ShoppingBag, path: "/produtos" },
  ];
 
  const instagramMenuItems = [
