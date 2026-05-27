@@ -49,6 +49,7 @@ import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEd
 import { ResumoConversaEditor } from "@/components/flow/ResumoConversaEditor";
 import { AdicionarTagsEditor } from "@/components/flow/AdicionarTagsEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
+import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
   PlayCircle,
   MessageSquare,
@@ -4986,6 +4987,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/atualizar\s*lead/.test(label)) {
                   return (
                     <AtualizarLeadEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/criar\s*registro\s*crm/.test(label)) {
+                  return (
+                    <CriarRegistroCrmEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
