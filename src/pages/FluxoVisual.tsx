@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/accordion";
 import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
+import { ResumoConversaEditor } from "@/components/flow/ResumoConversaEditor";
 import {
   PlayCircle,
   MessageSquare,
@@ -4917,6 +4918,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   );
                 }
                 const label = String(selectedNode.data.label || "").toLowerCase();
+                if (/resumo\s*de\s*conversa/.test(label)) {
+                  return (
+                    <ResumoConversaEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
                 const memoryVariant: "atendimento" | "lead" | "projeto" | null =
                   /mem[oó]ria de atendimento/.test(label)
                     ? "atendimento"
