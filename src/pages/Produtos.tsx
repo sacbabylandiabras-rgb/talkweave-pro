@@ -83,20 +83,30 @@ export default function Produtos() {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!user) throw new Error("Você precisa estar logado para enviar fotos.");
       const uploaded: string[] = [];
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop();
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
-        if (upErr) throw upErr;
+        const { error: upErr } = await (supabase as any).storage
+          .from("agent-products")
+          .upload(path, file, { upsert: true, contentType: file.type || undefined });
+        if (upErr) {
+          console.error("[Produtos] upload error", upErr);
+          throw upErr;
+        }
         const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
         uploaded.push(pub.publicUrl);
       }
       setImages((prev) => [...prev, ...uploaded]);
+      toast({ title: `${uploaded.length} foto(s) enviada(s)` });
     } catch (e: any) {
       console.error("[Produtos] upload error", e);
-      toast({ title: "Erro no upload", description: e?.message || String(e), variant: "destructive" });
+      toast({
+        title: "Erro no upload",
+        description: e?.message || e?.error || JSON.stringify(e),
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -243,18 +253,17 @@ export default function Produtos() {
                       )}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition disabled:opacity-50"
+                  <label
+                    htmlFor="produto-fotos-input"
+                    className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     <span className="text-[10px] mt-1">Adicionar</span>
-                  </button>
+                  </label>
                 </div>
                 <input
                   ref={fileRef}
+                  id="produto-fotos-input"
                   type="file"
                   accept="image/*"
                   multiple
