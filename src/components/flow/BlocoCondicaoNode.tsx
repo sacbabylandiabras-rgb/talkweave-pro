@@ -127,8 +127,8 @@ export function BlocoCondicaoNode({ data }: any) {
                 type="source"
                 position={Position.Right}
                 id={handleIdFor(i)}
-                className="!w-3 !h-3 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto"
-                style={{ right: -6, top: "50%" }}
+                className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto !cursor-crosshair hover:!bg-blue-400"
+                style={{ right: -8, top: "50%", transform: "translateY(-50%)" }}
               />
             </div>
           );
@@ -142,14 +142,18 @@ export function BlocoCondicaoNode({ data }: any) {
           <span className="inline-flex items-center justify-center h-4 px-1.5 rounded text-[9px] font-bold bg-orange-500/80 text-white">
             ELSE (Padrão)
           </span>
+          <span className="ml-auto text-[10px] text-orange-300/80">caminho padrão →</span>
           <Handle
             type="source"
             position={Position.Right}
             id="source-bottom"
-            className="!w-3 !h-3 !bg-orange-500 !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto"
-            style={{ right: -6 - 8, top: "50%" }}
+            className="!w-4 !h-4 !bg-orange-500 !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto !cursor-crosshair hover:!bg-orange-400"
+            style={{ right: -16, top: "50%", transform: "translateY(-50%)" }}
           />
         </div>
+      </div>
+      <div className="px-3 pb-2 text-[9px] text-muted-foreground/70 italic">
+        Arraste de cada ponto azul/laranja para conectar ao próximo bloco
       </div>
     </div>
   );
