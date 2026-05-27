@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChevronDown, RefreshCw, Search, Tag, X } from "lucide-react";
+import { ChevronDown, RefreshCw, Search, Tag, X, MinusCircle } from "lucide-react";
 
 export function AdicionarTagsEditor({
   value,
@@ -24,13 +24,28 @@ export function AdicionarTagsEditor({
   availableTags,
   loading,
   onRefresh,
+  mode = "add",
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   availableTags: string[];
   loading?: boolean;
   onRefresh?: () => void;
+  mode?: "add" | "remove";
 }) {
+  const isRemove = mode === "remove";
+  const title = isRemove ? "Remover Tags" : "Adicionar Tags";
+  const description = isRemove
+    ? "Neste bloco você configura quais tags devem ser removidas dos leads que seguirem por este fluxo. Quando o lead chegar neste bloco, as tags abaixo serão removidas do cadastro do lead."
+    : "Neste bloco você configura quais tags devem ser inseridas aos leads que seguirem por este fluxo. Quando o lead chegar neste bloco, as tags abaixo serão adicionadas ao cadastro do lead.";
+  const listLabel = isRemove ? "Tags para remoção" : "Tags selecionadas";
+  const searchPlaceholder = isRemove
+    ? "Buscar nas tags para remover..."
+    : "Buscar nas tags adicionadas...";
+  const emptyLabel = isRemove
+    ? "Nenhuma tag selecionada para remoção."
+    : "Nenhuma tag selecionada.";
+  const HeaderIcon = isRemove ? MinusCircle : Tag;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -65,16 +80,14 @@ export function AdicionarTagsEditor({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Tag className="h-4 w-4 text-primary" />
-        <span className="text-[13px] font-medium">Adicionar Tags</span>
+        <HeaderIcon className="h-4 w-4 text-primary" />
+        <span className="text-[13px] font-medium">{title}</span>
       </div>
-      <p className="text-[12px] text-muted-foreground">
-        Neste bloco você configura quais tags devem ser inseridas aos leads que seguirem por este fluxo. Quando o lead chegar neste bloco, as tags abaixo serão adicionadas ao cadastro do lead.
-      </p>
+      <p className="text-[12px] text-muted-foreground">{description}</p>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-[12px]">Tags selecionadas</Label>
+          <Label className="text-[12px]">{listLabel}</Label>
           {onRefresh && (
             <Button
               variant="ghost"
@@ -96,7 +109,7 @@ export function AdicionarTagsEditor({
                 className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-left text-[12px] flex items-center justify-between hover:bg-muted/40"
               >
                 <span className="text-muted-foreground">
-                  {loading ? "Carregando tags..." : "Buscar nas tags adicionadas..."}
+                  {loading ? "Carregando tags..." : searchPlaceholder}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -162,9 +175,7 @@ export function AdicionarTagsEditor({
             ))}
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground">
-            Nenhuma tag selecionada.
-          </p>
+          <p className="text-[11px] text-muted-foreground">{emptyLabel}</p>
         )}
       </div>
 
