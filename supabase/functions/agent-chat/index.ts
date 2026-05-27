@@ -1350,11 +1350,41 @@ serve(async (req) => {
     if (!skip_config) {
       const { data: toolsCfg } = await supabase
         .from("agent_tools_config")
-        .select("tool_name, enabled")
+        .select("tool_name, enabled, config")
         .eq("user_id", effectiveUserId)
         .eq("enabled", true);
 
-      enabledTools = (toolsCfg || []).map((t: any) => TOOL_DEFS[t.tool_name]).filter(Boolean);
+      enabledTools = (toolsCfg || [])
+        .map((t: any) => {
+          const def = TOOL_DEFS[t.tool_name];
+          if (!def) return null;
+          // Dynamically build input schema for consulta_api_ia from configured AI params
+          if (t.tool_name === "consulta_api_ia" && t.config) {
+            const cfg: any = t.config;
+            const aiParams: any[] = Array.isArray(cfg.aiParams) ? cfg.aiParams : [];
+            const props: Record<string, any> = {};
+            const required: string[] = [];
+            for (const p of aiParams) {
+              if (!p?.key) continue;
+              props[p.key] = { type: "string", description: p.desc || `Campo ${p.key}` };
+              if (p.required) required.push(p.key);
+            }
+            const desc = cfg.description
+              ? String(cfg.description)
+              : `Faz a requisição ${cfg.httpMethod || "GET"} para ${cfg.apiUrl || "API configurada"}`;
+            return {
+              name: "consulta_api_ia",
+              description: desc,
+              input_schema: {
+                type: "object",
+                properties: props,
+                ...(required.length ? { required } : {}),
+              },
+            };
+          }
+          return def;
+        })
+        .filter(Boolean);
 
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
