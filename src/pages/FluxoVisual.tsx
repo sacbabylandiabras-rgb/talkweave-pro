@@ -76,6 +76,7 @@ import {
   Sparkles,
   Bot,
   Globe,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
