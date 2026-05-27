@@ -1389,6 +1389,21 @@ serve(async (req) => {
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
       }
+
+      // Expand mcp_connect into one dynamic tool per enabled MCP tool
+      const mcpCfg = (toolsCfg || []).find((t: any) => t.tool_name === "mcp_connect");
+      if (mcpCfg?.config?.mcpUrl) {
+        const tools: any[] = Array.isArray(mcpCfg.config.mcpTools) ? mcpCfg.config.mcpTools : [];
+        enabledTools = enabledTools.filter((t: any) => t?.name !== "mcp_connect");
+        for (const t of tools) {
+          if (!t?.name || t.enabled === false) continue;
+          enabledTools.push({
+            name: `mcp__${String(t.name).replace(/[^a-zA-Z0-9_]/g, "_")}`,
+            description: t.description || `MCP tool ${t.name}`,
+            input_schema: t.inputSchema || { type: "object", properties: {} },
+          });
+        }
+      }
     }
 
     while (iterations < MAX_ITER) {
