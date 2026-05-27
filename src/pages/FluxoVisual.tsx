@@ -4407,6 +4407,40 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </div>
                     );
                   }
+                  if (isFiltroSessao) {
+                    const SESSIONS = [
+                      { value: "open", label: "Sessão Aberta", desc: "Dispositivo não oficial ou oficial com sessão WhatsApp ativa (expiration_at futuro)", color: "bg-emerald-500" },
+                      { value: "closed", label: "Sessão Fechada", desc: "Dispositivo oficial sem sessão ativa ou com expiration_at expirado", color: "bg-rose-500" },
+                    ];
+                    if (!Array.isArray(selectedNode.data.branches) || selectedNode.data.branches.length !== 2 || selectedNode.data.branches[0]?.value !== "open") {
+                      setTimeout(() => {
+                        setSelectedNode((prev: any) => prev ? ({
+                          ...prev,
+                          data: {
+                            ...prev.data,
+                            branches: SESSIONS.map((s) => ({ label: s.label, value: s.value })),
+                          },
+                        }) : prev);
+                      }, 0);
+                    }
+                    return (
+                      <div className="space-y-2">
+                        <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
+                          Dispositivos não oficiais seguem sempre pela saída <b>Sessão Aberta</b>. Dispositivos oficiais verificam a sessão WhatsApp (janela de 24h) no momento da execução.
+                        </div>
+                        <Label>Saídas fixas</Label>
+                        {SESSIONS.map((s) => (
+                          <div key={s.value} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
+                            <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold">{s.label}</div>
+                              <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
                   if (isFiltroMensagem) {
                     const OPERATORS = [
                       { v: "equals", label: "Igual" },
