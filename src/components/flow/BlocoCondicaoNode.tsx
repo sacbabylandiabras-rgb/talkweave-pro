@@ -53,6 +53,7 @@ export function BlocoCondicaoNode({ data }: any) {
   const isIfElse = (data.label || "").toLowerCase().includes("if/else");
 
   if (!isIfElse) {
+    const isSplit = (data.label || "").toLowerCase().includes("split");
     const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
       ? data.branches
       : [
@@ -94,9 +95,15 @@ export function BlocoCondicaoNode({ data }: any) {
                 {i + 1}
               </span>
               <span className="truncate flex-1">
-                <span className="text-muted-foreground mr-1">se =</span>
-                <span className="font-medium">"{b.value ?? ""}"</span>
-                {b.label && <span className="ml-1 text-muted-foreground">→ {b.label}</span>}
+                {isSplit ? (
+                  <span className="font-medium">{b.label || `Caminho ${i + 1}`}</span>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground mr-1">se =</span>
+                    <span className="font-medium">"{b.value ?? ""}"</span>
+                    {b.label && <span className="ml-1 text-muted-foreground">→ {b.label}</span>}
+                  </>
+                )}
               </span>
               <Handle
                 type="source"
@@ -107,6 +114,7 @@ export function BlocoCondicaoNode({ data }: any) {
               />
             </div>
           ))}
+          {!isSplit && (
           <div
             className="relative flex items-center gap-2 px-3 mt-1 mx-2 mb-1 rounded-md bg-orange-500/15 border border-orange-500/40 text-[11px] text-orange-200"
             style={{ height: ROW }}
@@ -123,6 +131,7 @@ export function BlocoCondicaoNode({ data }: any) {
               style={{ right: -16, top: "50%", transform: "translateY(-50%)" }}
             />
           </div>
+          )}
         </div>
       </div>
     );
