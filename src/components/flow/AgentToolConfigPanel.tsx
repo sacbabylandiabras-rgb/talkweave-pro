@@ -560,6 +560,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             conhecimento durante a execução do agente.
           </p>
         </div>
+        <ProductsPreview />
         <FuncList
           items={[
             { name: `products_${id}_search`, desc: "busca produtos por nome ou descrição, com paginação e retorno de detalhes como preço, estoque, imagens e link de compra." },
