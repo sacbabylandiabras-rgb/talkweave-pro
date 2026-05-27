@@ -4371,9 +4371,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     const OPERATORS = [
                       { v: "equals", label: "Igual" },
                       { v: "contains", label: "Contém" },
-                      { v: "starts_with: ", label: "Inicia com" },
+                      { v: "starts_with", label: "Inicia com" },
                       { v: "ends_with", label: "Finaliza com" },
-                    ].map((o) => ({ ...o, v: o.v.trim().replace(/:\s*$/, "") }));
+                    ];
                     const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
                       ? selectedNode.data.branches
                       : [{ label: "Resposta 1", operator: "contains", value: "" }];
