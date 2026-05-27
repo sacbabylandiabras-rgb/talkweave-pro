@@ -308,8 +308,13 @@ export function MemoriaAtendimentoEditor({
               <div>
                 <div className="font-medium">Acessando a memória</div>
                 <p className="text-muted-foreground">
-                  Use <code>{"{{memory.nome_do_campo}}"}</code> em outros nodes
-                  para acessar os valores salvos.
+                  Use{" "}
+                  <code>
+                    {variant === "projeto"
+                      ? "{{project.nome_do_campo}}"
+                      : "{{memory.nome_do_campo}}"}
+                  </code>{" "}
+                  em outros nodes para acessar os valores salvos.
                 </p>
               </div>
               <div>
