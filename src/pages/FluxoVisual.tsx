@@ -4139,6 +4139,113 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 {(() => {
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
+                  const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
+                  if (isHorario) {
+                    const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
+                    const updateRules = (next: any[]) => {
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: {
+                          ...selectedNode.data,
+                          scheduleRules: next,
+                          branches: [
+                            { label: "Dentro do Horário", value: "in" },
+                            { label: "Fora do Horário", value: "out" },
+                          ],
+                          condition: "in",
+                        },
+                      });
+                    };
+                    const DAYS = [
+                      { k: 0, label: "Dom" }, { k: 1, label: "Seg" }, { k: 2, label: "Ter" },
+                      { k: 3, label: "Qua" }, { k: 4, label: "Qui" }, { k: 5, label: "Sex" }, { k: 6, label: "Sáb" },
+                    ];
+                    return (
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Regras de horário</Label>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Defina dias da semana e janelas de horário. Se o momento atual bater em qualquer regra, segue por <b>Dentro do Horário</b>; caso contrário, por <b>Fora do Horário</b>.
+                          </p>
+                        </div>
+                        {rules.length === 0 && (
+                          <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
+                            Nenhuma regra configurada
+                          </div>
+                        )}
+                        {rules.map((r: any, idx: number) => (
+                          <div key={idx} className="space-y-2 rounded-md border bg-card p-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold">Regra {idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateRules(rules.filter((_, i) => i !== idx))}
+                                className="text-muted-foreground hover:text-destructive text-xs"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                            <div>
+                              <Label className="text-[11px]">Dias da semana</Label>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {DAYS.map((d) => {
+                                  const selected = (r.days || []).includes(d.k);
+                                  return (
+                                    <button
+                                      key={d.k}
+                                      type="button"
+                                      onClick={() => {
+                                        const days = selected
+                                          ? (r.days || []).filter((x: number) => x !== d.k)
+                                          : [...(r.days || []), d.k];
+                                        updateRules(rules.map((x, i) => i === idx ? { ...x, days } : x));
+                                      }}
+                                      className={`px-2.5 py-1 text-[11px] rounded border ${selected ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 border-border text-foreground"}`}
+                                    >
+                                      {d.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-[11px]">Início</Label>
+                                <Input
+                                  type="time"
+                                  value={r.start || ""}
+                                  onChange={(e) => updateRules(rules.map((x, i) => i === idx ? { ...x, start: e.target.value } : x))}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-[11px]">Término</Label>
+                                <Input
+                                  type="time"
+                                  value={r.end || ""}
+                                  onChange={(e) => updateRules(rules.map((x, i) => i === idx ? { ...x, end: e.target.value } : x))}
+                                  className="mt-1"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-center"
+                          onClick={() => updateRules([...rules, { days: [1, 2, 3, 4, 5], start: "09:00", end: "18:00" }])}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Adicionar nova regra
+                        </Button>
+                        <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] space-y-1">
+                          <div className="font-semibold text-foreground">Saídas fixas</div>
+                          <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Dentro do Horário</div>
+                          <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" /> Fora do Horário</div>
+                        </div>
+                      </div>
+                    );
+                  }
                   const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
                     ? selectedNode.data.branches
                     : [
