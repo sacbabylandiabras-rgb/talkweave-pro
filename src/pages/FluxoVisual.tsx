@@ -4984,6 +4984,33 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     />
                   );
                 }
+                if (/adicionar\s*tags/.test(label)) {
+                  const raw = selectedNode.data.tags;
+                  const tags: string[] = Array.isArray(raw)
+                    ? raw
+                    : typeof selectedNode.data.actionConfig === "string" && selectedNode.data.actionConfig.trim()
+                    ? selectedNode.data.actionConfig.split(",").map((s: string) => s.trim()).filter(Boolean)
+                    : [];
+                  return (
+                    <AdicionarTagsEditor
+                      value={tags}
+                      availableTags={availableTags}
+                      loading={loadingTags}
+                      onRefresh={fetchTagsForEditor}
+                      onChange={(next) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: {
+                            ...selectedNode.data,
+                            actionType: "tag",
+                            tags: next,
+                            actionConfig: next.join(","),
+                          },
+                        })
+                      }
+                    />
+                  );
+                }
                 if (/atualizar\s*lead/.test(label)) {
                   return (
                     <AtualizarLeadEditor
