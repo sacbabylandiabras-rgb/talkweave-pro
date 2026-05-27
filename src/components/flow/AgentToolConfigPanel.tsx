@@ -948,6 +948,15 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 6: Enviar transação ---
   if (toolName === "enviar_transacao") {
+    const DEFAULT_AWAITING =
+      "Olá {lead.name}! 👋\n\nSegue o PIX para *{transaction.product_name}* no valor de *{transaction.transaction_value}*.\n\n📲 Código copia-e-cola:\n{pix.qrcode_pix}\n\nID da transação: {transaction.transaction_id}\n\nAssim que o pagamento for confirmado eu te aviso por aqui. 😉";
+    const DEFAULT_OTHER =
+      "Atualização do seu pedido *{transaction.product_name}* ({transaction.transaction_value}):\n\nStatus atual: *{transaction.status}*\n\nQualquer dúvida estou à disposição!";
+    const DEFAULT_CHARGE_MSG =
+      "Pronto {lead.name}! ✅\n\nAqui está o PIX no valor de *{charge.amount}* para {charge.description}.\n\n📲 Código copia-e-cola:\n{charge.brcode}\n\nID: {charge.id}\n\nAssim que o pagamento cair eu te confirmo por aqui. 😉";
+    const textAwaiting = node.data?.textAwaiting ?? DEFAULT_AWAITING;
+    const textOther = node.data?.textOther ?? DEFAULT_OTHER;
+    const chargeMessageTemplate = node.data?.chargeMessageTemplate ?? DEFAULT_CHARGE_MSG;
     return (
       <>
         {Header}
@@ -1011,10 +1020,9 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
         <div>
           <Label>Texto — aguardando pagamento</Label>
           <Textarea
-            value={node.data?.textAwaiting || ""}
+            value={textAwaiting}
             onChange={(e) => setData(node, setNode, { textAwaiting: e.target.value })}
-            placeholder="Olá {lead.name}! Segue o PIX para {transaction.product_name} no valor de {transaction.transaction_value}. ID: {transaction.transaction_id}"
-            rows={4}
+            rows={8}
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Variáveis: {"{lead.name}"}, {"{transaction.product_name}"},
@@ -1025,10 +1033,9 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
         <div>
           <Label>Texto — outros status</Label>
           <Textarea
-            value={node.data?.textOther || ""}
+            value={textOther}
             onChange={(e) => setData(node, setNode, { textOther: e.target.value })}
-            placeholder="Sua compra de {transaction.product_name} ({transaction.transaction_value}) está com status: {transaction.status}."
-            rows={3}
+            rows={5}
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Variáveis: {"{transaction.product_name}"}, {"{transaction.transaction_value}"},
