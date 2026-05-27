@@ -21,6 +21,20 @@ const buildFriendlyVoiceError = (status: number, rawBody: string) => {
 
   const normalized = `${upstreamCode} ${upstreamMessage}`.toLowerCase();
 
+  if (
+    normalized.includes("detected_unusual_activity") ||
+    normalized.includes("unusual activity") ||
+    normalized.includes("free tier usage disabled")
+  ) {
+    return {
+      error: "Geração de voz bloqueada pela conta da API",
+      details:
+        "A conta conectada ao serviço de voz recusou a geração porque o uso gratuito foi bloqueado ou a conta exige um plano pago ativo. Ative a cobrança/um plano pago na conta da API e tente novamente.",
+      hint: "Se a conta já tem plano ativo, gere um novo Token API Key nela e atualize o campo do bloco antes de tentar de novo.",
+      status,
+    };
+  }
+
   if (status === 429 || normalized.includes("quota")) {
     return {
       error: "Créditos do serviço de voz acabaram",
@@ -152,8 +166,8 @@ Deno.serve(async (req) => {
       const errText = await ttsRes.text().catch(() => "");
       console.error("TTS upstream error", ttsRes.status, errText);
       return new Response(
-        JSON.stringify(buildFriendlyVoiceError(ttsRes.status, errText)),
-        { status: 502, headers: jsonHeaders }
+        JSON.stringify({ ok: false, ...buildFriendlyVoiceError(ttsRes.status, errText) }),
+        { status: 200, headers: jsonHeaders }
       );
     }
 
