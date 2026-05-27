@@ -76,6 +76,7 @@ import {
   Sparkles,
   Bot,
   Globe,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -675,6 +676,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [previewingTts, setPreviewingTts] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
+  const [editingConditionIndex, setEditingConditionIndex] = useState<number | null>(null);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
    const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
    const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -3794,8 +3796,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoCondicao" && (
               (() => {
-                const dataType = selectedNode.data.dataType || "string";
-                const operator = selectedNode.data.operator || "equals";
                 const operatorsByType: Record<string, { value: string; label: string }[]> = {
                   string: [
                     { value: "equals", label: "Igual a" },
@@ -3846,154 +3846,272 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     { value: "is_not_empty", label: "Não está vazio" },
                   ],
                 };
-                const currentOperators = operatorsByType[dataType] || operatorsByType.string;
-                const needsValue = ![
+                const dataTypeLabels: Record<string, string> = {
+                  string: "Texto (String)",
+                  number: "Número",
+                  boolean: "Booleano",
+                  array: "Lista",
+                  date: "Data",
+                };
+                const noValueOps = [
                   "is_empty",
                   "is_not_empty",
                   "is_numeric",
                   "is_true",
                   "is_false",
-                ].includes(operator);
+                ];
+                // Migrate legacy single-condition data into the conditions array
+                const rawConditions = Array.isArray(selectedNode.data.conditions)
+                  ? selectedNode.data.conditions
+                  : (selectedNode.data.variable || selectedNode.data.condition)
+                    ? [{
+                        variable: selectedNode.data.variable || "",
+                        dataType: selectedNode.data.dataType || "string",
+                        operator: selectedNode.data.operator || "equals",
+                        compareValue: selectedNode.data.compareValue ?? selectedNode.data.condition ?? "",
+                      }]
+                    : [];
+                const conditions = rawConditions;
+                const updateConditions = (next: any[]) => {
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, conditions: next },
+                  });
+                };
+                const addCondition = () => {
+                  updateConditions([
+                    ...conditions,
+                    { variable: "", dataType: "string", operator: "equals", compareValue: "" },
+                  ]);
+                  setEditingConditionIndex(conditions.length);
+                };
+                const removeCondition = (idx: number) => {
+                  updateConditions(conditions.filter((_: any, i: number) => i !== idx));
+                };
+                const summarize = (c: any) => {
+                  const op = (operatorsByType[c.dataType] || operatorsByType.string)
+                    .find((o) => o.value === c.operator)?.label?.toLowerCase() || c.operator;
+                  const valuePart = noValueOps.includes(c.operator) ? "" : ` "${c.compareValue ?? ""}"`;
+                  return { type: dataTypeLabels[c.dataType] || "Texto", variable: c.variable || "—", op, valuePart };
+                };
+                const editing = editingConditionIndex != null ? conditions[editingConditionIndex] : null;
+                const updateEditing = (patch: any) => {
+                  if (editingConditionIndex == null) return;
+                  const next = conditions.map((c: any, i: number) =>
+                    i === editingConditionIndex ? { ...c, ...patch } : c
+                  );
+                  updateConditions(next);
+                };
                 return (
               <>
-                <div>
-                  <Label>Variável a verificar</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={selectedNode.data.variable || ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, variable: e.target.value },
-                        })
-                      }
-                      placeholder="Ex: {{lead.name}}"
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="shrink-0">
-                          + Variável
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="end" className="w-80 p-0">
-                        <ScrollArea className="max-h-80">
-                          <div className="p-3 space-y-3">
-                            {[
-                              {
-                                title: "Variáveis do Lead",
-                                items: [
-                                  { v: "{{lead.id}}", d: "ID do lead" },
-                                  { v: "{{lead.code}}", d: "Código do lead" },
-                                  { v: "{{lead.name}}", d: "Nome completo do lead" },
-                                  { v: "{{lead.first_name}}", d: "Primeiro nome do lead" },
-                                  { v: "{{lead.phone}}", d: "Telefone" },
-                                  { v: "{{lead.email}}", d: "E-mail" },
-                                ],
-                              },
-                              {
-                                title: "Campos personalizados",
-                                items: [
-                                  { v: "{{lead.origen}}", d: "Origen" },
-                                ],
-                              },
-                            ].map((group) => (
-                              <div key={group.title}>
-                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                                  {group.title}
-                                </p>
-                                <div className="space-y-1">
-                                  {group.items.map((it) => (
-                                    <button
-                                      key={it.v}
-                                      type="button"
-                                      onClick={() => {
-                                        const current = selectedNode.data.variable || "";
-                                        setSelectedNode({
-                                          ...selectedNode,
-                                          data: {
-                                            ...selectedNode.data,
-                                            variable: current ? `${current} ${it.v}` : it.v,
-                                          },
-                                        });
-                                      }}
-                                      className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted text-xs"
-                                    >
-                                      <code className="font-mono text-primary">{it.v}</code>
-                                      <p className="text-[11px] text-muted-foreground">{it.d}</p>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
+                <div className="space-y-2">
+                  {conditions.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Nenhuma condição definida. Clique em "Adicionar nova condição (IF)".
+                    </p>
+                  )}
+                  {conditions.map((c: any, idx: number) => {
+                    const s = summarize(c);
+                    return (
+                      <div
+                        key={idx}
+                        className="group flex items-center gap-2 rounded-md border bg-card hover:bg-muted/50 transition px-3 py-2 cursor-pointer"
+                        onClick={() => setEditingConditionIndex(idx)}
+                      >
+                        <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-muted text-foreground">
+                          IF {idx + 1}
+                        </span>
+                        <div className="flex-1 text-xs text-foreground/90 truncate">
+                          <span className="text-muted-foreground mr-1">{s.type}</span>
+                          <code className="font-mono text-primary">{s.variable}</code>
+                          <span className="mx-1 text-muted-foreground">{s.op}</span>
+                          {s.valuePart && <span className="font-medium">{s.valuePart}</span>}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeCondition(idx); }}
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive text-xs"
+                          title="Remover"
+                        >
+                          ✕
+                        </button>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+                    <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
+                      ELSE (Padrão)
+                    </span>
+                    <span className="text-xs text-foreground/80">
+                      Executado quando nenhuma condição IF for verdadeira
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-center"
+                    onClick={addCondition}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar nova condição (IF)
+                  </Button>
+
+                  <details className="rounded-md border bg-muted/30 px-3 py-2 text-xs">
+                    <summary className="cursor-pointer font-medium flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+                      Como funciona
+                    </summary>
+                    <div className="mt-2 space-y-1 text-muted-foreground">
+                      <p>• As condições IF são avaliadas em ordem.</p>
+                      <p>• A primeira condição verdadeira segue seu caminho.</p>
+                      <p>• Se nenhuma for verdadeira, o caminho ELSE (Padrão) é seguido.</p>
+                    </div>
+                  </details>
+                </div>
+
+                {/* Sub-dialog: editar uma condição */}
+                <Dialog
+                  open={editingConditionIndex != null}
+                  onOpenChange={(open) => { if (!open) setEditingConditionIndex(null); }}
+                >
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Editar condição IF {(editingConditionIndex ?? 0) + 1}</DialogTitle>
+                    </DialogHeader>
+                    {editing && (() => {
+                      const dataType = editing.dataType || "string";
+                      const operator = editing.operator || "equals";
+                      const currentOperators = operatorsByType[dataType] || operatorsByType.string;
+                      const needsValue = !noValueOps.includes(operator);
+                      return (
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Variável a verificar</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                value={editing.variable || ""}
+                                onChange={(e) => updateEditing({ variable: e.target.value })}
+                                placeholder="Ex: {{lead.name}}"
+                              />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" size="sm" className="shrink-0">
+                                    + Variável
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-80 p-0">
+                                  <ScrollArea className="max-h-80">
+                                    <div className="p-3 space-y-3">
+                                      {[
+                                        {
+                                          title: "Variáveis do Lead",
+                                          items: [
+                                            { v: "{{lead.id}}", d: "ID do lead" },
+                                            { v: "{{lead.code}}", d: "Código do lead" },
+                                            { v: "{{lead.name}}", d: "Nome completo do lead" },
+                                            { v: "{{lead.first_name}}", d: "Primeiro nome do lead" },
+                                            { v: "{{lead.phone}}", d: "Telefone" },
+                                            { v: "{{lead.email}}", d: "E-mail" },
+                                          ],
+                                        },
+                                        {
+                                          title: "Campos personalizados",
+                                          items: [
+                                            { v: "{{lead.origen}}", d: "Origen" },
+                                          ],
+                                        },
+                                      ].map((group) => (
+                                        <div key={group.title}>
+                                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                                            {group.title}
+                                          </p>
+                                          <div className="space-y-1">
+                                            {group.items.map((it) => (
+                                              <button
+                                                key={it.v}
+                                                type="button"
+                                                onClick={() => {
+                                                  const current = editing.variable || "";
+                                                  updateEditing({ variable: current ? `${current} ${it.v}` : it.v });
+                                                }}
+                                                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted text-xs"
+                                              >
+                                                <code className="font-mono text-primary">{it.v}</code>
+                                                <p className="text-[11px] text-muted-foreground">{it.d}</p>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
                           </div>
-                        </ScrollArea>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Use variáveis dinâmicas do fluxo.
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Tipo de dado</Label>
-                    <Select
-                      value={dataType}
-                      onValueChange={(v) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, dataType: v, operator: (operatorsByType[v] || operatorsByType.string)[0].value },
-                        })
-                      }
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="string">Texto (String)</SelectItem>
-                        <SelectItem value="number">Número</SelectItem>
-                        <SelectItem value="boolean">Booleano (Verdadeiro/Falso)</SelectItem>
-                        <SelectItem value="array">Lista (Array)</SelectItem>
-                        <SelectItem value="date">Data</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Operador</Label>
-                    <Select
-                      value={operator}
-                      onValueChange={(v) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, operator: v },
-                        })
-                      }
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        {currentOperators.map((op) => (
-                          <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label>Tipo de dado</Label>
+                              <Select
+                                value={dataType}
+                                onValueChange={(v) =>
+                                  updateEditing({
+                                    dataType: v,
+                                    operator: (operatorsByType[v] || operatorsByType.string)[0].value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="string">Texto (String)</SelectItem>
+                                  <SelectItem value="number">Número</SelectItem>
+                                  <SelectItem value="boolean">Booleano (Verdadeiro/Falso)</SelectItem>
+                                  <SelectItem value="array">Lista (Array)</SelectItem>
+                                  <SelectItem value="date">Data</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Operador</Label>
+                              <Select
+                                value={operator}
+                                onValueChange={(v) => updateEditing({ operator: v })}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                  {currentOperators.map((op) => (
+                                    <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
 
-                {needsValue && (
-                  <div>
-                    <Label>Valor para comparar</Label>
-                    <Input
-                      value={selectedNode.data.compareValue ?? selectedNode.data.condition ?? ""}
-                      onChange={(e) =>
-                        setSelectedNode({
-                          ...selectedNode,
-                          data: { ...selectedNode.data, compareValue: e.target.value, condition: e.target.value },
-                        })
-                      }
-                      placeholder="Ex: sucesso"
-                      type={dataType === "date" ? "datetime-local" : dataType === "number" ? "number" : "text"}
-                    />
-                  </div>
-                )}
+                          {needsValue && (
+                            <div>
+                              <Label>Valor para comparar</Label>
+                              <Input
+                                value={editing.compareValue ?? ""}
+                                onChange={(e) => updateEditing({ compareValue: e.target.value })}
+                                placeholder="Ex: sucesso"
+                                type={dataType === "date" ? "datetime-local" : dataType === "number" ? "number" : "text"}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" onClick={() => setEditingConditionIndex(null)}>
+                              Concluir
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </DialogContent>
+                </Dialog>
               </>
                 );
               })()
