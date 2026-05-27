@@ -192,6 +192,33 @@ export function AdicionarTagsEditor({
         ) : (
           <p className="text-[11px] text-muted-foreground">{emptyLabel}</p>
         )}
+
+        <div className="pt-2 border-t border-border/60">
+          <Label className="text-[11px] text-muted-foreground">
+            Sugestões ({merged.length})
+          </Label>
+          <div className="flex flex-wrap gap-1 mt-1.5 max-h-40 overflow-y-auto">
+            {merged.map((tag) => {
+              const active = value.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggle(tag)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] transition-colors ${
+                    active
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-background border-border text-foreground hover:bg-muted/40"
+                  }`}
+                  title={active ? "Remover" : "Adicionar"}
+                >
+                  <Tag className="h-2.5 w-2.5" />
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
