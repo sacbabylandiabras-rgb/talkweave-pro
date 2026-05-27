@@ -4443,6 +4443,40 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </div>
                     );
                   }
+                  if (isFiltroFollowUp) {
+                    const FOLLOWS = [
+                      { value: "followup", label: "Follow Up", desc: "Task em processamento vinculada a mensagem do sistema (status≠0)", color: "bg-cyan-500" },
+                      { value: "not_followup", label: "Não é Follow Up", desc: "Task disparada por mensagem normal do lead ou de outro gatilho", color: "bg-slate-500" },
+                    ];
+                    if (!Array.isArray(selectedNode.data.branches) || selectedNode.data.branches.length !== 2 || selectedNode.data.branches[0]?.value !== "followup") {
+                      setTimeout(() => {
+                        setSelectedNode((prev: any) => prev ? ({
+                          ...prev,
+                          data: {
+                            ...prev.data,
+                            branches: FOLLOWS.map((s) => ({ label: s.label, value: s.value })),
+                          },
+                        }) : prev);
+                      }, 0);
+                    }
+                    return (
+                      <div className="space-y-2">
+                        <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
+                          Conecte cada saída no canvas. O ramo é escolhido conforme a task em processamento estar vinculada a uma mensagem status≠0 (follow up automático/watcher).
+                        </div>
+                        <Label>Saídas fixas</Label>
+                        {FOLLOWS.map((s) => (
+                          <div key={s.value} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
+                            <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold">{s.label}</div>
+                              <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
                   if (isFiltroMensagem) {
                     const OPERATORS = [
                       { v: "equals", label: "Igual" },
