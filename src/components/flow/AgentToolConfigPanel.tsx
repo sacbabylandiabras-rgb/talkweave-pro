@@ -812,7 +812,7 @@ function ConsultaApiPanel({
 }: {
   node: any;
   setNode: (n: any) => void;
-  Header: React.ReactNode;
+  Header: ReactNode;
 }) {
   const aiParams: KV[] = Array.isArray(node.data?.aiParams) ? node.data.aiParams : [];
   const headers: KV[] = Array.isArray(node.data?.headers) ? node.data.headers : [];
