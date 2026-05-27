@@ -2884,7 +2884,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     )}
                   </div>
                 )}
-                {selectedNode.data.contentType !== "audio" && (
+                {selectedNode.data.contentType !== "audio" && !isMensagemAudioBlock(selectedNode) && (
                 <div>
                   <Label>
                     {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}
@@ -2927,7 +2927,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
                 )}
 
-                {selectedNode.data.contentType !== "audio" && (
+                {selectedNode.data.contentType !== "audio" && !isMensagemAudioBlock(selectedNode) && (
                 <>
                 <Separator />
 
