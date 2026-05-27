@@ -5108,6 +5108,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     />
                   );
                 }
+                if (/trocar\s*departamento/i.test(label)) {
+                  return (
+                    <TrocarDepartamentoEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
                 const isTypingBlock =
                   selectedNode.data.actionType === "typing" ||
                   /digitando/i.test(String(selectedNode.data.label || ""));
