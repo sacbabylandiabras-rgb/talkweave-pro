@@ -1035,6 +1035,100 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             {" {transaction.status}"}, {"{transaction.gateway}"}
           </p>
         </div>
+
+        {/* --- Cobrança via Gateway --- */}
+        <div className="space-y-2 rounded-lg border border-border p-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="charge-enabled"
+              checked={!!node.data?.chargeEnabled}
+              onCheckedChange={(c) => setData(node, setNode, { chargeEnabled: !!c })}
+            />
+            <Label htmlFor="charge-enabled" className="cursor-pointer font-semibold">
+              Permitir gerar cobrança via Gateway
+            </Label>
+          </div>
+          <p className="text-[11px] text-muted-foreground pl-6">
+            Quando ativo, a IA pode criar uma nova cobrança PIX em nome do usuário
+            (usa o gateway configurado no seu perfil) e devolver o QR Code / código
+            copia-e-cola ao cliente. Útil quando o cliente decide comprar pela conversa.
+          </p>
+
+          {node.data?.chargeEnabled && (
+            <div className="space-y-3 pl-6">
+              <div>
+                <Label className="text-xs">Origem do valor</Label>
+                <Select
+                  value={node.data?.chargeAmountSource || "product"}
+                  onValueChange={(v) => setData(node, setNode, { chargeAmountSource: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">Preço do produto selecionado pela IA</SelectItem>
+                    <SelectItem value="ai">Valor livre — IA define o amount</SelectItem>
+                    <SelectItem value="fixed">Valor fixo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {node.data?.chargeAmountSource === "fixed" && (
+                <div>
+                  <Label className="text-xs">Valor fixo (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={node.data?.chargeFixedAmount ?? ""}
+                    onChange={(e) =>
+                      setData(node, setNode, { chargeFixedAmount: e.target.value })
+                    }
+                    placeholder="Ex: 49.90"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs">Descrição padrão da cobrança</Label>
+                <Input
+                  value={node.data?.chargeDescription || ""}
+                  onChange={(e) => setData(node, setNode, { chargeDescription: e.target.value })}
+                  placeholder="Ex: Pedido via atendimento IA"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs">Mensagem ao enviar a cobrança gerada</Label>
+                <Textarea
+                  value={node.data?.chargeMessageTemplate || ""}
+                  onChange={(e) =>
+                    setData(node, setNode, { chargeMessageTemplate: e.target.value })
+                  }
+                  placeholder={
+                    "Pronto {lead.name}! Aqui está o PIX de {charge.amount}:\n\n{charge.brcode}\n\nID: {charge.id}"
+                  }
+                  rows={4}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Variáveis: {"{lead.name}"}, {"{charge.amount}"}, {"{charge.brcode}"},{" "}
+                  {"{charge.qrcode_image}"}, {"{charge.id}"}, {"{charge.description}"}
+                </p>
+              </div>
+
+              <div className="rounded-md bg-muted/40 p-2 text-[11px] text-muted-foreground space-y-1">
+                <div className="font-semibold text-foreground">Função exposta à IA</div>
+                <div>
+                  <code>gateway_create_charge</code> — gera uma cobrança PIX usando o gateway
+                  configurado e retorna <code>brcode</code>, <code>qrcode_image</code>,{" "}
+                  <code>id</code> e <code>amount</code>.
+                </div>
+                <div>
+                  Parâmetros: <code>amount</code> (centavos, opcional se origem = produto/fixo),{" "}
+                  <code>product_id</code> (opcional), <code>description</code> (opcional).
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </>
     );
   }
