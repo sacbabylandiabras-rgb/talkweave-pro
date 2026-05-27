@@ -14,7 +14,32 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { findAgentToolBlock } from "./agentToolBlocks";
-import { Info, Package, ShieldCheck, Receipt, Paperclip, Tag, Users } from "lucide-react";
+import {
+  Info,
+  Package,
+  ShieldCheck,
+  Receipt,
+  Paperclip,
+  Tag,
+  Users,
+  CheckCircle2,
+  CalendarClock,
+  Brain,
+  Globe,
+  Link2,
+  ClipboardList,
+  Briefcase,
+  Search,
+  Plug,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Props {
   node: any;
@@ -566,6 +591,490 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
               padrão <code>task_users_list_tool_{id}</code>. Campos retornados:
               <code> user_id, name, email</code>.
             </div>
+          </div>
+        </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 11: Finalizar Atendimento ---
+  if (toolName === "finalizar_atendimento") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Finalizar Atendimento"
+          placeholder="Ex: quando o cliente confirmar que a dúvida foi resolvida ou pedir para encerrar..."
+        />
+        <div className="flex items-center gap-2 rounded-lg border border-border p-3">
+          <Checkbox
+            id="finalize-flag"
+            checked={node.data?.finalizeEnabled !== false}
+            onCheckedChange={(c) => setData(node, setNode, { finalizeEnabled: !!c })}
+          />
+          <Label htmlFor="finalize-flag" className="cursor-pointer">
+            Finalizar atendimento (tool)
+          </Label>
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] flex gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+          <p>
+            Quando o agente chamar esta ferramenta, o atendimento será encerrado imediatamente.
+            Use a descrição acima para orientar quando a IA deve finalizar (ex: após resolver a
+            dúvida, quando o cliente confirmar que não precisa de mais nada).
+          </p>
+        </div>
+        <InfoBlock>
+          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
+            Comportamento
+          </div>
+          <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+            <li>O agente decide quando chamar com base na descrição da ferramenta.</li>
+            <li>O atendimento é encerrado e o lead sai da fila.</li>
+            <li>Nenhuma mensagem adicional é enviada automaticamente.</li>
+            <li>O fluxo do grafo continua após a tool (diferente do bloco Finalizar Atendimento).</li>
+          </ul>
+        </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 12: Agenda ---
+  if (toolName === "agenda_eventos") {
+    const calendars: string[] = Array.isArray(node.data?.calendars) ? node.data.calendars : [];
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Agenda" />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Agendas selecionadas</Label>
+            <Button variant="outline" size="sm">+ Adicionar</Button>
+          </div>
+          {calendars.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">Nenhuma agenda selecionada</p>
+          ) : (
+            <ul className="text-[12px] space-y-1">
+              {calendars.map((c, i) => <li key={i}>• {c}</li>)}
+            </ul>
+          )}
+          <Button variant="outline" size="sm" className="w-full">
+            <Users className="h-4 w-4 mr-2" /> Gerenciar Equipe
+          </Button>
+        </div>
+        <InfoBlock>
+          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
+            Modalidades de agendamento
+          </div>
+          <ul className="space-y-1 text-[11px]">
+            <li><strong>Hora marcada:</strong> um lead por horário, igual a uma reunião tradicional.</li>
+            <li><strong>Ordem de chegada:</strong> janela diária com fila — vários leads compartilham o mesmo período até atingir o limite configurado.</li>
+            <li><strong>Grupo:</strong> mesmo horário ocupado por vários leads (até o limite), criando um único evento compartilhado.</li>
+          </ul>
+        </InfoBlock>
+        <FuncList
+          items={[
+            { name: `agenda_${id}_list_calendars`, desc: "lista os calendários disponíveis para agendamento, com regras de horário e responsáveis." },
+            { name: `agenda_${id}_list_available_time_slots`, desc: "lista os próximos horários livres, com suporte a filtro por calendário e paginação." },
+            { name: `agenda_${id}_list_future_appointments`, desc: "lista compromissos futuros do cliente em qualquer calendário." },
+            { name: `agenda_${id}_add_appointment`, desc: "cria um novo compromisso para o lead na agenda selecionada." },
+            { name: `agenda_${id}_cancel_appointment`, desc: "cancela um compromisso existente do lead." },
+            { name: `agenda_${id}_reschedule_appointment`, desc: "remarca um compromisso, criando o novo horário e cancelando o antigo." },
+          ]}
+        />
+      </>
+    );
+  }
+
+  // --- MODAL 13: Atualizar Memória Atendimento ---
+  if (toolName === "atualizar_memoria") {
+    const fields: string[] = Array.isArray(node.data?.memoryFields) ? node.data.memoryFields : [];
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Atualizar Memória Atendimento" />
+        <div className="space-y-2">
+          <Label>Estrutura da Memória</Label>
+          <Button variant="outline" size="sm" className="w-full">
+            <Brain className="h-4 w-4 mr-2" /> Editar Estrutura da Memória de Atendimento
+          </Button>
+          <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+            Estrutura não definida — Clique em "Editar Estrutura" para definir os campos da memória.
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Campos que a IA pode Atualizar</Label>
+            <Button variant="outline" size="sm">+ Adicionar Campo</Button>
+          </div>
+          {fields.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+              Nenhum campo habilitado. Use o botão "Adicionar Campo" para selecionar campos que a IA poderá atualizar.
+            </div>
+          ) : (
+            <ul className="text-[12px] space-y-1">
+              {fields.map((f, i) => <li key={i}>• {f}</li>)}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px]">
+          <strong>Diferença do operador "Salvar Memória":</strong> No operador, você define o valor
+          fixo (ex: <code>{"{{sale_ai_output_plan}}"}</code>). Aqui na tool, a IA decide
+          dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
+        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="how">
+            <AccordionTrigger className="text-sm">Como funciona</AccordionTrigger>
+            <AccordionContent>
+              <p className="text-[12px] mb-2">
+                Esta tool é registrada dinamicamente no agente com os campos que você selecionar. A IA recebe:
+              </p>
+              <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+                <li>Nome do campo como nome do parâmetro</li>
+                <li>Tipo do schema (string, number, array, object...) como tipo do parâmetro</li>
+                <li>Descrição do schema como description do parâmetro</li>
+                <li>Quando a IA chamar a tool, os valores serão salvos na memória do atendimento em <code>{"{{memory.campo}}"}</code>.</li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </>
+    );
+  }
+
+  // --- MODAL 14: Consulta API (IA) ---
+  if (toolName === "consulta_api_ia") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Requisição API"
+          placeholder="Descreva em detalhes quando e como esta API deve ser utilizada pelo agente IA"
+        />
+        <div className="space-y-2">
+          <Label>Endpoint da API</Label>
+          <div className="flex gap-2">
+            <Select
+              value={node.data?.httpMethod || "GET"}
+              onValueChange={(v) => setData(node, setNode, { httpMethod: v })}
+            >
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={node.data?.apiUrl || ""}
+              onChange={(e) => setData(node, setNode, { apiUrl: e.target.value })}
+              placeholder="https://api.exemplo.com/endpoint"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Use variáveis dinâmicas: <code>{"{{lead.campo}}"}</code>, <code>{"{{node.X.response}}"}</code>, <code>{"{{memory.campo}}"}</code>
+          </p>
+        </div>
+        <Accordion type="multiple" className="w-full">
+          {[
+            { v: "ai", label: "Parâmetros da IA", sub: "Campos que o agente IA deve preencher ao acionar esta tool." },
+            { v: "headers", label: "Parâmetros Headers", sub: "Cabeçalhos HTTP enviados nesta requisição. Use variáveis dinâmicas ou valores fixos." },
+            { v: "body", label: "Parâmetros Body", sub: "Campos do corpo quando o método permitir corpo (POST, PUT, PATCH)." },
+            { v: "query", label: "Parâmetros Query", sub: "Parâmetros de query string acrescentados à URL." },
+          ].map((s) => (
+            <AccordionItem key={s.v} value={s.v}>
+              <AccordionTrigger className="text-sm">{s.label}</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-[11px] text-muted-foreground mb-2">{s.sub}</p>
+                <Button variant="outline" size="sm">+ Adicionar</Button>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </>
+    );
+  }
+
+  // --- MODAL 15: Acessar Links ---
+  if (toolName === "acessar_links") {
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Consultar Links" />
+        <InfoBlock>
+          <div className="flex gap-2">
+            <Link2 className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>
+              Esta ferramenta permite buscar e acessar os links compartilhados durante a conversa
+              no chat. Não requer configurações adicionais.
+            </p>
+          </div>
+        </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 16: Criar tarefa CRM no lead ---
+  if (toolName === "criar_tarefa_crm") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Criar tarefa CRM no lead"
+          placeholder="Ex: quando o cliente pedir retorno ou der uma data, registrar com título e prazo..."
+        />
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] space-y-1">
+          <div className="font-semibold">Lembrete ou tarefa para quem você está falando agora</div>
+          <p>
+            A tarefa fica sempre ligada à pessoa (o contato desta conversa). Se no atendimento já
+            apareceram dados de uma oportunidade, um chamado ou um compromisso na agenda da
+            própria pessoa, o assistente pode amarrar o lembrete a um deles — só quando esse
+            registro já tiver sido visto antes na conversa, para não misturar com outra pessoa.
+          </p>
+        </div>
+        <InfoBlock>
+          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
+            O assistente vai pedir pelo menos...
+          </div>
+          <ul className="list-disc pl-4 space-y-1 text-[11px]">
+            <li>Um nome claro para o que precisa ser feito.</li>
+            <li>Quando (dia e hora combinados ou pedidos na conversa).</li>
+            <li>Se combinar, dá para incluir detalhes, tipo de pendência (ligação, e-mail, reunião ou lembrete), urgência, tamanho aproximado do esforço e quem deve executar. Se mencionar algo que já apareceu como número de oportunidade, chamado ou compromisso, o assistente pode usar esse id como contexto.</li>
+            <li>Quem você é nesse projeto e o contexto do atendimento costumam ser preenchidos automaticamente. Use a descrição da ferramenta no topo do modal para indicar em que situação criar uma tarefa e o que não pode ficar em branco.</li>
+          </ul>
+        </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 17: Gerenciar Negócio CRM ---
+  if (toolName === "gerenciar_negocio_crm") {
+    const perms = node.data?.dealPerms || {};
+    const setPerm = (k: string, v: boolean) =>
+      setData(node, setNode, { dealPerms: { ...perms, [k]: v } });
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Gerenciar Negócio CRM"
+          placeholder="Ex: use os IDs da listagem; confirme antes de mudar valor ou estágio..."
+        />
+        <div className="rounded-lg border border-border p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="deal-main"
+              checked={node.data?.dealEnabled !== false}
+              onCheckedChange={(c) => setData(node, setNode, { dealEnabled: !!c })}
+            />
+            <Label htmlFor="deal-main" className="cursor-pointer font-semibold">
+              Gerenciar Negócio (CRM / Kanban)
+            </Label>
+          </div>
+          <p className="text-[11px] text-muted-foreground pl-6">
+            Configure em três etapas: escopo no quadro, permissões da IA e campos extras.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
+            1 — Onde esta IA atua
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Somente negócios (cards) deste kanban e que estiverem em pelo menos uma das colunas
+            abaixo entram no escopo desta ferramenta.
+          </p>
+          <Label>Kanban de negócios</Label>
+          <Input
+            value={node.data?.dealKanbanId || ""}
+            onChange={(e) => setData(node, setNode, { dealKanbanId: e.target.value })}
+            placeholder="ID do kanban"
+          />
+          <Button variant="outline" size="sm" className="w-full">+ Adicionar kanban</Button>
+          <p className="text-[11px] text-muted-foreground italic">Nenhum kanban selecionado</p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
+            2 — O que a IA pode fazer
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { k: "list", label: "Listar negócios (Sempre ativo)", desc: "Ativará assim que você definir o kanban e ao menos uma coluna na etapa 1.", locked: true },
+              { k: "move", label: "Mover entre colunas", desc: "Altera o estágio do negócio no mesmo kanban; destinos permitidos aparecem na descrição da ferramenta." },
+              { k: "edit", label: "Editar dados do negócio", desc: "Permite atualizar nome, descrição e valor do card quando o modelo precisa ajustar o registro." },
+              { k: "notes", label: "Registrar observações", desc: "Grava observações/comentários no histórico do card." },
+              { k: "create", label: "Criar novo negócio (card)", desc: "Defina ao menos uma coluna em escopo na etapa 1 para habilitar a criação de cards." },
+            ].map((p) => (
+              <label key={p.k} className="flex gap-2 items-start rounded-md border border-border p-2 cursor-pointer">
+                <Checkbox
+                  checked={p.locked || !!perms[p.k]}
+                  disabled={p.locked}
+                  onCheckedChange={(c) => setPerm(p.k, !!c)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <div className="text-[12px] font-medium">{p.label}</div>
+                  <div className="text-[11px] text-muted-foreground">{p.desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
+            3 — Campos personalizados
+          </div>
+          <Button variant="outline" size="sm">+ Adicionar</Button>
+          <p className="text-[11px] text-muted-foreground">
+            Somente os campos adicionados podem ser lidos e alterados pela IA. Se nenhum estiver
+            na lista, campos extras ficam indisponíveis nesta ferramenta.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  // --- MODAL 18: Consultar dados do CRM pela IA ---
+  if (toolName === "consultar_crm_ia") {
+    const qty = node.data?.crmQty ?? 10;
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Consultar dados do CRM pela IA"
+          placeholder="Descreva quando e como a IA deve usar esta listagem do CRM..."
+        />
+        <InfoBlock>
+          <div className="font-semibold mb-1">Listagem ampla do CRM</div>
+          <p className="text-[11px]">
+            Para negócios ou tickets num pipeline com colunas e permissões claras, prefira as tools
+            Gerenciar Negócio CRM e Gerenciar Ticket CRM. Para agenda com calendários e regras
+            próprias, use o bloco de Agenda do construtor — esta listagem genérica fica menos
+            adequada para esses três casos.
+          </p>
+        </InfoBlock>
+        <div className="space-y-2">
+          <Label>Tipo de recurso padrão</Label>
+          <Select
+            value={node.data?.crmResource || "companies"}
+            onValueChange={(v) => setData(node, setNode, { crmResource: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="companies">Empresas — Empresas vinculadas ao lead</SelectItem>
+              <SelectItem value="transactions">Transações</SelectItem>
+              <SelectItem value="chats">Chats</SelectItem>
+              <SelectItem value="emails">E-mails</SelectItem>
+              <SelectItem value="notes">Notas</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            Negócios, tickets e eventos de agenda não podem mais ser escolhidos como padrão novo
+            aqui — use as tools dedicadas. A IA pode alterar o tipo em runtime se necessário.
+          </p>
+        </div>
+        <div>
+          <Label>Quantidade: {qty}</Label>
+          <Slider
+            min={1}
+            max={50}
+            step={1}
+            value={[qty]}
+            onValueChange={(v) => setData(node, setNode, { crmQty: v[0] })}
+            className="mt-2"
+          />
+        </div>
+        <div>
+          <Label>Ordenação</Label>
+          <Select
+            value={node.data?.crmOrder || "recent"}
+            onValueChange={(v) => setData(node, setNode, { crmOrder: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Mais recentes primeiro</SelectItem>
+              <SelectItem value="oldest">Mais antigos primeiro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <InfoBlock>
+          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
+            Como funciona
+          </div>
+          <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+            <li>A IA decide quando consultar os dados do CRM durante a conversa.</li>
+            <li>Tipo padrão: a IA pode alterar em runtime.</li>
+            <li>Retorna até {qty} registros por consulta.</li>
+            <li>Disponíveis: empresas, transações, chats, emails e notas. Negócios, tickets e agenda — prefira as tools dedicadas.</li>
+          </ul>
+        </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 19: MCP ---
+  if (toolName === "mcp_connect") {
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — MCP (Model Context Protocol)" />
+        <div className="space-y-2">
+          <Label>Endpoint do MCP</Label>
+          <Input
+            value={node.data?.mcpUrl || ""}
+            onChange={(e) => setData(node, setNode, { mcpUrl: e.target.value })}
+            placeholder="https://mcp.exemplo.com/endpoint"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Use variáveis dinâmicas: <code>{"{{global.campo}}"}</code>, <code>{"{{project.campo}}"}</code>
+          </p>
+        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="headers">
+            <AccordionTrigger className="text-sm">Parâmetros Headers</AccordionTrigger>
+            <AccordionContent>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Cabeçalhos HTTP enviados na requisição ao MCP. Use variáveis dinâmicas ou valores fixos.
+              </p>
+              <Button variant="outline" size="sm">+ Adicionar</Button>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        <Button variant="outline" className="w-full">
+          <Plug className="h-4 w-4 mr-2" /> Ativar tools do MCP
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center italic">
+          Nenhuma tool está ativa no momento
+        </p>
+      </>
+    );
+  }
+
+  // --- MODAL 20: Horário Atual ---
+  if (toolName === "horario_atual") {
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Horário Atual" />
+        <InfoBlock>
+          <div className="flex gap-2">
+            <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>
+              Retorna a data e horário atuais, o fuso horário e o dia da semana com base no fuso
+              da estratégia. Basta conectar ao agente — a ferramenta será chamada automaticamente
+              sempre que a IA precisar saber o horário atual.
+            </p>
           </div>
         </InfoBlock>
       </>
