@@ -4128,23 +4128,78 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     Selecione uma variável pronta ou digite a sua própria.
                   </p>
                 </div>
-                <div>
-                  <Label>Condição / Valor</Label>
-                  <Input
-                    value={selectedNode.data.condition || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, condition: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: sucesso, oi, ativo..."
-                    className="mt-1"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Define a regra usada por este bloco ({selectedNode.data?.label}).
-                  </p>
-                </div>
+                {(() => {
+                  const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
+                    ? selectedNode.data.branches
+                    : [
+                        { label: "Verdadeiro", value: selectedNode.data.condition || "" },
+                        { label: "Falso", value: "" },
+                      ];
+                  const updateBranches = (next: any[]) => {
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: { ...selectedNode.data, branches: next, condition: next[0]?.value ?? "" },
+                    });
+                  };
+                  return (
+                    <div className="space-y-2">
+                      <Label>Caminhos (valores comparados)</Label>
+                      <p className="text-[10px] text-muted-foreground -mt-1">
+                        Cada caminho gera uma saída no bloco. Se nenhum valor bater, o ELSE (Padrão) é usado.
+                      </p>
+                      {branches.map((b: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 rounded-md border bg-card px-2 py-2">
+                          <span className="inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold bg-muted text-foreground">
+                            {idx + 1}
+                          </span>
+                          <Input
+                            value={b.label || ""}
+                            onChange={(e) => {
+                              const next = branches.map((x, i) => i === idx ? { ...x, label: e.target.value } : x);
+                              updateBranches(next);
+                            }}
+                            placeholder="Nome do caminho"
+                            className="w-32"
+                          />
+                          <Input
+                            value={b.value || ""}
+                            onChange={(e) => {
+                              const next = branches.map((x, i) => i === idx ? { ...x, value: e.target.value } : x);
+                              updateBranches(next);
+                            }}
+                            placeholder="Valor (ex: sim)"
+                            className="flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateBranches(branches.filter((_, i) => i !== idx))}
+                            className="text-muted-foreground hover:text-destructive text-xs px-1"
+                            title="Remover caminho"
+                            disabled={branches.length <= 1}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+                        <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
+                          ELSE (Padrão)
+                        </span>
+                        <span className="text-xs text-foreground/80">
+                          Executado quando nenhum valor acima for atendido
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-center"
+                        onClick={() => updateBranches([...branches, { label: `Caminho ${branches.length + 1}`, value: "" }])}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar novo caminho
+                      </Button>
+                    </div>
+                  );
+                })()}
               </>
             )}
 
