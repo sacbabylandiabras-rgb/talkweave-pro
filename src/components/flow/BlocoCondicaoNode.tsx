@@ -57,6 +57,7 @@ export function BlocoCondicaoNode({ data }: any) {
     const isTags = (data.label || "").toLowerCase().includes("tag");
     const isHorario = (data.label || "").toLowerCase().includes("horário") || (data.label || "").toLowerCase().includes("horario");
     const isFiltroCadastro = (data.label || "").toLowerCase().includes("filtro por cadastro");
+    const isFiltroMensagem = (data.label || "").toLowerCase().includes("filtro por mensagem");
     const filtroOperatorShort: Record<string, string> = {
       equals: "=",
       greater: ">",
@@ -65,6 +66,12 @@ export function BlocoCondicaoNode({ data }: any) {
       is_empty: "está vazio",
     };
     const filtroNoValueOps = new Set(["is_null", "is_empty"]);
+    const msgOperatorLabel: Record<string, string> = {
+      equals: "Igual",
+      contains: "Contém",
+      starts_with: "Inicia com",
+      ends_with: "Finaliza com",
+    };
     const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
       ? data.branches
       : isHorario
@@ -130,6 +137,11 @@ export function BlocoCondicaoNode({ data }: any) {
                     {!filtroNoValueOps.has(b.operator) && (
                       <span className="font-medium">"{b.value ?? ""}"</span>
                     )}
+                  </>
+                ) : isFiltroMensagem ? (
+                  <>
+                    <span className="text-muted-foreground mr-1">{msgOperatorLabel[b.operator] || "Contém"}</span>
+                    <span className="font-medium">"{b.value ?? ""}"</span>
                   </>
                 ) : (
                   <>

@@ -4086,7 +4086,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro) return null;
+                  const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4142,6 +4143,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
+                  const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
@@ -4361,6 +4363,96 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           }}
                         >
                           <Plus className="h-4 w-4 mr-1" /> Adicionar campo personalizado
+                        </Button>
+                      </div>
+                    );
+                  }
+                  if (isFiltroMensagem) {
+                    const OPERATORS = [
+                      { v: "equals", label: "Igual" },
+                      { v: "contains", label: "Contém" },
+                      { v: "starts_with", label: "Inicia com" },
+                      { v: "ends_with", label: "Finaliza com" },
+                    ];
+                    const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
+                      ? selectedNode.data.branches
+                      : [{ label: "Resposta 1", operator: "contains", value: "" }];
+                    const updateBranches = (next: any[]) => {
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, branches: next },
+                      });
+                    };
+                    return (
+                      <div className="space-y-2">
+                        <Label>Respostas do usuário</Label>
+                        <p className="text-[10px] text-muted-foreground -mt-1">
+                          Cada filtro de mensagem gera uma saída. O fluxo segue pelo primeiro que corresponder à mensagem recebida. Se nenhum bater, o ELSE (Padrão) é usado.
+                        </p>
+                        {branches.map((b: any, idx: number) => (
+                          <div key={idx} className="space-y-2 rounded-md border bg-card p-3">
+                            <div className="flex items-center justify-between">
+                              <span className="inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold bg-muted text-foreground">
+                                {idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateBranches(branches.filter((_, i) => i !== idx))}
+                                className="text-muted-foreground hover:text-destructive text-xs"
+                                disabled={branches.length <= 1}
+                                title="Remover filtro"
+                              >
+                                ✕ Remover
+                              </button>
+                            </div>
+                            <div>
+                              <Label className="text-[11px]">Tipo de filtro</Label>
+                              <Select
+                                value={b.operator || "contains"}
+                                onValueChange={(v) => updateBranches(branches.map((x, i) => i === idx ? { ...x, operator: v } : x))}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {OPERATORS.map((o) => (
+                                    <SelectItem key={o.v} value={o.v}>{o.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-[11px]">Texto da mensagem</Label>
+                              <Textarea
+                                value={b.value || ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  updateBranches(branches.map((x, i) => i === idx ? { ...x, value: v, label: v.slice(0, 30) || `Resposta ${idx + 1}` } : x));
+                                }}
+                                placeholder="Ex: sim, quero, comprar..."
+                                className="mt-1 min-h-[60px]"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+                          <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
+                            ELSE (Padrão)
+                          </span>
+                          <span className="text-xs text-foreground/80">
+                            Executado quando nenhum filtro corresponder
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-center"
+                          onClick={() => {
+                            const i = branches.length + 1;
+                            updateBranches([...branches, { label: `Resposta ${i}`, operator: "contains", value: "" }]);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Adicionar nova resposta do usuário
                         </Button>
                       </div>
                     );
