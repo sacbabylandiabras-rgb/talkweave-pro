@@ -2274,6 +2274,11 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
     return <TransferirFilaPanel node={node} setNode={setNode} Header={Header} />;
   }
 
+  // --- MODAL 21b: Transferir para Estratégia ---
+  if (toolName === "transferir_estrategia") {
+    return <TransferirEstrategiaPanel node={node} setNode={setNode} Header={Header} />;
+  }
+
   // --- MODAL 22: Agente Tool ---
   if (toolName === "agente_tool") {
     const extras = SubAgentExtras({ node, setNode });
