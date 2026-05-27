@@ -4156,6 +4156,22 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   };
                   return (
                     <div className="space-y-2">
+                      {isTags && (
+                        <datalist id="fluxo-tag-presets">
+                          {[
+                            "abandonou-carrinho","abmex","active-campaign","aguardando-pagamento","appmax","ativo-whatsapp",
+                            "b4you","braip","calendly","cancelado","cartao-credito","cartpanda","compra-realizada","custom",
+                            "digital_guru","disputando","doppus","eduzz","email","email-cold","email-hot","email-warm",
+                            "estornou","evermart","facebook","form","gerou-boleto","gerou-pix","greenn","grupo-whats",
+                            "grupo-whatsapp","herospark","hotmart","hotwebinar","importado-csv","import-contact",
+                            "iniciou-pagamento-cartao","irroba","iset","kirvano","kiwify","lastlink","leadster",
+                            "loja_integrada","manychat","melldin","monetizze","neemo","notazz","nuvemshop","pagarme",
+                            "payt","pepper","perfect-pay","proaluno","rd_station_marketing","sacoleiroapp","sellflux",
+                            "sellfront","shopify","telefone","ticto","tictov2","tray","unbounce","vnda","voomp","wbuy",
+                            "wix","woocommerce","wordpress","yampi",
+                          ].map((t) => (<option key={t} value={t} />))}
+                        </datalist>
+                      )}
                       <Label>
                         {isSplit ? "Caminhos paralelos" : isTags ? "Tags" : "Caminhos (valores comparados)"}
                       </Label>
