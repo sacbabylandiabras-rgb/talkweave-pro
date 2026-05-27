@@ -4121,17 +4121,50 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <>
                 <div>
                   <Label>Variável a verificar</Label>
-                  <Input
-                    value={selectedNode.data.variable || ""}
-                    onChange={(e) =>
-                      setSelectedNode({
-                        ...selectedNode,
-                        data: { ...selectedNode.data, variable: e.target.value },
-                      })
-                    }
-                    placeholder="Ex: {{lead.name}}"
-                    className="mt-1"
-                  />
+                  <div className="flex gap-2 mt-1">
+                    <Select
+                      value={selectedNode.data.variable || ""}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, variable: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione uma variável" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase">
+                          Variáveis do Lead
+                        </div>
+                        <SelectItem value="{{lead.id}}">{"{{lead.id}}"} — ID do lead</SelectItem>
+                        <SelectItem value="{{lead.code}}">{"{{lead.code}}"} — Código do lead</SelectItem>
+                        <SelectItem value="{{lead.name}}">{"{{lead.name}}"} — Nome completo</SelectItem>
+                        <SelectItem value="{{lead.first_name}}">{"{{lead.first_name}}"} — Primeiro nome</SelectItem>
+                        <SelectItem value="{{lead.phone}}">{"{{lead.phone}}"} — Telefone</SelectItem>
+                        <SelectItem value="{{lead.email}}">{"{{lead.email}}"} — E-mail</SelectItem>
+                        <div className="px-2 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase">
+                          Campos personalizados
+                        </div>
+                        <SelectItem value="{{lead.origen}}">{"{{lead.origen}}"} — Origen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={selectedNode.data.variable || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, variable: e.target.value },
+                        })
+                      }
+                      placeholder="ou digite manualmente"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Selecione uma variável pronta ou digite a sua própria.
+                  </p>
                 </div>
                 <div>
                   <Label>Condição / Valor</Label>
