@@ -1380,6 +1380,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 22: Agente Tool ---
   if (toolName === "agente_tool") {
+    const extras = SubAgentExtras({ node, setNode });
     return (
       <>
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -1395,10 +1396,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
                 <div className="text-sm font-semibold">Agente Tool</div>
               </div>
             </div>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" className="h-7 text-[11px]">Avançado</Button>
-              <Button variant="outline" size="sm" className="h-7 text-[11px]">HISTÓRICO DE PROMPTS</Button>
-            </div>
+            {extras.headerButtons}
           </div>
         </div>
         <div>
@@ -1432,24 +1430,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-        <div className="space-y-2">
-          <Label>Modelo de IA</Label>
-          <Select
-            value={node.data?.aiModel || "gpt-4.1-mini"}
-            onValueChange={(v) => setData(node, setNode, { aiModel: v })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gpt-4.1-mini">GPT-4.1 mini</SelectItem>
-              <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
-              <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
-              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-[10px] text-muted-foreground">
-            Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão · Cache: 0,180$/Milhão
-          </p>
-        </div>
+        <ModelSelectClaude node={node} setNode={setNode} />
         <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
           <div>
             <Label htmlFor="agent-time" className="cursor-pointer">Incluir horário atual no contexto</Label>
@@ -1463,19 +1444,15 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             onCheckedChange={(c) => setData(node, setNode, { includeTime: c })}
           />
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Skills</Label>
-            <Button variant="outline" size="sm">+ Vincular Skill</Button>
-          </div>
-          <p className="text-[11px] text-muted-foreground italic">Nenhuma skill vinculada</p>
-        </div>
+        {extras.skillsBlock}
+        {extras.dialogs}
       </>
     );
   }
 
   // --- MODAL 23: Expert Tool ---
   if (toolName === "expert_tool") {
+    const extras = SubAgentExtras({ node, setNode });
     return (
       <>
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -1491,10 +1468,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
                 <div className="text-sm font-semibold">Expert Tool</div>
               </div>
             </div>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" className="h-7 text-[11px]">Avançado</Button>
-              <Button variant="outline" size="sm" className="h-7 text-[11px]">HISTÓRICO DE PROMPTS</Button>
-            </div>
+            {extras.headerButtons}
           </div>
         </div>
         <div>
@@ -1562,24 +1536,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-        <div className="space-y-2">
-          <Label>Modelo de IA</Label>
-          <Select
-            value={node.data?.aiModel || "gpt-4.1-mini"}
-            onValueChange={(v) => setData(node, setNode, { aiModel: v })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gpt-4.1-mini">GPT-4.1 mini</SelectItem>
-              <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
-              <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
-              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-[10px] text-muted-foreground">
-            Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão · Cache: 0,180$/Milhão
-          </p>
-        </div>
+        <ModelSelectClaude node={node} setNode={setNode} />
         <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
           <div>
             <Label htmlFor="expert-time" className="cursor-pointer">Incluir horário atual no contexto</Label>
@@ -1593,13 +1550,8 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             onCheckedChange={(c) => setData(node, setNode, { includeTime: c })}
           />
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Skills</Label>
-            <Button variant="outline" size="sm">+ Vincular Skill</Button>
-          </div>
-          <p className="text-[11px] text-muted-foreground italic">Nenhuma skill vinculada</p>
-        </div>
+        {extras.skillsBlock}
+        {extras.dialogs}
       </>
     );
   }
