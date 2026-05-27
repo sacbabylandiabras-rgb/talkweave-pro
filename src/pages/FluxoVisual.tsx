@@ -4369,9 +4369,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </div>
                     );
                   }
-                  if (isFiltroMensagem) {
-                    /* handled below */
-                  }
                   if (isFiltroStatus) {
                     const STATUSES = [
                       { value: "queue", label: "Na Fila", desc: "Atendimento aguardando na fila", color: "bg-amber-500" },
@@ -4408,7 +4405,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       </div>
                     );
                   }
-                  if (false) {
+                  if (isFiltroMensagem) {
                     const OPERATORS = [
                       { v: "equals", label: "Igual" },
                       { v: "contains", label: "Contém" },
