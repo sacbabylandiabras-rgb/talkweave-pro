@@ -213,8 +213,9 @@ const blocosDisponiveis = [
     type: "blocoConteudo",
     label: "Mensagem em Áudio",
     icon: Mic,
-    description: "Converte texto em áudio e envia",
+    description: "Envia um arquivo de áudio para o lead",
     category: "Envio de Mensagens",
+    extraData: { contentType: "audio" },
   },
   {
     type: "blocoConteudo",
