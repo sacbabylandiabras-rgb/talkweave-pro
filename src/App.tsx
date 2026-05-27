@@ -41,6 +41,7 @@ const ExtractMembers = lazyWithRecovery(() => import("./pages/ExtractMembers"));
 const AgenteIA = lazyWithRecovery(() => import("./pages/AgenteIA"));
 const Departamento = lazyWithRecovery(() => import("./pages/Departamento"));
 const Skills = lazyWithRecovery(() => import("./pages/Skills"));
+const Produtos = lazyWithRecovery(() => import("./pages/Produtos"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
 const NotificacoesApp = lazyWithRecovery(() => import("./pages/NotificacoesApp"));
 
