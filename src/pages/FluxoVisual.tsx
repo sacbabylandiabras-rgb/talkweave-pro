@@ -4172,16 +4172,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             {idx + 1}
                           </span>
                           {isTags ? (
-                            <Input
-                              value={b.value || ""}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const next = branches.map((x, i) => i === idx ? { ...x, value: v, label: v } : x);
-                                updateBranches(next);
-                              }}
-                              placeholder="Nome da tag (ex: cliente-vip)"
-                              className="flex-1"
-                            />
+                            <>
+                              <Input
+                                value={b.value || ""}
+                                list="fluxo-tag-presets"
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const next = branches.map((x, i) => i === idx ? { ...x, value: v, label: v } : x);
+                                  updateBranches(next);
+                                }}
+                                placeholder="Selecione ou digite uma tag"
+                                className="flex-1"
+                              />
+                            </>
                           ) : (
                             <Input
                               value={b.label || ""}
