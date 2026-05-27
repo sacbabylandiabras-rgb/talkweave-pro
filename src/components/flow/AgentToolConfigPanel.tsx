@@ -959,6 +959,160 @@ function ConsultaApiPanel({
 }
 
 export function AgentToolConfigPanel({ node, setNode }: Props) {
+  // placeholder marker
+  return <AgentToolConfigPanelInner node={node} setNode={setNode} />;
+}
+
+type McpTool = { name: string; description?: string; inputSchema?: any; enabled?: boolean };
+
+function McpPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const mcpUrl: string = node.data?.mcpUrl || "";
+  const mcpHeaders: KV[] = Array.isArray(node.data?.mcpHeaders) ? node.data.mcpHeaders : [];
+  const mcpTools: McpTool[] = Array.isArray(node.data?.mcpTools) ? node.data.mcpTools : [];
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const config = {
+          description: node.data?.description || "",
+          mcpUrl,
+          mcpHeaders,
+          mcpTools,
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "mcp_connect", enabled: true, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save mcp config", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.data?.description, mcpUrl, JSON.stringify(mcpHeaders), JSON.stringify(mcpTools)]);
+
+  const fetchTools = async () => {
+    if (!mcpUrl) {
+      toast({ title: "Informe o endpoint do MCP", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("agent-mcp-list", {
+        body: { url: mcpUrl, headers: mcpHeaders },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Falha ao listar tools");
+      const previous = new Map(mcpTools.map((t) => [t.name, t.enabled]));
+      const next: McpTool[] = (data.tools || []).map((t: any) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+        enabled: previous.get(t.name) ?? true,
+      }));
+      setData(node, setNode, { mcpTools: next });
+      toast({ title: `${next.length} tool(s) encontradas` });
+    } catch (e: any) {
+      toast({ title: "Erro ao conectar no MCP", description: e?.message || String(e), variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleTool = (name: string, enabled: boolean) => {
+    setData(node, setNode, {
+      mcpTools: mcpTools.map((t) => (t.name === name ? { ...t, enabled } : t)),
+    });
+  };
+
+  const activeCount = mcpTools.filter((t) => t.enabled).length;
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — MCP (Model Context Protocol)"
+        placeholder="Descreva quando o agente deve usar esta ferramenta..."
+      />
+      <div className="space-y-2">
+        <Label>Endpoint do MCP</Label>
+        <Input
+          value={mcpUrl}
+          onChange={(e) => setData(node, setNode, { mcpUrl: e.target.value })}
+          placeholder="https://mcp.exemplo.com/endpoint"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Use variáveis dinâmicas: <code>{"{{global.campo}}"}</code>, <code>{"{{project.campo}}"}</code>
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Edite para salvar automaticamente"}
+        </p>
+      </div>
+      <Accordion type="single" collapsible defaultValue="headers">
+        <AccordionItem value="headers">
+          <AccordionTrigger className="text-sm">Parâmetros Headers</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Cabeçalhos HTTP enviados na requisição ao MCP (ex.: <code>Authorization: Bearer ...</code>).
+            </p>
+            <ParamRows
+              rows={mcpHeaders}
+              onChange={(rows) => setData(node, setNode, { mcpHeaders: rows })}
+              keyPlaceholder="Header"
+              valuePlaceholder="valor"
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      <Button variant="outline" className="w-full" onClick={fetchTools} disabled={loading}>
+        <Plug className="h-4 w-4 mr-2" />
+        {loading ? "Conectando..." : "Ativar tools do MCP"}
+      </Button>
+      {mcpTools.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground text-center italic">
+          Nenhuma tool está ativa no momento
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            {activeCount} de {mcpTools.length} tool(s) ativas
+          </p>
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {mcpTools.map((t) => (
+              <div key={t.name} className="flex items-start justify-between gap-2 rounded-md border border-border p-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12px] font-mono truncate">{t.name}</div>
+                  {t.description && (
+                    <div className="text-[11px] text-muted-foreground line-clamp-2">{t.description}</div>
+                  )}
+                </div>
+                <Switch
+                  checked={!!t.enabled}
+                  onCheckedChange={(c) => toggleTool(t.name, !!c)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function AgentToolConfigPanelInner({ node, setNode }: Props) {
   const navigate = useNavigate();
   const toolName: string = node.data?.toolName || "";
   const block = findAgentToolBlock(toolName);
