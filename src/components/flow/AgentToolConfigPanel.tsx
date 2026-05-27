@@ -65,6 +65,64 @@ const CLAUDE_MODELS = [
   { value: "claude-3-5-haiku", label: "Claude 3.5 Haiku", in: "0,80", out: "4,00", cache: "0,08" },
 ];
 
+function ProductsPreview() {
+  const navigate = useNavigate();
+  const [items, setItems] = useState<Array<{ id: string; name: string; price: number; image_url: string | null }>>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase
+        .from("agent_products")
+        .select("id,name,price,image_url")
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setItems((data as any) || []);
+      setLoading(false);
+    })();
+  }, []);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Produtos cadastrados ({items.length})</Label>
+      </div>
+      <div className="rounded-md border bg-muted/30 max-h-56 overflow-y-auto">
+        {loading ? (
+          <p className="text-xs text-muted-foreground p-3">Carregando…</p>
+        ) : items.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-3">Nenhum produto cadastrado ainda.</p>
+        ) : (
+          <ul className="divide-y">
+            {items.map((p) => (
+              <li key={p.id} className="flex items-center gap-2 p-2">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
+                ) : (
+                  <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        O agente terá acesso a todos os produtos ativos da sua base.
+      </p>
+    </div>
+  );
+}
+
 function ModelSelectClaude({ node, setNode }: Props) {
   const value = node.data?.aiModel && CLAUDE_MODELS.some(m => m.value === node.data.aiModel)
     ? node.data.aiModel
