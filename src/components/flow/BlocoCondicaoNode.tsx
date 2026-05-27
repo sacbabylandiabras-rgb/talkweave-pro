@@ -131,7 +131,7 @@ export function BlocoCondicaoNode({ data }: any) {
               />
             </div>
           ))}
-          {!isSplit && (
+          {!isSplit && !isHorario && (
           <div
             className="relative flex items-center gap-2 px-3 mt-1 mx-2 mb-1 rounded-md bg-orange-500/15 border border-orange-500/40 text-[11px] text-orange-200"
             style={{ height: ROW }}
