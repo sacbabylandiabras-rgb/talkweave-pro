@@ -1356,6 +1356,295 @@ function TransferirEstrategiaPanel({ node, setNode, Header }: { node: any; setNo
   );
 }
 
+type Pipeline = { id: string; name: string; stages: any };
+function GerenciarTicketCrmPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [showKanban, setShowKanban] = useState(false);
+
+  const crmEnabled: boolean = node.data?.crmEnabled !== false;
+  const pipelineId: string = node.data?.crmPipelineId || "";
+  const columns: string[] = Array.isArray(node.data?.crmColumns) ? node.data.crmColumns : [];
+  const perms: Record<string, boolean> = node.data?.crmPerms || {};
+  const customFields: Array<{ name: string; description: string }> = Array.isArray(node.data?.crmCustomFields)
+    ? node.data.crmCustomFields
+    : [];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await (supabase as any)
+          .from("pipelines")
+          .select("id,name,stages")
+          .eq("owner_id", user.id)
+          .order("name");
+        setPipelines((data as Pipeline[]) || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const config = {
+          description: node.data?.description || "",
+          crmEnabled,
+          pipelineId,
+          columns,
+          perms: { list: true, ...perms },
+          customFields,
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "gerenciar_ticket_crm", enabled: crmEnabled, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save gerenciar_ticket_crm", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    node.data?.description,
+    crmEnabled,
+    pipelineId,
+    JSON.stringify(columns),
+    JSON.stringify(perms),
+    JSON.stringify(customFields),
+  ]);
+
+  const selectedPipeline = pipelines.find((p) => p.id === pipelineId);
+  const stageList: Array<{ id: string; name: string }> = (() => {
+    const s = selectedPipeline?.stages;
+    if (!Array.isArray(s)) return [];
+    return s.map((st: any, i: number) => ({
+      id: String(st?.id ?? st?.name ?? i),
+      name: String(st?.name ?? st?.title ?? st?.label ?? `Coluna ${i + 1}`),
+    }));
+  })();
+
+  const setPerm = (k: string, v: boolean) =>
+    setData(node, setNode, { crmPerms: { ...perms, [k]: v } });
+
+  const toggleColumn = (id: string, checked: boolean) => {
+    const next = checked ? Array.from(new Set([...columns, id])) : columns.filter((c) => c !== id);
+    setData(node, setNode, { crmColumns: next });
+  };
+
+  const addCustomField = () =>
+    setData(node, setNode, { crmCustomFields: [...customFields, { name: "", description: "" }] });
+
+  const updateCustomField = (i: number, patch: Partial<{ name: string; description: string }>) => {
+    const next = customFields.map((f, idx) => (idx === i ? { ...f, ...patch } : f));
+    setData(node, setNode, { crmCustomFields: next });
+  };
+
+  const removeCustomField = (i: number) =>
+    setData(node, setNode, { crmCustomFields: customFields.filter((_, idx) => idx !== i) });
+
+  const scopeReady = !!pipelineId && columns.length > 0;
+
+  const perm = (k: string, locked = false) => (locked ? true : !!perms[k]);
+
+  const PERMS = [
+    { k: "list", label: "Listar tickets", icon: ClipboardList, desc: "Consultar tickets dentro do escopo. Ativará assim que você definir pipeline e ao menos uma coluna em escopo.", locked: true },
+    { k: "move", label: "Mover entre colunas", icon: ArrowRightLeft, desc: "Transfere o ticket para outra coluna deste mesmo pipeline. A lista de destinos permitidos aparece na descrição desta ferramenta para o modelo saber onde pode enviar." },
+    { k: "edit", label: "Editar título e descrição", icon: Lightbulb, desc: "Altera o assunto (título) e o texto principal do ticket quando o modelo precisar corrigir ou complementar informações." },
+    { k: "notes", label: "Registrar observações", icon: History, desc: "Grava observações/comentários no histórico do ticket, visível para a equipe no CRM." },
+    { k: "email", label: "E-mail do ticket", icon: Briefcase, desc: "Defina pipeline e colunas em escopo na etapa 1 para validar o ticket antes de buscar o e-mail do ticket.", requiresScope: true },
+    { k: "create", label: "Criar novo ticket", icon: CheckCircle2, desc: "Defina ao menos uma coluna em escopo na etapa 1 para habilitar a criação de tickets.", requiresScope: true },
+  ] as const;
+
+  const activeCount = PERMS.filter((p) => perm(p.k, p.locked)).length;
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — Gerenciar Ticket CRM"
+        placeholder="Ex: use os IDs da listagem; confirme com o cliente antes de mudar coluna..."
+      />
+
+      <div className="rounded-lg border border-border p-3 space-y-1">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="crm-main"
+            checked={crmEnabled}
+            onCheckedChange={(c) => setData(node, setNode, { crmEnabled: !!c })}
+          />
+          <ClipboardList className="h-4 w-4" />
+          <Label htmlFor="crm-main" className="cursor-pointer font-semibold">
+            Gerenciar Ticket (CRM / Suporte)
+          </Label>
+        </div>
+        <p className="text-[11px] text-muted-foreground pl-6">
+          Configure em três etapas: escopo no quadro, permissões da IA e campos extras permitidos.
+        </p>
+      </div>
+
+      {/* Etapa 1 */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <div className="text-[12px] font-semibold">1. Onde esta IA atua</div>
+        <p className="text-[11px] text-muted-foreground">
+          Somente tickets desta pipeline e que estiverem em pelo menos uma das colunas abaixo entram no escopo desta ferramenta.
+        </p>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[12px] font-medium">Pipeline de tickets</Label>
+          <Button variant="ghost" size="sm" className="text-primary h-7" onClick={() => setShowKanban((v) => !v)}>
+            + Adicionar kanban
+          </Button>
+        </div>
+        {loading ? (
+          <p className="text-[11px] text-muted-foreground italic">Carregando pipelines...</p>
+        ) : pipelines.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">
+            Nenhuma pipeline encontrada. Crie uma em CRM &gt; Pipelines.
+          </p>
+        ) : (
+          <Select
+            value={pipelineId || undefined}
+            onValueChange={(v) =>
+              setData(node, setNode, { crmPipelineId: v, crmColumns: [] })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar pipeline..." />
+            </SelectTrigger>
+            <SelectContent>
+              {pipelines.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {pipelineId ? (
+          stageList.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">Esta pipeline não possui colunas.</p>
+          ) : (
+            <div className="space-y-1 rounded-md border border-border p-2 max-h-48 overflow-y-auto">
+              {stageList.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-[12px] cursor-pointer hover:bg-accent rounded px-1 py-0.5">
+                  <Checkbox
+                    checked={columns.includes(s.id)}
+                    onCheckedChange={(c) => toggleColumn(s.id, !!c)}
+                  />
+                  <span className="flex-1">{s.name}</span>
+                </label>
+              ))}
+            </div>
+          )
+        ) : (
+          <p className="text-[11px] text-muted-foreground italic">Nenhum kanban selecionado</p>
+        )}
+      </div>
+
+      {/* Etapa 2 */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-[12px] font-semibold">2. O que a IA pode fazer</div>
+          <span className="text-[10px] text-muted-foreground">{activeCount} ativa(s)</span>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Conclua a etapa 1 (pipeline e ao menos uma coluna em escopo) para liberar a listagem e poder ativar mais ações.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {PERMS.map((p) => {
+            const disabled = (p as any).requiresScope ? !scopeReady : false;
+            const checked = p.locked ? true : !!perms[p.k];
+            const Icon = p.icon;
+            return (
+              <label
+                key={p.k}
+                className={`flex gap-2 items-start rounded-md border p-2 cursor-pointer transition-colors ${
+                  checked ? "border-primary/40 bg-primary/5" : "border-border"
+                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <Checkbox
+                  checked={checked}
+                  disabled={p.locked || disabled}
+                  onCheckedChange={(c) => setPerm(p.k, !!c)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[12px] font-medium truncate">{p.label}</span>
+                    {p.locked && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 font-semibold">
+                        sempre ativo
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{p.desc}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Etapa 3 */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-[12px] font-semibold">3. Campos personalizados</div>
+          <Button variant="ghost" size="sm" className="text-primary h-7" onClick={addCustomField}>
+            + Adicionar
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Somente os campos adicionados podem ser lidos e alterados pela IA. Se nenhum estiver na lista, campos extras ficam indisponíveis para edição nesta ferramenta.
+        </p>
+        {customFields.length > 0 && (
+          <div className="space-y-2">
+            {customFields.map((f, i) => (
+              <div key={i} className="rounded-md border border-border p-2 space-y-1">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={f.name}
+                    placeholder="Nome do campo (ex: prioridade)"
+                    onChange={(e) => updateCustomField(i, { name: e.target.value })}
+                    className="h-8 text-[12px]"
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeCustomField(i)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <Input
+                  value={f.description}
+                  placeholder="Descrição/uso para a IA"
+                  onChange={(e) => updateCustomField(i, { description: e.target.value })}
+                  className="h-8 text-[12px]"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground text-right">
+        {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Edite para salvar automaticamente"}
+      </p>
+    </>
+  );
+}
+
 function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   const navigate = useNavigate();
   const toolName: string = node.data?.toolName || "";
