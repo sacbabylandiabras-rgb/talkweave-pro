@@ -1500,57 +1500,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 14: Consulta API (IA) ---
   if (toolName === "consulta_api_ia") {
-    return (
-      <>
-        {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Requisição API"
-          placeholder="Descreva em detalhes quando e como esta API deve ser utilizada pelo agente IA"
-        />
-        <div className="space-y-2">
-          <Label>Endpoint da API</Label>
-          <div className="flex gap-2">
-            <Select
-              value={node.data?.httpMethod || "GET"}
-              onValueChange={(v) => setData(node, setNode, { httpMethod: v })}
-            >
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              value={node.data?.apiUrl || ""}
-              onChange={(e) => setData(node, setNode, { apiUrl: e.target.value })}
-              placeholder="https://api.exemplo.com/endpoint"
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Use variáveis dinâmicas: <code>{"{{lead.campo}}"}</code>, <code>{"{{node.X.response}}"}</code>, <code>{"{{memory.campo}}"}</code>
-          </p>
-        </div>
-        <Accordion type="multiple" className="w-full">
-          {[
-            { v: "ai", label: "Parâmetros da IA", sub: "Campos que o agente IA deve preencher ao acionar esta tool." },
-            { v: "headers", label: "Parâmetros Headers", sub: "Cabeçalhos HTTP enviados nesta requisição. Use variáveis dinâmicas ou valores fixos." },
-            { v: "body", label: "Parâmetros Body", sub: "Campos do corpo quando o método permitir corpo (POST, PUT, PATCH)." },
-            { v: "query", label: "Parâmetros Query", sub: "Parâmetros de query string acrescentados à URL." },
-          ].map((s) => (
-            <AccordionItem key={s.v} value={s.v}>
-              <AccordionTrigger className="text-sm">{s.label}</AccordionTrigger>
-              <AccordionContent>
-                <p className="text-[11px] text-muted-foreground mb-2">{s.sub}</p>
-                <Button variant="outline" size="sm">+ Adicionar</Button>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </>
-    );
+    return <ConsultaApiPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 15: Acessar Links ---
