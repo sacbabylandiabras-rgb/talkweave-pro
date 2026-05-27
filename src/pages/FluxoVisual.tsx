@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -591,6 +592,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, [zapiInstances, isMetaMode]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [generatingTts, setGeneratingTts] = useState(false);
+  const [previewingTts, setPreviewingTts] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
@@ -1007,6 +1010,58 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       setUploadingFile(false);
     }
   };
+
+  const handleGenerateTts = useCallback(async (mode: "save" | "preview") => {
+    if (!selectedNode) return;
+    const text = (selectedNode.data.ttsText || "").trim();
+    if (!text) {
+      toast.error("Digite o texto a ser narrado");
+      return;
+    }
+    const voice = selectedNode.data.ttsVoice || "alloy";
+    const speed = Number(selectedNode.data.ttsSpeed) || 1;
+    const instructions = (selectedNode.data.ttsInstructions || "").trim();
+    const audioName = (selectedNode.data.audioName || "").trim();
+
+    if (mode === "preview") setPreviewingTts(true);
+    else setGeneratingTts(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
+        body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
+      });
+      if (error) throw new Error(error.message || "Falha ao gerar áudio");
+      if (data?.error) throw new Error(data.error);
+
+      if (mode === "preview") {
+        if (!data?.audioBase64) throw new Error("Sem áudio retornado");
+        const audio = new Audio(`data:${data.mimeType || "audio/mpeg"};base64,${data.audioBase64}`);
+        await audio.play();
+      } else {
+        if (!data?.url) throw new Error("Sem URL de áudio");
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  mediaUrl: data.url,
+                  contentType: "audio",
+                  audioName: prev.data.audioName || data.audioName || "Áudio gerado",
+                },
+              }
+            : prev
+        );
+        toast.success("Áudio gerado e salvo no bloco!");
+      }
+    } catch (err) {
+      console.error("TTS error", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar áudio");
+    } finally {
+      setGeneratingTts(false);
+      setPreviewingTts(false);
+    }
+  }, [selectedNode]);
 
   const handleSaveFluxo = async (): Promise<string | false> => {
     if (savingFluxo) return currentFluxoId || false;
@@ -2683,6 +2738,133 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             accept="audio/*"
                           />
                         </label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className="flex-1 border-t" />
+                      <span className="text-xs text-muted-foreground">OU GERAR VOZ POR IA</span>
+                      <div className="flex-1 border-t" />
+                    </div>
+
+                    <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <Label className="text-sm font-medium">Gerar áudio com voz por IA</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Texto a ser narrado</Label>
+                        <Textarea
+                          value={selectedNode.data.ttsText || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, ttsText: e.target.value },
+                            })
+                          }
+                          placeholder="Escreva o que a voz deve falar..."
+                          rows={3}
+                          maxLength={4000}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {(selectedNode.data.ttsText || "").length}/4000 caracteres
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Instruções para geração do áudio (opcional)</Label>
+                        <Textarea
+                          value={selectedNode.data.ttsInstructions || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, ttsInstructions: e.target.value },
+                            })
+                          }
+                          placeholder="Ex: tom amigável e empolgado, sotaque brasileiro"
+                          rows={2}
+                          maxLength={500}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Voz</Label>
+                          <Select
+                            value={selectedNode.data.ttsVoice || "alloy"}
+                            onValueChange={(v) =>
+                              setSelectedNode({
+                                ...selectedNode,
+                                data: { ...selectedNode.data, ttsVoice: v },
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="alloy">Alloy</SelectItem>
+                              <SelectItem value="echo">Echo</SelectItem>
+                              <SelectItem value="fable">Fable</SelectItem>
+                              <SelectItem value="onyx">Onyx</SelectItem>
+                              <SelectItem value="nova">Nova</SelectItem>
+                              <SelectItem value="shimmer">Shimmer</SelectItem>
+                              <SelectItem value="ash">Ash</SelectItem>
+                              <SelectItem value="coral">Coral</SelectItem>
+                              <SelectItem value="sage">Sage</SelectItem>
+                              <SelectItem value="verse">Verse</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">
+                            Velocidade — {(Number(selectedNode.data.ttsSpeed) || 1).toFixed(2)}x
+                          </Label>
+                          <div className="pt-3">
+                            <Slider
+                              value={[Number(selectedNode.data.ttsSpeed) || 1]}
+                              min={0.25}
+                              max={4}
+                              step={0.05}
+                              onValueChange={([v]) =>
+                                setSelectedNode({
+                                  ...selectedNode,
+                                  data: { ...selectedNode.data, ttsSpeed: v },
+                                })
+                              }
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>0.25x</span>
+                              <span>1x</span>
+                              <span>4x</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          disabled={previewingTts || generatingTts}
+                          onClick={() => handleGenerateTts("preview")}
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1.5" />
+                          {previewingTts ? "Gerando prévia..." : "Pré-escutar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="flex-1"
+                          disabled={generatingTts || previewingTts}
+                          onClick={() => handleGenerateTts("save")}
+                        >
+                          <Sparkles className="h-4 w-4 mr-1.5" />
+                          {generatingTts ? "Gerando..." : "Gerar e salvar"}
+                        </Button>
                       </div>
                     </div>
                   </div>
