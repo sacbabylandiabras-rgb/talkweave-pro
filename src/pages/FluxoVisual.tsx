@@ -85,6 +85,7 @@ import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
 import { BlocoAgentToolNode } from "@/components/flow/BlocoAgentToolNode";
 import { AGENT_TOOL_DRAG_KEY } from "@/components/flow/agentToolBlocks";
+import { AgentToolConfigPanel } from "@/components/flow/AgentToolConfigPanel";
 import { AddBlockDialog, type AddBlockSelection } from "@/components/flow/AddBlockDialog";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
