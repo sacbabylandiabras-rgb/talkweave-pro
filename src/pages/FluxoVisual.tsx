@@ -2138,7 +2138,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           <div className="space-y-4">
             {selectedNode?.type === "blocoConteudo" && (
               <>
-                {selectedNode.data.label !== "Mensagem em Áudio" && (
+                {!isMensagemAudioBlock(selectedNode) && (
                 <div>
                   <Label>Tipo de Conteúdo</Label>
                   <Select
@@ -2641,7 +2641,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.label === "Mensagem em Áudio" && (
+                {isMensagemAudioBlock(selectedNode) && (
                   <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-3">
                     <div>
                       <Label>Nome do áudio</Label>
@@ -2688,7 +2688,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.label !== "Mensagem em Áudio" && (["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
+                {!isMensagemAudioBlock(selectedNode) && (["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
                   <>
                     <div>
                       <Label>
