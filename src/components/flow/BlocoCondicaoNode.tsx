@@ -54,6 +54,7 @@ export function BlocoCondicaoNode({ data }: any) {
 
   if (!isIfElse) {
     const isSplit = (data.label || "").toLowerCase().includes("split");
+    const isTags = (data.label || "").toLowerCase().includes("tag");
     const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
       ? data.branches
       : [
@@ -97,6 +98,11 @@ export function BlocoCondicaoNode({ data }: any) {
               <span className="truncate flex-1">
                 {isSplit ? (
                   <span className="font-medium">{b.label || `Caminho ${i + 1}`}</span>
+                ) : isTags ? (
+                  <>
+                    <span className="text-muted-foreground mr-1">🏷</span>
+                    <span className="font-medium">{b.value || b.label || "tag"}</span>
+                  </>
                 ) : (
                   <>
                     <span className="text-muted-foreground mr-1">se =</span>
