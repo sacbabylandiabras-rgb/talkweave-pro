@@ -577,6 +577,40 @@ async function executeTool(
     });
   }
 
+  // Dynamic MCP tool dispatch
+  if (toolName.startsWith("mcp__")) {
+    try {
+      const { data: cfg } = await supabase
+        .from("agent_tools_config")
+        .select("config")
+        .eq("user_id", userId)
+        .eq("tool_name", "mcp_connect")
+        .maybeSingle();
+      const url = cfg?.config?.mcpUrl;
+      if (!url) return JSON.stringify({ ok: false, error: "MCP não configurado" });
+      const headers = Array.isArray(cfg?.config?.mcpHeaders) ? cfg.config.mcpHeaders : [];
+      const tools: any[] = Array.isArray(cfg?.config?.mcpTools) ? cfg.config.mcpTools : [];
+      // recover original tool name by matching sanitized name
+      const sanitized = toolName.slice("mcp__".length);
+      const original = tools.find((t) =>
+        String(t.name).replace(/[^a-zA-Z0-9_]/g, "_") === sanitized,
+      )?.name || sanitized;
+      const callUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-mcp-call`;
+      const r = await fetch(callUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ url, headers, tool: original, arguments: input || {} }),
+      });
+      const data = await r.json();
+      return JSON.stringify(data);
+    } catch (e: any) {
+      return JSON.stringify({ ok: false, error: String(e?.message || e) });
+    }
+  }
+
   switch (toolName) {
     case "enviar_botoes": {
       const creds = await getUserUazapiCreds(supabase, userId);
