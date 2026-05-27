@@ -7,28 +7,26 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
-const ALLOWED_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "coral", "sage", "verse"];
-
 const buildFriendlyVoiceError = (status: number, rawBody: string) => {
   let upstreamCode = "";
   let upstreamMessage = "";
 
   try {
     const parsed = JSON.parse(rawBody);
-    upstreamCode = String(parsed?.error?.code || parsed?.code || "");
-    upstreamMessage = String(parsed?.error?.message || parsed?.message || "");
+    upstreamCode = String(parsed?.error?.code || parsed?.code || parsed?.detail?.status || "");
+    upstreamMessage = String(parsed?.error?.message || parsed?.message || parsed?.detail?.message || "");
   } catch {
     upstreamMessage = rawBody;
   }
 
   const normalized = `${upstreamCode} ${upstreamMessage}`.toLowerCase();
 
-  if (status === 429 && normalized.includes("insufficient_quota")) {
+  if (status === 429 || normalized.includes("quota")) {
     return {
       error: "Créditos do serviço de voz acabaram",
       details:
         "A geração de áudio não foi concluída porque a conta conectada ao serviço de voz está sem créditos ou sem cobrança ativa. Adicione créditos na conta da API e tente novamente em 1–2 minutos.",
-      hint: "Se você já adicionou créditos, confirme se a chave configurada no projeto pertence à organização correta e tem acesso ao recurso de voz.",
+      hint: "Se você já adicionou créditos, confirme se a chave informada pertence à organização correta e tem acesso ao recurso de voz.",
       status,
     };
   }
@@ -41,10 +39,10 @@ const buildFriendlyVoiceError = (status: number, rawBody: string) => {
     };
   }
 
-  if (status === 401) {
+  if (status === 401 || normalized.includes("invalid_api_key") || normalized.includes("invalid api key")) {
     return {
       error: "Serviço de voz não autorizado",
-      details: "A chave configurada para geração de voz está inválida, expirada ou foi removida. Atualize a chave nas configurações de secrets do projeto.",
+      details: "O Token API Key informado é inválido ou foi removido. Verifique a chave configurada no bloco.",
       status,
     };
   }
@@ -57,10 +55,18 @@ const buildFriendlyVoiceError = (status: number, rawBody: string) => {
     };
   }
 
+  if (status === 404 || normalized.includes("voice_not_found") || normalized.includes("voice not found")) {
+    return {
+      error: "Voice ID não encontrado",
+      details: "O Voice ID informado não existe ou não está disponível para esta chave. Verifique e tente novamente.",
+      status,
+    };
+  }
+
   if (status === 400) {
     return {
       error: "Configuração do áudio inválida",
-      details: "Revise o texto, a voz, a velocidade e as instruções. Depois tente gerar o áudio novamente.",
+      details: upstreamMessage || "Revise o texto, o Voice ID e os parâmetros. Depois tente gerar o áudio novamente.",
       status,
     };
   }
@@ -97,9 +103,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const text = String(body.text || "").trim();
-    const voice = ALLOWED_VOICES.includes(body.voice) ? body.voice : "alloy";
-    const speed = Math.min(4, Math.max(0.25, Number(body.speed) || 1));
-    const instructions = typeof body.instructions === "string" ? body.instructions.slice(0, 500) : "";
+    const apiKey = String(body.apiKey || "").trim();
+    const voiceId = String(body.voiceId || "").trim();
+    const stability = Math.min(1, Math.max(0, Number(body.stability ?? 0.95)));
+    const similarityBoost = Math.min(1, Math.max(0, Number(body.similarityBoost ?? 0.75)));
+    const style = Math.min(1, Math.max(0, Number(body.style ?? 0.08)));
+    const speed = Math.min(1.2, Math.max(0.7, Number(body.speed ?? 1)));
+    const useSpeakerBoost = body.useSpeakerBoost !== false;
     const preview = Boolean(body.preview);
     const audioName = String(body.audioName || "").trim() || `audio-${Date.now()}`;
 
@@ -109,28 +119,34 @@ Deno.serve(async (req) => {
     if (text.length > 4000) {
       return new Response(JSON.stringify({ error: "Texto muito longo (máx. 4000 caracteres)" }), { status: 400, headers: jsonHeaders });
     }
-
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Serviço de voz não configurado" }), { status: 500, headers: jsonHeaders });
+      return new Response(JSON.stringify({ error: "Token API Key é obrigatório" }), { status: 400, headers: jsonHeaders });
+    }
+    if (!voiceId) {
+      return new Response(JSON.stringify({ error: "Voice ID é obrigatório" }), { status: 400, headers: jsonHeaders });
     }
 
-    // Use gpt-4o-mini-tts so we can pass `instructions` for tom/estilo de narração.
-    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini-tts",
-        voice,
-        input: text,
-        speed,
-        response_format: "mp3",
-        ...(instructions ? { instructions } : {}),
-      }),
-    });
+    const ttsRes = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability,
+            similarity_boost: similarityBoost,
+            style,
+            use_speaker_boost: useSpeakerBoost,
+            speed,
+          },
+        }),
+      }
+    );
 
     if (!ttsRes.ok) {
       const errText = await ttsRes.text().catch(() => "");
