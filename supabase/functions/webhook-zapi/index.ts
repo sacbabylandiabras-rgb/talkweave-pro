@@ -1280,6 +1280,29 @@ async function executeFlow(
         if (seconds > 0) {
           await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 25) * 1000));
         }
+      } else if (node.type === "blocoAcao" && actionType === "typing") {
+        const seconds = Math.min(Number(node.data.typingDuration ?? 5) || 5, 25);
+        const typingPhone = chatId || phone;
+        try {
+          const zUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}/send-chat-state`;
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+            "client-token": instance.zapi_client_token || "",
+          };
+          await fetch(zUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: typingPhone, chatState: "composing" }),
+          });
+          await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+          await fetch(zUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: typingPhone, chatState: "paused" }),
+          });
+        } catch (err) {
+          console.error("typing presence error:", err);
+        }
       } else if (node.type === "blocoAgendamento" || (node.type === "blocoAcao" && actionType === "schedule")) {
         const scheduledAt = node.data.scheduledAt || node.data.actionConfig;
         if (scheduledAt) {
