@@ -1615,6 +1615,553 @@ function ExtrairDadosPanel({ node, setNode, Header }: { node: any; setNode: (n: 
   );
 }
 
+// --- AGENDA PANEL ---
+type AgendaRule = {
+  id: string;
+  validity: "weekdays" | "specific";
+  days: number[]; // 0=Dom..6=Sab
+  description?: string;
+  startTime: string;
+  endTime: string;
+  modality: "hora_marcada" | "ordem_chegada" | "grupo";
+  duration: number; // minutes
+  advance: number;
+  advanceUnit: "min" | "hour" | "day";
+};
+type AgendaCalendar = {
+  id: string;
+  name: string;
+  rules: AgendaRule[];
+};
+type AgendaTeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  calendars: AgendaCalendar[];
+};
+
+const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MODALITY_LABELS: Record<AgendaRule["modality"], string> = {
+  hora_marcada: "Hora marcada",
+  ordem_chegada: "Ordem de chegada",
+  grupo: "Grupo",
+};
+
+function ruleSummary(rule: AgendaRule) {
+  const days = rule.days.length === 7 ? "Todos os dias" : rule.days.sort().map((d) => DAY_LABELS[d]).join(", ");
+  return `${days} das ${rule.startTime} às ${rule.endTime}`;
+}
+
+function newRule(): AgendaRule {
+  return {
+    id: crypto.randomUUID(),
+    validity: "weekdays",
+    days: [1, 2, 3, 4, 5],
+    description: "",
+    startTime: "09:00",
+    endTime: "17:00",
+    modality: "hora_marcada",
+    duration: 60,
+    advance: 1,
+    advanceUnit: "hour",
+  };
+}
+
+function AgendaPanel({ node, setNode, Header, id }: { node: any; setNode: (n: any) => void; Header: ReactNode; id: string }) {
+  const team: AgendaTeamMember[] = Array.isArray(node.data?.agendaTeam) ? node.data.agendaTeam : [];
+  const selectedIds: string[] = Array.isArray(node.data?.agendaSelected) ? node.data.agendaSelected : [];
+  const allCalendars: Array<{ cal: AgendaCalendar; memberName: string }> = team.flatMap((m) =>
+    (m.calendars || []).map((c) => ({ cal: c, memberName: m.name })),
+  );
+  const selectedCalendars = allCalendars.filter((x) => selectedIds.includes(x.cal.id));
+
+  const [pickOpen, setPickOpen] = useState(false);
+  const [pickQuery, setPickQuery] = useState("");
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [teamQuery, setTeamQuery] = useState("");
+  const [memberOpen, setMemberOpen] = useState<string | null>(null);
+  const [ruleEdit, setRuleEdit] = useState<{ memberId: string; rule: AgendaRule } | null>(null);
+
+  const [profiles, setProfiles] = useState<TeamMember[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) return;
+      const { data: self } = await supabase.from("profiles").select("id,email,full_name").eq("id", uid).maybeSingle();
+      const list: TeamMember[] = [];
+      if (self) list.push({ id: self.id, name: self.full_name || "Sem nome", email: self.email || "" });
+      try {
+        const { data: pipelines } = await supabase.from("pipelines").select("id").eq("owner_id", uid);
+        const pipelineIds = (pipelines || []).map((p: any) => p.id);
+        if (pipelineIds.length) {
+          const { data: mems } = await supabase.from("pipeline_members").select("user_id").in("pipeline_id", pipelineIds);
+          const userIds = Array.from(new Set((mems || []).map((m: any) => m.user_id))).filter((x) => x !== uid);
+          if (userIds.length) {
+            const { data: profs } = await supabase.from("profiles").select("id,email,full_name").in("id", userIds);
+            (profs || []).forEach((p: any) => list.push({ id: p.id, name: p.full_name || "Sem nome", email: p.email || "" }));
+          }
+        }
+      } catch {}
+      setProfiles(list);
+    })();
+  }, []);
+
+  const ensureMemberInTeam = (m: TeamMember): AgendaTeamMember => {
+    const existing = team.find((x) => x.id === m.id);
+    if (existing) return existing;
+    const created: AgendaTeamMember = { id: m.id, name: m.name, email: m.email, calendars: [] };
+    setData(node, setNode, { agendaTeam: [...team, created] });
+    return created;
+  };
+
+  const updateMember = (memberId: string, patch: Partial<AgendaTeamMember>) => {
+    const next = team.map((m) => (m.id === memberId ? { ...m, ...patch } : m));
+    setData(node, setNode, { agendaTeam: next });
+  };
+
+  const saveRule = (memberId: string, rule: AgendaRule) => {
+    const member = team.find((m) => m.id === memberId);
+    if (!member) return;
+    const cals = member.calendars || [];
+    // Each rule lives inside its own calendar entry for simplicity
+    const existingCal = cals.find((c) => c.rules.some((r) => r.id === rule.id));
+    let nextCals: AgendaCalendar[];
+    if (existingCal) {
+      nextCals = cals.map((c) => ({
+        ...c,
+        rules: c.rules.map((r) => (r.id === rule.id ? rule : r)),
+      }));
+    } else {
+      nextCals = [
+        ...cals,
+        { id: crypto.randomUUID(), name: `Agenda ${member.name}`, rules: [rule] },
+      ];
+    }
+    updateMember(memberId, { calendars: nextCals });
+  };
+
+  const deleteRule = (memberId: string, ruleId: string) => {
+    const member = team.find((m) => m.id === memberId);
+    if (!member) return;
+    const nextCals = (member.calendars || [])
+      .map((c) => ({ ...c, rules: c.rules.filter((r) => r.id !== ruleId) }))
+      .filter((c) => c.rules.length > 0);
+    updateMember(memberId, { calendars: nextCals });
+  };
+
+  const toggleCalSelected = (calId: string) => {
+    const next = selectedIds.includes(calId) ? selectedIds.filter((x) => x !== calId) : [...selectedIds, calId];
+    setData(node, setNode, { agendaSelected: next });
+  };
+
+  const filteredCalendars = allCalendars.filter(({ cal }) =>
+    cal.name.toLowerCase().includes(pickQuery.trim().toLowerCase()),
+  );
+  const filteredProfiles = profiles.filter(
+    (p) =>
+      p.name.toLowerCase().includes(teamQuery.trim().toLowerCase()) ||
+      p.email.toLowerCase().includes(teamQuery.trim().toLowerCase()),
+  );
+  const activeMember = team.find((m) => m.id === memberOpen) || null;
+  const activeMemberRules: Array<{ rule: AgendaRule; calName: string }> = activeMember
+    ? (activeMember.calendars || []).flatMap((c) => c.rules.map((r) => ({ rule: r, calName: c.name })))
+    : [];
+
+  return (
+    <>
+      {Header}
+      <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Agenda" />
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4" /> Agendas selecionadas
+          </Label>
+          <Button variant="ghost" size="sm" onClick={() => setPickOpen(true)}>+ Adicionar</Button>
+        </div>
+        {selectedCalendars.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma agenda selecionada</p>
+        ) : (
+          <ul className="space-y-1">
+            {selectedCalendars.map(({ cal, memberName }) => {
+              const first = cal.rules[0];
+              return (
+                <li key={cal.id} className="rounded-md border border-border p-2 text-[12px] flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{cal.name}</span>
+                      {first && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {MODALITY_LABELS[first.modality]}
+                        </span>
+                      )}
+                    </div>
+                    {first && <div className="text-[11px] text-muted-foreground">{ruleSummary(first)}</div>}
+                    <div className="text-[10px] text-muted-foreground">{memberName}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => toggleCalSelected(cal.id)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setTeamOpen(true)}>
+          <Users className="h-4 w-4 mr-2" /> Gerenciar Equipe
+        </Button>
+      </div>
+
+      <InfoBlock>
+        <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
+          Modalidades de agendamento
+        </div>
+        <ul className="space-y-1 text-[11px]">
+          <li><strong>Hora marcada:</strong> um lead por horário, igual a uma reunião tradicional.</li>
+          <li><strong>Ordem de chegada:</strong> janela diária com fila — vários leads compartilham o mesmo período até atingir o limite configurado.</li>
+          <li><strong>Grupo:</strong> mesmo horário ocupado por vários leads (até o limite), criando um único evento compartilhado.</li>
+        </ul>
+      </InfoBlock>
+
+      <FuncList
+        items={[
+          { name: `agenda_${id}_list_calendars`, desc: "lista os calendários disponíveis para agendamento, com regras de horário e responsáveis." },
+          { name: `agenda_${id}_list_available_time_slots`, desc: "lista os próximos horários livres, com suporte a filtro por calendário e paginação." },
+          { name: `agenda_${id}_list_future_appointments`, desc: "lista compromissos futuros do cliente em qualquer calendário." },
+          { name: `agenda_${id}_add_appointment`, desc: "cria um novo compromisso para o lead na agenda selecionada." },
+          { name: `agenda_${id}_cancel_appointment`, desc: "cancela um compromisso existente do lead." },
+          { name: `agenda_${id}_reschedule_appointment`, desc: "remarca um compromisso, criando o novo horário e cancelando o antigo." },
+        ]}
+      />
+
+      {/* Selecionar agendas */}
+      <Dialog open={pickOpen} onOpenChange={setPickOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle>Selecionar agendas selecionadas</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={pickQuery}
+                onChange={(e) => setPickQuery(e.target.value)}
+                placeholder="Buscar agenda..."
+                className="pl-7 h-9 text-sm"
+              />
+            </div>
+          </div>
+          <ScrollArea className="max-h-72">
+            <div className="p-2 pt-0 space-y-1">
+              {filteredCalendars.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  Nenhuma agenda. Crie uma em "Gerenciar Equipe".
+                </p>
+              )}
+              {filteredCalendars.map(({ cal, memberName }) => {
+                const isSel = selectedIds.includes(cal.id);
+                const first = cal.rules[0];
+                return (
+                  <button
+                    key={cal.id}
+                    type="button"
+                    onClick={() => toggleCalSelected(cal.id)}
+                    className={`w-full flex items-start gap-2 px-3 py-2 rounded-md text-left transition-colors ${
+                      isSel ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-accent"
+                    }`}
+                  >
+                    <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{cal.name}</span>
+                        {first && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                            {MODALITY_LABELS[first.modality]}
+                          </span>
+                        )}
+                      </div>
+                      {first && <div className="text-[11px] text-muted-foreground">{ruleSummary(first)}</div>}
+                      <div className="text-[10px] text-muted-foreground">{memberName}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Equipe */}
+      <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle>Equipe</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={teamQuery}
+                onChange={(e) => setTeamQuery(e.target.value)}
+                placeholder="Buscar por nome ou email..."
+                className="pl-7 h-9 text-sm"
+              />
+            </div>
+          </div>
+          <ScrollArea className="max-h-72">
+            <div className="p-2 pt-0 space-y-1">
+              {filteredProfiles.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    ensureMemberInTeam(p);
+                    setMemberOpen(p.id);
+                    setTeamOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent text-left"
+                >
+                  <span className="h-7 w-7 shrink-0 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[11px] font-semibold uppercase">
+                    {(p.name || p.email || "?").charAt(0)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{p.email}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regras do membro */}
+      <Dialog open={!!memberOpen} onOpenChange={(o) => !o && setMemberOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Regras de agendamento</DialogTitle>
+            <DialogDescription>
+              {activeMember?.email}
+              <br />
+              Configure quando o robô pode marcar agendamentos na agenda deste membro
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Regras de agendamento</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => activeMember && setRuleEdit({ memberId: activeMember.id, rule: newRule() })}
+              >
+                + Adicionar
+              </Button>
+            </div>
+            {activeMemberRules.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground italic">Nenhuma regra configurada</p>
+            ) : (
+              <ul className="space-y-1">
+                {activeMemberRules.map(({ rule }) => (
+                  <li key={rule.id} className="flex items-center justify-between rounded-md border border-border p-2 text-[12px]">
+                    <div className="min-w-0">
+                      <div className="font-medium">{ruleSummary(rule)}</div>
+                      <div className="text-[11px] text-muted-foreground">{MODALITY_LABELS[rule.modality]}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground p-1"
+                        onClick={() => activeMember && setRuleEdit({ memberId: activeMember.id, rule })}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-destructive p-1"
+                        onClick={() => activeMember && deleteRule(activeMember.id, rule.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMemberOpen(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Nova/Editar regra */}
+      <Dialog open={!!ruleEdit} onOpenChange={(o) => !o && setRuleEdit(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova regra de agendamento</DialogTitle>
+            <DialogDescription>Configure quando o robô pode marcar agendamentos</DialogDescription>
+          </DialogHeader>
+          {ruleEdit && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-[12px]">Quando esta regra é válida</Label>
+                <Select
+                  value={ruleEdit.rule.validity}
+                  onValueChange={(v: any) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, validity: v } })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekdays">Dias da semana</SelectItem>
+                    <SelectItem value="specific">Datas específicas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[12px]">Dias da semana</Label>
+                <div className="flex gap-1">
+                  {DAY_LABELS.map((d, idx) => {
+                    const on = ruleEdit.rule.days.includes(idx);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => {
+                          const next = on
+                            ? ruleEdit.rule.days.filter((x) => x !== idx)
+                            : [...ruleEdit.rule.days, idx];
+                          setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, days: next } });
+                        }}
+                        className={`flex-1 h-8 rounded-md text-[11px] font-medium border transition-colors ${
+                          on
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Textarea
+                  value={ruleEdit.rule.description || ""}
+                  onChange={(e) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, description: e.target.value } })}
+                  placeholder="Descrição do agendamento (opcional)"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label className="text-[12px]">Horários</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Início</Label>
+                    <Input
+                      type="time"
+                      value={ruleEdit.rule.startTime}
+                      onChange={(e) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, startTime: e.target.value } })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Término</Label>
+                    <Input
+                      type="time"
+                      value={ruleEdit.rule.endTime}
+                      onChange={(e) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, endTime: e.target.value } })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[12px]">Modalidade do atendimento</Label>
+                <Select
+                  value={ruleEdit.rule.modality}
+                  onValueChange={(v: any) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, modality: v } })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hora_marcada">Hora marcada</SelectItem>
+                    <SelectItem value="ordem_chegada">Ordem de chegada</SelectItem>
+                    <SelectItem value="grupo">Grupo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Hora marcada: slots por duração. Ordem de chegada: uma fila por dia na janela. Grupo: vários atendidos no mesmo horário até o limite.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[12px]">Duração padrão do Agendamento</Label>
+                  <span className="text-[11px] text-muted-foreground">{ruleEdit.rule.duration} min</span>
+                </div>
+                <Slider
+                  min={5}
+                  max={240}
+                  step={5}
+                  value={[ruleEdit.rule.duration]}
+                  onValueChange={([v]) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, duration: v } })}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[12px]">Antecedência Mínima para Agendamento</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{ruleEdit.rule.advance}</span>
+                    <Select
+                      value={ruleEdit.rule.advanceUnit}
+                      onValueChange={(v: any) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, advanceUnit: v } })}
+                    >
+                      <SelectTrigger className="h-7 w-[90px] text-[11px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="min">Minutos</SelectItem>
+                        <SelectItem value="hour">Horas</SelectItem>
+                        <SelectItem value="day">Dias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Slider
+                  min={0}
+                  max={ruleEdit.rule.advanceUnit === "min" ? 120 : ruleEdit.rule.advanceUnit === "hour" ? 48 : 30}
+                  step={1}
+                  value={[ruleEdit.rule.advance]}
+                  onValueChange={([v]) => setRuleEdit({ ...ruleEdit, rule: { ...ruleEdit.rule, advance: v } })}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Tempo mínimo necessário antes do início do evento
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleEdit(null)}>Fechar</Button>
+            <Button
+              onClick={() => {
+                if (!ruleEdit) return;
+                saveRule(ruleEdit.memberId, ruleEdit.rule);
+                setRuleEdit(null);
+              }}
+            >
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function ListarEquipePanel({ node, setNode, Header, id }: { node: any; setNode: (n: any) => void; Header: ReactNode; id: string }) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2500,49 +3047,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 12: Agenda ---
   if (toolName === "agenda_eventos") {
-    const calendars: string[] = Array.isArray(node.data?.calendars) ? node.data.calendars : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Agenda" />
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Agendas selecionadas</Label>
-            <Button variant="outline" size="sm">+ Adicionar</Button>
-          </div>
-          {calendars.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">Nenhuma agenda selecionada</p>
-          ) : (
-            <ul className="text-[12px] space-y-1">
-              {calendars.map((c, i) => <li key={i}>• {c}</li>)}
-            </ul>
-          )}
-          <Button variant="outline" size="sm" className="w-full">
-            <Users className="h-4 w-4 mr-2" /> Gerenciar Equipe
-          </Button>
-        </div>
-        <InfoBlock>
-          <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
-            Modalidades de agendamento
-          </div>
-          <ul className="space-y-1 text-[11px]">
-            <li><strong>Hora marcada:</strong> um lead por horário, igual a uma reunião tradicional.</li>
-            <li><strong>Ordem de chegada:</strong> janela diária com fila — vários leads compartilham o mesmo período até atingir o limite configurado.</li>
-            <li><strong>Grupo:</strong> mesmo horário ocupado por vários leads (até o limite), criando um único evento compartilhado.</li>
-          </ul>
-        </InfoBlock>
-        <FuncList
-          items={[
-            { name: `agenda_${id}_list_calendars`, desc: "lista os calendários disponíveis para agendamento, com regras de horário e responsáveis." },
-            { name: `agenda_${id}_list_available_time_slots`, desc: "lista os próximos horários livres, com suporte a filtro por calendário e paginação." },
-            { name: `agenda_${id}_list_future_appointments`, desc: "lista compromissos futuros do cliente em qualquer calendário." },
-            { name: `agenda_${id}_add_appointment`, desc: "cria um novo compromisso para o lead na agenda selecionada." },
-            { name: `agenda_${id}_cancel_appointment`, desc: "cancela um compromisso existente do lead." },
-            { name: `agenda_${id}_reschedule_appointment`, desc: "remarca um compromisso, criando o novo horário e cancelando o antigo." },
-          ]}
-        />
-      </>
-    );
+    return <AgendaPanel node={node} setNode={setNode} Header={Header} id={id} />;
   }
 
   // --- MODAL 13: Atualizar Memória Atendimento ---
