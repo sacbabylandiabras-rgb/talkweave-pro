@@ -2639,6 +2639,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_profile_id_by_email: { Args: { _email: string }; Returns: string }
+      get_pipeline_member_profiles: {
+        Args: { _pipeline_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
