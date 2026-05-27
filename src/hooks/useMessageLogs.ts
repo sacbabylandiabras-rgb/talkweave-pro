@@ -1582,6 +1582,8 @@ export const useMessageLogs = (
         if (!token || !userId) return;
         const normalized = normalizeConversationPhone(phone);
         const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalized);
+        const previousStage = (saved as any)?.agent_stage || null;
+        const activePipelineId = (typeof window !== 'undefined' && localStorage.getItem('pipeline_active_id')) || null;
          try {
            const { error } = await (supabase as any)
              .from('saved_contacts')
@@ -1595,6 +1597,21 @@ export const useMessageLogs = (
              }, { onConflict: 'phone,user_id' });
            
            if (error) throw error;
+           // Log stage transition (best-effort; do not fail the action)
+           if (previousStage !== stage) {
+             (supabase as any)
+               .from('pipeline_stage_history')
+               .insert({
+                 user_id: userId,
+                 pipeline_id: activePipelineId,
+                 contact_phone: normalized,
+                 from_stage: previousStage,
+                 to_stage: stage,
+               })
+               .then(({ error: histErr }: any) => {
+                 if (histErr) console.warn('[pipeline_stage_history] insert failed:', histErr);
+               });
+           }
          } catch (e) {
           console.warn("Failed to save stage to database, column might be missing:", e);
           const stages = JSON.parse(localStorage.getItem('temp_contact_stages') || '{}');
