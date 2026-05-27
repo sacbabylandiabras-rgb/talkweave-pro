@@ -1384,6 +1384,33 @@ function MemoriaAtendimentoPanel({
         dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
       </div>
 
+      <MemoryEnabledFields node={node} setNode={setNode} stored={stored} />
+
+      <Accordion type="single" collapsible>
+        <AccordionItem value="how">
+          <AccordionTrigger className="text-sm">
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" /> Como funciona
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[12px] mb-2">
+              Esta tool é registrada dinamicamente no agente com os campos que você selecionar
+              acima. A IA recebe:
+            </p>
+            <ul className="list-disc pl-4 text-[11px] space-y-0.5">
+              <li>Nome do campo como nome do parâmetro</li>
+              <li>Tipo do schema (string, number, array, object...) como tipo do parâmetro</li>
+              <li>Descrição do schema como description do parâmetro</li>
+              <li>
+                Quando a IA chamar a tool, os valores serão salvos na memória do atendimento em{" "}
+                <code>{"{{memory.campo}}"}</code>.
+              </li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
