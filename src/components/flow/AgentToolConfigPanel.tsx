@@ -849,6 +849,8 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 4: Transações ---
   if (toolName === "consultar_transacoes") {
+    const lookupBy = node.data?.lookupBy || "phone";
+    const includeExternal = node.data?.includeExternal !== false;
     return (
       <>
         {Header}
@@ -857,10 +859,35 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
           <Receipt className="h-8 w-8 mx-auto text-primary" />
           <div className="font-semibold">Ferramenta de Transações</div>
           <p className="text-[12px] text-muted-foreground">
-            Esta ferramenta permite ao agente consultar as transações/compras do cliente atual. As
-            transações são carregadas automaticamente com base no lead em atendimento.
+            O agente consulta as compras do lead em atendimento. Busca primeiro nas transações do
+            Gateway interno e, se nada for encontrado, consulta também os registros vindos das
+            integrações externas conectadas via webhook.
           </p>
         </div>
+
+        <div className="space-y-2">
+          <Label>Buscar transações por</Label>
+          <Select value={lookupBy} onValueChange={(v) => setData(node, setNode, { lookupBy: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="phone">Telefone do lead</SelectItem>
+              <SelectItem value="email">E-mail do lead</SelectItem>
+              <SelectItem value="document">CPF / CNPJ do lead</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-md border p-2">
+          <Checkbox
+            id="include-external-tx"
+            checked={includeExternal}
+            onCheckedChange={(c) => setData(node, setNode, { includeExternal: !!c })}
+          />
+          <Label htmlFor="include-external-tx" className="cursor-pointer text-xs">
+            Incluir transações vindas das integrações externas (fallback)
+          </Label>
+        </div>
+
         <FuncList
           items={[
             { name: `transactions_${id}_list`, desc: "lista as transações/compras do cliente (50 por página), retornando campos como id, transaction_id, status, payment_date, payment_method, gateway, product_id, product_name, transaction_value e currency." },
