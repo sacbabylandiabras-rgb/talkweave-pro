@@ -1193,7 +1193,42 @@ async function executeTool(
       return JSON.stringify({ ok: true, message: `Ação ${input.acao} realizada no CRM.` });
     }
     case "listar_equipe": {
-      return JSON.stringify({ ok: true, members: [{ id: userId, name: "Admin" }] });
+      try {
+        const { data: cfg } = await supabase
+          .from("agent_tools_config")
+          .select("config")
+          .eq("user_id", userId)
+          .eq("tool_name", "listar_equipe")
+          .maybeSingle();
+        const c: any = cfg?.config || {};
+        const scope = c.scope || "all";
+        const selectedIds: string[] = Array.isArray(c.selectedIds) ? c.selectedIds : [];
+
+        const idsSet = new Set<string>([userId]);
+        const { data: pipes } = await supabase
+          .from("pipelines").select("id").eq("owner_id", userId);
+        const pipeIds = (pipes || []).map((p: any) => p.id);
+        if (pipeIds.length) {
+          const { data: pm } = await supabase
+            .from("pipeline_members").select("user_id").in("pipeline_id", pipeIds);
+          (pm || []).forEach((m: any) => idsSet.add(m.user_id));
+        }
+        let ids = Array.from(idsSet);
+        if (scope === "selected" && selectedIds.length) {
+          ids = ids.filter((i) => selectedIds.includes(i));
+        }
+        if (ids.length === 0) return JSON.stringify({ ok: true, members: [] });
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id,full_name,email,is_active")
+          .in("id", ids);
+        const members = (profs || [])
+          .filter((p: any) => p.is_active !== false)
+          .map((p: any) => ({ user_id: p.id, name: p.full_name || p.email, email: p.email }));
+        return JSON.stringify({ ok: true, members });
+      } catch (e: any) {
+        return JSON.stringify({ ok: false, error: String(e?.message || e) });
+      }
     }
     case "adicionar_tag": {
       return JSON.stringify({ ok: true, message: `Tag '${input.tag}' adicionada ao lead.` });
