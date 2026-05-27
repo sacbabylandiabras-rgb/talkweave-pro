@@ -2116,50 +2116,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 5: Extrair Dados ---
   if (toolName === "extrair_dados") {
-    return (
-      <>
-        {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Extração de Dados"
-          placeholder="Ex: quando o cliente informar um dado que deve ser salvo no cadastro..."
-        />
-        <div className="space-y-2">
-          <Label>Selecione o dado que deseja extrair</Label>
-          <Select
-            value={node.data?.extractField || ""}
-            onValueChange={(v) => setData(node, setNode, { extractField: v })}
-          >
-            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Nome</SelectItem>
-              <SelectItem value="email">E-mail</SelectItem>
-              <SelectItem value="phone">Telefone</SelectItem>
-              <SelectItem value="cpf">CPF</SelectItem>
-              <SelectItem value="cnpj">CNPJ</SelectItem>
-              <SelectItem value="address">Endereço</SelectItem>
-              <SelectItem value="company">Empresa</SelectItem>
-              <SelectItem value="custom">Campo personalizado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Label className="pt-2">Tipo</Label>
-          <Select
-            value={node.data?.extractType || "string"}
-            onValueChange={(v) => setData(node, setNode, { extractType: v })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="string">Texto (string)</SelectItem>
-              <SelectItem value="number">Número</SelectItem>
-              <SelectItem value="boolean">Verdadeiro/Falso</SelectItem>
-              <SelectItem value="date">Data</SelectItem>
-              <SelectItem value="email">E-mail</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </>
-    );
+    return <ExtrairDadosPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 6: Enviar transação ---
