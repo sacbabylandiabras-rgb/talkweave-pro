@@ -4087,7 +4087,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem) return null;
+                  const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4144,6 +4145,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
                   const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   const isFiltroMensagem = (selectedNode.data?.label || "").toLowerCase().includes("filtro por mensagem");
+                  const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
