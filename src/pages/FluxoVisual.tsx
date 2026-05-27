@@ -4117,6 +4117,42 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               })()
             )}
 
+            {selectedNode?.type === "blocoCondicao" && !(selectedNode.data?.label || "").toLowerCase().includes("if/else") && (
+              <>
+                <div>
+                  <Label>Variável a verificar</Label>
+                  <Input
+                    value={selectedNode.data.variable || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, variable: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: {{lead.name}}"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Condição / Valor</Label>
+                  <Input
+                    value={selectedNode.data.condition || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, condition: e.target.value },
+                      })
+                    }
+                    placeholder="Ex: sucesso, oi, ativo..."
+                    className="mt-1"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Define a regra usada por este bloco ({selectedNode.data?.label}).
+                  </p>
+                </div>
+              </>
+            )}
+
             {selectedNode?.type === "blocoGatilho" && (
               <>
                 <div>
