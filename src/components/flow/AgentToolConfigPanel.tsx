@@ -65,10 +65,13 @@ const CLAUDE_MODELS = [
   { value: "claude-3-5-haiku", label: "Claude 3.5 Haiku", in: "0,80", out: "4,00", cache: "0,08" },
 ];
 
-function ProductsPreview() {
-  const navigate = useNavigate();
+function ProductsPreview({ node, setNode }: Props) {
   const [items, setItems] = useState<Array<{ id: string; name: string; price: number; image_url: string | null }>>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const selectedIds: string[] = Array.isArray(node.data?.selectedProductIds) ? node.data.selectedProductIds : [];
+  const useAll: boolean = node.data?.useAllProducts !== false && selectedIds.length === 0;
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -79,45 +82,93 @@ function ProductsPreview() {
         .eq("user_id", user.id)
         .eq("active", true)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(500);
       setItems((data as any) || []);
       setLoading(false);
     })();
   }, []);
+
+  const toggle = (id: string) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id];
+    setData(node, setNode, { selectedProductIds: next, useAllProducts: false });
+  };
+
+  const filtered = items.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label>Produtos cadastrados ({items.length})</Label>
+        <Label>Produtos disponíveis</Label>
+        <span className="text-[11px] text-muted-foreground">
+          {useAll ? `Todos (${items.length})` : `${selectedIds.length} selecionado(s)`}
+        </span>
       </div>
+
+      <div className="flex items-center gap-2 rounded-md border p-2">
+        <Checkbox
+          id="use-all-products"
+          checked={useAll}
+          onCheckedChange={(c) =>
+            setData(node, setNode, { useAllProducts: !!c, selectedProductIds: c ? [] : selectedIds })
+          }
+        />
+        <Label htmlFor="use-all-products" className="cursor-pointer text-xs">
+          Usar todos os produtos
+        </Label>
+      </div>
+
+      {!useAll && (
+        <Input
+          placeholder="Buscar produto..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-8"
+        />
+      )}
+
       <div className="rounded-md border bg-muted/30 max-h-56 overflow-y-auto">
         {loading ? (
           <p className="text-xs text-muted-foreground p-3">Carregando…</p>
-        ) : items.length === 0 ? (
-          <p className="text-xs text-muted-foreground p-3">Nenhum produto cadastrado ainda.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-3">
+            {items.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum produto encontrado."}
+          </p>
         ) : (
           <ul className="divide-y">
-            {items.map((p) => (
-              <li key={p.id} className="flex items-center gap-2 p-2">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
-                ) : (
-                  <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                    <Package className="h-4 w-4 text-muted-foreground" />
+            {filtered.map((p) => {
+              const checked = useAll || selectedIds.includes(p.id);
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center gap-2 p-2 ${useAll ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                  onClick={() => !useAll && toggle(p.id)}
+                >
+                  <Checkbox checked={checked} disabled={useAll} onCheckedChange={() => toggle(p.id)} />
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{p.name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
+                    </p>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
-                  </p>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
       <p className="text-[11px] text-muted-foreground">
-        O agente terá acesso a todos os produtos ativos da sua base.
+        {useAll
+          ? "O agente terá acesso a todos os produtos ativos."
+          : "O agente usará apenas os produtos selecionados acima."}
       </p>
     </div>
   );
@@ -618,7 +669,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             conhecimento durante a execução do agente.
           </p>
         </div>
-        <ProductsPreview />
+        <ProductsPreview node={node} setNode={setNode} />
         <FuncList
           items={[
             { name: `products_${id}_search`, desc: "busca produtos por nome ou descrição, com paginação e retorno de detalhes como preço, estoque, imagens e link de compra." },
