@@ -1011,6 +1011,58 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
+  const handleGenerateTts = useCallback(async (mode: "save" | "preview") => {
+    if (!selectedNode) return;
+    const text = (selectedNode.data.ttsText || "").trim();
+    if (!text) {
+      toast.error("Digite o texto a ser narrado");
+      return;
+    }
+    const voice = selectedNode.data.ttsVoice || "alloy";
+    const speed = Number(selectedNode.data.ttsSpeed) || 1;
+    const instructions = (selectedNode.data.ttsInstructions || "").trim();
+    const audioName = (selectedNode.data.audioName || "").trim();
+
+    if (mode === "preview") setPreviewingTts(true);
+    else setGeneratingTts(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
+        body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
+      });
+      if (error) throw new Error(error.message || "Falha ao gerar áudio");
+      if (data?.error) throw new Error(data.error);
+
+      if (mode === "preview") {
+        if (!data?.audioBase64) throw new Error("Sem áudio retornado");
+        const audio = new Audio(`data:${data.mimeType || "audio/mpeg"};base64,${data.audioBase64}`);
+        await audio.play();
+      } else {
+        if (!data?.url) throw new Error("Sem URL de áudio");
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  mediaUrl: data.url,
+                  contentType: "audio",
+                  audioName: prev.data.audioName || data.audioName || "Áudio gerado",
+                },
+              }
+            : prev
+        );
+        toast.success("Áudio gerado e salvo no bloco!");
+      }
+    } catch (err) {
+      console.error("TTS error", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar áudio");
+    } finally {
+      setGeneratingTts(false);
+      setPreviewingTts(false);
+    }
+  }, [selectedNode]);
+
   const handleSaveFluxo = async (): Promise<string | false> => {
     if (savingFluxo) return currentFluxoId || false;
     setSavingFluxo(true);
