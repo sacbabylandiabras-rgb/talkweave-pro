@@ -19,6 +19,8 @@ export interface BaseBlockOption {
   label: string;
   description: string;
   icon: LucideIcon;
+  category?: string;
+  extraData?: Record<string, unknown>;
 }
 
 export interface AddBlockSelection {
@@ -66,7 +68,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
   }, [normalizedQuery]);
 
   const handleSelectBase = (b: BaseBlockOption) => {
-    onSelect({ type: b.type, label: b.label, description: b.description });
+    onSelect({ type: b.type, label: b.label, description: b.description, extraData: b.extraData });
     onOpenChange(false);
   };
 
@@ -109,33 +111,45 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
 
         <div className="flex-1 min-h-0 overflow-y-auto pr-2 -mr-2">
           <div className="space-y-6 pb-2">
-            {!showAgentTools && filteredBase.length > 0 && (
-              <section>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Blocos
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {filteredBase.map((b) => (
-                    <button
-                      key={b.type}
-                      type="button"
-                      onClick={() => handleSelectBase(b)}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30 hover:bg-accent/50 hover:border-primary/40 transition-all text-left"
-                    >
-                      <div className="p-1.5 rounded-md bg-primary/10 shrink-0">
-                        <b.icon className="h-4 w-4 text-primary" />
+            {!showAgentTools && filteredBase.length > 0 && (() => {
+              const groups = new Map<string, BaseBlockOption[]>();
+              for (const b of filteredBase) {
+                const cat = b.category || "Geral";
+                if (!groups.has(cat)) groups.set(cat, []);
+                groups.get(cat)!.push(b);
+              }
+              return (
+                <div className="space-y-5">
+                  {Array.from(groups.entries()).map(([cat, items]) => (
+                    <section key={cat}>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        {cat}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {items.map((b, i) => (
+                          <button
+                            key={`${b.type}-${b.label}-${i}`}
+                            type="button"
+                            onClick={() => handleSelectBase(b)}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30 hover:bg-accent/50 hover:border-primary/40 transition-all text-left"
+                          >
+                            <div className="p-1.5 rounded-md bg-primary/10 shrink-0">
+                              <b.icon className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium">{b.label}</div>
+                              <div className="text-xs text-muted-foreground leading-tight">
+                                {b.description}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">{b.label}</div>
-                        <div className="text-xs text-muted-foreground leading-tight">
-                          {b.description}
-                        </div>
-                      </div>
-                    </button>
+                    </section>
                   ))}
                 </div>
-              </section>
-            )}
+              );
+            })()}
 
             {showAgentTools && filteredToolsByCategory.length > 0 && (
               <section>
