@@ -1243,6 +1243,119 @@ function TransferirFilaPanel({ node, setNode, Header }: { node: any; setNode: (n
   );
 }
 
+function TransferirEstrategiaPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
+  const [flows, setFlows] = useState<Array<{ id: string; name: string; active: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const targetFlowId: string = node.data?.targetFlowId || "";
+  const endFlow: boolean = !!node.data?.endFlow;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data } = await (supabase as any)
+          .from("flow_automations")
+          .select("id,name,active")
+          .eq("user_id", session.user.id)
+          .order("name");
+        setFlows(data || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const target = flows.find((f) => f.id === targetFlowId);
+        const config = {
+          description: node.data?.description || "",
+          targetFlowId,
+          targetFlowName: target?.name || "",
+          endFlow,
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "transferir_estrategia", enabled: true, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save transferir_estrategia", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.data?.description, targetFlowId, endFlow]);
+
+  const selected = flows.find((f) => f.id === targetFlowId);
+
+  return (
+    <>
+      {Header}
+      <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Transferir para Estratégia" />
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <ArrowRightLeft className="h-4 w-4 text-primary" />
+          <Label className="text-sm font-semibold">Estratégia de destino (Agente IA)</Label>
+        </div>
+        {loading ? (
+          <p className="text-[11px] text-muted-foreground italic">Carregando estratégias...</p>
+        ) : flows.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">
+            Nenhuma estratégia criada. Crie uma estratégia no Fluxo Visual primeiro.
+          </p>
+        ) : (
+          <Select
+            value={targetFlowId || undefined}
+            onValueChange={(v) => setData(node, setNode, { targetFlowId: v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar estratégia..." />
+            </SelectTrigger>
+            <SelectContent>
+              {flows.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name} {f.active ? "" : "(inativa)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {!selected && !loading && flows.length > 0 && (
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma estratégia definida</p>
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Selecione para salvar automaticamente"}
+        </p>
+      </div>
+      <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+        <div>
+          <Label htmlFor="transfer-end" className="cursor-pointer">Encerrar fluxo atual após transferência</Label>
+          <p className="text-[11px] text-muted-foreground">
+            Interrompe o agente atual assim que a transferência for executada.
+          </p>
+        </div>
+        <Switch
+          id="transfer-end"
+          checked={endFlow}
+          onCheckedChange={(c) => setData(node, setNode, { endFlow: !!c })}
+        />
+      </div>
+    </>
+  );
+}
+
 function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   const navigate = useNavigate();
   const toolName: string = node.data?.toolName || "";
@@ -2272,6 +2385,11 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   // --- MODAL 21: Transferir para Fila ---
   if (toolName === "transferir_fila") {
     return <TransferirFilaPanel node={node} setNode={setNode} Header={Header} />;
+  }
+
+  // --- MODAL 21b: Transferir para Estratégia ---
+  if (toolName === "transferir_estrategia") {
+    return <TransferirEstrategiaPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 22: Agente Tool ---
