@@ -464,3 +464,173 @@ export function MemoriaAtendimentoEditor({
     </div>
   );
 }
+
+function LeadMemoryEditor({
+  fieldsToModify,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  fieldsToModify: Array<{ name: string; value: string }>;
+  onAdd: (name: string) => void;
+  onUpdate: (name: string, value: string) => void;
+  onRemove: (name: string) => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [customName, setCustomName] = useState("");
+
+  const standardAvailable = LEAD_STANDARD_FIELDS.filter(
+    (f) => !fieldsToModify.some((m) => m.name === f.name),
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Campos a Salvar</Label>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                + Adicionar Campo
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-1">
+              <ul className="max-h-[40vh] overflow-y-auto">
+                {standardAvailable.map((f) => (
+                  <li key={f.name}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAdd(f.name);
+                        setPickerOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/40"
+                    >
+                      <div className="text-[12px] font-mono">{f.label}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {f.description}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+                {standardAvailable.length === 0 && (
+                  <li className="px-3 py-2 text-[11px] text-muted-foreground">
+                    Todos os campos padrão já foram adicionados.
+                  </li>
+                )}
+              </ul>
+              <div className="border-t border-border mt-1 pt-2 px-2 pb-2 space-y-1">
+                <div className="text-[11px] text-muted-foreground">
+                  Campo personalizado
+                </div>
+                <div className="flex gap-1">
+                  <Input
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="nome_do_campo"
+                    className="h-8 text-[12px]"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const n = customName.trim();
+                      if (!n) return;
+                      onAdd(n);
+                      setCustomName("");
+                      setPickerOpen(false);
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {fieldsToModify.length === 0 ? (
+          <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-[12px]">
+            Nenhum campo selecionado. Use o botão "Adicionar Campo" para selecionar
+            campos.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {fieldsToModify.map((m) => {
+              const meta = LEAD_STANDARD_FIELDS.find((f) => f.name === m.name);
+              return (
+                <li
+                  key={m.name}
+                  className="rounded-md border border-border bg-card p-3 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px]">
+                      <code className="font-mono">{m.name}</code>{" "}
+                      <span className="text-muted-foreground">
+                        {meta ? meta.description : "Campo personalizado"}
+                      </span>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => onRemove(m.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={m.value}
+                    onChange={(e) => onUpdate(m.name, e.target.value)}
+                    placeholder="Valor ou variável dinâmica"
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <Accordion type="single" collapsible>
+        <AccordionItem value="how">
+          <AccordionTrigger className="text-sm">
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" /> Como funciona
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="text-[12px] space-y-2">
+              <p>
+                A memória do lead é <strong>permanente</strong> e fica disponível em
+                todos os atendimentos futuros. Os dados são salvos nos campos
+                personalizados (custom keys) do lead.
+              </p>
+              <div>
+                <div className="font-medium">Acessando os dados</div>
+                <p className="text-muted-foreground">
+                  Use <code>{"{{lead.nome_do_campo}}"}</code> em outros nodes para
+                  acessar os valores salvos.
+                </p>
+              </div>
+              <div>
+                <div className="font-medium">Variáveis dinâmicas nos valores</div>
+                <ul className="list-disc pl-4 text-muted-foreground">
+                  <li>
+                    <code>{"{{lead.name}}"}</code> — Nome do lead
+                  </li>
+                  <li>
+                    <code>{"{{node-X.output.campo}}"}</code> — Resultado de outro
+                    node
+                  </li>
+                  <li>
+                    <code>{"{{memory.campo}}"}</code> — Valor da memória do
+                    atendimento
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+}
