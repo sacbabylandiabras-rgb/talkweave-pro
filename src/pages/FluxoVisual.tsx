@@ -190,6 +190,39 @@ const isMensagemAudioBlock = (node?: Node | null) => {
   );
 };
 
+const isMensagemPredefinidaBlock = (node?: Node | null) => {
+  const label = String(node?.data?.label || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return node?.type === "blocoConteudo" && label.includes("predefinida");
+};
+
+const mapTemplateTypeToContentType = (t?: string) => {
+  switch ((t || "texto").toLowerCase()) {
+    case "carrossel":
+      return "media-carousel";
+    case "imagem":
+      return "image";
+    case "video":
+    case "vídeo":
+      return "video";
+    case "audio":
+    case "áudio":
+      return "audio";
+    case "documento":
+    case "arquivo":
+      return "document";
+    case "lista":
+      return "list";
+    case "botoes":
+    case "botões":
+      return "interactive";
+    default:
+      return "text";
+  }
+};
+
 const parseVoiceGenerationError = async (error: unknown, data?: any) => {
   const fallback = {
     title: "Não foi possível gerar o áudio",
