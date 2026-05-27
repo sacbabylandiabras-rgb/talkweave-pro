@@ -230,6 +230,7 @@ export default function FluxoMeta() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
+  const [showAddBlockDialog, setShowAddBlockDialog] = useState(false);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances: zapiInstances } = useZapiInstances({
     includeMeta: isMetaMode,
