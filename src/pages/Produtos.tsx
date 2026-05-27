@@ -22,6 +22,7 @@ type Product = {
   description: string | null;
   price: number;
   image_url: string | null;
+  image_urls: string[] | null;
   active: boolean;
   created_at: string;
 };
@@ -43,7 +44,7 @@ export default function Produtos() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [active, setActive] = useState(true);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const load = async () => {
@@ -61,7 +62,7 @@ export default function Produtos() {
 
   const reset = () => {
     setEditing(null);
-    setName(""); setDescription(""); setPrice(""); setActive(true); setImageUrl(null);
+    setName(""); setDescription(""); setPrice(""); setActive(true); setImages([]);
   };
 
   const openNew = () => { reset(); setOpen(true); };
@@ -71,21 +72,28 @@ export default function Produtos() {
     setDescription(p.description || "");
     setPrice(String(p.price ?? ""));
     setActive(p.active);
-    setImageUrl(p.image_url);
+    const arr = Array.isArray(p.image_urls) && p.image_urls.length > 0
+      ? p.image_urls
+      : (p.image_url ? [p.image_url] : []);
+    setImages(arr);
     setOpen(true);
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: FileList) => {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
-      setImageUrl(pub.publicUrl);
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
+        if (upErr) throw upErr;
+        const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
+        uploaded.push(pub.publicUrl);
+      }
+      setImages((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
       toast({ title: "Erro no upload", description: e.message, variant: "destructive" });
     } finally {
@@ -107,7 +115,8 @@ export default function Produtos() {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(String(price).replace(",", ".")) || 0,
-        image_url: imageUrl,
+        image_url: images[0] || null,
+        image_urls: images,
         active,
         updated_at: new Date().toISOString(),
       };
@@ -213,35 +222,48 @@ export default function Produtos() {
 
           <div className="space-y-4">
             <div>
-              <Label>Foto</Label>
-              <div className="mt-1.5 flex items-center gap-3">
-                <div className="w-20 h-20 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                  )}
+              <Label>Fotos</Label>
+              <div className="mt-1.5 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {images.map((url, i) => (
+                    <div key={url + i} className="relative w-20 h-20 rounded-lg bg-muted border border-border overflow-hidden group">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-0.5 right-0.5 bg-background/90 border border-border rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition"
+                        aria-label="Remover"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {i === 0 && (
+                        <span className="absolute bottom-0 left-0 right-0 text-[10px] bg-background/80 text-foreground text-center py-0.5">Principal</span>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                    <span className="text-[10px] mt-1">Adicionar</span>
+                  </button>
                 </div>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleUpload(f);
+                    const fs = e.target.files;
+                    if (fs && fs.length > 0) handleUpload(fs);
                     e.target.value = "";
                   }}
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                  {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                  {imageUrl ? "Trocar" : "Enviar"}
-                </Button>
-                {imageUrl && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl(null)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
+                <p className="text-xs text-muted-foreground">A primeira imagem será usada como capa.</p>
               </div>
             </div>
 
