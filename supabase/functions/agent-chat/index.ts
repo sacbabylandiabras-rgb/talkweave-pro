@@ -984,7 +984,88 @@ async function executeTool(
       return JSON.stringify({ ok: true, text: "Conteúdo do anexo processado (simulado)." });
     }
     case "consulta_api_ia": {
-      return JSON.stringify({ ok: true, data: { status: "success", message: "API consultada via IA" } });
+      try {
+        const { data: cfgRow } = await supabase
+          .from("agent_tools_config")
+          .select("config")
+          .eq("user_id", userId)
+          .eq("tool_name", "consulta_api_ia")
+          .maybeSingle();
+        const cfg: any = cfgRow?.config || {};
+        const aiInput: Record<string, any> = (input?.ai && typeof input.ai === "object") ? input.ai : input || {};
+
+        const interp = (v: any): any => {
+          if (typeof v !== "string") return v;
+          return v.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, path) => {
+            const parts = String(path).split(".");
+            const root = parts.shift();
+            let src: any = null;
+            if (root === "ai") src = aiInput;
+            else if (root === "phone") return phone || "";
+            else if (root === "input") src = aiInput;
+            else return "";
+            let cur: any = src;
+            for (const p of parts) cur = cur?.[p];
+            return cur == null ? "" : String(cur);
+          });
+        };
+
+        const method = String(cfg.httpMethod || input?.metodo || "GET").toUpperCase();
+        let urlStr = interp(cfg.apiUrl || input?.url || "");
+        if (!urlStr) return JSON.stringify({ error: "URL não configurada para consulta_api_ia" });
+
+        // Query params
+        const qp = new URLSearchParams();
+        for (const r of (cfg.queryParams || [])) {
+          if (!r?.key) continue;
+          qp.append(r.key, interp(r.value));
+        }
+        // also pass any ai-provided extra query under input.query
+        if (input?.query && typeof input.query === "object") {
+          for (const [k, v] of Object.entries(input.query)) qp.append(k, String(v));
+        }
+        if ([...qp].length > 0) {
+          urlStr += (urlStr.includes("?") ? "&" : "?") + qp.toString();
+        }
+
+        // Headers
+        const headers: Record<string, string> = {};
+        for (const r of (cfg.headers || [])) {
+          if (!r?.key) continue;
+          headers[r.key] = interp(r.value);
+        }
+
+        // Body
+        let body: string | undefined;
+        if (["POST", "PUT", "PATCH"].includes(method)) {
+          const bodyObj: Record<string, any> = {};
+          for (const r of (cfg.bodyParams || [])) {
+            if (!r?.key) continue;
+            bodyObj[r.key] = interp(r.value);
+          }
+          // merge ai-provided "dados" or "body"
+          const extra = input?.body || input?.dados;
+          if (extra && typeof extra === "object") Object.assign(bodyObj, extra);
+          body = JSON.stringify(bodyObj);
+          if (!headers["Content-Type"] && !headers["content-type"]) {
+            headers["Content-Type"] = "application/json";
+          }
+        }
+
+        console.log("[consulta_api_ia]", method, urlStr);
+        const apiResp = await fetch(urlStr, { method, headers, body });
+        const text = await apiResp.text();
+        let parsed: any = text;
+        try { parsed = JSON.parse(text); } catch {}
+        return JSON.stringify({
+          ok: apiResp.ok,
+          status: apiResp.status,
+          data: parsed,
+        });
+      } catch (e: any) {
+        console.error("consulta_api_ia error", e);
+        return JSON.stringify({ ok: false, error: e?.message || String(e) });
+      }
     }
     case "acessar_links": {
       return JSON.stringify({ ok: true, content: "Conteúdo do link extraído com sucesso (simulado)." });
