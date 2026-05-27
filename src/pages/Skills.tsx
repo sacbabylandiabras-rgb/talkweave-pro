@@ -238,7 +238,7 @@ export default function Skills() {
         continue;
       }
       const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const path = `skills/${user.id}/${editingDetail.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${user.id}/skills/${editingDetail.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       console.log("[Skills] uploading", path, file.type, file.size);
       const { data: upData, error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
         contentType: file.type || undefined,
