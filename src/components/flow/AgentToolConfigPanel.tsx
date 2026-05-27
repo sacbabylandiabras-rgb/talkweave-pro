@@ -174,6 +174,132 @@ function ProductsPreview({ node, setNode }: Props) {
   );
 }
 
+function PoliciesManager() {
+  const [items, setItems] = useState<Array<{ id: string; title: string | null; content: string | null }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("agent_knowledge")
+      .select("id,title,content")
+      .eq("user_id", user.id)
+      .eq("type", "policy")
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setItems((data as any) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    if (!title.trim() && !content.trim()) {
+      toast({ title: "Preencha título ou conteúdo", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
+    const { error } = await supabase.from("agent_knowledge").insert({
+      user_id: user.id,
+      type: "policy",
+      title: title.trim() || null,
+      content: content.trim() || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Política adicionada" });
+    setTitle(""); setContent(""); setOpen(false);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    const { error } = await supabase.from("agent_knowledge").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      return;
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Políticas e regras cadastradas ({items.length})</Label>
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+          <ShieldCheck className="h-3 w-3 mr-1" /> Adicionar
+        </Button>
+      </div>
+      <div className="rounded-md border bg-muted/30 max-h-56 overflow-y-auto">
+        {loading ? (
+          <p className="text-xs text-muted-foreground p-3">Carregando…</p>
+        ) : items.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-3">Nenhuma política cadastrada ainda.</p>
+        ) : (
+          <ul className="divide-y">
+            {items.map((p) => (
+              <li key={p.id} className="flex items-start gap-2 p-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{p.title || "Sem título"}</p>
+                  {p.content && (
+                    <p className="text-[10px] text-muted-foreground line-clamp-2">{p.content}</p>
+                  )}
+                </div>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => remove(p.id)}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Nova política / regra
+            </DialogTitle>
+            <DialogDescription>
+              Adicione uma informação que o agente poderá consultar (ex: horário, política de troca).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Título</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Horário de atendimento" />
+            </div>
+            <div>
+              <Label>Conteúdo</Label>
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Descreva a regra ou política..."
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function ModelSelectClaude({ node, setNode }: Props) {
   const value = node.data?.aiModel && CLAUDE_MODELS.some(m => m.value === node.data.aiModel)
     ? node.data.aiModel
