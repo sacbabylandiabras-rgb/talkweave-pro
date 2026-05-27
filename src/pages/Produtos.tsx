@@ -22,6 +22,7 @@ type Product = {
   description: string | null;
   price: number;
   image_url: string | null;
+  image_urls: string[] | null;
   active: boolean;
   created_at: string;
 };
@@ -43,7 +44,7 @@ export default function Produtos() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [active, setActive] = useState(true);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const load = async () => {
@@ -61,7 +62,7 @@ export default function Produtos() {
 
   const reset = () => {
     setEditing(null);
-    setName(""); setDescription(""); setPrice(""); setActive(true); setImageUrl(null);
+    setName(""); setDescription(""); setPrice(""); setActive(true); setImages([]);
   };
 
   const openNew = () => { reset(); setOpen(true); };
@@ -71,21 +72,28 @@ export default function Produtos() {
     setDescription(p.description || "");
     setPrice(String(p.price ?? ""));
     setActive(p.active);
-    setImageUrl(p.image_url);
+    const arr = Array.isArray(p.image_urls) && p.image_urls.length > 0
+      ? p.image_urls
+      : (p.image_url ? [p.image_url] : []);
+    setImages(arr);
     setOpen(true);
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: FileList) => {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
-      setImageUrl(pub.publicUrl);
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
+        if (upErr) throw upErr;
+        const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
+        uploaded.push(pub.publicUrl);
+      }
+      setImages((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
       toast({ title: "Erro no upload", description: e.message, variant: "destructive" });
     } finally {
@@ -107,7 +115,8 @@ export default function Produtos() {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(String(price).replace(",", ".")) || 0,
-        image_url: imageUrl,
+        image_url: images[0] || null,
+        image_urls: images,
         active,
         updated_at: new Date().toISOString(),
       };
