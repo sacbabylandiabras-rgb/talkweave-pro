@@ -3794,7 +3794,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               </div>
             )}
 
-            {selectedNode?.type === "blocoCondicao" && (
+            {selectedNode?.type === "blocoCondicao" && (selectedNode.data?.label || "").toLowerCase().includes("if/else") && (
               (() => {
                 const operatorsByType: Record<string, { value: string; label: string }[]> = {
                   string: [
