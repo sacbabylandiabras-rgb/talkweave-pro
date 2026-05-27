@@ -38,7 +38,14 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
+import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
 import {
   PlayCircle,
   MessageSquare,
@@ -4907,6 +4914,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         </p>
                       </div>
                     </>
+                  );
+                }
+                const label = String(selectedNode.data.label || "").toLowerCase();
+                const memoryVariant: "atendimento" | "lead" | "projeto" | null =
+                  /mem[oó]ria de atendimento/.test(label)
+                    ? "atendimento"
+                    : /mem[oó]ria de lead/.test(label)
+                    ? "lead"
+                    : /mem[oó]ria de projeto/.test(label)
+                    ? "projeto"
+                    : null;
+                if (memoryVariant) {
+                  return (
+                    <MemoriaAtendimentoEditor
+                      data={selectedNode.data}
+                      variant={memoryVariant}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, actionType: `memory_${memoryVariant}`, ...patch },
+                        })
+                      }
+                    />
                   );
                 }
                 const isTypingBlock =
