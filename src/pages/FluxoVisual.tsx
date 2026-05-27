@@ -4954,6 +4954,34 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     />
                   );
                 }
+                if (/remover\s*tags/.test(label)) {
+                  const raw = selectedNode.data.removeTags;
+                  const tags: string[] = Array.isArray(raw)
+                    ? raw
+                    : typeof selectedNode.data.actionConfig === "string" && selectedNode.data.actionConfig.trim()
+                    ? selectedNode.data.actionConfig.split(",").map((s: string) => s.trim()).filter(Boolean)
+                    : [];
+                  return (
+                    <AdicionarTagsEditor
+                      mode="remove"
+                      value={tags}
+                      availableTags={availableTags}
+                      loading={loadingTags}
+                      onRefresh={fetchTagsForEditor}
+                      onChange={(next) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: {
+                            ...selectedNode.data,
+                            actionType: "untag",
+                            removeTags: next,
+                            actionConfig: next.join(","),
+                          },
+                        })
+                      }
+                    />
+                  );
+                }
                 const isTypingBlock =
                   selectedNode.data.actionType === "typing" ||
                   /digitando/i.test(String(selectedNode.data.label || ""));
