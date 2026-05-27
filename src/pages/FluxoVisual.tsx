@@ -4083,7 +4083,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <>
                 {(() => {
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
-                  if (isSplit) return null;
+                  const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
+                  if (isSplit || isTags) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4136,11 +4137,16 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 })()}
                 {(() => {
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
+                  const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
                     ? selectedNode.data.branches
                     : [
-                        { label: isSplit ? "Caminho 1" : "Verdadeiro", value: selectedNode.data.condition || "" },
-                        { label: isSplit ? "Caminho 2" : "Falso", value: "" },
+                        isTags
+                          ? { label: "Tag 1", value: "" }
+                          : { label: isSplit ? "Caminho 1" : "Verdadeiro", value: selectedNode.data.condition || "" },
+                        isTags
+                          ? { label: "Tag 2", value: "" }
+                          : { label: isSplit ? "Caminho 2" : "Falso", value: "" },
                       ];
                   const updateBranches = (next: any[]) => {
                     setSelectedNode({
@@ -4150,10 +4156,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   };
                   return (
                     <div className="space-y-2">
-                      <Label>{isSplit ? "Caminhos paralelos" : "Caminhos (valores comparados)"}</Label>
+                      <Label>
+                        {isSplit ? "Caminhos paralelos" : isTags ? "Tags" : "Caminhos (valores comparados)"}
+                      </Label>
                       <p className="text-[10px] text-muted-foreground -mt-1">
                         {isSplit
                           ? "Cada caminho gera uma saída paralela. Todos serão executados ao mesmo tempo."
+                          : isTags
+                          ? "Cada tag gera uma saída. O fluxo segue pela tag que o lead possuir. Se nenhuma bater, o ELSE (Padrão) é usado."
                           : "Cada caminho gera uma saída no bloco. Se nenhum valor bater, o ELSE (Padrão) é usado."}
                       </p>
                       {branches.map((b: any, idx: number) => (
@@ -4161,16 +4171,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           <span className="inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold bg-muted text-foreground">
                             {idx + 1}
                           </span>
-                          <Input
-                            value={b.label || ""}
-                            onChange={(e) => {
-                              const next = branches.map((x, i) => i === idx ? { ...x, label: e.target.value } : x);
-                              updateBranches(next);
-                            }}
-                            placeholder="Nome do caminho"
-                            className={isSplit ? "flex-1" : "w-32"}
-                          />
-                          {!isSplit && (
+                          {isTags ? (
+                            <Input
+                              value={b.value || ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const next = branches.map((x, i) => i === idx ? { ...x, value: v, label: v } : x);
+                                updateBranches(next);
+                              }}
+                              placeholder="Nome da tag (ex: cliente-vip)"
+                              className="flex-1"
+                            />
+                          ) : (
+                            <Input
+                              value={b.label || ""}
+                              onChange={(e) => {
+                                const next = branches.map((x, i) => i === idx ? { ...x, label: e.target.value } : x);
+                                updateBranches(next);
+                              }}
+                              placeholder="Nome do caminho"
+                              className={isSplit ? "flex-1" : "w-32"}
+                            />
+                          )}
+                          {!isSplit && !isTags && (
                             <Input
                               value={b.value || ""}
                               onChange={(e) => {
@@ -4185,7 +4208,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             type="button"
                             onClick={() => updateBranches(branches.filter((_, i) => i !== idx))}
                             className="text-muted-foreground hover:text-destructive text-xs px-1"
-                            title="Remover caminho"
+                            title={isTags ? "Remover tag" : "Remover caminho"}
                             disabled={branches.length <= 1}
                           >
                             ✕
@@ -4198,7 +4221,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             ELSE (Padrão)
                           </span>
                           <span className="text-xs text-foreground/80">
-                            Executado quando nenhum valor acima for atendido
+                            {isTags ? "Executado quando nenhuma tag acima corresponder" : "Executado quando nenhum valor acima for atendido"}
                           </span>
                         </div>
                       )}
@@ -4206,9 +4229,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         type="button"
                         variant="outline"
                         className="w-full justify-center"
-                        onClick={() => updateBranches([...branches, { label: `Caminho ${branches.length + 1}`, value: isSplit ? `path-${branches.length + 1}` : "" }])}
+                        onClick={() => {
+                          const i = branches.length + 1;
+                          const item = isTags
+                            ? { label: `Tag ${i}`, value: "" }
+                            : { label: `Caminho ${i}`, value: isSplit ? `path-${i}` : "" };
+                          updateBranches([...branches, item]);
+                        }}
                       >
-                        <Plus className="h-4 w-4 mr-1" /> Adicionar novo caminho
+                        <Plus className="h-4 w-4 mr-1" /> {isTags ? "Adicionar nova tag" : "Adicionar novo caminho"}
                       </Button>
                     </div>
                   );
