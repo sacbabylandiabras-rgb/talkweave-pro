@@ -184,7 +184,10 @@ const isMensagemAudioBlock = (node?: Node | null) => {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return node?.type === "blocoConteudo" && label.includes("mensagem em audio");
+  return (
+    node?.type === "blocoConteudo" &&
+    (label.includes("mensagem em audio") || label.includes("elevenlabs"))
+  );
 };
 
 const parseVoiceGenerationError = async (error: unknown, data?: any) => {
