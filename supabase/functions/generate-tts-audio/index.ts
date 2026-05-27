@@ -9,6 +9,69 @@ const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 const ALLOWED_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "coral", "sage", "verse"];
 
+const buildFriendlyVoiceError = (status: number, rawBody: string) => {
+  let upstreamCode = "";
+  let upstreamMessage = "";
+
+  try {
+    const parsed = JSON.parse(rawBody);
+    upstreamCode = String(parsed?.error?.code || parsed?.code || "");
+    upstreamMessage = String(parsed?.error?.message || parsed?.message || "");
+  } catch {
+    upstreamMessage = rawBody;
+  }
+
+  const normalized = `${upstreamCode} ${upstreamMessage}`.toLowerCase();
+
+  if (status === 429 && normalized.includes("insufficient_quota")) {
+    return {
+      error: "Créditos do serviço de voz acabaram",
+      details:
+        "A geração de áudio não foi concluída porque a conta conectada ao serviço de voz está sem créditos ou sem cobrança ativa. Adicione créditos na conta da API e tente novamente em 1–2 minutos.",
+      hint: "Se você já adicionou créditos, confirme se a chave configurada no projeto pertence à organização correta e tem acesso ao recurso de voz.",
+      status,
+    };
+  }
+
+  if (status === 429) {
+    return {
+      error: "Serviço de voz temporariamente ocupado",
+      details: "O serviço recusou a geração neste momento. Aguarde alguns instantes e tente novamente.",
+      status,
+    };
+  }
+
+  if (status === 401) {
+    return {
+      error: "Serviço de voz não autorizado",
+      details: "A chave configurada para geração de voz está inválida, expirada ou foi removida. Atualize a chave nas configurações de secrets do projeto.",
+      status,
+    };
+  }
+
+  if (status === 403) {
+    return {
+      error: "Serviço de voz sem permissão",
+      details: "A chave configurada não tem permissão para gerar áudio. Verifique as permissões e o acesso ao recurso de voz na conta da API.",
+      status,
+    };
+  }
+
+  if (status === 400) {
+    return {
+      error: "Configuração do áudio inválida",
+      details: "Revise o texto, a voz, a velocidade e as instruções. Depois tente gerar o áudio novamente.",
+      status,
+    };
+  }
+
+  return {
+    error: "Falha ao gerar áudio",
+    details: "O serviço de voz retornou um erro inesperado. Tente novamente em alguns minutos.",
+    status,
+  };
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -72,9 +135,8 @@ Deno.serve(async (req) => {
     if (!ttsRes.ok) {
       const errText = await ttsRes.text().catch(() => "");
       console.error("TTS upstream error", ttsRes.status, errText);
-      const safe = errText.replace(/openai/gi, "geração de voz");
       return new Response(
-        JSON.stringify({ error: `Falha ao gerar áudio (${ttsRes.status})`, details: safe.slice(0, 400) }),
+        JSON.stringify(buildFriendlyVoiceError(ttsRes.status, errText)),
         { status: 502, headers: jsonHeaders }
       );
     }
@@ -112,7 +174,10 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("generate-tts-audio error", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }),
+      JSON.stringify({
+        error: "Erro interno ao gerar áudio",
+        details: "Não foi possível concluir a geração agora. Tente novamente em alguns minutos.",
+      }),
       { status: 500, headers: jsonHeaders }
     );
   }
