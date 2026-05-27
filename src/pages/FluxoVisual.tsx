@@ -4715,6 +4715,200 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoAcao" && (
               (() => {
+                const isApiCall = /chamada\s*de\s*api/i.test(String(selectedNode.data.label || ""));
+                if (isApiCall) {
+                  const apiConfig = selectedNode.data.apiConfig || {};
+                  const method = apiConfig.method || "GET";
+                  const url = apiConfig.url || "";
+                  const headers: Array<{ key: string; value: string }> = Array.isArray(apiConfig.headers) ? apiConfig.headers : [];
+                  const bodyParams: Array<{ key: string; value: string }> = Array.isArray(apiConfig.body) ? apiConfig.body : [];
+                  const queryParams: Array<{ key: string; value: string }> = Array.isArray(apiConfig.query) ? apiConfig.query : [];
+                  const updateApi = (patch: any) =>
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: {
+                        ...selectedNode.data,
+                        actionType: "api_call",
+                        apiConfig: { method, url, headers, body: bodyParams, query: queryParams, ...patch },
+                      },
+                    });
+                  const allowsBody = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+                  const updateList = (
+                    list: Array<{ key: string; value: string }>,
+                    index: number,
+                    field: "key" | "value",
+                    value: string,
+                  ) => list.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+                  return (
+                    <>
+                      <div>
+                        <Label>Endpoint da API</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Select value={method} onValueChange={(v) => updateApi({ method: v })}>
+                            <SelectTrigger className="w-[110px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="GET">GET</SelectItem>
+                              <SelectItem value="POST">POST</SelectItem>
+                              <SelectItem value="PUT">PUT</SelectItem>
+                              <SelectItem value="DELETE">DELETE</SelectItem>
+                              <SelectItem value="PATCH">PATCH</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            className="flex-1"
+                            value={url}
+                            onChange={(e) => updateApi({ url: e.target.value })}
+                            placeholder="https://api.exemplo.com/endpoint"
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Use variáveis: {"{{lead.campo}}"}, {"{{node.respostas}}"}, {"{{memoria.campo}}"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-border/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Headers</Label>
+                            <p className="text-[11px] text-muted-foreground">
+                              Cabeçalhos HTTP enviados nesta requisição.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateApi({ headers: [...headers, { key: "", value: "" }] })}
+                          >
+                            + Adicionar
+                          </Button>
+                        </div>
+                        {headers.map((h, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <Input
+                              className="flex-1"
+                              placeholder="Chave (ex: Authorization)"
+                              value={h.key}
+                              onChange={(e) => updateApi({ headers: updateList(headers, i, "key", e.target.value) })}
+                            />
+                            <Input
+                              className="flex-1"
+                              placeholder="Valor"
+                              value={h.value}
+                              onChange={(e) => updateApi({ headers: updateList(headers, i, "value", e.target.value) })}
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => updateApi({ headers: headers.filter((_, idx) => idx !== i) })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className={`rounded-lg border border-border/40 p-3 space-y-2 ${!allowsBody ? "opacity-50" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Parâmetros Body</Label>
+                            <p className="text-[11px] text-muted-foreground">
+                              Campos do corpo (POST, PUT, PATCH, DELETE).
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!allowsBody}
+                            onClick={() => updateApi({ body: [...bodyParams, { key: "", value: "" }] })}
+                          >
+                            + Adicionar
+                          </Button>
+                        </div>
+                        {bodyParams.map((p, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <Input
+                              className="flex-1"
+                              placeholder="Chave"
+                              value={p.key}
+                              disabled={!allowsBody}
+                              onChange={(e) => updateApi({ body: updateList(bodyParams, i, "key", e.target.value) })}
+                            />
+                            <Input
+                              className="flex-1"
+                              placeholder="Valor"
+                              value={p.value}
+                              disabled={!allowsBody}
+                              onChange={(e) => updateApi({ body: updateList(bodyParams, i, "value", e.target.value) })}
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={!allowsBody}
+                              onClick={() => updateApi({ body: bodyParams.filter((_, idx) => idx !== i) })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="rounded-lg border border-border/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Parâmetros Query</Label>
+                            <p className="text-[11px] text-muted-foreground">
+                              Parâmetros de query string acrescentados à URL.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateApi({ query: [...queryParams, { key: "", value: "" }] })}
+                          >
+                            + Adicionar
+                          </Button>
+                        </div>
+                        {queryParams.map((p, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <Input
+                              className="flex-1"
+                              placeholder="Chave"
+                              value={p.key}
+                              onChange={(e) => updateApi({ query: updateList(queryParams, i, "key", e.target.value) })}
+                            />
+                            <Input
+                              className="flex-1"
+                              placeholder="Valor"
+                              value={p.value}
+                              onChange={(e) => updateApi({ query: updateList(queryParams, i, "value", e.target.value) })}
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => updateApi({ query: queryParams.filter((_, idx) => idx !== i) })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <Label>Salvar resposta em (opcional)</Label>
+                        <Input
+                          value={apiConfig.responseVariable || ""}
+                          onChange={(e) => updateApi({ responseVariable: e.target.value })}
+                          placeholder="Ex: api_resposta"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          O retorno da API ficará disponível como {"{{memoria.<nome>}}"} nos blocos seguintes.
+                        </p>
+                      </div>
+                    </>
+                  );
+                }
                 const isTypingBlock =
                   selectedNode.data.actionType === "typing" ||
                   /digitando/i.test(String(selectedNode.data.label || ""));
