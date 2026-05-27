@@ -3989,67 +3989,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <div className="space-y-4">
                           <div>
                             <Label>Variável a verificar</Label>
-                            <div className="flex gap-2 mt-1">
-                              <Input
-                                value={editing.variable || ""}
-                                onChange={(e) => updateEditing({ variable: e.target.value })}
-                                placeholder="Ex: {{lead.name}}"
-                              />
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button type="button" variant="outline" size="sm" className="shrink-0">
-                                    + Variável
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent align="end" className="w-80 p-0">
-                                  <ScrollArea className="max-h-80">
-                                    <div className="p-3 space-y-3">
-                                      {[
-                                        {
-                                          title: "Variáveis do Lead",
-                                          items: [
-                                            { v: "{{lead.id}}", d: "ID do lead" },
-                                            { v: "{{lead.code}}", d: "Código do lead" },
-                                            { v: "{{lead.name}}", d: "Nome completo do lead" },
-                                            { v: "{{lead.first_name}}", d: "Primeiro nome do lead" },
-                                            { v: "{{lead.phone}}", d: "Telefone" },
-                                            { v: "{{lead.email}}", d: "E-mail" },
-                                          ],
-                                        },
-                                        {
-                                          title: "Campos personalizados",
-                                          items: [
-                                            { v: "{{lead.origen}}", d: "Origen" },
-                                          ],
-                                        },
-                                      ].map((group) => (
-                                        <div key={group.title}>
-                                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                                            {group.title}
-                                          </p>
-                                          <div className="space-y-1">
-                                            {group.items.map((it) => (
-                                              <button
-                                                key={it.v}
-                                                type="button"
-                                                onClick={() => {
-                                                  const current = editing.variable || "";
-                                                  updateEditing({ variable: current ? `${current} ${it.v}` : it.v });
-                                                }}
-                                                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted text-xs"
-                                              >
-                                                <code className="font-mono text-primary">{it.v}</code>
-                                                <p className="text-[11px] text-muted-foreground">{it.d}</p>
-                                              </button>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </ScrollArea>
-                                </PopoverContent>
-                              </Popover>
-                            </div>
+                            <Select
+                              value={editing.variable || ""}
+                              onValueChange={(v) => updateEditing({ variable: v })}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Selecione uma variável" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-72">
+                                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase">
+                                  Variáveis do Lead
+                                </div>
+                                <SelectItem value="{{lead.id}}">{"{{lead.id}}"} — ID do lead</SelectItem>
+                                <SelectItem value="{{lead.code}}">{"{{lead.code}}"} — Código do lead</SelectItem>
+                                <SelectItem value="{{lead.name}}">{"{{lead.name}}"} — Nome completo</SelectItem>
+                                <SelectItem value="{{lead.first_name}}">{"{{lead.first_name}}"} — Primeiro nome</SelectItem>
+                                <SelectItem value="{{lead.phone}}">{"{{lead.phone}}"} — Telefone</SelectItem>
+                                <SelectItem value="{{lead.email}}">{"{{lead.email}}"} — E-mail</SelectItem>
+                                <div className="px-2 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase">
+                                  Campos personalizados
+                                </div>
+                                <SelectItem value="{{lead.origen}}">{"{{lead.origen}}"} — Origen</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
