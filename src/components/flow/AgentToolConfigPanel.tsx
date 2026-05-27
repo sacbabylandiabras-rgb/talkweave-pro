@@ -3663,67 +3663,102 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   // --- MODAL 18: Consultar dados do CRM pela IA ---
   if (toolName === "consultar_crm_ia") {
     const qty = node.data?.crmQty ?? 10;
+    const resourceOptions: Array<{ v: string; label: string; desc: string }> = [
+      { v: "deals", label: "Negócios", desc: "Cards do pipeline de vendas (kanban)" },
+      { v: "companies", label: "Empresas", desc: "Empresas vinculadas ao lead" },
+      { v: "tickets", label: "Tickets", desc: "Tickets de suporte abertos pelo lead" },
+      { v: "agenda", label: "Eventos de Agenda", desc: "Compromissos e agendamentos do lead" },
+      { v: "transactions", label: "Transações", desc: "Histórico de compras e pagamentos" },
+      { v: "chats", label: "Atendimentos", desc: "Histórico de conversas em chat" },
+      { v: "emails", label: "E-mails", desc: "Troca de e-mails com o lead" },
+      { v: "notes", label: "Notas e Observações", desc: "Anotações e observações do lead" },
+    ];
+    const currentResource = node.data?.crmResource || "companies";
+    const currentResourceMeta = resourceOptions.find((r) => r.v === currentResource) || resourceOptions[1];
     return (
       <>
         {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Consultar dados do CRM pela IA"
-          placeholder="Descreva quando e como a IA deve usar esta listagem do CRM..."
-        />
+        <div className="space-y-1.5">
+          <Label className="text-sm">
+            Descrição da ferramenta — Consultar dados do CRM pela IA{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            value={node.data?.description || ""}
+            onChange={(e) => setData(node, setNode, { description: e.target.value })}
+            placeholder="Descreva quando e como a IA deve usar esta listagem do CRM..."
+            rows={3}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Obrigatório: Descreva quando o agente deve acionar esta ferramenta e qual ação ele executa.
+          </p>
+        </div>
         <InfoBlock>
           <div className="font-semibold mb-1">Listagem ampla do CRM</div>
           <p className="text-[11px]">
             Para negócios ou tickets num pipeline com colunas e permissões claras, prefira as tools
-            Gerenciar Negócio CRM e Gerenciar Ticket CRM. Para agenda com calendários e regras
-            próprias, use o bloco de Agenda do construtor — esta listagem genérica fica menos
-            adequada para esses três casos.
+            <strong> Gerenciar Negócio CRM (pipeline)</strong> e <strong>Gerenciar Ticket CRM (pipeline)</strong>. Para agenda com calendários e regras
+            próprias, use o bloco de <strong>Agenda</strong> do construtor quando sentido — esta listagem
+            genérica fica menos adequada para esses três casos.
           </p>
         </InfoBlock>
         <div className="space-y-2">
           <Label>Tipo de recurso padrão</Label>
           <Select
-            value={node.data?.crmResource || "companies"}
+            value={currentResource}
             onValueChange={(v) => setData(node, setNode, { crmResource: v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-auto py-2">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm">{currentResourceMeta.label}</span>
+                <span className="text-[11px] text-muted-foreground">{currentResourceMeta.desc}</span>
+              </div>
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="companies">Empresas — Empresas vinculadas ao lead</SelectItem>
-              <SelectItem value="transactions">Transações</SelectItem>
-              <SelectItem value="chats">Chats</SelectItem>
-              <SelectItem value="emails">E-mails</SelectItem>
-              <SelectItem value="notes">Notas</SelectItem>
+              {resourceOptions.map((opt) => (
+                <SelectItem key={opt.v} value={opt.v}>
+                  <div className="flex flex-col">
+                    <span className="text-sm">{opt.label}</span>
+                    <span className="text-[11px] text-muted-foreground">{opt.desc}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <p className="text-[11px] text-muted-foreground">
-            Negócios, tickets e eventos de agenda não podem mais ser escolhidos como padrão novo
-            aqui — use as tools dedicadas. A IA pode alterar o tipo em runtime se necessário.
+            A IA pode alterar o tipo em runtime se necessário.
           </p>
         </div>
-        <div>
-          <Label>Quantidade: {qty}</Label>
-          <Slider
-            min={1}
-            max={50}
-            step={1}
-            value={[qty]}
-            onValueChange={(v) => setData(node, setNode, { crmQty: v[0] })}
-            className="mt-2"
-          />
-        </div>
-        <div>
-          <Label>Ordenação</Label>
-          <Select
-            value={node.data?.crmOrder || "recent"}
-            onValueChange={(v) => setData(node, setNode, { crmOrder: v })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Mais recentes primeiro</SelectItem>
-              <SelectItem value="oldest">Mais antigos primeiro</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Quantidade</Label>
+              <div className="text-xs px-2 py-1 rounded bg-muted min-w-[2.5rem] text-center">{qty}</div>
+            </div>
+            <Slider
+              min={1}
+              max={50}
+              step={1}
+              value={[qty]}
+              onValueChange={(v) => setData(node, setNode, { crmQty: v[0] })}
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>1</span><span>25</span><span>50</span>
+            </div>
+          </div>
+          <div>
+            <Label className="mb-2 block">Ordenação</Label>
+            <Select
+              value={node.data?.crmOrder || "recent"}
+              onValueChange={(v) => setData(node, setNode, { crmOrder: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Mais recentes primeiro</SelectItem>
+                <SelectItem value="oldest">Mais antigos primeiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <InfoBlock>
           <div className="font-semibold text-[11px] uppercase tracking-wider text-primary mb-1">
@@ -3731,9 +3766,9 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
           </div>
           <ul className="list-disc pl-4 text-[11px] space-y-0.5">
             <li>A IA decide quando consultar os dados do CRM durante a conversa.</li>
-            <li>Tipo padrão: a IA pode alterar em runtime.</li>
+            <li>Tipo padrão: <strong>{currentResourceMeta.label}</strong> (a IA pode alterar).</li>
             <li>Retorna até {qty} registros por consulta.</li>
-            <li>Disponíveis: empresas, transações, chats, emails e notas. Negócios, tickets e agenda — prefira as tools dedicadas.</li>
+            <li>Nesta tool genérica continuam disponíveis, entre outros: empresas, transações, chats, emails e notas, negócios, tickets e agenda aqui são legados — prefira as tools dedicadas para esses três.</li>
           </ul>
         </InfoBlock>
       </>
