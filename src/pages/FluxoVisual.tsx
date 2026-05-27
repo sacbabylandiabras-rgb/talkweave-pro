@@ -4085,7 +4085,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
-                  if (isSplit || isTags || isHorario) return null;
+                  const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
+                  if (isSplit || isTags || isHorario || isFiltroCadastro) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4140,6 +4141,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
                   const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
+                  const isFiltroCadastro = (selectedNode.data?.label || "").toLowerCase().includes("filtro por cadastro");
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
@@ -4243,6 +4245,123 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Dentro do Horário</div>
                           <div className="flex items-center gap-2"><span className="inline-block w-2 h-2 rounded-full bg-orange-500" /> Fora do Horário</div>
                         </div>
+                      </div>
+                    );
+                  }
+                  if (isFiltroCadastro) {
+                    const OPERATORS = [
+                      { v: "equals", label: "Igual a" },
+                      { v: "greater", label: "Maior que" },
+                      { v: "less", label: "Menor que" },
+                      { v: "is_null", label: "É nulo" },
+                      { v: "is_empty", label: "Está vazio" },
+                    ];
+                    const NO_VALUE = new Set(["is_null", "is_empty"]);
+                    const FIELDS = [
+                      "{{lead.name}}", "{{lead.first_name}}", "{{lead.phone}}", "{{lead.email}}",
+                      "{{lead.code}}", "{{lead.id}}", "{{lead.origen}}", "{{lead.tags}}",
+                      "{{lead.city}}", "{{lead.state}}", "{{lead.country}}",
+                      "{{lead.created_at}}", "{{lead.updated_at}}",
+                    ];
+                    const branches: any[] = Array.isArray(selectedNode.data.branches) && selectedNode.data.branches.length > 0
+                      ? selectedNode.data.branches
+                      : [{ label: "Filtro 1", field: "", operator: "equals", value: "" }];
+                    const updateBranches = (next: any[]) => {
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, branches: next },
+                      });
+                    };
+                    return (
+                      <div className="space-y-2">
+                        <datalist id="fluxo-cadastro-fields">
+                          {FIELDS.map((f) => (<option key={f} value={f} />))}
+                        </datalist>
+                        <Label>Campos personalizados</Label>
+                        <p className="text-[10px] text-muted-foreground -mt-1">
+                          Cada filtro gera uma saída. O fluxo segue pelo primeiro filtro que o lead atender. Se nenhum bater, o ELSE (Padrão) é usado.
+                        </p>
+                        {branches.map((b: any, idx: number) => {
+                          const hideValue = NO_VALUE.has(b.operator);
+                          return (
+                            <div key={idx} className="space-y-2 rounded-md border bg-card p-3">
+                              <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold bg-muted text-foreground">
+                                  {idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateBranches(branches.filter((_, i) => i !== idx))}
+                                  className="text-muted-foreground hover:text-destructive text-xs"
+                                  disabled={branches.length <= 1}
+                                  title="Remover filtro"
+                                >
+                                  ✕ Remover
+                                </button>
+                              </div>
+                              <div>
+                                <Label className="text-[11px]">Chave personalizada</Label>
+                                <Input
+                                  value={b.field || ""}
+                                  list="fluxo-cadastro-fields"
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    updateBranches(branches.map((x, i) => i === idx ? { ...x, field: v, label: v || `Filtro ${idx + 1}` } : x));
+                                  }}
+                                  placeholder="Ex: {{lead.email}} ou nome do campo"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[11px]">Tipo de Comparação</Label>
+                                  <Select
+                                    value={b.operator || "equals"}
+                                    onValueChange={(v) => updateBranches(branches.map((x, i) => i === idx ? { ...x, operator: v } : x))}
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {OPERATORS.map((o) => (
+                                        <SelectItem key={o.v} value={o.v}>{o.label}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-[11px]">Valor</Label>
+                                  <Input
+                                    value={b.value || ""}
+                                    onChange={(e) => updateBranches(branches.map((x, i) => i === idx ? { ...x, value: e.target.value } : x))}
+                                    placeholder={hideValue ? "—" : "Valor ou {{variável}}"}
+                                    disabled={hideValue}
+                                    className="mt-1"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+                          <span className="inline-flex items-center justify-center h-6 px-2 rounded text-[10px] font-bold bg-orange-500/80 text-white">
+                            ELSE (Padrão)
+                          </span>
+                          <span className="text-xs text-foreground/80">
+                            Executado quando nenhum filtro acima corresponder
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-center"
+                          onClick={() => {
+                            const i = branches.length + 1;
+                            updateBranches([...branches, { label: `Filtro ${i}`, field: "", operator: "equals", value: "" }]);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Adicionar campo personalizado
+                        </Button>
                       </div>
                     );
                   }
