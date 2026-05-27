@@ -2296,7 +2296,81 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </DialogHeader>
 
           <div className="space-y-4">
-            {selectedNode?.type === "blocoConteudo" && (
+            {selectedNode?.type === "blocoConteudo" && isMensagemPredefinidaBlock(selectedNode) && (
+              <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
+                <Label className="text-sm font-semibold">Modelo de Mensagem</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Selecione um modelo salvo em <span className="font-medium">/modelos</span>. O conteúdo do modelo será enviado neste bloco.
+                </p>
+                <Select
+                  value={selectedNode.data.templateId || ""}
+                  onValueChange={(id) => {
+                    const tpl = messageTemplates.find((t) => t.id === id);
+                    if (!tpl) return;
+                    const contentType = mapTemplateTypeToContentType(tpl.type);
+                    const carouselCards = (tpl.carouselCards || []).map((c) => ({
+                      image: c.image,
+                      title: c.title,
+                      subtitle: c.description,
+                      buttons: (c.buttons || []).map((b) => ({
+                        label: b.text,
+                        url: b.value || "",
+                      })),
+                    }));
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: {
+                        ...selectedNode.data,
+                        templateId: tpl.id,
+                        templateName: tpl.name,
+                        contentType,
+                        content: tpl.content || "",
+                        mediaUrl: tpl.mediaUrl || "",
+                        header: tpl.header || "",
+                        footer: tpl.footer || "",
+                        buttons: tpl.buttons || [],
+                        listItems: tpl.listItems || [],
+                        carouselCardsJson:
+                          carouselCards.length > 0
+                            ? JSON.stringify(carouselCards, null, 2)
+                            : selectedNode.data.carouselCardsJson || "",
+                      },
+                    });
+                    toast.success(`Modelo "${tpl.name}" carregado!`);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um modelo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {messageTemplates.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Nenhum modelo salvo. Crie em /modelos.
+                      </div>
+                    ) : (
+                      messageTemplates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                          {t.type ? ` · ${t.type}` : ""}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedNode.data.templateName && (
+                  <div className="text-xs text-muted-foreground">
+                    Modelo atual: <span className="font-medium text-foreground">{selectedNode.data.templateName}</span>
+                  </div>
+                )}
+                {selectedNode.data.content && (
+                  <div className="rounded-md border border-border bg-background p-2 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {selectedNode.data.content}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedNode?.type === "blocoConteudo" && !isMensagemPredefinidaBlock(selectedNode) && (
               <>
                 {!isMensagemAudioBlock(selectedNode) && (
                 <div>
