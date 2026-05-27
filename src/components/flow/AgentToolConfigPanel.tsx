@@ -2128,59 +2128,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 10: Listar usuários da equipe ---
   if (toolName === "listar_equipe") {
-    const scope = node.data?.teamScope || "all";
-    return (
-      <>
-        {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Listar usuários da equipe (IDs)"
-        />
-        <div className="rounded-lg border border-border p-3 flex gap-2">
-          <Users className="h-4 w-4 mt-0.5 text-primary" />
-          <div>
-            <div className="text-sm font-medium">Usuários da equipe (IDs)</div>
-            <p className="text-[11px] text-muted-foreground">
-              A IA pode consultar a lista para obter user_id (mesmo identificador usado em
-              owner_user_id em tickets e tarefas).
-            </p>
-          </div>
-        </div>
-        <div>
-          <Label className="mb-2 block">Escopo da listagem</Label>
-          <RadioGroup
-            value={scope}
-            onValueChange={(v) => setData(node, setNode, { teamScope: v })}
-            className="space-y-1"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="team-all" value="all" />
-              <Label htmlFor="team-all" className="cursor-pointer font-normal">
-                Todos os usuários ativos da equipe do projeto
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="team-selected" value="selected" />
-              <Label htmlFor="team-selected" className="cursor-pointer font-normal">
-                Somente usuários selecionados abaixo
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <InfoBlock>
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold mb-0.5">Uso com tickets e tarefas</div>
-              Conecte este bloco ao agente/expert pela alça de tools. O nome da função segue o
-              padrão <code>task_users_list_tool_{id}</code>. Campos retornados:
-              <code> user_id, name, email</code>.
-            </div>
-          </div>
-        </InfoBlock>
-      </>
-    );
+    return <ListarEquipePanel node={node} setNode={setNode} Header={Header} id={id} />;
   }
 
   // --- MODAL 11: Finalizar Atendimento ---
