@@ -57,6 +57,7 @@ import { TrocarDepartamentoEditor } from "@/components/flow/TrocarDepartamentoEd
 import { DirecionarFilaEditor } from "@/components/flow/DirecionarFilaEditor";
 import { TrocarEstrategiaEditor } from "@/components/flow/TrocarEstrategiaEditor";
 import { SupervisorEditor } from "@/components/flow/SupervisorEditor";
+import { FimFluxoEditor } from "@/components/flow/FimFluxoEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
