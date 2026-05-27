@@ -716,9 +716,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             { name: `policies_${id}_search`, desc: "retorna regras, políticas e informações da empresa (ex: horário, endereço, regras de venda e parcelamento), com suporte a busca por texto e paginação." },
           ]}
         />
-        <Button variant="outline" className="w-full">
-          <ShieldCheck className="h-4 w-4 mr-2" /> Gerenciar políticas e regras
-        </Button>
+        <PoliciesManager />
       </>
     );
   }
