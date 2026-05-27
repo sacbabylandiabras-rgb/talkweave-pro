@@ -17,6 +17,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -66,6 +71,15 @@ function buildMemoryPreview(fields: MemoryField[]) {
 }
 
 type Variant = "atendimento" | "lead" | "projeto";
+
+const LEAD_STANDARD_FIELDS: Array<{ name: string; label: string; description: string }> = [
+  { name: "name", label: "name", description: "Nome" },
+  { name: "email", label: "email", description: "E-mail" },
+  { name: "phone", label: "phone", description: "Telefone" },
+  { name: "document", label: "document", description: "CPF/CNPJ" },
+  { name: "origin", label: "origin", description: "Origem" },
+  { name: "notes", label: "notes", description: "Observações" },
+];
 
 const VARIANT_COPY: Record<Variant, { title: string; intro: string; scope: string }> = {
   atendimento: {
