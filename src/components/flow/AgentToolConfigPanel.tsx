@@ -34,6 +34,8 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Bot, Sparkles, BookOpen, ArrowRightLeft, ChevronRight } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -1077,6 +1079,322 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
             </p>
           </div>
         </InfoBlock>
+      </>
+    );
+  }
+
+  // --- MODAL 21: Transferir para Fila ---
+  if (toolName === "transferir_fila") {
+    const depts: string[] = Array.isArray(node.data?.departments) ? node.data.departments : [];
+    return (
+      <>
+        {Header}
+        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Transferir para Fila" />
+        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+          <div>
+            <Label htmlFor="queue-random" className="cursor-pointer">Modo Random</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Alterna entre os departamentos selecionados aleatoriamente.
+            </p>
+          </div>
+          <Switch
+            id="queue-random"
+            checked={!!node.data?.queueRandom}
+            onCheckedChange={(c) => setData(node, setNode, { queueRandom: c })}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Departamento</Label>
+            <Button variant="outline" size="sm">Selecionar</Button>
+          </div>
+          {depts.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">Nenhum departamento definido</p>
+          ) : (
+            <ul className="text-[12px] space-y-1">
+              {depts.map((d, i) => <li key={i}>• {d}</li>)}
+            </ul>
+          )}
+        </div>
+        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+          <div>
+            <Label htmlFor="queue-end" className="cursor-pointer">Encerrar fluxo após a transferência</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Não gera nova mensagem do agente nem segue para o próximo nó do grafo — útil quando a
+              fila já responde ao cliente.
+            </p>
+          </div>
+          <Switch
+            id="queue-end"
+            checked={!!node.data?.queueEndFlow}
+            onCheckedChange={(c) => setData(node, setNode, { queueEndFlow: c })}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // --- MODAL 22: Agente Tool ---
+  if (toolName === "agente_tool") {
+    return (
+      <>
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  Sub-agente como ferramenta
+                </div>
+                <div className="text-sm font-semibold">Agente Tool</div>
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" className="h-7 text-[11px]">Avançado</Button>
+              <Button variant="outline" size="sm" className="h-7 text-[11px]">HISTÓRICO DE PROMPTS</Button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label>Descrição da Ferramenta</Label>
+          <Textarea
+            value={node.data?.description || ""}
+            onChange={(e) => setData(node, setNode, { description: e.target.value })}
+            placeholder="Ex: Especialista em consultar produtos e preços do catálogo"
+            rows={3}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Defina quando este sub-agente deve ser utilizado pelo agente principal. Essa descrição
+            será exibida como contexto para o modelo de IA decidir qual ferramenta usar.
+          </p>
+        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="mission">
+            <AccordionTrigger className="text-sm">
+              <div className="flex items-center justify-between w-full pr-2">
+                <span>Missão / System Prompt — Clique para configurar...</span>
+                <span className="text-[10px] text-muted-foreground">0 tokens</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <Textarea
+                value={node.data?.systemPrompt || ""}
+                onChange={(e) => setData(node, setNode, { systemPrompt: e.target.value })}
+                placeholder="Defina a missão deste sub-agente..."
+                rows={6}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        <div className="space-y-2">
+          <Label>Modelo de IA</Label>
+          <Select
+            value={node.data?.aiModel || "gpt-4.1-mini"}
+            onValueChange={(v) => setData(node, setNode, { aiModel: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4.1-mini">GPT-4.1 mini</SelectItem>
+              <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
+              <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground">
+            Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão · Cache: 0,180$/Milhão
+          </p>
+        </div>
+        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+          <div>
+            <Label htmlFor="agent-time" className="cursor-pointer">Incluir horário atual no contexto</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Quando ativo, o sub-agente recebe data/hora atual da execução.
+            </p>
+          </div>
+          <Switch
+            id="agent-time"
+            checked={!!node.data?.includeTime}
+            onCheckedChange={(c) => setData(node, setNode, { includeTime: c })}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Skills</Label>
+            <Button variant="outline" size="sm">+ Vincular Skill</Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma skill vinculada</p>
+        </div>
+      </>
+    );
+  }
+
+  // --- MODAL 23: Expert Tool ---
+  if (toolName === "expert_tool") {
+    return (
+      <>
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  Sub-expert estruturado
+                </div>
+                <div className="text-sm font-semibold">Expert Tool</div>
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" className="h-7 text-[11px]">Avançado</Button>
+              <Button variant="outline" size="sm" className="h-7 text-[11px]">HISTÓRICO DE PROMPTS</Button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label>Descrição da Ferramenta</Label>
+          <Textarea
+            value={node.data?.description || ""}
+            onChange={(e) => setData(node, setNode, { description: e.target.value })}
+            placeholder="Ex: Especialista em analisar dados financeiros e retornar relatório estruturado"
+            rows={3}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Defina quando este sub-expert deve ser utilizado pelo agente principal. Essa descrição
+            será exibida como contexto para o modelo de IA decidir qual ferramenta usar.
+          </p>
+        </div>
+        <Accordion type="multiple">
+          <AccordionItem value="input">
+            <AccordionTrigger className="text-sm">
+              <div className="text-left">
+                <div>Estrutura de Dados de Entrada (JSON Schema)</div>
+                <div className="text-[10px] text-muted-foreground font-mono">{"{ instruction: string }"}</div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <Textarea
+                value={node.data?.inputSchema || ""}
+                onChange={(e) => setData(node, setNode, { inputSchema: e.target.value })}
+                placeholder='{ "type": "object", "properties": { "instruction": { "type": "string" } } }'
+                rows={5}
+                className="font-mono text-xs"
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="mission">
+            <AccordionTrigger className="text-sm">
+              <div className="flex items-center justify-between w-full pr-2">
+                <span>Missão / System Prompt — Clique para configurar...</span>
+                <span className="text-[10px] text-muted-foreground">0 tokens</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <Textarea
+                value={node.data?.systemPrompt || ""}
+                onChange={(e) => setData(node, setNode, { systemPrompt: e.target.value })}
+                placeholder="Defina a missão deste sub-expert..."
+                rows={6}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="output">
+            <AccordionTrigger className="text-sm">
+              <div className="text-left">
+                <div>Estrutura de Dados de Saída (JSON Schema)</div>
+                <div className="text-[10px] text-muted-foreground font-mono">{"{ msg: string }"}</div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <Textarea
+                value={node.data?.outputSchema || ""}
+                onChange={(e) => setData(node, setNode, { outputSchema: e.target.value })}
+                placeholder='{ "type": "object", "properties": { "msg": { "type": "string" } } }'
+                rows={5}
+                className="font-mono text-xs"
+              />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        <div className="space-y-2">
+          <Label>Modelo de IA</Label>
+          <Select
+            value={node.data?.aiModel || "gpt-4.1-mini"}
+            onValueChange={(v) => setData(node, setNode, { aiModel: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4.1-mini">GPT-4.1 mini</SelectItem>
+              <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
+              <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground">
+            Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão · Cache: 0,180$/Milhão
+          </p>
+        </div>
+        <div className="flex items-start justify-between rounded-lg border border-border p-3 gap-3">
+          <div>
+            <Label htmlFor="expert-time" className="cursor-pointer">Incluir horário atual no contexto</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Quando ativo, o sub-expert recebe data/hora atual da execução.
+            </p>
+          </div>
+          <Switch
+            id="expert-time"
+            checked={!!node.data?.includeTime}
+            onCheckedChange={(c) => setData(node, setNode, { includeTime: c })}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Skills</Label>
+            <Button variant="outline" size="sm">+ Vincular Skill</Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma skill vinculada</p>
+        </div>
+      </>
+    );
+  }
+
+  // --- MODAL 24: RAG ---
+  if (toolName === "rag_documentos") {
+    const limit = node.data?.ragLimit ?? 5;
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — RAG (Base de Conhecimento)"
+          placeholder="Retornar informações relevantes sobre..."
+        />
+        <div>
+          <Label>Limite de informações: {limit}</Label>
+          <Slider
+            min={0}
+            max={500}
+            step={1}
+            value={[limit]}
+            onValueChange={(v) => setData(node, setNode, { ragLimit: v[0] })}
+            className="mt-2"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Este limite se refere à quantidade de pedaços de informações que retornam da consulta
+            da base de conhecimento durante a execução do agente.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" size="sm">
+            <BookOpen className="h-4 w-4 mr-2" /> + Adicionar informações
+          </Button>
+          <Button variant="outline" size="sm">
+            <Link2 className="h-4 w-4 mr-2" /> Vincular RAG existente
+          </Button>
+        </div>
       </>
     );
   }
