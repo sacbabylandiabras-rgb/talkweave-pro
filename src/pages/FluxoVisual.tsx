@@ -592,6 +592,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, [zapiInstances, isMetaMode]);
   const { templates: messageTemplates } = useMessageTemplates();
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [generatingTts, setGeneratingTts] = useState(false);
+  const [previewingTts, setPreviewingTts] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
