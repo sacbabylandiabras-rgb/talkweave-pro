@@ -109,7 +109,7 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
 
         <div className="flex-1 min-h-0 overflow-y-auto pr-2 -mr-2">
           <div className="space-y-6 pb-2">
-            {filteredBase.length > 0 && (
+            {!showAgentTools && filteredBase.length > 0 && (
               <section>
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Blocos
@@ -174,7 +174,8 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
               </section>
             )}
 
-            {filteredBase.length === 0 && (!showAgentTools || filteredToolsByCategory.length === 0) && (
+            {((showAgentTools && filteredToolsByCategory.length === 0) ||
+              (!showAgentTools && filteredBase.length === 0)) && (
               <div className="text-center text-sm text-muted-foreground py-8">
                 Nenhum bloco encontrado.
               </div>
