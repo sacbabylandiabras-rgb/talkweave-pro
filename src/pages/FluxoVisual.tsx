@@ -57,6 +57,7 @@ import { TrocarDepartamentoEditor } from "@/components/flow/TrocarDepartamentoEd
 import { DirecionarFilaEditor } from "@/components/flow/DirecionarFilaEditor";
 import { TrocarEstrategiaEditor } from "@/components/flow/TrocarEstrategiaEditor";
 import { SupervisorEditor } from "@/components/flow/SupervisorEditor";
+import { FimFluxoEditor } from "@/components/flow/FimFluxoEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5153,6 +5154,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/supervisor/i.test(label)) {
                   return (
                     <SupervisorEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/fim\s*do?\s*fluxo/i.test(label)) {
+                  return (
+                    <FimFluxoEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
