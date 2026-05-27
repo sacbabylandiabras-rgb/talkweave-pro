@@ -198,7 +198,7 @@ export function usePipelines() {
       .from("pipeline_members")
       .upsert({ pipeline_id: pipelineId, user_id: foundId, role }, { onConflict: "pipeline_id,user_id" });
     if (error) throw error;
-    return profile.id as string;
+    return foundId as string;
   }, []);
 
   const removeMember = useCallback(async (pipelineId: string, userIdToRemove: string) => {
