@@ -185,6 +185,23 @@ export function MemoriaAtendimentoEditor({
       memoryFieldsToModify: fieldsToModify.filter((m) => m.name !== name),
     });
 
+  // ---- Variant: Memória de Lead ----
+  if (variant === "lead") {
+    return (
+      <LeadMemoryEditor
+        fieldsToModify={fieldsToModify}
+        onAdd={(name) => {
+          if (!name || fieldsToModify.some((m) => m.name === name)) return;
+          onChange({
+            memoryFieldsToModify: [...fieldsToModify, { name, value: "" }],
+          });
+        }}
+        onUpdate={updateModifyValue}
+        onRemove={removeModify}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-[12px]">
