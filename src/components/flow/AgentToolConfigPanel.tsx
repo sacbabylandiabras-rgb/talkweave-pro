@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,7 @@ import {
   History,
   SlidersHorizontal,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Bot, Sparkles, BookOpen, ArrowRightLeft, ChevronRight } from "lucide-react";
@@ -723,6 +724,238 @@ function FuncList({ items }: { items: { name: string; desc: string }[] }) {
 
 function setData(node: any, setNode: (n: any) => void, patch: Record<string, any>) {
   setNode({ ...node, data: { ...node.data, ...patch } });
+}
+
+type KV = { key: string; value: string; desc?: string; required?: boolean };
+
+function ParamRows({
+  rows,
+  onChange,
+  showDesc,
+  showRequired,
+  keyPlaceholder = "nome",
+  valuePlaceholder = "valor",
+}: {
+  rows: KV[];
+  onChange: (rows: KV[]) => void;
+  showDesc?: boolean;
+  showRequired?: boolean;
+  keyPlaceholder?: string;
+  valuePlaceholder?: string;
+}) {
+  const update = (i: number, patch: Partial<KV>) => {
+    const next = rows.slice();
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+  const remove = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const add = () => onChange([...rows, { key: "", value: "" }]);
+  return (
+    <div className="space-y-2">
+      {rows.map((r, i) => (
+        <div key={i} className="space-y-1 rounded-md border border-border p-2">
+          <div className="flex gap-2">
+            <Input
+              value={r.key}
+              onChange={(e) => update(i, { key: e.target.value })}
+              placeholder={keyPlaceholder}
+              className="h-8 flex-1"
+            />
+            {!showDesc && (
+              <Input
+                value={r.value}
+                onChange={(e) => update(i, { value: e.target.value })}
+                placeholder={valuePlaceholder}
+                className="h-8 flex-1"
+              />
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => remove(i)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          {showDesc && (
+            <Input
+              value={r.desc || ""}
+              onChange={(e) => update(i, { desc: e.target.value })}
+              placeholder="Descrição (o que a IA deve preencher)"
+              className="h-8"
+            />
+          )}
+          {showRequired && (
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Checkbox
+                checked={!!r.required}
+                onCheckedChange={(c) => update(i, { required: !!c })}
+              />
+              Obrigatório
+            </label>
+          )}
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={add}>
+        + Adicionar
+      </Button>
+    </div>
+  );
+}
+
+function ConsultaApiPanel({
+  node,
+  setNode,
+  Header,
+}: {
+  node: any;
+  setNode: (n: any) => void;
+  Header: ReactNode;
+}) {
+  const aiParams: KV[] = Array.isArray(node.data?.aiParams) ? node.data.aiParams : [];
+  const headers: KV[] = Array.isArray(node.data?.headers) ? node.data.headers : [];
+  const bodyParams: KV[] = Array.isArray(node.data?.bodyParams) ? node.data.bodyParams : [];
+  const queryParams: KV[] = Array.isArray(node.data?.queryParams) ? node.data.queryParams : [];
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Debounced auto-save to agent_tools_config.config so the agent executor can use it
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const config = {
+          apiUrl: node.data?.apiUrl || "",
+          httpMethod: node.data?.httpMethod || "GET",
+          description: node.data?.description || "",
+          aiParams,
+          headers,
+          bodyParams,
+          queryParams,
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "consulta_api_ia", enabled: true, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save consulta_api config", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    node.data?.apiUrl,
+    node.data?.httpMethod,
+    node.data?.description,
+    JSON.stringify(aiParams),
+    JSON.stringify(headers),
+    JSON.stringify(bodyParams),
+    JSON.stringify(queryParams),
+  ]);
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — Requisição API"
+        placeholder="Descreva em detalhes quando e como esta API deve ser utilizada pelo agente IA"
+      />
+      <div className="space-y-2">
+        <Label>Endpoint da API</Label>
+        <div className="flex gap-2">
+          <Select
+            value={node.data?.httpMethod || "GET"}
+            onValueChange={(v) => setData(node, setNode, { httpMethod: v })}
+          >
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={node.data?.apiUrl || ""}
+            onChange={(e) => setData(node, setNode, { apiUrl: e.target.value })}
+            placeholder="https://api.exemplo.com/endpoint"
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Use variáveis dinâmicas: <code>{"{{ai.campo}}"}</code>, <code>{"{{lead.campo}}"}</code>, <code>{"{{phone}}"}</code>
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Edite para salvar automaticamente"}
+        </p>
+      </div>
+      <Accordion type="multiple" className="w-full" defaultValue={["ai"]}>
+        <AccordionItem value="ai">
+          <AccordionTrigger className="text-sm">Parâmetros da IA</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Campos que o agente IA deve preencher ao acionar esta tool. Referencie-os com{" "}
+              <code>{"{{ai.nome}}"}</code> na URL, headers, body ou query.
+            </p>
+            <ParamRows
+              rows={aiParams}
+              onChange={(rows) => setData(node, setNode, { aiParams: rows })}
+              showDesc
+              showRequired
+              keyPlaceholder="nome_do_campo"
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="headers">
+          <AccordionTrigger className="text-sm">Parâmetros Headers</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Cabeçalhos HTTP enviados nesta requisição.
+            </p>
+            <ParamRows
+              rows={headers}
+              onChange={(rows) => setData(node, setNode, { headers: rows })}
+              keyPlaceholder="Authorization"
+              valuePlaceholder="Bearer xxx"
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="body">
+          <AccordionTrigger className="text-sm">Parâmetros Body</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Campos do corpo (POST, PUT, PATCH). Enviado como JSON.
+            </p>
+            <ParamRows
+              rows={bodyParams}
+              onChange={(rows) => setData(node, setNode, { bodyParams: rows })}
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="query">
+          <AccordionTrigger className="text-sm">Parâmetros Query</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Parâmetros acrescentados à query string da URL.
+            </p>
+            <ParamRows
+              rows={queryParams}
+              onChange={(rows) => setData(node, setNode, { queryParams: rows })}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </>
+  );
 }
 
 export function AgentToolConfigPanel({ node, setNode }: Props) {
@@ -1499,57 +1732,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 14: Consulta API (IA) ---
   if (toolName === "consulta_api_ia") {
-    return (
-      <>
-        {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Requisição API"
-          placeholder="Descreva em detalhes quando e como esta API deve ser utilizada pelo agente IA"
-        />
-        <div className="space-y-2">
-          <Label>Endpoint da API</Label>
-          <div className="flex gap-2">
-            <Select
-              value={node.data?.httpMethod || "GET"}
-              onValueChange={(v) => setData(node, setNode, { httpMethod: v })}
-            >
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              value={node.data?.apiUrl || ""}
-              onChange={(e) => setData(node, setNode, { apiUrl: e.target.value })}
-              placeholder="https://api.exemplo.com/endpoint"
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Use variáveis dinâmicas: <code>{"{{lead.campo}}"}</code>, <code>{"{{node.X.response}}"}</code>, <code>{"{{memory.campo}}"}</code>
-          </p>
-        </div>
-        <Accordion type="multiple" className="w-full">
-          {[
-            { v: "ai", label: "Parâmetros da IA", sub: "Campos que o agente IA deve preencher ao acionar esta tool." },
-            { v: "headers", label: "Parâmetros Headers", sub: "Cabeçalhos HTTP enviados nesta requisição. Use variáveis dinâmicas ou valores fixos." },
-            { v: "body", label: "Parâmetros Body", sub: "Campos do corpo quando o método permitir corpo (POST, PUT, PATCH)." },
-            { v: "query", label: "Parâmetros Query", sub: "Parâmetros de query string acrescentados à URL." },
-          ].map((s) => (
-            <AccordionItem key={s.v} value={s.v}>
-              <AccordionTrigger className="text-sm">{s.label}</AccordionTrigger>
-              <AccordionContent>
-                <p className="text-[11px] text-muted-foreground mb-2">{s.sub}</p>
-                <Button variant="outline" size="sm">+ Adicionar</Button>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </>
-    );
+    return <ConsultaApiPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 15: Acessar Links ---
