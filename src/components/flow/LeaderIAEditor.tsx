@@ -1,0 +1,194 @@
+import { useMemo, useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Briefcase, Flag, ChevronRight, Info } from "lucide-react";
+
+type Config = {
+  jobDescription: string;
+  systemPrompt: string;
+  model: string;
+  maxAttempts: number;
+};
+
+const DEFAULT: Config = {
+  jobDescription: "",
+  systemPrompt: "",
+  model: "gpt-4-1-mini",
+  maxAttempts: 5,
+};
+
+const MODELS = [
+  { id: "gpt-4-1-mini", name: "Modelo Rápido" },
+  { id: "gpt-4-1", name: "Modelo Avançado" },
+  { id: "gemini-flash", name: "Modelo Econômico" },
+];
+
+function parse(data: any): Config {
+  try {
+    const raw =
+      typeof data?.actionConfig === "string"
+        ? JSON.parse(data.actionConfig)
+        : data?.actionConfig || {};
+    return {
+      jobDescription: raw.jobDescription ?? "",
+      systemPrompt: raw.systemPrompt ?? "",
+      model: raw.model ?? DEFAULT.model,
+      maxAttempts: Math.min(50, Math.max(1, Number(raw.maxAttempts) || 5)),
+    };
+  } catch {
+    return DEFAULT;
+  }
+}
+
+const countTokens = (t: string) => Math.ceil((t || "").length / 4);
+
+interface Props {
+  data: any;
+  onChange: (patch: any) => void;
+}
+
+export function LeaderIAEditor({ data, onChange }: Props) {
+  const cfg = useMemo(() => parse(data), [data]);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [draft, setDraft] = useState(cfg.systemPrompt);
+
+  const update = (next: Config) =>
+    onChange({
+      actionType: "leader_ia",
+      actionConfig: JSON.stringify(next),
+    });
+
+  const tokens = countTokens(cfg.systemPrompt);
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 text-sm font-medium">
+          <Briefcase className="h-3.5 w-3.5 text-primary" />
+          Descrição do trabalho
+        </div>
+        <Input
+          value={cfg.jobDescription}
+          onChange={(e) => update({ ...cfg, jobDescription: e.target.value })}
+          placeholder="Descreva aqui o trabalho que este Leader coordena..."
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Quando este Leader estiver conectado a outro Leader, essa descrição
+          será usada para decidir quando direcionar atividades para ele.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(cfg.systemPrompt);
+          setPromptOpen(true);
+        }}
+        className="w-full flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+      >
+        <Flag className="h-4 w-4 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium">Missão/System Prompt</div>
+          <div className="text-xs text-muted-foreground truncate">
+            {cfg.systemPrompt ? "Configurado" : "Clique para configurar..."}
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">{tokens} tokens</div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Modelo de IA</Label>
+        <Select
+          value={cfg.model}
+          onValueChange={(v) => update({ ...cfg, model: v })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MODELS.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="text-[11px] text-muted-foreground">
+          Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão ·
+          Cache: 0,150$/Milhão
+        </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+        >
+          <Info className="h-3 w-3" />O que são esses valores?
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">
+          Máximo de tentativas: {cfg.maxAttempts}
+        </Label>
+        <Slider
+          value={[cfg.maxAttempts]}
+          min={1}
+          max={50}
+          step={1}
+          onValueChange={([v]) => update({ ...cfg, maxAttempts: v })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Número máximo de tentativas que o Leader pode executar para coordenar
+          os Experts.
+        </p>
+      </div>
+
+      <Dialog open={promptOpen} onOpenChange={setPromptOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Missão / System Prompt</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Descreva a missão e o comportamento do Leader..."
+            className="min-h-[280px] font-mono text-xs"
+          />
+          <div className="text-xs text-muted-foreground">
+            {countTokens(draft)} tokens estimados
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPromptOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                update({ ...cfg, systemPrompt: draft });
+                setPromptOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
