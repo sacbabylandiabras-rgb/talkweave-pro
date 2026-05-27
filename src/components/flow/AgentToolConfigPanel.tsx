@@ -1106,14 +1106,11 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
               <div>
                 <Label className="text-xs">Mensagem ao enviar a cobrança gerada</Label>
                 <Textarea
-                  value={node.data?.chargeMessageTemplate || ""}
+                  value={chargeMessageTemplate}
                   onChange={(e) =>
                     setData(node, setNode, { chargeMessageTemplate: e.target.value })
                   }
-                  placeholder={
-                    "Pronto {lead.name}! Aqui está o PIX de {charge.amount}:\n\n{charge.brcode}\n\nID: {charge.id}"
-                  }
-                  rows={4}
+                  rows={7}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   Variáveis: {"{lead.name}"}, {"{charge.amount}"}, {"{charge.brcode}"},{" "}
