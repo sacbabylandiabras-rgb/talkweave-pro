@@ -45,6 +45,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
+import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
 import {
   PlayCircle,
   MessageSquare,
