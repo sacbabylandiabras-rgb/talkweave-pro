@@ -187,6 +187,47 @@ const isMensagemAudioBlock = (node?: Node | null) => {
   return node?.type === "blocoConteudo" && label.includes("mensagem em audio");
 };
 
+const parseVoiceGenerationError = async (error: unknown, data?: any) => {
+  const fallback = {
+    title: "Não foi possível gerar o áudio",
+    description:
+      "A geração de voz não respondeu como esperado. Tente novamente em alguns minutos ou verifique se os créditos do serviço de voz estão ativos.",
+  };
+
+  const buildMessage = (payload?: any) => {
+    if (!payload) return fallback;
+    const title = String(payload.error || fallback.title);
+    const parts = [payload.details, payload.hint]
+      .filter(Boolean)
+      .map((part) => String(part));
+
+    return {
+      title,
+      description: parts.length ? parts.join(" ") : fallback.description,
+    };
+  };
+
+  if (data?.error) return buildMessage(data);
+
+  const maybeError = error as any;
+  const response = maybeError?.context;
+
+  if (response instanceof Response) {
+    try {
+      return buildMessage(await response.clone().json());
+    } catch {
+      return fallback;
+    }
+  }
+
+  const message = maybeError?.message ? String(maybeError.message) : "";
+  if (message && !message.toLowerCase().includes("non-2xx")) {
+    return { title: "Não foi possível gerar o áudio", description: message };
+  }
+
+  return fallback;
+};
+
 const blocosDisponiveis = [
   // AGENTES IA
   {
@@ -1030,8 +1071,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const { data, error } = await supabase.functions.invoke("generate-tts-audio", {
         body: { text, voice, speed, instructions, audioName, preview: mode === "preview" },
       });
-      if (error) throw new Error(error.message || "Falha ao gerar áudio");
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        const friendlyError = await parseVoiceGenerationError(error, data);
+        toast.error(friendlyError.title, { description: friendlyError.description, duration: 9000 });
+        return;
+      }
 
       if (mode === "preview") {
         if (!data?.audioBase64) throw new Error("Sem áudio retornado");
@@ -1056,7 +1100,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }
     } catch (err) {
       console.error("TTS error", err);
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar áudio");
+      const friendlyError = await parseVoiceGenerationError(err);
+      toast.error(friendlyError.title, { description: friendlyError.description, duration: 9000 });
     } finally {
       setGeneratingTts(false);
       setPreviewingTts(false);
