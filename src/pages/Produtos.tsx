@@ -48,12 +48,12 @@ export default function Produtos() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("agent_products")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) toast({ title: "Erro ao carregar", description: error.message, variant: "destructive" });
-    setItems((data as Product[]) || []);
+    setItems((data as unknown as Product[]) || []);
     setLoading(false);
   };
 
