@@ -177,6 +177,15 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [];
 
+const isMensagemAudioBlock = (node?: Node | null) => {
+  const label = String(node?.data?.label || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return node?.type === "blocoConteudo" && label.includes("mensagem em audio");
+};
+
 const blocosDisponiveis = [
   // AGENTES IA
   {
@@ -891,7 +900,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const normalizedNode =
-      node.type === "blocoConteudo" && node.data?.label === "Mensagem em Áudio"
+      isMensagemAudioBlock(node)
         ? { ...node, data: { ...node.data, contentType: "audio" } }
         : node;
     setSelectedNode(normalizedNode);
@@ -2129,7 +2138,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           <div className="space-y-4">
             {selectedNode?.type === "blocoConteudo" && (
               <>
-                {selectedNode.data.label !== "Mensagem em Áudio" && (
+                {!isMensagemAudioBlock(selectedNode) && (
                 <div>
                   <Label>Tipo de Conteúdo</Label>
                   <Select
@@ -2632,7 +2641,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.label === "Mensagem em Áudio" && (
+                {isMensagemAudioBlock(selectedNode) && (
                   <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-3">
                     <div>
                       <Label>Nome do áudio</Label>
@@ -2679,7 +2688,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </div>
                 )}
 
-                {selectedNode.data.label !== "Mensagem em Áudio" && (["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
+                {!isMensagemAudioBlock(selectedNode) && (["image", "video", "audio", "document", "status"].includes(selectedNode.data.contentType)) && (
                   <>
                     <div>
                       <Label>
@@ -2875,7 +2884,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     )}
                   </div>
                 )}
-                {selectedNode.data.contentType !== "audio" && (
+                {selectedNode.data.contentType !== "audio" && !isMensagemAudioBlock(selectedNode) && (
                 <div>
                   <Label>
                     {selectedNode.data.contentType === "text" ? "Mensagem" : "Legenda (opcional)"}
@@ -2918,7 +2927,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
                 )}
 
-                {selectedNode.data.contentType !== "audio" && (
+                {selectedNode.data.contentType !== "audio" && !isMensagemAudioBlock(selectedNode) && (
                 <>
                 <Separator />
 
