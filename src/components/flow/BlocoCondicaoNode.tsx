@@ -58,6 +58,7 @@ export function BlocoCondicaoNode({ data }: any) {
     const isHorario = (data.label || "").toLowerCase().includes("horário") || (data.label || "").toLowerCase().includes("horario");
     const isFiltroCadastro = (data.label || "").toLowerCase().includes("filtro por cadastro");
     const isFiltroMensagem = (data.label || "").toLowerCase().includes("filtro por mensagem");
+    const isFiltroStatus = (data.label || "").toLowerCase().includes("filtro por status do atendimento") || (data.label || "").toLowerCase().includes("status do atendimento");
     const filtroOperatorShort: Record<string, string> = {
       equals: "=",
       greater: ">",
@@ -78,6 +79,13 @@ export function BlocoCondicaoNode({ data }: any) {
         ? [
             { label: "Dentro do Horário", value: "in" },
             { label: "Fora do Horário", value: "out" },
+          ]
+        : isFiltroStatus
+        ? [
+            { label: "Na Fila", value: "queue" },
+            { label: "Humano", value: "human" },
+            { label: "Agente", value: "agent" },
+            { label: "Finalizado", value: "done" },
           ]
         : [
             { label: "Verdadeiro", value: data.condition || "" },
@@ -143,6 +151,16 @@ export function BlocoCondicaoNode({ data }: any) {
                     <span className="text-muted-foreground mr-1">{msgOperatorLabel[b.operator] || "Contém"}</span>
                     <span className="font-medium">"{b.value ?? ""}"</span>
                   </>
+                ) : isFiltroStatus ? (
+                  <>
+                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
+                      b.value === "queue" ? "bg-amber-500" :
+                      b.value === "human" ? "bg-blue-500" :
+                      b.value === "agent" ? "bg-violet-500" :
+                      "bg-emerald-500"
+                    }`} />
+                    <span className="font-medium">{b.label}</span>
+                  </>
                 ) : (
                   <>
                     <span className="text-muted-foreground mr-1">se =</span>
@@ -160,7 +178,7 @@ export function BlocoCondicaoNode({ data }: any) {
               />
             </div>
           ))}
-          {!isSplit && !isHorario && (
+          {!isSplit && !isHorario && !isFiltroStatus && (
           <div
             className="relative flex items-center gap-2 px-3 mt-1 mx-2 mb-1 rounded-md bg-orange-500/15 border border-orange-500/40 text-[11px] text-orange-200"
             style={{ height: ROW }}
