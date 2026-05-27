@@ -675,6 +675,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [previewingTts, setPreviewingTts] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCapturedData, setShowCapturedData] = useState(false);
+  const [editingConditionIndex, setEditingConditionIndex] = useState<number | null>(null);
   const [buttonStats, setButtonStats] = useState<Record<string, number>>({});
    const [totalFlowRecipients, setTotalFlowRecipients] = useState(0);
    const [availableTags, setAvailableTags] = useState<string[]>([]);
