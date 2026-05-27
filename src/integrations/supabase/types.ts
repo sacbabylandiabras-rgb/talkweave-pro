@@ -1494,6 +1494,98 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_members: {
+        Row: {
+          created_at: string
+          pipeline_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pipeline_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pipeline_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_members_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stage_history: {
+        Row: {
+          contact_phone: string
+          from_stage: string | null
+          id: string
+          moved_at: string
+          pipeline_id: string | null
+          to_stage: string
+          user_id: string
+        }
+        Insert: {
+          contact_phone: string
+          from_stage?: string | null
+          id?: string
+          moved_at?: string
+          pipeline_id?: string | null
+          to_stage: string
+          user_id: string
+        }
+        Update: {
+          contact_phone?: string
+          from_stage?: string | null
+          id?: string
+          moved_at?: string
+          pipeline_id?: string | null
+          to_stage?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pipelines: {
+        Row: {
+          created_at: string
+          currency: string
+          department: string | null
+          id: string
+          name: string
+          owner_id: string
+          stages: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          department?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          stages?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          department?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          stages?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1802,35 +1894,59 @@ export type Database = {
       }
       saved_contacts: {
         Row: {
+          agent_stage: string | null
+          closing_date: string | null
           community_id: string | null
           created_at: string | null
+          deal_metadata: Json | null
+          deal_value: number | null
+          description: string | null
           id: string
           is_community: boolean | null
           name: string
           phone: string
+          pipeline_id: string | null
+          priority: string | null
           profile_picture_url: string | null
+          responsible_ids: Json | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          agent_stage?: string | null
+          closing_date?: string | null
           community_id?: string | null
           created_at?: string | null
+          deal_metadata?: Json | null
+          deal_value?: number | null
+          description?: string | null
           id?: string
           is_community?: boolean | null
           name?: string
           phone: string
+          pipeline_id?: string | null
+          priority?: string | null
           profile_picture_url?: string | null
+          responsible_ids?: Json | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          agent_stage?: string | null
+          closing_date?: string | null
           community_id?: string | null
           created_at?: string | null
+          deal_metadata?: Json | null
+          deal_value?: number | null
+          description?: string | null
           id?: string
           is_community?: boolean | null
           name?: string
           phone?: string
+          pipeline_id?: string | null
+          priority?: string | null
           profile_picture_url?: string | null
+          responsible_ids?: Json | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2489,6 +2605,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_pipeline_member: {
+        Args: { _pipeline_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_pipeline_owner: {
+        Args: { _pipeline_id: string; _user_id: string }
         Returns: boolean
       }
     }

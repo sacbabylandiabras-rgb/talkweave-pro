@@ -83,6 +83,9 @@ import { BlocoAcaoNode } from "@/components/flow/BlocoAcaoNode";
 import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
+import { BlocoAgentToolNode } from "@/components/flow/BlocoAgentToolNode";
+import { AgentToolsBar } from "@/components/flow/AgentToolsBar";
+import { AGENT_TOOL_DRAG_KEY } from "@/components/flow/agentToolBlocks";
 import { SelectContactsDialog } from "@/components/flow/SelectContactsDialog";
 import type { FlowSendProvider } from "@/components/flow/SelectContactsDialog";
 import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
@@ -159,6 +162,7 @@ const nodeTypes: NodeTypes = {
   blocoGatilho: BlocoGatilhoNode,
   blocoAgendamento: BlocoAgendamentoNode,
   agenteIA: BlocoAgenteIANode,
+  agentTool: BlocoAgentToolNode,
 };
 
 const initialNodes: Node[] = [
@@ -565,13 +569,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         y: event.clientY,
       });
 
+      let extraData: Record<string, unknown> = {};
+      if (type === "agentTool") {
+        try {
+          const raw = event.dataTransfer.getData(AGENT_TOOL_DRAG_KEY);
+          if (raw) extraData = JSON.parse(raw);
+        } catch {
+          extraData = {};
+        }
+      }
+
       const newNode: Node = {
         id: `${Date.now()}`,
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : type === "agentTool" ? (extraData as any).label || "Ferramenta" : "Ação"}`,
           content: "",
+          ...extraData,
         },
       };
 
@@ -1485,6 +1500,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               </div>
             ))}
           </div>
+
+          {/* Row 3: Agent Tool Blocks */}
+          <AgentToolsBar />
         </div>
 
         {/* Canvas */}
