@@ -55,12 +55,18 @@ export function BlocoCondicaoNode({ data }: any) {
   if (!isIfElse) {
     const isSplit = (data.label || "").toLowerCase().includes("split");
     const isTags = (data.label || "").toLowerCase().includes("tag");
+    const isHorario = (data.label || "").toLowerCase().includes("horário") || (data.label || "").toLowerCase().includes("horario");
     const branches: any[] = Array.isArray(data.branches) && data.branches.length > 0
       ? data.branches
-      : [
-          { label: "Verdadeiro", value: data.condition || "" },
-          { label: "Falso", value: "" },
-        ];
+      : isHorario
+        ? [
+            { label: "Dentro do Horário", value: "in" },
+            { label: "Fora do Horário", value: "out" },
+          ]
+        : [
+            { label: "Verdadeiro", value: data.condition || "" },
+            { label: "Falso", value: "" },
+          ];
     const branchHandleId = (i: number) => (i === 0 ? "a" : i === 1 ? "b" : `branch-${i}`);
     const ROW = 28;
     return (
@@ -102,6 +108,11 @@ export function BlocoCondicaoNode({ data }: any) {
                   <>
                     <span className="text-muted-foreground mr-1">🏷</span>
                     <span className="font-medium">{b.value || b.label || "tag"}</span>
+                  </>
+                ) : isHorario ? (
+                  <>
+                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${b.value === "out" ? "bg-orange-500" : "bg-emerald-500"}`} />
+                    <span className="font-medium">{b.label}</span>
                   </>
                 ) : (
                   <>
