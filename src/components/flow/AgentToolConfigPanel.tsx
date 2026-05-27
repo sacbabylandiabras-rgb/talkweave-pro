@@ -287,6 +287,154 @@ function SubAgentExtras({ node, setNode }: Props) {
   };
 }
 
+function RagControls({ node, setNode }: Props) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [items, setItems] = useState<Array<{ id: string; title: string | null; content: string | null }>>([]);
+  const [loading, setLoading] = useState(false);
+  const linked: string[] = Array.isArray(node.data?.ragEntryIds) ? node.data.ragEntryIds : [];
+  const [linkedLabels, setLinkedLabels] = useState<Record<string, string>>({});
+
+  const loadItems = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setLoading(false); return; }
+    const { data, error } = await (supabase as any)
+      .from("agent_knowledge")
+      .select("id, title, content")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) toast({ title: "Erro ao carregar", description: error.message, variant: "destructive" });
+    setItems(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (linkOpen) loadItems();
+  }, [linkOpen]);
+
+  useEffect(() => {
+    if (linked.length === 0) { setLinkedLabels({}); return; }
+    (async () => {
+      const { data } = await (supabase as any).from("agent_knowledge").select("id, title").in("id", linked);
+      const map: Record<string, string> = {};
+      (data || []).forEach((r: any) => { map[r.id] = r.title || "Sem título"; });
+      setLinkedLabels(map);
+    })();
+  }, [linked.join(",")]);
+
+  const saveEntry = async () => {
+    if (!title.trim() || !content.trim()) {
+      toast({ title: "Preencha título e conteúdo", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setSaving(false); return; }
+    const { data, error } = await (supabase as any)
+      .from("agent_knowledge")
+      .insert({ user_id: session.user.id, title: title.trim(), content: content.trim(), type: "rag", active: true })
+      .select("id, title")
+      .single();
+    setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const next = [...linked, data.id];
+    setData(node, setNode, { ragEntryIds: next });
+    setTitle(""); setContent(""); setAddOpen(false);
+    toast({ title: "Informação adicionada e vinculada" });
+  };
+
+  const toggle = (id: string) => {
+    const next = linked.includes(id) ? linked.filter(x => x !== id) : [...linked, id];
+    setData(node, setNode, { ragEntryIds: next });
+  };
+
+  return {
+    openAdd: () => setAddOpen(true),
+    openLink: () => setLinkOpen(true),
+    linkedBlock: (
+      <div className="space-y-1">
+        <Label className="text-[11px]">Vinculados ({linked.length})</Label>
+        {linked.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">Nenhuma base de conhecimento vinculada.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {linked.map(id => (
+              <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px]">
+                <BookOpen className="h-3 w-3" />
+                {linkedLabels[id] || id.slice(0, 6)}
+                <button onClick={() => toggle(id)} className="hover:text-destructive"><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
+    dialogs: (
+      <>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Adicionar informação ao RAG</DialogTitle>
+              <DialogDescription>Crie uma nova entrada na base de conhecimento e vincule a este bloco.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Título</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Política de trocas" />
+              </div>
+              <div>
+                <Label>Conteúdo</Label>
+                <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={8} placeholder="Texto completo que o agente deve consultar..." />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+              <Button onClick={saveEntry} disabled={saving}>{saving ? "Salvando..." : "Salvar e vincular"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> Vincular RAG existente</DialogTitle>
+              <DialogDescription>Selecione as bases de conhecimento que este bloco deve consultar.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {loading ? (
+                <p className="text-[12px] text-muted-foreground text-center py-4">Carregando…</p>
+              ) : items.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground italic text-center py-4">Nenhuma informação cadastrada ainda.</p>
+              ) : items.map(it => {
+                const checked = linked.includes(it.id);
+                return (
+                  <label key={it.id} className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/50">
+                    <Checkbox checked={checked} onCheckedChange={() => toggle(it.id)} className="mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{it.title || "Sem título"}</div>
+                      {it.content && <p className="text-[11px] text-muted-foreground line-clamp-2">{it.content}</p>}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setLinkOpen(false)}>Concluir</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    ),
+  };
+}
+
 interface Props {
   node: any;
   setNode: (n: any) => void;
@@ -1559,6 +1707,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
   // --- MODAL 24: RAG ---
   if (toolName === "rag_documentos") {
     const limit = node.data?.ragLimit ?? 5;
+    const rag = RagControls({ node, setNode });
     return (
       <>
         {Header}
@@ -1584,13 +1733,15 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => rag.openAdd()}>
             <BookOpen className="h-4 w-4 mr-2" /> + Adicionar informações
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => rag.openLink()}>
             <Link2 className="h-4 w-4 mr-2" /> Vincular RAG existente
           </Button>
         </div>
+        {rag.linkedBlock}
+        {rag.dialogs}
       </>
     );
   }
