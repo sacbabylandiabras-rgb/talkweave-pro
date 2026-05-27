@@ -3522,85 +3522,138 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
     const perms = node.data?.dealPerms || {};
     const setPerm = (k: string, v: boolean) =>
       setData(node, setNode, { dealPerms: { ...perms, [k]: v } });
+    const permItems = [
+      {
+        k: "list",
+        label: "Listar negócios",
+        desc: "Ativa assim que você definir o kanban e ao menos uma coluna na etapa 1.",
+        locked: true,
+      },
+      {
+        k: "move",
+        label: "Mover entre colunas",
+        desc: "Altera o estágio do negócio no mesmo kanban; destinos permitidos aparecem na descrição da ferramenta.",
+      },
+      {
+        k: "edit",
+        label: "Editar dados do negócio",
+        desc: "Permite atualizar nome, descrição e valor do card quando o modelo precisa ajustar o registro.",
+      },
+      {
+        k: "notes",
+        label: "Registrar observações",
+        desc: "Grava observações/comentários no histórico do card, visíveis para a equipe no CRM.",
+      },
+      {
+        k: "create",
+        label: "Criar novo negócio (card)",
+        desc: "Defina ao menos uma coluna em escopo na etapa 1 para habilitar a criação de cards.",
+      },
+    ];
+    const activeCount = permItems.filter((p) => p.locked || !!perms[p.k]).length;
+
     return (
       <>
         {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Gerenciar Negócio CRM"
-          placeholder="Ex: use os IDs da listagem; confirme antes de mudar valor ou estágio..."
-        />
-        <div className="rounded-lg border border-border p-3 space-y-1">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="deal-main"
-              checked={node.data?.dealEnabled !== false}
-              onCheckedChange={(c) => setData(node, setNode, { dealEnabled: !!c })}
-            />
-            <Label htmlFor="deal-main" className="cursor-pointer font-semibold">
-              Gerenciar Negócio (CRM / Kanban)
-            </Label>
+        <div>
+          <Label>
+            Descrição da ferramenta — Gerenciar Negócio CRM{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            value={node.data?.description || ""}
+            onChange={(e) =>
+              setNode({ ...node, data: { ...node.data, description: e.target.value } })
+            }
+            placeholder="Ex: use os IDs da listagem; confirme antes de mudar valor ou estágio..."
+            rows={3}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Obrigatório. Descreva quando o agente deve acionar esta ferramenta e qual ação ele
+            executa.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3 space-y-0.5">
+          <div className="flex items-center gap-2 text-[13px] font-semibold">
+            <Briefcase className="h-4 w-4 text-primary" />
+            Gerenciar Negócio (CRM / Kanban)
           </div>
           <p className="text-[11px] text-muted-foreground pl-6">
             Configure em três etapas: escopo no quadro, permissões da IA e campos extras.
           </p>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
-            1 — Onde esta IA atua
-          </div>
+        {/* Etapa 1 */}
+        <div className="rounded-lg border border-border p-3 space-y-2">
+          <div className="text-[12px] font-semibold">1. Onde esta IA atua</div>
           <p className="text-[11px] text-muted-foreground">
             Somente negócios (cards) deste kanban e que estiverem em pelo menos uma das colunas
-            abaixo entram no escopo desta ferramenta.
+            abaixo entrarão no escopo desta ferramenta.
           </p>
-          <Label>Kanban de negócios</Label>
-          <Input
-            value={node.data?.dealKanbanId || ""}
-            onChange={(e) => setData(node, setNode, { dealKanbanId: e.target.value })}
-            placeholder="ID do kanban"
-          />
-          <Button variant="outline" size="sm" className="w-full">+ Adicionar kanban</Button>
+          <div className="flex items-center justify-between pt-1">
+            <Label className="text-[12px]">Kanban de negócios</Label>
+            <Button variant="outline" size="sm">+ Adicionar kanban</Button>
+          </div>
           <p className="text-[11px] text-muted-foreground italic">Nenhum kanban selecionado</p>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
-            2 — O que a IA pode fazer
+        {/* Etapa 2 */}
+        <div className="rounded-lg border border-border p-3 space-y-2">
+          <div className="flex items-center gap-2 text-[12px] font-semibold">
+            2. O que a IA pode fazer
+            <span className="text-[10px] font-normal text-muted-foreground">
+              ({activeCount} ativa{activeCount === 1 ? "" : "s"})
+            </span>
           </div>
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              { k: "list", label: "Listar negócios (Sempre ativo)", desc: "Ativará assim que você definir o kanban e ao menos uma coluna na etapa 1.", locked: true },
-              { k: "move", label: "Mover entre colunas", desc: "Altera o estágio do negócio no mesmo kanban; destinos permitidos aparecem na descrição da ferramenta." },
-              { k: "edit", label: "Editar dados do negócio", desc: "Permite atualizar nome, descrição e valor do card quando o modelo precisa ajustar o registro." },
-              { k: "notes", label: "Registrar observações", desc: "Grava observações/comentários no histórico do card." },
-              { k: "create", label: "Criar novo negócio (card)", desc: "Defina ao menos uma coluna em escopo na etapa 1 para habilitar a criação de cards." },
-            ].map((p) => (
-              <label key={p.k} className="flex gap-2 items-start rounded-md border border-border p-2 cursor-pointer">
-                <Checkbox
-                  checked={p.locked || !!perms[p.k]}
-                  disabled={p.locked}
-                  onCheckedChange={(c) => setPerm(p.k, !!c)}
-                  className="mt-0.5"
-                />
-                <div>
-                  <div className="text-[12px] font-medium">{p.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{p.desc}</div>
-                </div>
-              </label>
-            ))}
+          <p className="text-[11px] text-muted-foreground">
+            Conclua a etapa 1 (kanban e ao menos uma coluna em escopo) para liberar a listagem e
+            poder ativar mais ações.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {permItems.map((p) => {
+              const checked = p.locked || !!perms[p.k];
+              return (
+                <label
+                  key={p.k}
+                  className={`flex gap-2 items-start rounded-md border p-2.5 cursor-pointer transition-colors ${
+                    checked
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-card hover:bg-muted/30"
+                  }`}
+                >
+                  <Checkbox
+                    checked={checked}
+                    disabled={p.locked}
+                    onCheckedChange={(c) => setPerm(p.k, !!c)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[12px] font-medium">{p.label}</span>
+                      {p.locked && (
+                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                          Sempre ativo
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{p.desc}</div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-[11px] uppercase tracking-wider font-semibold text-primary">
-            3 — Campos personalizados
+        {/* Etapa 3 */}
+        <div className="rounded-lg border border-border p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] font-semibold">3. Campos personalizados</div>
+            <Button variant="outline" size="sm">+ Adicionar</Button>
           </div>
-          <Button variant="outline" size="sm">+ Adicionar</Button>
           <p className="text-[11px] text-muted-foreground">
-            Somente os campos adicionados podem ser lidos e alterados pela IA. Se nenhum estiver
-            na lista, campos extras ficam indisponíveis nesta ferramenta.
+            Somente os campos adicionados podem ser lidos e alterados pela IA. Se nenhum estiver na
+            lista, campos extras ficam indisponíveis nesta ferramenta.
           </p>
         </div>
       </>
