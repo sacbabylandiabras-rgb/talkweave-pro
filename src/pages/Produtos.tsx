@@ -80,6 +80,7 @@ export default function Produtos() {
   };
 
   const handleUpload = async (files: FileList) => {
+    console.log("[Produtos] handleUpload start", { count: files?.length });
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -88,18 +89,24 @@ export default function Produtos() {
       for (const file of Array.from(files)) {
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await (supabase as any).storage
+        console.log("[Produtos] uploading", { path, size: file.size, type: file.type });
+        const { data: upData, error: upErr } = await (supabase as any).storage
           .from("agent-products")
-          .upload(path, file, { upsert: true, contentType: file.type || undefined });
+          .upload(path, file, { upsert: false, contentType: file.type || "image/jpeg" });
         if (upErr) {
           console.error("[Produtos] upload error", upErr);
           throw upErr;
         }
+        console.log("[Produtos] uploaded ok", upData);
         const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
+        console.log("[Produtos] publicUrl", pub?.publicUrl);
         uploaded.push(pub.publicUrl);
       }
       setImages((prev) => [...prev, ...uploaded]);
-      toast({ title: `${uploaded.length} foto(s) enviada(s)` });
+      toast({
+        title: `${uploaded.length} foto(s) enviada(s)`,
+        description: uploaded.length > 0 ? "Clique em Criar/Salvar para gravar o produto." : "Nenhum arquivo processado.",
+      });
     } catch (e: any) {
       console.error("[Produtos] upload error", e);
       toast({
@@ -253,13 +260,15 @@ export default function Produtos() {
                       )}
                     </div>
                   ))}
-                  <label
-                    htmlFor="produto-fotos-input"
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
                     className={`w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     <span className="text-[10px] mt-1">Adicionar</span>
-                  </label>
+                  </button>
                 </div>
                 <input
                   ref={fileRef}
@@ -267,9 +276,10 @@ export default function Produtos() {
                   type="file"
                   accept="image/*"
                   multiple
-                  className="hidden"
+                  style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
                   onChange={(e) => {
                     const fs = e.target.files;
+                    console.log("[Produtos] file input change", { count: fs?.length });
                     if (fs && fs.length > 0) handleUpload(fs);
                     e.target.value = "";
                   }}
