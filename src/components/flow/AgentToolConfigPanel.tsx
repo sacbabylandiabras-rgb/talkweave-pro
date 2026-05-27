@@ -1245,6 +1245,242 @@ function TransferirFilaPanel({ node, setNode, Header }: { node: any; setNode: (n
   );
 }
 
+// ============================================================================
+// MemoriaAtendimentoPanel — Atualizar Memória de Atendimento (JSON Schema)
+// ============================================================================
+type MemoryField = {
+  name: string;
+  type: "string" | "number" | "boolean" | "object" | "array";
+  default: string;
+  description: string;
+};
+
+const MEMORY_TYPES: { value: MemoryField["type"]; label: string }[] = [
+  { value: "string", label: "Texto (string)" },
+  { value: "number", label: "Número (number)" },
+  { value: "boolean", label: "Booleano (boolean)" },
+  { value: "object", label: "Objeto (object)" },
+  { value: "array", label: "Array (array)" },
+];
+
+function buildMemoryPreview(fields: MemoryField[]) {
+  const obj: Record<string, unknown> = {};
+  for (const f of fields) {
+    const key = f.name?.trim() || "campo";
+    let val: unknown = "";
+    switch (f.type) {
+      case "number":
+        val = f.default !== "" ? Number(f.default) || 0 : 0;
+        break;
+      case "boolean":
+        val = f.default === "true";
+        break;
+      case "object":
+        val = {};
+        break;
+      case "array":
+        val = [];
+        break;
+      default:
+        val = f.default ?? "";
+    }
+    obj[key] = val;
+  }
+  return JSON.stringify(obj, null, 2);
+}
+
+function MemoriaAtendimentoPanel({
+  node,
+  setNode,
+  Header,
+}: {
+  node: any;
+  setNode: (updater: (prev: any) => any) => void;
+  Header: ReactNode;
+}) {
+  const stored: MemoryField[] = Array.isArray(node.data?.memoryStructure)
+    ? node.data.memoryStructure
+    : [];
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<MemoryField[]>(
+    stored.length > 0
+      ? stored
+      : [
+          { name: "campo_1", type: "string", default: "", description: "" },
+          { name: "campo_2", type: "string", default: "", description: "" },
+        ]
+  );
+
+  useEffect(() => {
+    if (open) {
+      setDraft(
+        stored.length > 0
+          ? stored
+          : [
+              { name: "campo_1", type: "string", default: "", description: "" },
+              { name: "campo_2", type: "string", default: "", description: "" },
+            ]
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const updateField = (idx: number, patch: Partial<MemoryField>) =>
+    setDraft((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
+  const removeField = (idx: number) =>
+    setDraft((prev) => prev.filter((_, i) => i !== idx));
+  const addField = () =>
+    setDraft((prev) => [
+      ...prev,
+      {
+        name: `campo_${prev.length + 1}`,
+        type: "string",
+        default: "",
+        description: "",
+      },
+    ]);
+
+  const save = () => {
+    setData(node, setNode, { memoryStructure: draft });
+    setOpen(false);
+  };
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — Atualizar Memória Atendimento"
+      />
+
+      <div className="space-y-2">
+        <Label>Estrutura da Memória</Label>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => setOpen(true)}
+        >
+          <Brain className="h-4 w-4 mr-2" /> Editar Estrutura da Memória de Atendimento
+        </Button>
+        {stored.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
+            Estrutura não definida — Clique em "Editar Estrutura" para definir os campos da memória.
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="text-[11px] text-muted-foreground mb-2">Preview da estrutura</div>
+            <pre className="text-[11px] font-mono whitespace-pre-wrap text-foreground">
+              {buildMemoryPreview(stored)}
+            </pre>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px]">
+        <strong>Diferença do operador "Salvar Memória":</strong> No operador, você define o valor
+        fixo (ex: <code>{"{{sale_ai_output_plan}}"}</code>). Aqui na tool, a IA decide
+        dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Estrutura da Memória de Atendimento</DialogTitle>
+          </DialogHeader>
+
+          <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-[12px]">
+            Esta estrutura é compartilhada entre <strong>todos os leads e atendimentos</strong> deste
+            projeto. Cada node <strong>Salvar Memória Projeto</strong> poderá modificar campos
+            específicos desta estrutura.
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <ChevronRight className="h-4 w-4" />
+              <span className="font-medium">Estrutura de Dados (JSON Schema)</span>
+            </div>
+
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+              {draft.map((f, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-[1.2fr_1fr_1fr_1.4fr_auto] gap-2 items-center"
+                >
+                  <Input
+                    value={f.name}
+                    onChange={(e) => updateField(idx, { name: e.target.value })}
+                    placeholder="campo"
+                    className="h-9"
+                  />
+                  <Select
+                    value={f.type}
+                    onValueChange={(v) => updateField(idx, { type: v as MemoryField["type"] })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEMORY_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={f.default}
+                    onChange={(e) => updateField(idx, { default: e.target.value })}
+                    placeholder="Valor padrão"
+                    className="h-9"
+                  />
+                  <Input
+                    value={f.description}
+                    onChange={(e) => updateField(idx, { description: e.target.value })}
+                    placeholder="Descrição"
+                    className="h-9"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeField(idx)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addField}
+              className="w-full rounded-md border border-dashed border-border py-2 text-[12px] text-muted-foreground hover:bg-muted/30 flex items-center justify-center gap-2"
+            >
+              <span className="text-base leading-none">+</span> Clique aqui para adicionar um campo na estrutura da memória
+            </button>
+
+            <div className="space-y-2">
+              <div className="text-[12px] font-medium">Preview da estrutura:</div>
+              <pre className="rounded-md border border-border bg-muted/30 p-3 text-[11px] font-mono whitespace-pre-wrap">
+                {buildMemoryPreview(draft)}
+              </pre>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              CANCELAR
+            </Button>
+            <Button onClick={save}>SALVAR</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function TransferirEstrategiaPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
   const [flows, setFlows] = useState<Array<{ id: string; name: string; active: boolean }>>([]);
   const [loading, setLoading] = useState(true);
@@ -3052,58 +3288,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 13: Atualizar Memória Atendimento ---
   if (toolName === "atualizar_memoria") {
-    const fields: string[] = Array.isArray(node.data?.memoryFields) ? node.data.memoryFields : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Atualizar Memória Atendimento" />
-        <div className="space-y-2">
-          <Label>Estrutura da Memória</Label>
-          <Button variant="outline" size="sm" className="w-full">
-            <Brain className="h-4 w-4 mr-2" /> Editar Estrutura da Memória de Atendimento
-          </Button>
-          <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
-            Estrutura não definida — Clique em "Editar Estrutura" para definir os campos da memória.
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Campos que a IA pode Atualizar</Label>
-            <Button variant="outline" size="sm">+ Adicionar Campo</Button>
-          </div>
-          {fields.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground text-center">
-              Nenhum campo habilitado. Use o botão "Adicionar Campo" para selecionar campos que a IA poderá atualizar.
-            </div>
-          ) : (
-            <ul className="text-[12px] space-y-1">
-              {fields.map((f, i) => <li key={i}>• {f}</li>)}
-            </ul>
-          )}
-        </div>
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px]">
-          <strong>Diferença do operador "Salvar Memória":</strong> No operador, você define o valor
-          fixo (ex: <code>{"{{sale_ai_output_plan}}"}</code>). Aqui na tool, a IA decide
-          dinamicamente quando e com qual valor atualizar cada campo, baseado na conversa.
-        </div>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="how">
-            <AccordionTrigger className="text-sm">Como funciona</AccordionTrigger>
-            <AccordionContent>
-              <p className="text-[12px] mb-2">
-                Esta tool é registrada dinamicamente no agente com os campos que você selecionar. A IA recebe:
-              </p>
-              <ul className="list-disc pl-4 text-[11px] space-y-0.5">
-                <li>Nome do campo como nome do parâmetro</li>
-                <li>Tipo do schema (string, number, array, object...) como tipo do parâmetro</li>
-                <li>Descrição do schema como description do parâmetro</li>
-                <li>Quando a IA chamar a tool, os valores serão salvos na memória do atendimento em <code>{"{{memory.campo}}"}</code>.</li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </>
-    );
+    return <MemoriaAtendimentoPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 14: Consulta API (IA) ---
