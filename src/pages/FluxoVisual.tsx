@@ -4156,6 +4156,22 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   };
                   return (
                     <div className="space-y-2">
+                      {isTags && (
+                        <datalist id="fluxo-tag-presets">
+                          {[
+                            "abandonou-carrinho","abmex","active-campaign","aguardando-pagamento","appmax","ativo-whatsapp",
+                            "b4you","braip","calendly","cancelado","cartao-credito","cartpanda","compra-realizada","custom",
+                            "digital_guru","disputando","doppus","eduzz","email","email-cold","email-hot","email-warm",
+                            "estornou","evermart","facebook","form","gerou-boleto","gerou-pix","greenn","grupo-whats",
+                            "grupo-whatsapp","herospark","hotmart","hotwebinar","importado-csv","import-contact",
+                            "iniciou-pagamento-cartao","irroba","iset","kirvano","kiwify","lastlink","leadster",
+                            "loja_integrada","manychat","melldin","monetizze","neemo","notazz","nuvemshop","pagarme",
+                            "payt","pepper","perfect-pay","proaluno","rd_station_marketing","sacoleiroapp","sellflux",
+                            "sellfront","shopify","telefone","ticto","tictov2","tray","unbounce","vnda","voomp","wbuy",
+                            "wix","woocommerce","wordpress","yampi",
+                          ].map((t) => (<option key={t} value={t} />))}
+                        </datalist>
+                      )}
                       <Label>
                         {isSplit ? "Caminhos paralelos" : isTags ? "Tags" : "Caminhos (valores comparados)"}
                       </Label>
@@ -4172,16 +4188,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             {idx + 1}
                           </span>
                           {isTags ? (
-                            <Input
-                              value={b.value || ""}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const next = branches.map((x, i) => i === idx ? { ...x, value: v, label: v } : x);
-                                updateBranches(next);
-                              }}
-                              placeholder="Nome da tag (ex: cliente-vip)"
-                              className="flex-1"
-                            />
+                            <>
+                              <Input
+                                value={b.value || ""}
+                                list="fluxo-tag-presets"
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const next = branches.map((x, i) => i === idx ? { ...x, value: v, label: v } : x);
+                                  updateBranches(next);
+                                }}
+                                placeholder="Selecione ou digite uma tag"
+                                className="flex-1"
+                              />
+                            </>
                           ) : (
                             <Input
                               value={b.label || ""}
