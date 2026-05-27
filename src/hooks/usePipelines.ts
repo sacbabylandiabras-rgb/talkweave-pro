@@ -178,11 +178,8 @@ export function usePipelines() {
       .eq("pipeline_id", pipelineId);
     if (error) throw error;
     if (!members || members.length === 0) return [];
-    const ids = members.map((m: any) => m.user_id);
     const { data: profiles } = await (supabase as any)
-      .from("profiles")
-      .select("id, email, full_name")
-      .in("id", ids);
+      .rpc("get_pipeline_member_profiles", { _pipeline_id: pipelineId });
     const byId = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]));
     return members.map((m: any) => ({
       ...m,
