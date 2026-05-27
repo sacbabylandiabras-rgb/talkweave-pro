@@ -4084,7 +4084,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 {(() => {
                   const isSplit = (selectedNode.data?.label || "").toLowerCase().includes("split");
                   const isTags = (selectedNode.data?.label || "").toLowerCase().includes("tag");
-                  if (isSplit || isTags) return null;
+                  const isHorario = (selectedNode.data?.label || "").toLowerCase().includes("horário") || (selectedNode.data?.label || "").toLowerCase().includes("horario");
+                  if (isSplit || isTags || isHorario) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
