@@ -569,13 +569,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         y: event.clientY,
       });
 
+      let extraData: Record<string, unknown> = {};
+      if (type === "agentTool") {
+        try {
+          const raw = event.dataTransfer.getData(AGENT_TOOL_DRAG_KEY);
+          if (raw) extraData = JSON.parse(raw);
+        } catch {
+          extraData = {};
+        }
+      }
+
       const newNode: Node = {
         id: `${Date.now()}`,
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : "Ação"}`,
+          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : type === "agentTool" ? (extraData as any).label || "Ferramenta" : "Ação"}`,
           content: "",
+          ...extraData,
         },
       };
 
