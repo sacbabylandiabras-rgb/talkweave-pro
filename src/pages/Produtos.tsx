@@ -82,9 +82,9 @@ export default function Produtos() {
       if (!user) throw new Error("Não autenticado");
       const ext = file.name.split(".").pop();
       const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("agent-products").upload(path, file, { upsert: true });
+      const { error: upErr } = await (supabase as any).storage.from("agent-products").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("agent-products").getPublicUrl(path);
+      const { data: pub } = (supabase as any).storage.from("agent-products").getPublicUrl(path);
       setImageUrl(pub.publicUrl);
     } catch (e: any) {
       toast({ title: "Erro no upload", description: e.message, variant: "destructive" });
@@ -112,11 +112,11 @@ export default function Produtos() {
         updated_at: new Date().toISOString(),
       };
       if (editing) {
-        const { error } = await supabase.from("agent_products").update(payload).eq("id", editing.id);
+        const { error } = await (supabase as any).from("agent_products").update(payload).eq("id", editing.id);
         if (error) throw error;
         toast({ title: "Produto atualizado" });
       } else {
-        const { error } = await supabase.from("agent_products").insert(payload);
+        const { error } = await (supabase as any).from("agent_products").insert(payload);
         if (error) throw error;
         toast({ title: "Produto criado" });
       }
@@ -132,7 +132,7 @@ export default function Produtos() {
 
   const handleDelete = async (p: Product) => {
     if (!confirm(`Excluir "${p.name}"?`)) return;
-    const { error } = await supabase.from("agent_products").delete().eq("id", p.id);
+    const { error } = await (supabase as any).from("agent_products").delete().eq("id", p.id);
     if (error) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
       return;
