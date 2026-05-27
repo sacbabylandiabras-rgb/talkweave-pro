@@ -35,12 +35,9 @@ type ResumoConfig = {
 };
 
 const MODELS: Array<{ value: string; label: string; info: string }> = [
-  { value: "gpt-4.1-mini", label: "GPT 4.1 mini", info: "Tokens de entrada: 0,40US$/Milhão · Tokens de saída: 2,40US$/Milhão · Cache: 0,10US$/Milhão" },
-  { value: "gpt-4.1", label: "GPT 4.1", info: "Tokens de entrada: 2,00US$/Milhão · Tokens de saída: 8,00US$/Milhão · Cache: 0,50US$/Milhão" },
-  { value: "gpt-4o-mini", label: "GPT 4o mini", info: "Tokens de entrada: 0,15US$/Milhão · Tokens de saída: 0,60US$/Milhão · Cache: 0,075US$/Milhão" },
-  { value: "gpt-4o", label: "GPT 4o", info: "Tokens de entrada: 2,50US$/Milhão · Tokens de saída: 10,00US$/Milhão · Cache: 1,25US$/Milhão" },
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", info: "Tokens de entrada: 0,30US$/Milhão · Tokens de saída: 2,50US$/Milhão · Cache: 0,075US$/Milhão" },
-  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", info: "Tokens de entrada: 1,25US$/Milhão · Tokens de saída: 10,00US$/Milhão · Cache: 0,30US$/Milhão" },
+  { value: "claude-haiku-4.5", label: "Claude Haiku 4.5", info: "Tokens de entrada: 1,00US$/Milhão · Tokens de saída: 5,00US$/Milhão · Cache: 0,10US$/Milhão" },
+  { value: "claude-sonnet-4.5", label: "Claude Sonnet 4.5", info: "Tokens de entrada: 3,00US$/Milhão · Tokens de saída: 15,00US$/Milhão · Cache: 0,30US$/Milhão" },
+  { value: "claude-opus-4.1", label: "Claude Opus 4.1", info: "Tokens de entrada: 15,00US$/Milhão · Tokens de saída: 75,00US$/Milhão · Cache: 1,50US$/Milhão" },
 ];
 
 function countTokens(text: string): number {
