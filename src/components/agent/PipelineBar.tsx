@@ -114,28 +114,33 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
       if (!user) return;
 
       try {
-        const { data, error } = await (supabase as any)
-          .from('profiles')
-          .select('pipeline_stages')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        const raw = data?.pipeline_stages;
-
-        let loaded: Pipeline[] = [];
-        if (Array.isArray(raw) && raw.length > 0) {
-          // Detect legacy flat shape [{id,label,color}] vs new [{id,name,stages}]
-          if ((raw[0] as any).stages) {
-            loaded = raw as Pipeline[];
-          } else {
-            loaded = [{
-              id: `pipeline_${Date.now()}`,
-              name: "Funil de Vendas",
-              stages: raw as Stage[],
-            }];
-          }
+        // Owned pipelines
+        const { data: owned } = await (supabase as any)
+          .from('pipelines')
+          .select('id, name, department, currency, stages')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true });
+        // Shared pipelines
+        const { data: memberships } = await (supabase as any)
+          .from('pipeline_members')
+          .select('pipeline_id')
+          .eq('user_id', user.id);
+        const sharedIds = (memberships || []).map((m: any) => m.pipeline_id);
+        let shared: any[] = [];
+        if (sharedIds.length > 0) {
+          const { data: sp } = await (supabase as any)
+            .from('pipelines')
+            .select('id, name, department, currency, stages')
+            .in('id', sharedIds);
+          shared = sp || [];
         }
+        const loaded: Pipeline[] = [...(owned || []), ...shared].map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          department: p.department,
+          currency: p.currency,
+          stages: Array.isArray(p.stages) ? p.stages : [],
+        }));
         setPipelines(loaded);
 
         const savedActive = localStorage.getItem(LS_ACTIVE_KEY) || "";
@@ -154,14 +159,31 @@ export const PipelineBar = ({ selectedStage, onStageSelect, counts, onStagesChan
   }, []);
 
   const savePipelines = async (next: Pipeline[]) => {
+    // Persist each pipeline to the new `pipelines` table (upsert by id).
     setPipelines(next);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     try {
-      await (supabase as any)
-        .from('profiles')
-        .update({ pipeline_stages: next as any })
-        .eq('id', user.id);
+      for (const p of next) {
+        const existing = pipelines.find(x => x.id === p.id);
+        if (existing) {
+          await (supabase as any)
+            .from('pipelines')
+            .update({ name: p.name, department: p.department || null, currency: p.currency || 'BRL', stages: p.stages })
+            .eq('id', p.id);
+        } else {
+          await (supabase as any)
+            .from('pipelines')
+            .insert({ owner_id: user.id, name: p.name, department: p.department || null, currency: p.currency || 'BRL', stages: p.stages });
+        }
+      }
+      // Delete pipelines no longer in `next` (only owned ones)
+      const nextIds = new Set(next.map(p => p.id));
+      for (const p of pipelines) {
+        if (!nextIds.has(p.id)) {
+          await (supabase as any).from('pipelines').delete().eq('id', p.id);
+        }
+      }
     } catch (err) {
       console.error("Error saving pipelines:", err);
       toast({ title: "Aviso", description: "Alterações aplicadas localmente." });
