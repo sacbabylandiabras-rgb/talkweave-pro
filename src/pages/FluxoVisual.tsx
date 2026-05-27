@@ -324,6 +324,7 @@ const blocosDisponiveis = [
     icon: MessageSquare,
     description: "Exibe \"digitando...\" por 5 segundos",
     category: "Envio de Mensagens",
+    extraData: { actionType: "typing", typingDuration: 5 },
   },
   {
     type: "blocoConteudo",
@@ -3853,9 +3854,32 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="webhook">Chamar Webhook</SelectItem>
                       <SelectItem value="delay">Adicionar Delay (Segundos)</SelectItem>
                       <SelectItem value="schedule">Agendar Horário (Fixo)</SelectItem>
+                      <SelectItem value="typing">Mostrar "Digitando…"</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {selectedNode.data.actionType === "typing" && (
+                  <div>
+                    <Label>Duração (segundos)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="25"
+                      value={selectedNode.data.typingDuration ?? 5}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, typingDuration: e.target.value },
+                        })
+                      }
+                      placeholder="Ex: 5"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Exibe o status "digitando…" no WhatsApp do contato pelo tempo definido, simulando que você está digitando antes de enviar a próxima mensagem.
+                    </p>
+                  </div>
+                )}
 
                  {selectedNode.data.actionType === "delay" && (
                    <div>
