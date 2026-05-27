@@ -3320,12 +3320,24 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
     return (
       <>
         {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Criar tarefa CRM no lead"
-          placeholder="Ex: quando o cliente pedir retorno ou der uma data, registrar com título e prazo..."
-        />
+        <div>
+          <Label>
+            Descrição da ferramenta — Criar tarefa CRM no lead{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            value={node.data?.description || ""}
+            onChange={(e) =>
+              setNode({ ...node, data: { ...node.data, description: e.target.value } })
+            }
+            placeholder="Ex: quando o cliente pedir retorno ou der uma data, registrar com título e prazo..."
+            rows={3}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Obrigatório. Descreva quando o agente deve acionar esta ferramenta e qual ação ele
+            executa.
+          </p>
+        </div>
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] space-y-1">
           <div className="font-semibold">Lembrete ou tarefa para quem você está falando agora</div>
           <p>
@@ -3342,9 +3354,18 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
           <ul className="list-disc pl-4 space-y-1 text-[11px]">
             <li>Um nome claro para o que precisa ser feito.</li>
             <li>Quando (dia e hora combinados ou pedidos na conversa).</li>
-            <li>Se combinar, dá para incluir detalhes, tipo de pendência (ligação, e-mail, reunião ou lembrete), urgência, tamanho aproximado do esforço e quem deve executar. Se mencionar algo que já apareceu como número de oportunidade, chamado ou compromisso, o assistente pode usar esse id como contexto.</li>
-            <li>Quem você é nesse projeto e o contexto do atendimento costumam ser preenchidos automaticamente. Use a descrição da ferramenta no topo do modal para indicar em que situação criar uma tarefa e o que não pode ficar em branco.</li>
           </ul>
+          <p className="text-[11px] mt-2">
+            <strong>Se combinar</strong>, dá para incluir detalhes, tipo de pendência (ligação,
+            e-mail, reunião ou lembrete), urgência, tamanho aproximado do esforço e quem deve
+            executar. Se mencionar algo que já apareceu como número de oportunidade, chamado ou
+            compromisso, o assistente pode usar esse id como contexto.
+          </p>
+          <p className="text-[11px] mt-2">
+            Quem você é nesse projeto e o contexto do atendimento costumam ser preenchidos
+            automaticamente. Use a descrição da ferramenta no topo do modal para indicar em que
+            situação criar uma tarefa e o que não pode ficar em branco.
+          </p>
         </InfoBlock>
       </>
     );
