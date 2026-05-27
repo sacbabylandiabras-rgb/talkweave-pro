@@ -1157,7 +1157,34 @@ async function executeTool(
       }
     }
     case "transferir_estrategia": {
-      return JSON.stringify({ ok: true, message: `Atendimento transferido para estratégia/agente: ${input.agente_id}` });
+      try {
+        const { data: cfg } = await supabase
+          .from("agent_tools_config")
+          .select("config")
+          .eq("user_id", userId)
+          .eq("tool_name", "transferir_estrategia")
+          .maybeSingle();
+        const c: any = cfg?.config || {};
+        const flowId = c.targetFlowId || input.agente_id;
+        if (!flowId) {
+          return JSON.stringify({ ok: false, error: "Nenhuma estratégia de destino configurada." });
+        }
+        const { data: flow } = await supabase
+          .from("flow_automations")
+          .select("id,name,active")
+          .eq("id", flowId)
+          .maybeSingle();
+        return JSON.stringify({
+          ok: true,
+          end_flow: !!c.endFlow,
+          strategy: flow ? { id: flow.id, name: flow.name } : { id: flowId },
+          message: flow
+            ? `Atendimento transferido para a estratégia ${flow.name}.`
+            : `Atendimento transferido para estratégia ${flowId}.`,
+        });
+      } catch (e: any) {
+        return JSON.stringify({ ok: false, error: String(e?.message || e) });
+      }
     }
     case "chats_antigos": {
       return JSON.stringify({ ok: true, history: [] });
