@@ -2911,6 +2911,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           {generatingTts ? "Gerando..." : "Gerar e salvar"}
                         </Button>
                       </div>
+
+                      {selectedNode.data.mediaUrl && (
+                        <div className="rounded-md border border-border bg-muted/40 p-2 space-y-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Áudio salvo no bloco{selectedNode.data.audioName ? ` — ${selectedNode.data.audioName}` : ""}
+                          </Label>
+                          <audio
+                            controls
+                            src={selectedNode.data.mediaUrl}
+                            className="w-full h-9"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
