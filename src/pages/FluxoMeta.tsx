@@ -1473,6 +1473,9 @@ export default function FluxoMeta() {
               </div>
             ))}
           </div>
+
+          {/* Row 3: Agent Tool Blocks */}
+          <AgentToolsBar />
         </div>
 
         {/* Canvas */}
