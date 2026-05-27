@@ -4916,6 +4916,29 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     </>
                   );
                 }
+                const label = String(selectedNode.data.label || "").toLowerCase();
+                const memoryVariant: "atendimento" | "lead" | "projeto" | null =
+                  /mem[oó]ria de atendimento/.test(label)
+                    ? "atendimento"
+                    : /mem[oó]ria de lead/.test(label)
+                    ? "lead"
+                    : /mem[oó]ria de projeto/.test(label)
+                    ? "projeto"
+                    : null;
+                if (memoryVariant) {
+                  return (
+                    <MemoriaAtendimentoEditor
+                      data={selectedNode.data}
+                      variant={memoryVariant}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, actionType: `memory_${memoryVariant}`, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
                 const isTypingBlock =
                   selectedNode.data.actionType === "typing" ||
                   /digitando/i.test(String(selectedNode.data.label || ""));
