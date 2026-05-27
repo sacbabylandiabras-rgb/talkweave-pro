@@ -48,6 +48,7 @@ import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
 import { ResumoConversaEditor } from "@/components/flow/ResumoConversaEditor";
 import { AdicionarTagsEditor } from "@/components/flow/AdicionarTagsEditor";
+import { ListarDadosCrmEditor } from "@/components/flow/ListarDadosCrmEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5027,6 +5028,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/criar\s*registro\s*crm/.test(label)) {
                   return (
                     <CriarRegistroCrmEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/listar\s*dados\s*crm/.test(label)) {
+                  return (
+                    <ListarDadosCrmEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
