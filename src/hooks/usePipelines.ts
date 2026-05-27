@@ -191,15 +191,12 @@ export function usePipelines() {
   const addMemberByEmail = useCallback(async (pipelineId: string, email: string, role: "viewer" | "editor") => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) throw new Error("E-mail vazio");
-    const { data: profile } = await (supabase as any)
-      .from("profiles")
-      .select("id, email")
-      .eq("email", cleanEmail)
-      .maybeSingle();
-    if (!profile?.id) throw new Error("Nenhum usuário encontrado com este e-mail");
+    const { data: foundId } = await (supabase as any)
+      .rpc("find_profile_id_by_email", { _email: cleanEmail });
+    if (!foundId) throw new Error("Nenhum usuário encontrado com este e-mail");
     const { error } = await (supabase as any)
       .from("pipeline_members")
-      .upsert({ pipeline_id: pipelineId, user_id: profile.id, role }, { onConflict: "pipeline_id,user_id" });
+      .upsert({ pipeline_id: pipelineId, user_id: foundId, role }, { onConflict: "pipeline_id,user_id" });
     if (error) throw error;
     return profile.id as string;
   }, []);
