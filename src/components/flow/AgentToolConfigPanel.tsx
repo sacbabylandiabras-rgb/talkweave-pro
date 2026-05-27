@@ -1961,40 +1961,7 @@ export function AgentToolConfigPanel({ node, setNode }: Props) {
 
   // --- MODAL 19: MCP ---
   if (toolName === "mcp_connect") {
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — MCP (Model Context Protocol)" />
-        <div className="space-y-2">
-          <Label>Endpoint do MCP</Label>
-          <Input
-            value={node.data?.mcpUrl || ""}
-            onChange={(e) => setData(node, setNode, { mcpUrl: e.target.value })}
-            placeholder="https://mcp.exemplo.com/endpoint"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Use variáveis dinâmicas: <code>{"{{global.campo}}"}</code>, <code>{"{{project.campo}}"}</code>
-          </p>
-        </div>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="headers">
-            <AccordionTrigger className="text-sm">Parâmetros Headers</AccordionTrigger>
-            <AccordionContent>
-              <p className="text-[11px] text-muted-foreground mb-2">
-                Cabeçalhos HTTP enviados na requisição ao MCP. Use variáveis dinâmicas ou valores fixos.
-              </p>
-              <Button variant="outline" size="sm">+ Adicionar</Button>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-        <Button variant="outline" className="w-full">
-          <Plug className="h-4 w-4 mr-2" /> Ativar tools do MCP
-        </Button>
-        <p className="text-[11px] text-muted-foreground text-center italic">
-          Nenhuma tool está ativa no momento
-        </p>
-      </>
-    );
+    return <McpPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 20: Horário Atual ---
