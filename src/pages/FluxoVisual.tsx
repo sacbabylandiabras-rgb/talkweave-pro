@@ -60,6 +60,7 @@ import { SupervisorEditor } from "@/components/flow/SupervisorEditor";
 import { FimFluxoEditor } from "@/components/flow/FimFluxoEditor";
 import { FinalizarAtendimentoEditor } from "@/components/flow/FinalizarAtendimentoEditor";
 import { ExpertIAEditor } from "@/components/flow/ExpertIAEditor";
+import { LeaderIAEditor } from "@/components/flow/LeaderIAEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
 import {
@@ -5195,6 +5196,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 if (/expert\s*ia/i.test(label)) {
                   return (
                     <ExpertIAEditor
+                      data={selectedNode.data}
+                      onChange={(patch) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, ...patch },
+                        })
+                      }
+                    />
+                  );
+                }
+                if (/leader\s*ia/i.test(label)) {
+                  return (
+                    <LeaderIAEditor
                       data={selectedNode.data}
                       onChange={(patch) =>
                         setSelectedNode({
