@@ -259,6 +259,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [showContactsDialog, setShowContactsDialog] = useState(false);
   const [showAddBlockDialog, setShowAddBlockDialog] = useState(false);
+  const [pendingAgentConnection, setPendingAgentConnection] = useState<
+    | {
+        sourceId: string;
+        sourceHandle: string | null;
+        position: { x: number; y: number };
+      }
+    | null
+  >(null);
+  const connectingFromAgentRef = useRef<{ sourceId: string; sourceHandle: string | null } | null>(null);
   const { sendMessage, sendImage, sendVideo, sendAudio, sendDocument, sendButtonActions } = useZapi();
   const { instances: zapiInstances } = useZapiInstances({
     includeMeta: false,
@@ -531,6 +540,39 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }, eds));
     },
     [setEdges]
+  );
+
+  const onConnectStart = useCallback(
+    (_event: any, params: { nodeId: string | null; handleId: string | null; handleType: string | null }) => {
+      if (!params.nodeId || params.handleType !== "source") {
+        connectingFromAgentRef.current = null;
+        return;
+      }
+      const node = nodes.find((n) => n.id === params.nodeId);
+      if (node?.type === "agenteIA") {
+        connectingFromAgentRef.current = { sourceId: params.nodeId, sourceHandle: params.handleId };
+      } else {
+        connectingFromAgentRef.current = null;
+      }
+    },
+    [nodes]
+  );
+
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      const info = connectingFromAgentRef.current;
+      connectingFromAgentRef.current = null;
+      if (!info || !reactFlowInstance) return;
+      const target = event.target as HTMLElement | null;
+      const droppedOnPane = !!target?.classList?.contains("react-flow__pane");
+      if (!droppedOnPane) return;
+      const clientX = "clientX" in event ? event.clientX : (event as TouchEvent).changedTouches?.[0]?.clientX ?? 0;
+      const clientY = "clientY" in event ? event.clientY : (event as TouchEvent).changedTouches?.[0]?.clientY ?? 0;
+      const position = reactFlowInstance.screenToFlowPosition({ x: clientX, y: clientY });
+      setPendingAgentConnection({ sourceId: info.sourceId, sourceHandle: info.sourceHandle, position });
+      setShowAddBlockDialog(true);
+    },
+    [reactFlowInstance]
   );
 
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
@@ -1516,6 +1558,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             onInit={setReactFlowInstance}
@@ -3263,17 +3307,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       />
       <AddBlockDialog
         open={showAddBlockDialog}
-        onOpenChange={setShowAddBlockDialog}
+        onOpenChange={(open) => {
+          setShowAddBlockDialog(open);
+          if (!open) setPendingAgentConnection(null);
+        }}
         baseBlocks={blocosDisponiveis}
+        showAgentTools={!!pendingAgentConnection}
         onSelect={(sel) => {
-          const position = reactFlowInstance
+          const position = pendingAgentConnection
+            ? pendingAgentConnection.position
+            : reactFlowInstance
             ? reactFlowInstance.screenToFlowPosition({
                 x: (reactFlowWrapper.current?.clientWidth ?? 600) / 2,
                 y: (reactFlowWrapper.current?.clientHeight ?? 400) / 2,
               })
             : { x: 250, y: 200 };
+          const newId = `${Date.now()}`;
           const newNode: Node = {
-            id: `${Date.now()}`,
+            id: newId,
             type: sel.type,
             position,
             data: {
@@ -3284,6 +3335,22 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             },
           };
           setNodes((nds) => nds.concat(newNode));
+          if (pendingAgentConnection) {
+            setEdges((eds) =>
+              addEdge(
+                {
+                  source: pendingAgentConnection.sourceId,
+                  sourceHandle: pendingAgentConnection.sourceHandle ?? undefined,
+                  target: newId,
+                  animated: true,
+                  style: { stroke: "#2563EB", strokeWidth: 3, zIndex: 1000 },
+                  markerEnd: { type: MarkerType.ArrowClosed, color: "#2563EB", width: 20, height: 20 },
+                } as any,
+                eds
+              )
+            );
+            setPendingAgentConnection(null);
+          }
           toast.success("Bloco adicionado ao fluxo!");
         }}
       />
