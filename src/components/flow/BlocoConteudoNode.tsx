@@ -251,6 +251,12 @@ export function BlocoConteudoNode({ data }: any) {
       {/* Media preview */}
       <MediaPreview contentType={contentType} mediaUrl={data.mediaUrl} data={data} />
 
+      {contentType === "audio" && data.audioName && (
+        <div className="text-[10px] text-muted-foreground mt-1.5 truncate">
+          {data.audioName}
+        </div>
+      )}
+
       {data.content && (
         <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap break-words">
           {data.content}
