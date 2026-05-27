@@ -119,8 +119,7 @@ export function AdicionarMsgChatEditor({
                 <code className="text-foreground">{"{{lead.email}}"}</code> — E-mail do lead
               </li>
               <li>
-                <code className="text-foreground">{"{{node-X.lastIparseUselessit.campo}}"}</code> —
-                Resultado de outro node
+                <code className="text-foreground">{"{{node-X.output.campo}}"}</code> — Resultado de outro node
               </li>
               <li>
                 <code className="text-foreground">{"{{memory.campo}}"}</code> — Dados salvos no momento
