@@ -42,6 +42,8 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Bot, Sparkles, BookOpen, ArrowRightLeft, ChevronRight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Accordion,
   AccordionContent,
@@ -2240,45 +2242,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 9: Adicionar tag ---
   if (toolName === "adicionar_tag") {
-    const tags: string[] = Array.isArray(node.data?.tags) ? node.data.tags : [];
-    return (
-      <>
-        {Header}
-        <DescField node={node} setNode={setNode} label="Descrição da ferramenta — Adicionar tag" />
-        <div className="space-y-2">
-          <Label>Tags</Label>
-          <div className="flex flex-wrap gap-1">
-            {tags.length === 0 && (
-              <span className="text-[11px] text-muted-foreground italic">Nenhuma tag selecionada</span>
-            )}
-            {tags.map((t) => (
-              <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px]">
-                <Tag className="h-3 w-3" /> {t}
-                <button
-                  type="button"
-                  className="ml-1 hover:text-destructive"
-                  onClick={() => setData(node, setNode, { tags: tags.filter((x) => x !== t) })}
-                >×</button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nova tag"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const v = (e.target as HTMLInputElement).value.trim();
-                  if (v && !tags.includes(v)) setData(node, setNode, { tags: [...tags, v] });
-                  (e.target as HTMLInputElement).value = "";
-                }
-              }}
-            />
-          </div>
-          <p className="text-[10px] text-muted-foreground">Pressione Enter para adicionar.</p>
-        </div>
-      </>
-    );
+    return <AdicionarTagPanel node={node} setNode={setNode} Header={Header} />;
   }
 
   // --- MODAL 10: Listar usuários da equipe ---
