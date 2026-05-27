@@ -177,6 +177,15 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [];
 
+const isMensagemAudioBlock = (node?: Node | null) => {
+  const label = String(node?.data?.label || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return node?.type === "blocoConteudo" && label.includes("mensagem em audio");
+};
+
 const blocosDisponiveis = [
   // AGENTES IA
   {
