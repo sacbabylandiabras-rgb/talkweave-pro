@@ -60,6 +60,7 @@ export function BlocoCondicaoNode({ data }: any) {
     const isFiltroMensagem = (data.label || "").toLowerCase().includes("filtro por mensagem");
     const isFiltroStatus = (data.label || "").toLowerCase().includes("filtro por status do atendimento") || (data.label || "").toLowerCase().includes("status do atendimento");
     const isFiltroSessao = (data.label || "").toLowerCase().includes("filtro por sessão") || (data.label || "").toLowerCase().includes("filtro por sessao");
+    const isFiltroFollowUp = (data.label || "").toLowerCase().includes("follow up") || (data.label || "").toLowerCase().includes("followup");
     const filtroOperatorShort: Record<string, string> = {
       equals: "=",
       greater: ">",
@@ -92,6 +93,11 @@ export function BlocoCondicaoNode({ data }: any) {
         ? [
             { label: "Sessão Aberta", value: "open" },
             { label: "Sessão Fechada", value: "closed" },
+          ]
+        : isFiltroFollowUp
+        ? [
+            { label: "Follow Up", value: "followup" },
+            { label: "Não é Follow Up", value: "not_followup" },
           ]
         : [
             { label: "Verdadeiro", value: data.condition || "" },
@@ -172,6 +178,11 @@ export function BlocoCondicaoNode({ data }: any) {
                     <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${b.value === "open" ? "bg-emerald-500" : "bg-rose-500"}`} />
                     <span className="font-medium">{b.label}</span>
                   </>
+                ) : isFiltroFollowUp ? (
+                  <>
+                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${b.value === "followup" ? "bg-cyan-500" : "bg-slate-500"}`} />
+                    <span className="font-medium">{b.label}</span>
+                  </>
                 ) : (
                   <>
                     <span className="text-muted-foreground mr-1">se =</span>
@@ -189,7 +200,7 @@ export function BlocoCondicaoNode({ data }: any) {
               />
             </div>
           ))}
-          {!isSplit && !isHorario && !isFiltroStatus && !isFiltroSessao && (
+          {!isSplit && !isHorario && !isFiltroStatus && !isFiltroSessao && !isFiltroFollowUp && (
           <div
             className="relative flex items-center gap-2 px-3 mt-1 mx-2 mb-1 rounded-md bg-orange-500/15 border border-orange-500/40 text-[11px] text-orange-200"
             style={{ height: ROW }}
