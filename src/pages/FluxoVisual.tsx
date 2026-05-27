@@ -324,6 +324,7 @@ const blocosDisponiveis = [
     icon: MessageSquare,
     description: "Exibe \"digitando...\" por 5 segundos",
     category: "Envio de Mensagens",
+    extraData: { actionType: "typing", typingDuration: 5 },
   },
   {
     type: "blocoConteudo",
