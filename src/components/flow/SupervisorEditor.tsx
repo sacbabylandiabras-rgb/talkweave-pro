@@ -119,12 +119,18 @@ export function SupervisorEditor({ data, onChange }: Props) {
           </SelectContent>
         </Select>
         <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-          <Info className="h-3 w-3 mt-0.5 shrink-0" />
           <span>
-            Custo estimado por uso. O modelo escolhido afeta qualidade e
-            velocidade da resposta.
+            Tokens de entrada: 0,600$/Milhão · Tokens de saída: 2,400$/Milhão ·
+            Cache: 0,150$/Milhão
           </span>
         </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+        >
+          <Info className="h-3 w-3" />
+          O que são esses valores?
+        </button>
       </div>
 
       <div className="space-y-2">
