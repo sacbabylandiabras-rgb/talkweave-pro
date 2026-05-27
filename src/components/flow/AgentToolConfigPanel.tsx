@@ -1356,6 +1356,161 @@ function TransferirEstrategiaPanel({ node, setNode, Header }: { node: any; setNo
   );
 }
 
+type TeamMember = { id: string; name: string; email: string };
+function ListarEquipePanel({ node, setNode, Header, id }: { node: any; setNode: (n: any) => void; Header: ReactNode; id: string }) {
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const scope: string = node.data?.teamScope || "all";
+  const selectedIds: string[] = Array.isArray(node.data?.teamSelectedIds) ? node.data.teamSelectedIds : [];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const collected = new Map<string, TeamMember>();
+        const { data: self } = await (supabase as any)
+          .from("profiles").select("id,full_name,email").eq("id", user.id).maybeSingle();
+        if (self) collected.set(self.id, { id: self.id, name: self.full_name || self.email, email: self.email });
+        const { data: pipes } = await (supabase as any)
+          .from("pipelines").select("id").eq("owner_id", user.id);
+        const pipeIds = (pipes || []).map((p: any) => p.id);
+        if (pipeIds.length) {
+          const { data: pm } = await (supabase as any)
+            .from("pipeline_members").select("user_id").in("pipeline_id", pipeIds);
+          const memberIds = Array.from(new Set((pm || []).map((m: any) => m.user_id))).filter((u) => u !== user.id);
+          if (memberIds.length) {
+            const { data: profs } = await (supabase as any)
+              .from("profiles").select("id,full_name,email").in("id", memberIds);
+            (profs || []).forEach((p: any) =>
+              collected.set(p.id, { id: p.id, name: p.full_name || p.email, email: p.email })
+            );
+          }
+        }
+        setMembers(Array.from(collected.values()));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        setSaving(true);
+        const config = {
+          description: node.data?.description || "",
+          scope,
+          selectedIds: scope === "selected" ? selectedIds : [],
+        };
+        await (supabase as any)
+          .from("agent_tools_config")
+          .upsert(
+            { user_id: session.user.id, tool_name: "listar_equipe", enabled: true, config },
+            { onConflict: "user_id,tool_name" }
+          );
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("save listar_equipe", e);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.data?.description, scope, JSON.stringify(selectedIds)]);
+
+  const toggle = (mid: string, checked: boolean) => {
+    const next = checked ? Array.from(new Set([...selectedIds, mid])) : selectedIds.filter((x) => x !== mid);
+    setData(node, setNode, { teamSelectedIds: next });
+  };
+
+  return (
+    <>
+      {Header}
+      <DescField
+        node={node}
+        setNode={setNode}
+        label="Descrição da ferramenta — Listar usuários da equipe (IDs)"
+      />
+      <div className="rounded-lg border border-border p-3 flex gap-2">
+        <Users className="h-4 w-4 mt-0.5 text-primary" />
+        <div>
+          <div className="text-sm font-medium">Usuários da equipe (IDs)</div>
+          <p className="text-[11px] text-muted-foreground">
+            A IA pode consultar a lista para obter user_id (mesmo identificador usado em
+            owner_user_id em tickets e tarefas).
+          </p>
+        </div>
+      </div>
+      <div>
+        <Label className="mb-2 block">Escopo da listagem</Label>
+        <RadioGroup
+          value={scope}
+          onValueChange={(v) => setData(node, setNode, { teamScope: v })}
+          className="space-y-1"
+        >
+          <div className="flex items-center gap-2">
+            <RadioGroupItem id="team-all" value="all" />
+            <Label htmlFor="team-all" className="cursor-pointer font-normal">
+              Todos os usuários ativos da equipe do projeto
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem id="team-selected" value="selected" />
+            <Label htmlFor="team-selected" className="cursor-pointer font-normal">
+              Somente usuários selecionados abaixo
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+      {scope === "selected" && (
+        <div className="space-y-2">
+          <Label className="text-[12px]">Usuários disponíveis</Label>
+          {loading ? (
+            <p className="text-[11px] text-muted-foreground italic">Carregando equipe...</p>
+          ) : members.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">Nenhum usuário encontrado.</p>
+          ) : (
+            <div className="space-y-1 max-h-56 overflow-y-auto rounded-md border border-border p-2">
+              {members.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-[12px] cursor-pointer hover:bg-accent rounded px-1 py-0.5">
+                  <Checkbox
+                    checked={selectedIds.includes(m.id)}
+                    onCheckedChange={(c) => toggle(m.id, !!c)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{m.name}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{m.email}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <InfoBlock>
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold mb-0.5">Uso com tickets e tarefas</div>
+            Conecte este bloco ao agente/expert pela alça de tools. O nome da função segue o
+            padrão <code>task_users_list_tool_{id}</code>. Campos retornados:
+            <code> user_id, name, email</code>.
+          </div>
+        </div>
+      </InfoBlock>
+      <p className="text-[10px] text-muted-foreground text-right">
+        {saving ? "Salvando…" : savedAt ? "Configuração salva ✓" : "Edite para salvar automaticamente"}
+      </p>
+    </>
+  );
+}
+
 type Pipeline = { id: string; name: string; stages: any };
 function GerenciarTicketCrmPanel({ node, setNode, Header }: { node: any; setNode: (n: any) => void; Header: ReactNode }) {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -2128,59 +2283,7 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 10: Listar usuários da equipe ---
   if (toolName === "listar_equipe") {
-    const scope = node.data?.teamScope || "all";
-    return (
-      <>
-        {Header}
-        <DescField
-          node={node}
-          setNode={setNode}
-          label="Descrição da ferramenta — Listar usuários da equipe (IDs)"
-        />
-        <div className="rounded-lg border border-border p-3 flex gap-2">
-          <Users className="h-4 w-4 mt-0.5 text-primary" />
-          <div>
-            <div className="text-sm font-medium">Usuários da equipe (IDs)</div>
-            <p className="text-[11px] text-muted-foreground">
-              A IA pode consultar a lista para obter user_id (mesmo identificador usado em
-              owner_user_id em tickets e tarefas).
-            </p>
-          </div>
-        </div>
-        <div>
-          <Label className="mb-2 block">Escopo da listagem</Label>
-          <RadioGroup
-            value={scope}
-            onValueChange={(v) => setData(node, setNode, { teamScope: v })}
-            className="space-y-1"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="team-all" value="all" />
-              <Label htmlFor="team-all" className="cursor-pointer font-normal">
-                Todos os usuários ativos da equipe do projeto
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="team-selected" value="selected" />
-              <Label htmlFor="team-selected" className="cursor-pointer font-normal">
-                Somente usuários selecionados abaixo
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <InfoBlock>
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold mb-0.5">Uso com tickets e tarefas</div>
-              Conecte este bloco ao agente/expert pela alça de tools. O nome da função segue o
-              padrão <code>task_users_list_tool_{id}</code>. Campos retornados:
-              <code> user_id, name, email</code>.
-            </div>
-          </div>
-        </InfoBlock>
-      </>
-    );
+    return <ListarEquipePanel node={node} setNode={setNode} Header={Header} id={id} />;
   }
 
   // --- MODAL 11: Finalizar Atendimento ---
