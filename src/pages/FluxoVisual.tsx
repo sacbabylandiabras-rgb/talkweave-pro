@@ -3833,8 +3833,23 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             )}
 
             {selectedNode?.type === "blocoAcao" && (
+              (() => {
+                const isTypingBlock =
+                  selectedNode.data.actionType === "typing" ||
+                  /digitando/i.test(String(selectedNode.data.label || ""));
+                if (isTypingBlock && selectedNode.data.actionType !== "typing") {
+                  // auto-corrige blocos antigos
+                  setTimeout(() => {
+                    setSelectedNode((prev: any) =>
+                      prev && prev.id === selectedNode.id
+                        ? { ...prev, data: { ...prev.data, actionType: "typing" } }
+                        : prev,
+                    );
+                  }, 0);
+                }
+                return (
               <>
-                {selectedNode.data.actionType !== "typing" && (
+                {!isTypingBlock && (
                 <div>
                   <Label>Tipo de Ação</Label>
                   <Select
@@ -3861,7 +3876,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
                 )}
 
-                {selectedNode.data.actionType === "typing" && (
+                {isTypingBlock && (
                   <div>
                     <Label>Duração (segundos)</Label>
                     <Input
@@ -3872,7 +3887,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       onChange={(e) =>
                         setSelectedNode({
                           ...selectedNode,
-                          data: { ...selectedNode.data, typingDuration: e.target.value },
+                          data: { ...selectedNode.data, actionType: "typing", typingDuration: e.target.value },
                         })
                       }
                       placeholder="Ex: 5"
