@@ -48,6 +48,7 @@ import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
 import { ResumoConversaEditor } from "@/components/flow/ResumoConversaEditor";
 import { AdicionarTagsEditor } from "@/components/flow/AdicionarTagsEditor";
+import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import {
   PlayCircle,
   MessageSquare,
