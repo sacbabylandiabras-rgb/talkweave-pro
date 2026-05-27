@@ -3834,6 +3834,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoAcao" && (
               <>
+                {selectedNode.data.actionType !== "typing" && (
                 <div>
                   <Label>Tipo de Ação</Label>
                   <Select
@@ -3858,6 +3859,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     </SelectContent>
                   </Select>
                 </div>
+                )}
 
                 {selectedNode.data.actionType === "typing" && (
                   <div>
