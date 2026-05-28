@@ -719,9 +719,11 @@ async function getInstagramToken(supabase: any, userId: string): Promise<string 
 async function executeTool(
   toolName: string,
   input: any,
-  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean; instanceId?: string | null },
+  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean; instanceId?: string | null; sentProofIds?: string[]; newlySentProofIds?: string[] },
 ): Promise<string> {
   const { supabase, userId, phone, testMode, instanceId } = ctx;
+  const sentProofIds: string[] = Array.isArray(ctx.sentProofIds) ? ctx.sentProofIds : [];
+  const newlySent: string[] = Array.isArray(ctx.newlySentProofIds) ? ctx.newlySentProofIds : [];
 
   if (testMode && ["enviar_botoes", "enviar_lista", "enviar_imagem", "enviar_link", "gerar_pix"].includes(toolName)) {
     return JSON.stringify({
