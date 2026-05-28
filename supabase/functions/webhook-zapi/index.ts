@@ -107,7 +107,10 @@ async function resolveAgentInboundText(messageRaw: string, audioUrl: string): Pr
     return transcript;
   }
   console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
-  return messageRaw || "[áudio recebido]";
+  const fallbackText = String(messageRaw || "")
+    .replace(/\[media:audio:[^\]]+\]/gi, "")
+    .trim();
+  return fallbackText || "[áudio recebido]";
 }
 
 serve(async (req) => {
@@ -601,7 +604,13 @@ serve(async (req) => {
       }
     }
 
-    const normalizedMessage = normalizeForMatch(messageRaw);
+    const agentInboundText = incomingAudioUrl
+      ? await resolveAgentInboundText(messageRaw || "", incomingAudioUrl)
+      : messageRaw;
+    const displayInboundMessage = incomingAudioUrl
+      ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInboundText || "[áudio recebido]"}`
+      : messageRaw;
+    const normalizedMessage = normalizeForMatch(agentInboundText || messageRaw);
 
     const { data: participantFlowState } = await supabase
       .from("flow_captured_data")
@@ -711,16 +720,13 @@ serve(async (req) => {
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "agenteIA") {
             flowStateHandled = true;
-            const agentInboundText = await resolveAgentInboundText(messageRaw, incomingAudioUrl);
             if (messageId) {
               await supabase.from("message_logs").insert({
                 user_id: userId,
                 phone: chatId,
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
-                message_received: incomingAudioUrl
-                  ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInboundText}`
-                  : messageRaw,
+                message_received: displayInboundMessage,
                 response_sent: `[Agente IA: ${flow.name}]`,
                 keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
                 message_id: messageId,
@@ -736,7 +742,7 @@ serve(async (req) => {
               instanceData,
               chatId,
               isGroup,
-              webhook,
+              { ...webhook, __agent_input_text: agentInboundText },
             );
             return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
@@ -934,13 +940,24 @@ serve(async (req) => {
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: messageRaw,
+            message_received: displayInboundMessage,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: triggerKey,
             message_id: messageId,
           });
 
-          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+          await executeFlow(
+            supabase,
+            userId,
+            phone,
+            flow,
+            startNodeId,
+            {},
+            instanceData,
+            chatId,
+            isGroup,
+            { ...webhook, __agent_input_text: agentInboundText },
+          );
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -958,17 +975,13 @@ serve(async (req) => {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
-        const agentInputText = await resolveAgentInboundText(messageRaw || "", incomingAudioUrl);
-
         if (messageId) {
           await supabase.from("message_logs").insert({
             user_id: userId,
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: incomingAudioUrl
-              ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInputText}`
-              : messageRaw,
+            message_received: displayInboundMessage,
             response_sent: "[Agente IA global]",
             keyword_matched: `__global_agent_inbound__:${messageId}`,
             message_id: messageId,
@@ -977,7 +990,7 @@ serve(async (req) => {
         
         const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
           body: {
-            messages: [{ role: "user", content: agentInputText || "Olá" }],
+            messages: [{ role: "user", content: agentInboundText || "Olá" }],
             user_id: userId,
             phone: phone,
           }
@@ -1013,9 +1026,7 @@ serve(async (req) => {
           phone: chatId,
           instance_id: instanceId,
           timestamp: new Date().toISOString(),
-          message_received: incomingAudioUrl
-            ? `[media:audio:${incomingAudioUrl}]${messageRaw ? `\n${messageRaw}` : ""}`
-            : messageRaw,
+          message_received: displayInboundMessage,
           message_id: messageId,
         });
       }
