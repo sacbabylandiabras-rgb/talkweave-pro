@@ -2091,6 +2091,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               pannable
               className="!bg-card !border !border-border !rounded-lg"
             />
+            <FlowLeadOverlay positions={leadPositions} />
           </ReactFlow>
         </div>
 
