@@ -1095,6 +1095,29 @@ async function executeFlow(
 
     if (!node) break;
 
+    // Rastreamento em tempo real: registra posição atual do lead no fluxo
+    try {
+      if (flow?.id && userId && phone) {
+        const contactName =
+          webhook?.senderName || webhook?.sender?.name || webhook?.chatName || null;
+        await supabase
+          .from("flow_lead_positions")
+          .upsert(
+            {
+              user_id: userId,
+              flow_id: String(flow.id),
+              phone: String(phone),
+              contact_name: contactName,
+              block_id: String(currentNodeId),
+              status: "active",
+              entered_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,flow_id,phone" },
+          );
+      }
+    } catch (_e) { /* silencioso */ }
+
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
