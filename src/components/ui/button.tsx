@@ -47,31 +47,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       />
     );
 
-    // Check for active theme via CSS class or attribute
-    const [activeTheme, setActiveTheme] = React.useState<string | null>(null);
-
-    React.useEffect(() => {
-      const checkTheme = () => {
-        const isDark = document.documentElement.classList.contains("dark");
-        const themeAttr = document.documentElement.getAttribute("data-theme");
-        setActiveTheme(isDark ? "purple" : themeAttr);
-      };
-
-      checkTheme();
-
-      const observer = new MutationObserver(checkTheme);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["class", "data-theme"],
-      });
-
-      return () => observer.disconnect();
-    }, []);
-
     const shouldShowSpinningBorder = 
-      className?.includes("spinning-border") || 
-      activeTheme === "purple" || 
-      activeTheme === "white";
+      className?.includes("spinning-border");
 
     if (shouldShowSpinningBorder) {
       const isSmall = size === "sm" || size === "icon" || className?.includes("h-8");
