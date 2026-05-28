@@ -720,16 +720,13 @@ serve(async (req) => {
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "agenteIA") {
             flowStateHandled = true;
-            const agentInboundText = await resolveAgentInboundText(messageRaw, incomingAudioUrl);
             if (messageId) {
               await supabase.from("message_logs").insert({
                 user_id: userId,
                 phone: chatId,
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
-                message_received: incomingAudioUrl
-                  ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInboundText}`
-                  : messageRaw,
+                message_received: displayInboundMessage,
                 response_sent: `[Agente IA: ${flow.name}]`,
                 keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
                 message_id: messageId,
@@ -745,7 +742,7 @@ serve(async (req) => {
               instanceData,
               chatId,
               isGroup,
-              webhook,
+              { ...webhook, __agent_input_text: agentInboundText },
             );
             return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
