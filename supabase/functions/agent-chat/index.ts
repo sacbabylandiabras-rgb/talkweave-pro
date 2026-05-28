@@ -676,6 +676,33 @@ function hasCheckoutIntent(text: string): boolean {
   return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|cart[aã]o|cr[eé]dito|d[eé]bito|parcel(ar|amento|ado)?|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
 }
 
+const CHECKOUT_SEARCH_STOPWORDS = new Set([
+  "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos", "das", "para", "pra", "pro", "por", "com", "sem",
+  "me", "te", "se", "eu", "vc", "voce", "você", "cliente", "lead", "agora", "aqui", "ai", "aí", "quero", "quer", "queria",
+  "manda", "mandar", "mande", "envia", "enviar", "envie", "gera", "gerar", "gere", "abre", "abrir", "faz", "fazer",
+  "link", "checkout", "pagamento", "pagar", "pago", "pix", "cartao", "cartão", "credito", "crédito", "debito", "débito",
+  "plano", "planos", "preco", "preço", "valor", "comprar", "compra", "assinar", "assinatura", "cobranca", "cobrança",
+]);
+
+function getCheckoutSearchText(messages: any[] = [], fallback = ""): string {
+  const recent = messages
+    .slice(-8)
+    .map((m: any) => String(m?.content || ""))
+    .filter(Boolean)
+    .join("\n");
+  return `${recent}\n${fallback}`.trim() || fallback;
+}
+
+function getMeaningfulCheckoutTokens(text: string): string[] {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !CHECKOUT_SEARCH_STOPWORDS.has(token));
+}
+
 function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
   const text = String(lastUserText || "").toLowerCase();
   if (hasCheckoutIntent(text)) return false;
@@ -944,6 +971,8 @@ async function executeTool(
           .toLowerCase();
         if (!termo) return JSON.stringify({ error: "Informe o plano desejado." });
 
+        const allSearchText = getCheckoutSearchText(input.messages || [], termo).toLowerCase();
+
         const { data: checkouts } = await supabase
           .from("gateway_checkouts")
           .select("id, name, slug, status, product_id")
@@ -965,7 +994,7 @@ async function executeTool(
 
         const productMap = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]));
         const normalized = (value: any) => String(value || "").toLowerCase();
-        const termoTokens = termo.split(/\s+/).filter(Boolean);
+        const termoTokens = getMeaningfulCheckoutTokens(allSearchText);
 
         const asksForCheapest =
           /\b(mais barato|barato|menor preço|menor preco|inicial|entrada|básico|basico|start)\b/i.test(termo);
@@ -998,7 +1027,7 @@ async function executeTool(
         if (!bestCheckout?.slug || !bestProduct) {
           const { data: allProducts } = await supabase
             .from("gateway_products")
-            .select("id, name, description, price, type, status, sku")
+            .select("id, name, description, price, type, status, sku, created_at")
             .eq("user_id", userId)
             .eq("status", true)
             .limit(100);
@@ -1021,11 +1050,20 @@ async function executeTool(
 
           const productPick = productScored[0]?.product;
           if (!productPick) {
-            return JSON.stringify({ error: "Nenhum plano/produto encontrado para esse termo." });
+            const activeProducts = allProducts || [];
+            const fallbackProduct = asksForCheapest
+              ? activeProducts.sort((a: any, b: any) => Number(a.price || 0) - Number(b.price || 0))[0]
+              : activeProducts.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+            if (!fallbackProduct) {
+              return JSON.stringify({ error: "Nenhum plano/produto ativo encontrado." });
+            }
+            productScored.unshift({ product: fallbackProduct, score: 1 });
           }
 
+          const selectedProduct = productScored[0]?.product;
+
           // gera slug único curto
-          const baseSlug = String(productPick.name || "checkout")
+          const baseSlug = String(selectedProduct.name || "checkout")
             .toLowerCase()
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
             .replace(/[^a-z0-9]+/g, "-")
@@ -1035,8 +1073,8 @@ async function executeTool(
 
           // config mínima: apenas o nome do produto, SEM productImage
           const minimalConfig = {
-            productName: productPick.name,
-            price: productPick.price,
+            productName: selectedProduct.name,
+            price: selectedProduct.price,
             pix: true,
             creditCard: true,
             debitCard: false,
@@ -1061,8 +1099,8 @@ async function executeTool(
             .from("gateway_checkouts")
             .insert({
               user_id: userId,
-              name: productPick.name,
-              product_id: productPick.id,
+              name: selectedProduct.name,
+              product_id: selectedProduct.id,
               slug,
               status: true,
               config: minimalConfig,
@@ -1074,7 +1112,7 @@ async function executeTool(
             return JSON.stringify({ error: createErr?.message || "Falha ao criar checkout." });
           }
           bestCheckout = created;
-          bestProduct = productPick;
+          bestProduct = selectedProduct;
         }
 
         const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${bestCheckout.slug}`;
@@ -1749,10 +1787,10 @@ serve(async (req) => {
     systemPrompt +=
       "\n- NUNCA use gerar_cobranca_gateway para entregar link de checkout/pagamento. Sempre prefira gateway_buscar_plano_checkout.";
     systemPrompt +=
-      "\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios de forma sucinta, mas nunca escreva a URL no texto.";
+      "\n- Quando existir checkout disponível, responda mencionando o plano de forma sucinta e envie também o link direto de pagamento.";
     systemPrompt += "\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.";
     systemPrompt +=
-      "\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.";
+      "\n- Se houver link de checkout, o cliente precisa receber a URL no texto e/ou botão. Não diga que vai buscar depois; envie o link na mesma resposta.";
     systemPrompt +=
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
@@ -1790,17 +1828,14 @@ serve(async (req) => {
     const lastUserText = String(lastUserMessage?.content || "").trim();
     let forcedSocialProofRaw: string | null = null;
     let forcedSocialProofSent = false;
-    const hasPricingIntent =
-      /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(
-        lastUserText,
-      );
+    const hasPricingIntent = hasCheckoutIntent(lastUserText);
     let prefetchedCta: { label: string; url: string } | null = null;
 
     if (hasPricingIntent) {
       try {
         const prefetchedPlanRaw = await executeTool(
           "gateway_buscar_plano_checkout",
-          { termo: lastUserText },
+          { termo: lastUserText, messages: messages || [] },
           {
             supabase,
             userId: effectiveUserId,
@@ -1826,7 +1861,7 @@ serve(async (req) => {
           }
           systemPrompt += `\nCheckout real: ${prefetchedUrl}`;
           systemPrompt +=
-            "\nAo responder, apresente este plano como opção correta e conduza o cliente para fechar a compra.";
+            "\nAo responder, apresente este plano como opção correta e envie a URL acima diretamente para o cliente fechar a compra agora.";
         }
       } catch (prefetchError) {
         console.error("Erro ao pré-buscar checkout:", prefetchError);
@@ -2197,9 +2232,14 @@ serve(async (req) => {
       }
     }
 
+    if (checkoutUrl && !safeReply.includes(checkoutUrl)) {
+      safeReply = `${safeReply}\n\nLink de pagamento: ${checkoutUrl}`.trim();
+    }
+
     const replyPayload: Record<string, unknown> = {
       reply: safeReply,
     };
+
     if (checkoutUrl) {
       replyPayload.cta = {
         label: finalCta?.label || prefetchedCta?.label || "Abrir checkout",
