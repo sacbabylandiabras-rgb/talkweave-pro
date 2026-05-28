@@ -806,11 +806,15 @@ serve(async (req) => {
         // 2. Check trigger nodes (blocoGatilho)
         if (!shouldTrigger && triggerNodes.length > 0) {
           for (const tNode of triggerNodes) {
-            const nodeKeyword = tNode.data?.keyword;
-            if (nodeKeyword && isKeywordMatch(normalizedMessage, nodeKeyword)) {
-              console.log(`[FlowTrigger] Match found in flow ${flow.name} with trigger node keyword: ${nodeKeyword}`);
+            const nodeKeywords = String(tNode.data?.keyword || "")
+              .split(",")
+              .map((k: string) => k.trim())
+              .filter(Boolean);
+            const matchedNode = nodeKeywords.find((k: string) => isKeywordMatch(normalizedMessage, k));
+            if (matchedNode) {
+              console.log(`[FlowTrigger] Match found in flow ${flow.name} with trigger node keyword: ${matchedNode}`);
               shouldTrigger = true;
-              matchedKeyword = nodeKeyword;
+              matchedKeyword = matchedNode;
               const edge = (flow.edges || []).find((e: any) => String(e.source) === String(tNode.id));
               startNodeId = edge?.target;
               break;
