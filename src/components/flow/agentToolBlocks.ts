@@ -26,6 +26,7 @@ import {
   Search,
   Star,
   CreditCard,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 
