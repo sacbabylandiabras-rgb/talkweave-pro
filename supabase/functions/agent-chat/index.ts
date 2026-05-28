@@ -1270,9 +1270,11 @@ async function executeTool(
         // Exclude proofs already sent to this lead in the current conversation
         const alreadySent = new Set<string>([...sentProofIds, ...newlySent]);
         let pool = list.filter((r: any) => !alreadySent.has(r.id));
-        // If everything was already sent, rotate (reset history) so we can send again
-        const rotated = pool.length === 0;
-        if (rotated) pool = list;
+        // Nunca reinicia o ciclo automaticamente: isso evita reenviar a mesma prévia
+        // quando o lead pede checkout/pagamento ou quando o webhook chega duplicado.
+        if (pool.length === 0) {
+          return JSON.stringify({ ok: false, already_sent: true, message: "Todas as prévias cadastradas já foram enviadas para este lead." });
+        }
 
         let chosen: any = pool[0];
         if (termo) {
@@ -1289,7 +1291,7 @@ async function executeTool(
 
         if (!phone) {
           newlySent.push(chosen.id);
-          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated, info: "Sem número de destino (modo teste)." });
+          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated: false, info: "Sem número de destino (modo teste)." });
         }
         const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
         if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
@@ -1304,7 +1306,7 @@ async function executeTool(
         );
         if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
         newlySent.push(chosen.id);
-        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated, result: r });
+        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated: false, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
       }
