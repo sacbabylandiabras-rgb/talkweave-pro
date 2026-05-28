@@ -1234,6 +1234,7 @@ async function executeFlow(
         ...chatHistory,
         { role: "user", content: userMessage || "Olá" }
       ].slice(-10); // Keep last 10 messages for context
+      const connectedTools = getConnectedAgentTools(nodes, edges, node.id);
 
       console.log(`[Flow:agenteIA] Calling agent-chat for phone ${phone} with history: ${currentMessages.length} msgs`);
       
@@ -1242,6 +1243,8 @@ async function executeFlow(
           messages: currentMessages,
           user_id: userId,
           phone: phone,
+          instance_id: instance?.id || null,
+          connected_tools: connectedTools,
           system_prompt: resolvedPrompt,
           skip_config: true,
           model: node.data.model || "claude-sonnet-4-6"
