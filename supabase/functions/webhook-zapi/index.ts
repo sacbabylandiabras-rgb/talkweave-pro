@@ -54,6 +54,38 @@ function getCaptureHandle(field: string) {
   return `collect-${field}`;
 }
 
+// Transcreve áudio (URL) usando OpenAI Whisper. Retorna string vazia em falha.
+async function transcribeAudioUrl(audioUrl: string): Promise<string> {
+  try {
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey || !audioUrl) return "";
+    const audioRes = await fetch(audioUrl);
+    if (!audioRes.ok) {
+      console.error("[transcribeAudioUrl] download falhou:", audioRes.status);
+      return "";
+    }
+    const audioBuf = await audioRes.arrayBuffer();
+    const blob = new Blob([audioBuf], { type: audioRes.headers.get("content-type") || "audio/ogg" });
+    const form = new FormData();
+    form.append("file", blob, "audio.ogg");
+    form.append("model", "whisper-1");
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+    if (!r.ok) {
+      console.error("[transcribeAudioUrl] whisper falhou:", r.status, await r.text());
+      return "";
+    }
+    const data = await r.json();
+    return String(data?.text || "").trim();
+  } catch (e) {
+    console.error("[transcribeAudioUrl] erro:", e);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -896,13 +928,28 @@ serve(async (req) => {
 
       if (agentConfig?.active) {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
+
+        // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
+        let agentInputText = messageRaw || "";
+        const incomingAudioUrl = webhook?.audio?.url || "";
+        if (incomingAudioUrl) {
+          const transcript = await transcribeAudioUrl(incomingAudioUrl);
+          if (transcript) {
+            console.log(`[AI Agent] Áudio transcrito (${transcript.length} chars): ${transcript.slice(0, 120)}`);
+            agentInputText = transcript;
+          } else {
+            console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
+            agentInputText = agentInputText || "[áudio recebido]";
+          }
+        }
+
         if (messageId) {
           await supabase.from("message_logs").insert({
             user_id: userId,
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: messageRaw,
+            message_received: incomingAudioUrl ? `[áudio] ${agentInputText}` : messageRaw,
             response_sent: "[Agente IA global]",
             keyword_matched: `__global_agent_inbound__:${messageId}`,
             message_id: messageId,
@@ -911,7 +958,7 @@ serve(async (req) => {
         
         const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
           body: {
-            messages: [{ role: "user", content: messageRaw || "Olá" }],
+            messages: [{ role: "user", content: agentInputText || "Olá" }],
             user_id: userId,
             phone: phone,
           }
