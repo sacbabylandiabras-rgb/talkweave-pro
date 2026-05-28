@@ -1060,7 +1060,9 @@ async function executeTool(
             .insert({
               user_id: userId,
               name: selectedProduct.name,
-              product_id: selectedProduct.id,
+              // NÃO vincula product_id para evitar que o checkout estático
+              // (pay.html no Vercel) puxe a foto do produto.
+              product_id: null,
               slug,
               status: true,
               config: minimalConfig,
