@@ -1350,6 +1350,18 @@ async function executeFlow(
 
     currentNodeId = nextEdge?.target;
   }
+
+  // Marca lead como finalizado quando o fluxo termina
+  try {
+    if (flow?.id && userId && phone) {
+      await supabase
+        .from("flow_lead_positions")
+        .update({ status: "completed", updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("flow_id", String(flow.id))
+        .eq("phone", String(phone));
+    }
+  } catch (_e) { /* silencioso */ }
 }
 
 function replaceVars(text: string, captured: any, phone: string) {
