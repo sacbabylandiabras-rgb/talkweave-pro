@@ -1863,7 +1863,7 @@ serve(async (req) => {
 
     const checkoutMatch = finalText.match(/https?:\/\/[^\s)]+/);
     const checkoutUrl = finalCta?.url || prefetchedCta?.url || checkoutMatch?.[0] || null;
-    const sanitizedReply = String(finalText || "")
+    const sanitizedReply = stripToolMetaText(finalText)
       .replace(/https?:\/\/[^\s)]+/g, "")
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
