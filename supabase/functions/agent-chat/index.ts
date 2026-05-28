@@ -991,29 +991,111 @@ async function executeTool(
           .filter((entry: any) => entry.score > 0 && entry.checkout?.slug);
 
         const best = scored.sort((a: any, b: any) => b.score - a.score)[0];
-        if (!best?.checkout?.slug || !best?.product) {
-          return JSON.stringify({ error: "Nenhum checkout ativo encontrado para esse plano." });
+        let bestCheckout = best?.checkout || null;
+        let bestProduct = best?.product || null;
+
+        // Fallback: nenhum checkout ativo — procura um produto que case e cria um checkout enxuto na hora
+        if (!bestCheckout?.slug || !bestProduct) {
+          const { data: allProducts } = await supabase
+            .from("gateway_products")
+            .select("id, name, description, price, type, status, sku")
+            .eq("user_id", userId)
+            .eq("status", true)
+            .limit(100);
+
+          const productScored = (allProducts || [])
+            .map((p: any) => {
+              const hay = [p.name, p.description, p.sku].map(normalized).join(" ");
+              let score = 0;
+              if (asksForCheapest && typeof p?.price === "number") {
+                score += Math.max(0, 1000000 - p.price);
+              }
+              if (hay.includes(termo)) score += 10;
+              for (const token of termoTokens) {
+                if (hay.includes(token)) score += 2;
+              }
+              return { product: p, score };
+            })
+            .filter((e: any) => e.score > 0)
+            .sort((a: any, b: any) => b.score - a.score);
+
+          const productPick = productScored[0]?.product;
+          if (!productPick) {
+            return JSON.stringify({ error: "Nenhum plano/produto encontrado para esse termo." });
+          }
+
+          // gera slug único curto
+          const baseSlug = String(productPick.name || "checkout")
+            .toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "checkout";
+          const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
+
+          // config mínima: apenas o nome do produto, SEM productImage
+          const minimalConfig = {
+            productName: productPick.name,
+            price: productPick.price,
+            pix: true,
+            creditCard: true,
+            debitCard: false,
+            boleto: false,
+            format: "one_step",
+            buttonText: "Pagar Agora",
+            maxInstallments: 12,
+            theme: "light",
+            font: "inter",
+            primaryColor: "#10B981",
+            bgColor: "#F5F5F5",
+            textColor: "#1F2937",
+            showCpf: true,
+            showPhone: true,
+            showAddress: false,
+            showBirthdate: false,
+            showSecurityBadges: true,
+            showLogo: false,
+          };
+
+          const { data: created, error: createErr } = await supabase
+            .from("gateway_checkouts")
+            .insert({
+              user_id: userId,
+              name: productPick.name,
+              product_id: productPick.id,
+              slug,
+              status: true,
+              config: minimalConfig,
+            })
+            .select("id, name, slug")
+            .maybeSingle();
+
+          if (createErr || !created?.slug) {
+            return JSON.stringify({ error: createErr?.message || "Falha ao criar checkout." });
+          }
+          bestCheckout = created;
+          bestProduct = productPick;
         }
 
-        const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${best.checkout.slug}`;
+        const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${bestCheckout.slug}`;
 
         return JSON.stringify({
           found: true,
           plano: {
-            id: best.product.id,
-            nome: best.product.name,
-            descricao: best.product.description,
-            preco_reais: (best.product.price / 100).toFixed(2),
-            tipo: best.product.type,
+            id: bestProduct.id,
+            nome: bestProduct.name,
+            descricao: bestProduct.description,
+            preco_reais: (Number(bestProduct.price || 0) / 100).toFixed(2),
+            tipo: bestProduct.type,
           },
           checkout: {
-            id: best.checkout.id,
-            nome: best.checkout.name,
-            slug: best.checkout.slug,
+            id: bestCheckout.id,
+            nome: bestCheckout.name,
+            slug: bestCheckout.slug,
             url: checkoutUrl,
           },
           cta: {
-            label: `Pagar ${best.product.name}`,
+            label: `Pagar ${bestProduct.name}`,
             url: checkoutUrl,
           },
         });
