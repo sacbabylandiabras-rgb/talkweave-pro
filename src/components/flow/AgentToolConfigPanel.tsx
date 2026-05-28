@@ -3990,9 +3990,6 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
   }
 
   // --- MODAL 24: RAG ---
-  if (toolName === "rag_documentos") {
-    // handled below
-  }
   if (toolName === "enviar_prova_social") {
     return (
       <>
