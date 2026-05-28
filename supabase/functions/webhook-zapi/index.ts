@@ -940,13 +940,24 @@ serve(async (req) => {
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: messageRaw,
+            message_received: displayInboundMessage,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: triggerKey,
             message_id: messageId,
           });
 
-          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, webhook);
+          await executeFlow(
+            supabase,
+            userId,
+            phone,
+            flow,
+            startNodeId,
+            {},
+            instanceData,
+            chatId,
+            isGroup,
+            { ...webhook, __agent_input_text: agentInboundText },
+          );
           return new Response("flow_triggered", { status: 200, headers: corsHeaders });
         }
       }
@@ -964,17 +975,13 @@ serve(async (req) => {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
-        const agentInputText = await resolveAgentInboundText(messageRaw || "", incomingAudioUrl);
-
         if (messageId) {
           await supabase.from("message_logs").insert({
             user_id: userId,
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: incomingAudioUrl
-              ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInputText}`
-              : messageRaw,
+            message_received: displayInboundMessage,
             response_sent: "[Agente IA global]",
             keyword_matched: `__global_agent_inbound__:${messageId}`,
             message_id: messageId,
