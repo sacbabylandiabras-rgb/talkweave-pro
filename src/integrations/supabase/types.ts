@@ -122,6 +122,51 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_social_proof: {
+        Row: {
+          active: boolean
+          caption: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          media_type: string
+          media_url: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          caption?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: string
+          media_url: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          caption?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: string
+          media_url?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_tools_config: {
         Row: {
           config: Json

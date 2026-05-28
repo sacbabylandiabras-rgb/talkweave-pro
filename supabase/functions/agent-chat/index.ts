@@ -306,6 +306,22 @@ const TOOL_DEFS: Record<string, any> = {
       required: ["transaction_id"],
     },
   },
+  gerar_cobranca_gateway: {
+    name: "gerar_cobranca_gateway",
+    description:
+      "Gera uma cobrança PIX no gateway configurado e retorna brcode/qrcode para enviar ao lead. Informe productId (preferencial) OU amount (em reais) + descrição.",
+    input_schema: {
+      type: "object",
+      properties: {
+        productId: { type: "string", description: "ID do produto no gateway (opcional)" },
+        amount: { type: "number", description: "Valor em reais (decimal)" },
+        description: { type: "string", description: "Descrição da cobrança" },
+        customer_name: { type: "string", description: "Nome do cliente" },
+        customer_email: { type: "string", description: "E-mail do cliente" },
+        customer_document: { type: "string", description: "CPF/CNPJ do cliente" },
+      },
+    },
+  },
   ler_anexo: {
     name: "ler_anexo",
     description: "Lê texto de PDF, TXT ou planilha a partir da URL do anexo.",
@@ -1024,6 +1040,78 @@ async function executeTool(
     }
     case "enviar_transacao": {
       return JSON.stringify({ ok: true, message: `Status da transação ${input.transaction_id} enviado.` });
+    }
+    case "gerar_cobranca_gateway": {
+      try {
+        const payload: Record<string, unknown> = {
+          userId,
+          productId: input?.productId || null,
+          amount: typeof input?.amount === "number" ? input.amount : Number(input?.amount) || 0,
+          description: input?.description || "",
+          lead: {
+            name: input?.customer_name || null,
+            email: input?.customer_email || null,
+            phone: phone || null,
+            document: input?.customer_document || null,
+          },
+        };
+        const resp = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-create-charge`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify(payload),
+          },
+        );
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          return JSON.stringify({ error: data?.error || `Falha ao gerar cobrança (HTTP ${resp.status})` });
+        }
+
+        // Try to deliver the PIX directly to the lead when possible
+        const charge = data?.charge || {};
+        if (phone && !testMode) {
+          try {
+            const creds = await getUserUazapiCreds(supabase, userId);
+            if (creds) {
+              const valorTxt = typeof charge.amount === "number"
+                ? `R$ ${charge.amount.toFixed(2).replace(".", ",")}`
+                : "";
+              const legenda = [
+                "💳 *Cobrança PIX gerada*",
+                charge.description ? `Produto: ${charge.description}` : "",
+                valorTxt ? `Valor: ${valorTxt}` : "",
+                "",
+                "Copie o código abaixo no app do seu banco:",
+                `\`${charge.brcode}\``,
+              ].filter(Boolean).join("\n");
+
+              if (charge.qrcode_image) {
+                await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
+                  number: phone,
+                  type: "image",
+                  file: charge.qrcode_image,
+                  text: legenda,
+                });
+              } else if (charge.brcode) {
+                await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", {
+                  number: phone,
+                  text: legenda,
+                });
+              }
+            }
+          } catch (sendErr) {
+            console.error("[gerar_cobranca_gateway] envio falhou", sendErr);
+          }
+        }
+
+        return JSON.stringify({ ok: true, charge });
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || "Falha ao gerar cobrança" });
+      }
     }
     case "ler_anexo": {
       return JSON.stringify({ ok: true, text: "Conteúdo do anexo processado (simulado)." });
