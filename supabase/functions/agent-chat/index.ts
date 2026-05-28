@@ -2232,12 +2232,13 @@ serve(async (req) => {
       }
     }
 
-    const replyPayload: Record<string, unknown> = {
-      reply: safeReply,
-    };
     if (checkoutUrl && !safeReply.includes(checkoutUrl)) {
       safeReply = `${safeReply}\n\nLink de pagamento: ${checkoutUrl}`.trim();
     }
+
+    const replyPayload: Record<string, unknown> = {
+      reply: safeReply,
+    };
 
     if (checkoutUrl) {
       replyPayload.cta = {
