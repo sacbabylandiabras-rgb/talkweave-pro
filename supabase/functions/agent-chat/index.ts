@@ -2109,6 +2109,12 @@ serve(async (req) => {
         url: checkoutUrl,
       };
     }
+    if (newlySentProofIds.length > 0) {
+      // Return the updated history (existing + newly sent), deduped
+      const merged = Array.from(new Set([...incomingSentProofIds, ...newlySentProofIds]));
+      replyPayload.sent_proof_ids = merged;
+      replyPayload.newly_sent_proof_ids = Array.from(new Set(newlySentProofIds));
+    }
 
     return new Response(JSON.stringify(replyPayload), {
       status: 200,
