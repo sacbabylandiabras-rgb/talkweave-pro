@@ -2070,8 +2070,20 @@ serve(async (req) => {
       : executedToolNames.has("gerar_cobranca_gateway")
         ? "Te mandei a cobrança aqui."
         : "Desculpe, não consegui processar uma resposta agora.";
+
+    // Quando a prova social foi enviada com sucesso, NUNCA deixe o modelo
+    // inventar mensagens de "problema técnico" ou nomes de pessoas (ex: "Marta").
+    let safeReply = sanitizedReply || fallbackReply;
+    if (forcedSocialProofSent) {
+      const looksBroken = /(problema\s+t[eé]cnico|probleminha|n[aã]o\s+consegui\s+enviar|falha|erro|aciona(r|rei)|me\s+aguarda|aguarde|um\s+momento|pessoalmente|marta|jo[aã]o)/i
+        .test(safeReply);
+      if (!safeReply || looksBroken) {
+        safeReply = "Te mandei aqui, dá uma olhada 😉";
+      }
+    }
+
     const replyPayload: Record<string, unknown> = {
-      reply: sanitizedReply || fallbackReply,
+      reply: safeReply,
     };
     if (checkoutUrl) {
       replyPayload.cta = {
