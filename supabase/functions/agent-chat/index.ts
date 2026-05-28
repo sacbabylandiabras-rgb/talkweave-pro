@@ -1261,9 +1261,16 @@ async function executeTool(
         const list = rows || [];
         if (list.length === 0) return JSON.stringify({ error: "Nenhuma prova social cadastrada." });
 
-        let chosen: any = list[0];
+        // Exclude proofs already sent to this lead in the current conversation
+        const alreadySent = new Set<string>([...sentProofIds, ...newlySent]);
+        let pool = list.filter((r: any) => !alreadySent.has(r.id));
+        // If everything was already sent, rotate (reset history) so we can send again
+        const rotated = pool.length === 0;
+        if (rotated) pool = list;
+
+        let chosen: any = pool[0];
         if (termo) {
-          const scored = list.map((r: any) => {
+          const scored = pool.map((r: any) => {
             const hay = [r.title, r.description, r.caption, r.category, ...(r.tags || [])]
               .filter(Boolean).join(" ").toLowerCase();
             let s = 0;
@@ -1275,7 +1282,8 @@ async function executeTool(
         }
 
         if (!phone) {
-          return JSON.stringify({ ok: true, preview: chosen, info: "Sem número de destino (modo teste)." });
+          newlySent.push(chosen.id);
+          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated, info: "Sem número de destino (modo teste)." });
         }
         const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
         if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
@@ -1289,7 +1297,8 @@ async function executeTool(
           type,
         );
         if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
-        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, result: r });
+        newlySent.push(chosen.id);
+        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
       }
