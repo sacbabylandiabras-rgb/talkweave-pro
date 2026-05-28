@@ -1762,7 +1762,7 @@ serve(async (req) => {
           forcedSocialProofRaw = await executeTool(
             "enviar_prova_social",
             { termo: lastUserText },
-            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null, sentProofIds: incomingSentProofIds, newlySentProofIds },
           );
           console.log("[AgentChat] forced enviar_prova_social result:", String(forcedSocialProofRaw).substring(0, 400));
           const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
@@ -1982,6 +1982,8 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
             instanceId: instance_id || null,
+            sentProofIds: incomingSentProofIds,
+            newlySentProofIds,
           });
           executedToolNames.add(tu.name);
           if (tu.name === "enviar_prova_social") {
@@ -2038,6 +2040,8 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
             instanceId: instance_id || null,
+            sentProofIds: incomingSentProofIds,
+            newlySentProofIds,
           });
           executedToolNames.add(tc.function.name);
           if (tc.function.name === "enviar_prova_social") {
