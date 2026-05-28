@@ -1967,8 +1967,16 @@ serve(async (req) => {
             userId: effectiveUserId,
             phone: phone || null,
             testMode,
+            instanceId: instance_id || null,
           });
           executedToolNames.add(tu.name);
+          if (tu.name === "enviar_prova_social") {
+            console.log("[AgentChat] enviar_prova_social tool result:", String(result).substring(0, 400));
+            try {
+              const parsedSP = JSON.parse(result);
+              if (parsedSP?.ok) forcedSocialProofSent = true;
+            } catch {}
+          }
 
           try {
             const parsed = JSON.parse(result);
@@ -2015,8 +2023,16 @@ serve(async (req) => {
             userId: effectiveUserId,
             phone: phone || null,
             testMode,
+            instanceId: instance_id || null,
           });
           executedToolNames.add(tc.function.name);
+          if (tc.function.name === "enviar_prova_social") {
+            console.log("[AgentChat] enviar_prova_social tool result:", String(result).substring(0, 400));
+            try {
+              const parsedSP = JSON.parse(result);
+              if (parsedSP?.ok) forcedSocialProofSent = true;
+            } catch {}
+          }
 
           try {
             const parsed = JSON.parse(result);
