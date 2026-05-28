@@ -1669,7 +1669,7 @@ serve(async (req) => {
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
     systemPrompt +=
-      "\n- PRÉVIA / PROVA SOCIAL: Sempre que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou disser coisas como 'me manda', 'manda previa', 'quero ver', 'cadê', 'envia ai', você DEVE chamar imediatamente a ferramenta enviar_prova_social. NUNCA diga que vai enviar/chamar alguém sem antes executar a ferramenta. Não invente nomes de pessoas (ex: 'Marta', 'João') — quem envia é a própria ferramenta. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
+      "\n- PRÉVIA / PROVA SOCIAL: Use enviar_prova_social SOMENTE quando o lead pedir explicitamente prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou prova social. Se o lead pedir link de checkout, pagamento, PIX, cobrança, preço ou plano, NÃO envie prévia/prova social; responda com o checkout/CTA de pagamento. NUNCA repita prova social já enviada na conversa. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
     systemPrompt +=
       "\n- NUNCA escreva mensagens internas do tipo '[Chamando ferramenta...]', '[executando tool...]', nomes de ferramentas, JSON, tool_call ou qualquer status técnico para o cliente. Chamadas de ferramenta devem acontecer apenas pelo mecanismo interno de tools.";
 
@@ -1708,7 +1708,7 @@ serve(async (req) => {
       );
     let prefetchedCta: { label: string; url: string } | null = null;
 
-    if (!skip_config && hasPricingIntent) {
+    if (hasPricingIntent) {
       try {
         const prefetchedPlanRaw = await executeTool(
           "gateway_buscar_plano_checkout",
@@ -1745,7 +1745,8 @@ serve(async (req) => {
       }
     }
 
-    if (isSocialProofRequest(lastUserText, messages || [])) {
+    const shouldForceSocialProof = isSocialProofRequest(lastUserText, messages || []);
+    if (shouldForceSocialProof) {
       try {
         let toolEnabled = true;
         if (!skip_config) {
