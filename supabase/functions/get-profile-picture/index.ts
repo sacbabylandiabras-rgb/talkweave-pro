@@ -298,6 +298,20 @@ const extractGroupName = (payload: any): string | null => {
               link = extractUrl(dataGp)
               if (resGp.ok && link) return { success: true, data: { link, raw: dataGp } }
 
+               // Try /chats/<groupId> (Z-API returns imagePreview/image here)
+               const resChat = await fetch(`${base}/chats/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+               const dataChat = await resChat.json().catch(() => null)
+               const linkChat = extractUrl(dataChat)
+               const nameChat = extractGroupName(dataChat)
+               if (resChat.ok && (linkChat || nameChat)) return { success: true, data: { link: linkChat, name: nameChat, raw: dataChat } }
+
+               // Try /group-metadata/<groupId>
+               const resMeta = await fetch(`${base}/group-metadata/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+               const dataMeta = await resMeta.json().catch(() => null)
+               const linkMeta = extractUrl(dataMeta)
+               const nameMeta = extractGroupName(dataMeta)
+               if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta, name: nameMeta, raw: dataMeta } }
+
             } else {
               const formats = [numericId, `${numericId}@c.us`]
               for (const f of formats) {
