@@ -317,6 +317,17 @@ const TOOL_DEFS: Record<string, any> = {
       required: ["url"],
     },
   },
+  enviar_prova_social: {
+    name: "enviar_prova_social",
+    description: "Busca e envia ao lead uma mídia de prova social (depoimento, print, vídeo, prévia) cadastrada na base.",
+    input_schema: {
+      type: "object",
+      properties: {
+        termo: { type: "string", description: "Palavra-chave/categoria para filtrar a prova social (opcional)" },
+        legenda: { type: "string", description: "Legenda personalizada opcional (substitui a legenda padrão)" },
+      },
+    },
+  },
   consulta_api_ia: {
     name: "consulta_api_ia",
     description: "Chamada HTTP externa com decisão por IA.",
