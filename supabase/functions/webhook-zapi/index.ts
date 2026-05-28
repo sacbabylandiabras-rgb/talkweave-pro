@@ -1076,6 +1076,14 @@ async function callAI(systemPrompt: string, userMessage: string, model: string) 
   }
 }
 
+function getConnectedAgentTools(nodes: FlowNode[], edges: FlowEdge[], agentNodeId: string) {
+  return edges
+    .filter((e: any) => String(e.source) === String(agentNodeId))
+    .map((e: any) => nodes.find((n: any) => String(n.id) === String(e.target) && n.type === "agentTool")?.data)
+    .filter((tool: any) => tool?.toolName && tool.enabled !== false)
+    .map((tool: any) => ({ toolName: tool.toolName, enabled: tool.enabled !== false }));
+}
+
 async function executeFlow(
   supabase: any,
   userId: string,
