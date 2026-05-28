@@ -593,6 +593,74 @@ async function uazapiSend(
   }
 }
 
+async function zapiSend(
+  creds: WhatsAppCreds,
+  phone: string,
+  message: string,
+  mediaUrl?: string,
+  mediaType?: string,
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    if (!creds.zapiInstanceId || !creds.zapiToken) return { ok: false, error: "Conexão WhatsApp inválida." };
+    const normalizedType = String(mediaType || "text").toLowerCase();
+    let url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-text`;
+    let body: any = { phone, message };
+
+    if (mediaUrl) {
+      if (normalizedType === "image") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-image`;
+        body = { phone, image: mediaUrl, caption: message || "" };
+      } else if (normalizedType === "video") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-video`;
+        body = { phone, video: mediaUrl, caption: message || "" };
+      } else if (normalizedType === "audio") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-audio`;
+        body = { phone, audio: mediaUrl, waveform: true };
+      } else if (normalizedType === "document") {
+        const cleanUrl = String(mediaUrl).split("?")[0].split("#")[0];
+        const ext = cleanUrl.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-document/${ext}`;
+        body = { phone, document: mediaUrl, fileName: message || `arquivo.${ext}` };
+      }
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Client-Token": creds.zapiClientToken || "" },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    let data: any = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${text.substring(0, 200)}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erro de rede" };
+  }
+}
+
+async function sendWhatsAppMessage(
+  creds: WhatsAppCreds,
+  phone: string,
+  message: string,
+  mediaUrl?: string,
+  mediaType?: string,
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  if (creds.provider === "uazapi") {
+    if (!creds.apiUrl || !creds.apiToken) return { ok: false, error: "Conexão WhatsApp inválida." };
+    if (mediaUrl) {
+      return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
+        number: phone,
+        type: ["image", "video", "audio", "document"].includes(String(mediaType)) ? mediaType : "image",
+        file: mediaUrl,
+        ...(message ? { text: message } : {}),
+      });
+    }
+    return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", { number: phone, text: message });
+  }
+  return await zapiSend(creds, phone, message, mediaUrl, mediaType);
+}
+
 function stripToolMetaText(text: string): string {
   return String(text || "")
     .replace(/\[[^\]\n]*(?:chamando|executando|usando|calling|call)\s+(?:a\s+)?(?:ferramenta|tool)[^\]\n]*\]/gi, "")
