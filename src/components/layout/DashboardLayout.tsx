@@ -127,18 +127,10 @@ export function DashboardLayout() {
  
     // Manage theme attributes for custom 'white' theme
     useEffect(() => {
-      if (theme === 'white') {
-        document.documentElement.setAttribute('data-theme', 'white');
-        document.body.setAttribute('data-theme', 'white');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-        document.body.removeAttribute('data-theme');
-      }
-      
-      // Ensure a default theme is set if none is active
-      if (!theme) {
-        setTheme('dark');
-      }
+      if (theme !== 'white') setTheme('white');
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'white');
+      document.body.setAttribute('data-theme', 'white');
     }, [theme, setTheme]);
 
   useEffect(() => {
