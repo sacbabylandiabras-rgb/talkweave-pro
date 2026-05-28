@@ -1115,7 +1115,22 @@ async function executeTool(
           bestProduct = selectedProduct;
         }
 
-        const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${bestCheckout.slug}`;
+        // Usa domínio customizado do usuário se houver, senão domínio padrão (.com)
+        let checkoutHost = "pay.zaplynxpro.com";
+        let pathPrefix = "checkout";
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("custom_domain")
+            .eq("id", userId)
+            .maybeSingle();
+          if (prof?.custom_domain) {
+            checkoutHost = String(prof.custom_domain)
+              .replace(/^https?:\/\//, "")
+              .replace(/\/+$/, "");
+          }
+        } catch {}
+        const checkoutUrl = `https://${checkoutHost}/${pathPrefix}/${bestCheckout.slug}`;
 
         return JSON.stringify({
           found: true,
