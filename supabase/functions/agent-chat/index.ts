@@ -1725,25 +1725,36 @@ serve(async (req) => {
       }
     }
 
-    if (!skip_config && isSocialProofRequest(lastUserText, messages || [])) {
+    if (isSocialProofRequest(lastUserText, messages || [])) {
       try {
-        const { data: socialProofTool } = await supabase
-          .from("agent_tools_config")
-          .select("enabled")
-          .eq("user_id", effectiveUserId)
-          .eq("tool_name", "enviar_prova_social")
-          .eq("enabled", true)
-          .maybeSingle();
-        if (socialProofTool?.enabled) {
+        let toolEnabled = true;
+        if (!skip_config) {
+          const { data: socialProofTool } = await supabase
+            .from("agent_tools_config")
+            .select("enabled")
+            .eq("user_id", effectiveUserId)
+            .eq("tool_name", "enviar_prova_social")
+            .eq("enabled", true)
+            .maybeSingle();
+          toolEnabled = !!socialProofTool?.enabled;
+        } else if (Array.isArray(connected_tools) && connected_tools.length > 0) {
+          toolEnabled = connected_tools.some(
+            (t: any) =>
+              (t?.toolName || t?.tool_name || t?.name) === "enviar_prova_social" &&
+              t?.enabled !== false,
+          );
+        }
+        if (toolEnabled) {
           forcedSocialProofRaw = await executeTool(
             "enviar_prova_social",
             { termo: lastUserText },
             { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null },
           );
+          console.log("[AgentChat] forced enviar_prova_social result:", String(forcedSocialProofRaw).substring(0, 400));
           const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
           forcedSocialProofSent = !!forcedResult?.ok;
           if (forcedSocialProofSent) {
-            systemPrompt += "\n\n--- AÇÃO AUTOMÁTICA JÁ EXECUTADA ---\nA prova social solicitada pelo lead já foi enviada pela ferramenta interna. Agora responda apenas confirmando de forma curta, sem chamar a ferramenta novamente e sem citar ferramenta.";
+            systemPrompt += "\n\n--- AÇÃO AUTOMÁTICA JÁ EXECUTADA ---\nA prova social solicitada pelo lead já foi enviada pela ferramenta interna. NÃO chame nenhuma ferramenta. Responda apenas com uma confirmação curta e natural (ex: 'Te mandei aqui, dá uma olhada 😉'). NUNCA diga que houve problema técnico, NUNCA invente nomes de pessoas como 'Marta' ou 'João', NUNCA peça para o lead aguardar.";
           }
         }
       } catch (socialProofError) {
