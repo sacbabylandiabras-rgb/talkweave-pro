@@ -24,7 +24,7 @@ export function useFlowLeadPositions(flowId: string | null | undefined) {
     let cancelled = false;
 
     const load = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("flow_lead_positions")
         .select("*")
         .eq("flow_id", String(flowId))
