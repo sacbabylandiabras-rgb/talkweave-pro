@@ -309,7 +309,7 @@ const TOOL_DEFS: Record<string, any> = {
   gerar_cobranca_gateway: {
     name: "gerar_cobranca_gateway",
     description:
-      "Gera uma cobrança PIX no gateway configurado e retorna brcode/qrcode para enviar ao lead. Informe productId (preferencial) OU amount (em reais) + descrição.",
+      "NÃO USE para entregar link de pagamento, checkout, PIX ou cartão. Para isso use SEMPRE gateway_buscar_plano_checkout (que devolve o link onde o próprio cliente preenche os dados). Esta ferramenta só deve ser usada quando o operador humano pedir explicitamente uma cobrança PIX direta (brcode/qrcode) e já tiver os dados do cliente em mãos.",
     input_schema: {
       type: "object",
       properties: {
