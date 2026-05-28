@@ -335,7 +335,7 @@ const TOOL_DEFS: Record<string, any> = {
   },
   enviar_prova_social: {
     name: "enviar_prova_social",
-    description: "OBRIGATÓRIO chamar esta ferramenta SEMPRE que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia, 'me manda', 'quero ver', 'cadê', 'envia ai' ou qualquer prova social. NÃO prometa enviar sem chamar a ferramenta. A ferramenta busca automaticamente a mídia mais relevante na base e envia direto ao WhatsApp do lead.",
+    description: "Use SOMENTE quando o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou prova social. NÃO use quando o lead pedir link de checkout, pagamento, PIX, cobrança, preço ou plano. Não repita prova social já enviada na conversa.",
     input_schema: {
       type: "object",
       properties: {
@@ -671,8 +671,14 @@ function stripToolMetaText(text: string): string {
     .trim();
 }
 
+function hasCheckoutIntent(text: string): boolean {
+  const value = String(text || "").toLowerCase();
+  return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
+}
+
 function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
   const text = String(lastUserText || "").toLowerCase();
+  if (hasCheckoutIntent(text)) return false;
   const recentUsers = messages
     .filter((m: any) => m?.role === "user")
     .slice(-4)
