@@ -719,9 +719,11 @@ async function getInstagramToken(supabase: any, userId: string): Promise<string 
 async function executeTool(
   toolName: string,
   input: any,
-  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean; instanceId?: string | null },
+  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean; instanceId?: string | null; sentProofIds?: string[]; newlySentProofIds?: string[] },
 ): Promise<string> {
   const { supabase, userId, phone, testMode, instanceId } = ctx;
+  const sentProofIds: string[] = Array.isArray(ctx.sentProofIds) ? ctx.sentProofIds : [];
+  const newlySent: string[] = Array.isArray(ctx.newlySentProofIds) ? ctx.newlySentProofIds : [];
 
   if (testMode && ["enviar_botoes", "enviar_lista", "enviar_imagem", "enviar_link", "gerar_pix"].includes(toolName)) {
     return JSON.stringify({
@@ -1259,9 +1261,16 @@ async function executeTool(
         const list = rows || [];
         if (list.length === 0) return JSON.stringify({ error: "Nenhuma prova social cadastrada." });
 
-        let chosen: any = list[0];
+        // Exclude proofs already sent to this lead in the current conversation
+        const alreadySent = new Set<string>([...sentProofIds, ...newlySent]);
+        let pool = list.filter((r: any) => !alreadySent.has(r.id));
+        // If everything was already sent, rotate (reset history) so we can send again
+        const rotated = pool.length === 0;
+        if (rotated) pool = list;
+
+        let chosen: any = pool[0];
         if (termo) {
-          const scored = list.map((r: any) => {
+          const scored = pool.map((r: any) => {
             const hay = [r.title, r.description, r.caption, r.category, ...(r.tags || [])]
               .filter(Boolean).join(" ").toLowerCase();
             let s = 0;
@@ -1273,7 +1282,8 @@ async function executeTool(
         }
 
         if (!phone) {
-          return JSON.stringify({ ok: true, preview: chosen, info: "Sem número de destino (modo teste)." });
+          newlySent.push(chosen.id);
+          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated, info: "Sem número de destino (modo teste)." });
         }
         const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
         if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
@@ -1287,7 +1297,8 @@ async function executeTool(
           type,
         );
         if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
-        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, result: r });
+        newlySent.push(chosen.id);
+        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
       }
@@ -1566,7 +1577,10 @@ serve(async (req) => {
       connected_tools,
       system_prompt: customSystemPrompt,
       model: customModel,
+      sent_proof_ids,
     } = body;
+    const incomingSentProofIds: string[] = Array.isArray(sent_proof_ids) ? sent_proof_ids.filter((x: any) => typeof x === "string") : [];
+    const newlySentProofIds: string[] = [];
     const effectiveUserId = user_id || userId;
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -1748,7 +1762,7 @@ serve(async (req) => {
           forcedSocialProofRaw = await executeTool(
             "enviar_prova_social",
             { termo: lastUserText },
-            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null, sentProofIds: incomingSentProofIds, newlySentProofIds },
           );
           console.log("[AgentChat] forced enviar_prova_social result:", String(forcedSocialProofRaw).substring(0, 400));
           const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
@@ -1968,6 +1982,8 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
             instanceId: instance_id || null,
+            sentProofIds: incomingSentProofIds,
+            newlySentProofIds,
           });
           executedToolNames.add(tu.name);
           if (tu.name === "enviar_prova_social") {
@@ -2024,6 +2040,8 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
             instanceId: instance_id || null,
+            sentProofIds: incomingSentProofIds,
+            newlySentProofIds,
           });
           executedToolNames.add(tc.function.name);
           if (tc.function.name === "enviar_prova_social") {
@@ -2090,6 +2108,12 @@ serve(async (req) => {
         label: finalCta?.label || prefetchedCta?.label || "Abrir checkout",
         url: checkoutUrl,
       };
+    }
+    if (newlySentProofIds.length > 0) {
+      // Return the updated history (existing + newly sent), deduped
+      const merged = Array.from(new Set([...incomingSentProofIds, ...newlySentProofIds]));
+      replyPayload.sent_proof_ids = merged;
+      replyPayload.newly_sent_proof_ids = Array.from(new Set(newlySentProofIds));
     }
 
     return new Response(JSON.stringify(replyPayload), {
