@@ -474,6 +474,42 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_lead_positions: {
+        Row: {
+          block_id: string
+          contact_name: string | null
+          entered_at: string
+          flow_id: string
+          id: string
+          phone: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          block_id: string
+          contact_name?: string | null
+          entered_at?: string
+          flow_id: string
+          id?: string
+          phone: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          block_id?: string
+          contact_name?: string | null
+          entered_at?: string
+          flow_id?: string
+          id?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gateway_affiliates: {
         Row: {
           affiliate_id: string | null
