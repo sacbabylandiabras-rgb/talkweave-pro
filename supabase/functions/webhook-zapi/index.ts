@@ -1230,6 +1230,9 @@ async function executeFlow(
         .maybeSingle();
 
       const chatHistory = flowCaptured?.captured_data?.chat_history || [];
+      const existingSentProofIds: string[] = Array.isArray(flowCaptured?.captured_data?.sent_social_proof_ids)
+        ? flowCaptured.captured_data.sent_social_proof_ids
+        : [];
       const currentMessages = [
         ...chatHistory,
         { role: "user", content: userMessage || "Olá" }
@@ -1247,7 +1250,8 @@ async function executeFlow(
           connected_tools: connectedTools,
           system_prompt: resolvedPrompt,
           skip_config: true,
-          model: node.data.model || "claude-sonnet-4-6"
+          model: node.data.model || "claude-sonnet-4-6",
+          sent_proof_ids: existingSentProofIds,
         }
       });
 
@@ -1264,7 +1268,14 @@ async function executeFlow(
           { role: "assistant", content: aiResponse }
         ].slice(-10);
 
-        const finalCaptured = { ...(flowCaptured?.captured_data || captured || {}), chat_history: updatedHistory };
+        const mergedSentProofIds = Array.isArray(agentResponse?.sent_proof_ids)
+          ? agentResponse.sent_proof_ids
+          : existingSentProofIds;
+        const finalCaptured = {
+          ...(flowCaptured?.captured_data || captured || {}),
+          chat_history: updatedHistory,
+          sent_social_proof_ids: mergedSentProofIds,
+        };
 
         await supabase.from("flow_captured_data").upsert(
           {
