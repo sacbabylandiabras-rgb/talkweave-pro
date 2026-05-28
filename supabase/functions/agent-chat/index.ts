@@ -335,7 +335,7 @@ const TOOL_DEFS: Record<string, any> = {
   },
   enviar_prova_social: {
     name: "enviar_prova_social",
-    description: "Busca e envia ao lead uma mídia de prova social (depoimento, print, vídeo, prévia) cadastrada na base.",
+    description: "OBRIGATÓRIO chamar esta ferramenta SEMPRE que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia, 'me manda', 'quero ver', 'cadê', 'envia ai' ou qualquer prova social. NÃO prometa enviar sem chamar a ferramenta. A ferramenta busca automaticamente a mídia mais relevante na base e envia direto ao WhatsApp do lead.",
     input_schema: {
       type: "object",
       properties: {
