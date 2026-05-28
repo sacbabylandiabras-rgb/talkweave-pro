@@ -715,7 +715,8 @@ export const useMessageLogs = (
               phone: zapiPhone,
               name: resolvedName || existing?.name || "",
               user_id: userId,
-              profile_picture_url: finalUrl || (isGroupPhone(zapiPhone) ? existing?.profile_picture_url || null : null),
+              // Nunca apaga uma foto já salva. Só sobrescreve quando temos uma URL nova.
+              profile_picture_url: finalUrl || existing?.profile_picture_url || null,
             });
             await fetchSavedContacts();
           }
