@@ -673,7 +673,7 @@ function stripToolMetaText(text: string): string {
 
 function hasCheckoutIntent(text: string): boolean {
   const value = String(text || "").toLowerCase();
-  return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
+  return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|cart[aã]o|cr[eé]dito|d[eé]bito|parcel(ar|amento|ado)?|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
 }
 
 function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
