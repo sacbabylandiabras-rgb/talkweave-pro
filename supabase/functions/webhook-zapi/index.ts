@@ -99,6 +99,17 @@ function getIncomingAudioUrl(webhook: any): string {
   );
 }
 
+async function resolveAgentInboundText(messageRaw: string, audioUrl: string): Promise<string> {
+  if (!audioUrl) return messageRaw || "";
+  const transcript = await transcribeAudioUrl(audioUrl);
+  if (transcript) {
+    console.log(`[AI Agent] Áudio transcrito (${transcript.length} chars): ${transcript.slice(0, 120)}`);
+    return transcript;
+  }
+  console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
+  return messageRaw || "[áudio recebido]";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
