@@ -556,6 +556,16 @@ async function uazapiSend(
   }
 }
 
+function stripToolMetaText(text: string): string {
+  return String(text || "")
+    .replace(/\[[^\]\n]*(?:chamando|executando|usando|calling|call)\s+(?:a\s+)?(?:ferramenta|tool)[^\]\n]*\]/gi, "")
+    .replace(/\([^\)\n]*(?:chamando|executando|usando|calling|call)\s+(?:a\s+)?(?:ferramenta|tool)[^\)\n]*\)/gi, "")
+    .replace(/^.*(?:chamando|executando|usando)\s+(?:a\s+)?(?:ferramenta|tool)\s+[\w.-]+.*$/gim, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 // ============ META HELPERS ============
 const META_API_VERSION = "v21.0";
 async function getMetaCreds(
