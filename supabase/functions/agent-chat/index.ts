@@ -556,6 +556,29 @@ async function uazapiSend(
   }
 }
 
+function stripToolMetaText(text: string): string {
+  return String(text || "")
+    .replace(/\[[^\]\n]*(?:chamando|executando|usando|calling|call)\s+(?:a\s+)?(?:ferramenta|tool)[^\]\n]*\]/gi, "")
+    .replace(/\([^\)\n]*(?:chamando|executando|usando|calling|call)\s+(?:a\s+)?(?:ferramenta|tool)[^\)\n]*\)/gi, "")
+    .replace(/^.*(?:chamando|executando|usando)\s+(?:a\s+)?(?:ferramenta|tool)\s+[\w.-]+.*$/gim, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
+  const text = String(lastUserText || "").toLowerCase();
+  const recentUsers = messages
+    .filter((m: any) => m?.role === "user")
+    .slice(-4)
+    .map((m: any) => String(m?.content || ""))
+    .join(" ")
+    .toLowerCase();
+  const proofTerms = /\b(pr[eé]via|amostra|demo|demonstra[cç][aã]o|depoimento|print|resultado|v[ií]deo|video|foto|m[ií]dia|midia|prova social|feedback|case)\b/i;
+  const askTerms = /\b(me manda|manda|mande|envia|envie|quero ver|mostra|mostrar|cad[eê])\b/i;
+  return proofTerms.test(text) || (askTerms.test(text) && proofTerms.test(recentUsers));
+}
+
 // ============ META HELPERS ============
 const META_API_VERSION = "v21.0";
 async function getMetaCreds(
@@ -1511,6 +1534,8 @@ serve(async (req) => {
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
     systemPrompt +=
       "\n- PRÉVIA / PROVA SOCIAL: Sempre que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou disser coisas como 'me manda', 'manda previa', 'quero ver', 'cadê', 'envia ai', você DEVE chamar imediatamente a ferramenta enviar_prova_social. NUNCA diga que vai enviar/chamar alguém sem antes executar a ferramenta. Não invente nomes de pessoas (ex: 'Marta', 'João') — quem envia é a própria ferramenta. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
+    systemPrompt +=
+      "\n- NUNCA escreva mensagens internas do tipo '[Chamando ferramenta...]', '[executando tool...]', nomes de ferramentas, JSON, tool_call ou qualquer status técnico para o cliente. Chamadas de ferramenta devem acontecer apenas pelo mecanismo interno de tools.";
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
@@ -1539,6 +1564,8 @@ serve(async (req) => {
 
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user");
     const lastUserText = String(lastUserMessage?.content || "").trim();
+    let forcedSocialProofRaw: string | null = null;
+    let forcedSocialProofSent = false;
     const hasPricingIntent =
       /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(
         lastUserText,
@@ -1582,6 +1609,32 @@ serve(async (req) => {
       }
     }
 
+    if (!skip_config && isSocialProofRequest(lastUserText, messages || [])) {
+      try {
+        const { data: socialProofTool } = await supabase
+          .from("agent_tools_config")
+          .select("enabled")
+          .eq("user_id", effectiveUserId)
+          .eq("tool_name", "enviar_prova_social")
+          .eq("enabled", true)
+          .maybeSingle();
+        if (socialProofTool?.enabled) {
+          forcedSocialProofRaw = await executeTool(
+            "enviar_prova_social",
+            { termo: lastUserText },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone },
+          );
+          const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
+          forcedSocialProofSent = !!forcedResult?.ok;
+          if (forcedSocialProofSent) {
+            systemPrompt += "\n\n--- AÇÃO AUTOMÁTICA JÁ EXECUTADA ---\nA prova social solicitada pelo lead já foi enviada pela ferramenta interna. Agora responda apenas confirmando de forma curta, sem chamar a ferramenta novamente e sem citar ferramenta.";
+          }
+        }
+      } catch (socialProofError) {
+        console.error("Erro ao pré-enviar prova social:", socialProofError);
+      }
+    }
+
     // ============ PROVIDER SELECTION ============
     const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith("sk-ant-");
 
@@ -1617,6 +1670,7 @@ serve(async (req) => {
     let convMessages: any[] = [];
     let finalText = "";
     let finalCta: { label: string; url: string } | null = null;
+    const executedToolNames = new Set<string>();
     let iterations = 0;
     const MAX_ITER = 6;
 
@@ -1664,7 +1718,8 @@ serve(async (req) => {
           }
           return def;
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
 
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
@@ -1780,6 +1835,7 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
           });
+          executedToolNames.add(tu.name);
 
           try {
             const parsed = JSON.parse(result);
@@ -1827,6 +1883,7 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
           });
+          executedToolNames.add(tc.function.name);
 
           try {
             const parsed = JSON.parse(result);
@@ -1851,7 +1908,7 @@ serve(async (req) => {
 
     const checkoutMatch = finalText.match(/https?:\/\/[^\s)]+/);
     const checkoutUrl = finalCta?.url || prefetchedCta?.url || checkoutMatch?.[0] || null;
-    const sanitizedReply = String(finalText || "")
+    const sanitizedReply = stripToolMetaText(finalText)
       .replace(/https?:\/\/[^\s)]+/g, "")
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
@@ -1859,8 +1916,13 @@ serve(async (req) => {
 
     console.log(`[AgentChat] Final reply length: ${sanitizedReply.length}`);
 
+    const fallbackReply = forcedSocialProofSent || executedToolNames.has("enviar_prova_social")
+      ? "Te mandei aqui, dá uma olhada 😉"
+      : executedToolNames.has("gerar_cobranca_gateway")
+        ? "Te mandei a cobrança aqui."
+        : "Desculpe, não consegui processar uma resposta agora.";
     const replyPayload: Record<string, unknown> = {
-      reply: sanitizedReply || "Desculpe, não consegui processar uma resposta agora.",
+      reply: sanitizedReply || fallbackReply,
     };
     if (checkoutUrl) {
       replyPayload.cta = {
