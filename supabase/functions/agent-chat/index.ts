@@ -306,6 +306,22 @@ const TOOL_DEFS: Record<string, any> = {
       required: ["transaction_id"],
     },
   },
+  gerar_cobranca_gateway: {
+    name: "gerar_cobranca_gateway",
+    description:
+      "Gera uma cobrança PIX no gateway configurado e retorna brcode/qrcode para enviar ao lead. Informe productId (preferencial) OU amount (em reais) + descrição.",
+    input_schema: {
+      type: "object",
+      properties: {
+        productId: { type: "string", description: "ID do produto no gateway (opcional)" },
+        amount: { type: "number", description: "Valor em reais (decimal)" },
+        description: { type: "string", description: "Descrição da cobrança" },
+        customer_name: { type: "string", description: "Nome do cliente" },
+        customer_email: { type: "string", description: "E-mail do cliente" },
+        customer_document: { type: "string", description: "CPF/CNPJ do cliente" },
+      },
+    },
+  },
   ler_anexo: {
     name: "ler_anexo",
     description: "Lê texto de PDF, TXT ou planilha a partir da URL do anexo.",
