@@ -86,6 +86,30 @@ async function transcribeAudioUrl(audioUrl: string): Promise<string> {
   }
 }
 
+function getIncomingAudioUrl(webhook: any): string {
+  return String(
+    webhook?.audio?.audioUrl ||
+      webhook?.audio?.url ||
+      webhook?.audio?.mediaUrl ||
+      webhook?.audio?.fileUrl ||
+      webhook?.audio?.downloadUrl ||
+      webhook?.audioUrl ||
+      webhook?.mediaUrl ||
+      "",
+  );
+}
+
+async function resolveAgentInboundText(messageRaw: string, audioUrl: string): Promise<string> {
+  if (!audioUrl) return messageRaw || "";
+  const transcript = await transcribeAudioUrl(audioUrl);
+  if (transcript) {
+    console.log(`[AI Agent] Áudio transcrito (${transcript.length} chars): ${transcript.slice(0, 120)}`);
+    return transcript;
+  }
+  console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
+  return messageRaw || "[áudio recebido]";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -238,18 +262,18 @@ serve(async (req) => {
       webhook?.interactiveResponseMessage?.body ||
       "";
 
+    const incomingAudioUrl = getIncomingAudioUrl(webhook);
     const mediaUrl =
       webhook?.image?.url ||
       webhook?.video?.url ||
-      webhook?.audio?.audioUrl ||
-      webhook?.audio?.url ||
+      incomingAudioUrl ||
       webhook?.sticker?.url ||
       webhook?.document?.url;
     if (mediaUrl) {
       let mediaType = "";
       if (webhook.image) mediaType = "image";
       else if (webhook.video) mediaType = "video";
-      else if (webhook.audio) mediaType = "audio";
+      else if (webhook.audio || incomingAudioUrl) mediaType = "audio";
       else if (webhook.sticker) mediaType = "sticker";
       else if (webhook.document) mediaType = "document";
 
@@ -621,7 +645,7 @@ serve(async (req) => {
 
     let flowStateHandled = false;
 
-    if (flowState && messageRaw && (!fromMe || isButtonResponse)) {
+    if (flowState && (messageRaw || incomingAudioUrl) && (!fromMe || isButtonResponse)) {
       const flowId = flowState.flow_id;
       const lastNodeId = flowState.last_node_id;
 
@@ -687,13 +711,14 @@ serve(async (req) => {
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "agenteIA") {
             flowStateHandled = true;
+            const agentInboundText = await resolveAgentInboundText(messageRaw, incomingAudioUrl);
             if (messageId) {
               await supabase.from("message_logs").insert({
                 user_id: userId,
                 phone: chatId,
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
-                message_received: messageRaw,
+                message_received: incomingAudioUrl ? `[áudio] ${agentInboundText}` : messageRaw,
                 response_sent: `[Agente IA: ${flow.name}]`,
                 keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
                 message_id: messageId,
@@ -738,7 +763,7 @@ serve(async (req) => {
                 instanceData,
                 chatId,
                 isGroup,
-                webhook,
+                { ...webhook, __agent_input_text: agentInboundText },
               );
 
               if (!flowStateIsSharedGroup) {
@@ -931,18 +956,7 @@ serve(async (req) => {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
-        let agentInputText = messageRaw || "";
-        const incomingAudioUrl = webhook?.audio?.audioUrl || webhook?.audio?.url || "";
-        if (incomingAudioUrl) {
-          const transcript = await transcribeAudioUrl(incomingAudioUrl);
-          if (transcript) {
-            console.log(`[AI Agent] Áudio transcrito (${transcript.length} chars): ${transcript.slice(0, 120)}`);
-            agentInputText = transcript;
-          } else {
-            console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
-            agentInputText = agentInputText || "[áudio recebido]";
-          }
-        }
+        const agentInputText = await resolveAgentInboundText(messageRaw || "", incomingAudioUrl);
 
         if (messageId) {
           await supabase.from("message_logs").insert({
@@ -1280,7 +1294,8 @@ async function executeFlow(
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
       const resolvedPrompt = replaceVars(prompt, captured, phone);
       
-      const userMessage =
+      const agentInputOverride = String(webhook?.__agent_input_text || "").trim();
+      const userMessage = agentInputOverride ||
         webhook?.buttonsResponseMessage?.message ||
         webhook?.buttonsResponseMessage?.buttonText ||
         webhook?.buttonResponseMessage?.message ||
