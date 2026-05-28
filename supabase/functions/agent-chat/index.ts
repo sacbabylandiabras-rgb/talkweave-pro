@@ -1027,7 +1027,7 @@ async function executeTool(
         if (!bestCheckout?.slug || !bestProduct) {
           const { data: allProducts } = await supabase
             .from("gateway_products")
-            .select("id, name, description, price, type, status, sku")
+            .select("id, name, description, price, type, status, sku, created_at")
             .eq("user_id", userId)
             .eq("status", true)
             .limit(100);
@@ -1828,17 +1828,14 @@ serve(async (req) => {
     const lastUserText = String(lastUserMessage?.content || "").trim();
     let forcedSocialProofRaw: string | null = null;
     let forcedSocialProofSent = false;
-    const hasPricingIntent =
-      /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(
-        lastUserText,
-      );
+    const hasPricingIntent = hasCheckoutIntent(lastUserText);
     let prefetchedCta: { label: string; url: string } | null = null;
 
     if (hasPricingIntent) {
       try {
         const prefetchedPlanRaw = await executeTool(
           "gateway_buscar_plano_checkout",
-          { termo: lastUserText },
+          { termo: lastUserText, messages: messages || [] },
           {
             supabase,
             userId: effectiveUserId,
