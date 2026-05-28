@@ -654,6 +654,18 @@ serve(async (req) => {
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "agenteIA") {
             flowStateHandled = true;
+            if (messageId) {
+              await supabase.from("message_logs").insert({
+                user_id: userId,
+                phone: chatId,
+                instance_id: instanceId,
+                timestamp: new Date().toISOString(),
+                message_received: messageRaw,
+                response_sent: `[Agente IA: ${flow.name}]`,
+                keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
+                message_id: messageId,
+              });
+            }
             await executeFlow(
               supabase,
               userId,
@@ -884,6 +896,18 @@ serve(async (req) => {
 
       if (agentConfig?.active) {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
+        if (messageId) {
+          await supabase.from("message_logs").insert({
+            user_id: userId,
+            phone: chatId,
+            instance_id: instanceId,
+            timestamp: new Date().toISOString(),
+            message_received: messageRaw,
+            response_sent: "[Agente IA global]",
+            keyword_matched: `__global_agent_inbound__:${messageId}`,
+            message_id: messageId,
+          });
+        }
         
         const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
           body: {
