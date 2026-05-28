@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZapLynx — Gateway Pix + Automação WhatsApp & Instagram com IA</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="bg-field"></div>
+<div class="bg-grid"></div>
+
+<!-- ============ NAV ============ -->
+<div class="nav-wrap" id="navWrap">
+  <div class="container">
+    <nav class="nav">
+      <a class="brand" href="#top">
+        <img src="assets/lynx-logo.png" alt="ZapLynx" />
+        <span class="wordmark">Zap<span class="gradient-text">Lynx</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="#recursos">Recursos</a>
+        <a href="#plataforma">Plataforma</a>
+        <a href="#comparativo">Comparativo</a>
+        <a href="#precos">Preços</a>
+        <a href="#depoimentos">Clientes</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="nav-cta">
+        <a class="btn btn-ghost btn-sm" href="#">Entrar</a>
+        <a class="btn btn-primary btn-sm" href="#precos">Começar Agora</a>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<main id="top">
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <span class="eyebrow reveal"><span class="dot"></span>Plataforma all-in-one para vender mais</span>
+        <h1 class="reveal d1">O <span class="gradient-text">gateway Pix</span> e a automação que <span class="gradient-text">engolem</span> a concorrência</h1>
+        <p class="lead reveal d2">Receba via Pix, automatize WhatsApp e Instagram e deixe um agente de IA vender por você — tudo em uma única plataforma, com a sua marca.</p>
+        <div class="hero-actions reveal d2">
+          <a class="btn btn-primary btn-lg" href="#precos">Experimentar Grátis <span class="arrow">→</span></a>
+          <a class="btn btn-ghost btn-lg" href="#recursos">Ver recursos</a>
+        </div>
+        <div class="hero-trust reveal d3">
+          <span class="item"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>2 dias grátis</span>
+          <span class="item"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Sem cartão de crédito</span>
+          <span class="item"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Cancele quando quiser</span>
+        </div>
+        <div class="hero-avatars reveal d3">
+          <div class="stack">
+            <span style="background:linear-gradient(135deg,#833ab4,#fd1d1d)">M</span>
+            <span style="background:linear-gradient(135deg,#7c3aed,#a855f7)">R</span>
+            <span style="background:linear-gradient(135deg,#0095f6,#00d4ff)">J</span>
+            <span style="background:linear-gradient(135deg,#22c55e,#16a34a)">A</span>
+          </div>
+          <div class="meta"><span class="stars">★★★★★</span><br /><b>+12.000</b> empreendedores já usam</div>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal d2">
+        <div class="glow"></div>
+        <div class="hero-panel" id="heroPanel"><!-- gateway dashboard injected --></div>
+        <div class="hero-badge-float hero-badge-sale">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div><div class="t">Venda aprovada</div><div class="v" style="color:#22c55e">+ R$ 197,00</div></div>
+        </div>
+        <div class="hero-badge-float hero-badge-pix">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></div>
+          <div><div class="t">Pix recebido</div><div class="v gradient-text">em 4 segundos</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pac-Man strip -->
+    <div class="pacman-strip reveal">
+      <div class="pacman-card">
+        <div class="pacman-head">
+          <div class="label">ZapLynx <b>engole</b> a concorrência</div>
+          <div class="pacman-score"><span class="pac"></span><span id="pacScore">Gateway · WhatsApp · Instagram · IA</span></div>
+        </div>
+        <div class="pacman-canvas-wrap">
+          <canvas id="pacman-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section class="stats-band">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat reveal"><div class="num gradient-text" data-count="2.4" data-prefix="R$ " data-suffix=" bi">R$ 0</div><div class="lbl">processados via Pix</div></div>
+      <div class="stat reveal d1"><div class="num" data-count="12000" data-suffix="+">0</div><div class="lbl">empreendedores ativos</div></div>
+      <div class="stat reveal d2"><div class="num" data-count="38" data-suffix=" mi">0</div><div class="lbl">mensagens automatizadas/mês</div></div>
+      <div class="stat reveal d3"><div class="num" data-count="99.9" data-suffix="%">0</div><div class="lbl">de uptime garantido</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INTEGRAÇÕES ============ -->
+<section class="integr">
+  <div class="container">
+    <div class="cap reveal">Integra com as ferramentas que você já usa</div>
+    <div class="integr-row reveal d1">
+      <div class="integr-chip"><span class="pix-ic">Pix</span><span>Pix</span></div>
+      <div class="integr-chip"><img src="assets/integrations/meta.png" alt="Meta" /><span>Meta</span></div>
+      <div class="integr-chip"><img src="assets/integrations/shopify.png" alt="Shopify" /><span>Shopify</span></div>
+      <div class="integr-chip"><img src="assets/integrations/utmify.png" alt="Utmify" /><span>Utmify</span></div>
+      <div class="integr-chip"><span class="pix-ic" style="background:#1877f2">f</span><span>Facebook Pixel</span></div>
+      <div class="integr-chip"><span class="pix-ic" style="background:#ff0050">T</span><span>TikTok Pixel</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE CARDS ============ -->
+<section class="features section" id="recursos">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Tudo em um só lugar</span>
+      <h2 class="section-title">Uma plataforma. Toda a sua operação de vendas.</h2>
+      <p class="section-sub">Pare de pagar cinco ferramentas diferentes. O ZapLynx reúne pagamentos, automação e inteligência artificial em um único painel.</p>
+    </div>
+    <div class="cards">
+      <div class="fcard reveal">
+        <div class="fcard-ic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <h3>Gateway Pix próprio</h3>
+        <p>Checkout com a sua marca e confirmação instantânea — sem intermediários comendo sua margem.</p>
+      </div>
+      <div class="fcard reveal d1">
+        <div class="fcard-ic"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>Automação WhatsApp</h3>
+        <p>Envios em massa, fluxos visuais e respostas com IA. Atenda mil clientes como se fosse um.</p>
+      </div>
+      <div class="fcard featured reveal d2">
+        <div class="fcard-ic ig"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></div>
+        <h3>Automação Instagram</h3>
+        <p>Responde comentários e dispara DM automático com link de compra. Cada interação vira venda.</p>
+      </div>
+      <div class="fcard span2 reveal">
+        <div class="fcard-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg></div>
+        <div class="fcard-body">
+          <h3>Agente de IA que vende 24h</h3>
+          <p>Treinado com o conhecimento do seu negócio, responde clientes, envia checkout e conduz a venda sozinho — de madrugada, no fim de semana, sempre.</p>
+        </div>
+      </div>
+      <div class="fcard reveal d1">
+        <div class="fcard-ic"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>KYC & antifraude</h3>
+        <p>Verificação de identidade e proteção contra fraude já incluídas. Receba com tranquilidade.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GATEWAY ============ -->
+<section class="psection">
+  <div class="container">
+    <div class="psplit reverse">
+      <div class="ptext">
+        <span class="eyebrow"><span class="dot"></span>Pagamentos</span>
+        <h2>Gateway de pagamentos completo, com a sua marca</h2>
+        <p class="desc">Crie checkouts personalizados, receba via Pix instantâneo e gerencie saques — tudo sem intermediários e com taxas que cabem no seu negócio.</p>
+        <div class="checklist">
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Checkout customizável com 6+ templates</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Pix com confirmação instantânea</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Painel de transações com filtros avançados</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Pixels de rastreamento (Facebook, Google, TikTok)</div>
+        </div>
+        <a class="btn btn-ghost" href="#precos">Criar Meu Checkout <span class="arrow">→</span></a>
+      </div>
+      <div class="pvisual">
+        <div class="vglow"></div>
+        <div class="gw" id="gwMock"><!-- injected --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AGENTE IA ============ -->
+<section class="psection surface-band">
+  <div class="container">
+    <div class="psplit">
+      <div class="ptext">
+        <span class="eyebrow"><span class="dot"></span>Inteligência Artificial</span>
+        <h2>Um agente de IA que vende por você, 24 horas por dia</h2>
+        <p class="desc">Treine um agente com o conhecimento do seu negócio. Ele responde clientes, manda áudio, envia o link de checkout e conduz a venda — automaticamente.</p>
+        <div class="checklist">
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Treinável com FAQ, documentos e sites</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Envia links de checkout automaticamente</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Funciona 24h por dia, 7 dias por semana</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Integrado ao gateway de pagamentos</div>
+        </div>
+        <a class="btn btn-ghost" href="#precos">Ativar Agente de IA <span class="arrow">→</span></a>
+      </div>
+      <div class="pvisual">
+        <div class="vglow"></div>
+        <div class="agent-stage" id="agentMock"><!-- injected --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLUXOS VISUAIS ============ -->
+<section class="psection">
+  <div class="container">
+    <div class="psplit reverse">
+      <div class="ptext">
+        <span class="eyebrow"><span class="dot"></span>Automação Visual</span>
+        <h2>Monte jornadas de venda arrastando blocos</h2>
+        <p class="desc">Gatilhos por palavra-chave, condições inteligentes e ações automáticas. Crie funis completos de WhatsApp e Instagram sem escrever uma linha de código.</p>
+        <div class="checklist">
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Editor visual drag-and-drop</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Gatilhos por palavra-chave ou evento</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Condições e ramificações inteligentes</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Integração com webhooks e APIs</div>
+        </div>
+        <a class="btn btn-ghost" href="#precos">Criar Meus Fluxos <span class="arrow">→</span></a>
+      </div>
+      <div class="pvisual">
+        <div class="vglow"></div>
+        <div class="laptop" style="max-width:none">
+          <div class="lid">
+            <div class="browser-bar">
+              <div class="bdots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+              <div class="burl"><svg viewBox="0 0 12 13" fill="none"><rect x="1" y="5" width="10" height="7" rx="1.5" stroke="#28c840" stroke-width="1.2"/><path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#28c840" stroke-width="1.2" stroke-linecap="round"/></svg>zaplynx.com/fluxo-visual</div>
+            </div>
+            <div class="flow-stage" id="flowMock"><!-- animated flow editor injected --></div>
+          </div>
+          <div class="hinge"></div>
+          <div class="palm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INSTAGRAM ============ -->
+<section class="psection surface-band">
+  <div class="container">
+    <div class="psplit ig-split">
+      <div class="ptext">
+        <span class="eyebrow ig"><span class="dot"></span>Novo — Instagram</span>
+        <h2>Cada comentário no seu post vira uma venda no direct</h2>
+        <p class="desc">Comentou a palavra-chave? A IA detecta, manda DM com o link de checkout e fecha a venda. Automação completa de comentários, stories, DMs e lives.</p>
+        <div class="checklist ig">
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Gatilhos em comentários, stories, DMs e lives</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Respostas automáticas inteligentes com IA</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Coleta de leads (WhatsApp/Email) via DM</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Integrado à API oficial do Instagram (Meta)</div>
+        </div>
+        <a class="btn btn-ig" href="#precos">Ativar Automação Instagram <span class="arrow">→</span></a>
+      </div>
+      <div class="pvisual">
+        <div class="vglow"></div>
+        <div class="ig-scene" id="igMock"><!-- injected --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHECKOUT ============ -->
+<section class="psection">
+  <div class="container">
+    <div class="psplit reverse">
+      <div class="ptext">
+        <span class="eyebrow"><span class="dot"></span>Checkout</span>
+        <h2>Páginas de pagamento que convertem de verdade</h2>
+        <p class="desc">Templates prontos, timer de urgência, selos de confiança e prova social. Tudo desenhado para transformar visitantes em compras — no desktop e no celular.</p>
+        <div class="checklist">
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Editor drag-and-drop de elementos</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Timer de escassez e selos de confiança</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Validação de CPF/CNPJ em tempo real</div>
+          <div class="ci"><span class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Integração com pixels e UTM tracking</div>
+        </div>
+        <a class="btn btn-ghost" href="#precos">Montar Meu Checkout <span class="arrow">→</span></a>
+      </div>
+      <div class="pvisual">
+        <div class="vglow"></div>
+        <div class="laptop" style="max-width:none">
+          <div class="lid">
+            <div class="browser-bar">
+              <div class="bdots"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+              <div class="burl"><svg viewBox="0 0 12 13" fill="none"><rect x="1" y="5" width="10" height="7" rx="1.5" stroke="#28c840" stroke-width="1.2"/><path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#28c840" stroke-width="1.2" stroke-linecap="round"/></svg>pay.zaplynxpro.online/pay/wenpink</div>
+            </div>
+            <img src="assets/checkout-mock.jpg" alt="Checkout ZapLynxPay" />
+          </div>
+          <div class="hinge"></div>
+          <div class="palm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLATAFORMA COMPLETA ============ -->
+<section class="platform surface-band" id="plataforma">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Plataforma completa</span>
+      <h2 class="section-title">Tudo que você precisa para vender. Em um login só.</h2>
+      <p class="section-sub">WhatsApp, Instagram e Telegram. CRM, gateway de pagamentos, agente de IA e marketplace de afiliados — a operação inteira numa única plataforma.</p>
+    </div>
+    <div class="pcats">
+      <div class="pcat reveal">
+        <div class="pcat-h"><span class="pcat-ic green"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span><div class="nm">WhatsApp</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Disparo em massa &amp; campanhas</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Fluxo visual de automação</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Modelos de mensagem</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Multi-dispositivos &amp; instâncias</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d1">
+        <div class="pcat-h"><span class="pcat-ic ig"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span><div class="nm">Instagram</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Comentário vira DM automático</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Story mentions &amp; resposta padrão</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Modelos e fluxos de automação</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Menu principal nas DMs</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d2">
+        <div class="pcat-h"><span class="pcat-ic blue"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><div class="nm">Telegram</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Criação e gestão de bots</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Planos de pagamento no bot</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Botões de redirecionamento</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Dashboard e mensagens</li>
+        </ul>
+      </div>
+      <div class="pcat reveal">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="18" rx="1.5"/><rect x="9.5" y="3" width="6" height="12" rx="1.5"/><rect x="16" y="3" width="5" height="8" rx="1.5"/></svg></span><div class="nm">CRM &amp; Atendimento</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pipeline (CRM) com etapas</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Chat ao vivo &amp; departamentos</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Contatos e etiquetas</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Gestão de vendas</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d1">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="nm">Agente de IA</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Treinável com FAQ &amp; documentos</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Skills e ferramentas conectadas</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Gera Pix e envia checkout sozinho</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Transferência para humano</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d2">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><div class="nm">Grupos &amp; Comunidades</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Criar grupos, comunidades e canais</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Extrair membros</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Campanhas e fluxos de grupo</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Links de redirecionamento rotativo</li>
+        </ul>
+      </div>
+      <div class="pcat reveal">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span><div class="nm">Gateway ZapLynxPay</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Checkout próprio &amp; produtos</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pix instantâneo e saques</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Recuperação de carrinho &amp; downsell</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Domínio próprio, e-mail e taxas</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d1">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span><div class="nm">Marketing &amp; Afiliados</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Marketplace de afiliados</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Sou afiliado / Meus afiliados</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Landing pages</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Remarketing &amp; downsell</li>
+        </ul>
+      </div>
+      <div class="pcat reveal d2">
+        <div class="pcat-h"><span class="pcat-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span><div class="nm">Rastreamento &amp; Integrações</div></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pixels (Meta, Google, TikTok)</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Links de traqueamento &amp; UTM</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Relatórios detalhados</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Integrações e webhooks</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPARATIVO ============ -->
+<section class="compare" id="comparativo">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Comparativo</span>
+      <h2 class="section-title">Por que pagar por cinco quando uma faz tudo?</h2>
+      <p class="section-sub">O que você precisaria juntar de Kiwify, Hotmart e ManyChat, o ZapLynx entrega num único plano.</p>
+    </div>
+    <div class="ctable reveal d1">
+      <div class="crow head">
+        <div class="ccell feature">Recurso</div>
+        <div class="ccell center zaplynx"><span class="zl-pill"><img src="assets/lynx-logo.png" alt="" />ZapLynx</span></div>
+        <div class="ccell center">Concorrência</div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Gateway Pix próprio</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cdash">Só Hotmart/Kiwify</span></div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Automação de WhatsApp</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cdash">Só SendFlow/DevZapp</span></div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Automação de Instagram</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cdash">Só ManyChat</span></div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Agente de IA de vendas</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cx"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Checkout com a sua marca</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cdash">Limitado</span></div>
+      </div>
+      <div class="crow">
+        <div class="ccell feature">Tudo em um único painel</div>
+        <div class="ccell center zaplynx"><span class="ck"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="ccell center"><span class="cx"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DEPOIMENTOS ============ -->
+<section class="testi" id="depoimentos">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Clientes</span>
+      <h2 class="section-title">Quem vende todo dia, vende com ZapLynx</h2>
+      <p class="section-sub">Infoprodutores, lojistas e agências que trocaram a salada de ferramentas por uma única plataforma.</p>
+    </div>
+    <div class="tgrid">
+      <div class="tcard reveal">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"Cortei 4 assinaturas e ainda aumentei a conversão. O agente de IA responde melhor que eu de madrugada — literalmente vende dormindo."</p>
+        <div class="who"><div class="av" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">MR</div><div><div class="nm">Marina Ribeiro</div><div class="rl">Infoprodutora · Marketing Digital</div></div></div>
+      </div>
+      <div class="tcard reveal d1">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"A automação de comentários do Instagram triplicou minhas vendas em lançamento. Comentou 'QUERO', recebe o link na hora. Mágico."</p>
+        <div class="who"><div class="av" style="background:linear-gradient(135deg,#833ab4,#fd1d1d)">JF</div><div><div class="nm">Júlia Ferraz</div><div class="rl">Loja de perfumes · @belezavf</div></div></div>
+      </div>
+      <div class="tcard reveal d2">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"Pix cai em segundos no checkout com a minha marca. Saí da Kiwify e nunca mais pensei no assunto. Suporte rápido e taxa justa."</p>
+        <div class="who"><div class="av" style="background:linear-gradient(135deg,#0095f6,#00d4ff)">AC</div><div><div class="nm">André Castro</div><div class="rl">Agência de tráfego pago</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PREÇOS ============ -->
+<section class="pricing" id="precos">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Preços</span>
+      <h2 class="section-title">Um plano para cada fase do seu negócio</h2>
+      <div class="billing-toggle reveal d1">
+        <button class="active" data-billing="month">Mensal</button>
+        <button data-billing="year">Anual <span class="save">-20%</span></button>
+      </div>
+    </div>
+    <div class="plans">
+      <div class="plan reveal">
+        <div class="pname">Start</div>
+        <div class="pdesc">Para quem está começando a vender e automatizar.</div>
+        <div class="price"><span class="cur">R$</span><span class="amt" data-month="97" data-year="77">97</span><span class="per">/mês</span></div>
+        <div class="pnote" data-note-year="cobrado anualmente">cobrado mensalmente</div>
+        <a class="btn btn-ghost" href="#">Começar Teste Grátis</a>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Gateway Pix com checkout próprio</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>1 número de WhatsApp</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Fluxos visuais ilimitados</li>
+          <li class="off"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Automação de Instagram</li>
+          <li class="off"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Agente de IA</li>
+        </ul>
+      </div>
+      <div class="plan pop reveal d1">
+        <div class="pname">Pro</div>
+        <div class="pdesc">Para quem vende todo dia e quer escalar com IA.</div>
+        <div class="price"><span class="cur">R$</span><span class="amt" data-month="197" data-year="157">197</span><span class="per">/mês</span></div>
+        <div class="pnote" data-note-year="cobrado anualmente">cobrado mensalmente</div>
+        <a class="btn btn-primary" href="#">Experimentar Grátis <span class="arrow">→</span></a>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Tudo do Start, e mais:</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Até 3 números de WhatsApp</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Automação de Instagram completa</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Agente de IA de vendas 24h</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pixels e UTM tracking</li>
+        </ul>
+      </div>
+      <div class="plan reveal d2">
+        <div class="pname">Scale</div>
+        <div class="pdesc">Para operações e agências com alto volume.</div>
+        <div class="price"><span class="cur">R$</span><span class="amt" data-month="497" data-year="397">497</span><span class="per">/mês</span></div>
+        <div class="pnote" data-note-year="cobrado anualmente">cobrado mensalmente</div>
+        <a class="btn btn-ghost" href="#">Falar com Vendas</a>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Tudo do Pro, e mais:</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Números de WhatsApp ilimitados</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Múltiplos agentes de IA</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Gestão de equipe e permissões</li>
+          <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Gerente de conta dedicado</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><span class="dot"></span>Dúvidas</span>
+      <h2 class="section-title">Perguntas frequentes</h2>
+    </div>
+    <div class="faq-list" id="faqList">
+      <div class="faq-item">
+        <button class="faq-q">Preciso ter CNPJ para usar o gateway Pix?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">Não. Você pode começar como pessoa física (CPF) e fazer a verificação (KYC) direto na plataforma. Empreendedores com CNPJ desbloqueiam limites maiores de saque.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">A automação do Instagram é oficial?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">Sim. Usamos a API oficial do Instagram (Meta), então sua conta fica segura. As respostas a comentários e DMs seguem todas as políticas da plataforma.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Em quanto tempo o Pix cai na minha conta?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">A confirmação do pagamento é instantânea no checkout. O saldo fica disponível para saque conforme as regras antifraude — normalmente em poucos minutos a partir da confirmação.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Preciso saber programar para montar os fluxos?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">Não. O editor é 100% visual, arrastando blocos de gatilho, condição e ação. Se você sabe usar WhatsApp, sabe montar um fluxo no ZapLynx.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Posso testar antes de pagar?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">Sim. São 2 dias de teste gratuito, sem precisar de cartão de crédito. Você explora a plataforma inteira e só assina se fizer sentido para o seu negócio.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Já uso Kiwify/Hotmart. Dá para migrar?<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><div class="inner">Dá, e é simples. Você pode rodar em paralelo enquanto migra seus checkouts e automações. No plano Scale, nosso time ajuda na migração.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA FINAL ============ -->
+<section class="cta-final">
+  <div class="container">
+    <div class="cta-box reveal">
+      <div class="halo"></div>
+      <h2>Venda mais com Gateway + WhatsApp + Instagram + IA</h2>
+      <p>Receba pagamentos e automatize toda a sua comunicação em uma única plataforma — com a sua marca.</p>
+      <div class="acts">
+        <a class="btn btn-primary btn-lg" href="#precos">Começar Teste Grátis <span class="arrow">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#recursos">Ver recursos</a>
+      </div>
+      <div class="disclaimer">2 dias de teste gratuito • Sem cartão de crédito</div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top"><img src="assets/lynx-logo.png" alt="ZapLynx" /><span class="wordmark">Zap<span class="gradient-text">Lynx</span></span></a>
+        <p>A plataforma all-in-one para empreendedores digitais: gateway Pix, automação de WhatsApp e Instagram e agente de IA — tudo em um só lugar.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produto</h4>
+        <a href="#recursos">Recursos</a>
+        <a href="#">ZapLynxPay</a>
+        <a href="#">Automação Instagram</a>
+        <a href="#precos">Preços</a>
+      </div>
+      <div class="foot-col">
+        <h4>Empresa</h4>
+        <a href="#">Sobre</a>
+        <a href="#depoimentos">Clientes</a>
+        <a href="#">Blog</a>
+        <a href="#">Carreiras</a>
+      </div>
+      <div class="foot-col">
+        <h4>Suporte</h4>
+        <a href="#faq">Central de ajuda</a>
+        <a href="#">Status</a>
+        <a href="#">Termos de uso</a>
+        <a href="#">Privacidade</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <div class="cp">© 2026 ZapLynx · Todos os direitos reservados</div>
+      <div class="socials">
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M22 8.5a3 3 0 0 0-2.1-2.1C18 6 12 6 12 6s-6 0-7.9.4A3 3 0 0 0 2 8.5 31 31 0 0 0 2 12a31 31 0 0 0 .1 3.5 3 3 0 0 0 2.1 2.1C6 18 12 18 12 18s6 0 7.9-.4a3 3 0 0 0 2.1-2.1A31 31 0 0 0 22 12a31 31 0 0 0-.1-3.5z"/><polygon points="10 9 15 12 10 15" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="animations.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
