@@ -718,7 +718,9 @@ serve(async (req) => {
                 phone: chatId,
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
-                message_received: incomingAudioUrl ? `[áudio] ${agentInboundText}` : messageRaw,
+                message_received: incomingAudioUrl
+                  ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInboundText}`
+                  : messageRaw,
                 response_sent: `[Agente IA: ${flow.name}]`,
                 keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
                 message_id: messageId,
@@ -964,7 +966,9 @@ serve(async (req) => {
             phone: chatId,
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
-            message_received: incomingAudioUrl ? `[áudio] ${agentInputText}` : messageRaw,
+            message_received: incomingAudioUrl
+              ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInputText}`
+              : messageRaw,
             response_sent: "[Agente IA global]",
             keyword_matched: `__global_agent_inbound__:${messageId}`,
             message_id: messageId,
