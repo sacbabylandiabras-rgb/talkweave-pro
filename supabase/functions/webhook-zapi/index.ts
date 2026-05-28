@@ -956,18 +956,7 @@ serve(async (req) => {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
-        let agentInputText = messageRaw || "";
-        const incomingAudioUrl = webhook?.audio?.audioUrl || webhook?.audio?.url || "";
-        if (incomingAudioUrl) {
-          const transcript = await transcribeAudioUrl(incomingAudioUrl);
-          if (transcript) {
-            console.log(`[AI Agent] Áudio transcrito (${transcript.length} chars): ${transcript.slice(0, 120)}`);
-            agentInputText = transcript;
-          } else {
-            console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
-            agentInputText = agentInputText || "[áudio recebido]";
-          }
-        }
+        const agentInputText = await resolveAgentInboundText(messageRaw || "", incomingAudioUrl);
 
         if (messageId) {
           await supabase.from("message_logs").insert({
