@@ -14,6 +14,8 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { useFlowLeadPositions } from "@/hooks/useFlowLeadPositions";
+import { FlowLeadOverlay } from "@/components/flow/FlowLeadOverlay";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
