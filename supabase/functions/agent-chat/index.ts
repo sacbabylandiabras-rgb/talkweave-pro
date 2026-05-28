@@ -1275,16 +1275,18 @@ async function executeTool(
         if (!phone) {
           return JSON.stringify({ ok: true, preview: chosen, info: "Sem número de destino (modo teste)." });
         }
-        const creds = await getUserUazapiCreds(supabase, userId);
-        if (!creds) return JSON.stringify({ error: "Nenhuma instância configurada para envio." });
+        const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+        if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
         const type = ["image", "video", "audio", "document"].includes(String(chosen.media_type))
           ? chosen.media_type : "image";
-        const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
-          number: phone,
+        const r = await sendWhatsAppMessage(
+          creds,
+          phone,
+          String(input?.legenda || chosen.caption || ""),
+          chosen.media_url,
           type,
-          file: chosen.media_url,
-          ...(input?.legenda || chosen.caption ? { text: input?.legenda || chosen.caption } : {}),
-        });
+        );
+        if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
         return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
