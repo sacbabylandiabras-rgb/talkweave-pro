@@ -25,6 +25,7 @@ import {
   Briefcase,
   Search,
   Star,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +51,7 @@ export const AGENT_TOOL_BLOCKS: AgentToolBlock[] = [
   { category: "Conhecimento", toolName: "enviar_transacao", label: "Enviar transação", description: "Envia mensagem de pagamento ao lead", icon: Send, instructions: "Acione quando o lead pedir o link de pagamento, segunda via, status ou comprovante. Informe o transaction_id corretamente." },
   { category: "Conhecimento", toolName: "ler_anexo", label: "Ler anexo do chat", description: "Lê arquivo enviado a partir da URL do anexo", icon: Paperclip, instructions: "Use sempre que o lead enviar PDF, planilha ou texto e for necessário entender o conteúdo para responder. Resuma e use o conteúdo extraído na resposta." },
   { category: "Conhecimento", toolName: "enviar_prova_social", label: "Prévia / Prova Social", description: "Envia depoimentos, prints e mídias de prova social ao lead", icon: Star, instructions: "Use quando o lead pedir prévia do produto, depoimentos, resultados, prints, vídeos ou qualquer prova social. Busque a mídia mais relevante na base e envie diretamente ao lead com legenda apropriada." },
+  { category: "Conhecimento", toolName: "gerar_cobranca_gateway", label: "Gerar Cobrança (Gateway)", description: "Gera uma cobrança PIX pelo gateway e envia ao lead", icon: CreditCard, instructions: "Use quando o lead confirmar interesse e quiser pagar. Informe productId (preferencial) ou amount em reais e uma descrição. A ferramenta gera o PIX (brcode + QR Code) via gateway configurado e retorna os dados para envio ao lead." },
 
   // Integração
   { category: "Integração", toolName: "consulta_api_ia", label: "Consulta API (IA)", description: "Chamada HTTP feita pelo agente IA", icon: Globe, instructions: "Use para consultar APIs externas (rastreio, CEP, sistemas internos). Monte os parâmetros conforme a documentação e use o retorno para responder o lead." },
