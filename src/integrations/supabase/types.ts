@@ -44,6 +44,54 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_deliverables: {
+        Row: {
+          active: boolean
+          caption: string | null
+          content_text: string | null
+          created_at: string
+          description: string | null
+          id: string
+          media_type: string
+          media_url: string | null
+          order_index: number
+          product_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          caption?: string | null
+          content_text?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: string
+          media_url?: string | null
+          order_index?: number
+          product_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          caption?: string | null
+          content_text?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: string
+          media_url?: string | null
+          order_index?: number
+          product_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_knowledge: {
         Row: {
           active: boolean
