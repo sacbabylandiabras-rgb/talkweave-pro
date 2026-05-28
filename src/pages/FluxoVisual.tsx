@@ -4809,6 +4809,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             </span>
                           ))}
                           <input
+                            id="gatilho-keyword-input"
                             type="text"
                             placeholder={list.length ? "Adicionar..." : "Ex: oi, menu, preço"}
                             className="flex-1 min-w-[120px] bg-transparent outline-none text-sm"
@@ -4838,6 +4839,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                               }
                             }}
                           />
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const el = document.getElementById("gatilho-keyword-input") as HTMLInputElement | null;
+                              if (el?.value.trim()) {
+                                addFromInput(el.value);
+                                el.value = "";
+                                el.focus();
+                              } else {
+                                el?.focus();
+                              }
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar palavra-chave
+                          </Button>
+                          {list.length > 0 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {list.length} palavra(s)-chave
+                            </span>
+                          )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           Adicione várias palavras-chave. Pressione Enter ou vírgula para confirmar. O fluxo dispara quando qualquer uma for recebida.
