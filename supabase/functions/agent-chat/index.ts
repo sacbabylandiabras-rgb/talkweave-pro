@@ -514,18 +514,55 @@ const TOOL_DEFS: Record<string, any> = {
 const WHATSAPP_META_APP_ID = "26985190684454065";
 const INSTAGRAM_META_APP_ID = "1629147191696096";
 
-// ============ UAZAPI HELPERS ============
+// ============ WHATSAPP HELPERS ============
+type WhatsAppCreds = {
+  provider: string;
+  apiUrl?: string;
+  apiToken?: string;
+  zapiInstanceId?: string;
+  zapiToken?: string;
+  zapiClientToken?: string;
+};
+
 async function getUserUazapiCreds(supabase: any, userId: string): Promise<{ apiUrl: string; apiToken: string } | null> {
   const { data: instance } = await supabase
     .from("zapi_instances")
-    .select("zapi_instance_id, zapi_token, api_provider, is_default, is_active")
+    .select("zapi_instance_id, zapi_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active")
     .eq("user_id", userId)
+    .eq("is_active", true)
     .order("is_default", { ascending: false })
-    .order("is_active", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (instance && (instance.api_provider || "").toLowerCase() === "uazapi") {
-    return { apiUrl: String(instance.zapi_instance_id).replace(/\/+$/, ""), apiToken: instance.zapi_token || "" };
+    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
+    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
+    if (apiUrl && apiToken) return { apiUrl, apiToken };
+  }
+  return null;
+}
+
+async function getUserWhatsappCreds(supabase: any, userId: string, instanceId?: string | null): Promise<WhatsAppCreds | null> {
+  const select = "id, zapi_instance_id, zapi_token, zapi_client_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active";
+  let q = supabase.from("zapi_instances").select(select).eq("user_id", userId).eq("is_active", true);
+  if (instanceId) q = q.eq("id", instanceId);
+  else q = q.order("is_default", { ascending: false }).order("created_at", { ascending: true }).limit(1);
+  const { data: instance } = await q.maybeSingle();
+  if (!instance) return null;
+  const provider = String(instance.api_provider || "zapi").toLowerCase();
+  if (provider === "uazapi") {
+    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
+    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
+    if (!apiUrl || !apiToken) return null;
+    return { provider, apiUrl, apiToken };
+  }
+  if (provider === "zapi" || provider === "") {
+    if (!instance.zapi_instance_id || !instance.zapi_token) return null;
+    return {
+      provider: "zapi",
+      zapiInstanceId: instance.zapi_instance_id,
+      zapiToken: instance.zapi_token,
+      zapiClientToken: instance.zapi_client_token || "",
+    };
   }
   return null;
 }
