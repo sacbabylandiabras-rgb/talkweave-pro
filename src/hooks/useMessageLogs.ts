@@ -695,7 +695,9 @@ export const useMessageLogs = (
         const resolvedName = isGroupPhone(zapiPhone) ? extractResolvedGroupName(responsePayload) : null;
         const finalUrl = extractProfilePictureUrl(responsePayload);
 
-        if (finalUrl || !isGroupPhone(zapiPhone)) fetchedPhotosRef.current.add(zapiPhone);
+        // Só marca como buscado quando temos uma URL — assim, lookups que falharam
+        // por instabilidade da API podem ser tentados de novo na próxima rodada.
+        if (finalUrl) fetchedPhotosRef.current.add(zapiPhone);
 
         setLocalManualPhotos((prev) => {
           const next = new Map(prev);
@@ -713,7 +715,8 @@ export const useMessageLogs = (
               phone: zapiPhone,
               name: resolvedName || existing?.name || "",
               user_id: userId,
-              profile_picture_url: finalUrl || (isGroupPhone(zapiPhone) ? existing?.profile_picture_url || null : null),
+              // Nunca apaga uma foto já salva. Só sobrescreve quando temos uma URL nova.
+              profile_picture_url: finalUrl || existing?.profile_picture_url || null,
             });
             await fetchSavedContacts();
           }
@@ -761,6 +764,7 @@ export const useMessageLogs = (
               const body: Record<string, unknown> = { phone: zapiPhone };
               if (filterInstanceId && filterInstanceId !== "all") body.instanceId = filterInstanceId;
               const { data, error } = await supabase.functions.invoke("get-profile-picture", { body });
+              let saved = false;
               if (!error) {
                 const payload = data?.data ?? data;
                 const url = extractProfilePictureUrl(payload);
@@ -772,9 +776,12 @@ export const useMessageLogs = (
                     user_id: userId,
                     profile_picture_url: url,
                   });
+                  saved = true;
                 }
               }
-              fetchedPhotosRef.current.add(zapiPhone);
+              // Only mark as fetched when we actually got a photo, so the next
+              // run can retry phones whose photo failed to resolve.
+              if (saved) fetchedPhotosRef.current.add(zapiPhone);
             } catch {
               /* ignore */
             } finally {
