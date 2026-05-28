@@ -86,6 +86,19 @@ async function transcribeAudioUrl(audioUrl: string): Promise<string> {
   }
 }
 
+function getIncomingAudioUrl(webhook: any): string {
+  return String(
+    webhook?.audio?.audioUrl ||
+      webhook?.audio?.url ||
+      webhook?.audio?.mediaUrl ||
+      webhook?.audio?.fileUrl ||
+      webhook?.audio?.downloadUrl ||
+      webhook?.audioUrl ||
+      webhook?.mediaUrl ||
+      "",
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -238,11 +251,11 @@ serve(async (req) => {
       webhook?.interactiveResponseMessage?.body ||
       "";
 
+    const incomingAudioUrl = getIncomingAudioUrl(webhook);
     const mediaUrl =
       webhook?.image?.url ||
       webhook?.video?.url ||
-      webhook?.audio?.audioUrl ||
-      webhook?.audio?.url ||
+      incomingAudioUrl ||
       webhook?.sticker?.url ||
       webhook?.document?.url;
     if (mediaUrl) {
