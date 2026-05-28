@@ -16,6 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { findAgentToolBlock } from "./agentToolBlocks";
 import { SocialProofManager } from "./SocialProofManager";
+import { DeliverablesManager } from "./DeliverablesManager";
 import {
   Info,
   Package,
@@ -4001,6 +4002,20 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
           placeholder="Quando o lead pedir depoimentos, prévia, prints ou prova social..."
         />
         <SocialProofManager />
+      </>
+    );
+  }
+  if (toolName === "entregaveis") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Entregáveis"
+          placeholder="Quando o pagamento do lead for confirmado, envie os entregáveis cadastrados..."
+        />
+        <DeliverablesManager />
       </>
     );
   }
