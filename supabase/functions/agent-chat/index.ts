@@ -1855,6 +1855,12 @@ serve(async (req) => {
           });
         }
       }
+    } else if (Array.isArray(connected_tools) && connected_tools.length > 0) {
+      enabledTools = connected_tools
+        .filter((t: any) => t?.enabled !== false)
+        .map((t: any) => TOOL_DEFS[String(t?.toolName || t?.tool_name || t?.name || "")])
+        .filter(Boolean)
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
     }
 
     while (iterations < MAX_ITER) {
