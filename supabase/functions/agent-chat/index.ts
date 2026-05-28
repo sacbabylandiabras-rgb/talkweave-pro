@@ -1557,7 +1557,16 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { messages, user_id, skip_config, phone, system_prompt: customSystemPrompt, model: customModel } = body;
+    const {
+      messages,
+      user_id,
+      skip_config,
+      phone,
+      instance_id,
+      connected_tools,
+      system_prompt: customSystemPrompt,
+      model: customModel,
+    } = body;
     const effectiveUserId = user_id || userId;
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
