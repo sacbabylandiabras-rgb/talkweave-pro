@@ -705,7 +705,7 @@ serve(async (req) => {
                 instanceData,
                 chatId,
                 isGroup,
-                webhook,
+                { ...webhook, __agent_input_text: agentInboundText },
               );
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
