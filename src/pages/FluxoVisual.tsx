@@ -4770,17 +4770,81 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <div>
                   <Label className="flex items-center gap-1">
                     <Key className="h-3 w-3" />
-                    Palavra-chave (Gatilho)
+                    Palavras-chave (Gatilho)
                   </Label>
-                  <Input
-                    value={keywordFluxo}
-                    onChange={(e) => setKeywordFluxo(e.target.value)}
-                    placeholder="Ex: oi, menu, preco"
-                    className="mt-1"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Quando alguém enviar essa palavra, o fluxo será disparado automaticamente
-                  </p>
+                  {(() => {
+                    const raw = String(selectedNode.data.keyword ?? keywordFluxo ?? "");
+                    const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                    const updateList = (next: string[]) => {
+                      const joined = next.join(", ");
+                      setKeywordFluxo(joined);
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, keyword: joined },
+                      });
+                    };
+                    const addFromInput = (value: string) => {
+                      const pieces = value.split(",").map((s) => s.trim()).filter(Boolean);
+                      if (!pieces.length) return;
+                      const merged = Array.from(new Set([...list, ...pieces]));
+                      updateList(merged);
+                    };
+                    return (
+                      <>
+                        <div className="mt-1 flex flex-wrap gap-1.5 p-2 rounded-md border border-input bg-background min-h-[42px]">
+                          {list.map((kw, idx) => (
+                            <span
+                              key={`${kw}-${idx}`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/15 text-primary border border-primary/30"
+                            >
+                              {kw}
+                              <button
+                                type="button"
+                                onClick={() => updateList(list.filter((_, i) => i !== idx))}
+                                className="hover:text-destructive ml-0.5 leading-none"
+                                aria-label={`Remover ${kw}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                          <input
+                            type="text"
+                            placeholder={list.length ? "Adicionar..." : "Ex: oi, menu, preço"}
+                            className="flex-1 min-w-[120px] bg-transparent outline-none text-sm"
+                            onKeyDown={(e) => {
+                              const target = e.currentTarget;
+                              if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
+                                if (target.value.trim()) {
+                                  e.preventDefault();
+                                  addFromInput(target.value);
+                                  target.value = "";
+                                }
+                              } else if (e.key === "Backspace" && !target.value && list.length) {
+                                updateList(list.slice(0, -1));
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.currentTarget.value.trim()) {
+                                addFromInput(e.currentTarget.value);
+                                e.currentTarget.value = "";
+                              }
+                            }}
+                            onPaste={(e) => {
+                              const text = e.clipboardData.getData("text");
+                              if (text.includes(",")) {
+                                e.preventDefault();
+                                addFromInput(text);
+                              }
+                            }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Adicione várias palavras-chave. Pressione Enter ou vírgula para confirmar. O fluxo dispara quando qualquer uma for recebida.
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
               </>
             )}
