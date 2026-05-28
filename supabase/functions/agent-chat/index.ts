@@ -335,7 +335,7 @@ const TOOL_DEFS: Record<string, any> = {
   },
   enviar_prova_social: {
     name: "enviar_prova_social",
-    description: "OBRIGATÓRIO chamar esta ferramenta SEMPRE que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia, 'me manda', 'quero ver', 'cadê', 'envia ai' ou qualquer prova social. NÃO prometa enviar sem chamar a ferramenta. A ferramenta busca automaticamente a mídia mais relevante na base e envia direto ao WhatsApp do lead.",
+    description: "Use SOMENTE quando o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou prova social. NÃO use quando o lead pedir link de checkout, pagamento, PIX, cobrança, preço ou plano. Não repita prova social já enviada na conversa.",
     input_schema: {
       type: "object",
       properties: {
@@ -671,8 +671,14 @@ function stripToolMetaText(text: string): string {
     .trim();
 }
 
+function hasCheckoutIntent(text: string): boolean {
+  const value = String(text || "").toLowerCase();
+  return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
+}
+
 function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
   const text = String(lastUserText || "").toLowerCase();
+  if (hasCheckoutIntent(text)) return false;
   const recentUsers = messages
     .filter((m: any) => m?.role === "user")
     .slice(-4)
@@ -1264,9 +1270,11 @@ async function executeTool(
         // Exclude proofs already sent to this lead in the current conversation
         const alreadySent = new Set<string>([...sentProofIds, ...newlySent]);
         let pool = list.filter((r: any) => !alreadySent.has(r.id));
-        // If everything was already sent, rotate (reset history) so we can send again
-        const rotated = pool.length === 0;
-        if (rotated) pool = list;
+        // Nunca reinicia o ciclo automaticamente: isso evita reenviar a mesma prévia
+        // quando o lead pede checkout/pagamento ou quando o webhook chega duplicado.
+        if (pool.length === 0) {
+          return JSON.stringify({ ok: false, already_sent: true, message: "Todas as prévias cadastradas já foram enviadas para este lead." });
+        }
 
         let chosen: any = pool[0];
         if (termo) {
@@ -1283,7 +1291,7 @@ async function executeTool(
 
         if (!phone) {
           newlySent.push(chosen.id);
-          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated, info: "Sem número de destino (modo teste)." });
+          return JSON.stringify({ ok: true, preview: chosen, sent: { id: chosen.id, title: chosen.title }, rotated: false, info: "Sem número de destino (modo teste)." });
         }
         const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
         if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
@@ -1298,7 +1306,7 @@ async function executeTool(
         );
         if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
         newlySent.push(chosen.id);
-        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated, result: r });
+        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, rotated: false, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
       }
@@ -1663,7 +1671,7 @@ serve(async (req) => {
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
     systemPrompt +=
-      "\n- PRÉVIA / PROVA SOCIAL: Sempre que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou disser coisas como 'me manda', 'manda previa', 'quero ver', 'cadê', 'envia ai', você DEVE chamar imediatamente a ferramenta enviar_prova_social. NUNCA diga que vai enviar/chamar alguém sem antes executar a ferramenta. Não invente nomes de pessoas (ex: 'Marta', 'João') — quem envia é a própria ferramenta. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
+      "\n- PRÉVIA / PROVA SOCIAL: Use enviar_prova_social SOMENTE quando o lead pedir explicitamente prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou prova social. Se o lead pedir link de checkout, pagamento, PIX, cobrança, preço ou plano, NÃO envie prévia/prova social; responda com o checkout/CTA de pagamento. NUNCA repita prova social já enviada na conversa. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
     systemPrompt +=
       "\n- NUNCA escreva mensagens internas do tipo '[Chamando ferramenta...]', '[executando tool...]', nomes de ferramentas, JSON, tool_call ou qualquer status técnico para o cliente. Chamadas de ferramenta devem acontecer apenas pelo mecanismo interno de tools.";
 
@@ -1702,7 +1710,7 @@ serve(async (req) => {
       );
     let prefetchedCta: { label: string; url: string } | null = null;
 
-    if (!skip_config && hasPricingIntent) {
+    if (hasPricingIntent) {
       try {
         const prefetchedPlanRaw = await executeTool(
           "gateway_buscar_plano_checkout",
@@ -1739,7 +1747,8 @@ serve(async (req) => {
       }
     }
 
-    if (isSocialProofRequest(lastUserText, messages || [])) {
+    const shouldForceSocialProof = isSocialProofRequest(lastUserText, messages || []);
+    if (shouldForceSocialProof) {
       try {
         let toolEnabled = true;
         if (!skip_config) {
@@ -1860,7 +1869,8 @@ serve(async (req) => {
           return def;
         })
         .filter(Boolean)
-        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"))
+        .filter((tool: any) => !(hasPricingIntent && tool?.name === "enviar_prova_social"));
 
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
@@ -1885,7 +1895,8 @@ serve(async (req) => {
         .filter((t: any) => t?.enabled !== false)
         .map((t: any) => TOOL_DEFS[String(t?.toolName || t?.tool_name || t?.name || "")])
         .filter(Boolean)
-        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"))
+        .filter((tool: any) => !(hasPricingIntent && tool?.name === "enviar_prova_social"));
     }
 
     while (iterations < MAX_ITER) {
