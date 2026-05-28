@@ -1867,7 +1867,8 @@ serve(async (req) => {
           return def;
         })
         .filter(Boolean)
-        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"))
+        .filter((tool: any) => !(hasPricingIntent && tool?.name === "enviar_prova_social"));
 
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
@@ -1892,7 +1893,8 @@ serve(async (req) => {
         .filter((t: any) => t?.enabled !== false)
         .map((t: any) => TOOL_DEFS[String(t?.toolName || t?.tool_name || t?.name || "")])
         .filter(Boolean)
-        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"))
+        .filter((tool: any) => !(hasPricingIntent && tool?.name === "enviar_prova_social"));
     }
 
     while (iterations < MAX_ITER) {
