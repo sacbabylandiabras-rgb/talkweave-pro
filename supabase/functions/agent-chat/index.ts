@@ -309,7 +309,7 @@ const TOOL_DEFS: Record<string, any> = {
   gerar_cobranca_gateway: {
     name: "gerar_cobranca_gateway",
     description:
-      "Gera uma cobrança PIX no gateway configurado e retorna brcode/qrcode para enviar ao lead. Informe productId (preferencial) OU amount (em reais) + descrição.",
+      "NÃO USE para entregar link de pagamento, checkout, PIX ou cartão. Para isso use SEMPRE gateway_buscar_plano_checkout (que devolve o link onde o próprio cliente preenche os dados). Esta ferramenta só deve ser usada quando o operador humano pedir explicitamente uma cobrança PIX direta (brcode/qrcode) e já tiver os dados do cliente em mãos.",
     input_schema: {
       type: "object",
       properties: {
@@ -1744,6 +1744,10 @@ serve(async (req) => {
     systemPrompt += "\n- Se não souber a resposta, use a ferramenta transferir_humano.";
     systemPrompt +=
       "\n- Se o cliente perguntar sobre plano, preço, assinatura ou quiser pagar, use a ferramenta gateway_buscar_plano_checkout antes de responder.";
+    systemPrompt +=
+      "\n- NUNCA peça nome, e-mail, CPF/CNPJ, telefone ou qualquer dado pessoal do cliente para gerar link de pagamento/checkout/PIX/cartão. Apenas chame gateway_buscar_plano_checkout e envie o link retornado — o próprio checkout coleta os dados.";
+    systemPrompt +=
+      "\n- NUNCA use gerar_cobranca_gateway para entregar link de checkout/pagamento. Sempre prefira gateway_buscar_plano_checkout.";
     systemPrompt +=
       "\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios de forma sucinta, mas nunca escreva a URL no texto.";
     systemPrompt += "\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.";
