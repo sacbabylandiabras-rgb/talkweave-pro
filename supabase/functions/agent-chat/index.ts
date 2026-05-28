@@ -676,6 +676,33 @@ function hasCheckoutIntent(text: string): boolean {
   return /\b(checkout|pag(ar|amento|uei)?|pix|cobran[cç]a|compr(ar|a)|fechar|assinar|assinatura|valor|pre[cç]o|plano|planos|cart[aã]o|cr[eé]dito|d[eé]bito|parcel(ar|amento|ado)?|link\s+(do|de)\s+(checkout|pagamento)|manda(r)?\s+(o\s+)?link|me\s+manda\s+(o\s+)?link)\b/i.test(value);
 }
 
+const CHECKOUT_SEARCH_STOPWORDS = new Set([
+  "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos", "das", "para", "pra", "pro", "por", "com", "sem",
+  "me", "te", "se", "eu", "vc", "voce", "você", "cliente", "lead", "agora", "aqui", "ai", "aí", "quero", "quer", "queria",
+  "manda", "mandar", "mande", "envia", "enviar", "envie", "gera", "gerar", "gere", "abre", "abrir", "faz", "fazer",
+  "link", "checkout", "pagamento", "pagar", "pago", "pix", "cartao", "cartão", "credito", "crédito", "debito", "débito",
+  "plano", "planos", "preco", "preço", "valor", "comprar", "compra", "assinar", "assinatura", "cobranca", "cobrança",
+]);
+
+function getCheckoutSearchText(messages: any[] = [], fallback = ""): string {
+  const recent = messages
+    .slice(-8)
+    .map((m: any) => String(m?.content || ""))
+    .filter(Boolean)
+    .join("\n");
+  return `${recent}\n${fallback}`.trim() || fallback;
+}
+
+function getMeaningfulCheckoutTokens(text: string): string[] {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !CHECKOUT_SEARCH_STOPWORDS.has(token));
+}
+
 function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
   const text = String(lastUserText || "").toLowerCase();
   if (hasCheckoutIntent(text)) return false;
