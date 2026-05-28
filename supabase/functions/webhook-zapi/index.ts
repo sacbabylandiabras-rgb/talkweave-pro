@@ -1013,7 +1013,9 @@ serve(async (req) => {
           phone: chatId,
           instance_id: instanceId,
           timestamp: new Date().toISOString(),
-          message_received: messageRaw,
+          message_received: incomingAudioUrl
+            ? `[media:audio:${incomingAudioUrl}]${messageRaw ? `\n${messageRaw}` : ""}`
+            : messageRaw,
           message_id: messageId,
         });
       }
