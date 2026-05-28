@@ -322,8 +322,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           {menuItems.map(renderItem)}
         </ul>
 
-        {/* Instagram section - paid users or admins */}
-        {activeWorkspace === "zapi" && (isPaid || isAdmin) && (
+        {/* Instagram section */}
+        {activeWorkspace === "zapi" && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
@@ -336,8 +336,8 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           </>
         )}
 
-        {/* Telegram section - paid users or admins */}
-        {activeWorkspace === "zapi" && (isPaid || isAdmin) && (
+        {/* Telegram section */}
+        {activeWorkspace === "zapi" && (
           <>
             {!collapsed && (
               <div className="px-2 pt-3 pb-1">
