@@ -16,6 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { findAgentToolBlock } from "./agentToolBlocks";
 import { SocialProofManager } from "./SocialProofManager";
+import { DeliverablesManager } from "./DeliverablesManager";
 import {
   Info,
   Package,
