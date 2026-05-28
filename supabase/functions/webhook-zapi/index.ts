@@ -54,6 +54,38 @@ function getCaptureHandle(field: string) {
   return `collect-${field}`;
 }
 
+// Transcreve áudio (URL) usando OpenAI Whisper. Retorna string vazia em falha.
+async function transcribeAudioUrl(audioUrl: string): Promise<string> {
+  try {
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey || !audioUrl) return "";
+    const audioRes = await fetch(audioUrl);
+    if (!audioRes.ok) {
+      console.error("[transcribeAudioUrl] download falhou:", audioRes.status);
+      return "";
+    }
+    const audioBuf = await audioRes.arrayBuffer();
+    const blob = new Blob([audioBuf], { type: audioRes.headers.get("content-type") || "audio/ogg" });
+    const form = new FormData();
+    form.append("file", blob, "audio.ogg");
+    form.append("model", "whisper-1");
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+    if (!r.ok) {
+      console.error("[transcribeAudioUrl] whisper falhou:", r.status, await r.text());
+      return "";
+    }
+    const data = await r.json();
+    return String(data?.text || "").trim();
+  } catch (e) {
+    console.error("[transcribeAudioUrl] erro:", e);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
