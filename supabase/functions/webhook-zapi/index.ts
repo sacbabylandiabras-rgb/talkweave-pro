@@ -990,7 +990,7 @@ serve(async (req) => {
         
         const { data: agentResponse, error: agentError } = await supabase.functions.invoke("agent-chat", {
           body: {
-            messages: [{ role: "user", content: agentInputText || "Olá" }],
+            messages: [{ role: "user", content: agentInboundText || "Olá" }],
             user_id: userId,
             phone: phone,
           }
@@ -1026,9 +1026,7 @@ serve(async (req) => {
           phone: chatId,
           instance_id: instanceId,
           timestamp: new Date().toISOString(),
-          message_received: incomingAudioUrl
-            ? `[media:audio:${incomingAudioUrl}]${messageRaw ? `\n${messageRaw}` : ""}`
-            : messageRaw,
+          message_received: displayInboundMessage,
           message_id: messageId,
         });
       }
