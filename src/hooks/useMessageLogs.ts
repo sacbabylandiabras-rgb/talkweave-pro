@@ -761,6 +761,7 @@ export const useMessageLogs = (
               const body: Record<string, unknown> = { phone: zapiPhone };
               if (filterInstanceId && filterInstanceId !== "all") body.instanceId = filterInstanceId;
               const { data, error } = await supabase.functions.invoke("get-profile-picture", { body });
+              let saved = false;
               if (!error) {
                 const payload = data?.data ?? data;
                 const url = extractProfilePictureUrl(payload);
@@ -772,9 +773,12 @@ export const useMessageLogs = (
                     user_id: userId,
                     profile_picture_url: url,
                   });
+                  saved = true;
                 }
               }
-              fetchedPhotosRef.current.add(zapiPhone);
+              // Only mark as fetched when we actually got a photo, so the next
+              // run can retry phones whose photo failed to resolve.
+              if (saved) fetchedPhotosRef.current.add(zapiPhone);
             } catch {
               /* ignore */
             } finally {
