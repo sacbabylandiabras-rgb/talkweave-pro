@@ -1294,7 +1294,8 @@ async function executeFlow(
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
       const resolvedPrompt = replaceVars(prompt, captured, phone);
       
-      const userMessage =
+      const agentInputOverride = String(webhook?.__agent_input_text || "").trim();
+      const userMessage = agentInputOverride ||
         webhook?.buttonsResponseMessage?.message ||
         webhook?.buttonsResponseMessage?.buttonText ||
         webhook?.buttonResponseMessage?.message ||
