@@ -1629,6 +1629,7 @@ serve(async (req) => {
     let convMessages: any[] = [];
     let finalText = "";
     let finalCta: { label: string; url: string } | null = null;
+    const executedToolNames = new Set<string>();
     let iterations = 0;
     const MAX_ITER = 6;
 
@@ -1792,6 +1793,7 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
           });
+          executedToolNames.add(tu.name);
 
           try {
             const parsed = JSON.parse(result);
@@ -1839,6 +1841,7 @@ serve(async (req) => {
             phone: phone || null,
             testMode,
           });
+          executedToolNames.add(tc.function.name);
 
           try {
             const parsed = JSON.parse(result);
@@ -1871,8 +1874,13 @@ serve(async (req) => {
 
     console.log(`[AgentChat] Final reply length: ${sanitizedReply.length}`);
 
+    const fallbackReply = executedToolNames.has("enviar_prova_social")
+      ? "Te mandei aqui, dá uma olhada 😉"
+      : executedToolNames.has("gerar_cobranca_gateway")
+        ? "Te mandei a cobrança aqui."
+        : "Desculpe, não consegui processar uma resposta agora.";
     const replyPayload: Record<string, unknown> = {
-      reply: sanitizedReply || "Desculpe, não consegui processar uma resposta agora.",
+      reply: sanitizedReply || fallbackReply,
     };
     if (checkoutUrl) {
       replyPayload.cta = {
