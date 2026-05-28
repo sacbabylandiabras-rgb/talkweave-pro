@@ -3991,6 +3991,23 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
 
   // --- MODAL 24: RAG ---
   if (toolName === "rag_documentos") {
+    // handled below
+  }
+  if (toolName === "enviar_prova_social") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Prévia / Prova Social"
+          placeholder="Quando o lead pedir depoimentos, prévia, prints ou prova social..."
+        />
+        <SocialProofManager />
+      </>
+    );
+  }
+  if (toolName === "rag_documentos") {
     const limit = node.data?.ragLimit ?? 5;
     const rag = RagControls({ node, setNode });
     return (
