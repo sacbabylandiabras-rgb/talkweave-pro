@@ -4005,9 +4005,6 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
       </>
     );
   }
-  if (toolName === "rag_documentos") {
-    // handled below
-  }
   if (toolName === "entregaveis") {
     return (
       <>
