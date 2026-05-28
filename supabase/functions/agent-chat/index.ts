@@ -566,6 +566,19 @@ function stripToolMetaText(text: string): string {
     .trim();
 }
 
+function isSocialProofRequest(lastUserText: string, messages: any[] = []): boolean {
+  const text = String(lastUserText || "").toLowerCase();
+  const recentUsers = messages
+    .filter((m: any) => m?.role === "user")
+    .slice(-4)
+    .map((m: any) => String(m?.content || ""))
+    .join(" ")
+    .toLowerCase();
+  const proofTerms = /\b(pr[eé]via|amostra|demo|demonstra[cç][aã]o|depoimento|print|resultado|v[ií]deo|video|foto|m[ií]dia|midia|prova social|feedback|case)\b/i;
+  const askTerms = /\b(me manda|manda|mande|envia|envie|quero ver|mostra|mostrar|cad[eê])\b/i;
+  return proofTerms.test(text) || (askTerms.test(text) && proofTerms.test(recentUsers));
+}
+
 // ============ META HELPERS ============
 const META_API_VERSION = "v21.0";
 async function getMetaCreds(
