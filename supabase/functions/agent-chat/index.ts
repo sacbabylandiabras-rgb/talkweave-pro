@@ -1738,7 +1738,7 @@ serve(async (req) => {
           forcedSocialProofRaw = await executeTool(
             "enviar_prova_social",
             { termo: lastUserText },
-            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null },
           );
           const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
           forcedSocialProofSent = !!forcedResult?.ok;
