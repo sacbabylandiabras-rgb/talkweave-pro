@@ -1564,6 +1564,7 @@ serve(async (req) => {
 
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user");
     const lastUserText = String(lastUserMessage?.content || "").trim();
+    let forcedSocialProofRaw: string | null = null;
     const hasPricingIntent =
       /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(
         lastUserText,
@@ -1604,6 +1605,27 @@ serve(async (req) => {
         }
       } catch (prefetchError) {
         console.error("Erro ao pré-buscar checkout:", prefetchError);
+      }
+    }
+
+    if (!skip_config && isSocialProofRequest(lastUserText, messages || [])) {
+      try {
+        const { data: socialProofTool } = await supabase
+          .from("agent_tools_config")
+          .select("enabled")
+          .eq("user_id", effectiveUserId)
+          .eq("tool_name", "enviar_prova_social")
+          .eq("enabled", true)
+          .maybeSingle();
+        if (socialProofTool?.enabled) {
+          forcedSocialProofRaw = await executeTool(
+            "enviar_prova_social",
+            { termo: lastUserText },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone },
+          );
+        }
+      } catch (socialProofError) {
+        console.error("Erro ao pré-enviar prova social:", socialProofError);
       }
     }
 
