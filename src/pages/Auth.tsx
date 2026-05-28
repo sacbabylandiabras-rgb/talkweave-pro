@@ -34,12 +34,11 @@ const Auth = () => {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-       if (session) navigate("/dashboard");
+       if (session) navigate("/dashboard", { replace: true });
     };
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) navigate("/dashboard");
       if (event === 'USER_UPDATED') {
         toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
       }
@@ -70,6 +69,7 @@ const Auth = () => {
         }
       }
       toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
