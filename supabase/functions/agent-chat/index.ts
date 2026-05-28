@@ -514,18 +514,55 @@ const TOOL_DEFS: Record<string, any> = {
 const WHATSAPP_META_APP_ID = "26985190684454065";
 const INSTAGRAM_META_APP_ID = "1629147191696096";
 
-// ============ UAZAPI HELPERS ============
+// ============ WHATSAPP HELPERS ============
+type WhatsAppCreds = {
+  provider: string;
+  apiUrl?: string;
+  apiToken?: string;
+  zapiInstanceId?: string;
+  zapiToken?: string;
+  zapiClientToken?: string;
+};
+
 async function getUserUazapiCreds(supabase: any, userId: string): Promise<{ apiUrl: string; apiToken: string } | null> {
   const { data: instance } = await supabase
     .from("zapi_instances")
-    .select("zapi_instance_id, zapi_token, api_provider, is_default, is_active")
+    .select("zapi_instance_id, zapi_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active")
     .eq("user_id", userId)
+    .eq("is_active", true)
     .order("is_default", { ascending: false })
-    .order("is_active", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (instance && (instance.api_provider || "").toLowerCase() === "uazapi") {
-    return { apiUrl: String(instance.zapi_instance_id).replace(/\/+$/, ""), apiToken: instance.zapi_token || "" };
+    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
+    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
+    if (apiUrl && apiToken) return { apiUrl, apiToken };
+  }
+  return null;
+}
+
+async function getUserWhatsappCreds(supabase: any, userId: string, instanceId?: string | null): Promise<WhatsAppCreds | null> {
+  const select = "id, zapi_instance_id, zapi_token, zapi_client_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active";
+  let q = supabase.from("zapi_instances").select(select).eq("user_id", userId).eq("is_active", true);
+  if (instanceId) q = q.eq("id", instanceId);
+  else q = q.order("is_default", { ascending: false }).order("created_at", { ascending: true }).limit(1);
+  const { data: instance } = await q.maybeSingle();
+  if (!instance) return null;
+  const provider = String(instance.api_provider || "zapi").toLowerCase();
+  if (provider === "uazapi") {
+    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
+    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
+    if (!apiUrl || !apiToken) return null;
+    return { provider, apiUrl, apiToken };
+  }
+  if (provider === "zapi" || provider === "") {
+    if (!instance.zapi_instance_id || !instance.zapi_token) return null;
+    return {
+      provider: "zapi",
+      zapiInstanceId: instance.zapi_instance_id,
+      zapiToken: instance.zapi_token,
+      zapiClientToken: instance.zapi_client_token || "",
+    };
   }
   return null;
 }
@@ -554,6 +591,74 @@ async function uazapiSend(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erro de rede" };
   }
+}
+
+async function zapiSend(
+  creds: WhatsAppCreds,
+  phone: string,
+  message: string,
+  mediaUrl?: string,
+  mediaType?: string,
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    if (!creds.zapiInstanceId || !creds.zapiToken) return { ok: false, error: "Conexão WhatsApp inválida." };
+    const normalizedType = String(mediaType || "text").toLowerCase();
+    let url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-text`;
+    let body: any = { phone, message };
+
+    if (mediaUrl) {
+      if (normalizedType === "image") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-image`;
+        body = { phone, image: mediaUrl, caption: message || "" };
+      } else if (normalizedType === "video") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-video`;
+        body = { phone, video: mediaUrl, caption: message || "" };
+      } else if (normalizedType === "audio") {
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-audio`;
+        body = { phone, audio: mediaUrl, waveform: true };
+      } else if (normalizedType === "document") {
+        const cleanUrl = String(mediaUrl).split("?")[0].split("#")[0];
+        const ext = cleanUrl.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+        url = `https://api.z-api.io/instances/${creds.zapiInstanceId}/token/${creds.zapiToken}/send-document/${ext}`;
+        body = { phone, document: mediaUrl, fileName: message || `arquivo.${ext}` };
+      }
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Client-Token": creds.zapiClientToken || "" },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    let data: any = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${text.substring(0, 200)}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erro de rede" };
+  }
+}
+
+async function sendWhatsAppMessage(
+  creds: WhatsAppCreds,
+  phone: string,
+  message: string,
+  mediaUrl?: string,
+  mediaType?: string,
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  if (creds.provider === "uazapi") {
+    if (!creds.apiUrl || !creds.apiToken) return { ok: false, error: "Conexão WhatsApp inválida." };
+    if (mediaUrl) {
+      return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
+        number: phone,
+        type: ["image", "video", "audio", "document"].includes(String(mediaType)) ? mediaType : "image",
+        file: mediaUrl,
+        ...(message ? { text: message } : {}),
+      });
+    }
+    return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", { number: phone, text: message });
+  }
+  return await zapiSend(creds, phone, message, mediaUrl, mediaType);
 }
 
 function stripToolMetaText(text: string): string {
@@ -614,9 +719,9 @@ async function getInstagramToken(supabase: any, userId: string): Promise<string 
 async function executeTool(
   toolName: string,
   input: any,
-  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean },
+  ctx: { supabase: any; userId: string; phone: string | null; testMode: boolean; instanceId?: string | null },
 ): Promise<string> {
-  const { supabase, userId, phone, testMode } = ctx;
+  const { supabase, userId, phone, testMode, instanceId } = ctx;
 
   if (testMode && ["enviar_botoes", "enviar_lista", "enviar_imagem", "enviar_link", "gerar_pix"].includes(toolName)) {
     return JSON.stringify({
@@ -1170,16 +1275,18 @@ async function executeTool(
         if (!phone) {
           return JSON.stringify({ ok: true, preview: chosen, info: "Sem número de destino (modo teste)." });
         }
-        const creds = await getUserUazapiCreds(supabase, userId);
-        if (!creds) return JSON.stringify({ error: "Nenhuma instância configurada para envio." });
+        const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+        if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada para envio." });
         const type = ["image", "video", "audio", "document"].includes(String(chosen.media_type))
           ? chosen.media_type : "image";
-        const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
-          number: phone,
+        const r = await sendWhatsAppMessage(
+          creds,
+          phone,
+          String(input?.legenda || chosen.caption || ""),
+          chosen.media_url,
           type,
-          file: chosen.media_url,
-          ...(input?.legenda || chosen.caption ? { text: input?.legenda || chosen.caption } : {}),
-        });
+        );
+        if (!r.ok) return JSON.stringify({ error: r.error || "Falha ao enviar prova social" });
         return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, result: r });
       } catch (e: any) {
         return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
@@ -1450,7 +1557,16 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { messages, user_id, skip_config, phone, system_prompt: customSystemPrompt, model: customModel } = body;
+    const {
+      messages,
+      user_id,
+      skip_config,
+      phone,
+      instance_id,
+      connected_tools,
+      system_prompt: customSystemPrompt,
+      model: customModel,
+    } = body;
     const effectiveUserId = user_id || userId;
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -1622,7 +1738,7 @@ serve(async (req) => {
           forcedSocialProofRaw = await executeTool(
             "enviar_prova_social",
             { termo: lastUserText },
-            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone },
+            { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone, instanceId: instance_id || null },
           );
           const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
           forcedSocialProofSent = !!forcedResult?.ok;
@@ -1739,6 +1855,12 @@ serve(async (req) => {
           });
         }
       }
+    } else if (Array.isArray(connected_tools) && connected_tools.length > 0) {
+      enabledTools = connected_tools
+        .filter((t: any) => t?.enabled !== false)
+        .map((t: any) => TOOL_DEFS[String(t?.toolName || t?.tool_name || t?.name || "")])
+        .filter(Boolean)
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
     }
 
     while (iterations < MAX_ITER) {
