@@ -1577,7 +1577,10 @@ serve(async (req) => {
       connected_tools,
       system_prompt: customSystemPrompt,
       model: customModel,
+      sent_proof_ids,
     } = body;
+    const incomingSentProofIds: string[] = Array.isArray(sent_proof_ids) ? sent_proof_ids.filter((x: any) => typeof x === "string") : [];
+    const newlySentProofIds: string[] = [];
     const effectiveUserId = user_id || userId;
     if (!effectiveUserId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
