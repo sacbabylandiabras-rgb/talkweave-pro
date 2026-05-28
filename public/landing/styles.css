@@ -709,3 +709,91 @@ body {
   .foot-grid { grid-template-columns: 1fr; }
   .hero-badge-pix { right: -8px; } .hero-badge-sale { left: -8px; }
 }
+
+/* ============================================================
+   MOBILE RESPONSIVE (refinos)
+   ============================================================ */
+@media (max-width: 720px) {
+  html { scroll-padding-top: 72px; }
+  body { font-size: 15px; }
+  .container { padding: 0 16px; }
+
+  /* nav */
+  .nav { padding: 10px 0; }
+  .brand .wordmark { font-size: 17px; }
+  .nav-cta .btn-ghost { display: none; }
+  .nav-cta .btn { padding: 10px 16px; font-size: 13px; }
+
+  /* hero */
+  .hero { padding: 36px 0 24px; }
+  .hero-inner { gap: 32px; }
+  .hero h1 { font-size: clamp(28px, 8vw, 40px); margin-top: 16px; }
+  .hero p.lead { font-size: 15px; margin-top: 16px; }
+  .hero-actions { gap: 10px; margin-top: 24px; flex-direction: column; align-items: stretch; }
+  .hero-actions .btn { width: 100%; padding: 14px 18px; font-size: 14px; }
+  .hero-trust { gap: 12px 16px; font-size: 12.5px; margin-top: 18px; }
+  .hero-avatars { flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-top: 20px; }
+  .hero-visual { max-width: 100%; padding: 0 6px; }
+  .hero-badge-float { padding: 8px 12px; gap: 8px; }
+  .hero-badge-float .ic { width: 28px; height: 28px; }
+  .hero-badge-float .v { font-size: 13px; }
+  .hero-badge-sale { left: 4px; bottom: 8px; }
+  .hero-badge-pix { right: 4px; top: 12px; }
+
+  /* section paddings */
+  .section, .psection, .compare, .testi, .pricing, .faq, .platform { padding: 56px 0; }
+  .section-title { font-size: clamp(24px, 6.4vw, 32px); }
+  .section-sub { font-size: 15px; }
+
+  /* feature cards */
+  .cards { margin-top: 36px; gap: 14px; }
+  .fcard { padding: 22px 20px; }
+  .fcard.span2 { gap: 16px; }
+  .fcard h3 { font-size: 16px; margin-top: 14px; }
+  .fcard p { font-size: 14px; }
+
+  /* platform */
+  .psplit { gap: 32px; }
+  .ptext h2 { font-size: clamp(22px, 6vw, 30px); }
+
+  /* devices */
+  .device-row { gap: 16px; }
+  .laptop { max-width: 100%; }
+  .agent-phone { width: 260px; }
+
+  /* ig section */
+  .ig-img { width: 100%; max-width: 360px; margin: 0 auto; }
+
+  /* comparativo - garantir scroll */
+  .ctable { margin-top: 36px; }
+  .crow { min-width: 420px; }
+  .crow.head .ccell { font-size: 13px; }
+
+  /* pricing */
+  .plans { margin-top: 36px; gap: 16px; }
+  .plan { padding: 26px 22px; }
+  .plan .price .amt { font-size: 38px; }
+
+  /* footer */
+  .foot-grid { gap: 28px; }
+
+  /* prevent text overflow */
+  h1, h2, h3, p, a { word-wrap: break-word; overflow-wrap: anywhere; }
+}
+
+@media (max-width: 460px) {
+  .container { padding: 0 14px; }
+  .brand img { width: 26px; height: 26px; }
+  .brand .wordmark { font-size: 16px; }
+  .nav-cta .btn { padding: 9px 14px; font-size: 12.5px; }
+  .hero h1 { font-size: 28px; }
+  .stats-grid { gap: 0; }
+  .stat .num { font-size: 28px; }
+  .stat .lbl { font-size: 12px; }
+  .agent-phone { width: 230px; }
+  .hero-badge-float { padding: 7px 10px; }
+  .hero-badge-float .t { font-size: 10px; }
+  .hero-badge-float .v { font-size: 12px; }
+  .plan .price .amt { font-size: 34px; }
+  .ccell { padding: 12px 10px; font-size: 12px; }
+}
