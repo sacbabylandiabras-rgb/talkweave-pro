@@ -1718,7 +1718,8 @@ serve(async (req) => {
           }
           return def;
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((tool: any) => !(forcedSocialProofSent && tool?.name === "enviar_prova_social"));
 
       if (!enabledTools.find((tool: any) => tool?.name === "gateway_buscar_plano_checkout")) {
         enabledTools.push(TOOL_DEFS.gateway_buscar_plano_checkout);
@@ -1915,7 +1916,7 @@ serve(async (req) => {
 
     console.log(`[AgentChat] Final reply length: ${sanitizedReply.length}`);
 
-    const fallbackReply = executedToolNames.has("enviar_prova_social")
+    const fallbackReply = forcedSocialProofSent || executedToolNames.has("enviar_prova_social")
       ? "Te mandei aqui, dá uma olhada 😉"
       : executedToolNames.has("gerar_cobranca_gateway")
         ? "Te mandei a cobrança aqui."
