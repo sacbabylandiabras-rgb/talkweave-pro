@@ -4006,6 +4006,23 @@ function AgentToolConfigPanelInnerImpl({ node, setNode }: Props) {
     );
   }
   if (toolName === "rag_documentos") {
+    // handled below
+  }
+  if (toolName === "entregaveis") {
+    return (
+      <>
+        {Header}
+        <DescField
+          node={node}
+          setNode={setNode}
+          label="Descrição da ferramenta — Entregáveis"
+          placeholder="Quando o pagamento do lead for confirmado, envie os entregáveis cadastrados..."
+        />
+        <DeliverablesManager />
+      </>
+    );
+  }
+  if (toolName === "rag_documentos") {
     const limit = node.data?.ragLimit ?? 5;
     const rag = RagControls({ node, setNode });
     return (
