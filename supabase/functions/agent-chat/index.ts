@@ -1509,6 +1509,8 @@ serve(async (req) => {
     systemPrompt +=
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
+    systemPrompt +=
+      "\n- PRÉVIA / PROVA SOCIAL: Sempre que o lead pedir prévia, amostra, demonstração, depoimento, print, resultado, vídeo, foto, mídia ou disser coisas como 'me manda', 'manda previa', 'quero ver', 'cadê', 'envia ai', você DEVE chamar imediatamente a ferramenta enviar_prova_social. NUNCA diga que vai enviar/chamar alguém sem antes executar a ferramenta. Não invente nomes de pessoas (ex: 'Marta', 'João') — quem envia é a própria ferramenta. Após chamar a ferramenta, apenas confirme brevemente o envio (ex: 'Te mandei aqui, dá uma olhada 😉').";
 
     if (knowledge && knowledge.length > 0) {
       systemPrompt += "\n\n--- BASE DE CONHECIMENTO ---";
