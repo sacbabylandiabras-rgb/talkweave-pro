@@ -273,7 +273,7 @@ serve(async (req) => {
       let mediaType = "";
       if (webhook.image) mediaType = "image";
       else if (webhook.video) mediaType = "video";
-      else if (webhook.audio) mediaType = "audio";
+      else if (webhook.audio || incomingAudioUrl) mediaType = "audio";
       else if (webhook.sticker) mediaType = "sticker";
       else if (webhook.document) mediaType = "document";
 
