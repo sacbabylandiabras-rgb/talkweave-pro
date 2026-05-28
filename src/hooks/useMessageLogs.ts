@@ -695,7 +695,9 @@ export const useMessageLogs = (
         const resolvedName = isGroupPhone(zapiPhone) ? extractResolvedGroupName(responsePayload) : null;
         const finalUrl = extractProfilePictureUrl(responsePayload);
 
-        if (finalUrl || !isGroupPhone(zapiPhone)) fetchedPhotosRef.current.add(zapiPhone);
+        // Só marca como buscado quando temos uma URL — assim, lookups que falharam
+        // por instabilidade da API podem ser tentados de novo na próxima rodada.
+        if (finalUrl) fetchedPhotosRef.current.add(zapiPhone);
 
         setLocalManualPhotos((prev) => {
           const next = new Map(prev);
