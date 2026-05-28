@@ -1787,10 +1787,10 @@ serve(async (req) => {
     systemPrompt +=
       "\n- NUNCA use gerar_cobranca_gateway para entregar link de checkout/pagamento. Sempre prefira gateway_buscar_plano_checkout.";
     systemPrompt +=
-      "\n- Quando existir checkout disponível, responda mencionando o plano e os benefícios de forma sucinta, mas nunca escreva a URL no texto.";
+      "\n- Quando existir checkout disponível, responda mencionando o plano de forma sucinta e envie também o link direto de pagamento.";
     systemPrompt += "\n- Se houver CTA retornado pela ferramenta, priorize esse CTA na resposta final.";
     systemPrompt +=
-      "\n- Links de checkout devem sair apenas no CTA/botão; remova qualquer URL bruta da mensagem final.";
+      "\n- Se houver link de checkout, o cliente precisa receber a URL no texto e/ou botão. Não diga que vai buscar depois; envie o link na mesma resposta.";
     systemPrompt +=
       "\n- IMPORTANTE: Sempre que o cliente avançar de fase (ex: da triagem inicial para dúvidas específicas ou demonstrar interesse em compra), use a ferramenta atualizar_etapa para manter o sistema atualizado.";
     systemPrompt += "\n- Se o seu prompt personalizado for sobre saúde, bem-estar ou produtos físicos (ex: Retinox), ignore COMPLETAMENTE qualquer informação sobre a plataforma ZapLynx, automações ou APIs. Você é um especialista no produto, não um suporte técnico.";
@@ -1861,7 +1861,7 @@ serve(async (req) => {
           }
           systemPrompt += `\nCheckout real: ${prefetchedUrl}`;
           systemPrompt +=
-            "\nAo responder, apresente este plano como opção correta e conduza o cliente para fechar a compra.";
+            "\nAo responder, apresente este plano como opção correta e envie a URL acima diretamente para o cliente fechar a compra agora.";
         }
       } catch (prefetchError) {
         console.error("Erro ao pré-buscar checkout:", prefetchError);
@@ -2235,6 +2235,10 @@ serve(async (req) => {
     const replyPayload: Record<string, unknown> = {
       reply: safeReply,
     };
+    if (checkoutUrl && !safeReply.includes(checkoutUrl)) {
+      safeReply = `${safeReply}\n\nLink de pagamento: ${checkoutUrl}`.trim();
+    }
+
     if (checkoutUrl) {
       replyPayload.cta = {
         label: finalCta?.label || prefetchedCta?.label || "Abrir checkout",
