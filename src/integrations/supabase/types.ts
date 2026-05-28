@@ -1348,6 +1348,9 @@ export type Database = {
           message_received: string | null
           phone: string
           response_sent: string | null
+          sender_name: string | null
+          sender_phone: string | null
+          sender_photo: string | null
           timestamp: string
           user_id: string | null
         }
@@ -1360,6 +1363,9 @@ export type Database = {
           message_received?: string | null
           phone: string
           response_sent?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          sender_photo?: string | null
           timestamp?: string
           user_id?: string | null
         }
@@ -1372,6 +1378,9 @@ export type Database = {
           message_received?: string | null
           phone?: string
           response_sent?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          sender_photo?: string | null
           timestamp?: string
           user_id?: string | null
         }
