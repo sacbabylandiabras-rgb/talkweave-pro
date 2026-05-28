@@ -107,7 +107,10 @@ async function resolveAgentInboundText(messageRaw: string, audioUrl: string): Pr
     return transcript;
   }
   console.warn("[AI Agent] Falha ao transcrever áudio; seguindo sem transcrição.");
-  return messageRaw || "[áudio recebido]";
+  const fallbackText = String(messageRaw || "")
+    .replace(/\[media:audio:[^\]]+\]/gi, "")
+    .trim();
+  return fallbackText || "[áudio recebido]";
 }
 
 serve(async (req) => {
@@ -601,7 +604,13 @@ serve(async (req) => {
       }
     }
 
-    const normalizedMessage = normalizeForMatch(messageRaw);
+    const agentInboundText = incomingAudioUrl
+      ? await resolveAgentInboundText(messageRaw || "", incomingAudioUrl)
+      : messageRaw;
+    const displayInboundMessage = incomingAudioUrl
+      ? `[media:audio:${incomingAudioUrl}]\n🎙️ ${agentInboundText || "[áudio recebido]"}`
+      : messageRaw;
+    const normalizedMessage = normalizeForMatch(agentInboundText || messageRaw);
 
     const { data: participantFlowState } = await supabase
       .from("flow_captured_data")
