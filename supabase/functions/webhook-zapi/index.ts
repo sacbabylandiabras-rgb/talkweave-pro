@@ -241,6 +241,7 @@ serve(async (req) => {
     const mediaUrl =
       webhook?.image?.url ||
       webhook?.video?.url ||
+      webhook?.audio?.audioUrl ||
       webhook?.audio?.url ||
       webhook?.sticker?.url ||
       webhook?.document?.url;
@@ -931,7 +932,7 @@ serve(async (req) => {
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
         let agentInputText = messageRaw || "";
-        const incomingAudioUrl = webhook?.audio?.url || "";
+        const incomingAudioUrl = webhook?.audio?.audioUrl || webhook?.audio?.url || "";
         if (incomingAudioUrl) {
           const transcript = await transcribeAudioUrl(incomingAudioUrl);
           if (transcript) {
