@@ -317,6 +317,17 @@ const TOOL_DEFS: Record<string, any> = {
       required: ["url"],
     },
   },
+  enviar_prova_social: {
+    name: "enviar_prova_social",
+    description: "Busca e envia ao lead uma mídia de prova social (depoimento, print, vídeo, prévia) cadastrada na base.",
+    input_schema: {
+      type: "object",
+      properties: {
+        termo: { type: "string", description: "Palavra-chave/categoria para filtrar a prova social (opcional)" },
+        legenda: { type: "string", description: "Legenda personalizada opcional (substitui a legenda padrão)" },
+      },
+    },
+  },
   consulta_api_ia: {
     name: "consulta_api_ia",
     description: "Chamada HTTP externa com decisão por IA.",
@@ -1016,6 +1027,52 @@ async function executeTool(
     }
     case "ler_anexo": {
       return JSON.stringify({ ok: true, text: "Conteúdo do anexo processado (simulado)." });
+    }
+    case "enviar_prova_social": {
+      try {
+        const termo = String(input?.termo || "").trim().toLowerCase();
+        let q = supabase
+          .from("agent_social_proof")
+          .select("id, title, description, caption, media_url, media_type, category, tags")
+          .eq("user_id", userId)
+          .eq("active", true)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        const { data: rows, error } = await q;
+        if (error) return JSON.stringify({ error: error.message });
+        const list = rows || [];
+        if (list.length === 0) return JSON.stringify({ error: "Nenhuma prova social cadastrada." });
+
+        let chosen: any = list[0];
+        if (termo) {
+          const scored = list.map((r: any) => {
+            const hay = [r.title, r.description, r.caption, r.category, ...(r.tags || [])]
+              .filter(Boolean).join(" ").toLowerCase();
+            let s = 0;
+            if (hay.includes(termo)) s += 5;
+            for (const tok of termo.split(/\s+/).filter(Boolean)) if (hay.includes(tok)) s += 1;
+            return { r, s };
+          }).sort((a, b) => b.s - a.s);
+          if (scored[0]?.s > 0) chosen = scored[0].r;
+        }
+
+        if (!phone) {
+          return JSON.stringify({ ok: true, preview: chosen, info: "Sem número de destino (modo teste)." });
+        }
+        const creds = await getUserUazapiCreds(supabase, userId);
+        if (!creds) return JSON.stringify({ error: "Nenhuma instância configurada para envio." });
+        const type = ["image", "video", "audio", "document"].includes(String(chosen.media_type))
+          ? chosen.media_type : "image";
+        const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
+          number: phone,
+          type,
+          file: chosen.media_url,
+          ...(input?.legenda || chosen.caption ? { text: input?.legenda || chosen.caption } : {}),
+        });
+        return JSON.stringify({ ok: true, sent: { id: chosen.id, title: chosen.title }, result: r });
+      } catch (e: any) {
+        return JSON.stringify({ error: e?.message || "Falha ao enviar prova social" });
+      }
     }
     case "consulta_api_ia": {
       try {
