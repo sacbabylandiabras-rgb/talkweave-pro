@@ -171,7 +171,9 @@ export default function PublicCheckout() {
           productName: initialProductName,
           offerName: initialProductName,
           price: initialPrice,
-          productImage: product?.image_url || savedConfig.productImage || "",
+          productImage: savedConfig.hideProductImage
+            ? ""
+            : (savedConfig.productImage ?? product?.image_url ?? ""),
           thankYouUrl: savedConfig.thankYouUrl || product?.thank_you_page_url || "",
           thankYouType: savedConfig.thankYouType || (savedConfig.thankYouUrl || product?.thank_you_page_url ? "custom_url" : "default"),
           logoUrl: savedConfig.logoUrl || tenantLogo || "",

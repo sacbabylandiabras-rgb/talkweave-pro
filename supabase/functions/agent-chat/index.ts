@@ -972,59 +972,17 @@ async function executeTool(
         if (!termo) return JSON.stringify({ error: "Informe o plano desejado." });
 
         const allSearchText = getCheckoutSearchText(input.messages || [], termo).toLowerCase();
-
-        const { data: checkouts } = await supabase
-          .from("gateway_checkouts")
-          .select("id, name, slug, status, product_id")
-          .eq("user_id", userId)
-          .eq("status", true)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        const productIds = Array.from(new Set((checkouts || []).map((c: any) => c.product_id).filter(Boolean)));
-        const { data: products } =
-          productIds.length > 0
-            ? await supabase
-                .from("gateway_products")
-                .select("id, name, description, price, type, status, sku")
-                .eq("user_id", userId)
-                .eq("status", true)
-                .in("id", productIds)
-            : { data: [] as any[] };
-
-        const productMap = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]));
         const normalized = (value: any) => String(value || "").toLowerCase();
         const termoTokens = getMeaningfulCheckoutTokens(allSearchText);
 
         const asksForCheapest =
           /\b(mais barato|barato|menor preço|menor preco|inicial|entrada|básico|basico|start)\b/i.test(termo);
 
-        const scored = (checkouts || [])
-          .map((checkout: any) => {
-            const product: any = productMap.get(String(checkout.product_id || ""));
-            const hay = [checkout.name, checkout.slug, product?.name, product?.description, product?.sku]
-              .map(normalized)
-              .join(" ");
-
-            let score = 0;
-            if (asksForCheapest && typeof product?.price === "number") {
-              score += Math.max(0, 1000000 - product.price);
-            }
-            if (hay.includes(termo)) score += 10;
-            for (const token of termoTokens) {
-              if (hay.includes(token)) score += 2;
-            }
-
-            return { checkout, product, score };
-          })
-          .filter((entry: any) => entry.score > 0 && entry.checkout?.slug);
-
-        const best = scored.sort((a: any, b: any) => b.score - a.score)[0];
-        let bestCheckout = best?.checkout || null;
-        let bestProduct = best?.product || null;
-
-        // Fallback: nenhum checkout ativo — procura um produto que case e cria um checkout enxuto na hora
-        if (!bestCheckout?.slug || !bestProduct) {
+        // SEMPRE cria um checkout novo e enxuto baseado no produto certo,
+        // ignorando checkouts antigos (que podem ter foto/config de outro produto).
+        let bestCheckout: any = null;
+        let bestProduct: any = null;
+        {
           const { data: allProducts } = await supabase
             .from("gateway_products")
             .select("id, name, description, price, type, status, sku, created_at")
@@ -1071,7 +1029,7 @@ async function executeTool(
             .slice(0, 40) || "checkout";
           const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
 
-          // config mínima: apenas o nome do produto, SEM productImage
+          // config mínima: apenas o nome do produto, SEM foto alguma
           const minimalConfig = {
             productName: selectedProduct.name,
             price: selectedProduct.price,
@@ -1093,6 +1051,8 @@ async function executeTool(
             showBirthdate: false,
             showSecurityBadges: true,
             showLogo: false,
+            productImage: "",
+            hideProductImage: true,
           };
 
           const { data: created, error: createErr } = await supabase
