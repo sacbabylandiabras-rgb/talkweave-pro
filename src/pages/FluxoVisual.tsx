@@ -14,6 +14,8 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { useFlowLeadPositions } from "@/hooks/useFlowLeadPositions";
+import { FlowLeadOverlay } from "@/components/flow/FlowLeadOverlay";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -663,6 +665,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [fluxoAtivo, setFluxoAtivo] = useState(true);
   const [currentFluxoId, setCurrentFluxoId] = useState<string | null>(null);
   const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
+  const leadPositions = useFlowLeadPositions(currentFluxoId);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const [savingFluxo, setSavingFluxo] = useState(false);
@@ -2089,6 +2092,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               pannable
               className="!bg-card !border !border-border !rounded-lg"
             />
+            <FlowLeadOverlay positions={leadPositions} />
           </ReactFlow>
         </div>
 
