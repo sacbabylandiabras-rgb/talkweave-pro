@@ -1565,6 +1565,7 @@ serve(async (req) => {
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user");
     const lastUserText = String(lastUserMessage?.content || "").trim();
     let forcedSocialProofRaw: string | null = null;
+    let forcedSocialProofSent = false;
     const hasPricingIntent =
       /\b(plano|planos|preço|precos|preço|valor|assin(ar|atura)?|checkout|pagar|pagamento|mais barato|barato|start|pro|scale)\b/i.test(
         lastUserText,
@@ -1623,6 +1624,11 @@ serve(async (req) => {
             { termo: lastUserText },
             { supabase, userId: effectiveUserId, phone: phone || null, testMode: !phone },
           );
+          const forcedResult = JSON.parse(forcedSocialProofRaw || "{}");
+          forcedSocialProofSent = !!forcedResult?.ok;
+          if (forcedSocialProofSent) {
+            systemPrompt += "\n\n--- AÇÃO AUTOMÁTICA JÁ EXECUTADA ---\nA prova social solicitada pelo lead já foi enviada pela ferramenta interna. Agora responda apenas confirmando de forma curta, sem chamar a ferramenta novamente e sem citar ferramenta.";
+          }
         }
       } catch (socialProofError) {
         console.error("Erro ao pré-enviar prova social:", socialProofError);
