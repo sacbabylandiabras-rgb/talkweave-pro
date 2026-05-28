@@ -971,6 +971,8 @@ async function executeTool(
           .toLowerCase();
         if (!termo) return JSON.stringify({ error: "Informe o plano desejado." });
 
+        const allSearchText = getCheckoutSearchText(input.messages || [], termo).toLowerCase();
+
         const { data: checkouts } = await supabase
           .from("gateway_checkouts")
           .select("id, name, slug, status, product_id")
@@ -992,7 +994,7 @@ async function executeTool(
 
         const productMap = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]));
         const normalized = (value: any) => String(value || "").toLowerCase();
-        const termoTokens = termo.split(/\s+/).filter(Boolean);
+        const termoTokens = getMeaningfulCheckoutTokens(allSearchText);
 
         const asksForCheapest =
           /\b(mais barato|barato|menor preço|menor preco|inicial|entrada|básico|basico|start)\b/i.test(termo);
@@ -1048,11 +1050,20 @@ async function executeTool(
 
           const productPick = productScored[0]?.product;
           if (!productPick) {
-            return JSON.stringify({ error: "Nenhum plano/produto encontrado para esse termo." });
+            const activeProducts = allProducts || [];
+            const fallbackProduct = asksForCheapest
+              ? activeProducts.sort((a: any, b: any) => Number(a.price || 0) - Number(b.price || 0))[0]
+              : activeProducts.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+            if (!fallbackProduct) {
+              return JSON.stringify({ error: "Nenhum plano/produto ativo encontrado." });
+            }
+            productScored.unshift({ product: fallbackProduct, score: 1 });
           }
 
+          const selectedProduct = productScored[0]?.product;
+
           // gera slug único curto
-          const baseSlug = String(productPick.name || "checkout")
+          const baseSlug = String(selectedProduct.name || "checkout")
             .toLowerCase()
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
             .replace(/[^a-z0-9]+/g, "-")
@@ -1062,8 +1073,8 @@ async function executeTool(
 
           // config mínima: apenas o nome do produto, SEM productImage
           const minimalConfig = {
-            productName: productPick.name,
-            price: productPick.price,
+            productName: selectedProduct.name,
+            price: selectedProduct.price,
             pix: true,
             creditCard: true,
             debitCard: false,
@@ -1088,8 +1099,8 @@ async function executeTool(
             .from("gateway_checkouts")
             .insert({
               user_id: userId,
-              name: productPick.name,
-              product_id: productPick.id,
+              name: selectedProduct.name,
+              product_id: selectedProduct.id,
               slug,
               status: true,
               config: minimalConfig,
@@ -1101,7 +1112,7 @@ async function executeTool(
             return JSON.stringify({ error: createErr?.message || "Falha ao criar checkout." });
           }
           bestCheckout = created;
-          bestProduct = productPick;
+          bestProduct = selectedProduct;
         }
 
         const checkoutUrl = `https://pay.zaplynxpro.online/checkout/${bestCheckout.slug}`;
