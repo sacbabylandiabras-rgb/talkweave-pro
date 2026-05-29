@@ -273,11 +273,92 @@ export default function EmailTemplates() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full min-h-[500px]">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
                   <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500"><Plus className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500"><ImageIcon className="w-4 h-4" /></Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const textarea = document.querySelector('textarea');
+                        if (textarea) {
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = editing?.html || "";
+                          const before = text.substring(0, start);
+                          const after = text.substring(end);
+                          const newValue = before + "{{variável}}" + after;
+                          if (editing) setEditing({ ...editing, html: newValue });
+                        }
+                      }}
+                      title="Adicionar variável"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const url = prompt("Insira a URL da imagem:");
+                        if (url) {
+                          const textarea = document.querySelector('textarea');
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const text = editing?.html || "";
+                            const before = text.substring(0, start);
+                            const after = text.substring(end);
+                            const newValue = before + `<img src="${url}" alt="imagem" style="max-width: 100%;" />` + after;
+                            if (editing) setEditing({ ...editing, html: newValue });
+                          }
+                        }
+                      }}
+                      title="Inserir imagem"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </Button>
                     <div className="w-px h-4 bg-slate-200 mx-1" />
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 font-bold">B</Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 italic font-serif">I</Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 font-bold hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const textarea = document.querySelector('textarea');
+                        if (textarea) {
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const selected = (editing?.html || "").substring(start, end);
+                          if (!selected) return;
+                          const before = (editing?.html || "").substring(0, start);
+                          const after = (editing?.html || "").substring(end);
+                          const newValue = before + `<b>${selected}</b>` + after;
+                          if (editing) setEditing({ ...editing, html: newValue });
+                        }
+                      }}
+                      title="Negrito"
+                    >
+                      B
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 italic font-serif hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const textarea = document.querySelector('textarea');
+                        if (textarea) {
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const selected = (editing?.html || "").substring(start, end);
+                          if (!selected) return;
+                          const before = (editing?.html || "").substring(0, start);
+                          const after = (editing?.html || "").substring(end);
+                          const newValue = before + `<i>${selected}</i>` + after;
+                          if (editing) setEditing({ ...editing, html: newValue });
+                        }
+                      }}
+                      title="Itálico"
+                    >
+                      I
+                    </Button>
                   </div>
                   <Badge variant="outline" className="text-[10px] text-slate-400 bg-white">Modo HTML / Texto Rico</Badge>
                 </div>
