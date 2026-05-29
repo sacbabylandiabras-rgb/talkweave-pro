@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,9 @@ export default function EmailTemplates() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Template | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("all");
 
   const load = async () => {
@@ -76,6 +78,45 @@ export default function EmailTemplates() {
     await (supabase as any).from("user_email_templates").delete().eq("id", id);
     toast.success("Template excluído");
     load();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `email-templates/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('campaign-media')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-media')
+        .getPublicUrl(filePath);
+
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = editing?.html || "";
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+        const newValue = before + `<img src="${publicUrl}" alt="imagem" style="max-width: 100%; border-radius: 8px;" />` + after;
+        if (editing) setEditing({ ...editing, html: newValue });
+      }
+      toast.success("Imagem enviada com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro no upload");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const filteredList = list.filter(t => {
@@ -312,10 +353,27 @@ export default function EmailTemplates() {
                           }
                         }
                       }}
-                      title="Inserir imagem"
+                      title="Inserir imagem (URL)"
                     >
                       <ImageIcon className="w-4 h-4" />
                     </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      title="Fazer upload de imagem"
+                    >
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    </Button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileUpload} 
+                    />
                     <div className="w-px h-4 bg-slate-200 mx-1" />
                     <Button 
                       size="icon" 
