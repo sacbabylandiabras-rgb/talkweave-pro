@@ -31,17 +31,18 @@ async function getUserZAPICredentials(
 
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, evolution_api_url, evolution_api_key, instance_name, api_provider, is_default')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
     .eq('user_id', user.id)
     .eq('is_active', true)
+    .eq('api_provider', 'zapi')
     .order('is_default', { ascending: false })
 
   const zapi = zapiInstances?.[0]
   if (zapi) {
     console.log(`✅ Found Z-API credentials for user ${user.id}`)
     return {
-      instanceId: zapi.zapi_instance_id || zapi.evolution_api_url || '',
-      token: zapi.zapi_token || zapi.evolution_api_key || '',
+      instanceId: zapi.zapi_instance_id || '',
+      token: zapi.zapi_token || '',
       clientToken: zapi.zapi_client_token || '',
       userId: user.id,
       instanceName: zapi.instance_name || 'Z-API Instance',
@@ -131,24 +132,6 @@ const extractGroupName = (payload: any): string | null => {
   return null
 }
 
-const isUazapiProvider = (provider: string) => provider === 'uazapi' || provider === 'uazapi_warmup'
-
-const normalizeApiUrl = (value: unknown): string => {
-  const raw = String(value || '').trim().replace(/\/+$/, '')
-  if (!raw) return ''
-  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
-}
-
-const buildUazapiHeaders = (token: unknown): Record<string, string> => {
-  const apiToken = String(token || '').trim()
-  return {
-    'Content-Type': 'application/json',
-    token: apiToken,
-    apikey: apiToken,
-    Authorization: `Bearer ${apiToken}`,
-  }
-}
-
  // In-memory cache to prevent storming external APIs
  const cache = new Map<string, { data: any, timestamp: number }>()
  const CACHE_TTL = 30000 // 30 seconds
@@ -204,63 +187,42 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
       )
      }
  
-      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; uazapiUrl: string; instanceName?: string }
+      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string }
      const instancesToTry: InstanceCfg[] = []
  
      if (instanceId) {
        const { data: specificInstance } = await adminClient
          .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name')
          .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
          .eq('user_id', credentials.userId)
          .eq('is_active', true)
+         .eq('api_provider', 'zapi')
          .maybeSingle()
  
        if (specificInstance) {
           const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
-          if (isUazapiProvider(provider)) {
-           instancesToTry.push({
-             provider,
-             base: '',
-              uazapiUrl: normalizeApiUrl(specificInstance.evolution_api_url),
-              headers: buildUazapiHeaders(specificInstance.evolution_api_key || specificInstance.zapi_token),
-              instanceName: specificInstance.instance_name || undefined,
-           })
-         } else {
-           instancesToTry.push({
-             provider,
-             base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
-             uazapiUrl: '',
-             headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
-           })
-         }
+          instancesToTry.push({
+            provider,
+            base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
+            headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
+          })
        }
      } else {
        const { data: allInstances } = await adminClient
          .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name, is_default')
+          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default')
          .eq('user_id', credentials.userId)
          .eq('is_active', true)
+          .eq('api_provider', 'zapi')
          .order('is_default', { ascending: false })
  
        for (const inst of allInstances || []) {
          const provider = (inst.api_provider || 'zapi').toLowerCase()
-          if (isUazapiProvider(provider)) {
-            const url = normalizeApiUrl(inst.evolution_api_url)
-           if (url) {
-             instancesToTry.push({
-               provider,
-               base: '',
-               uazapiUrl: url,
-                headers: buildUazapiHeaders(inst.evolution_api_key || inst.zapi_token),
-                instanceName: inst.instance_name || undefined,
-             })
-           }
-         } else if (inst.zapi_instance_id && inst.zapi_token) {
+          if (inst.zapi_instance_id && inst.zapi_token) {
            instancesToTry.push({
              provider,
              base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
-             uazapiUrl: '',
              headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
            })
          }
@@ -271,7 +233,6 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
        instancesToTry.push({
          provider: 'zapi',
          base: `https://api.z-api.io/instances/${credentials.instanceId}/token/${credentials.token}`,
-         uazapiUrl: '',
          headers: { 'Content-Type': 'application/json', 'Client-Token': credentials.clientToken },
        })
      }
@@ -279,47 +240,10 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
      const CHUNK_SIZE = 3
      for (let i = 0; i < instancesToTry.length; i += CHUNK_SIZE) {
        const chunk = instancesToTry.slice(i, i + CHUNK_SIZE)
-       const results = await Promise.all(chunk.map(async (cfg) => {
-          const { provider, base, uazapiUrl, headers, instanceName } = cfg
-         try {
-            if (isUazapiProvider(provider)) {
-              const apiToken = headers.token || headers.apikey || ''
-              const authPath = (path: string) => `${uazapiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`
-              const instanceHeaders = instanceName ? { ...headers, instance: instanceName, 'instance-name': instanceName } : headers
-              const chatNumber = isGroup ? `${numericId}@g.us` : numericId
-
-              const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
-               method: 'POST',
-                headers: instanceHeaders,
-                body: JSON.stringify({ number: chatNumber, preview: true }),
-               signal: AbortSignal.timeout(4000)
-             })
-             const detailsData = await detailsRes.json().catch(() => null)
-             const link = extractUrl(detailsData)
-             const name = extractGroupName(detailsData)
-             if (detailsRes.ok && (link || name)) return { success: true, data: { link, name, raw: detailsData } }
-
-              if (isGroup) {
-                const groupInfoRes = await fetch(authPath('/group/info'), {
-                  method: 'POST',
-                  headers: instanceHeaders,
-                  body: JSON.stringify({ groupjid: chatNumber, getInviteLink: false }),
-                  signal: AbortSignal.timeout(4000)
-                })
-                const groupInfoData = await groupInfoRes.json().catch(() => null)
-                const groupLink = extractUrl(groupInfoData)
-                const groupName = extractGroupName(groupInfoData)
-                if (groupInfoRes.ok && (groupLink || groupName)) return { success: true, data: { link: groupLink, name: groupName, raw: groupInfoData } }
-              }
- 
-             if (!isGroup) {
-               const contactsRes = await fetch(`${uazapiUrl}/contacts?contactScope=all`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const contactsData = await contactsRes.json().catch(() => null)
-               const match = (Array.isArray(contactsData) ? contactsData : []).find((c: any) => String(c?.jid || '').replace(/@.*/, '').replace(/\D/g, '') === numericId)
-               const linkC = extractUrl(match)
-               if (contactsRes.ok && linkC) return { success: true, data: { link: linkC, raw: match } }
-             }
-            } else if (isGroup) {
+        const results = await Promise.all(chunk.map(async (cfg) => {
+           const { provider, base, headers } = cfg
+          try {
+             if (isGroup) {
               // Specific handling for groups
               const groupId = `${numericId}@g.us`
               

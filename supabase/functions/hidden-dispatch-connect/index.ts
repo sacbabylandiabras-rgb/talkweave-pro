@@ -61,54 +61,6 @@ serve(async (req) => {
       .single();
     if (instErr || !inst) throw new Error("Instance not found");
 
-    const provider = (inst as any).api_provider || "zapi";
-
-    // ==== UAZAPI ====
-    if (provider === "uazapi") {
-      const apiUrl = ((inst as any).evolution_api_url || "").replace(/\/+$/, "");
-      const apiToken = (inst as any).evolution_api_key || "";
-      if (!apiUrl || !apiToken) {
-        return new Response(JSON.stringify({ error: "UAZAPI URL/Token não configurados" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      if (mode === "pairing") {
-        try {
-          await fetch(`${apiUrl}/instance/disconnect`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: apiToken },
-          });
-        } catch {}
-      }
-
-      const connectRes = await fetch(`${apiUrl}/instance/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: apiToken },
-        body: JSON.stringify(mode === "pairing" ? { phone: phoneNumber } : {}),
-      });
-      let data: any = await parseBody(connectRes);
-      let qr = getQr(data);
-      let code = getCode(data);
-
-      if (mode === "pairing" && !code) {
-        for (let i = 0; i < 4; i++) {
-          await new Promise((r) => setTimeout(r, 700));
-          const sRes = await fetch(`${apiUrl}/instance/status`, {
-            method: "GET", headers: { "Content-Type": "application/json", token: apiToken },
-          });
-          const sData = await parseBody(sRes);
-          if (!qr) qr = getQr(sData);
-          const sCode = getCode(sData);
-          if (sCode) { code = sCode; break; }
-        }
-      }
-
-      return new Response(JSON.stringify({
-        success: true,
-        data: { qrCode: qr, pairingCode: code, connected: data?.connected === true },
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     // ==== Z-API ====
     const zid = (inst as any).zapi_instance_id;
     const ztk = (inst as any).zapi_token;

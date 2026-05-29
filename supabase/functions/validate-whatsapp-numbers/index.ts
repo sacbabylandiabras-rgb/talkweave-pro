@@ -56,44 +56,6 @@ async function checkZapi(base: string, headers: Record<string, string>, numbers:
   });
 }
 
-async function checkUazapi(apiUrl: string, token: string, numbers: string[]) {
-  const url = apiUrl.replace(/\/$/, "");
-  const res = await fetch(`${url}/chat/check`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token },
-    body: JSON.stringify({ numbers }),
-  });
-  const text = await res.text();
-  let data: any = {};
-  try { data = JSON.parse(text); } catch { data = {}; }
-  console.log(`[UAZAPI] status=${res.status} sample=${text.slice(0, 300)}`);
-
-  if (!res.ok) {
-    const errorMessage = typeof data?.message === 'string' ? data.message : (typeof data?.error === 'string' ? data.error : text);
-    const upstreamError = String(errorMessage || "").toLowerCase();
-    
-    if (upstreamError.includes("connected") || upstreamError.includes("conect") || upstreamError.includes("whatsapp") || upstreamError.includes("session")) {
-      throw new Error("Conexão WhatsApp desconectada. Reconecte o dispositivo antes de validar os números.");
-    }
-    throw new Error(`Não foi possível validar os números agora. Tente novamente em instantes.`);
-  }
-
-  const arr = Array.isArray(data) ? data : Array.isArray(data?.response) ? data.response : Array.isArray(data?.result) ? data.result : [];
-  const map = new Map<string, boolean>();
-  for (const item of arr) {
-    const inp = onlyDigits(item?.query || item?.number || item?.phone || item?.jid || "");
-    const exists = item?.isInWhatsapp === true || item?.exists === true || item?.IsUser === true || item?.isuser === true || !!item?.jid;
-    if (inp) map.set(inp, exists);
-  }
-  return numbers.map((n) => {
-    if (map.has(n)) return { phone: n, valid: map.get(n) === true };
-    for (const [k, v] of map) {
-      if (k.endsWith(n) || n.endsWith(k)) return { phone: n, valid: v };
-    }
-    return { phone: n, valid: false };
-  });
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -139,12 +101,13 @@ serve(async (req) => {
       inputMap.set(n, String(raw));
     }
 
-    // Pick instance
+    // Pick instance (Z-API only)
     let query = admin
       .from("zapi_instances")
-      .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default")
+      .select("zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default")
       .eq("user_id", user.id)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("api_provider", "zapi");
 
     if (requestedInstanceId) {
       query = query.eq("id", requestedInstanceId);
@@ -160,23 +123,16 @@ serve(async (req) => {
       });
     }
 
-    const isUaz = String(inst.api_provider || "").toLowerCase() === "uazapi";
-
     // Process in batches of 50
     const results: { phone: string; valid: boolean }[] = [];
     const BATCH = 50;
     for (let i = 0; i < normalized.length; i += BATCH) {
       const slice = normalized.slice(i, i + BATCH);
       try {
-        if (isUaz) {
-          const out = await checkUazapi(inst.evolution_api_url || "", inst.zapi_token || "", slice);
-          results.push(...out);
-        } else {
-          const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
-          const headers = { "Content-Type": "application/json", "Client-Token": inst.zapi_client_token || "" };
-          const out = await checkZapi(base, headers, slice);
-          results.push(...out);
-        }
+        const base = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`;
+        const headers = { "Content-Type": "application/json", "Client-Token": inst.zapi_client_token || "" };
+        const out = await checkZapi(base, headers, slice);
+        results.push(...out);
       } catch (e) {
         console.error("Batch error:", e);
         throw e;

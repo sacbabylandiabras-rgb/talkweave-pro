@@ -20,6 +20,7 @@ export interface WhatsAppGroup {
 }
 
 export function useWhatsAppGroups(options?: { provider?: 'zapi' | 'zapi_no_warmup_meta' | 'uazapi'; source?: 'profile' }) {
+  // 'uazapi' provider is retained ONLY for ExtractMembers; do not use elsewhere.
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [loading, setLoading] = useState(false);
 

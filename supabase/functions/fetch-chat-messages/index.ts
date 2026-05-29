@@ -87,12 +87,13 @@ Deno.serve(async (req) => {
 
     const { phone, isGroup, chatid } = cleanPhone(phoneRaw);
 
-    // Resolve instance for this user
+    // Resolve instance for this user (Z-API only)
     let instanceQuery = adminClient
       .from("zapi_instances")
-      .select("id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key")
+      .select("id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider")
       .eq("user_id", user.id)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("api_provider", "zapi");
 
     if (instanceRef) {
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -112,44 +113,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiProvider = (instance.api_provider || "zapi").toLowerCase();
     let messages: any[] = [];
 
-    if (apiProvider === "uazapi") {
-      const apiUrl = String(instance.evolution_api_url || "").replace(/\/+$/, "");
-      const apiToken = String(instance.evolution_api_key || "");
-      if (!apiUrl || !apiToken) throw new Error("UAZAPI URL/Token não configurados");
-
-      // Try multiple chatid formats (UAZAPI varies by group/contact)
-      const cleanId = phone.replace("-group", "").replace(/\D/g, "");
-      const candidates = isGroup
-        ? [`${cleanId}@g.us`, cleanId]
-        : [`${cleanId}@s.whatsapp.net`, `${cleanId}@c.us`, cleanId];
-
-      for (const candidate of candidates) {
-        const resp = await fetch(`${apiUrl}/chat/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token: apiToken },
-          body: JSON.stringify({ chatid: candidate, limit }),
-        });
-        const rawText = await resp.text();
-        let payload: any = {};
-        try { payload = JSON.parse(rawText); } catch { payload = {}; }
-        if (!resp.ok) {
-          console.warn(`UAZAPI /chat/messages failed for ${candidate}: ${resp.status} - ${rawText}`);
-          continue;
-        }
-        const arr = Array.isArray(payload?.messages) ? payload.messages
-          : Array.isArray(payload?.data) ? payload.data
-          : Array.isArray(payload) ? payload
-          : [];
-        if (arr.length > 0) {
-          messages = arr;
-          console.log(`✅ UAZAPI returned ${arr.length} messages for ${candidate}`);
-          break;
-        }
-      }
-    } else {
+    {
       // Z-API: chat-messages endpoint
       const zapiInstanceId = instance.zapi_instance_id;
       const zapiToken = instance.zapi_token;
