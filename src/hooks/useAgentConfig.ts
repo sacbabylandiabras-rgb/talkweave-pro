@@ -10,6 +10,7 @@ interface AgentConfig {
   prompt_service?: string;
   prompt_closing?: string;
   active: boolean;
+  disable_in_groups?: boolean;
   provider: "anthropic";
   model: string;
   voice?: string;
@@ -40,6 +41,7 @@ export function useAgentConfig() {
     agent_name: "Assistente",
     system_prompt: "Você é um assistente virtual prestativo e educado. Responda as perguntas dos clientes de forma clara e objetiva.",
     active: false,
+    disable_in_groups: false,
     provider: "anthropic",
     model: "claude-sonnet-4-5-20250929",
     voice: "nova",
@@ -87,6 +89,7 @@ export function useAgentConfig() {
           prompt_service: service,
           prompt_closing: closing,
           active: data.active,
+          disable_in_groups: data.disable_in_groups === true,
           provider: "anthropic",
           model: data.model || "claude-sonnet-4-5-20250929",
           voice: data.voice || "nova",
@@ -136,6 +139,7 @@ export function useAgentConfig() {
         agent_name: newConfig.agent_name ?? config.agent_name,
         system_prompt: systemPrompt,
         active: newConfig.active ?? config.active,
+        disable_in_groups: newConfig.disable_in_groups ?? config.disable_in_groups ?? false,
         provider: newConfig.provider ?? config.provider,
         model: newConfig.model ?? config.model,
         voice: newConfig.voice ?? config.voice ?? "nova",
@@ -167,6 +171,15 @@ export function useAgentConfig() {
           error = fallback.error;
         }
 
+        if (error && isMissingAgentConfigColumnError(error, 'disable_in_groups')) {
+          const { disable_in_groups: _omit, ...rest } = payload;
+          const fallback = await (supabase as any)
+            .from("agent_config")
+            .update(rest)
+            .eq("id", config.id);
+          error = fallback.error;
+        }
+
         if (error) throw error;
       } else {
         let { data, error } = await (supabase as any)
@@ -189,6 +202,17 @@ export function useAgentConfig() {
             .select()
             .single();
 
+          data = fallback.data;
+          error = fallback.error;
+        }
+
+        if (error && isMissingAgentConfigColumnError(error, 'disable_in_groups')) {
+          const { disable_in_groups: _omit, ...rest } = payload;
+          const fallback = await (supabase as any)
+            .from("agent_config")
+            .insert(rest)
+            .select()
+            .single();
           data = fallback.data;
           error = fallback.error;
         }
