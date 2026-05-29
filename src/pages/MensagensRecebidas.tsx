@@ -2745,6 +2745,79 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     setManualProfilePic(null);
   }, [normalizedSelectedPhone]);
 
+  // Para grupos: ao abrir uma conversa, busca a foto de perfil de cada
+  // remetente (sender) que ainda não tem foto salva. Assim o avatar ao lado
+  // de cada mensagem mostra a foto da PESSOA, não a foto do grupo.
+  useEffect(() => {
+    if (!selectedConversation) return;
+    if (!isGroupPhone(selectedConversation.phone)) return;
+
+    const convInstanceId = selectedConversation.preferredInstanceId;
+    let resolvedInstanceId: string | null =
+      selectedInstanceId !== "all" ? selectedInstance?.zapi_instance_id || null : null;
+    if (convInstanceId) {
+      const matched = instances.find(
+        (i: any) => i.id === convInstanceId || i.zapi_instance_id === convInstanceId,
+      );
+      resolvedInstanceId = matched?.zapi_instance_id || convInstanceId;
+    }
+
+    const seen = new Set<string>();
+    const targets: string[] = [];
+    for (const m of selectedConversation.messages || []) {
+      const raw = (m as any).sender_phone ? String((m as any).sender_phone).trim() : "";
+      if (!raw) continue;
+      if (raw.toLowerCase().includes("@lid")) continue;
+      const numeric = raw.replace(/\D/g, "");
+      if (!numeric || numeric.length < 8) continue;
+      if (seen.has(numeric)) continue;
+      seen.add(numeric);
+
+      const existing =
+        savedContacts.get(raw) ||
+        savedContacts.get(numeric) ||
+        savedContacts.get(`+${numeric}`);
+      const hasPhoto =
+        existing?.profile_picture_url &&
+        /^https?:\/\//i.test(existing.profile_picture_url);
+      const hasSenderPhoto =
+        (m as any).sender_photo && /^https?:\/\//i.test(String((m as any).sender_photo));
+      if (hasPhoto || hasSenderPhoto) continue;
+      targets.push(numeric);
+    }
+
+    if (targets.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const concurrency = 3;
+      let cursor = 0;
+      const worker = async () => {
+        while (!cancelled && cursor < targets.length) {
+          const idx = cursor++;
+          try {
+            await fetchProfilePicture(targets[idx], false, resolvedInstanceId);
+          } catch {
+            // silencioso
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: concurrency }, worker));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedConversation?.phone,
+    selectedConversation?.messages?.length,
+    savedContacts,
+    fetchProfilePicture,
+    instances,
+    selectedInstance,
+    selectedInstanceId,
+  ]);
+
   useEffect(() => {
     if (!selectedPhone) return;
     const match = conversations.find((c) => c.phone === normalizedSelectedPhone);
