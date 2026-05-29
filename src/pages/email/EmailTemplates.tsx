@@ -80,6 +80,45 @@ export default function EmailTemplates() {
     load();
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `email-templates/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('campaign-media')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-media')
+        .getPublicUrl(filePath);
+
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = editing?.html || "";
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+        const newValue = before + `<img src="${publicUrl}" alt="imagem" style="max-width: 100%; border-radius: 8px;" />` + after;
+        if (editing) setEditing({ ...editing, html: newValue });
+      }
+      toast.success("Imagem enviada com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro no upload");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const filteredList = list.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || 
                          t.subject.toLowerCase().includes(search.toLowerCase());
