@@ -356,7 +356,7 @@ export default function EmailTemplates() {
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
                           if (s) { 
-                            s.style.display = 'block'; 
+                            s.style.display = 'table'; 
                             s.style.margin = '10px auto 10px 0'; 
                             if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
                           }
@@ -364,7 +364,7 @@ export default function EmailTemplates() {
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
                           if (s) { 
-                            s.style.display = 'block'; 
+                            s.style.display = 'table'; 
                             s.style.margin = '10px auto'; 
                             if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
                           }
@@ -372,7 +372,7 @@ export default function EmailTemplates() {
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
                           if (s) { 
-                            s.style.display = 'block'; 
+                            s.style.display = 'table'; 
                             s.style.margin = '10px 0 10px auto'; 
                             if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
                           }
