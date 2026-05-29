@@ -243,7 +243,18 @@ serve(async (req) => {
       !!webhook?.listResponseMessage;
 
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
-    const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
+    const senderPhoto =
+      webhook?.photo ||
+      webhook?.sender?.photo ||
+      webhook?.senderPhoto ||
+      webhook?.profilePicture ||
+      webhook?.sender?.imagePreview ||
+      webhook?.sender?.image ||
+      webhook?.chat?.imagePreview ||
+      webhook?.chat?.image ||
+      webhook?.message?.sender?.imagePreview ||
+      webhook?.message?.sender?.image ||
+      "";
     const senderPhone = participantPhone;
 
     let messageRaw =
@@ -299,6 +310,27 @@ serve(async (req) => {
       .maybeSingle();
 
     const userId = instanceData?.user_id;
+
+    // Atualiza/insere contato com foto de perfil quando a mensagem é recebida
+    try {
+      if (userId && !fromMe && phone) {
+        const contactPhone = String(phone).replace(/-group$/i, "").replace(/@.*$/, "");
+        if (contactPhone && !isGroup) {
+          const contactPayload: Record<string, unknown> = {
+            user_id: userId,
+            phone: contactPhone,
+            updated_at: new Date().toISOString(),
+          };
+          if (senderName) contactPayload.name = senderName;
+          if (senderPhoto) contactPayload.profile_picture_url = senderPhoto;
+          await supabase
+            .from("saved_contacts")
+            .upsert(contactPayload, { onConflict: "user_id,phone" });
+        }
+      }
+    } catch (e) {
+      console.warn("⚠️ Falha ao atualizar saved_contacts com foto:", (e as Error)?.message);
+    }
 
     const hasMedia = !!(webhook?.image || webhook?.video || webhook?.audio || webhook?.sticker || webhook?.document);
     const hasInteractive = !!(webhook?.buttonsResponseMessage || webhook?.buttonReply || webhook?.listResponseMessage || webhook?.interactiveResponseMessage);
