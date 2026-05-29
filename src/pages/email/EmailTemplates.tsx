@@ -216,18 +216,28 @@ export default function EmailTemplates() {
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Categoria</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <Button 
+                      type="button"
                       variant={editing?.category === "Marketing" ? "default" : "outline"} 
                       size="sm"
-                      className={`h-9 ${editing?.category === "Marketing" ? "bg-indigo-600" : "border-slate-200"}`}
-                      onClick={() => setEditing(editing ? { ...editing, category: "Marketing" } : null)}
+                      className={`h-9 ${editing?.category === "Marketing" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (editing) setEditing({ ...editing, category: "Marketing" });
+                      }}
                     >
                       Marketing
                     </Button>
                     <Button 
+                      type="button"
                       variant={editing?.category === "Transacional" ? "default" : "outline"} 
                       size="sm"
-                      className={`h-9 ${editing?.category === "Transacional" ? "bg-indigo-600" : "border-slate-200"}`}
-                      onClick={() => setEditing(editing ? { ...editing, category: "Transacional" } : null)}
+                      className={`h-9 ${editing?.category === "Transacional" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (editing) setEditing({ ...editing, category: "Transacional" });
+                      }}
                     >
                       Transacional
                     </Button>
