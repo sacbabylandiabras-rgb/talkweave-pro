@@ -31,10 +31,10 @@ async function getUserZAPICredentials(
 
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default, is_active')
     .eq('user_id', user.id)
-    .eq('is_active', true)
     .eq('api_provider', 'zapi')
+    .order('is_active', { ascending: false })
     .order('is_default', { ascending: false })
 
   const zapi = zapiInstances?.[0]
@@ -191,12 +191,11 @@ const extractGroupName = (payload: any): string | null => {
      const instancesToTry: InstanceCfg[] = []
  
      if (instanceId) {
-       const { data: specificInstance } = await adminClient
+        const { data: specificInstance } = await adminClient
          .from('zapi_instances')
-        .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name')
+         .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active')
          .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
          .eq('user_id', credentials.userId)
-         .eq('is_active', true)
          .eq('api_provider', 'zapi')
          .maybeSingle()
  
@@ -209,12 +208,12 @@ const extractGroupName = (payload: any): string | null => {
           })
        }
      } else {
-       const { data: allInstances } = await adminClient
+        const { data: allInstances } = await adminClient
          .from('zapi_instances')
-          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default')
+           .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active')
          .eq('user_id', credentials.userId)
-         .eq('is_active', true)
           .eq('api_provider', 'zapi')
+          .order('is_active', { ascending: false })
          .order('is_default', { ascending: false })
  
        for (const inst of allInstances || []) {
