@@ -352,18 +352,27 @@ export default function EmailTemplates() {
                       <div className="flex bg-white rounded-lg border border-slate-200 p-1">
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
-                          if (s) { s.style.display = 'block'; s.style.marginRight = 'auto'; s.style.marginLeft = '0'; 
-                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); }
+                          if (s) { 
+                            s.style.display = 'block'; 
+                            s.style.margin = '10px auto 10px 0'; 
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
+                          }
                         }}><AlignLeft className="w-3 h-3" /></Button>
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
-                          if (s) { s.style.display = 'block'; s.style.margin = '10px auto'; 
-                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); }
+                          if (s) { 
+                            s.style.display = 'block'; 
+                            s.style.margin = '10px auto'; 
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
+                          }
                         }}><AlignCenter className="w-3 h-3" /></Button>
                         <Button variant="ghost" size="sm" className="flex-1 h-7 rounded-md" onClick={() => {
                           const s = document.querySelector('.img-container.selected') as HTMLElement;
-                          if (s) { s.style.display = 'block'; s.style.marginLeft = 'auto'; s.style.marginRight = '0'; 
-                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); }
+                          if (s) { 
+                            s.style.display = 'block'; 
+                            s.style.margin = '10px 0 10px auto'; 
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
+                          }
                         }}><AlignRight className="w-3 h-3" /></Button>
                       </div>
                     </div>
