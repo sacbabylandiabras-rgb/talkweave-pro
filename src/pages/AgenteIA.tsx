@@ -107,6 +107,7 @@ const AgenteIA = () => {
   const [isActive, setIsActive] = useState(false);
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
+  const [voice, setVoice] = useState("nova");
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -178,6 +179,7 @@ const AgenteIA = () => {
       setPromptClosing(config.prompt_closing || "");
       setIsActive(config.active);
       setModel(config.model);
+      setVoice(config.voice || "nova");
     }
   }, [loading, config]);
 
@@ -194,7 +196,8 @@ const AgenteIA = () => {
       prompt_closing: promptClosing,
       active: isActive, 
       provider, 
-      model 
+      model,
+      voice,
     });
   };
 

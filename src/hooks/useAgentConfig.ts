@@ -12,6 +12,7 @@ interface AgentConfig {
   active: boolean;
   provider: "anthropic";
   model: string;
+  voice?: string;
 }
 
 interface KnowledgeItem {
@@ -37,6 +38,7 @@ export function useAgentConfig() {
     active: false,
     provider: "anthropic",
     model: "claude-sonnet-4-5-20250929",
+    voice: "nova",
   });
   const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,7 @@ export function useAgentConfig() {
           active: data.active,
           provider: "anthropic",
           model: data.model || "claude-sonnet-4-5-20250929",
+          voice: data.voice || "nova",
         });
       }
 
@@ -123,6 +126,7 @@ export function useAgentConfig() {
         active: newConfig.active ?? config.active,
         provider: newConfig.provider ?? config.provider,
         model: newConfig.model ?? config.model,
+        voice: newConfig.voice ?? config.voice ?? "nova",
       };
 
       if (config.id) {
