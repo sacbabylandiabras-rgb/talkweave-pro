@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +109,7 @@ export default function EmailTemplates() {
         const text = editing?.html || "";
         const before = text.substring(0, start);
         const after = text.substring(end);
-        const newValue = before + `<img src="${publicUrl}" alt="imagem" style="display: block; max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />` + after;
+        const newValue = before + `<div style="text-align: center;"><img src="${publicUrl}" alt="imagem" style="max-width: 300px; height: auto; border-radius: 8px; cursor: pointer;" /></div>` + after;
         if (editing) setEditing({ ...editing, html: newValue });
       }
       toast.success("Imagem enviada com sucesso!");
@@ -336,6 +336,83 @@ export default function EmailTemplates() {
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        document.execCommand('justifyLeft', false);
+                      }}
+                      title="Alinhar à Esquerda"
+                    >
+                      <AlignLeft className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        document.execCommand('justifyCenter', false);
+                      }}
+                      title="Centralizar"
+                    >
+                      <AlignCenter className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        document.execCommand('justifyRight', false);
+                      }}
+                      title="Alinhar à Direita"
+                    >
+                      <AlignRight className="w-4 h-4" />
+                    </Button>
+                    <div className="w-px h-4 bg-slate-200 mx-1" />
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const container = selection.getRangeAt(0).commonAncestorContainer;
+                          const element = container.nodeType === 1 ? (container as Element) : container.parentElement;
+                          const img = element?.tagName === 'IMG' ? (element as HTMLImageElement) : element?.querySelector('img');
+                          if (img) {
+                            const currentWidth = parseInt(img.style.maxWidth || '300');
+                            img.style.maxWidth = `${currentWidth + 50}px`;
+                            if (editing) setEditing({ ...editing, html: document.querySelector('[contenteditable]')?.innerHTML || "" });
+                          }
+                        }
+                      }}
+                      title="Aumentar Imagem"
+                    >
+                      <Maximize className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const container = selection.getRangeAt(0).commonAncestorContainer;
+                          const element = container.nodeType === 1 ? (container as Element) : container.parentElement;
+                          const img = element?.tagName === 'IMG' ? (element as HTMLImageElement) : element?.querySelector('img');
+                          if (img) {
+                            const currentWidth = parseInt(img.style.maxWidth || '300');
+                            img.style.maxWidth = `${Math.max(50, currentWidth - 50)}px`;
+                            if (editing) setEditing({ ...editing, html: document.querySelector('[contenteditable]')?.innerHTML || "" });
+                          }
+                        }
+                      }}
+                      title="Diminuir Imagem"
+                    >
+                      <Minimize className="w-4 h-4" />
+                    </Button>
+                    <div className="w-px h-4 bg-slate-200 mx-1" />
                     <Button 
                       size="icon" 
                       variant="ghost" 
