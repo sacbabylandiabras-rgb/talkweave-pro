@@ -524,73 +524,25 @@ type WhatsAppCreds = {
   zapiClientToken?: string;
 };
 
-async function getUserUazapiCreds(supabase: any, userId: string): Promise<{ apiUrl: string; apiToken: string } | null> {
-  const { data: instance } = await supabase
+async function getUserWhatsappCreds(supabase: any, userId: string, instanceId?: string | null): Promise<WhatsAppCreds | null> {
+  const select = "id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, is_active";
+  let q = supabase
     .from("zapi_instances")
-    .select("zapi_instance_id, zapi_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active")
+    .select(select)
     .eq("user_id", userId)
     .eq("is_active", true)
-    .order("is_default", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (instance && (instance.api_provider || "").toLowerCase() === "uazapi") {
-    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
-    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
-    if (apiUrl && apiToken) return { apiUrl, apiToken };
-  }
-  return null;
-}
-
-async function getUserWhatsappCreds(supabase: any, userId: string, instanceId?: string | null): Promise<WhatsAppCreds | null> {
-  const select = "id, zapi_instance_id, zapi_token, zapi_client_token, evolution_api_url, evolution_api_key, api_provider, is_default, is_active";
-  let q = supabase.from("zapi_instances").select(select).eq("user_id", userId).eq("is_active", true);
+    .eq("api_provider", "zapi");
   if (instanceId) q = q.eq("id", instanceId);
   else q = q.order("is_default", { ascending: false }).order("created_at", { ascending: true }).limit(1);
   const { data: instance } = await q.maybeSingle();
   if (!instance) return null;
-  const provider = String(instance.api_provider || "zapi").toLowerCase();
-  if (provider === "uazapi") {
-    const apiUrl = String(instance.evolution_api_url || instance.zapi_instance_id || "").replace(/\/+$/, "");
-    const apiToken = String(instance.evolution_api_key || instance.zapi_token || "");
-    if (!apiUrl || !apiToken) return null;
-    return { provider, apiUrl, apiToken };
-  }
-  if (provider === "zapi" || provider === "") {
-    if (!instance.zapi_instance_id || !instance.zapi_token) return null;
-    return {
-      provider: "zapi",
-      zapiInstanceId: instance.zapi_instance_id,
-      zapiToken: instance.zapi_token,
-      zapiClientToken: instance.zapi_client_token || "",
-    };
-  }
-  return null;
-}
-
-async function uazapiSend(
-  apiUrl: string,
-  apiToken: string,
-  endpoint: string,
-  body: any,
-): Promise<{ ok: boolean; data?: any; error?: string }> {
-  try {
-    const res = await fetch(`${apiUrl}${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token: apiToken },
-      body: JSON.stringify(body),
-    });
-    const text = await res.text();
-    let data: any = {};
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      data = { raw: text };
-    }
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${text.substring(0, 200)}` };
-    return { ok: true, data };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erro de rede" };
-  }
+  if (!instance.zapi_instance_id || !instance.zapi_token) return null;
+  return {
+    provider: "zapi",
+    zapiInstanceId: instance.zapi_instance_id,
+    zapiToken: instance.zapi_token,
+    zapiClientToken: instance.zapi_client_token || "",
+  };
 }
 
 async function zapiSend(
@@ -646,18 +598,6 @@ async function sendWhatsAppMessage(
   mediaUrl?: string,
   mediaType?: string,
 ): Promise<{ ok: boolean; data?: any; error?: string }> {
-  if (creds.provider === "uazapi") {
-    if (!creds.apiUrl || !creds.apiToken) return { ok: false, error: "Conexão WhatsApp inválida." };
-    if (mediaUrl) {
-      return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
-        number: phone,
-        type: ["image", "video", "audio", "document"].includes(String(mediaType)) ? mediaType : "image",
-        file: mediaUrl,
-        ...(message ? { text: message } : {}),
-      });
-    }
-    return await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", { number: phone, text: message });
-  }
   return await zapiSend(creds, phone, message, mediaUrl, mediaType);
 }
 
@@ -803,51 +743,35 @@ async function executeTool(
 
   switch (toolName) {
     case "enviar_botoes": {
-      const creds = await getUserUazapiCreds(supabase, userId);
-      if (!creds) return JSON.stringify({ error: "Nenhuma instância UAZAPI configurada." });
+      const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+      if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada." });
       if (!phone) return JSON.stringify({ error: "Sem número de destino." });
-      const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/menu", {
-        number: phone,
-        type: "button",
-        text: input.texto || "Selecione uma opção:",
-        ...(input.rodape ? { footerText: input.rodape } : {}),
-        choices: (input.botoes || []).slice(0, 3).map((b: any) => String(b)),
-      });
+      const opts = (input.botoes || []).slice(0, 3).map((b: any, i: number) => `${i + 1}. ${String(b)}`).join("\n");
+      const text = `${input.texto || "Selecione uma opção:"}\n\n${opts}${input.rodape ? `\n\n_${input.rodape}_` : ""}`;
+      const r = await sendWhatsAppMessage(creds, phone, text);
       return JSON.stringify(r);
     }
     case "enviar_lista": {
-      const creds = await getUserUazapiCreds(supabase, userId);
-      if (!creds) return JSON.stringify({ error: "Nenhuma instância UAZAPI configurada." });
+      const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+      if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada." });
       if (!phone) return JSON.stringify({ error: "Sem número de destino." });
-      const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/menu", {
-        number: phone,
-        type: "list",
-        text: input.texto || "Selecione uma opção:",
-        ...(input.botao_label ? { buttonText: input.botao_label } : {}),
-        choices: (input.opcoes || []).slice(0, 10).map((b: any) => String(b)),
-      });
+      const opts = (input.opcoes || []).slice(0, 10).map((b: any, i: number) => `${i + 1}. ${String(b)}`).join("\n");
+      const text = `${input.texto || "Selecione uma opção:"}\n\n${opts}`;
+      const r = await sendWhatsAppMessage(creds, phone, text);
       return JSON.stringify(r);
     }
     case "enviar_imagem": {
-      const creds = await getUserUazapiCreds(supabase, userId);
-      if (!creds) return JSON.stringify({ error: "Nenhuma instância UAZAPI configurada." });
+      const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+      if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada." });
       if (!phone) return JSON.stringify({ error: "Sem número de destino." });
-      const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
-        number: phone,
-        type: "image",
-        file: input.url_imagem,
-        ...(input.legenda ? { text: input.legenda } : {}),
-      });
+      const r = await sendWhatsAppMessage(creds, phone, input.legenda || "", input.url_imagem, "image");
       return JSON.stringify(r);
     }
     case "enviar_link": {
-      const creds = await getUserUazapiCreds(supabase, userId);
-      if (!creds) return JSON.stringify({ error: "Nenhuma instância UAZAPI configurada." });
+      const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+      if (!creds) return JSON.stringify({ error: "Nenhuma conexão WhatsApp configurada." });
       if (!phone) return JSON.stringify({ error: "Sem número de destino." });
-      const r = await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", {
-        number: phone,
-        text: input.texto || "",
-      });
+      const r = await sendWhatsAppMessage(creds, phone, input.texto || "");
       return JSON.stringify(r);
     }
     case "transferir_humano": {
@@ -1308,8 +1232,8 @@ async function executeTool(
         const charge = data?.charge || {};
         if (phone && !testMode) {
           try {
-            const creds = await getUserUazapiCreds(supabase, userId);
-            if (creds) {
+            const creds = await getUserWhatsappCreds(supabase, userId, instanceId);
+            if (creds && phone) {
               const valorTxt = typeof charge.amount === "number"
                 ? `R$ ${charge.amount.toFixed(2).replace(".", ",")}`
                 : "";
@@ -1323,17 +1247,9 @@ async function executeTool(
               ].filter(Boolean).join("\n");
 
               if (charge.qrcode_image) {
-                await uazapiSend(creds.apiUrl, creds.apiToken, "/send/media", {
-                  number: phone,
-                  type: "image",
-                  file: charge.qrcode_image,
-                  text: legenda,
-                });
+                await sendWhatsAppMessage(creds, phone, legenda, charge.qrcode_image, "image");
               } else if (charge.brcode) {
-                await uazapiSend(creds.apiUrl, creds.apiToken, "/send/text", {
-                  number: phone,
-                  text: legenda,
-                });
+                await sendWhatsAppMessage(creds, phone, legenda);
               }
             }
           } catch (sendErr) {
