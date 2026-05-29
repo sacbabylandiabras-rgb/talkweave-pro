@@ -904,8 +904,8 @@ export default function EmailTemplates() {
         </DialogContent>
       </Dialog>
 
-      {/* Galeria de Imagens Estilo Imagem Enviada */}
-      <Dialog open={imageLibraryOpen} onOpenChange={setImageLibraryOpen}>
+      {/* Galeria de Imagens Real */}
+      <Dialog open={realGalleryOpen} onOpenChange={setRealGalleryOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
