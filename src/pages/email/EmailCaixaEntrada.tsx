@@ -43,7 +43,7 @@ export default function EmailCaixaEntrada() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("resend_webhook_events")
         .delete()
         .eq("id", id);
