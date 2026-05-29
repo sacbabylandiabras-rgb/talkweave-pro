@@ -104,14 +104,13 @@ serve(async (req) => {
       })
     }
 
-    // Busca APENAS grupos sem metadata (is_community null) com paginação real via range
+    // Busca contatos sem foto de perfil (grupos e individuais) com paginação real via range
     const offset = page * limit
     const { data: contacts, error: contactsError } = await adminClient
       .from('saved_contacts')
       .select('phone, name, profile_picture_url, is_community')
       .eq('user_id', user.id)
-      .is('is_community', null)
-      .or('phone.like.120363%,phone.like.%@g.us,phone.like.%-group')
+      .is('profile_picture_url', null)
       .range(offset, offset + limit - 1)
 
     if (contactsError) throw contactsError
