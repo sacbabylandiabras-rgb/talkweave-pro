@@ -280,19 +280,37 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
      for (let i = 0; i < instancesToTry.length; i += CHUNK_SIZE) {
        const chunk = instancesToTry.slice(i, i + CHUNK_SIZE)
        const results = await Promise.all(chunk.map(async (cfg) => {
-         const { provider, base, uazapiUrl, headers } = cfg
+          const { provider, base, uazapiUrl, headers, instanceName } = cfg
          try {
-           if (provider === 'uazapi') {
-             const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
+            if (isUazapiProvider(provider)) {
+              const apiToken = headers.token || headers.apikey || ''
+              const authPath = (path: string) => `${uazapiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`
+              const instanceHeaders = instanceName ? { ...headers, instance: instanceName, 'instance-name': instanceName } : headers
+              const chatNumber = isGroup ? `${numericId}@g.us` : numericId
+
+              const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
                method: 'POST',
-               headers,
-               body: JSON.stringify({ number: isGroup ? `${numericId}@g.us` : numericId, preview: true }),
+                headers: instanceHeaders,
+                body: JSON.stringify({ number: chatNumber, preview: true }),
                signal: AbortSignal.timeout(4000)
              })
              const detailsData = await detailsRes.json().catch(() => null)
              const link = extractUrl(detailsData)
              const name = extractGroupName(detailsData)
              if (detailsRes.ok && (link || name)) return { success: true, data: { link, name, raw: detailsData } }
+
+              if (isGroup) {
+                const groupInfoRes = await fetch(authPath('/group/info'), {
+                  method: 'POST',
+                  headers: instanceHeaders,
+                  body: JSON.stringify({ groupjid: chatNumber, getInviteLink: false }),
+                  signal: AbortSignal.timeout(4000)
+                })
+                const groupInfoData = await groupInfoRes.json().catch(() => null)
+                const groupLink = extractUrl(groupInfoData)
+                const groupName = extractGroupName(groupInfoData)
+                if (groupInfoRes.ok && (groupLink || groupName)) return { success: true, data: { link: groupLink, name: groupName, raw: groupInfoData } }
+              }
  
              if (!isGroup) {
                const contactsRes = await fetch(`${uazapiUrl}/contacts?contactScope=all`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
