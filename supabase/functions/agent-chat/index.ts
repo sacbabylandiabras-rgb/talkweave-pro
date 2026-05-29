@@ -1683,6 +1683,7 @@ serve(async (req) => {
       system_prompt: customSystemPrompt,
       model: customModel,
       sent_proof_ids,
+      user_sent_audio,
     } = body;
     const incomingSentProofIds: string[] = Array.isArray(sent_proof_ids) ? sent_proof_ids.filter((x: any) => typeof x === "string") : [];
     const newlySentProofIds: string[] = [];
