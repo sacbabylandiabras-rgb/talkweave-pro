@@ -59,6 +59,12 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
+    const resendHeaders = {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+      "X-Resend-Region": "us-east-1",
+    };
+
     // CREATE_EMAIL — register domain only on Resend
     if (action === "create_email") {
       if (!hostname || typeof hostname !== "string") {
@@ -87,7 +93,7 @@ serve(async (req) => {
 
         if (selectError?.code === "PGRST205" || selectError?.message?.includes("not found")) {
           const listRes = await fetch("https://api.resend.com/domains", {
-            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            headers: resendHeaders,
           });
           if (listRes.ok) {
             const listData = await listRes.json();
@@ -99,13 +105,13 @@ serve(async (req) => {
         let resendData: any = null;
         if (existingV?.resend_domain_id) {
           const r = await fetch(`https://api.resend.com/domains/${existingV.resend_domain_id}`, {
-            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            headers: resendHeaders,
           });
           if (r.ok) resendData = await r.json();
         } else {
           const r = await fetch("https://api.resend.com/domains", {
             method: "POST",
-            headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+            headers: resendHeaders,
             body: JSON.stringify({ name: cleanHostname }),
           });
           const d = await r.json();
@@ -113,14 +119,14 @@ serve(async (req) => {
             resendData = d;
           } else if (d.message?.includes("already exists")) {
             const listRes = await fetch("https://api.resend.com/domains", {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             if (listRes.ok) {
               const listData = await listRes.json();
               const found = listData.data?.find((x: any) => x.name === cleanHostname);
               if (found) {
                 const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
-                  headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                  headers: resendHeaders,
                 });
                 if (detailRes.ok) resendData = await detailRes.json();
               }
@@ -264,7 +270,7 @@ serve(async (req) => {
           let emailVerification = null;
           if (RESEND_API_KEY && evData.resend_domain_id) {
              const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
-               headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+               headers: resendHeaders,
              });
              if (resendRes.ok) {
                const resendData = await resendRes.json();
@@ -370,7 +376,7 @@ serve(async (req) => {
           if (statusSelectError?.code === "PGRST205" || statusSelectError?.message?.includes("not found")) {
             console.log("Table missing in status check, falling back to direct Resend check...");
             const listRes = await fetch("https://api.resend.com/domains", {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             if (listRes.ok) {
               const listData = await listRes.json();
@@ -386,7 +392,7 @@ serve(async (req) => {
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             if (resendRes.ok) {
               const resendData = await resendRes.json();
@@ -464,7 +470,7 @@ serve(async (req) => {
           
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             if (resendRes.ok) {
               const resendData = await resendRes.json();
@@ -485,14 +491,14 @@ serve(async (req) => {
           } else {
             // Check if it exists in Resend even if not in DB
             const listRes = await fetch("https://api.resend.com/domains", {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             if (listRes.ok) {
               const listData = await listRes.json();
               const found = listData.data?.find((d: any) => d.name === cleanHostname);
               if (found) {
                 const detailRes = await fetch(`https://api.resend.com/domains/${found.id}`, {
-                  headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+                  headers: resendHeaders,
                 });
                 if (detailRes.ok) {
                   const resendData = await detailRes.json();
@@ -551,14 +557,14 @@ serve(async (req) => {
           if (evData?.resend_domain_id) {
             const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}/verify`, {
               method: "POST",
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             
             const verifyData = await resendRes.json();
             
             // Re-fetch full status to get updated records/status
             const statusRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
-              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+              headers: resendHeaders,
             });
             
             if (statusRes.ok) {
@@ -630,7 +636,7 @@ serve(async (req) => {
         if (evData?.resend_domain_id) {
           await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            headers: resendHeaders,
           });
         }
 
