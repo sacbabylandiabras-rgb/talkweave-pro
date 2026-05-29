@@ -967,7 +967,7 @@ serve(async (req) => {
       // Se nada disparou e o agente global está ativo, vamos chamar o agente global
       const { data: agentConfig } = await supabase
         .from("agent_config")
-        .select("active")
+        .select("active, voice")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -1020,7 +1020,7 @@ serve(async (req) => {
           if (agentResponse?.use_audio === true && !buttons.length) {
             try {
               const { data: ttsData, error: ttsErr } = await supabase.functions.invoke("tts", {
-                body: { text: aiResponse, conversation_id: aiDestination },
+                body: { text: aiResponse, conversation_id: aiDestination, voice: agentConfig?.voice || "nova" },
               });
               if (!ttsErr && ttsData?.audio_url) {
                 await sendZapiText(instance, aiDestination, "", [], "global_agent", "audio", ttsData.audio_url, supabase, userId);

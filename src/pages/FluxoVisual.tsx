@@ -3856,6 +3856,35 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Voz das respostas em áudio</Label>
+                  <Select
+                    value={selectedNode.data.voice || ""}
+                    onValueChange={(val) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, voice: val === "__default__" ? "" : val },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/30">
+                      <SelectValue placeholder="Usar voz padrão do agente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">Usar voz padrão do agente</SelectItem>
+                      <SelectItem value="nova">Feminina jovem</SelectItem>
+                      <SelectItem value="shimmer">Feminina suave</SelectItem>
+                      <SelectItem value="alloy">Neutra equilibrada</SelectItem>
+                      <SelectItem value="echo">Masculina calma</SelectItem>
+                      <SelectItem value="onyx">Masculina grave</SelectItem>
+                      <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Usada quando o agente responde em áudio neste bloco. Deixe em padrão para usar a voz configurada na tela do Agente IA.
+                  </p>
+                </div>
+
                 <div className="p-3 rounded-lg border border-purple-100 bg-purple-50/50 dark:bg-purple-900/5 dark:border-purple-900/20">
                    <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">
                      Dica: Você pode usar variáveis como {"{{nome}}"} no prompt para que a IA saiba o nome do cliente.
