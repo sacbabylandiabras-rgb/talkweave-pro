@@ -1081,13 +1081,15 @@ serve(async (req) => {
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (agentConfig?.active && !(isGroup && agentConfig?.disable_in_groups === true)) {
+      // O agente global NUNCA responde em grupos automaticamente — evita
+      // spam em conversas coletivas. Em grupos ele só roda via fluxo manual.
+      if (agentConfig?.active && isGroup) {
+        console.log(`[AI Agent] Skipping group message: global agent never auto-replies in groups.`);
+      } else if (agentConfig?.active) {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
-      } else if (agentConfig?.active && isGroup && agentConfig?.disable_in_groups === true) {
-        console.log(`[AI Agent] Skipping group message: disable_in_groups enabled for user ${userId}.`);
       }
 
-      if (agentConfig?.active && !(isGroup && agentConfig?.disable_in_groups === true)) {
+      if (agentConfig?.active && !isGroup) {
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
         if (messageId) {
