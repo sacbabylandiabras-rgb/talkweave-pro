@@ -2768,34 +2768,41 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     toast({ title: "Contato salvo", description: `${name} foi salvo com sucesso.` });
   };
 
-  // FIX: handleFetchPhoto corrigido
-  // - Grupos sem foto não mostram toast de erro (é comportamento normal do WhatsApp)
-  // - Só mostra toast de sucesso quando realmente encontrou uma foto (clique manual)
-  // - Nunca mostra toast negativo para grupos — avatar padrão é o comportamento esperado
+  // handleFetchPhoto: busca foto usando a instância certa da conversa
+  // - Usa preferredInstanceId da conversa quando disponível (instância que tem o grupo)
+  // - Grupos sem foto não mostram toast de erro (comportamento normal do WhatsApp)
+  // - Só mostra toast de sucesso quando encontrou foto de verdade
   const handleFetchPhoto = async (phone: string, force = false) => {
-    const isGroup = isGroupPhone(phone);
     if (!force) setLoadingPhoto(true);
     setManualProfilePic(null);
 
+    // Normaliza o phone para @g.us (formato aceito pela Z-API)
     const zapiPhone = phone.endsWith("-group") ? `${phone.replace(/-group$/, "")}@g.us` : phone;
 
-    const url = await fetchProfilePicture(
-      zapiPhone,
-      force,
-      selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null,
-    );
+    // Pega a instância da conversa selecionada — ela tem o contexto correto do grupo
+    // Fallback: instância selecionada no filtro ou a ativa padrão
+    const conv = conversations.find((c) => c.phone === normalizeSelectedConversationPhone(phone) || c.phone === phone);
+    const convInstanceId = conv?.preferredInstanceId;
+
+    // Resolve o zapi_instance_id a partir do preferredInstanceId da conversa
+    let resolvedZapiInstanceId = selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null;
+    if (convInstanceId) {
+      const matchedInst = instances.find((i: any) => i.id === convInstanceId || i.zapi_instance_id === convInstanceId);
+      if (matchedInst?.zapi_instance_id) {
+        resolvedZapiInstanceId = matchedInst.zapi_instance_id;
+      }
+    }
+
+    const url = await fetchProfilePicture(zapiPhone, force, resolvedZapiInstanceId);
 
     if (url) setManualProfilePic(url);
     if (!force) setLoadingPhoto(false);
 
     if (!force) {
       if (url) {
-        // Só mostra sucesso quando encontrou foto de verdade
         toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
       }
-      // FIX: não mostra toast de erro para grupos sem foto — é comportamento normal
-      // Antes mostrava "Não foi possível obter a foto de perfil" mesmo quando o grupo simplesmente não tem foto
-      // Para contatos individuais, também silencia o erro (pode ser privacidade do usuário)
+      // Sem toast de erro — grupos sem foto é comportamento normal do WhatsApp
     }
   };
 
