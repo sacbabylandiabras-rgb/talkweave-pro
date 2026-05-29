@@ -483,6 +483,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_domain_verifications: {
+        Row: {
+          created_at: string
+          dkim_records: Json | null
+          domain: string
+          id: string
+          resend_domain_id: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dkim_records?: Json | null
+          domain: string
+          id?: string
+          resend_domain_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dkim_records?: Json | null
+          domain?: string
+          id?: string
+          resend_domain_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flow_automations: {
         Row: {
           active: boolean
