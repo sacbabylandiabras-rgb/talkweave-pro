@@ -1559,8 +1559,14 @@ const ChatView = (props: ChatViewProps) => {
                 </span>
               </div>
               {msgs.map((msg) => {
-                const senderPhone = msg.sender_phone ? String(msg.sender_phone).replace(/\D/g, "") : null;
-                const senderContact = senderPhone ? savedContacts.get(senderPhone) : null;
+                const rawSenderPhone = msg.sender_phone ? String(msg.sender_phone).trim() : "";
+                const senderPhone = rawSenderPhone.toLowerCase().includes("@lid")
+                  ? rawSenderPhone.toLowerCase()
+                  : rawSenderPhone.replace(/\D/g, "");
+                const senderContact = rawSenderPhone
+                  ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
+                  : null;
+                const senderDisplayName = msg.sender_name || senderContact?.name || null;
                 const senderPhoto =
                   msg.sender_photo &&
                   msg.sender_photo !== "null" &&
@@ -1600,7 +1606,7 @@ const ChatView = (props: ChatViewProps) => {
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
                             {senderPhoto && <AvatarImage src={senderPhoto} className="object-cover" />}
                             <AvatarFallback className="text-[10px] font-semibold">
-                              {(msg.sender_name || msg.sender_phone || "?")
+                              {(senderDisplayName || senderPhone || "?")
                                 .replace(/[^A-Za-zÀ-ú0-9]/g, "")
                                 .slice(0, 2)
                                 .toUpperCase() || "?"}
@@ -1608,16 +1614,16 @@ const ChatView = (props: ChatViewProps) => {
                           </Avatar>
                         )}
                         <div className="max-w-[75%] rounded-lg px-3 py-2 shadow-sm bg-card text-card-foreground">
-                          {isGroupPhone(conversation.phone) && (msg.sender_name || msg.sender_phone) && (
+                          {isGroupPhone(conversation.phone) && (senderDisplayName || senderPhone) && (
                             <div className="flex items-baseline gap-2 mb-0.5">
-                              {msg.sender_name && (
-                                <span className="text-[11px] font-semibold truncate" style={{ color: "#128c7e" }}>
-                                  {msg.sender_name}
+                              {senderDisplayName && (
+                                <span className="text-[11px] font-semibold truncate text-primary">
+                                  {senderDisplayName}
                                 </span>
                               )}
-                              {msg.sender_phone && (
+                              {senderPhone && (
                                 <span className="text-[10px] text-muted-foreground truncate">
-                                  +{String(msg.sender_phone).replace(/\D/g, "")}
+                                  {senderPhone.includes("@lid") ? senderPhone : `+${senderPhone}`}
                                 </span>
                               )}
                             </div>
