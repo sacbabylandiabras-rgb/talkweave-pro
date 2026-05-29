@@ -91,13 +91,13 @@ export default function EmailTemplates() {
       const filePath = `email-templates/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('campaign-media')
+        .from('template-media')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('campaign-media')
+        .from('template-media')
         .getPublicUrl(filePath);
 
       const textarea = document.querySelector('textarea');
