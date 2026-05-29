@@ -1583,11 +1583,9 @@ const ChatView = (props: ChatViewProps) => {
                 const savedSenderPhoto = getHttpAvatarUrl(senderContact?.profile_picture_url);
                 const groupConversationPhoto = getHttpAvatarUrl(conversation.profilePictureUrl);
                 const senderPhoto = isGroupPhone(conversation.phone)
-                  ? sameAvatarUrl(messageSenderPhoto, groupConversationPhoto)
-                    ? savedSenderPhoto && !sameAvatarUrl(savedSenderPhoto, groupConversationPhoto)
-                      ? savedSenderPhoto
-                      : null
-                    : messageSenderPhoto || (sameAvatarUrl(savedSenderPhoto, groupConversationPhoto) ? null : savedSenderPhoto)
+                  ? savedSenderPhoto && !sameAvatarUrl(savedSenderPhoto, groupConversationPhoto)
+                    ? savedSenderPhoto
+                    : null
                   : messageSenderPhoto || savedSenderPhoto || groupConversationPhoto;
 
                 return (
