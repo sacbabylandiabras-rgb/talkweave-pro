@@ -458,41 +458,49 @@ export default function EmailTemplates() {
                     onInput={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
                     }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      const target = e.target as HTMLElement;
+                      const container = document.querySelector('.img-container.dragging') as HTMLElement;
+                      if (container) {
+                        e.preventDefault();
+                        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+                        if (range) {
+                          range.insertNode(container);
+                          container.classList.remove('dragging');
+                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                        }
+                      }
+                    }}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       const container = target.closest('.img-container');
-                      
-                      // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
-                      
-                      if (container) {
-                        container.classList.add('selected');
-                      }
+                      if (container) container.classList.add('selected');
                     }}
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement;
+                      const container = target.closest('.img-container') as HTMLElement;
+                      
                       if (target.classList.contains('resizer')) {
                         e.preventDefault();
-                        const container = target.parentElement;
                         const img = container?.querySelector('img');
                         if (!img) return;
-                        
                         const startX = e.clientX;
                         const startWidth = img.offsetWidth;
-                        
-                        const onMouseMove = (moveEvent: MouseEvent) => {
-                          const newWidth = startWidth + (moveEvent.clientX - startX);
-                          img.style.width = `${newWidth}px`;
+                        const onMouseMove = (mv: MouseEvent) => {
+                          img.style.width = `${startWidth + (mv.clientX - startX)}px`;
                         };
-                        
                         const onMouseUp = () => {
                           document.removeEventListener('mousemove', onMouseMove);
                           document.removeEventListener('mouseup', onMouseUp);
                           if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                         };
-                        
                         document.addEventListener('mousemove', onMouseMove);
                         document.addEventListener('mouseup', onMouseUp);
+                      } else if (container && !target.closest('.img-controls')) {
+                        // Iniciar arraste manual
+                        container.classList.add('dragging');
                       }
                     }}
                     dangerouslySetInnerHTML={{ __html: editing?.html || "" }}
