@@ -94,6 +94,12 @@ Deno.serve(async (req) => {
         }),
       });
       const j = await r.json().catch(() => ({}));
+      if (r.ok && j?.id) {
+        await admin.from("sent_emails_mapping").insert({
+          email_id: j.id,
+          user_id: userId
+        });
+      }
       results.push({ to: recipient, ok: r.ok, error: r.ok ? undefined : (j?.message || j?.error || `HTTP ${r.status}`), id: j?.id });
     }
 
