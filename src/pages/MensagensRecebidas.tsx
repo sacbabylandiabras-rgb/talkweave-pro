@@ -1579,20 +1579,16 @@ const ChatView = (props: ChatViewProps) => {
                   ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
                   : null;
                 const senderDisplayName = msg.sender_name || senderContact?.name || null;
-                const senderPhoto =
-                  msg.sender_photo &&
-                  msg.sender_photo !== "null" &&
-                  msg.sender_photo !== "undefined" &&
-                  /^https?:\/\//i.test(msg.sender_photo)
-                    ? msg.sender_photo
-                    : senderContact?.profile_picture_url &&
-                        senderContact.profile_picture_url !== "null" &&
-                        senderContact.profile_picture_url !== "undefined" &&
-                        /^https?:\/\//i.test(senderContact.profile_picture_url)
-                      ? senderContact.profile_picture_url
-                      : isGroupPhone(conversation.phone)
-                        ? null
-                        : conversation.profilePictureUrl;
+                const messageSenderPhoto = getHttpAvatarUrl(msg.sender_photo);
+                const savedSenderPhoto = getHttpAvatarUrl(senderContact?.profile_picture_url);
+                const groupConversationPhoto = getHttpAvatarUrl(conversation.profilePictureUrl);
+                const senderPhoto = isGroupPhone(conversation.phone)
+                  ? sameAvatarUrl(messageSenderPhoto, groupConversationPhoto)
+                    ? savedSenderPhoto && !sameAvatarUrl(savedSenderPhoto, groupConversationPhoto)
+                      ? savedSenderPhoto
+                      : null
+                    : messageSenderPhoto || (sameAvatarUrl(savedSenderPhoto, groupConversationPhoto) ? null : savedSenderPhoto)
+                  : messageSenderPhoto || savedSenderPhoto || groupConversationPhoto;
 
                 return (
                   <div key={msg.id} className="mb-2">
