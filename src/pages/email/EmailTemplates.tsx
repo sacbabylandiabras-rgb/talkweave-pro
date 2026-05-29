@@ -275,71 +275,154 @@ export default function EmailTemplates() {
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row bg-slate-50/50">
-            {/* Sidebar de Configurações */}
-            <div className="w-full md:w-80 border-r border-slate-200 bg-white p-6 space-y-6 overflow-y-auto">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Identificação</Label>
-                  <Input 
-                    value={editing?.name} 
-                    onChange={e => setEditing(editing ? { ...editing, name: e.target.value } : null)} 
-                    placeholder="Ex: Campanha de Black Friday" 
-                    className="border-slate-200 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Categoria</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      type="button"
-                      variant={editing?.category === "Marketing" ? "default" : "outline"} 
-                      size="sm"
-                      className={`h-9 ${editing?.category === "Marketing" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (editing) setEditing({ ...editing, category: "Marketing" });
-                      }}
-                    >
-                      Marketing
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant={editing?.category === "Transacional" ? "default" : "outline"} 
-                      size="sm"
-                      className={`h-9 ${editing?.category === "Transacional" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (editing) setEditing({ ...editing, category: "Transacional" });
-                      }}
-                    >
-                      Transacional
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Assunto do E-mail</Label>
-                  <Input 
-                    value={editing?.subject} 
-                    onChange={e => setEditing(editing ? { ...editing, subject: e.target.value } : null)} 
-                    placeholder="O que o cliente verá na caixa de entrada" 
-                    className="border-slate-200"
-                  />
-                </div>
+            {/* Sidebar de Configurações Style Imagem */}
+            <div className="w-full md:w-80 border-r border-slate-200 bg-slate-50 p-0 overflow-y-auto flex flex-col">
+              <div className="p-4 bg-white border-b border-slate-200">
+                <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <MousePointer2 className="w-4 h-4" /> Propriedades do Objeto
+                </h3>
               </div>
-
-              <div className="pt-6 border-t border-slate-100">
-                <div className="bg-indigo-50 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700">
-                    <Settings className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase">Variáveis</span>
+              
+              <div className="p-6 space-y-8 flex-1">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Título do Template</Label>
+                    <Input 
+                      value={editing?.name} 
+                      onChange={e => setEditing(editing ? { ...editing, name: e.target.value } : null)} 
+                      placeholder="Nome do template" 
+                      className="border-slate-200 bg-white shadow-sm"
+                    />
                   </div>
-                  <p className="text-[11px] text-indigo-600 leading-relaxed">
-                    Use <code className="bg-white px-1 rounded border border-indigo-200">{"{{nome}}"}</code> para personalizar o e-mail com o nome do destinatário.
-                  </p>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Assunto</Label>
+                    <Input 
+                      value={editing?.subject} 
+                      onChange={e => setEditing(editing ? { ...editing, subject: e.target.value } : null)} 
+                      placeholder="Assunto do e-mail" 
+                      className="border-slate-200 bg-white shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-200 space-y-4">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <Settings className="w-3 h-3" /> Estilo da Imagem
+                  </Label>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] text-slate-500">Largura (px)</Label>
+                      <Input 
+                        type="number"
+                        placeholder="Ex: 300"
+                        className="h-9 bg-white border-slate-200"
+                        onChange={(e) => {
+                          const selectedImg = document.querySelector('.img-container.selected img') as HTMLImageElement;
+                          if (selectedImg) {
+                            selectedImg.style.width = `${e.target.value}px`;
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] text-slate-500">Arredondar (px)</Label>
+                      <Input 
+                        type="number"
+                        placeholder="Ex: 8"
+                        className="h-9 bg-white border-slate-200"
+                        onChange={(e) => {
+                          const selectedImg = document.querySelector('.img-container.selected img') as HTMLImageElement;
+                          if (selectedImg) {
+                            selectedImg.style.borderRadius = `${e.target.value}px`;
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <Label className="text-[10px] text-slate-500">Alinhamento</Label>
+                    <div className="flex bg-white rounded-lg border border-slate-200 p-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 h-8 rounded-md hover:bg-slate-100"
+                        onClick={() => {
+                          const selected = document.querySelector('.img-container.selected') as HTMLElement;
+                          if (selected) {
+                            selected.style.display = 'block';
+                            selected.style.marginRight = 'auto';
+                            selected.style.marginLeft = '0';
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                          }
+                        }}
+                      >
+                        <AlignLeft className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 h-8 rounded-md hover:bg-slate-100"
+                        onClick={() => {
+                          const selected = document.querySelector('.img-container.selected') as HTMLElement;
+                          if (selected) {
+                            selected.style.display = 'block';
+                            selected.style.margin = '10px auto';
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                          }
+                        }}
+                      >
+                        <AlignCenter className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 h-8 rounded-md hover:bg-slate-100"
+                        onClick={() => {
+                          const selected = document.querySelector('.img-container.selected') as HTMLElement;
+                          if (selected) {
+                            selected.style.display = 'block';
+                            selected.style.marginLeft = 'auto';
+                            selected.style.marginRight = '0';
+                            if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                          }
+                        }}
+                      >
+                        <AlignRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="w-full mt-4 h-9 shadow-sm"
+                    onClick={() => {
+                      const selected = document.querySelector('.img-container.selected');
+                      if (selected) {
+                        selected.remove();
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Remover Imagem
+                  </Button>
+                </div>
+
+                <div className="pt-6 border-t border-slate-200">
+                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-indigo-700">
+                      <Type className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase">Variáveis</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-600 leading-relaxed">
+                      Use <code className="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono text-[10px]">{"{{nome}}"}</code> para personalizar o envio.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
