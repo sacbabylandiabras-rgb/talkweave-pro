@@ -103,6 +103,29 @@ export default function CheckoutEmailSection() {
     toast.success("Status do e-mail atualizado!");
   };
 
+  const handleVerifyEmailDNS = async () => {
+    setStatusChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "verify_email", hostname: emailDomain },
+      });
+      if (error) throw error;
+      
+      if (data?.email_verification) {
+        setEmailVerification(data.email_verification);
+        if (data.email_verification.status === "verified") {
+          toast.success("Domínio verificado com sucesso no Resend!");
+        } else {
+          toast.info("DNS ainda não propagado. Tente novamente em alguns minutos.");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Erro ao verificar DNS: " + err.message);
+    }
+    setStatusChecking(false);
+  };
+
+
   const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
     toast.success("Copiado!");
@@ -160,11 +183,12 @@ export default function CheckoutEmailSection() {
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-            Autenticação de Domínio (Resend)
+            Autenticação de Domínio (Zaplynx & Resend)
           </CardTitle>
           <CardDescription className="text-xs">
-            Configure o DKIM e SPF para garantir a entrega dos e-mails.
+            Configure o DKIM e SPF para garantir a entrega dos e-mails pela Zaplynx.
           </CardDescription>
+
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -219,17 +243,31 @@ export default function CheckoutEmailSection() {
 
               {emailVerification?.records && emailVerification.records.length > 0 && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded-lg border border-blue-500/10 bg-blue-500/5">
-                    <p className="text-[11px] text-blue-400 font-medium mb-1 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Configuração de DNS Necessária
-                    </p>
-                    <p className="text-[10px] text-blue-400/80">
-                      Adicione os registros abaixo no seu provedor de domínio para validar o envio.
-                    </p>
+                  <div className="p-3 rounded-lg border border-blue-500/10 bg-blue-500/5 flex flex-col gap-3">
+                    <div>
+                      <p className="text-[11px] text-blue-400 font-medium mb-1 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Configuração de DNS Necessária
+                      </p>
+                      <p className="text-[10px] text-blue-400/80">
+                        Adicione os registros abaixo no seu provedor de domínio para validar o envio.
+                      </p>
+                    </div>
+                    
+                    {emailVerification?.status !== "verified" && (
+                      <Button 
+                        onClick={handleVerifyEmailDNS} 
+                        disabled={statusChecking}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-8"
+                      >
+                        {statusChecking ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <ShieldCheck className="w-3 h-3 mr-1.5" />}
+                        Verificar DNS na Zaplynx e Resend
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="space-y-3">
+
                     {[
                       ...emailVerification.records,
                       {
