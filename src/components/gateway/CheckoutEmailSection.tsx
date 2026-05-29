@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, RefreshCw, Loader2, CheckCircle2, ShieldCheck, Clock, Mail, AlertTriangle } from "lucide-react";
+import { Copy, RefreshCw, Loader2, CheckCircle2, ShieldCheck, Clock, Mail, AlertTriangle, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +127,31 @@ export default function CheckoutEmailSection() {
     setStatusChecking(false);
   };
 
+  const handleDeleteEmailDomain = async () => {
+    if (!emailDomain) return;
+    
+    if (!confirm(`Tem certeza que deseja remover o domínio ${emailDomain}? Isso interromperá os envios de e-mail.`)) {
+      return;
+    }
+
+    setEmailSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "delete_email", hostname: emailDomain },
+      });
+      
+      if (error) throw error;
+      
+      setEmailDomain("");
+      setEmailVerification(null);
+      toast.success("Domínio de e-mail removido com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao remover domínio: " + err.message);
+    }
+    setEmailSaving(false);
+  };
+
+
 
   const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
@@ -212,9 +237,14 @@ export default function CheckoutEmailSection() {
                 {emailVerification?.status === "verified" ? "Registrado" : "Registrar"}
               </Button>
               {emailVerification && (
-                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
-                  <RefreshCw className={`w-3.5 h-3.5 ${statusChecking ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
+                    <RefreshCw className={`w-3.5 h-3.5 ${statusChecking ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteEmailDomain} disabled={emailSaving}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">
