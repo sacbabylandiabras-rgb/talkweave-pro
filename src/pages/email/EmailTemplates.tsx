@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -411,6 +411,37 @@ export default function EmailTemplates() {
                       title="Diminuir Imagem"
                     >
                       <Minimize className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const container = selection.getRangeAt(0).commonAncestorContainer;
+                          const element = container.nodeType === 1 ? (container as Element) : container.parentElement;
+                          
+                          // Tenta encontrar a imagem ou o container da imagem
+                          const img = element?.tagName === 'IMG' ? (element as HTMLImageElement) : element?.querySelector('img');
+                          
+                          if (img) {
+                            // Se a imagem estiver dentro de uma div (como o container de alinhamento), remove o container
+                            if (img.parentElement?.tagName === 'DIV' && img.parentElement.children.length === 1) {
+                              img.parentElement.remove();
+                            } else {
+                              img.remove();
+                            }
+                            if (editing) setEditing({ ...editing, html: document.querySelector('[contenteditable]')?.innerHTML || "" });
+                            toast.success("Imagem removida");
+                          } else {
+                            toast.error("Selecione uma imagem primeiro");
+                          }
+                        }
+                      }}
+                      title="Apagar Imagem Selecionada"
+                    >
+                      <Eraser className="w-4 h-4" />
                     </Button>
                     <div className="w-px h-4 bg-slate-200 mx-1" />
                     <Button 
