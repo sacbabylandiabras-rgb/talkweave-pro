@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface EventRow {
   id: string;
@@ -14,6 +20,7 @@ interface EventRow {
   sender: string | null;
   subject: string | null;
   created_at: string;
+  raw_payload?: any;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,6 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function EmailCaixaEntrada() {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEmail, setSelectedEmail] = useState<EventRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -60,6 +68,14 @@ export default function EmailCaixaEntrada() {
 
   useEffect(() => { load(); }, []);
 
+  const getEmailContent = (email: EventRow) => {
+    const data = email.raw_payload?.data;
+    if (!data) return "Conteúdo não disponível";
+    
+    // Resend sends the body content in the webhook payload data
+    return data.text || data.html || "Este evento não contém o corpo da mensagem.";
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
@@ -89,13 +105,23 @@ export default function EmailCaixaEntrada() {
                     <p className="text-sm font-medium truncate">{r.subject || "(sem assunto)"}</p>
                     <p className="text-xs text-muted-foreground truncate">{r.recipient} {r.sender && `• de ${r.sender}`}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setSelectedEmail(r)}
+                      title="Ver conteúdo"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(r.id)}
+                      title="Apagar"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -106,6 +132,46 @@ export default function EmailCaixaEntrada() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => !open && setSelectedEmail(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">{selectedEmail?.subject || "(sem assunto)"}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedEmail && (
+            <div className="flex-1 overflow-y-auto space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-xs bg-muted/50 p-3 rounded-md">
+                <div>
+                  <p className="font-semibold text-muted-foreground">Para:</p>
+                  <p className="break-all">{selectedEmail.recipient}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground">De:</p>
+                  <p className="break-all">{selectedEmail.sender || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground">Data:</p>
+                  <p>{new Date(selectedEmail.created_at).toLocaleString("pt-BR")}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground">Status:</p>
+                  <Badge variant="outline" className="mt-1 h-5 text-[10px] uppercase">
+                    {selectedEmail.event_type.replace("email.", "")}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold border-b pb-1">Mensagem:</p>
+                <div className="p-4 rounded-md border bg-white text-black text-sm whitespace-pre-wrap font-sans min-h-[100px]">
+                  {getEmailContent(selectedEmail)}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
