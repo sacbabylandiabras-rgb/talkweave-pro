@@ -83,7 +83,14 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const { data: mapping } = await supabase
+      .from("sent_emails_mapping")
+      .select("user_id")
+      .eq("email_id", emailId)
+      .maybeSingle();
+
     await supabase.from("resend_webhook_events").insert({
+      user_id: mapping?.user_id || null,
       event_type: type,
       email_id: emailId,
       recipient: to,
