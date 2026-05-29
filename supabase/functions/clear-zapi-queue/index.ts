@@ -101,20 +101,6 @@ serve(async (req) => {
     const results = [];
 
     for (const instance of instancesToClear) {
-      // UAZAPI does not expose an equivalent queue-clear endpoint. Skip silently
-      // so paused/cancelled campaigns don't error out on UAZAPI instances.
-      if (instance.apiProvider === 'uazapi') {
-        console.log(`⏭️ Skipping queue clear for UAZAPI instance ${instance.instanceName} (no equivalent endpoint)`);
-        results.push({
-          instanceId: instance.instanceId,
-          instanceName: instance.instanceName,
-          success: true,
-          status: 200,
-          data: { skipped: true, reason: 'uazapi_no_queue_endpoint' },
-        });
-        continue;
-      }
-
       console.log(`🧹 Clearing Z-API queue for instance ${instance.instanceName} (${instance.instanceId})`);
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.instanceId}/token/${instance.token}/queue`;

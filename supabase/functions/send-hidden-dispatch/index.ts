@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
 /**
- * Disparo Oculto - envia mensagem usando instâncias Z-API/UAZAPI cadastradas pelo admin
+ * Disparo Oculto - envia mensagem usando instâncias Z-API cadastradas pelo admin
  * na tabela hidden_dispatch_instances. Qualquer usuário autenticado pode invocar.
  */
 serve(async (req) => {
@@ -59,7 +59,6 @@ serve(async (req) => {
     }
 
     const cleanPhone = String(phone).replace(/\D/g, "");
-    const provider = String(inst.api_provider || "zapi").toLowerCase();
     const btnList: Array<{ label: string; url?: string; phone?: string }> =
       Array.isArray(buttons) ? buttons.filter((b: any) => b && b.label) : [];
     const hasButtons = btnList.length > 0;
@@ -68,34 +67,7 @@ serve(async (req) => {
     let body: Record<string, unknown> = {};
     let headers: Record<string, string> = { "Content-Type": "application/json" };
 
-    if (provider === "uazapi") {
-      const apiUrl = String(inst.evolution_api_url || "").replace(/\/+$/, "");
-      const apiToken = String(inst.evolution_api_key || "");
-      if (!apiUrl || !apiToken) {
-        return new Response(JSON.stringify({ error: "Credenciais UAZAPI incompletas" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      headers.token = apiToken;
-
-      if (hasButtons) {
-        // UAZAPI - texto/imagem com botões
-        endpoint = `${apiUrl}/send/buttons`;
-        body = {
-          number: cleanPhone,
-          text: message || "",
-          footerText: footer || "",
-          ...(mediaUrl ? { image: mediaUrl } : {}),
-          choices: btnList.map((b) => b.label),
-        };
-      } else if (mediaUrl && mediaType) {
-        endpoint = `${apiUrl}/send/media`;
-        body = { number: cleanPhone, type: mediaType, file: mediaUrl, text: message || "" };
-      } else {
-        endpoint = `${apiUrl}/send/text`;
-        body = { number: cleanPhone, text: message || "" };
-      }
-    } else {
+    {
       // Z-API
       const iid = inst.zapi_instance_id;
       const tkn = inst.zapi_token;

@@ -37,7 +37,6 @@ export async function getUserZAPICredentials(
 
   console.log(`📋 Fetching Z-API credentials for user: ${user.id}`);
 
-  // Fetch only active Z-API instances, explicitly ignoring uazapi
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
     .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default')
