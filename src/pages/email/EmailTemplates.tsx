@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize, Eraser, Type, MousePointer2, Link, Globe, Move, Square, Palette, Code } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize, Eraser, Type, MousePointer2, Link, Globe, Move, Square, Palette, Code, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -446,18 +446,111 @@ export default function EmailTemplates() {
 
                 {/* Footer Sections */}
                 <div className="mt-auto bg-white border-t border-slate-200">
-                  <button className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-200">
-                    <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
-                      <Palette className="w-3 h-3" /> Edit theme
-                    </span>
-                    <Plus className="w-3 h-3 text-slate-400" />
-                  </button>
-                  <button className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
-                      <Code className="w-3 h-3" /> Global CSS
-                    </span>
-                    <Plus className="w-3 h-3 text-slate-400" />
-                  </button>
+                  <div className="border-b border-slate-200">
+                    <button 
+                      onClick={() => {
+                        const themePanel = document.getElementById('theme-panel');
+                        const isHidden = themePanel?.classList.contains('hidden');
+                        document.querySelectorAll('.footer-panel').forEach(p => p.classList.add('hidden'));
+                        if (isHidden) themePanel?.classList.remove('hidden');
+                      }}
+                      className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
+                        <Palette className="w-3 h-3" /> Edit theme
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-slate-400" />
+                    </button>
+                    
+                    <div id="theme-panel" className="footer-panel hidden p-4 bg-white space-y-6 border-t border-slate-100">
+                      {/* Colors Section */}
+                      <div className="space-y-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] text-slate-500">Cor de Fundo</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 font-mono">#F8FAFC</span>
+                              <input 
+                                type="color" 
+                                className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer rounded overflow-hidden" 
+                                onChange={(e) => {
+                                  const editor = document.getElementById('email-editor');
+                                  if (editor) {
+                                    editor.style.backgroundColor = e.target.value;
+                                    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] text-slate-500">Cor do Texto</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 font-mono">#1E293B</span>
+                              <input 
+                                type="color" 
+                                className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer rounded overflow-hidden" 
+                                onChange={(e) => {
+                                  const editor = document.getElementById('email-editor');
+                                  if (editor) {
+                                    editor.style.color = e.target.value;
+                                    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Font Section */}
+                      <div className="pt-4 border-t border-slate-100 space-y-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Typography</div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-slate-500">Família da Fonte</Label>
+                          <select 
+                            className="w-full h-8 text-xs bg-white border border-slate-200 rounded-md px-2"
+                            onChange={(e) => {
+                              const editor = document.getElementById('email-editor');
+                              if (editor) {
+                                editor.style.fontFamily = e.target.value;
+                                if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                              }
+                            }}
+                          >
+                            <option value="Inter, sans-serif">Inter</option>
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="monospace">Monospace</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button 
+                      onClick={() => {
+                        const cssPanel = document.getElementById('css-panel');
+                        const isHidden = cssPanel?.classList.contains('hidden');
+                        document.querySelectorAll('.footer-panel').forEach(p => p.classList.add('hidden'));
+                        if (isHidden) cssPanel?.classList.remove('hidden');
+                      }}
+                      className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
+                        <Code className="w-3 h-3" /> Global CSS
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-slate-400" />
+                    </button>
+                    <div id="css-panel" className="footer-panel hidden p-4 bg-white border-t border-slate-100">
+                      <textarea 
+                        className="w-full h-32 text-[10px] font-mono p-2 bg-slate-900 text-slate-300 rounded-md"
+                        placeholder="/* Custom CSS here */"
+                      ></textarea>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
