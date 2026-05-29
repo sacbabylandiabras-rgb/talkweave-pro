@@ -2799,11 +2799,11 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         savedContacts.get(raw) ||
         savedContacts.get(numeric) ||
         savedContacts.get(`+${numeric}`);
-      const hasPhoto =
-        existing?.profile_picture_url &&
-        /^https?:\/\//i.test(existing.profile_picture_url);
-      const hasSenderPhoto =
-        (m as any).sender_photo && /^https?:\/\//i.test(String((m as any).sender_photo));
+      const groupPhoto = getHttpAvatarUrl(selectedConversation.profilePictureUrl);
+      const existingPhoto = getHttpAvatarUrl(existing?.profile_picture_url);
+      const messageSenderPhoto = getHttpAvatarUrl((m as any).sender_photo);
+      const hasPhoto = existingPhoto && !sameAvatarUrl(existingPhoto, groupPhoto);
+      const hasSenderPhoto = messageSenderPhoto && !sameAvatarUrl(messageSenderPhoto, groupPhoto);
       if (hasPhoto || hasSenderPhoto) continue;
       targets.push(numeric);
     }
