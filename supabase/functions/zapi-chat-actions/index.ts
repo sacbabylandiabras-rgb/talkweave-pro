@@ -470,6 +470,31 @@ Deno.serve(async (req) => {
        return new Response(JSON.stringify({ error: 'Ação não suportada para Meta API' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Graceful fallbacks for UAZAPI provider — most Z-API chat actions are not
+    // 1:1 mapped, so we return empty/neutral payloads to avoid noisy UI errors.
+    // Profile pictures are handled by the dedicated `get-profile-picture` function.
+    if (creds.apiProvider === 'uazapi' || creds.apiProvider === 'uazapi_warmup') {
+      const ok = (data: any) =>
+        new Response(JSON.stringify({ success: true, data }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      switch (action) {
+        case 'tag-colors': return ok([]);
+        case 'list-tags': return ok([]);
+        case 'status': return ok({ connected: true });
+        case 'metadata':
+        case 'get-metadata-contact':
+        case 'get-profile-picture':
+        case 'metadata-group':
+        case 'light-group-metadata':
+          return ok(null);
+        default:
+          return new Response(JSON.stringify({ success: true, data: null }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+      }
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     let finalPayload = payload;
 
