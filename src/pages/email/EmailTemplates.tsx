@@ -598,6 +598,7 @@ export default function EmailTemplates() {
                     .img-container.selected { outline: 2px solid #6366f1; border-style: solid !important; }
                     [contenteditable] img { transition: outline 0.2s; }
                     .img-container:hover { border-color: #6366f1 !important; }
+                    ${buildThemeCss(themeStyles)}
                   `}</style>
                   <div 
                     contentEditable
