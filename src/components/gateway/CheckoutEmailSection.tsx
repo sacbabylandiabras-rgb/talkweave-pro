@@ -114,7 +114,7 @@ export default function CheckoutEmailSection() {
       if (data?.email_verification) {
         setEmailVerification(data.email_verification);
         if (data.email_verification.status === "verified") {
-          toast.success("Domínio verificado com sucesso no Resend!");
+          toast.success("Domínio verificado com sucesso!");
         } else {
           toast.info("DNS ainda não propagado. Tente novamente em alguns minutos.");
         }
@@ -183,7 +183,7 @@ export default function CheckoutEmailSection() {
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-            Autenticação de Domínio (Zaplynx & Resend)
+            Autenticação de Domínio (Zaplynx)
           </CardTitle>
           <CardDescription className="text-xs">
             Configure o DKIM e SPF para garantir a entrega dos e-mails pela Zaplynx.
@@ -261,7 +261,7 @@ export default function CheckoutEmailSection() {
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-8"
                       >
                         {statusChecking ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <ShieldCheck className="w-3 h-3 mr-1.5" />}
-                        Verificar DNS na Zaplynx e Resend
+                        Verificar DNS na Zaplynx
                       </Button>
                     )}
                   </div>
