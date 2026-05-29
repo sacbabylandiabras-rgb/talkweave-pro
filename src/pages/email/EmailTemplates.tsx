@@ -181,7 +181,7 @@ export default function EmailTemplates() {
         </div>
       )}
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 rounded-2xl overflow-hidden border-0">
           <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
@@ -216,18 +216,28 @@ export default function EmailTemplates() {
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Categoria</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <Button 
+                      type="button"
                       variant={editing?.category === "Marketing" ? "default" : "outline"} 
                       size="sm"
-                      className={`h-9 ${editing?.category === "Marketing" ? "bg-indigo-600" : "border-slate-200"}`}
-                      onClick={() => setEditing(editing ? { ...editing, category: "Marketing" } : null)}
+                      className={`h-9 ${editing?.category === "Marketing" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (editing) setEditing({ ...editing, category: "Marketing" });
+                      }}
                     >
                       Marketing
                     </Button>
                     <Button 
+                      type="button"
                       variant={editing?.category === "Transacional" ? "default" : "outline"} 
                       size="sm"
-                      className={`h-9 ${editing?.category === "Transacional" ? "bg-indigo-600" : "border-slate-200"}`}
-                      onClick={() => setEditing(editing ? { ...editing, category: "Transacional" } : null)}
+                      className={`h-9 ${editing?.category === "Transacional" ? "bg-indigo-600 hover:bg-indigo-700" : "border-slate-200 hover:bg-slate-50"}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (editing) setEditing({ ...editing, category: "Transacional" });
+                      }}
                     >
                       Transacional
                     </Button>
