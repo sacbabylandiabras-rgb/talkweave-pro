@@ -109,7 +109,7 @@ export default function EmailTemplates() {
         const text = editing?.html || "";
         const before = text.substring(0, start);
         const after = text.substring(end);
-        const newValue = before + `<img src="${publicUrl}" alt="imagem" style="max-width: 100%; border-radius: 8px;" />` + after;
+        const newValue = before + `<img src="${publicUrl}" alt="imagem" style="display: block; max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" />` + after;
         if (editing) setEditing({ ...editing, html: newValue });
       }
       toast.success("Imagem enviada com sucesso!");
@@ -399,12 +399,19 @@ export default function EmailTemplates() {
                   </div>
                   <Badge variant="outline" className="text-[10px] text-slate-400 bg-white">Modo HTML / Texto Rico</Badge>
                 </div>
-                <textarea 
-                  className="flex-1 p-6 text-sm focus:outline-none resize-none font-sans"
-                  value={editing?.html}
-                  onChange={e => setEditing(editing ? { ...editing, html: e.target.value } : null)}
-                  placeholder="Escreva sua mensagem aqui..."
-                />
+                <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none">
+                  <div 
+                    contentEditable
+                    className="w-full h-full min-h-[450px] focus:outline-none prose prose-slate max-w-none"
+                    onBlur={(e) => {
+                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                    }}
+                    onInput={(e) => {
+                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                    }}
+                    dangerouslySetInnerHTML={{ __html: editing?.html || "" }}
+                  />
+                </div>
               </div>
             </div>
           </div>
