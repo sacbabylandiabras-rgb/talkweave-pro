@@ -94,6 +94,18 @@ const formatPhone = (phone?: string | null) => {
   return phone;
 };
 
+const getHttpAvatarUrl = (value?: string | null) => {
+  const url = String(value || "").trim();
+  if (!url || url === "null" || url === "undefined") return null;
+  return /^https?:\/\//i.test(url) ? url : null;
+};
+
+const sameAvatarUrl = (a?: string | null, b?: string | null) => {
+  const left = getHttpAvatarUrl(a);
+  const right = getHttpAvatarUrl(b);
+  return !!left && !!right && left === right;
+};
+
 const looksLikePhoneOrId = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return true;
