@@ -43,8 +43,6 @@ interface ResolvedInstance {
   zapiClientToken: string;
   instanceName: string;
   apiProvider?: string;
-  uazapiUrl?: string;
-  uazapiToken?: string;
 }
 
 type CampaignCredentials = {
@@ -55,8 +53,6 @@ type CampaignCredentials = {
   instanceName: string;
   dbId?: string;
   apiProvider?: string;
-  uazapiUrl?: string;
-  uazapiToken?: string;
 };
 
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
@@ -123,8 +119,6 @@ const mapResolvedInstance = (
     zapiClientToken: instance.zapi_client_token || "",
     instanceName: instance.instance_name || "Instância",
     apiProvider: "zapi",
-    uazapiUrl: "",
-    uazapiToken: "",
   };
 };
 
@@ -165,8 +159,6 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   instanceName: instance.instanceName,
   dbId: instance.dbId,
   apiProvider: instance.apiProvider || "zapi",
-  uazapiUrl: instance.uazapiUrl || "",
-  uazapiToken: instance.uazapiToken || "",
 });
 
 const getAuthenticatedUserId = async (req: Request, supabaseUrl: string, supabaseServiceKey: string) => {
@@ -967,8 +959,6 @@ serve(async (req) => {
           userId: baseCredentials.userId,
           instanceName: baseCredentials.instanceName,
           apiProvider: "zapi",
-          uazapiUrl: "",
-          uazapiToken: "",
         };
       }
 
@@ -992,8 +982,6 @@ serve(async (req) => {
         zapiClientToken: credentials.clientToken,
         instanceName: credentials.instanceName,
         apiProvider: credentials.apiProvider,
-        uazapiUrl: credentials.uazapiUrl,
-        uazapiToken: credentials.uazapiToken,
       };
       console.log(
         `📍 [Mode] Single Instance mode: forcing all sends through ${credentials.instanceName} (${credentials.instanceId})`,
@@ -1130,8 +1118,6 @@ serve(async (req) => {
         zapiToken = specificInstance.zapiToken;
         zapiClientToken = specificInstance.zapiClientToken;
         credentials.apiProvider = specificInstance.apiProvider || "zapi";
-        credentials.uazapiUrl = specificInstance.uazapiUrl || "";
-        credentials.uazapiToken = specificInstance.uazapiToken || "";
         credentials.instanceName = specificInstance.instanceName;
       }
     }
@@ -1147,8 +1133,6 @@ serve(async (req) => {
         zapiClientToken,
         instanceName: credentials.instanceName,
         apiProvider: credentials.apiProvider || "zapi",
-        uazapiUrl: credentials.uazapiUrl || "",
-        uazapiToken: credentials.uazapiToken || "",
       };
     };
 
