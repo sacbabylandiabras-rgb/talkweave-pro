@@ -36,11 +36,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const to = Array.isArray(body?.to) ? body.to : (body?.to ? [body.to] : []);
     const subject = String(body?.subject || "").trim();
-    const html = String(body?.html || "").trim();
+    const messageBody = String(body?.html || body?.text || "").trim();
     const fromAlias = String(body?.fromAlias || "contato").replace(/[^a-z0-9._-]/gi, "");
 
-    if (!to.length || !subject || !html) {
-      return new Response(JSON.stringify({ error: "Campos obrigatórios: to, subject, html" }), {
+    if (!to.length || !subject || !messageBody) {
+      return new Response(JSON.stringify({ error: "Campos obrigatórios: to, subject, html ou text" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -86,7 +86,12 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           "X-Resend-Region": "us-east-1",
         },
-        body: JSON.stringify({ from, to: recipient, subject, html }),
+        body: JSON.stringify({ 
+          from, 
+          to: recipient, 
+          subject, 
+          text: messageBody // Send as plain text as requested
+        }),
       });
       const j = await r.json().catch(() => ({}));
       results.push({ to: recipient, ok: r.ok, error: r.ok ? undefined : (j?.message || j?.error || `HTTP ${r.status}`), id: j?.id });
