@@ -354,16 +354,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const text = editing?.html || "";
-                          const before = text.substring(0, start);
-                          const after = text.substring(end);
-                          const newValue = before + "{{variável}}" + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('insertText', false, '{{variável}}');
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Adicionar variável"
                     >
