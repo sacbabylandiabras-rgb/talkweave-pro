@@ -127,6 +127,31 @@ export default function CheckoutEmailSection() {
     setStatusChecking(false);
   };
 
+  const handleDeleteEmailDomain = async () => {
+    if (!emailDomain) return;
+    
+    if (!confirm(`Tem certeza que deseja remover o domínio ${emailDomain}? Isso interromperá os envios de e-mail.`)) {
+      return;
+    }
+
+    setEmailSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "delete_email", hostname: emailDomain },
+      });
+      
+      if (error) throw error;
+      
+      setEmailDomain("");
+      setEmailVerification(null);
+      toast.success("Domínio de e-mail removido com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao remover domínio: " + err.message);
+    }
+    setEmailSaving(false);
+  };
+
+
 
   const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
