@@ -1484,6 +1484,7 @@ async function executeFlow(
           return;
         }
       }
+      }
     } else if (node.type === "blocoAgendamento" || node.type === "blocoAcao") {
       const actionType = node.data.actionType;
 
