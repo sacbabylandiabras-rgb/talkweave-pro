@@ -103,6 +103,29 @@ export default function CheckoutEmailSection() {
     toast.success("Status do e-mail atualizado!");
   };
 
+  const handleVerifyEmailDNS = async () => {
+    setStatusChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "verify_email", hostname: emailDomain },
+      });
+      if (error) throw error;
+      
+      if (data?.email_verification) {
+        setEmailVerification(data.email_verification);
+        if (data.email_verification.status === "verified") {
+          toast.success("Domínio verificado com sucesso no Resend!");
+        } else {
+          toast.info("DNS ainda não propagado. Tente novamente em alguns minutos.");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Erro ao verificar DNS: " + err.message);
+    }
+    setStatusChecking(false);
+  };
+
+
   const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
     toast.success("Copiado!");
