@@ -967,12 +967,17 @@ serve(async (req) => {
       // Se nada disparou e o agente global está ativo, vamos chamar o agente global
       const { data: agentConfig } = await supabase
         .from("agent_config")
-        .select("active, voice, voice_provider, elevenlabs_api_key, elevenlabs_voice_id")
+        .select("active, disable_in_groups, voice, voice_provider, elevenlabs_api_key, elevenlabs_voice_id")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (agentConfig?.active) {
+      if (agentConfig?.active && !(isGroup && agentConfig?.disable_in_groups === true)) {
         console.log(`[AI Agent] Global agent is active for user ${userId}. Calling agent-chat.`);
+      } else if (agentConfig?.active && isGroup && agentConfig?.disable_in_groups === true) {
+        console.log(`[AI Agent] Skipping group message: disable_in_groups enabled for user ${userId}.`);
+      }
+
+      if (agentConfig?.active && !(isGroup && agentConfig?.disable_in_groups === true)) {
 
         // Se for áudio (PTT/voz), transcreve com Whisper antes de mandar pro agente
         if (messageId) {
