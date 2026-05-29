@@ -6,14 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const isUazapiProvider = (provider: string) => provider === 'uazapi' || provider === 'uazapi_warmup'
-
-const normalizeApiUrl = (value: unknown): string => {
-  const raw = String(value || '').trim().replace(/\/+$/, '')
-  if (!raw) return ''
-  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
-}
-
 const extractUrl = (payload: unknown): string | null => {
   if (!payload) return null
   if (Array.isArray(payload)) return extractUrl(payload[0])
@@ -87,12 +79,13 @@ serve(async (req) => {
     const limit = 100;
     console.log(`📋 Starting profile photo sync for user: ${user.id} (Page: ${page}, Limit: ${limit})`)
 
-    // Pega instância padrão do usuário
+    // Pega instância padrão Z-API do usuário
     const { data: instance } = await adminClient
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name')
       .eq('user_id', user.id)
       .eq('is_active', true)
+      .eq('api_provider', 'zapi')
       .order('is_default', { ascending: false })
       .limit(1)
       .single()
@@ -122,16 +115,7 @@ serve(async (req) => {
 
     let updated = 0
     let updatedMeta = 0
-    const provider = String(instance.api_provider || 'zapi').toLowerCase();
     const zapiBase = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`
-    const uazapiUrl = normalizeApiUrl(instance.evolution_api_url)
-    const uazapiToken = instance.evolution_api_key || instance.zapi_token || ''
-    // uazapi requires just a `token` header; mantemos apenas esse e o instance opcional
-    const uazapiHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      token: uazapiToken,
-    }
-    if (instance.instance_name) uazapiHeaders.instance = instance.instance_name
 
     const syncContact = async (contact: { phone: string }) => {
       try {
@@ -140,7 +124,7 @@ serve(async (req) => {
         let isCommunity = false
         let communityId: string | null = null
 
-        if (isGroup && !isUazapiProvider(provider)) {
+        if (isGroup) {
           const metaRes = await fetchWithRetry(`${zapiBase}/group-metadata/${phone}`, {
             headers: { 'client-token': instance.zapi_client_token || '' },
           })
@@ -153,24 +137,7 @@ serve(async (req) => {
         }
 
         let url: string | null = null
-        if (isUazapiProvider(provider)) {
-          const chatNumber = isGroup ? phone : phone.replace(/\D/g, '')
-          const detailsRes = await fetchWithRetry(`${uazapiUrl}/chat/details`, {
-            method: 'POST',
-            headers: uazapiHeaders,
-            body: JSON.stringify({ number: chatNumber, preview: true }),
-          })
-          url = detailsRes?.ok ? extractUrl(await detailsRes.json().catch(() => null)) : null
-
-          if (!url && isGroup) {
-            const infoRes = await fetchWithRetry(`${uazapiUrl}/group/info`, {
-              method: 'POST',
-              headers: uazapiHeaders,
-              body: JSON.stringify({ groupjid: chatNumber, getInviteLink: false }),
-            })
-            url = infoRes?.ok ? extractUrl(await infoRes.json().catch(() => null)) : null
-          }
-        } else {
+        {
           const endpoint = isGroup
             ? `${zapiBase}/group-thumbnail/${phone}`
             : `${zapiBase}/profile-picture?phone=${phone}`
