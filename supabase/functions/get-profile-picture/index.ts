@@ -218,13 +218,13 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
          .maybeSingle()
  
        if (specificInstance) {
-         const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
-         if (provider === 'uazapi') {
+          const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
+          if (isUazapiProvider(provider)) {
            instancesToTry.push({
              provider,
              base: '',
-             uazapiUrl: (specificInstance.evolution_api_url || '').replace(/\/+$/, ''),
-             headers: { 'Content-Type': 'application/json', token: specificInstance.evolution_api_key || '' },
+              uazapiUrl: normalizeApiUrl(specificInstance.evolution_api_url),
+              headers: buildUazapiHeaders(specificInstance.evolution_api_key || specificInstance.zapi_token),
            })
          } else {
            instancesToTry.push({
@@ -245,14 +245,14 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
  
        for (const inst of allInstances || []) {
          const provider = (inst.api_provider || 'zapi').toLowerCase()
-         if (provider === 'uazapi') {
-           const url = (inst.evolution_api_url || '').replace(/\/+$/, '')
+          if (isUazapiProvider(provider)) {
+            const url = normalizeApiUrl(inst.evolution_api_url)
            if (url) {
              instancesToTry.push({
                provider,
                base: '',
                uazapiUrl: url,
-               headers: { 'Content-Type': 'application/json', token: inst.evolution_api_key || '' },
+                headers: buildUazapiHeaders(inst.evolution_api_key || inst.zapi_token),
              })
            }
          } else if (inst.zapi_instance_id && inst.zapi_token) {
