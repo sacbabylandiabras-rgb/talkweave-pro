@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
       .from("email_domain_verifications")
       .select("domain, status")
       .eq("user_id", userId)
-      .eq("status", "verified")
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!domainData?.domain) {
