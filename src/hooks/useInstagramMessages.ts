@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramEvent } from "./useInstagramEvents";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +12,24 @@ export interface InstagramConversation {
   messages: InstagramEvent[];
 }
 
+// URLs do Instagram CDN expiram — verifica se a URL ainda é válida pelo campo oe= (expiry unix timestamp)
+const isIgUrlExpired = (url: string | null | undefined): boolean => {
+  if (!url) return true;
+  if (url === "") return true;
+  try {
+    const match = url.match(/[?&]oe=([0-9A-Fa-f]+)/);
+    if (!match) return false; // URL sem oe= provavelmente não expira
+    const expiryHex = match[1];
+    const expiryTs = parseInt(expiryHex, 16) * 1000; // converte hex unix -> ms
+    return Date.now() > expiryTs;
+  } catch {
+    return false;
+  }
+};
+
+// Cache de fotos já buscadas nesta sessão para não re-buscar
+const fetchedPicsCache = new Set<string>();
+
 export function useInstagramMessages(selectedIgId?: string | null) {
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
@@ -20,7 +38,7 @@ export function useInstagramMessages(selectedIgId?: string | null) {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
   }, []);
 
-  // ── Eventos (mensagens) ──────────────────────────────────────────────────
+  // ── Eventos (mensagens) ─────────────────────────────────────────────────
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["instagram_dm_events", userId],
     enabled: !!userId,
@@ -37,7 +55,7 @@ export function useInstagramMessages(selectedIgId?: string | null) {
     },
   });
 
-  // ── Contatos (fotos/nomes) ───────────────────────────────────────────────
+  // ── Contatos (fotos/nomes) ──────────────────────────────────────────────
   const { data: contacts = [] } = useQuery({
     queryKey: ["instagram_contacts", userId],
     enabled: !!userId,
@@ -48,11 +66,41 @@ export function useInstagramMessages(selectedIgId?: string | null) {
         .select("ig_user_id, username, profile_pic_url")
         .eq("user_id", userId);
       if (error) throw error;
-      return (data || []) as unknown as { ig_user_id: string; username: string; profile_pic_url: string | null }[];
+      return (data || []) as { ig_user_id: string; username: string; profile_pic_url: string | null }[];
     },
   });
 
-  // ── Realtime ─────────────────────────────────────────────────────────────
+  // ── Busca foto fresca via Edge Function quando URL está vazia ou expirada ─
+  const refreshPic = useCallback(
+    async (igUserId: string) => {
+      if (!userId) return;
+      const cacheKey = `${userId}:${igUserId}`;
+      if (fetchedPicsCache.has(cacheKey)) return;
+      fetchedPicsCache.add(cacheKey);
+
+      try {
+        const { data } = await supabase.functions.invoke("ig-profile-pic", {
+          body: null,
+          headers: {},
+          method: "GET",
+        });
+        // Invoca via fetch direto pois a função é GET com query params
+        const res = await fetch(
+          `${(supabase as any).supabaseUrl}/functions/v1/ig-profile-pic?ig_user_id=${igUserId}&user_id=${userId}`,
+          { headers: { Authorization: `Bearer ${(supabase as any).supabaseKey}` } },
+        );
+        if (res.ok) {
+          // O banco já foi atualizado pela função — invalida o cache de contatos
+          queryClient.invalidateQueries({ queryKey: ["instagram_contacts", userId] });
+        }
+      } catch (e) {
+        console.warn("[useInstagramMessages] refreshPic error:", e);
+      }
+    },
+    [userId, queryClient],
+  );
+
+  // ── Realtime ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return;
 
@@ -61,9 +109,7 @@ export function useInstagramMessages(selectedIgId?: string | null) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "instagram_events", filter: `user_id=eq.${userId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
-        },
+        () => queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] }),
       )
       .subscribe();
 
@@ -72,9 +118,7 @@ export function useInstagramMessages(selectedIgId?: string | null) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "instagram_contacts", filter: `user_id=eq.${userId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["instagram_contacts", userId] });
-        },
+        () => queryClient.invalidateQueries({ queryKey: ["instagram_contacts", userId] }),
       )
       .subscribe();
 
@@ -84,36 +128,33 @@ export function useInstagramMessages(selectedIgId?: string | null) {
     };
   }, [userId, queryClient]);
 
-  // ── Mapa de contatos ─────────────────────────────────────────────────────
+  // ── Mapa de contatos ────────────────────────────────────────────────────
   const contactMap = useMemo(() => new Map(contacts.map((c) => [c.ig_user_id, c])), [contacts]);
 
-  // ── Agrupa mensagens em conversas ────────────────────────────────────────
+  // ── Agrupa mensagens em conversas ───────────────────────────────────────
   const conversations = useMemo(() => {
     const map = new Map<string, InstagramConversation>();
 
     events.forEach((msg) => {
-      // Para mensagens enviadas (dm_sent), o ig_user_id é o destinatário
       const contact = contactMap.get(msg.ig_user_id);
+      const storedPic = contact?.profile_pic_url;
+      // Usa a foto do banco apenas se não estiver expirada
       const profilePic =
-        contact?.profile_pic_url ||
+        (!isIgUrlExpired(storedPic) ? storedPic : null) ||
         msg.payload?.sender?.profile_pic ||
         msg.payload?.message?.reply_to?.story?.url ||
         null;
-      const resolvedUsername = contact?.username || msg.username || msg.ig_user_id;
+
+      const resolvedUsername =
+        contact?.username && contact.username !== msg.ig_user_id ? contact.username : msg.username || msg.ig_user_id;
 
       const existing = map.get(msg.ig_user_id);
       if (existing) {
         existing.messages.push(msg);
         existing.lastMessage = msg.comment_text || existing.lastMessage;
         existing.lastTimestamp = msg.created_at;
-        // Atualiza foto se chegou agora
-        if (profilePic && !existing.profile_pic_url) {
-          existing.profile_pic_url = profilePic;
-        }
-        // Atualiza username se era só o ID
-        if (resolvedUsername !== msg.ig_user_id) {
-          existing.username = resolvedUsername;
-        }
+        if (profilePic && !existing.profile_pic_url) existing.profile_pic_url = profilePic;
+        if (resolvedUsername !== msg.ig_user_id) existing.username = resolvedUsername;
       } else {
         map.set(msg.ig_user_id, {
           ig_user_id: msg.ig_user_id,
@@ -130,6 +171,18 @@ export function useInstagramMessages(selectedIgId?: string | null) {
       (a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime(),
     );
   }, [events, contactMap]);
+
+  // ── Busca fotos expiradas/ausentes automaticamente ──────────────────────
+  useEffect(() => {
+    if (!userId || conversations.length === 0) return;
+    conversations.forEach((conv) => {
+      const contact = contactMap.get(conv.ig_user_id);
+      const needsRefresh = !conv.profile_pic_url || isIgUrlExpired(contact?.profile_pic_url);
+      if (needsRefresh) {
+        refreshPic(conv.ig_user_id);
+      }
+    });
+  }, [conversations, contactMap, userId, refreshPic]);
 
   const selectedConversation = useMemo(() => {
     if (!selectedIgId) return null;
