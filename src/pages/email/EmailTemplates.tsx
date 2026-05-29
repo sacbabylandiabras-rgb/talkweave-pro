@@ -353,10 +353,27 @@ export default function EmailTemplates() {
                           }
                         }
                       }}
-                      title="Inserir imagem"
+                      title="Inserir imagem (URL)"
                     >
                       <ImageIcon className="w-4 h-4" />
                     </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      title="Fazer upload de imagem"
+                    >
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    </Button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileUpload} 
+                    />
                     <div className="w-px h-4 bg-slate-200 mx-1" />
                     <Button 
                       size="icon" 
