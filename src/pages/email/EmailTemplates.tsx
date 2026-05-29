@@ -418,17 +418,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 font-bold hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selected = (editing?.html || "").substring(start, end);
-                          if (!selected) return;
-                          const before = (editing?.html || "").substring(0, start);
-                          const after = (editing?.html || "").substring(end);
-                          const newValue = before + `<b>${selected}</b>` + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('bold', false);
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Negrito"
                     >
@@ -439,17 +430,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 italic font-serif hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selected = (editing?.html || "").substring(start, end);
-                          if (!selected) return;
-                          const before = (editing?.html || "").substring(0, start);
-                          const after = (editing?.html || "").substring(end);
-                          const newValue = before + `<i>${selected}</i>` + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('italic', false);
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Itálico"
                     >
