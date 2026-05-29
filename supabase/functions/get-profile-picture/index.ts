@@ -246,35 +246,31 @@ const extractGroupName = (payload: any): string | null => {
            const { provider, base, headers } = cfg
           try {
              if (isGroup) {
-              // Specific handling for groups
-              const groupId = `${numericId}@g.us`
-              
-              // Try /profile-picture first
-              const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const data = await res.json().catch(() => null)
-              let link = extractUrl(data)
-              if (res.ok && link) return { success: true, data: { link, raw: data } }
+              // Z-API group phone format is `<id>-group` (per docs)
+              const groupId = `${numericId}-group`
+              console.log(`📷 [GROUP] Fetching photo/metadata for ${groupId} on ${provider}`)
 
-              // Try /group-picture (often used in Z-API for groups)
-              const resGp = await fetch(`${base}/group-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const dataGp = await resGp.json().catch(() => null)
-              link = extractUrl(dataGp)
-              if (resGp.ok && link) return { success: true, data: { link, raw: dataGp } }
+              // 1) /profile-picture?phone=<id>-group → returns { link }
+              const resPic = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const dataPic = await resPic.json().catch(() => null)
+              console.log(`📷 [GROUP] profile-picture ${resPic.status}: ${JSON.stringify(dataPic).substring(0, 120)}`)
+              const linkPic = extractUrl(dataPic)
+              if (resPic.ok && linkPic) return { success: true, data: { link: linkPic, raw: dataPic } }
 
-               // Try /chats/<groupId> (Z-API returns imagePreview/image here)
-               const resChat = await fetch(`${base}/chats/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const dataChat = await resChat.json().catch(() => null)
-               const linkChat = extractUrl(dataChat)
-               const nameChat = extractGroupName(dataChat)
-               if (resChat.ok && (linkChat || nameChat)) return { success: true, data: { link: linkChat, name: nameChat, raw: dataChat } }
+              // 2) /group-metadata/<id>-group → has subject, communityId, etc. (no image)
+              const resMeta = await fetch(`${base}/group-metadata/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const dataMeta = await resMeta.json().catch(() => null)
+              console.log(`📷 [GROUP] group-metadata ${resMeta.status}: ${JSON.stringify(dataMeta).substring(0, 120)}`)
+              const linkMeta = extractUrl(dataMeta)
+              const nameMeta = extractGroupName(dataMeta)
+              if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta || linkPic, name: nameMeta, raw: dataMeta } }
 
-               // Try /group-metadata/<groupId>
-               const resMeta = await fetch(`${base}/group-metadata/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const dataMeta = await resMeta.json().catch(() => null)
-               const linkMeta = extractUrl(dataMeta)
-               const nameMeta = extractGroupName(dataMeta)
-               if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta, name: nameMeta, raw: dataMeta } }
-
+              // 3) Fallback: /chats/<id>-group (sometimes returns imagePreview)
+              const resChat = await fetch(`${base}/chats/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const dataChat = await resChat.json().catch(() => null)
+              const linkChat = extractUrl(dataChat)
+              const nameChat = extractGroupName(dataChat)
+              if (resChat.ok && (linkChat || nameChat)) return { success: true, data: { link: linkChat, name: nameChat, raw: dataChat } }
             } else {
               // Per Z-API docs, phone must be DDI+DDD+number (no @c.us suffix)
               console.log(`📷 Checking profile-picture for ${numericId} on ${provider}`);
