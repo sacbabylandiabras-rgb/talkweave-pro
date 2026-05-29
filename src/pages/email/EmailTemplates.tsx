@@ -158,6 +158,59 @@ export default function EmailTemplates() {
     }
   };
 
+  const [imageLibraryOpen, setImageLibraryOpen] = useState(false);
+  const [imageLibrary, setImageLibrary] = useState<{name: string, url: string}[]>([]);
+
+  const loadImages = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase.storage.from('template-media').list(user.id);
+      if (error) throw error;
+      
+      const imagesWithUrls = data.map(file => {
+        const { data: { publicUrl } } = supabase.storage.from('template-media').getPublicUrl(`${user.id}/${file.name}`);
+        return { name: file.name, url: publicUrl };
+      });
+      setImageLibrary(imagesWithUrls);
+    } catch (err) {
+      console.error("Erro ao carregar galeria:", err);
+    }
+  };
+
+  const insertImageFromUrl = (url: string) => {
+    const editor = document.getElementById('email-editor');
+    if (editor) {
+      const imgHtml = `
+        <div class="img-container" style="display: table; position: relative; margin: 10px auto 10px 0; line-height: 0; border: 1px dashed #cbd5e1; padding: 4px; border-radius: 8px;">
+          <img src="${url}" alt="imagem" style="width: 300px; height: auto; border-radius: 4px; cursor: move; display: block;" draggable="true" />
+          <div class="img-controls" contenteditable="false" style="position: absolute; top: -12px; right: -12px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 10;">
+            <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; items-center; justify-content: center; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✕</button>
+          </div>
+          <div class="resizer" contenteditable="false" style="position: absolute; bottom: -5px; right: -5px; width: 14px; height: 14px; cursor: nwse-resize; background: #6366f1; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10;"></div>
+        </div>
+      `;
+      
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        const div = document.createElement('div');
+        div.innerHTML = imgHtml.trim();
+        const frag = document.createDocumentFragment();
+        let node;
+        while (node = div.firstChild) {
+          frag.appendChild(node);
+        }
+        range.insertNode(frag);
+      } else {
+        editor.innerHTML += imgHtml;
+      }
+      if (editing) setEditing({ ...editing, html: editor.innerHTML });
+      setImageLibraryOpen(false);
+    }
+  };
+
   const filteredList = list.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || 
                          t.subject.toLowerCase().includes(search.toLowerCase());
@@ -632,9 +685,12 @@ export default function EmailTemplates() {
                       size="icon" 
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        loadImages();
+                        setImageLibraryOpen(true);
+                      }}
                       disabled={uploading}
-                      title="Inserir imagem (Upload)"
+                      title="Inserir imagem"
                     >
                       {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
                     </Button>
@@ -786,6 +842,54 @@ export default function EmailTemplates() {
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               Salvar Template
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Galeria de Imagens Estilo Imagem Enviada */}
+      <Dialog open={imageLibraryOpen} onOpenChange={setImageLibraryOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-slate-900">Selecione uma Imagem</DialogTitle>
+                <p className="text-xs text-slate-500">Escolha uma imagem da sua galeria ou faça upload de uma nova.</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setImageLibraryOpen(false)} className="rounded-full">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {/* Botão de Upload na Galeria */}
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-indigo-600">Upload</span>
+              </button>
+
+              {imageLibrary.map((img, i) => (
+                <button 
+                  key={i}
+                  onClick={() => insertImageFromUrl(img.url)}
+                  className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-white hover:border-indigo-500 hover:ring-2 hover:ring-indigo-200 transition-all relative group"
+                >
+                  <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold uppercase tracking-wider">Selecionar</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
