@@ -44,6 +44,11 @@ const Produtos = lazyWithRecovery(() => import("./pages/Produtos"));
 const AquecimentoNumero = lazyWithRecovery(() => import("./pages/AquecimentoNumero"));
 const NotificacoesApp = lazyWithRecovery(() => import("./pages/NotificacoesApp"));
 
+const EmailConfiguracao = lazyWithRecovery(() => import("./pages/email/EmailConfiguracao"));
+const EmailCaixaEntrada = lazyWithRecovery(() => import("./pages/email/EmailCaixaEntrada"));
+const EmailDisparo = lazyWithRecovery(() => import("./pages/email/EmailDisparo"));
+const EmailTemplates = lazyWithRecovery(() => import("./pages/email/EmailTemplates"));
+
 const InvitePage = lazyWithRecovery(() => import("./pages/InvitePage"));
 const NotFound = lazyWithRecovery(() => import("./pages/NotFound"));
 const TemplatesAprovados = lazyWithRecovery(() => import("./pages/TemplatesAprovados"));
@@ -241,6 +246,11 @@ const App = () => (
                   <Route path="/telegram/traqueamento" element={<TelegramPlaceholder title="Traqueamento" description="Configure pixels e eventos de conversão." />} />
                   <Route path="/telegram/links-traqueamento" element={<TelegramLinksTraqueamento />} />
                   <Route path="/telegram/links-utm" element={<TelegramLinksUtm />} />
+                  {/* Email routes */}
+                  <Route path="/email/configuracao" element={<EmailConfiguracao />} />
+                  <Route path="/email/caixa-entrada" element={<EmailCaixaEntrada />} />
+                  <Route path="/email/disparo" element={<EmailDisparo />} />
+                  <Route path="/email/templates" element={<EmailTemplates />} />
                   <Route path="/gateway-checkout/products" element={<KycWrap><PayProducts /></KycWrap>} />
                   <Route path="/gateway-checkout/products/new" element={<KycWrap><PayProductManagement /></KycWrap>} />
                   <Route path="/gateway-checkout/products/edit/:id" element={<KycWrap><PayProductManagement /></KycWrap>} />
