@@ -31,18 +31,17 @@ async function getUserZAPICredentials(
 
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, evolution_api_url, evolution_api_key, instance_name, api_provider, is_default')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .neq('api_provider', 'uazapi')
     .order('is_default', { ascending: false })
 
   const zapi = zapiInstances?.[0]
   if (zapi) {
     console.log(`✅ Found Z-API credentials for user ${user.id}`)
     return {
-      instanceId: zapi.zapi_instance_id,
-      token: zapi.zapi_token || '',
+      instanceId: zapi.zapi_instance_id || zapi.evolution_api_url || '',
+      token: zapi.zapi_token || zapi.evolution_api_key || '',
       clientToken: zapi.zapi_client_token || '',
       userId: user.id,
       instanceName: zapi.instance_name || 'Z-API Instance',
