@@ -181,7 +181,7 @@ export default function EmailTemplates() {
         </div>
       )}
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 rounded-2xl overflow-hidden border-0">
           <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
