@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Users, User, Phone, Calendar, ArrowRight } from "lucide-react";
+import { Users, User, Phone, Calendar, ArrowRight, UsersRound } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useAgentConfig } from "@/hooks/useAgentConfig";
 
 interface Lead {
   id: string;
@@ -27,6 +30,7 @@ export const AgentFunnel = () => {
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const { config, saveConfig, saving } = useAgentConfig();
 
   const fetchCounts = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -92,6 +96,25 @@ export const AgentFunnel = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/40">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-md bg-primary/10">
+            <UsersRound className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <Label className="text-sm font-medium">Desativar envio em grupos</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              O agente ignora mensagens recebidas em grupos
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={config.disable_in_groups === true}
+          disabled={saving}
+          onCheckedChange={(checked) => saveConfig({ disable_in_groups: checked })}
+        />
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         {STAGES.map((stage) => {
           const Icon = stage.icon;
