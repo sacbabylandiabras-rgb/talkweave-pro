@@ -105,12 +105,12 @@ export default function EmailTemplates() {
       const editor = document.getElementById('email-editor');
       if (editor) {
         const imgHtml = `
-          <div class="img-container" style="display: inline-block; position: relative; margin: 10px; line-height: 0;">
-            <img src="${publicUrl}" alt="imagem" style="width: 300px; height: auto; border-radius: 8px; cursor: pointer; display: block;" />
-            <div class="img-controls" contenteditable="false" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px;">
-              <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 10px;">X</button>
+          <div class="img-container" style="display: inline-block; position: relative; margin: 10px; line-height: 0; border: 1px dashed #cbd5e1; padding: 4px; border-radius: 8px;">
+            <img src="${publicUrl}" alt="imagem" style="width: 300px; height: auto; border-radius: 4px; cursor: move; display: block;" draggable="true" />
+            <div class="img-controls" contenteditable="false" style="position: absolute; top: -12px; right: -12px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 10;">
+              <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; items-center; justify-content: center; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✕</button>
             </div>
-            <div class="resizer" contenteditable="false" style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; background: #6366f1; border-radius: 50%;"></div>
+            <div class="resizer" contenteditable="false" style="position: absolute; bottom: -5px; right: -5px; width: 14px; height: 14px; cursor: nwse-resize; background: #6366f1; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10;"></div>
           </div>
         `;
         
@@ -444,9 +444,9 @@ export default function EmailTemplates() {
                   <style>{`
                     .img-container:hover .img-controls { opacity: 1 !important; }
                     .img-container.selected .img-controls { opacity: 1 !important; }
-                    .img-container.selected { outline: 2px solid #6366f1; }
-                    [contenteditable] img { outline: 2px solid transparent; transition: outline 0.2s; }
-                    [contenteditable] img:hover { outline: 2px solid #6366f1; }
+                    .img-container.selected { outline: 2px solid #6366f1; border-style: solid !important; }
+                    [contenteditable] img { transition: outline 0.2s; }
+                    .img-container:hover { border-color: #6366f1 !important; }
                   `}</style>
                   <div 
                     contentEditable
