@@ -183,11 +183,12 @@ export default function CheckoutEmailSection() {
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-            Autenticação de Domínio (Resend)
+            Autenticação de Domínio (Zaplynx & Resend)
           </CardTitle>
           <CardDescription className="text-xs">
-            Configure o DKIM e SPF para garantir a entrega dos e-mails.
+            Configure o DKIM e SPF para garantir a entrega dos e-mails pela Zaplynx.
           </CardDescription>
+
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
