@@ -24,6 +24,7 @@ export default function EmailTemplates() {
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
   const [globalCss, setGlobalCss] = useState("");
+  const [pageStyle, setPageStyle] = useState({ backgroundColor: "#f8fafc", width: 600, padding: 20 });
 
   const load = async () => {
     setLoading(true);
@@ -452,6 +453,62 @@ export default function EmailTemplates() {
                   <div className="border-b border-slate-200">
                     <button 
                       onClick={() => {
+                        const panel = document.getElementById('page-style-panel');
+                        const isHidden = panel?.classList.contains('hidden');
+                        document.querySelectorAll('.footer-panel').forEach(p => p.classList.add('hidden'));
+                        if (isHidden) panel?.classList.remove('hidden');
+                      }}
+                      className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
+                        <FileText className="w-3 h-3" /> Page style
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-slate-400" />
+                    </button>
+                    
+                    <div id="page-style-panel" className="footer-panel hidden p-4 bg-slate-50 border-t border-slate-100 space-y-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Background</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 font-mono uppercase">{pageStyle.backgroundColor}</span>
+                            <input 
+                              type="color" 
+                              value={pageStyle.backgroundColor}
+                              onChange={(e) => setPageStyle({ ...pageStyle, backgroundColor: e.target.value })}
+                              className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer rounded overflow-hidden"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Width (px)</Label>
+                            <Input 
+                              type="number" 
+                              value={pageStyle.width}
+                              onChange={(e) => setPageStyle({ ...pageStyle, width: Number(e.target.value) })}
+                              className="h-8 text-xs bg-white border-slate-200"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Padding (px)</Label>
+                            <Input 
+                              type="number" 
+                              value={pageStyle.padding}
+                              onChange={(e) => setPageStyle({ ...pageStyle, padding: Number(e.target.value) })}
+                              className="h-8 text-xs bg-white border-slate-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div className="border-b border-slate-200">
+                    <button 
+                      onClick={() => {
                         const themePanel = document.getElementById('theme-panel');
                         const isHidden = themePanel?.classList.contains('hidden');
                         document.querySelectorAll('.footer-panel').forEach(p => p.classList.add('hidden'));
@@ -616,7 +673,7 @@ export default function EmailTemplates() {
                   </div>
                   <Badge variant="outline" className="text-[10px] text-slate-400 bg-white">Modo HTML / Texto Rico</Badge>
                 </div>
-                <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none relative">
+                <div className="flex-1 p-6 bg-slate-200 overflow-y-auto min-h-[500px] border-none relative flex flex-col items-center">
                   <style>{`
                     .img-container:hover .img-controls { opacity: 1 !important; }
                     .img-container.selected .img-controls { opacity: 1 !important; }
@@ -625,12 +682,20 @@ export default function EmailTemplates() {
                     .img-container:hover { border-color: #6366f1 !important; }
                      ${buildThemeCss(themeStyles)}
                      ${globalCss}
-
+                     #email-editor {
+                       background-color: ${pageStyle.backgroundColor};
+                       width: ${pageStyle.width}px;
+                       padding: ${pageStyle.padding}px;
+                       margin: 0 auto;
+                       box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+                       min-height: 100%;
+                     }
                   `}</style>
                   <div 
                     contentEditable
                     id="email-editor"
-                    className="w-full h-full min-h-[450px] focus:outline-none prose prose-slate max-w-none"
+                    className="focus:outline-none prose prose-slate max-w-none"
+
                     onBlur={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
                     }}
