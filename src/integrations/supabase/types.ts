@@ -2111,6 +2111,42 @@ export type Database = {
         }
         Relationships: []
       }
+      resend_webhook_events: {
+        Row: {
+          created_at: string
+          email_id: string | null
+          event_type: string
+          id: string
+          raw_payload: Json
+          recipient: string | null
+          sender: string | null
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_id?: string | null
+          event_type: string
+          id?: string
+          raw_payload?: Json
+          recipient?: string | null
+          sender?: string | null
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_id?: string | null
+          event_type?: string
+          id?: string
+          raw_payload?: Json
+          recipient?: string | null
+          sender?: string | null
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       saved_contacts: {
         Row: {
           agent_stage: string | null
@@ -2168,6 +2204,24 @@ export type Database = {
           responsible_ids?: Json | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      sent_emails_mapping: {
+        Row: {
+          created_at: string
+          email_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
