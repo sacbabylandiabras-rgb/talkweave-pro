@@ -35,6 +35,8 @@ import {
   Upload,
   Wrench,
   BarChart3,
+  Mic,
+  CheckCircle2,
 } from "lucide-react";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -108,6 +110,13 @@ const AgenteIA = () => {
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
   const [voice, setVoice] = useState("nova");
+  const [voiceProvider, setVoiceProvider] = useState<"openai" | "elevenlabs">("openai");
+  const [elevenApiKey, setElevenApiKey] = useState("");
+  const [elevenVoiceId, setElevenVoiceId] = useState("");
+  const [elevenVoiceName, setElevenVoiceName] = useState("");
+  const [cloneAudioFile, setCloneAudioFile] = useState<File | null>(null);
+  const [cloneName, setCloneName] = useState("");
+  const [cloning, setCloning] = useState(false);
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -180,6 +189,10 @@ const AgenteIA = () => {
       setIsActive(config.active);
       setModel(config.model);
       setVoice(config.voice || "nova");
+      setVoiceProvider((config.voice_provider as any) || "openai");
+      setElevenApiKey(config.elevenlabs_api_key || "");
+      setElevenVoiceId(config.elevenlabs_voice_id || "");
+      setElevenVoiceName(config.elevenlabs_voice_name || "");
     }
   }, [loading, config]);
 
@@ -198,7 +211,58 @@ const AgenteIA = () => {
       provider, 
       model,
       voice,
+      voice_provider: voiceProvider,
+      elevenlabs_api_key: elevenApiKey,
+      elevenlabs_voice_id: elevenVoiceId,
+      elevenlabs_voice_name: elevenVoiceName,
     });
+  };
+
+  const handleCloneVoice = async () => {
+    if (!cloneAudioFile) {
+      toast({ title: "Selecione um arquivo de áudio", variant: "destructive" });
+      return;
+    }
+    if (!elevenApiKey.trim()) {
+      toast({ title: "Informe o Token de Voz Premium primeiro", variant: "destructive" });
+      return;
+    }
+    setCloning(true);
+    try {
+      const form = new FormData();
+      form.append("audio", cloneAudioFile);
+      form.append("api_key", elevenApiKey.trim());
+      form.append("name", cloneName.trim() || "Minha Voz");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+      const url = `https://${projectId}.supabase.co/functions/v1/clone-voice`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao clonar voz");
+
+      setElevenVoiceId(data.voice_id);
+      setElevenVoiceName(data.voice_name);
+      setVoiceProvider("elevenlabs");
+      setCloneAudioFile(null);
+      setCloneName("");
+      toast({ title: "Voz clonada com sucesso!", description: "Já está ativa nas respostas em áudio." });
+      // Persistir no agent_config para garantir consistência
+      await saveConfig({
+        voice_provider: "elevenlabs",
+        elevenlabs_api_key: elevenApiKey.trim(),
+        elevenlabs_voice_id: data.voice_id,
+        elevenlabs_voice_name: data.voice_name,
+      });
+    } catch (err: any) {
+      toast({ title: "Erro ao clonar voz", description: err?.message || String(err), variant: "destructive" });
+    } finally {
+      setCloning(false);
+    }
   };
 
   const handleAddFaq = async () => {
