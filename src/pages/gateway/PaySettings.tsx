@@ -292,7 +292,7 @@ export default function PaySettings() {
 
   return (
     <div className="space-y-6">
-      {activeTab !== "dominio" && activeTab !== "email" && (
+      {activeTab !== "dominio" && (
         <div>
           <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
           <p className="text-sm text-muted-foreground">Gerencie as configurações da sua conta</p>
@@ -300,11 +300,10 @@ export default function PaySettings() {
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
-        {activeTab !== "dominio" && activeTab !== "email" && (
+        {activeTab !== "dominio" && (
           <TabsList className="bg-muted/50">
             <TabsTrigger value="empresa"><Building2 className="w-3.5 h-3.5 mr-1.5" />Conta</TabsTrigger>
             <TabsTrigger value="dominio"><Globe className="w-3.5 h-3.5 mr-1.5" />Domínio</TabsTrigger>
-            <TabsTrigger value="email"><Mail className="w-3.5 h-3.5 mr-1.5" />E-mail</TabsTrigger>
             <TabsTrigger value="api"><Key className="w-3.5 h-3.5 mr-1.5" />API Keys</TabsTrigger>
             <TabsTrigger value="webhooks"><Webhook className="w-3.5 h-3.5 mr-1.5" />Webhooks</TabsTrigger>
             <TabsTrigger value="notificacoes"><Bell className="w-3.5 h-3.5 mr-1.5" />Notificações</TabsTrigger>
