@@ -2727,6 +2727,17 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
   const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
   const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
+  const displayedSelectedConversation = useMemo(
+    () =>
+      selectedConversation && manualProfilePic
+        ? { ...selectedConversation, profilePictureUrl: manualProfilePic }
+        : selectedConversation,
+    [selectedConversation, manualProfilePic],
+  );
+
+  useEffect(() => {
+    setManualProfilePic(null);
+  }, [normalizedSelectedPhone]);
 
   useEffect(() => {
     if (!selectedPhone) return;
@@ -2785,11 +2796,13 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     const convInstanceId = conv?.preferredInstanceId;
 
     // Resolve o zapi_instance_id a partir do preferredInstanceId da conversa
-    let resolvedZapiInstanceId = selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null;
+    let resolvedZapiInstanceId = selectedInstanceId !== "all" ? selectedInstance?.zapi_instance_id || null : null;
     if (convInstanceId) {
       const matchedInst = instances.find((i: any) => i.id === convInstanceId || i.zapi_instance_id === convInstanceId);
       if (matchedInst?.zapi_instance_id) {
         resolvedZapiInstanceId = matchedInst.zapi_instance_id;
+      } else if (/^[a-z0-9]{24,}$/i.test(convInstanceId)) {
+        resolvedZapiInstanceId = convInstanceId;
       }
     }
 
@@ -2801,8 +2814,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     if (!force) {
       if (url) {
         toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
+      } else {
+        toast({ title: "Sem foto disponível", description: "Não encontrei foto para essa conversa nas conexões disponíveis." });
       }
-      // Sem toast de erro — grupos sem foto é comportamento normal do WhatsApp
     }
   };
 
