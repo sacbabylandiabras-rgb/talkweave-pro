@@ -34,6 +34,7 @@ async function getUserZAPICredentials(
     .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default, is_active')
     .eq('user_id', user.id)
     .eq('api_provider', 'zapi')
+    .eq('is_active', true)
     .order('is_active', { ascending: false })
     .order('is_default', { ascending: false })
 
@@ -197,6 +198,7 @@ const extractGroupName = (payload: any): string | null => {
          .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
          .eq('user_id', credentials.userId)
          .eq('api_provider', 'zapi')
+        .eq('is_active', true)
          .maybeSingle()
  
        if (specificInstance) {
@@ -213,6 +215,7 @@ const extractGroupName = (payload: any): string | null => {
            .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active')
          .eq('user_id', credentials.userId)
           .eq('api_provider', 'zapi')
+          .eq('is_active', true)
           .order('is_active', { ascending: false })
          .order('is_default', { ascending: false })
  
@@ -273,15 +276,13 @@ const extractGroupName = (payload: any): string | null => {
                if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta, name: nameMeta, raw: dataMeta } }
 
             } else {
-              const formats = [numericId, `${numericId}@c.us`]
-              for (const f of formats) {
-                console.log(`📷 Checking profile-picture for ${f} on ${provider}`);
-                const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(f)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-                const data = await res.json().catch(() => null)
-                console.log(`📷 Result for ${f}: ${res.status}`, JSON.stringify(data).substring(0, 100));
-                const link = extractUrl(data)
-                if (res.ok && link) return { success: true, data: { link, raw: data } }
-              }
+              // Per Z-API docs, phone must be DDI+DDD+number (no @c.us suffix)
+              console.log(`📷 Checking profile-picture for ${numericId} on ${provider}`);
+              const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+              const data = await res.json().catch(() => null)
+              console.log(`📷 Result for ${numericId}: ${res.status}`, JSON.stringify(data).substring(0, 120));
+              const link = extractUrl(data)
+              if (res.ok && link) return { success: true, data: { link, raw: data } }
                // Try get-contact profile picture endpoint
                if (!isGroup) {
                  const contactRes = await fetch(`${base}/contacts/${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
