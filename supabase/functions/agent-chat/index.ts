@@ -517,8 +517,6 @@ const INSTAGRAM_META_APP_ID = "1629147191696096";
 // ============ WHATSAPP HELPERS ============
 type WhatsAppCreds = {
   provider: string;
-  apiUrl?: string;
-  apiToken?: string;
   zapiInstanceId?: string;
   zapiToken?: string;
   zapiClientToken?: string;
