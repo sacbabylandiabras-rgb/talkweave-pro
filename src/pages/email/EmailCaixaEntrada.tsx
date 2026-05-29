@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface EventRow {
   id: string;
@@ -40,6 +41,23 @@ export default function EmailCaixaEntrada() {
     setLoading(false);
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("resend_webhook_events")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setRows((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Email apagado com sucesso");
+    } catch (error: any) {
+      console.error("Error deleting email event:", error);
+      toast.error("Erro ao apagar email");
+    }
+  };
+
   useEffect(() => { load(); }, []);
 
   return (
@@ -71,7 +89,17 @@ export default function EmailCaixaEntrada() {
                     <p className="text-sm font-medium truncate">{r.subject || "(sem assunto)"}</p>
                     <p className="text-xs text-muted-foreground truncate">{r.recipient} {r.sender && `• de ${r.sender}`}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(r.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
