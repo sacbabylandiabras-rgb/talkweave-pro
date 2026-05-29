@@ -1371,6 +1371,7 @@ async function executeFlow(
           skip_config: true,
           model: node.data.model || "claude-sonnet-4-6",
           sent_proof_ids: existingSentProofIds,
+          user_sent_audio: !!incomingAudioUrl,
         }
       });
 
@@ -1425,6 +1426,20 @@ async function executeFlow(
           aiDestination = numericId ? `${numericId}-group` : aiDestination;
         }
         
+        if (agentResponse?.use_audio === true && !buttons.length) {
+          try {
+            const { data: ttsData, error: ttsErr } = await supabase.functions.invoke("tts", {
+              body: { text: aiResponse, conversation_id: aiDestination },
+            });
+            if (!ttsErr && ttsData?.audio_url) {
+              await sendZapiText(instance, aiDestination, "", [], node.id, "audio", ttsData.audio_url, supabase, userId, flow.name);
+            } else {
+              console.error("[Flow:agenteIA] TTS failed, fallback to text:", ttsErr);
+            }
+          } catch (e) {
+            console.error("[Flow:agenteIA] TTS exception:", e);
+          }
+        }
         await sendZapiText(instance, aiDestination, aiResponse, buttons, node.id, "text", "", supabase, userId, flow.name);
         
         const nextEdgeForAgent = edges.find(
